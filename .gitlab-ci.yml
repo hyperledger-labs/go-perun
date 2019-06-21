@@ -1,0 +1,41 @@
+stages:
+  - vetting
+  - tests
+
+before_script:
+  - go get -u golang.org/x/lint/golint
+  - export GOPATH=$HOME/go
+  - export PATH=$PATH:$GOROOT/bin:$GOPATH/bin
+
+lint:
+  image: golang
+  stage: vetting
+  script:
+    - golint -set_exit_status ./...
+  allow_failure: true
+
+vet:
+  image: golang
+  stage: vetting
+  script:
+    - go vet ./...
+
+unit_tests:
+  image: golang
+  stage: tests
+  script:
+    - go test -short ./...
+
+unit_race_tests:
+  image: golang
+  stage: tests
+  script:
+    - go test -race ./...
+
+codecoverage:
+  image: golang
+  stage: tests
+  script:
+    - go test -cover ./...
+
+
