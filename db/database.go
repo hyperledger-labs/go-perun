@@ -10,7 +10,14 @@
 
 package db
 
-import "io"
+import (
+	"github.com/pkg/errors"
+	"io"
+)
+
+var (
+	ErrNotFound = errors.New("db: key not found")
+)
 
 // Reader wraps the Had and Get methods of a key-value store.
 type Reader interface {
