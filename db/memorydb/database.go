@@ -27,9 +27,11 @@ func NewDatabase() db.Database {
 	}
 }
 
-// Creates a Database from a map of values.
-// `data` will not be cloned.
-// If `data` is nil, an empty database is created.
+/*
+	FromData creates a Database from a map of values.
+	The provided data will not be cloned. If data is nil, an empty database is
+	created.
+*/
 func FromData(data map[string][]byte) db.Database {
 	if data == nil {
 		data = make(map[string][]byte)
@@ -158,9 +160,9 @@ func (this *Database) readValues(keys []string) [][]byte {
 
 func (this *Database) Property(property string) (string, error) {
 	switch property {
-	case "entries":
+	case "count":
 		return strconv.Itoa(len(this.data)), nil
-	case "valuebytes":
+	case "valuesize":
 		{
 			size := 0
 			for key := range this.data {
@@ -175,24 +177,8 @@ func (this *Database) Property(property string) (string, error) {
 	}
 }
 
-func (this *Database) Properties() (map[string]string, error) {
-	props := make(map[string]string)
-	var err error
-
-	props["entries"], err = this.Property("entries")
-	if err != nil {
-		return nil, errors.Wrap(err, "Properties()")
-	}
-	props["valuebytes"], err = this.Property("valuebytes")
-	if err != nil {
-		return nil, errors.Wrap(err, "Properties()")
-	}
-	props["type"], err = this.Property("type")
-	if err != nil {
-		return nil, errors.Wrap(err, "Properties()")
-	}
-
-	return props, nil
+func (this *Database) DefaultProperties() (map[string]string, error) {
+	return db.Properties(this, []string{"count", "valuesize", "type"})
 }
 
 // Compacter interface.

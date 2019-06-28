@@ -41,12 +41,36 @@ type Writer interface {
 
 // PropertyProvider wraps the Property and Properties method of a database.
 type PropertyProvider interface {
-	// Stat returns a particular internal stat of the database.
+	/*
+		Property looks up a property in the database.
+		Requesting unknown properties results in an error.
+	*/
 	Property(property string) (string, error)
 
-	// Stats returns a default set of common stats of the database.
-	// Good for debugging purposes
-	Properties() (map[string]string, error)
+	/*
+		DefaultProperties returns an implementation specific set of stats of the database.
+		These stats can be useful for verbose logging.
+
+		Example implementation (see memorydb):
+			func (this *Database) DefaultProperties() (map[string]string, error) {
+			    return db.Properties(this, []string{"count", "valuesize", "type"})
+			}
+	*/
+	DefaultProperties() (map[string]string, error)
+}
+
+// Helper function to look up multiple properties at once.
+func Properties(this PropertyProvider, names []string) (props map[string]string, err error) {
+	props = make(map[string]string)
+	for _, name := range names {
+		props[name], err = this.Property(name)
+		if err != nil {
+			err = errors.Wrap(err, "Error retrieving property '"+name+"'")
+			return
+		}
+	}
+
+	return
 }
 
 // Compacter wraps the Compact method of a key-value store.
@@ -61,6 +85,7 @@ type Compacter interface {
 	Compact(start, end []byte) error
 }
 
+// Database is a key-value store (not to be confused with SQL-like databases).
 type Database interface {
 	Reader
 	Writer
