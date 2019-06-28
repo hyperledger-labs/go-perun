@@ -18,23 +18,21 @@ type Iterator interface {
 	// iterator is exhausted and true otherwise.
 	Next() bool
 
-	// Error returns any accumulated error. Exhausting all the key/value pairs
-	// is not considered to be an error.
-	Error() error
+	// Key returns the key of the current key/value pair, or "" if done.
+	Key() string
 
-	// Key returns the key of the current key/value pair, or nil if done. The caller
-	// should not modify the contents of the returned slice, and its contents may
-	// change on the next call to Next.
-	Key() []byte
+	// Value returns the value of the current key/value pair, or "" if done.
+	Value() string
 
-	// Value returns the value of the current key/value pair, or nil if done. The
+	// ValueBytes returns the value of the current key/value pair, or nil if done. The
 	// caller should not modify the contents of the returned slice, and its contents
 	// may change on the next call to Next.
-	Value() []byte
+	ValueBytes() []byte
 
-	// Release releases associated resources. Release should always succeed and can
-	// be called multiple times without causing error.
-	Release()
+	// Close releases associated resources. It returns any accumulated error.
+	// Exhausting all the key/value pairs is not considered to be an error.
+	// Close can be called multiple times.
+	Close() error
 }
 
 // Iteratee wraps the NewIterator methods of a backing data store.
@@ -46,9 +44,9 @@ type Iterateable interface {
 	// NewIteratorWithStart creates a binary-alphabetical iterator over a subset of
 	// database content starting at a particular initial key (or after, if it does
 	// not exist).
-	NewIteratorWithStart(start []byte) Iterator
+	NewIteratorWithStart(start string) Iterator
 
 	// NewIteratorWithPrefix creates a binary-alphabetical iterator over a subset
 	// of database content with a particular key prefix.
-	NewIteratorWithPrefix(prefix []byte) Iterator
+	NewIteratorWithPrefix(prefix string) Iterator
 }

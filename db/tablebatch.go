@@ -8,17 +8,17 @@ package db
 // Writer operations are automatically prefixed.
 type tableBatch struct {
 	Batch
-	prefix []byte
+	prefix string
 }
 
-func (b *tableBatch) pkey(key []byte) []byte {
-	return append(b.prefix, key...)
+func (b *tableBatch) pkey(key string) string {
+	return b.prefix + key
 }
 
-func (b *tableBatch) Put(key, value []byte) error {
+func (b *tableBatch) Put(key, value string) error {
 	return b.Batch.Put(b.pkey(key), value)
 }
 
-func (b *tableBatch) Delete(key []byte) error {
+func (b *tableBatch) Delete(key string) error {
 	return b.Batch.Delete(b.pkey(key))
 }

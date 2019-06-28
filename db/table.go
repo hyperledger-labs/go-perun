@@ -4,42 +4,56 @@
 
 package db
 
+import "sync"
+
 // Table is a wrapper around a database with a key prefix. All key access is
 // automatically prefixed. Close() is a noop and properties are forwarded
 // from the database.
 type table struct {
 	Database
-	prefix []byte
+	prefix      string
+	compactOnce sync.Once // Lazily caclulate nextPrefix on first Compact call
+	nextPrefix  string    // Compacter needs to know the next prefix as upper bound
 }
 
-func NewTable(db Database, prefix []byte) *table {
+func NewTable(db Database, prefix string) *table {
 	return &table{
 		Database: db,
 		prefix:   prefix,
 	}
 }
 
-func (t *table) pkey(key []byte) []byte {
-	return append(t.prefix, key...)
+func (t *table) pkey(key string) string {
+	return t.prefix + key
 }
 
 // Has calls db.Has with the prefixed key
-func (t *table) Has(key []byte) (bool, error) {
+func (t *table) Has(key string) (bool, error) {
 	return t.Database.Has(t.pkey(key))
 }
 
 // Get calls db.Get with the prefixed key
-func (t *table) Get(key []byte) ([]byte, error) {
+func (t *table) Get(key string) (string, error) {
 	return t.Database.Get(t.pkey(key))
 }
 
+// GetBytes calls db.GetBytes with the prefixed key
+func (t *table) GetBytes(key string) ([]byte, error) {
+	return t.Database.GetBytes(t.pkey(key))
+}
+
 // Put calls db.Put with the prefixed key
-func (t *table) Put(key, value []byte) error {
+func (t *table) Put(key, value string) error {
 	return t.Database.Put(t.pkey(key), value)
 }
 
+// PutBytes calls db.PutBytes with the prefixed key
+func (t *table) PutBytes(key string, value []byte) error {
+	return t.Database.PutBytes(t.pkey(key), value)
+}
+
 // Delete calls db.Delete with the prefixed key
-func (t *table) Delete(key []byte) error {
+func (t *table) Delete(key string) error {
 	return t.Database.Delete(t.pkey(key))
 }
 
@@ -51,30 +65,22 @@ func (t *table) NewIterator() Iterator {
 	return t.Database.NewIteratorWithPrefix(t.prefix)
 }
 
-func (t *table) NewIteratorWithStart(start []byte) Iterator {
+func (t *table) NewIteratorWithStart(start string) Iterator {
 	return t.Database.NewIteratorWithStart(t.pkey(start))
 }
 
-func (t *table) NewIteratorWithPrefix(prefix []byte) Iterator {
+func (t *table) NewIteratorWithPrefix(prefix string) Iterator {
 	return t.Database.NewIteratorWithPrefix(t.pkey(prefix))
 }
 
-func (t *table) Compact(start, end []byte) error {
-	// if no limit is specified, we need to set the first key after the
-	// prefix
-	if end == nil {
-		end = []byte(t.prefix)
-		for i := len(end) - 1; i >= 0; i-- {
-			// Bump the current character, stopping if it doesn't overflow
-			end[i]++
-			if end[i] > 0 {
-				break
-			}
-			// Character overflown, proceed to the next or nil if the last
-			if i == 0 {
-				end = nil
-			}
-		}
+func (t *table) Compact(start, end string) error {
+	// lazily caclulate next key once Compact is called for the first time
+	t.compactOnce.Do(func() {
+		t.nextPrefix = nextKey(t.prefix)
+	})
+	// if no end is specified, we need to set it to the key after the prefix
+	if end == "" {
+		end = t.nextPrefix
 	} else {
 		end = t.pkey(end)
 	}
@@ -84,4 +90,20 @@ func (t *table) Compact(start, end []byte) error {
 
 func (t *table) Close() error {
 	return nil
+}
+
+func nextKey(key string) string {
+	keyb := []byte(key)
+	for i := len(keyb) - 1; i >= 0; i-- {
+		// Increment current byte, stop if it doesn't overflow
+		keyb[i]++
+		if keyb[i] > 0 {
+			break
+		}
+		// Character overflown, proceed to next or return "" if last
+		if i == 0 {
+			return ""
+		}
+	}
+	return string(keyb)
 }
