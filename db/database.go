@@ -16,9 +16,13 @@ import (
 	"github.com/pkg/errors"
 )
 
-var (
-	ErrNotFound = errors.New("db: key not found")
-)
+type ErrNotFound struct {
+	Key string
+}
+
+func (e *ErrNotFound) Error() string {
+	return "db: key not found: " + e.Key
+}
 
 // Reader wraps the Had and Get methods of a key-value store.
 type Reader interface {
