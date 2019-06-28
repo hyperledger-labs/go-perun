@@ -25,14 +25,14 @@ func (this *Iterator) Next() bool {
 
 func (this *Iterator) Error() error {
 	if this.next == 0 {
-		log.Fatalln("Iterator.Error() accessed before Next().")
+		log.Fatalln("Iterator.Error() accessed before Next() or after Release().")
 	}
 	return nil
 }
 
 func (this *Iterator) Key() []byte {
 	if this.next == 0 {
-		log.Fatalln("Iterator.Key() accessed before Next().")
+		log.Fatalln("Iterator.Key() accessed before Next() or after Release().")
 	}
 
 	if this.next > len(this.keys) {
