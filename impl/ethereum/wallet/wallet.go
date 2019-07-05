@@ -12,7 +12,7 @@ import (
 	"github.com/ethereum/go-ethereum/accounts/keystore"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
-	perun "github.com/perun-network/go-perun/wallet"
+	perun "perun.network/go-perun/wallet"
 )
 
 // Wallet represents an ethereum wallet

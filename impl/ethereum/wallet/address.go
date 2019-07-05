@@ -5,7 +5,10 @@
 package wallet
 
 import (
+	"bytes"
+
 	"github.com/ethereum/go-ethereum/common"
+	perun "perun.network/go-perun/wallet"
 )
 
 // Address represents an ethereum address
@@ -14,17 +17,16 @@ type Address struct {
 }
 
 // Bytes converts this address to bytes
-(a *Address) Bytes() []byte {
+func (a *Address) Bytes() []byte {
 	return a.Address.Bytes()
 }
 
 // String converts this address to a string
-(a *Address) String() string {
+func (a *Address) String() string {
 	return a.Address.String()
 }
 
 // Equals checks the equality of two addresses
-(a *Address) Equals(addr Address) bool {
-	return a.Address.Bytes() == addr.Bytes()
+func (a *Address) Equals(addr perun.Address) bool {
+	return bytes.Equal(a.Address.Bytes(), addr.Bytes())
 }
-

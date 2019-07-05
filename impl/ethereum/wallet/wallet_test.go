@@ -9,7 +9,7 @@ import (
 
 	"github.com/ethereum/go-ethereum/accounts"
 	"github.com/ethereum/go-ethereum/common"
-	generic "github.com/perun-network/go-perun/wallet/wallet_test"
+	generic "perun.network/go-perun/wallet/wallet_test"
 	"github.com/stretchr/testify/assert"
 )
 

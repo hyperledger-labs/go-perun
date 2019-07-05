@@ -7,7 +7,7 @@ package wallet
 import (
 	"github.com/ethereum/go-ethereum/accounts"
 	"github.com/ethereum/go-ethereum/crypto"
-	perun "github.com/perun-network/go-perun/wallet"
+	perun "perun.network/go-perun/wallet"
 )
 
 // Account represents an ethereum account
@@ -21,16 +21,6 @@ type Account struct {
 // Address returns the ethereum address of this account
 func (e *Account) Address() perun.Address {
 	return &e.address
-}
-
-// Wallet returns the wallet in which this account is saved
-func (e *Account) Wallet() perun.Wallet {
-	return e.wallet
-}
-
-// Path returns the path to this account
-func (e *Account) Path() string {
-	return e.account.URL.String()
 }
 
 // Unlock unlocks this account
