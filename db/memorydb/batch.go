@@ -12,16 +12,10 @@ type Batch struct {
 	db      *Database
 	writes  map[string]string
 	deletes map[string]struct{}
-	bytes   uint
 }
 
 func (this *Batch) Put(key string, value string) error {
 	delete(this.deletes, key)
-	oldValue, exists := this.writes[key]
-	if exists {
-		this.bytes -= uint(len(oldValue))
-	}
-	this.bytes += uint(len(value))
 	this.writes[key] = value
 	return nil
 }
@@ -31,22 +25,23 @@ func (this *Batch) PutBytes(key string, value []byte) error {
 }
 
 func (this *Batch) Delete(key string) error {
-	oldValue, exists := this.writes[key]
-	if exists {
-		this.bytes -= uint(len(oldValue))
-		delete(this.writes, key)
-	}
-
+	delete(this.writes, key)
 	this.deletes[key] = struct{}{}
 	return nil
 }
 
 func (this *Batch) Len() uint {
-	return uint(len(this.writes))
+	return uint(len(this.writes) + len(this.deletes))
 }
 
 func (this *Batch) ValueSize() uint {
-	return this.bytes
+	bytes := 0
+
+	for _, value := range this.writes {
+		bytes += len(value)
+	}
+
+	return uint(bytes)
 }
 
 func (this *Batch) Apply() error {
@@ -67,7 +62,6 @@ func (this *Batch) Apply() error {
 }
 
 func (this *Batch) Reset() {
-	this.writes = nil
-	this.deletes = nil
-	this.bytes = 0
+	this.writes = make(map[string]string)
+	this.deletes = make(map[string]struct{})
 }

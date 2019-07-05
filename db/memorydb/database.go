@@ -98,7 +98,9 @@ func (this *Database) Delete(key string) error {
 // Batcher interface.
 
 func (this *Database) NewBatch() db.Batch {
-	return &Batch{db: this}
+	batch := Batch{db: this}
+	batch.Reset()
+	return &batch
 }
 
 // Iterateable interface.
