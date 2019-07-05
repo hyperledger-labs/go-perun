@@ -5,7 +5,7 @@
 package db
 
 // Batch is a write-only database that buffers changes to the underlying
-// database until Write() is called.
+// database until Apply() is called.
 type Batch interface {
 	Writer // Put and Delete
 
@@ -15,15 +15,15 @@ type Batch interface {
 	// ValueSize returns the number of bytes of all values accumulated.
 	ValueSize() uint
 
-	// Write writes all buffered items to its database
-	Write() error
+	// Apply performs all batched actions on the database.
+	Apply() error
 
-	// Reset resets the batch so that it doesn't contain any items and can be reused
+	// Reset resets the batch so that it doesn't contain any items and can be reused.
 	Reset()
 }
 
 // Batcher wraps the NewBatch method of a backing data store.
 type Batcher interface {
-	// NewBatch creates a Batch that will write to the Batcher
+	// NewBatch creates a Batch that will write to the Batcher.
 	NewBatch() Batch
 }

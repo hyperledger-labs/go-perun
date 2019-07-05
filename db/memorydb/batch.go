@@ -49,7 +49,7 @@ func (this *Batch) ValueSize() uint {
 	return this.bytes
 }
 
-func (this *Batch) Write() error {
+func (this *Batch) Apply() error {
 	for key, value := range this.writes {
 		err := this.db.Put(key, value)
 		if err != nil {
