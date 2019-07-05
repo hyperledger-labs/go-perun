@@ -4,16 +4,12 @@
 
 package db
 
-import "sync"
-
 // Table is a wrapper around a database with a key prefix. All key access is
 // automatically prefixed. Close() is a noop and properties are forwarded
 // from the database.
 type table struct {
 	Database
-	prefix      string
-	compactOnce sync.Once // Lazily caclulate nextPrefix on first Compact call
-	nextPrefix  string    // Compacter needs to know the next prefix as upper bound
+	prefix string
 }
 
 func NewTable(db Database, prefix string) *table {
@@ -71,39 +67,4 @@ func (t *table) NewIteratorWithStart(start string) Iterator {
 
 func (t *table) NewIteratorWithPrefix(prefix string) Iterator {
 	return t.Database.NewIteratorWithPrefix(t.pkey(prefix))
-}
-
-func (t *table) Compact(start, end string) error {
-	// lazily caclulate next key once Compact is called for the first time
-	t.compactOnce.Do(func() {
-		t.nextPrefix = nextKey(t.prefix)
-	})
-	// if no end is specified, we need to set it to the key after the prefix
-	if end == "" {
-		end = t.nextPrefix
-	} else {
-		end = t.pkey(end)
-	}
-
-	return t.Database.Compact(t.pkey(start), end)
-}
-
-func (t *table) Close() error {
-	return nil
-}
-
-func nextKey(key string) string {
-	keyb := []byte(key)
-	for i := len(keyb) - 1; i >= 0; i-- {
-		// Increment current byte, stop if it doesn't overflow
-		keyb[i]++
-		if keyb[i] > 0 {
-			break
-		}
-		// Character overflown, proceed to next or return "" if last
-		if i == 0 {
-			return ""
-		}
-	}
-	return string(keyb)
 }

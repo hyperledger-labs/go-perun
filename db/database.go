@@ -10,12 +10,6 @@
 // and is also inspired by perkeep.org/pkg/sorted
 package db
 
-import (
-	"io"
-
-	"github.com/pkg/errors"
-)
-
 type ErrNotFound struct {
 	Key string
 }
@@ -51,60 +45,10 @@ type Writer interface {
 	Delete(key string) error
 }
 
-// PropertyProvider wraps the Property and Properties method of a database.
-type PropertyProvider interface {
-	/*
-		Property looks up a property in the database.
-		Requesting unknown properties results in an error.
-	*/
-	Property(property string) (string, error)
-
-	/*
-		DefaultProperties returns an implementation specific set of stats of the database.
-		These stats can be useful for verbose logging.
-
-		Example implementation (see memorydb):
-			func (this *Database) DefaultProperties() (map[string]string, error) {
-			    return db.Properties(this, []string{"count", "valuesize", "type"})
-			}
-	*/
-	DefaultProperties() (map[string]string, error)
-}
-
-// Helper function to look up multiple properties at once.
-func Properties(provider PropertyProvider, names []string) (props map[string]string, err error) {
-	props = make(map[string]string)
-	for _, name := range names {
-		props[name], err = provider.Property(name)
-		if err != nil {
-			err = errors.Wrap(err, "Error retrieving property '"+name+"'")
-			return
-		}
-	}
-
-	return
-}
-
-// Compacter wraps the Compact method of a key-value store.
-type Compacter interface {
-	// Compact flattens the underlying key-value store for the given key range.
-	//
-	// In essence, deleted and overwritten versions are discarded, and the data
-	// is rearranged to reduce the cost of operations needed to access them.
-	//
-	// A "" start is treated as a key before all keys in the data store; a ""
-	// end is treated as a key after all keys in the data store. If both are ""
-	// then it will compact the entire data store.
-	Compact(start, end string) error
-}
-
 // Database is a key-value store (not to be confused with SQL-like databases).
 type Database interface {
 	Reader
 	Writer
 	Batcher
 	Iterable
-	PropertyProvider
-	Compacter
-	io.Closer
 }

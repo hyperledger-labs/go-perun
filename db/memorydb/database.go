@@ -18,10 +18,8 @@ package memorydb
 
 import (
 	"github.com/perun-network/go-perun/db"
-	"github.com/pkg/errors"
 
 	"sort"
-	"strconv"
 	"strings"
 	"sync"
 )
@@ -180,42 +178,4 @@ func (this *Database) readValues(keys []string) []string {
 	}
 
 	return data
-}
-
-// PropertyProvider interface.
-
-func (this *Database) Property(property string) (string, error) {
-	switch property {
-	case "count":
-		return strconv.Itoa(len(this.data)), nil
-	case "valuesize":
-		{
-			size := 0
-			for key := range this.data {
-				size += len(this.data[key])
-			}
-			return strconv.Itoa(len(this.data)), nil
-		}
-	case "type":
-		return "memorydb", nil
-	default:
-		return "", errors.New("Property(): Unknown property '" + property + "'")
-	}
-}
-
-func (this *Database) DefaultProperties() (map[string]string, error) {
-	return db.Properties(this, []string{"count", "valuesize", "type"})
-}
-
-// Compacter interface.
-
-func (this *Database) Compact(start, end string) error {
-	return nil
-}
-
-// io.Closer interface.
-
-func (this *Database) Close() error {
-	this.data = nil
-	return nil
 }

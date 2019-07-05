@@ -26,20 +26,6 @@ func (this *DatabaseTest) test() {
 		this.Fatalf("Did not supply a database!")
 	}
 
-	if err := this.Database.Compact("", ""); err != nil {
-		this.Errorf("Failed to compact: %v", err)
-	}
-
-	if props, err := this.Database.DefaultProperties(); err != nil {
-		this.Errorf("Failed to retrieve properties: %v.\n", err)
-	} else {
-		this.Logf("props: %v\n", props)
-	}
-
-	if prop, err := this.Database.Property("<invalid property name>"); err == nil {
-		this.Errorf("Invalid property returned '%s' instead of error.\n", prop)
-	}
-
 	// Test that the database does not have 1234.
 	this.MustNotHave("1234")
 	// Test that get fails if Has() returns false.
@@ -70,9 +56,6 @@ func (this *DatabaseTest) test() {
 	this.MustGetEqual("asdf", "YXCV")
 	this.Delete("asdf")
 
-	if err := this.Database.Close(); err != nil {
-		this.Errorf("Failed to close database: %v\n", err)
-	}
 	return
 }
 
