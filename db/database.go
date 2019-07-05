@@ -103,7 +103,7 @@ type Database interface {
 	Reader
 	Writer
 	Batcher
-	Iterateable
+	Iterable
 	PropertyProvider
 	Compacter
 	io.Closer

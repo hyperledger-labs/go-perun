@@ -35,8 +35,8 @@ type Iterator interface {
 	Close() error
 }
 
-// Iteratee wraps the NewIterator methods of a backing data store.
-type Iterateable interface {
+// Iterable wraps the NewIterator methods of a backing data store.
+type Iterable interface {
 	// NewIterator creates a binary-alphabetical iterator over the entire keyspace
 	// contained within the key-value database.
 	NewIterator() Iterator
