@@ -4,18 +4,14 @@
 
 package memorydb
 
-import (
-	"log"
-)
-
 type Iterator struct {
 	next   int
 	keys   []string
-	values [][]byte
+	values []string
 }
 
 func (this *Iterator) Next() bool {
-	if this.next <= len(this.keys) {
+	if this.next < len(this.keys) {
 		this.next++
 		return true
 	} else {
@@ -23,39 +19,37 @@ func (this *Iterator) Next() bool {
 	}
 }
 
-func (this *Iterator) Error() error {
+func (this *Iterator) Key() string {
 	if this.next == 0 {
-		log.Fatalln("Iterator.Error() accessed before Next() or after Release().")
-	}
-	return nil
-}
-
-func (this *Iterator) Key() []byte {
-	if this.next == 0 {
-		log.Fatalln("Iterator.Key() accessed before Next() or after Release().")
+		panic("Iterator.Key() accessed before Next() or after Close().")
 	}
 
 	if this.next > len(this.keys) {
-		return nil
-	} else {
-		return []byte(this.values[this.next-1])
-	}
-}
-
-func (this *Iterator) Value() []byte {
-	if this.next == 0 {
-		log.Fatalln("Iterator.Value() accessed before Next().")
-	}
-
-	if this.next > len(this.keys) {
-		return nil
+		return ""
 	} else {
 		return this.values[this.next-1]
 	}
 }
 
-func (this *Iterator) Release() {
+func (this *Iterator) Value() string {
+	if this.next == 0 {
+		panic("Iterator.Value() accessed before Next() or after Close().")
+	}
+
+	if this.next > len(this.keys) {
+		return ""
+	} else {
+		return this.values[this.next-1]
+	}
+}
+
+func (this *Iterator) ValueBytes() []byte {
+	return []byte(this.Value())
+}
+
+func (this *Iterator) Close() error {
 	this.next = 0
 	this.keys = nil
 	this.values = nil
+	return nil
 }

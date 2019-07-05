@@ -10,32 +10,34 @@ import (
 
 type Batch struct {
 	db      *Database
-	writes  map[string][]byte
+	writes  map[string]string
 	deletes map[string]struct{}
 	bytes   uint
 }
 
-func (this *Batch) Put(key []byte, value []byte) error {
-	skey := string(key)
-	delete(this.deletes, skey)
-	oldValue, exists := this.writes[skey]
+func (this *Batch) Put(key string, value string) error {
+	delete(this.deletes, key)
+	oldValue, exists := this.writes[key]
 	if exists {
 		this.bytes -= uint(len(oldValue))
 	}
 	this.bytes += uint(len(value))
-	this.writes[skey] = value
+	this.writes[key] = value
 	return nil
 }
 
-func (this *Batch) Delete(key []byte) error {
-	skey := string(key)
-	oldValue, exists := this.writes[skey]
+func (this *Batch) PutBytes(key string, value []byte) error {
+	return this.Put(key, string(value))
+}
+
+func (this *Batch) Delete(key string) error {
+	oldValue, exists := this.writes[key]
 	if exists {
 		this.bytes -= uint(len(oldValue))
-		delete(this.writes, skey)
+		delete(this.writes, key)
 	}
 
-	this.deletes[skey] = struct{}{}
+	this.deletes[key] = struct{}{}
 	return nil
 }
 
@@ -48,15 +50,15 @@ func (this *Batch) ValueSize() uint {
 }
 
 func (this *Batch) Write() error {
-	for key := range this.writes {
-		err := this.db.Put([]byte(key), this.writes[key])
+	for key, value := range this.writes {
+		err := this.db.Put(key, value)
 		if err != nil {
 			return errors.Wrap(err, "Failed to put entry.")
 		}
 	}
 
 	for key := range this.deletes {
-		err := this.db.Delete([]byte(key))
+		err := this.db.Delete(key)
 		if err != nil {
 			return errors.Wrap(err, "Failed to delete entry.")
 		}

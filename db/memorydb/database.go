@@ -17,13 +17,13 @@ import (
 // Implementation of the Database interface that stores the values in memory.
 type Database struct {
 	vmutex sync.RWMutex
-	data   map[string][]byte
+	data   map[string]string
 }
 
 // Creates a new, empty Database.
 func NewDatabase() db.Database {
 	return &Database{
-		data: make(map[string][]byte),
+		data: make(map[string]string),
 	}
 }
 
@@ -32,9 +32,9 @@ func NewDatabase() db.Database {
 	The provided data will not be cloned. If data is nil, an empty database is
 	created.
 */
-func FromData(data map[string][]byte) db.Database {
+func FromData(data map[string]string) db.Database {
 	if data == nil {
-		data = make(map[string][]byte)
+		data = make(map[string]string)
 	}
 
 	return &Database{
@@ -44,44 +44,53 @@ func FromData(data map[string][]byte) db.Database {
 
 // Reader interface.
 
-func (this *Database) Has(key []byte) (bool, error) {
+func (this *Database) Has(key string) (bool, error) {
 	this.vmutex.RLock()
 	defer this.vmutex.RUnlock()
 
-	_, exists := this.data[string(key)]
+	_, exists := this.data[key]
 	return exists, nil
 }
 
-func (this *Database) Get(key []byte) ([]byte, error) {
+func (this *Database) Get(key string) (string, error) {
 	this.vmutex.RLock()
 	defer this.vmutex.RUnlock()
 
-	value, exists := this.data[string(key)]
+	value, exists := this.data[key]
 	if !exists {
-		return nil, errors.New("Requested nonexistent entry.")
+		return "", &db.ErrNotFound{Key: key}
 	} else {
 		return value, nil
 	}
 }
 
+func (this *Database) GetBytes(key string) ([]byte, error) {
+	value, err := this.Get(key)
+	return []byte(value), err
+}
+
 // Writer interface.
 
-func (this *Database) Put(key []byte, value []byte) error {
+func (this *Database) Put(key string, value string) error {
 	this.vmutex.Lock()
 	defer this.vmutex.Unlock()
 
-	this.data[string(key)] = value
+	this.data[key] = value
 	return nil
 }
 
-func (this *Database) Delete(key []byte) error {
+func (this *Database) PutBytes(key string, value []byte) error {
+	return this.Put(key, string(value))
+}
+
+func (this *Database) Delete(key string) error {
 	this.vmutex.Lock()
 	defer this.vmutex.Unlock()
 
 	if has, _ := this.Has(key); has {
-		return errors.New("Tried to delete nonexistent entry.")
+		return &db.ErrNotFound{Key: key}
 	} else {
-		delete(this.data, string(key))
+		delete(this.data, key)
 		return nil
 	}
 }
@@ -111,7 +120,7 @@ func (this *Database) NewIterator() db.Iterator {
 	}
 }
 
-func (this *Database) NewIteratorWithStart(start []byte) db.Iterator {
+func (this *Database) NewIteratorWithStart(start string) db.Iterator {
 	this.vmutex.RLock()
 	defer this.vmutex.RUnlock()
 
@@ -129,7 +138,7 @@ func (this *Database) NewIteratorWithStart(start []byte) db.Iterator {
 	}
 }
 
-func (this *Database) NewIteratorWithPrefix(prefix []byte) db.Iterator {
+func (this *Database) NewIteratorWithPrefix(prefix string) db.Iterator {
 	this.vmutex.RLock()
 	defer this.vmutex.RUnlock()
 
@@ -147,8 +156,8 @@ func (this *Database) NewIteratorWithPrefix(prefix []byte) db.Iterator {
 	}
 }
 
-func (this *Database) readValues(keys []string) [][]byte {
-	data := make([][]byte, 0, len(keys))
+func (this *Database) readValues(keys []string) []string {
+	data := make([]string, 0, len(keys))
 	for key := range keys {
 		data = append(data, this.data[keys[key]])
 	}
@@ -183,7 +192,7 @@ func (this *Database) DefaultProperties() (map[string]string, error) {
 
 // Compacter interface.
 
-func (this *Database) Compact(start []byte, end []byte) error {
+func (this *Database) Compact(start, end string) error {
 	return nil
 }
 
