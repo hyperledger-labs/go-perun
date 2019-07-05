@@ -87,7 +87,7 @@ func (this *Database) Delete(key string) error {
 	this.mutex.Lock()
 	defer this.mutex.Unlock()
 
-	if has, _ := this.Has(key); has {
+	if _, has := this.data[key]; !has {
 		return &db.ErrNotFound{Key: key}
 	} else {
 		delete(this.data, key)
