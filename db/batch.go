@@ -9,7 +9,7 @@ package db
 type Batch interface {
 	Writer // Put and Delete
 
-	// Len returns the numer of key/value items in the batch.
+	// Len returns the number of key/value items in the batch.
 	Len() uint
 
 	// ValueSize returns the number of bytes of all values accumulated.

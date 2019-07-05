@@ -2,6 +2,18 @@
 // This file is part of go-perun. Use of this source code is governed by a
 // MIT-style license that can be found in the LICENSE file.
 
+/*
+	Package memorydb provides an implementation of the db interfaces. The main
+	type, Database, is an in-memory key-value store. Since the database is not
+	persistent, the package is not suited for production use, and more suited
+	for simplifying tests and mockups. The database is thread-safe.
+
+	Constructors
+
+	The NewDatabase() constructor creates a new empty database. The FromData()
+	constructor takes a key-value mapping and uses that as the database's
+	contents.
+*/
 package memorydb
 
 import (

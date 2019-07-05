@@ -24,7 +24,7 @@ func (e *ErrNotFound) Error() string {
 	return "db: key not found: " + e.Key
 }
 
-// Reader wraps the Had and Get methods of a key-value store.
+// Reader wraps the Has, Get and GetBytes methods of a key-value store.
 type Reader interface {
 	// Has checks if a key is present in the store.
 	Has(key string) (bool, error)
@@ -32,7 +32,7 @@ type Reader interface {
 	// Get returns the value as string for given key if it is present in the store.
 	Get(key string) (string, error)
 
-	// Get returns the value as []byte for given key if it is present in the store.
+	// GetBytes returns the value as []byte for given key if it is present in the store.
 	GetBytes(key string) ([]byte, error)
 }
 
@@ -72,10 +72,10 @@ type PropertyProvider interface {
 }
 
 // Helper function to look up multiple properties at once.
-func Properties(this PropertyProvider, names []string) (props map[string]string, err error) {
+func Properties(provider PropertyProvider, names []string) (props map[string]string, err error) {
 	props = make(map[string]string)
 	for _, name := range names {
-		props[name], err = this.Property(name)
+		props[name], err = provider.Property(name)
 		if err != nil {
 			err = errors.Wrap(err, "Error retrieving property '"+name+"'")
 			return
