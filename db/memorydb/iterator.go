@@ -27,7 +27,7 @@ func (this *Iterator) Key() string {
 	if this.next > len(this.keys) {
 		return ""
 	} else {
-		return this.values[this.next-1]
+		return this.keys[this.next-1]
 	}
 }
 
