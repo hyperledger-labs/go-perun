@@ -16,8 +16,8 @@ import (
 
 // Implementation of the Database interface that stores the values in memory.
 type Database struct {
-	vmutex sync.RWMutex
-	data   map[string]string
+	mutex sync.RWMutex
+	data  map[string]string
 }
 
 // Creates a new, empty Database.
@@ -45,16 +45,16 @@ func FromData(data map[string]string) db.Database {
 // Reader interface.
 
 func (this *Database) Has(key string) (bool, error) {
-	this.vmutex.RLock()
-	defer this.vmutex.RUnlock()
+	this.mutex.RLock()
+	defer this.mutex.RUnlock()
 
 	_, exists := this.data[key]
 	return exists, nil
 }
 
 func (this *Database) Get(key string) (string, error) {
-	this.vmutex.RLock()
-	defer this.vmutex.RUnlock()
+	this.mutex.RLock()
+	defer this.mutex.RUnlock()
 
 	value, exists := this.data[key]
 	if !exists {
@@ -72,8 +72,8 @@ func (this *Database) GetBytes(key string) ([]byte, error) {
 // Writer interface.
 
 func (this *Database) Put(key string, value string) error {
-	this.vmutex.Lock()
-	defer this.vmutex.Unlock()
+	this.mutex.Lock()
+	defer this.mutex.Unlock()
 
 	this.data[key] = value
 	return nil
@@ -84,8 +84,8 @@ func (this *Database) PutBytes(key string, value []byte) error {
 }
 
 func (this *Database) Delete(key string) error {
-	this.vmutex.Lock()
-	defer this.vmutex.Unlock()
+	this.mutex.Lock()
+	defer this.mutex.Unlock()
 
 	if has, _ := this.Has(key); has {
 		return &db.ErrNotFound{Key: key}
@@ -104,8 +104,8 @@ func (this *Database) NewBatch() db.Batch {
 // Iterateable interface.
 
 func (this *Database) NewIterator() db.Iterator {
-	this.vmutex.RLock()
-	defer this.vmutex.RUnlock()
+	this.mutex.RLock()
+	defer this.mutex.RUnlock()
 
 	keys := make([]string, 0, len(this.data))
 	for key := range this.data {
@@ -121,8 +121,8 @@ func (this *Database) NewIterator() db.Iterator {
 }
 
 func (this *Database) NewIteratorWithStart(start string) db.Iterator {
-	this.vmutex.RLock()
-	defer this.vmutex.RUnlock()
+	this.mutex.RLock()
+	defer this.mutex.RUnlock()
 
 	startString := string(start)
 	keys := make([]string, 0, len(this.data))
@@ -139,8 +139,8 @@ func (this *Database) NewIteratorWithStart(start string) db.Iterator {
 }
 
 func (this *Database) NewIteratorWithPrefix(prefix string) db.Iterator {
-	this.vmutex.RLock()
-	defer this.vmutex.RUnlock()
+	this.mutex.RLock()
+	defer this.mutex.RUnlock()
 
 	prefixString := string(prefix)
 	keys := make([]string, 0, len(this.data))
