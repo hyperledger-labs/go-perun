@@ -14,7 +14,7 @@ import (
 )
 
 const (
-	keyDir      = "tmp"
+	keyDir      = "testdata"
 	password    = "secret"
 	sampleAddr  = "0x1234560000000000000000000000000000000000"
 	invalidAddr = "0x12345600000000000000000000000000000000001"
@@ -50,7 +50,10 @@ func TestAddress(t *testing.T) {
 }
 
 func TestKeyStore(t *testing.T) {
-	w := connectTmpKeystore(t)
+	w := new(Wallet)
+	assert.NotNil(t, w.Connect("", ""), "Expected connect to fail")
+
+	w = connectTmpKeystore(t)
 
 	unsetAccount := new(Account)
 	assert.False(t, w.Contains(unsetAccount), "Keystore should not contain empty account")
