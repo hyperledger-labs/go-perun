@@ -5,8 +5,6 @@
 package wallet
 
 import (
-	"time"
-
 	"github.com/ethereum/go-ethereum/accounts"
 	"github.com/ethereum/go-ethereum/crypto"
 	perun "github.com/perun-network/go-perun/wallet"
