@@ -8,7 +8,7 @@ require (
 	github.com/cespare/cp v1.1.1 // indirect
 	github.com/deckarep/golang-set v1.7.1 // indirect
 	github.com/elastic/gosigar v0.10.4 // indirect
-	github.com/ethereum/go-ethereum v1.9.0 // indirect
+	github.com/ethereum/go-ethereum v1.9.0
 	github.com/go-stack/stack v1.8.0 // indirect
 	github.com/kr/pretty v0.1.0 // indirect
 	github.com/pborman/uuid v1.2.0 // indirect

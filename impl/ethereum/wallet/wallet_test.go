@@ -9,8 +9,8 @@ import (
 
 	"github.com/ethereum/go-ethereum/accounts"
 	"github.com/ethereum/go-ethereum/common"
-	generic "perun.network/go-perun/wallet/wallet_test"
 	"github.com/stretchr/testify/assert"
+	generic "perun.network/go-perun/wallet/wallet_test"
 )
 
 const (
@@ -76,14 +76,14 @@ func TestHelper(t *testing.T) {
 }
 
 func TestGenericTests(t *testing.T) {
-	testingObject := new(generic.TestingObject)
+	testingObject := new(generic.Setup)
 	testingObject.T = t
 	testingObject.Wallet = new(Wallet)
 	testingObject.Path = "./" + keyDir
 	testingObject.WalletPW = password
 	testingObject.AccountPW = password
 	testingObject.Helper = new(Helper)
-	testingObject.SampleAddr = sampleAddr
+	testingObject.AddrString = sampleAddr
 	testingObject.DataToSign = []byte(dataToSign)
 	testingObject.SignedData = []byte(signedData)
 	generic.GenericWalletTest(testingObject)
