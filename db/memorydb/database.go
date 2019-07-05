@@ -126,10 +126,9 @@ func (this *Database) NewIteratorWithStart(start string) db.Iterator {
 	this.mutex.RLock()
 	defer this.mutex.RUnlock()
 
-	startString := string(start)
-	keys := make([]string, 0, len(this.data))
+	var keys []string
 	for key := range this.data {
-		if key >= startString {
+		if key >= start {
 			keys = append(keys, key)
 		}
 	}
@@ -145,7 +144,7 @@ func (this *Database) NewIteratorWithPrefix(prefix string) db.Iterator {
 	defer this.mutex.RUnlock()
 
 	prefixString := string(prefix)
-	keys := make([]string, 0, len(this.data))
+	var keys []string
 	for key := range this.data {
 		if strings.HasPrefix(key, prefixString) {
 			keys = append(keys, key)
@@ -158,6 +157,10 @@ func (this *Database) NewIteratorWithPrefix(prefix string) db.Iterator {
 	}
 }
 
+/*
+	Reads the values matched to a set of keys from a database.
+	The database must be readlocked already.
+*/
 func (this *Database) readValues(keys []string) []string {
 	data := make([]string, 0, len(keys))
 	for key := range keys {
