@@ -8,11 +8,22 @@ import (
 )
 
 func GenericDatabaseTest(t *testing.T, database db.Database) {
-	test := DatabaseTest{
-		T:        t,
-		Database: database,
-	}
-	test.test()
+	test := DatabaseTest{T: t}
+	t.Run("Generic database test", func(t *testing.T) {
+		test.Database = database
+		test.test()
+		GenericTableTest(t, test.Database)
+	})
+	t.Run("Empty prefix table test", func(t *testing.T) {
+		test.Database = db.NewTable(database, "")
+		test.test()
+		GenericTableTest(t, test.Database)
+	})
+	t.Run("Normal table test", func(t *testing.T) {
+		test.Database = db.NewTable(database, "Table.")
+		test.test()
+		GenericTableTest(t, test.Database)
+	})
 	return
 }
 

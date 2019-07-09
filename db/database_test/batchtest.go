@@ -1,10 +1,9 @@
-package batch_test
+package database_test
 
 import (
 	"testing"
 
 	"github.com/perun-network/go-perun/db"
-	"github.com/perun-network/go-perun/db/database_test"
 )
 
 /*
@@ -13,7 +12,7 @@ import (
 func GenericBatchTest(t *testing.T, database db.Database) {
 	this := BatchTest{T: t, Batch: database.NewBatch()}
 
-	dbtest := database_test.DatabaseTest{T: t, Database: database}
+	dbtest := DatabaseTest{T: t, Database: database}
 
 	dbtest.Put("1234", "1234 initial value")
 	dbtest.Put("5678", "5678 initial value")

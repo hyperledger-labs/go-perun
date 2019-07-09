@@ -132,16 +132,26 @@ func (this *Database) NewIterator() db.Iterator {
 	}
 }
 
-func (this *Database) NewIteratorWithStart(start string) db.Iterator {
+func (this *Database) NewIteratorWithRange(start string, end string) db.Iterator {
 	this.mutex.RLock()
 	defer this.mutex.RUnlock()
 
 	var keys []string
-	for key := range this.data {
-		if key >= start {
-			keys = append(keys, key)
+	// No need to check for start == "", as all strings >= "".
+	if end == "" {
+		for key := range this.data {
+			if key >= start {
+				keys = append(keys, key)
+			}
+		}
+	} else {
+		for key := range this.data {
+			if key >= start && key < end {
+				keys = append(keys, key)
+			}
 		}
 	}
+
 	sort.Strings(keys)
 	return &Iterator{
 		keys:   keys,

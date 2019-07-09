@@ -58,13 +58,20 @@ func (t *table) NewBatch() Batch {
 }
 
 func (t *table) NewIterator() Iterator {
-	return t.Database.NewIteratorWithPrefix(t.prefix)
+	return newTableIterator(t.Database.NewIteratorWithPrefix(t.prefix), t)
 }
 
-func (t *table) NewIteratorWithStart(start string) Iterator {
-	return t.Database.NewIteratorWithStart(t.pkey(start))
+func (t *table) NewIteratorWithRange(start string, end string) Iterator {
+	start = t.pkey(start)
+	if end == "" {
+		end = IncrementPrefix(t.prefix)
+	} else {
+		end = t.pkey(end)
+	}
+
+	return newTableIterator(t.Database.NewIteratorWithRange(start, end), t)
 }
 
 func (t *table) NewIteratorWithPrefix(prefix string) Iterator {
-	return t.Database.NewIteratorWithPrefix(t.pkey(prefix))
+	return newTableIterator(t.Database.NewIteratorWithPrefix(t.pkey(prefix)), t)
 }

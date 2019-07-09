@@ -4,7 +4,6 @@ import (
 	"testing"
 
 	"github.com/perun-network/go-perun/db/database_test"
-	"github.com/perun-network/go-perun/db/iterator_test"
 )
 
 func TestDatabase(t *testing.T) {
@@ -24,7 +23,7 @@ func TestDatabase(t *testing.T) {
 	dbtest.MustGetEqual("k1", "v1")
 	dbtest.MustGetEqual("k2", "v2")
 	dbtest.MustGetEqual("k3", "v3")
-	ittest := iterator_test.IteratorTest{
+	ittest := database_test.IteratorTest{
 		T:        t,
 		Iterator: dbtest.Database.NewIterator(),
 	}

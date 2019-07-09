@@ -3,12 +3,12 @@ package memorydb
 import (
 	"testing"
 
-	"github.com/perun-network/go-perun/db/iterator_test"
+	"github.com/perun-network/go-perun/db/database_test"
 )
 
 func TestIterator(t *testing.T) {
 	t.Run("Generic iterator test", func(t *testing.T) {
-		iterator_test.GenericIteratorTest(t, NewDatabase())
+		database_test.GenericIteratorTest(t, NewDatabase())
 	})
 	return
 }

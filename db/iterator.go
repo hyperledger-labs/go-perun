@@ -42,11 +42,47 @@ type Iterable interface {
 	NewIterator() Iterator
 
 	// NewIteratorWithStart creates a binary-alphabetical iterator over a subset of
-	// database content starting at a particular initial key (or after, if it does
-	// not exist).
-	NewIteratorWithStart(start string) Iterator
+	// database content over a key range of [start, end). If start is empty, then
+	// the iterator starts with the database's first entry. If end is empty, then
+	// the iterator ends with the database's last entry.
+	NewIteratorWithRange(start string, end string) Iterator
 
 	// NewIteratorWithPrefix creates a binary-alphabetical iterator over a subset
 	// of database content with a particular key prefix.
 	NewIteratorWithPrefix(prefix string) Iterator
+}
+
+/*
+	IncrementKey increments a key string, such that there exists no key between
+	the original and the incremented key.
+*/
+func IncrementKey(key string) string {
+	keyb := make([]byte, len(key)+1)
+	for i := 0; i < len(key); i++ {
+		keyb[i] = key[i]
+	}
+	keyb[len(key)] = 0
+
+	return string(keyb)
+}
+
+/*
+	IncrementPrefix increments a prefix string, such that
+		for all prefix,suffix: prefix+suffix < IncrementPrefix(prefix).
+	This is useful for calculatin
+*/
+func IncrementPrefix(key string) string {
+	keyb := []byte(key)
+	for i := len(keyb) - 1; i >= 0; i-- {
+		// Increment current byte, stop if it doesn't overflow
+		keyb[i]++
+		if keyb[i] > 0 {
+			break
+		}
+		// Character overflown, proceed to next or return "" if last
+		if i == 0 {
+			return ""
+		}
+	}
+	return string(keyb)
 }
