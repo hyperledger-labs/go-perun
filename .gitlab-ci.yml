@@ -1,3 +1,9 @@
+.only-default: &only-default
+  only:
+    - tags
+    - pushes
+    - merge_requests
+
 stages:
   - vetting
   - tests
@@ -8,6 +14,7 @@ before_script:
   - export PATH=$PATH:$GOROOT/bin:$GOPATH/bin
 
 lint:
+  <<: *only-default
   image: golang
   stage: vetting
   script:
@@ -15,27 +22,25 @@ lint:
   allow_failure: true
 
 vet:
+  <<: *only-default
   image: golang
   stage: vetting
   script:
     - go vet ./...
 
-unit_tests:
-  image: golang
-  stage: tests
-  script:
-    - go test -short ./...
-
-unit_race_tests:
+unit_race_tests:  
   image: golang
   stage: tests
   script:
     - go test -race ./...
+  only:
+    - merge_requests
 
-codecoverage:
+unit_tests:
   image: golang
   stage: tests
   script:
     - go test -cover ./...
-
+  only:
+    - merge_requests
 
