@@ -51,38 +51,3 @@ type Iterable interface {
 	// of database content with a particular key prefix.
 	NewIteratorWithPrefix(prefix string) Iterator
 }
-
-/*
-	IncrementKey increments a key string, such that there exists no key between
-	the original and the incremented key.
-*/
-func IncrementKey(key string) string {
-	keyb := make([]byte, len(key)+1)
-	for i := 0; i < len(key); i++ {
-		keyb[i] = key[i]
-	}
-	keyb[len(key)] = 0
-
-	return string(keyb)
-}
-
-/*
-	IncrementPrefix increments a prefix string, such that
-		for all prefix,suffix: prefix+suffix < IncrementPrefix(prefix).
-	This is useful for calculatin
-*/
-func IncrementPrefix(key string) string {
-	keyb := []byte(key)
-	for i := len(keyb) - 1; i >= 0; i-- {
-		// Increment current byte, stop if it doesn't overflow
-		keyb[i]++
-		if keyb[i] > 0 {
-			break
-		}
-		// Character overflown, proceed to next or return "" if last
-		if i == 0 {
-			return ""
-		}
-	}
-	return string(keyb)
-}

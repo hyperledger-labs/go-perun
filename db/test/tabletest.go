@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"perun.network/go-perun/db"
+	"perun.network/go-perun/db/key"
 )
 
 func GenericTableTest(t *testing.T, database db.Database) {
@@ -38,7 +39,7 @@ func GenericTableTest(t *testing.T, database db.Database) {
 		it := IteratorTest{
 			T: t,
 			Iterator: table.Database.NewIteratorWithRange(
-				"KeyA", db.IncrementKey("KeyC")),
+				"KeyA", key.Next("KeyC")),
 		}
 		it.NextMustEqual("KeyA", "Table.ValueA")
 		it.NextMustEqual("KeyB", "Table.ValueB")

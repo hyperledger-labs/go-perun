@@ -4,6 +4,8 @@
 
 package db
 
+import "perun.network/go-perun/db/key"
+
 // Table is a wrapper around a database with a key prefix. All key access is
 // automatically prefixed. Close() is a noop and properties are forwarded
 // from the database.
@@ -64,7 +66,7 @@ func (t *table) NewIterator() Iterator {
 func (t *table) NewIteratorWithRange(start string, end string) Iterator {
 	start = t.pkey(start)
 	if end == "" {
-		end = IncrementPrefix(t.prefix)
+		end = key.IncPrefix(t.prefix)
 	} else {
 		end = t.pkey(end)
 	}
