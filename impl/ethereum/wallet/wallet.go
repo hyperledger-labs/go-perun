@@ -86,8 +86,8 @@ func (e *Wallet) Status() (string, error) {
 func (e *Wallet) Accounts() []perun.Account {
 	e.refreshAccounts()
 
-	e.mu.Lock()
-	defer e.mu.Unlock()
+	e.mu.RLock()
+	defer e.mu.RUnlock()
 
 	v := make([]perun.Account, 0, len(e.accounts))
 	for _, value := range e.accounts {
