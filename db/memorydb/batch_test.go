@@ -3,12 +3,12 @@ package memorydb
 import (
 	"testing"
 
-	"perun.network/go-perun/db/database_test"
+	"perun.network/go-perun/db/test"
 )
 
 func TestBatch(t *testing.T) {
 	t.Run("Generic Batch test", func(t *testing.T) {
-		database_test.GenericBatchTest(t, NewDatabase())
+		test.GenericBatchTest(t, NewDatabase())
 	})
 	return
 }

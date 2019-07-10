@@ -3,15 +3,15 @@ package memorydb
 import (
 	"testing"
 
-	"perun.network/go-perun/db/database_test"
+	"perun.network/go-perun/db/test"
 )
 
 func TestDatabase(t *testing.T) {
 	t.Run("Generic Database test", func(t *testing.T) {
-		database_test.GenericDatabaseTest(t, NewDatabase())
+		test.GenericDatabaseTest(t, NewDatabase())
 	})
 
-	dbtest := database_test.DatabaseTest{
+	dbtest := test.DatabaseTest{
 		T: t,
 		Database: FromData(map[string]string{
 			"k2": "v2",
@@ -23,7 +23,7 @@ func TestDatabase(t *testing.T) {
 	dbtest.MustGetEqual("k1", "v1")
 	dbtest.MustGetEqual("k2", "v2")
 	dbtest.MustGetEqual("k3", "v3")
-	ittest := database_test.IteratorTest{
+	ittest := test.IteratorTest{
 		T:        t,
 		Iterator: dbtest.Database.NewIterator(),
 	}
