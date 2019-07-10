@@ -3,7 +3,7 @@ package memorydb
 import (
 	"testing"
 
-	"github.com/perun-network/go-perun/db/database_test"
+	"perun.network/go-perun/db/database_test"
 )
 
 func TestBatch(t *testing.T) {

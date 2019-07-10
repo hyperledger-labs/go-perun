@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"testing"
 
-	"github.com/perun-network/go-perun/db"
+	"perun.network/go-perun/db"
 )
 
 func GenericDatabaseTest(t *testing.T, database db.Database) {

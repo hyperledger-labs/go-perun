@@ -14,10 +14,10 @@
 	constructor takes a key-value mapping and uses that as the database's
 	contents.
 */
-package memorydb
+package memorydb // import "perun.network/go-perun/db/memorydb"
 
 import (
-	"github.com/perun-network/go-perun/db"
+	"perun.network/go-perun/db"
 
 	"sort"
 	"strings"

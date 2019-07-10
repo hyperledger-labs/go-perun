@@ -3,7 +3,7 @@ package database_test
 import (
 	"testing"
 
-	"github.com/perun-network/go-perun/db"
+	"perun.network/go-perun/db"
 )
 
 type IteratorTest struct {
