@@ -1,4 +1,12 @@
-package test
+// Copyright (c) 2019 The Perun Authors. All rights reserved.
+// This file is part of go-perun. Use of this source code is governed by a
+// MIT-style license that can be found in the LICENSE file.
+
+// Package test of the go-perun/db package implements a generic test for all
+// implementations of the Database interface
+// Test your implementation by passing an empty database to the
+// GenericDatabaseTest() function
+package test // import "perun.network/go-perun/db/test"
 
 import (
 	"bytes"

@@ -8,7 +8,7 @@
 // It is based on go-ethereum's https://github.com/ethereum/go-ethereum/ethdb
 // and https://github.com/ethereum/go-ethereum/core/rawdb
 // and is also inspired by perkeep.org/pkg/sorted
-package db
+package db // import "perun.network/go-perun/db"
 
 type ErrNotFound struct {
 	Key string
