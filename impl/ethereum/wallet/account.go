@@ -5,6 +5,8 @@
 package wallet
 
 import (
+	"sync"
+
 	"github.com/ethereum/go-ethereum/accounts"
 	"github.com/ethereum/go-ethereum/crypto"
 	perun "perun.network/go-perun/wallet"
@@ -16,6 +18,7 @@ type Account struct {
 	account  *accounts.Account
 	wallet   *Wallet
 	unlocked bool
+	mu       sync.RWMutex
 }
 
 // Address returns the ethereum address of this account
@@ -25,6 +28,9 @@ func (e *Account) Address() perun.Address {
 
 // Unlock unlocks this account
 func (e *Account) Unlock(password string) error {
+	e.mu.Lock()
+	defer e.mu.Unlock()
+
 	err := e.wallet.ks.Unlock(*e.account, password)
 	if err != nil {
 		return err
@@ -35,11 +41,17 @@ func (e *Account) Unlock(password string) error {
 
 // IsUnlocked checks if this account is unlocked
 func (e *Account) IsUnlocked() bool {
+	e.mu.RLock()
+	defer e.mu.RUnlock()
+
 	return e.unlocked
 }
 
 // Lock locks this account
 func (e *Account) Lock() error {
+	e.mu.Lock()
+	defer e.mu.Unlock()
+
 	err := e.wallet.ks.Lock(e.address.Address)
 	if err != nil {
 		return err
@@ -50,12 +62,18 @@ func (e *Account) Lock() error {
 
 // SignData is used to sign data with this account
 func (e *Account) SignData(data []byte) ([]byte, error) {
+	e.mu.RLock()
+	defer e.mu.RUnlock()
+
 	hash := crypto.Keccak256(data)
 	return e.wallet.ks.SignHash(*e.account, hash)
 }
 
 // SignDataWithPW is used to sign a hash with this account and a pw
 func (e *Account) SignDataWithPW(password string, data []byte) ([]byte, error) {
+	e.mu.RLock()
+	defer e.mu.RUnlock()
+
 	hash := crypto.Keccak256(data)
 	return e.wallet.ks.SignHashWithPassphrase(*e.account, password, hash)
 }

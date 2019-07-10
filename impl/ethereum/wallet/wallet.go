@@ -113,7 +113,14 @@ func (e *Wallet) Contains(a perun.Account) bool {
 	// if not found, query the keystore
 	acc, ok := a.(*Account)
 	if ok {
-		return e.ks.HasAddress(acc.address.Address)
+		found := e.ks.HasAddress(acc.address.Address)
+		// add to the cache
+		if found {
+			e.mu.Lock()
+			e.accounts[a.Address().String()] = a
+			e.mu.Unlock()
+		}
+		return found
 	}
 	return false
 }
@@ -136,7 +143,7 @@ func (e *Wallet) Lock() error {
 	return nil
 }
 
-// Helper is a helper struct
+// Helper implements the utility interface defined in the wallet package.
 type Helper struct{}
 
 // NewAddressFromString creates a new address from a string
