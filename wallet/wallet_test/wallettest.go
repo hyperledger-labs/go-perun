@@ -33,9 +33,6 @@ func GenericWalletTest(t *Setup) {
 	testUninitializedWallet(t)
 	testInitializedWallet(t)
 	testUninitializedWallet(t)
-
-	testAddress(t)
-	testSignature(t)
 }
 
 func testUninitializedWallet(t *Setup) {
@@ -79,7 +76,9 @@ func testInitializedWallet(t *Setup) {
 	assert.Nil(t.T, t.Wallet.Disconnect(), "Expected disconnect to succeed")
 }
 
-func testSignature(t *Setup) {
+// GenericSignatureTest runs a test suite designed to test the general functionality of an account.
+// This function should be called by every implementation of the wallet interface.
+func GenericSignatureTest(t *Setup) {
 	assert.Nil(t.T, t.Wallet.Connect(t.Path, t.WalletPW), "Expected connect to succeed")
 
 	assert.Equal(t.T, 1, len(t.Wallet.Accounts()), "Expected one account")
@@ -123,7 +122,9 @@ func testSignature(t *Setup) {
 	assert.Nil(t.T, t.Wallet.Disconnect(), "Expected disconnect to succeed")
 }
 
-func testAddress(t *Setup) {
+// GenericAddressTest runs a test suite designed to test the general functionality of addresses.
+// This function should be called by every implementation of the wallet interface.
+func GenericAddressTest(t *Setup) {
 	init, err := t.Helper.NewAddressFromString(t.AddrString)
 	assert.Nil(t.T, err, "String parsing of Address should work")
 	unInit, err := t.Helper.NewAddressFromBytes(make([]byte, len(init.Bytes()), len(init.Bytes())))

@@ -27,12 +27,13 @@ const (
 
 func connectTmpKeystore(t *testing.T) *Wallet {
 	w := new(Wallet)
-	assert.Nil(t, w.Connect(keyDir, password), "Unable to open Keystore")
-	assert.NotEqual(t, len(w.Accounts()), 0, "wallet contains no accounts")
+	assert.Nil(t, w.Connect(keyDir, password), "Unable to open keystore")
+	assert.NotEqual(t, len(w.Accounts()), 0, "Wallet contains no accounts")
 	return w
 }
 
 func TestAddress(t *testing.T) {
+	t.Parallel()
 	w := connectTmpKeystore(t)
 	perunAcc := w.Accounts()[0]
 	ethAcc := new(accounts.Account)
@@ -40,7 +41,7 @@ func TestAddress(t *testing.T) {
 	unsetAccount := new(Account)
 	nilAddr := common.BytesToAddress(make([]byte, 40, 40))
 
-	assert.Equal(t, nilAddr.Bytes(), unsetAccount.Address().Bytes(), "unset address should be nil")
+	assert.Equal(t, nilAddr.Bytes(), unsetAccount.Address().Bytes(), "Unset address should be nil")
 
 	ethAcc.Address.SetBytes(perunAcc.Address().Bytes())
 
@@ -50,6 +51,7 @@ func TestAddress(t *testing.T) {
 }
 
 func TestKeyStore(t *testing.T) {
+	t.Parallel()
 	w := new(Wallet)
 	assert.NotNil(t, w.Connect("", ""), "Expected connect to fail")
 
@@ -60,6 +62,7 @@ func TestKeyStore(t *testing.T) {
 }
 
 func TestHelper(t *testing.T) {
+	t.Parallel()
 	helper := new(Helper)
 	addr, err := helper.NewAddressFromString(sampleAddr)
 
@@ -78,7 +81,8 @@ func TestHelper(t *testing.T) {
 	assert.NotNil(t, err, "Conversion from wrong address should fail")
 }
 
-func TestGenericTests(t *testing.T) {
+func TestGenericWalletTests(t *testing.T) {
+	t.Parallel()
 	testingObject := new(generic.Setup)
 	testingObject.T = t
 	testingObject.Wallet = new(Wallet)
@@ -90,4 +94,34 @@ func TestGenericTests(t *testing.T) {
 	testingObject.DataToSign = []byte(dataToSign)
 	testingObject.SignedData = []byte(signedData)
 	generic.GenericWalletTest(testingObject)
+}
+
+func TestGenericSignatureTests(t *testing.T) {
+	t.Parallel()
+	testingObject := new(generic.Setup)
+	testingObject.T = t
+	testingObject.Wallet = new(Wallet)
+	testingObject.Path = "./" + keyDir
+	testingObject.WalletPW = password
+	testingObject.AccountPW = password
+	testingObject.Helper = new(Helper)
+	testingObject.AddrString = sampleAddr
+	testingObject.DataToSign = []byte(dataToSign)
+	testingObject.SignedData = []byte(signedData)
+	generic.GenericSignatureTest(testingObject)
+}
+
+func TestGenericAddressTests(t *testing.T) {
+	t.Parallel()
+	testingObject := new(generic.Setup)
+	testingObject.T = t
+	testingObject.Wallet = new(Wallet)
+	testingObject.Path = "./" + keyDir
+	testingObject.WalletPW = password
+	testingObject.AccountPW = password
+	testingObject.Helper = new(Helper)
+	testingObject.AddrString = sampleAddr
+	testingObject.DataToSign = []byte(dataToSign)
+	testingObject.SignedData = []byte(signedData)
+	generic.GenericAddressTest(testingObject)
 }
