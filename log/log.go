@@ -14,8 +14,14 @@ package log // import "perun.network/go-perun/log"
 
 import "log"
 
-// compile-time check that log.Logger implements a StdLogger
-var _ StdLogger = &log.Logger{}
+var (
+	// compile-time check that log.Logger implements a StdLogger
+	_ StdLogger = &log.Logger{}
+
+	// Log is the framework logger. Framework users should set this variable to
+	// their logger. It is set to the None non-logging logger by default.
+	Log Logger = None
+)
 
 // StdLogger describes the interface of the standard library log package logger.
 // It is the base for more complex loggers. A StdLogger can be converted into a
