@@ -5,22 +5,18 @@
 // Package key of db provides helper functions to manipulate db keys
 package key // import "perun.network/go-perun/db/key"
 
-/*
-	Next returns the key with a zero byte appended, which is the next key in the
-	lexicographical order of strings
-	Useful for NewIteratorWithRange if the end should be included.
-*/
+// Next returns the key with a zero byte appended, which is the next key in the
+// lexicographical order of strings
+// Useful for NewIteratorWithRange if the end should be included.
 func Next(key string) string {
 	return key + "\x00"
 }
 
-/*
-	IncPrefix increments a prefix string, such that
-	for all prefix,suffix: prefix+suffix < IncrementPrefix(prefix).
-	If the empty string or a string where all bits are 1 is passed, the empty string
-	is returned, indicating no upper limit.
-	This is useful for string range calculations
-*/
+// IncPrefix increments a prefix string, such that
+// for all prefix,suffix: prefix+suffix < IncrementPrefix(prefix).
+// If the empty string or a string where all bits are 1 is passed, the empty string
+// is returned, indicating no upper limit.
+// This is useful for string range calculations
 func IncPrefix(key string) string {
 	keyb := []byte(key)
 	overflows := 0

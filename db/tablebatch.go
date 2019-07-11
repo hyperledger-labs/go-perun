@@ -15,10 +15,12 @@ func (b *tableBatch) pkey(key string) string {
 	return b.prefix + key
 }
 
+// Put puts a value into a table batch.
 func (b *tableBatch) Put(key, value string) error {
 	return b.Batch.Put(b.pkey(key), value)
 }
 
+// Delete deletes a value from a table batch.
 func (b *tableBatch) Delete(key string) error {
 	return b.Batch.Delete(b.pkey(key))
 }

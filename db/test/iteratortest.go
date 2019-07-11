@@ -6,11 +6,13 @@ import (
 	"perun.network/go-perun/db"
 )
 
+// IteratorTest provides the values needed for the generic tests.
 type IteratorTest struct {
 	*testing.T
 	Iterator db.Iterator
 }
 
+// GenericIteratorTest provides generic tests for iterator implementations.
 func GenericIteratorTest(t *testing.T, database db.Database) {
 	dbtest := DatabaseTest{T: t, Database: database}
 	dbtest.Put("2b", "2bv")
@@ -66,39 +68,42 @@ func GenericIteratorTest(t *testing.T, database db.Database) {
 	return
 }
 
-func (this *IteratorTest) NextMustEqual(key, value string) {
-	if !this.Iterator.Next() {
-		this.Errorf("Next(): Expected [%q] = %q, but iterator ended.\n", key, value)
+// NextMustEqual tests the next method.
+func (i *IteratorTest) NextMustEqual(key, value string) {
+	if !i.Iterator.Next() {
+		i.Errorf("Next(): Expected [%q] = %q, but iterator ended.\n", key, value)
 		return
 	}
 
-	if actual := this.Iterator.Value(); actual != value {
-		this.Errorf("Value(): Expected %q, but got %q.\n", value, actual)
+	if actual := i.Iterator.Value(); actual != value {
+		i.Errorf("Value(): Expected %q, but got %q.\n", value, actual)
 	}
-	if actual := this.Iterator.ValueBytes(); string(actual) != value {
-		this.Errorf("ValueBytes(): Expected %q, but got %q.\n", value, string(actual))
+	if actual := i.Iterator.ValueBytes(); string(actual) != value {
+		i.Errorf("ValueBytes(): Expected %q, but got %q.\n", value, string(actual))
 	}
-	if actual := this.Iterator.Key(); actual != key {
-		this.Errorf("Key(): Expected %q, but got %q.\n", key, actual)
+	if actual := i.Iterator.Key(); actual != key {
+		i.Errorf("Key(): Expected %q, but got %q.\n", key, actual)
 	}
 	return
 }
 
-func (this *IteratorTest) MustEnd() {
-	if this.Iterator.Next() {
-		this.Errorf(
+// MustEnd tests the next method.
+func (i *IteratorTest) MustEnd() {
+	if i.Iterator.Next() {
+		i.Errorf(
 			"Next(): Expected end, but got [%q] = %q.\n",
-			this.Iterator.Key(),
-			this.Iterator.Value())
+			i.Iterator.Key(),
+			i.Iterator.Value())
 	}
 
-	this.Close()
+	i.Close()
 	return
 }
 
-func (this *IteratorTest) Close() {
-	if err := this.Iterator.Close(); err != nil {
-		this.Errorf("Close(): failed with error: %v\n", err)
+// Close tests the close method.
+func (i *IteratorTest) Close() {
+	if err := i.Iterator.Close(); err != nil {
+		i.Errorf("Close(): failed with error: %v\n", err)
 	}
 	return
 }

@@ -8,52 +8,59 @@ import (
 	"github.com/pkg/errors"
 )
 
+// Batch represents a batch and implements the batch interface.
 type Batch struct {
 	db      *Database
 	writes  map[string]string
 	deletes map[string]struct{}
 }
 
-func (this *Batch) Put(key string, value string) error {
-	delete(this.deletes, key)
-	this.writes[key] = value
+// Put puts a new value in the batch.
+func (b *Batch) Put(key string, value string) error {
+	delete(b.deletes, key)
+	b.writes[key] = value
 	return nil
 }
 
-func (this *Batch) PutBytes(key string, value []byte) error {
-	return this.Put(key, string(value))
+// PutBytes puts a new byte slice into the batch.
+func (b *Batch) PutBytes(key string, value []byte) error {
+	return b.Put(key, string(value))
 }
 
-func (this *Batch) Delete(key string) error {
-	delete(this.writes, key)
-	this.deletes[key] = struct{}{}
+// Delete deletes a value from the batch.
+func (b *Batch) Delete(key string) error {
+	delete(b.writes, key)
+	b.deletes[key] = struct{}{}
 	return nil
 }
 
-func (this *Batch) Len() uint {
-	return uint(len(this.writes) + len(this.deletes))
+// Len returns the amount of operations in the batch.
+func (b *Batch) Len() uint {
+	return uint(len(b.writes) + len(b.deletes))
 }
 
-func (this *Batch) ValueSize() uint {
+// ValueSize returns the length of values in the batch.
+func (b *Batch) ValueSize() uint {
 	bytes := 0
 
-	for _, value := range this.writes {
+	for _, value := range b.writes {
 		bytes += len(value)
 	}
 
 	return uint(bytes)
 }
 
-func (this *Batch) Apply() error {
-	for key, value := range this.writes {
-		err := this.db.Put(key, value)
+// Apply applies the batch to the database.
+func (b *Batch) Apply() error {
+	for key, value := range b.writes {
+		err := b.db.Put(key, value)
 		if err != nil {
 			return errors.Wrap(err, "Failed to put entry.")
 		}
 	}
 
-	for key := range this.deletes {
-		err := this.db.Delete(key)
+	for key := range b.deletes {
+		err := b.db.Delete(key)
 		if err != nil {
 			return errors.Wrap(err, "Failed to delete entry.")
 		}
@@ -61,7 +68,8 @@ func (this *Batch) Apply() error {
 	return nil
 }
 
-func (this *Batch) Reset() {
-	this.writes = make(map[string]string)
-	this.deletes = make(map[string]struct{})
+// Reset resets the batch.
+func (b *Batch) Reset() {
+	b.writes = make(map[string]string)
+	b.deletes = make(map[string]struct{})
 }

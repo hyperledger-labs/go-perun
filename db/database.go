@@ -10,10 +10,12 @@
 // and is also inspired by perkeep.org/pkg/sorted
 package db // import "perun.network/go-perun/db"
 
+// ErrNotFound is returned whenever a key is not in the db.
 type ErrNotFound struct {
 	Key string
 }
 
+// Error returns the error string.
 func (e *ErrNotFound) Error() string {
 	return "db: key not found: " + e.Key
 }
