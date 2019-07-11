@@ -12,7 +12,7 @@ import (
 	perun "perun.network/go-perun/wallet"
 )
 
-// Account represents an ethereum account
+// Account represents an ethereum account.
 type Account struct {
 	address Address
 	account *accounts.Account
@@ -21,61 +21,61 @@ type Account struct {
 	mu      sync.RWMutex
 }
 
-// Address returns the ethereum address of this account
-func (e *Account) Address() perun.Address {
-	return &e.address
+// Address returns the ethereum address of this account.
+func (a *Account) Address() perun.Address {
+	return &a.address
 }
 
-// Unlock unlocks this account
-func (e *Account) Unlock(password string) error {
-	e.mu.Lock()
-	defer e.mu.Unlock()
+// Unlock unlocks this account.
+func (a *Account) Unlock(password string) error {
+	a.mu.Lock()
+	defer a.mu.Unlock()
 
-	err := e.wallet.ks.Unlock(*e.account, password)
+	err := a.wallet.ks.Unlock(*a.account, password)
 	if err != nil {
 		return err
 	}
-	e.locked = false
+	a.locked = false
 	return nil
 }
 
-// IsLocked checks if this account is locked
-func (e *Account) IsLocked() bool {
-	e.mu.RLock()
-	defer e.mu.RUnlock()
+// IsLocked checks if this account is locked.
+func (a *Account) IsLocked() bool {
+	a.mu.RLock()
+	defer a.mu.RUnlock()
 
-	return e.locked
+	return a.locked
 }
 
-// Lock locks this account
-func (e *Account) Lock() error {
-	e.mu.Lock()
-	defer e.mu.Unlock()
+// Lock locks this account.
+func (a *Account) Lock() error {
+	a.mu.Lock()
+	defer a.mu.Unlock()
 
-	err := e.wallet.ks.Lock(e.address.Address)
+	err := a.wallet.ks.Lock(a.address.Address)
 	if err != nil {
 		return err
 	}
-	e.locked = true
+	a.locked = true
 	return nil
 }
 
-// SignData is used to sign data with this account
-func (e *Account) SignData(data []byte) ([]byte, error) {
-	e.mu.RLock()
-	defer e.mu.RUnlock()
+// SignData is used to sign data with this account.
+func (a *Account) SignData(data []byte) ([]byte, error) {
+	a.mu.RLock()
+	defer a.mu.RUnlock()
 
 	hash := crypto.Keccak256(data)
-	return e.wallet.ks.SignHash(*e.account, hash)
+	return a.wallet.ks.SignHash(*a.account, hash)
 }
 
-// SignDataWithPW is used to sign a hash with this account and a pw
-func (e *Account) SignDataWithPW(password string, data []byte) ([]byte, error) {
-	e.mu.RLock()
-	defer e.mu.RUnlock()
+// SignDataWithPW is used to sign a hash with this account and a pw.
+func (a *Account) SignDataWithPW(password string, data []byte) ([]byte, error) {
+	a.mu.RLock()
+	defer a.mu.RUnlock()
 
 	hash := crypto.Keccak256(data)
-	return e.wallet.ks.SignHashWithPassphrase(*e.account, password, hash)
+	return a.wallet.ks.SignHashWithPassphrase(*a.account, password, hash)
 }
 
 func newAccountFromEth(wallet *Wallet, account *accounts.Account) *Account {
