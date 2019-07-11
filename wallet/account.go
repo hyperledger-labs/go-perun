@@ -11,12 +11,14 @@ type Account interface {
 
 	// Unlocks this account with the given passphrase.
 	// Returns an error if unlocking failed.
+	// Unlocking an unlocked account should not fail.
 	Unlock(password string) error
 
-	// Returns a bool indicating whether this account is currently unlocked.
-	IsUnlocked() bool
+	// Returns a bool indicating whether this account is currently locked.
+	IsLocked() bool
 
 	// Locks this account.
+	// Locking an already locked account should not fail.
 	Lock() error
 
 	// SignData requests a signature from this account.
