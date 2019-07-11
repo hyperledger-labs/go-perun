@@ -93,17 +93,17 @@ func TestHelper(t *testing.T) {
 }
 
 func newTestSetup(t *testing.T) *test.Setup {
-	setup := new(test.Setup)
-	setup.T = t
-	setup.Wallet = new(Wallet)
-	setup.Path = "./" + keyDir
-	setup.WalletPW = password
-	setup.AccountPW = password
-	setup.Helper = new(Helper)
-	setup.AddrString = sampleAddr
-	setup.DataToSign = []byte(dataToSign)
-	setup.SignedData = []byte(signedData)
-	return setup
+	return &test.Setup{
+		T:          t,
+		Wallet:     new(Wallet),
+		Path:       "./" + keyDir,
+		WalletPW:   password,
+		AccountPW:  password,
+		Helper:     new(Helper),
+		AddrString: sampleAddr,
+		DataToSign: []byte(dataToSign),
+		SignedData: []byte(signedData),
+	}
 }
 
 func connectTmpKeystore(t *testing.T) *Wallet {
