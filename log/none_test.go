@@ -1,0 +1,44 @@
+// Copyright (c) 2019 The Perun Authors. All rights reserved.
+// This file is part of go-perun. Use of this source code is governed by a
+// MIT-style license that can be found in the LICENSE file.
+
+package log
+
+import (
+	"testing"
+
+	"github.com/stretchr/testify/assert"
+)
+
+// TestNone tests the none logger for coverage :)
+func TestNone(t *testing.T) {
+	None.Printf("")
+	None.Print()
+	None.Println()
+	None.Fatalf("")
+	None.Fatal()
+	None.Fatalln()
+	None.Panicf("")
+	None.Panic()
+	None.Panicln()
+	None.Tracef("")
+	None.Debugf("")
+	None.Infof("")
+	None.Warnf("")
+	None.Errorf("")
+	None.Trace()
+	None.Debug()
+	None.Info()
+	None.Warn()
+	None.Error()
+	None.Traceln()
+	None.Debugln()
+	None.Infoln()
+	None.Warnln()
+	None.Errorln()
+
+	a := assert.New(t)
+	a.Equal(None.WithField("", ""), None)
+	a.Equal(None.WithFields(nil), None)
+	a.Equal(None.WithError(nil), None)
+}

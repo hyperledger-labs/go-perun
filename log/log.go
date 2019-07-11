@@ -65,7 +65,7 @@ type Fields map[string]interface{}
 type Logger interface {
 	LevelLogger
 
-	WithField(key string, value interface{}) *Logger
-	WithFields(Fields) *Logger
-	WithError(error) *Logger
+	WithField(key string, value interface{}) Logger
+	WithFields(Fields) Logger
+	WithError(error) Logger
 }
