@@ -4,40 +4,40 @@
 
 package msg
 
-/*
-	ControlMsgType is an enumeration used for (de)serializing control messages
-	and identifying a control message's type.
-*/
+import (
+	"strconv"
+)
+
+// ControlMsg objects are messages that are outside of the perun core protcol
+// that directly control what happens with a peer connection.
+type ControlMsg interface {
+	Msg
+	// Type returns the control message's implementing type.
+	Type() ControlMsgType
+}
+
+// ControlMsgType is an enumeration used for (de)serializing control messages
+// and identifying a control message's type.
 type ControlMsgType uint8
 
 // Enumeration of control message types.
 const (
 	Ping ControlMsgType = iota
 	Pong
-	lastControlMsgType
+	controlMsgTypeEnd
 )
 
 func (t ControlMsgType) String() string {
 	if !t.Valid() {
-		return "<Invalid ControlMsgType (" + uint8(t) + ")>"
+		panic("Invalid ControlMsgType (" + strconv.Itoa(int(t)) + ")")
 	}
 	return []string{
 		"PingMsg",
 		"PongMsg",
-	}[t]
+	}[int(t)]
 }
 
 // Valid checks whether a ControlMsgType is a valid value.
 func (t ControlMsgType) Valid() bool {
-	return t < lastControlMsgType
-}
-
-/*
-	ControlMsg objects are messages that are outside of the perun core protcol
-	that directly control what happens with a peer connection.
-*/
-type ControlMsg interface {
-	Msg
-	// Type returns the control message's implementing type.
-	Type() ControlMsgType
+	return t < controlMsgTypeEnd
 }

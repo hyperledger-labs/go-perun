@@ -4,15 +4,25 @@
 
 package msg
 
-/*
-	ConnectionID uniquely identifies a virtual connection to a peer node.
-*/
+import (
+	"strconv"
+)
+
+// ChannelMsg objects are channel-specific messages that are sent between
+// perun nodes.
+type ChannelMsg interface {
+	Msg
+	// Connection returns the channel message's associated connection's ID.
+	Connection() ConnectionID
+	// Type returns the message's implementing type.
+	Type() ChannelMsgType
+}
+
+// ConnectionID uniquely identifies a virtual connection to a peer node.
 type ConnectionID [20]byte
 
-/*
-	ChannelMsgType is an enumeration used for (de)serializing channel messages
-	and identifying a channel message's type.
-*/
+// ChannelMsgType is an enumeration used for (de)serializing channel messages
+// and identifying a channel message's type.
 type ChannelMsgType uint16
 
 // Enumeration of channel message types.
@@ -24,7 +34,7 @@ const (
 
 func (t ChannelMsgType) String() string {
 	if !t.Valid() {
-		return "<Invalid ChannelMsgType (" + uint8(t) + ")>"
+		panic("Invalid ChannelMsgType (" + strconv.Itoa(int(t)) + ")")
 	}
 	return []string{
 		"DummyMsg",
@@ -34,16 +44,4 @@ func (t ChannelMsgType) String() string {
 // Valid checks whether a ChannelMsgType is a valid value.
 func (t ChannelMsgType) Valid() bool {
 	return t < lastChannelMsgType
-}
-
-/*
-	ChannelMsg objects are channel-specific messages that are sent between
-	perun nodes.
-*/
-type ChannelMsg interface {
-	Msg
-	// Connection returns the channel message's associated connection's ID.
-	Connection() ConnectionID
-	// Type returns the message's implementing type.
-	Type() ChannelMsgType
 }
