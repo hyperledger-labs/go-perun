@@ -11,6 +11,9 @@ import (
 	perun "perun.network/go-perun/wallet"
 )
 
+// ZeroAddr is the constant address 0x0000000000000000000000000000000000000000
+var ZeroAddr = common.BytesToAddress(make([]byte, 20, 20))
+
 // Address represents an ethereum address
 type Address struct {
 	common.Address

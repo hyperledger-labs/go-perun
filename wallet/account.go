@@ -14,8 +14,8 @@ type Account interface {
 	// Unlocking an unlocked account should not fail.
 	Unlock(password string) error
 
-	// Returns a bool indicating whether this account is currently unlocked.
-	IsUnlocked() bool
+	// Returns a bool indicating whether this account is currently locked.
+	IsLocked() bool
 
 	// Locks this account.
 	// Locking an already locked account should not fail.

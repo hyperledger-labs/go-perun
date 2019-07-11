@@ -14,11 +14,11 @@ import (
 
 // Account represents an ethereum account
 type Account struct {
-	address  Address
-	account  *accounts.Account
-	wallet   *Wallet
-	unlocked bool
-	mu       sync.RWMutex
+	address Address
+	account *accounts.Account
+	wallet  *Wallet
+	locked  bool
+	mu      sync.RWMutex
 }
 
 // Address returns the ethereum address of this account
@@ -35,16 +35,16 @@ func (e *Account) Unlock(password string) error {
 	if err != nil {
 		return err
 	}
-	e.unlocked = true
+	e.locked = false
 	return nil
 }
 
-// IsUnlocked checks if this account is unlocked
-func (e *Account) IsUnlocked() bool {
+// IsLocked checks if this account is locked
+func (e *Account) IsLocked() bool {
 	e.mu.RLock()
 	defer e.mu.RUnlock()
 
-	return e.unlocked
+	return e.locked
 }
 
 // Lock locks this account
@@ -56,7 +56,7 @@ func (e *Account) Lock() error {
 	if err != nil {
 		return err
 	}
-	e.unlocked = false
+	e.locked = true
 	return nil
 }
 
@@ -78,10 +78,11 @@ func (e *Account) SignDataWithPW(password string, data []byte) ([]byte, error) {
 	return e.wallet.ks.SignHashWithPassphrase(*e.account, password, hash)
 }
 
-func fromAccount(wallet *Wallet, account *accounts.Account) perun.Account {
-	var acc Account
-	acc.address = Address{account.Address}
-	acc.account = account
-	acc.wallet = wallet
-	return &acc
+func newAccountFromEth(wallet *Wallet, account *accounts.Account) *Account {
+	return &Account{
+		address: Address{account.Address},
+		account: account,
+		wallet:  wallet,
+		locked:  true,
+	}
 }

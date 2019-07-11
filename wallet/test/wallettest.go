@@ -2,7 +2,7 @@
 // This file is part of go-perun. Use of this source code is governed by a
 // MIT-style license that can be found in the LICENSE file.
 
-package wallet_test
+package test // import "perun.network/go-perun/wallet/test"
 
 import (
 	"testing"
@@ -61,17 +61,17 @@ func testInitializedWallet(t *Setup) {
 	acc := t.Wallet.Accounts()[0]
 	assert.True(t.T, t.Wallet.Contains(acc), "Expected wallet to contain account")
 	// Check unlock account
-	assert.False(t.T, acc.IsUnlocked(), "Account should be locked")
+	assert.True(t.T, acc.IsLocked(), "Account should be locked")
 	assert.NotNil(t.T, acc.Unlock(""), "Unlock with wrong pw should fail")
 	assert.Nil(t.T, acc.Unlock(t.AccountPW), "Expected unlock to work")
-	assert.True(t.T, acc.IsUnlocked(), "Account should be unlocked")
+	assert.False(t.T, acc.IsLocked(), "Account should be unlocked")
 	assert.Nil(t.T, acc.Lock(), "Expected lock to work")
-	assert.False(t.T, acc.IsUnlocked(), "Account should be locked")
+	assert.True(t.T, acc.IsLocked(), "Account should be locked")
 	// Check lock all accounts
 	assert.Nil(t.T, acc.Unlock(t.AccountPW), "Expected unlock to work")
-	assert.True(t.T, acc.IsUnlocked(), "Account should be unlocked")
+	assert.False(t.T, acc.IsLocked(), "Account should be unlocked")
 	assert.Nil(t.T, t.Wallet.Lock(), "Expected lock to succeed")
-	assert.False(t.T, acc.IsUnlocked(), "Account should be locked")
+	assert.True(t.T, acc.IsLocked(), "Account should be locked")
 
 	assert.Nil(t.T, t.Wallet.Disconnect(), "Expected disconnect to succeed")
 }
@@ -92,7 +92,7 @@ func GenericSignatureTest(t *Setup) {
 	valid, err := t.Helper.VerifySignature(t.DataToSign, sign, acc.Address())
 	assert.True(t.T, valid, "Verification should succeed")
 	assert.Nil(t.T, err, "Verification should succeed")
-	assert.False(t.T, acc.IsUnlocked(), "Account should not be unlocked")
+	assert.True(t.T, acc.IsLocked(), "Account should not be unlocked")
 	// Check unlocked account
 	assert.Nil(t.T, acc.Unlock(t.AccountPW), "Unlock should not fail")
 	sign, err = acc.SignData(t.DataToSign)
@@ -117,7 +117,7 @@ func GenericSignatureTest(t *Setup) {
 	valid, err = t.Helper.VerifySignature(t.DataToSign, sign, acc.Address())
 	assert.False(t.T, valid, "Verification should fail")
 	assert.NotNil(t.T, err, "Verification of invalid signature should produce error")
-	assert.True(t.T, acc.IsUnlocked(), "Account should be unlocked")
+	assert.False(t.T, acc.IsLocked(), "Account should be unlocked")
 
 	assert.Nil(t.T, t.Wallet.Disconnect(), "Expected disconnect to succeed")
 }
