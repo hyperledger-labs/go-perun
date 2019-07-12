@@ -16,6 +16,10 @@ import (
 
 var log = _log.Log
 
+const (
+	queueSize = 10
+)
+
 // Connection represents a direct tcp connection to a single peer.
 // It implements the io.ReadWriteCloser interface.
 type Connection struct {
@@ -58,6 +62,8 @@ type Server struct {
 	listener net.Listener
 	conns    map[string]*Connection
 	mu       sync.RWMutex
+	// Users can use the connection channel to get notified of new incoming connections.
+	ConnChan chan *Connection
 }
 
 // NewTCPServer initializes a new tcp server and listens to incomming connections.
@@ -71,6 +77,7 @@ func NewTCPServer(host, port string) (*Server, error) {
 	server := Server{
 		listener: listener,
 		conns:    make(map[string]*Connection),
+		ConnChan: make(chan *Connection, queueSize),
 	}
 
 	go server.acceptIncomingConnections()
@@ -82,10 +89,7 @@ func (s *Server) acceptIncomingConnections() {
 		c, err := s.listener.Accept()
 		log.Infoln("Accepted a new connection")
 		if err != nil {
-			if err.Error() != "accept tcp "+s.listener.Addr().String()+": use of closed network connection" {
-				log.Warnf("Incoming connection failed with unknown error: ", err)
-			}
-			log.Warn("Incoming connection failed with known error: ", err)
+			log.Warnf("Incoming connection failed with error: ", err)
 			continue
 		}
 		s.mu.Lock()
@@ -93,6 +97,7 @@ func (s *Server) acceptIncomingConnections() {
 			Conn:   c,
 			server: s,
 		}
+		s.ConnChan <- &conn
 		log.Infof("Stored connection with peer ", conn.RemoteAddr().String())
 		s.conns[conn.RemoteAddr().String()] = &conn
 		s.mu.Unlock()

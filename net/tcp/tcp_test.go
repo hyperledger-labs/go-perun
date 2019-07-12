@@ -9,7 +9,6 @@ package tcp
 import (
 	"reflect"
 	"testing"
-	"time"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -80,37 +79,37 @@ func TestNewTCPServer(t *testing.T) {
 
 func TestServer(t *testing.T) {
 	server := newTestServer(t)
-	conClient, err := Connect(host, port)
+	connClient, err := Connect(host, port)
 	assert.Nil(t, err, "Connecting to a running server should not fail")
-	// Sleep 10 milliseconds to let server connect to client
-	time.Sleep(time.Millisecond * 10)
+	connServerChan := <-server.ConnChan
 	connections := server.Connections()
 	assert.Equal(t, 1, len(connections), "Server should have one connection")
-	conServer := connections[0]
+	connServer := connections[0]
+	assert.Equal(t, connServer, connServerChan, "Connections should be equal")
 	// Client sends data to server
 	data := "DATADATA"
-	n, err := conClient.Write([]byte(data))
+	n, err := connClient.Write([]byte(data))
 	assert.Nil(t, err, "Write to valid connection should not fail")
 	assert.Equal(t, len(data), n, "Should have written len(data) bytes")
 	buffer := make([]byte, 1024)
-	n, err = conServer.Read(buffer)
+	n, err = connServer.Read(buffer)
 	assert.Nil(t, err, "Reading from established channel should not fail")
 	assert.Equal(t, len(data), n, "Should receive as much bytes as previously send")
 	assert.Equal(t, []byte(data), buffer[:n], "Receiving should produce same data as previously send")
 	// Server sends data to client
 	data = "DATADATADATADATA"
-	n, err = conServer.Write([]byte(data))
+	n, err = connServer.Write([]byte(data))
 	assert.Nil(t, err, "Write to valid connection should not fail")
 	assert.Equal(t, len(data), n, "Should have written len(data) bytes")
 	buffer = make([]byte, 1024)
-	n, err = conClient.Read(buffer)
+	n, err = connClient.Read(buffer)
 	assert.Nil(t, err, "Reading from established channel should not fail")
 	assert.Equal(t, len(data), n, "Should receive as much bytes as previously send")
 	assert.Equal(t, []byte(data), buffer[:n], "Receiving should produce same data as previously send")
 	// Closing the connections
 	err = server.Close()
 	assert.Nil(t, err, "Closing of a server should not fail")
-	err = conClient.Close()
+	err = connClient.Close()
 	assert.Nil(t, err, "Closing of a client should not fail")
 	assert.Equal(t, 0, len(server.Connections()), "Server should have zero connections")
 }
