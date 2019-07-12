@@ -11,7 +11,10 @@ import (
 	"sync"
 
 	"github.com/pkg/errors"
+	_log "perun.network/go-perun/log"
 )
+
+var log = _log.Log
 
 // Connection represents a connection to a single peer.
 type Connection struct {
@@ -37,10 +40,10 @@ func Connect(host, port string) (Connection, error) {
 
 // NewTCPServer initializes a new tcp server and listens to incomming connections.
 func NewTCPServer(host, port string) (*Server, error) {
-
-	// TODO log the listening here
+	log.Info("Created a new TCP Server listening on " + host+":"+port)
 	listener, err := net.Listen("tcp", host+":"+port)
 	if err != nil {
+		log.Warn("Could not create TCP server")
 		return &Server{}, errors.Wrap(err, "error trying to open connection on "+host+":"+port)
 	}
 	server := Server{
@@ -55,11 +58,12 @@ func NewTCPServer(host, port string) (*Server, error) {
 func (s *Server) acceptIncomingConnections() {
 	for {
 		c, err := s.listener.Accept()
-		// TODO log accept here
+		log.Infoln("Accepted a new connection")
 		if err != nil {
 			if err.Error() != "accept tcp "+s.listener.Addr().String()+": use of closed network connection" {
-				panic("Unknown error")
+				log.Errorf("Incoming connection failed with unknown error: ", err)
 			}
+			log.Warn("Incoming connection failed with known error: ", err)
 			continue
 		}
 		s.mu.Lock()
@@ -67,6 +71,7 @@ func (s *Server) acceptIncomingConnections() {
 			Conn:   c,
 			server: s,
 		}
+		log.Infof("Stored connection with peer ", conn.RemoteAddr().String())
 		s.conns[conn.RemoteAddr().String()] = &conn
 		s.mu.Unlock()
 	}
@@ -88,11 +93,13 @@ func (s *Server) removeConnection(conn *Connection) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
+	log.Infof("Removed connection with peer ", conn.RemoteAddr().String())
 	delete(s.conns, conn.RemoteAddr().String())
 }
 
 // Close closes all connections of the server.
 func (s *Server) Close() error {
+	log.Info("Closed all connections of server")
 	if s.listener == nil {
 		return errors.New("Server has no valid listener")
 	}
@@ -121,6 +128,7 @@ func (c *Connection) Write(p []byte) (n int, err error) {
 
 // Close closes this connection.
 func (c *Connection) Close() error {
+	log.Info("Closed connection with peer" + c.RemoteAddr().String())
 	if c.server != nil {
 		c.server.removeConnection(c)
 	}
