@@ -83,7 +83,7 @@ func (s *Server) acceptIncomingConnections() {
 		log.Infoln("Accepted a new connection")
 		if err != nil {
 			if err.Error() != "accept tcp "+s.listener.Addr().String()+": use of closed network connection" {
-				log.Errorf("Incoming connection failed with unknown error: ", err)
+				log.Warnf("Incoming connection failed with unknown error: ", err)
 			}
 			log.Warn("Incoming connection failed with known error: ", err)
 			continue
