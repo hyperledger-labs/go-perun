@@ -31,6 +31,7 @@ type Server struct {
 
 // Connect connects to another server.
 func Connect(host, port string) (Connection, error) {
+	log.Info("Connecting to a server at " + host + ":" + port)
 	conn, err := net.Dial("tcp", host+":"+port)
 	return Connection{
 		Conn:   conn,
@@ -40,7 +41,7 @@ func Connect(host, port string) (Connection, error) {
 
 // NewTCPServer initializes a new tcp server and listens to incomming connections.
 func NewTCPServer(host, port string) (*Server, error) {
-	log.Info("Created a new TCP Server listening on " + host+":"+port)
+	log.Info("Creating a new TCP Server listening on " + host + ":" + port)
 	listener, err := net.Listen("tcp", host+":"+port)
 	if err != nil {
 		log.Warn("Could not create TCP server")
