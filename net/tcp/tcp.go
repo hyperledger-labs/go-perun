@@ -16,17 +16,11 @@ import (
 
 var log = _log.Log
 
-// Connection represents a connection to a single peer.
+// Connection represents a direct tcp connection to a single peer.
+// It implements the io.ReadWriteCloser interface.
 type Connection struct {
 	net.Conn
 	server *Server
-}
-
-// Server represents a server to a peer.
-type Server struct {
-	listener net.Listener
-	conns    map[string]*Connection
-	mu       sync.RWMutex
 }
 
 // Connect connects to another server.
@@ -37,6 +31,33 @@ func Connect(host, port string) (Connection, error) {
 		Conn:   conn,
 		server: nil,
 	}, err
+}
+
+// Read reads the next message from a connection.
+func (c *Connection) Read(p []byte) (n int, err error) {
+	reqLen, err := c.Conn.Read(p)
+	return reqLen, nil
+}
+
+// Write sends the message to a peer.
+func (c *Connection) Write(p []byte) (n int, err error) {
+	return c.Conn.Write(p)
+}
+
+// Close closes this connection.
+func (c *Connection) Close() error {
+	log.Info("Closed connection with peer" + c.RemoteAddr().String())
+	if c.server != nil {
+		c.server.removeConnection(c)
+	}
+	return c.Conn.Close()
+}
+
+// Server represents a server to a peer.
+type Server struct {
+	listener net.Listener
+	conns    map[string]*Connection
+	mu       sync.RWMutex
 }
 
 // NewTCPServer initializes a new tcp server and listens to incomming connections.
@@ -102,7 +123,7 @@ func (s *Server) removeConnection(conn *Connection) {
 func (s *Server) Close() error {
 	log.Info("Closed all connections of server")
 	if s.listener == nil {
-		return errors.New("Server has no valid listener")
+		return errors.New("server has no valid listener")
 	}
 	var wrapErr error
 	for _, conn := range s.conns {
@@ -114,24 +135,4 @@ func (s *Server) Close() error {
 		wrapErr = errors.Wrap(wrapErr, err.Error())
 	}
 	return wrapErr
-}
-
-// Read reads the next message from a connection.
-func (c *Connection) Read(p []byte) (n int, err error) {
-	reqLen, err := c.Conn.Read(p)
-	return reqLen, nil
-}
-
-// Write sends the message to a peer.
-func (c *Connection) Write(p []byte) (n int, err error) {
-	return c.Conn.Write(p)
-}
-
-// Close closes this connection.
-func (c *Connection) Close() error {
-	log.Info("Closed connection with peer" + c.RemoteAddr().String())
-	if c.server != nil {
-		c.server.removeConnection(c)
-	}
-	return c.Conn.Close()
 }
