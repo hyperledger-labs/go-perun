@@ -8,8 +8,10 @@ package tcp
 
 import (
 	"reflect"
+	"strconv"
 	"testing"
 
+	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -75,6 +77,17 @@ func TestNewTCPServer(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestConnectionError(t *testing.T) {
+	t.Parallel()
+	conErr := ConnectionError(nil)
+	for i := 0; i < 10; i++ {
+		err := errors.New(strconv.Itoa(i))
+		conErr = append(conErr, err)
+	}
+	errorString := "0,1,2,3,4,5,6,7,8,9"
+	assert.Equal(t, conErr.Error(), errorString, "Error messages should be equal")
 }
 
 func TestServer(t *testing.T) {

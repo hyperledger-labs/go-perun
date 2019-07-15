@@ -8,6 +8,7 @@ package tcp
 
 import (
 	"net"
+	"strings"
 	"sync"
 
 	"github.com/pkg/errors"
@@ -19,6 +20,17 @@ var log = _log.Log
 const (
 	queueSize = 10
 )
+
+// ConnectionError provides all errors thrown by closing a server.
+type ConnectionError []error
+
+func (ce ConnectionError) Error() string {
+	s := []string{}
+	for _, err := range ce {
+		s = append(s, err.Error())
+	}
+	return strings.Join(s, ",")
+}
 
 // Connection represents a direct tcp connection to a single peer.
 // It implements the io.ReadWriteCloser interface.
@@ -40,7 +52,7 @@ func Connect(host, port string) (Connection, error) {
 // Read reads the next message from a connection.
 func (c *Connection) Read(p []byte) (n int, err error) {
 	reqLen, err := c.Conn.Read(p)
-	return reqLen, nil
+	return reqLen, err
 }
 
 // Write sends the message to a peer.
@@ -84,6 +96,36 @@ func NewTCPServer(host, port string) (*Server, error) {
 	return &server, nil
 }
 
+// Connections returns all open connections of this server.
+func (s *Server) Connections() []*Connection {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	conns := []*Connection{}
+	for _, conn := range s.conns {
+		conns = append(conns, conn)
+	}
+	return conns
+}
+
+// Close closes all connections of the server.
+func (s *Server) Close() error {
+	log.Info("Closed all connections of server")
+	if s.listener == nil {
+		return errors.New("server has no valid listener")
+	}
+	conErr := ConnectionError(nil)
+	for _, conn := range s.conns {
+		if err := conn.Close(); err != nil {
+			conErr = append(conErr, err)
+		}
+	}
+	if err := s.listener.Close(); err != nil {
+		conErr = append([]error{err}, conErr)
+	}
+	return conErr
+}
+
 func (s *Server) acceptIncomingConnections() {
 	for {
 		c, err := s.listener.Accept()
@@ -104,40 +146,10 @@ func (s *Server) acceptIncomingConnections() {
 	}
 }
 
-// Connections returns all open connections of this server.
-func (s *Server) Connections() []*Connection {
-	s.mu.RLock()
-	defer s.mu.RUnlock()
-
-	conns := []*Connection{}
-	for _, conn := range s.conns {
-		conns = append(conns, conn)
-	}
-	return conns
-}
-
 func (s *Server) removeConnection(conn *Connection) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
 	log.Infof("Removed connection with peer ", conn.RemoteAddr().String())
 	delete(s.conns, conn.RemoteAddr().String())
-}
-
-// Close closes all connections of the server.
-func (s *Server) Close() error {
-	log.Info("Closed all connections of server")
-	if s.listener == nil {
-		return errors.New("server has no valid listener")
-	}
-	var wrapErr error
-	for _, conn := range s.conns {
-		if err := conn.Close(); err != nil {
-			wrapErr = errors.Wrap(wrapErr, err.Error())
-		}
-	}
-	if err := s.listener.Close(); err != nil {
-		wrapErr = errors.Wrap(wrapErr, err.Error())
-	}
-	return wrapErr
 }
