@@ -4,12 +4,10 @@
 
 // Package tcp implements a direct tcp implementation and fulfills
 // the io.ReadWriteCloser interface.
-package tcp
+package tcp // import "perun.network/go-perun/net/tcp"
 
 import (
 	"net"
-	"strings"
-	"sync"
 
 	"github.com/pkg/errors"
 	_log "perun.network/go-perun/log"
@@ -21,98 +19,60 @@ const (
 	queueSize = 10
 )
 
-// ConnectionError provides all errors thrown by closing a server.
-type ConnectionError []error
-
-func (ce ConnectionError) Error() string {
-	s := []string{}
-	for _, err := range ce {
-		s = append(s, err.Error())
-	}
-	return strings.Join(s, ",")
-}
-
-// Server represents a server to a peer.
-type Server struct {
+// Listener represents a listener to a peer.
+// A Listener is created with NewListener and binds to a port.
+// If someone connects to the port, the Listener creates a new connection and stores it in incoming.
+type Listener struct {
 	listener net.Listener
-	conns    map[string]*Connection
-	mu       sync.RWMutex
 	// Users can use the connection channel to get notified of new incoming connections.
-	ConnChan chan *Connection
+	Incoming chan *Connection
+	close    chan struct{}
 }
 
-// NewServer initializes a new tcp server and listens to incomming connections.
-func NewServer(host, port string) (*Server, error) {
-	log.Info("Creating a new TCP Server listening on " + host + ":" + port)
-	listener, err := net.Listen("tcp", host+":"+port)
+// NewListener initializes a new tcp Listener and listens to incomming connections.
+func NewListener(host, port string) (*Listener, error) {
+	log.Info("Creating a new TCP Listener listening on " + host + ":" + port)
+	socket, err := net.Listen("tcp", host+":"+port)
 	if err != nil {
-		log.Warn("Could not create TCP server")
-		return &Server{}, errors.Wrap(err, "error trying to open connection on "+host+":"+port)
+		log.Warn("Could not create TCP Listener")
+		return &Listener{}, errors.Wrap(err, "error trying to open connection on "+host+":"+port)
 	}
-	server := Server{
-		listener: listener,
-		conns:    make(map[string]*Connection),
-		ConnChan: make(chan *Connection, queueSize),
+	listener := &Listener{
+		listener: socket,
+		Incoming: make(chan *Connection, queueSize),
+		close:    make(chan struct{}),
 	}
 
-	go server.acceptIncomingConnections()
-	return &server, nil
+	go listener.acceptIncomingConnections()
+	return listener, nil
 }
 
-// Connections returns all open connections of this server.
-func (s *Server) Connections() []*Connection {
-	s.mu.RLock()
-	defer s.mu.RUnlock()
-
-	conns := []*Connection{}
-	for _, conn := range s.conns {
-		conns = append(conns, conn)
-	}
-	return conns
-}
-
-// Close closes all connections of the server.
-func (s *Server) Close() error {
-	log.Info("Closed all connections of server")
+// Close closes all connections of the Listener.
+func (s *Listener) Close() error {
+	log.Debug("Closing all connections of Listener")
 	if s.listener == nil {
-		return errors.New("server has no valid listener")
+		return errors.New("Listener has no valid listener")
 	}
-	conErr := ConnectionError(nil)
-	for _, conn := range s.conns {
-		if err := conn.Close(); err != nil {
-			conErr = append(conErr, err)
-		}
-	}
-	if err := s.listener.Close(); err != nil {
-		conErr = append([]error{err}, conErr)
-	}
-	return conErr
+	close(s.close)
+	return s.listener.Close()
 }
 
-func (s *Server) acceptIncomingConnections() {
+func (s *Listener) acceptIncomingConnections() {
 	for {
 		c, err := s.listener.Accept()
-		log.Infoln("Accepted a new connection")
 		if err != nil {
-			log.Warnf("Incoming connection failed with error: ", err)
-			continue
+			select {
+			case <-s.close:
+				log.Debugf("Closing Listener")
+				close(s.Incoming)
+				return
+			default:
+				log.Warnf("Incoming connection failed with error: ", err)
+				continue
+			}
 		}
-		s.mu.Lock()
-		conn := Connection{
-			Conn:   c,
-			server: s,
-		}
-		s.ConnChan <- &conn
-		log.Infof("Stored connection with peer ", conn.RemoteAddr().String())
-		s.conns[conn.RemoteAddr().String()] = &conn
-		s.mu.Unlock()
+		conn := Connection{c}
+		s.Incoming <- &conn
+		log.Debugf("Accepted connection from peer ", conn.RemoteAddr().String())
 	}
-}
-
-func (s *Server) removeConnection(conn *Connection) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-
-	log.Infof("Removed connection with peer ", conn.RemoteAddr().String())
-	delete(s.conns, conn.RemoteAddr().String())
 }

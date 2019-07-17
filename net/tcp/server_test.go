@@ -7,11 +7,10 @@
 package tcp
 
 import (
+	"net"
 	"reflect"
-	"strconv"
 	"testing"
 
-	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -32,9 +31,9 @@ func TestConnect(t *testing.T) {
 		want    Connection
 		wantErr bool
 	}{
-		{"InvalidPort", args{host: "localhost", port: "70000"}, Connection{nil, nil}, true},
-		{"InvalidHost", args{host: "255.255.255.256", port: "1234"}, Connection{nil, nil}, true},
-		{"NoServerRunning", args{host: "localhost", port: "1234"}, Connection{nil, nil}, true},
+		{"InvalidPort", args{host: "localhost", port: "70000"}, Connection{nil}, true},
+		{"InvalidHost", args{host: "255.255.255.256", port: "1234"}, Connection{nil}, true},
+		{"NoListenerRunning", args{host: "localhost", port: "1234"}, Connection{nil}, true},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -50,7 +49,7 @@ func TestConnect(t *testing.T) {
 	}
 }
 
-func TestNewTCPServer(t *testing.T) {
+func TestNewTCPListener(t *testing.T) {
 	t.Parallel()
 	type args struct {
 		host string
@@ -59,59 +58,44 @@ func TestNewTCPServer(t *testing.T) {
 	tests := []struct {
 		name    string
 		args    args
-		want    *Server
+		want    *Listener
 		wantErr bool
 	}{
-		{"InvalidPort", args{host: "localhost", port: "70000"}, &Server{}, true},
-		{"InvalidHost", args{host: "255.255.255.256", port: "1234"}, &Server{}, true},
+		{"InvalidPort", args{host: "localhost", port: "70000"}, &Listener{}, true},
+		{"InvalidHost", args{host: "255.255.255.256", port: "1234"}, &Listener{}, true},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := NewServer(tt.args.host, tt.args.port)
+			got, err := NewListener(tt.args.host, tt.args.port)
 			if (err != nil) != tt.wantErr {
-				t.Errorf("NewTCPServer() error = %v, wantErr %v", err, tt.wantErr)
+				t.Errorf("NewTCPListener() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
 			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("NewTCPServer() = %v, want %v", got, tt.want)
+				t.Errorf("NewTCPListener() = %v, want %v", got, tt.want)
 			}
 		})
 	}
 }
 
-func TestConnectionError(t *testing.T) {
-	t.Parallel()
-	conErr := ConnectionError(nil)
-	for i := 0; i < 10; i++ {
-		err := errors.New(strconv.Itoa(i))
-		conErr = append(conErr, err)
-	}
-	errorString := "0,1,2,3,4,5,6,7,8,9"
-	assert.Equal(t, conErr.Error(), errorString, "Error messages should be equal")
-}
-
-func TestServer(t *testing.T) {
-	server := newTestServer(t)
+func TestListener(t *testing.T) {
+	l := newTestListener(t)
 	connClient, err := Connect(host, port)
-	assert.Nil(t, err, "Connecting to a running server should not fail")
-	connServerChan := <-server.ConnChan
-	connections := server.Connections()
-	assert.Equal(t, 1, len(connections), "Server should have one connection")
-	connServer := connections[0]
-	assert.Equal(t, connServer, connServerChan, "Connections should be equal")
-	// Client sends data to server
+	assert.Nil(t, err, "Connecting to a running Listener should not fail")
+	connListener := <-l.Incoming
+	// Client sends data to Listener
 	data := "DATADATA"
 	n, err := connClient.Write([]byte(data))
 	assert.Nil(t, err, "Write to valid connection should not fail")
 	assert.Equal(t, len(data), n, "Should have written len(data) bytes")
 	buffer := make([]byte, 1024)
-	n, err = connServer.Read(buffer)
+	n, err = connListener.Read(buffer)
 	assert.Nil(t, err, "Reading from established channel should not fail")
 	assert.Equal(t, len(data), n, "Should receive as much bytes as previously send")
 	assert.Equal(t, []byte(data), buffer[:n], "Receiving should produce same data as previously send")
-	// Server sends data to client
+	// Listener sends data to client
 	data = "DATADATADATADATA"
-	n, err = connServer.Write([]byte(data))
+	n, err = connListener.Write([]byte(data))
 	assert.Nil(t, err, "Write to valid connection should not fail")
 	assert.Equal(t, len(data), n, "Should have written len(data) bytes")
 	buffer = make([]byte, 1024)
@@ -119,25 +103,27 @@ func TestServer(t *testing.T) {
 	assert.Nil(t, err, "Reading from established channel should not fail")
 	assert.Equal(t, len(data), n, "Should receive as much bytes as previously send")
 	assert.Equal(t, []byte(data), buffer[:n], "Receiving should produce same data as previously send")
+	_, err = net.Listen("udp", host+":"+port)
+	assert.NotNil(t, err, "Connecting with wrong protocol should fail")
 	// Closing the connections
-	err = server.Close()
-	assert.Nil(t, err, "Closing of a server should not fail")
+	err = l.Close()
+	assert.Nil(t, err, "Closing of a Listener should not fail")
 	err = connClient.Close()
 	assert.Nil(t, err, "Closing of a client should not fail")
-	assert.Equal(t, 0, len(server.Connections()), "Server should have zero connections")
 }
 
 func TestDoubleConnect(t *testing.T) {
-	_, err := NewServer(host, port)
-	assert.Nil(t, err, "Creating a TCPServer should not fail")
-	server, err := NewServer(host, port)
-	assert.NotNil(t, err, "Creating a TCPServer on already used port should fail")
-	err = server.Close()
-	assert.NotNil(t, err, "Closing of invalid server should fail")
+	_server, err := NewListener(host, port)
+	defer _server.Close()
+	assert.Nil(t, err, "Creating a TCPListener should not fail")
+	listener, err := NewListener(host, port)
+	assert.NotNil(t, err, "Creating a TCPListener on already used port should fail")
+	err = listener.Close()
+	assert.NotNil(t, err, "Closing of invalid Listener should fail")
 }
 
-func newTestServer(t *testing.T) *Server {
-	server, err := NewServer(host, port)
-	assert.Nil(t, err, "Creating a TCPServer should not fail")
-	return server
+func newTestListener(t *testing.T) *Listener {
+	l, err := NewListener(host, port)
+	assert.Nil(t, err, "Creating a TCPListener should not fail")
+	return l
 }
