@@ -67,7 +67,7 @@ func TestNewTCPServer(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := NewTCPServer(tt.args.host, tt.args.port)
+			got, err := NewServer(tt.args.host, tt.args.port)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("NewTCPServer() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -128,16 +128,16 @@ func TestServer(t *testing.T) {
 }
 
 func TestDoubleConnect(t *testing.T) {
-	_, err := NewTCPServer(host, port)
+	_, err := NewServer(host, port)
 	assert.Nil(t, err, "Creating a TCPServer should not fail")
-	server, err := NewTCPServer(host, port)
+	server, err := NewServer(host, port)
 	assert.NotNil(t, err, "Creating a TCPServer on already used port should fail")
 	err = server.Close()
 	assert.NotNil(t, err, "Closing of invalid server should fail")
 }
 
 func newTestServer(t *testing.T) *Server {
-	server, err := NewTCPServer(host, port)
+	server, err := NewServer(host, port)
 	assert.Nil(t, err, "Creating a TCPServer should not fail")
 	return server
 }
