@@ -68,6 +68,11 @@ func (w *Wallet) Disconnect() error {
 	if w.ks == nil {
 		return errors.New("keystore not initialized properly")
 	}
+
+	if err := w.Lock(); err != nil {
+		return errors.Wrap(err, "disconnect from keystore failed")
+	}
+
 	w.mu.Lock()
 	defer w.mu.Unlock()
 
@@ -101,8 +106,8 @@ func (w *Wallet) Accounts() []perun.Account {
 
 // Contains checks whether this wallet holds this account.
 func (w *Wallet) Contains(a perun.Account) bool {
-	w.mu.RLock()
-	defer w.mu.RUnlock()
+	w.mu.Lock()
+	defer w.mu.Unlock()
 
 	if a == nil {
 		return false
@@ -118,9 +123,7 @@ func (w *Wallet) Contains(a perun.Account) bool {
 		found := w.ks.HasAddress(acc.address.Address)
 		// add to the cache
 		if found {
-			w.mu.Lock()
 			w.accounts[a.Address().String()] = acc
-			w.mu.Unlock()
 		}
 		return found
 	}
