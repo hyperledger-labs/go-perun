@@ -7,8 +7,8 @@
 // Wallet providers can be hardware, software remote or local wallets.
 package wallet
 
-// Helper provides useful methods for this blockchain
-type Helper interface {
+// Backend provides useful methods for this blockchain.
+type Backend interface {
 	// NewAddressFromString creates a new address from the natural string representation of this blockchain.
 	NewAddressFromString(s string) (Address, error)
 

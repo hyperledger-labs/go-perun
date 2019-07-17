@@ -20,8 +20,8 @@ type Setup struct {
 	WalletPW  string        // password to a valid wallet
 	AccountPW string        // password to the account of the wallet
 	//Address tests
-	AddrString string        // valid address, should not be in wallet
-	Helper     wallet.Helper // helper implementation
+	AddrString string         // valid address, should not be in wallet
+	Backend    wallet.Backend // backend implementation
 	// Signature tests
 	DataToSign []byte
 	SignedData []byte
@@ -89,7 +89,7 @@ func GenericSignatureTest(t *Setup) {
 	assert.NotNil(t.T, err, "Sign with locked account should fail")
 	sign, err := acc.SignDataWithPW(t.WalletPW, t.DataToSign)
 	assert.Nil(t.T, err, "SignPW with locked account should succeed")
-	valid, err := t.Helper.VerifySignature(t.DataToSign, sign, acc.Address())
+	valid, err := t.Backend.VerifySignature(t.DataToSign, sign, acc.Address())
 	assert.True(t.T, valid, "Verification should succeed")
 	assert.Nil(t.T, err, "Verification should succeed")
 	assert.True(t.T, acc.IsLocked(), "Account should not be unlocked")
@@ -97,24 +97,24 @@ func GenericSignatureTest(t *Setup) {
 	assert.Nil(t.T, acc.Unlock(t.AccountPW), "Unlock should not fail")
 	sign, err = acc.SignData(t.DataToSign)
 	assert.Nil(t.T, err, "Sign with unlocked account should succeed")
-	valid, err = t.Helper.VerifySignature(t.DataToSign, sign, acc.Address())
+	valid, err = t.Backend.VerifySignature(t.DataToSign, sign, acc.Address())
 	assert.True(t.T, valid, "Verification should succeed")
 	assert.Nil(t.T, err, "Verification should not produce error")
 
 	sign, err = acc.SignDataWithPW(t.WalletPW, t.DataToSign)
 	assert.Nil(t.T, err, "SignPW with unlocked account should succeed")
-	valid, err = t.Helper.VerifySignature(t.DataToSign, sign, acc.Address())
+	valid, err = t.Backend.VerifySignature(t.DataToSign, sign, acc.Address())
 	assert.True(t.T, valid, "Verification should succeed")
 	assert.Nil(t.T, err, "Verification should not produce error")
 
-	addr, err := t.Helper.NewAddressFromString(t.AddrString)
+	addr, err := t.Backend.NewAddressFromString(t.AddrString)
 	assert.Nil(t.T, err, "Byte deserialization of Address should work")
-	valid, err = t.Helper.VerifySignature(t.DataToSign, sign, addr)
+	valid, err = t.Backend.VerifySignature(t.DataToSign, sign, addr)
 	assert.False(t.T, valid, "Verification with wrong address should fail")
 	assert.Nil(t.T, err, "Verification of valid signature should not produce error")
 
 	sign[0] = ^sign[0] // invalidate signature
-	valid, err = t.Helper.VerifySignature(t.DataToSign, sign, acc.Address())
+	valid, err = t.Backend.VerifySignature(t.DataToSign, sign, acc.Address())
 	assert.False(t.T, valid, "Verification should fail")
 	assert.NotNil(t.T, err, "Verification of invalid signature should produce error")
 	assert.False(t.T, acc.IsLocked(), "Account should be unlocked")
@@ -125,14 +125,14 @@ func GenericSignatureTest(t *Setup) {
 // GenericAddressTest runs a test suite designed to test the general functionality of addresses.
 // This function should be called by every implementation of the wallet interface.
 func GenericAddressTest(t *Setup) {
-	init, err := t.Helper.NewAddressFromString(t.AddrString)
+	init, err := t.Backend.NewAddressFromString(t.AddrString)
 	assert.Nil(t.T, err, "String parsing of Address should work")
-	unInit, err := t.Helper.NewAddressFromBytes(make([]byte, len(init.Bytes()), len(init.Bytes())))
+	unInit, err := t.Backend.NewAddressFromBytes(make([]byte, len(init.Bytes()), len(init.Bytes())))
 	assert.Nil(t.T, err, "Byte deserialization of Address should work")
-	addr, err := t.Helper.NewAddressFromBytes(init.Bytes())
+	addr, err := t.Backend.NewAddressFromBytes(init.Bytes())
 	assert.Nil(t.T, err, "Byte deserialization of Address should work")
 	assert.Equal(t.T, init, addr, "Expected equality to serialized byte array")
-	addr, err = t.Helper.NewAddressFromString(init.String())
+	addr, err = t.Backend.NewAddressFromString(init.String())
 	assert.Nil(t.T, err, "String parsing of Address should work")
 
 	assert.Equal(t.T, init, addr, "Expected equality to serialized string array")

@@ -147,11 +147,11 @@ func (w *Wallet) Lock() error {
 	return nil
 }
 
-// Helper implements the utility interface defined in the wallet package.
-type Helper struct{}
+// Backend implements the utility interface defined in the wallet package.
+type Backend struct{}
 
 // NewAddressFromString creates a new address from a string.
-func (h *Helper) NewAddressFromString(s string) (perun.Address, error) {
+func (h *Backend) NewAddressFromString(s string) (perun.Address, error) {
 	addr, err := common.NewMixedcaseAddressFromString(s)
 	if err != nil {
 		zeroAddr := common.BytesToAddress(make([]byte, 20, 20))
@@ -161,7 +161,7 @@ func (h *Helper) NewAddressFromString(s string) (perun.Address, error) {
 }
 
 // NewAddressFromBytes creates a new address from a byte array.
-func (h *Helper) NewAddressFromBytes(data []byte) (perun.Address, error) {
+func (h *Backend) NewAddressFromBytes(data []byte) (perun.Address, error) {
 	if len(data) != 20 {
 		errString := "could not create address from bytes of length: " + strconv.Itoa(len(data))
 		return &Address{ZeroAddr}, errors.New(errString)
@@ -170,7 +170,7 @@ func (h *Helper) NewAddressFromBytes(data []byte) (perun.Address, error) {
 }
 
 // VerifySignature verifies if a signature was made by this account.
-func (h *Helper) VerifySignature(msg, sig []byte, a perun.Address) (bool, error) {
+func (h *Backend) VerifySignature(msg, sig []byte, a perun.Address) (bool, error) {
 	hash := crypto.Keccak256(msg)
 	pk, err := crypto.SigToPub(hash, sig)
 	if err != nil {
