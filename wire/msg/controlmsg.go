@@ -19,6 +19,7 @@ type ControlMsg interface {
 	Type() ControlMsgType
 }
 
+// encodeControlMsg is a helper function that encodes a control message header.
 func encodeControlMsg(msg ControlMsg, writer io.Writer) error {
 	if err := msg.Type().Encode(writer); err != nil {
 		return err

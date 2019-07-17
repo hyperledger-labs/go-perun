@@ -54,7 +54,7 @@ func encodeChannelMsg(msg ChannelMsg, writer io.Writer) error {
 	return nil
 }
 
-// ChannelMsgEmbed allows default-implementing the Category function in channel
+// channelMsg allows default-implementing the Category function in channel
 // messages.
 type channelMsg struct {
 	channelID ChannelID
@@ -99,7 +99,7 @@ const (
 
 func (t ChannelMsgType) String() string {
 	if !t.Valid() {
-		panic("Invalid ChannelMsgType (" + strconv.Itoa(int(t)) + ")")
+		return strconv.Itoa(int(t))
 	}
 	return []string{
 		"DummyMsg",

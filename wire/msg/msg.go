@@ -67,7 +67,7 @@ func Decode(reader io.Reader) (msg Msg, err error) {
 	return
 }
 
-// MsgCategory is an enumeration used for (de)serializing messages and
+// Category is an enumeration used for (de)serializing messages and
 // identifying a message's subcategory.
 type Category uint8
 
@@ -75,6 +75,7 @@ type Category uint8
 const (
 	Channel Category = iota
 	Control
+	Peer
 	categoryEnd
 )
 
@@ -85,6 +86,7 @@ func (c Category) String() string {
 	return [...]string{
 		"ChannelMsg",
 		"ControlMsg",
+		"PeerMsg",
 	}[c]
 }
 
