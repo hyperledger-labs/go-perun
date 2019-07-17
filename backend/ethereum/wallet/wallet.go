@@ -6,7 +6,7 @@
 // It can be used by the framework to interact with a file wallet.
 // It uses an ethereum keystore internally which can be found at
 // https://github.com/ethereum/go-ethereum/tree/master/accounts/keystore.
-package wallet // import "perun.network/go-perun/impl/ethereum/wallet"
+package wallet // import "perun.network/go-perun/backend/ethereum/wallet"
 
 import (
 	"os"
