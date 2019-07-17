@@ -6,18 +6,15 @@
 // It can be used by the framework to interact with a file wallet.
 // It uses an ethereum keystore internally which can be found at
 // https://github.com/ethereum/go-ethereum/tree/master/accounts/keystore.
-package wallet // import "perun.network/go-perun/impl/ethereum/wallet"
+package wallet // import "perun.network/go-perun/backend/ethereum/wallet"
 
 import (
 	"os"
-	"strconv"
 	"sync"
 
 	"github.com/pkg/errors"
 
 	"github.com/ethereum/go-ethereum/accounts/keystore"
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/crypto"
 	perun "perun.network/go-perun/wallet"
 )
 
@@ -145,37 +142,4 @@ func (w *Wallet) Lock() error {
 		}
 	}
 	return nil
-}
-
-// Helper implements the utility interface defined in the wallet package.
-type Helper struct{}
-
-// NewAddressFromString creates a new address from a string.
-func (h *Helper) NewAddressFromString(s string) (perun.Address, error) {
-	addr, err := common.NewMixedcaseAddressFromString(s)
-	if err != nil {
-		zeroAddr := common.BytesToAddress(make([]byte, 20, 20))
-		return &Address{zeroAddr}, err
-	}
-	return &Address{addr.Address()}, nil
-}
-
-// NewAddressFromBytes creates a new address from a byte array.
-func (h *Helper) NewAddressFromBytes(data []byte) (perun.Address, error) {
-	if len(data) != 20 {
-		errString := "could not create address from bytes of length: " + strconv.Itoa(len(data))
-		return &Address{ZeroAddr}, errors.New(errString)
-	}
-	return &Address{common.BytesToAddress(data)}, nil
-}
-
-// VerifySignature verifies if a signature was made by this account.
-func (h *Helper) VerifySignature(msg, sig []byte, a perun.Address) (bool, error) {
-	hash := crypto.Keccak256(msg)
-	pk, err := crypto.SigToPub(hash, sig)
-	if err != nil {
-		return false, err
-	}
-	addr := crypto.PubkeyToAddress(*pk)
-	return a.Equals(&Address{addr}), nil
 }

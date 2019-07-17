@@ -72,22 +72,22 @@ func TestKeyStore(t *testing.T) {
 	assert.False(t, w.Contains(unsetAccount), "Keystore should not contain empty account")
 }
 
-func TestHelper(t *testing.T) {
+func TestBackend(t *testing.T) {
 	t.Parallel()
-	helper := new(Helper)
-	addr, err := helper.NewAddressFromString(sampleAddr)
+	backend := new(Backend)
+	addr, err := backend.NewAddressFromString(sampleAddr)
 
 	assert.Nil(t, err, "Conversion of valid address should work")
 
-	_, err = helper.NewAddressFromBytes(addr.Bytes())
+	_, err = backend.NewAddressFromBytes(addr.Bytes())
 
 	assert.Nil(t, err, "Conversion of valid address should work")
 
-	_, err = helper.NewAddressFromBytes([]byte(invalidAddr))
+	_, err = backend.NewAddressFromBytes([]byte(invalidAddr))
 
 	assert.NotNil(t, err, "Conversion from wrong address should fail")
 
-	_, err = helper.NewAddressFromString(invalidAddr)
+	_, err = backend.NewAddressFromString(invalidAddr)
 
 	assert.NotNil(t, err, "Conversion from wrong address should fail")
 }
@@ -99,7 +99,7 @@ func newTestSetup(t *testing.T) *test.Setup {
 		Path:       "./" + keyDir,
 		WalletPW:   password,
 		AccountPW:  password,
-		Helper:     new(Helper),
+		Backend:    new(Backend),
 		AddrString: sampleAddr,
 		DataToSign: []byte(dataToSign),
 		SignedData: []byte(signedData),
