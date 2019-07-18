@@ -13,7 +13,6 @@ import (
 
 // Setup provides all objects needed for the generic tests
 type Setup struct {
-	T *testing.T
 	//Wallet tests
 	Wallet    wallet.Wallet // wallet implementation, should be uninitialized
 	Path      string        // path to a valid wallet, should contain exactly one account
@@ -24,119 +23,118 @@ type Setup struct {
 	Backend    wallet.Backend // backend implementation
 	// Signature tests
 	DataToSign []byte
-	SignedData []byte
 }
 
 // GenericWalletTest runs a test suite designed to test the general functionality of an implementation of wallet.
 // This function should be called by every implementation of the wallet interface.
-func GenericWalletTest(t *Setup) {
-	testUninitializedWallet(t)
-	testInitializedWallet(t)
-	testUninitializedWallet(t)
+func GenericWalletTest(t *testing.T, s *Setup) {
+	testUninitializedWallet(t, s)
+	testInitializedWallet(t, s)
+	testUninitializedWallet(t, s)
 }
 
-func testUninitializedWallet(t *Setup) {
-	assert.NotNil(t.T, t.Wallet, "Wallet should not be nil")
-	assert.Equal(t.T, "", t.Wallet.Path(), "Expected path not to be initialized")
+func testUninitializedWallet(t *testing.T, s *Setup) {
+	assert.NotNil(t, s.Wallet, "Wallet should not be nil")
+	assert.Equal(t, "", s.Wallet.Path(), "Expected path not to be initialized")
 
-	_, err := t.Wallet.Status()
-	assert.NotNil(t.T, err, "Expected error on not connected wallet")
-	assert.NotNil(t.T, t.Wallet.Disconnect(), "Disconnect of not connected wallet should return an error")
-	assert.NotNil(t.T, t.Wallet.Accounts(), "Expected empty byteslice")
-	assert.Equal(t.T, 0, len(t.Wallet.Accounts()), "Expected empty byteslice")
-	assert.False(t.T, t.Wallet.Contains(*new(wallet.Account)), "Uninitalized wallet should not contain account")
-	assert.NotNil(t.T, t.Wallet.Lock(), "Expected lock to fail")
+	_, err := s.Wallet.Status()
+	assert.NotNil(t, err, "Expected error on not connected wallet")
+	assert.NotNil(t, s.Wallet.Disconnect(), "Disconnect of not connected wallet should return an error")
+	assert.NotNil(t, s.Wallet.Accounts(), "Expected empty byteslice")
+	assert.Equal(t, 0, len(s.Wallet.Accounts()), "Expected empty byteslice")
+	assert.False(t, s.Wallet.Contains(*new(wallet.Account)), "Uninitalized wallet should not contain account")
+	assert.NotNil(t, s.Wallet.Lock(), "Expected lock to fail")
 }
 
-func testInitializedWallet(t *Setup) {
-	assert.Nil(t.T, t.Wallet.Connect(t.Path, t.WalletPW), "Expected connect to succeed")
+func testInitializedWallet(t *testing.T, s *Setup) {
+	assert.Nil(t, s.Wallet.Connect(s.Path, s.WalletPW), "Expected connect to succeed")
 
-	_, err := t.Wallet.Status()
-	assert.Nil(t.T, err, "Unlocked wallet should not produce errors")
-	assert.Equal(t.T, t.Path, t.Wallet.Path(), "Expected T.path to match t.Wallet.Path()")
-	assert.NotNil(t.T, t.Wallet.Accounts(), "Expected accounts")
-	assert.False(t.T, t.Wallet.Contains(*new(wallet.Account)), "Expected wallet not to contain an empty account")
-	assert.Equal(t.T, 1, len(t.Wallet.Accounts()), "Expected one account")
+	_, err := s.Wallet.Status()
+	assert.Nil(t, err, "Unlocked wallet should not produce errors")
+	assert.Equal(t, s.Path, s.Wallet.Path(), "Expected T.path to match s.Wallet.Path()")
+	assert.NotNil(t, s.Wallet.Accounts(), "Expected accounts")
+	assert.False(t, s.Wallet.Contains(*new(wallet.Account)), "Expected wallet not to contain an empty account")
+	assert.Equal(t, 1, len(s.Wallet.Accounts()), "Expected one account")
 
-	acc := t.Wallet.Accounts()[0]
-	assert.True(t.T, t.Wallet.Contains(acc), "Expected wallet to contain account")
+	acc := s.Wallet.Accounts()[0]
+	assert.True(t, s.Wallet.Contains(acc), "Expected wallet to contain account")
 	// Check unlock account
-	assert.True(t.T, acc.IsLocked(), "Account should be locked")
-	assert.NotNil(t.T, acc.Unlock(""), "Unlock with wrong pw should fail")
-	assert.Nil(t.T, acc.Unlock(t.AccountPW), "Expected unlock to work")
-	assert.False(t.T, acc.IsLocked(), "Account should be unlocked")
-	assert.Nil(t.T, acc.Lock(), "Expected lock to work")
-	assert.True(t.T, acc.IsLocked(), "Account should be locked")
+	assert.True(t, acc.IsLocked(), "Account should be locked")
+	assert.NotNil(t, acc.Unlock(""), "Unlock with wrong pw should fail")
+	assert.Nil(t, acc.Unlock(s.AccountPW), "Expected unlock to work")
+	assert.False(t, acc.IsLocked(), "Account should be unlocked")
+	assert.Nil(t, acc.Lock(), "Expected lock to work")
+	assert.True(t, acc.IsLocked(), "Account should be locked")
 	// Check lock all accounts
-	assert.Nil(t.T, acc.Unlock(t.AccountPW), "Expected unlock to work")
-	assert.False(t.T, acc.IsLocked(), "Account should be unlocked")
-	assert.Nil(t.T, t.Wallet.Lock(), "Expected lock to succeed")
-	assert.True(t.T, acc.IsLocked(), "Account should be locked")
+	assert.Nil(t, acc.Unlock(s.AccountPW), "Expected unlock to work")
+	assert.False(t, acc.IsLocked(), "Account should be unlocked")
+	assert.Nil(t, s.Wallet.Lock(), "Expected lock to succeed")
+	assert.True(t, acc.IsLocked(), "Account should be locked")
 
-	assert.Nil(t.T, t.Wallet.Disconnect(), "Expected disconnect to succeed")
+	assert.Nil(t, s.Wallet.Disconnect(), "Expected disconnect to succeed")
 }
 
 // GenericSignatureTest runs a test suite designed to test the general functionality of an account.
 // This function should be called by every implementation of the wallet interface.
-func GenericSignatureTest(t *Setup) {
-	assert.Nil(t.T, t.Wallet.Connect(t.Path, t.WalletPW), "Expected connect to succeed")
+func GenericSignatureTest(t *testing.T, s *Setup) {
+	assert.Nil(t, s.Wallet.Connect(s.Path, s.WalletPW), "Expected connect to succeed")
 
-	assert.Equal(t.T, 1, len(t.Wallet.Accounts()), "Expected one account")
+	assert.Equal(t, 1, len(s.Wallet.Accounts()), "Expected one account")
 
-	acc := t.Wallet.Accounts()[0]
+	acc := s.Wallet.Accounts()[0]
 	// Check locked account
-	_, err := acc.SignData(t.DataToSign)
-	assert.NotNil(t.T, err, "Sign with locked account should fail")
-	sign, err := acc.SignDataWithPW(t.WalletPW, t.DataToSign)
-	assert.Nil(t.T, err, "SignPW with locked account should succeed")
-	valid, err := t.Backend.VerifySignature(t.DataToSign, sign, acc.Address())
-	assert.True(t.T, valid, "Verification should succeed")
-	assert.Nil(t.T, err, "Verification should succeed")
-	assert.True(t.T, acc.IsLocked(), "Account should not be unlocked")
+	_, err := acc.SignData(s.DataToSign)
+	assert.NotNil(t, err, "Sign with locked account should fail")
+	sign, err := acc.SignDataWithPW(s.WalletPW, s.DataToSign)
+	assert.Nil(t, err, "SignPW with locked account should succeed")
+	valid, err := s.Backend.VerifySignature(s.DataToSign, sign, acc.Address())
+	assert.True(t, valid, "Verification should succeed")
+	assert.Nil(t, err, "Verification should succeed")
+	assert.True(t, acc.IsLocked(), "Account should not be unlocked")
 	// Check unlocked account
-	assert.Nil(t.T, acc.Unlock(t.AccountPW), "Unlock should not fail")
-	sign, err = acc.SignData(t.DataToSign)
-	assert.Nil(t.T, err, "Sign with unlocked account should succeed")
-	valid, err = t.Backend.VerifySignature(t.DataToSign, sign, acc.Address())
-	assert.True(t.T, valid, "Verification should succeed")
-	assert.Nil(t.T, err, "Verification should not produce error")
+	assert.Nil(t, acc.Unlock(s.AccountPW), "Unlock should not fail")
+	sign, err = acc.SignData(s.DataToSign)
+	assert.Nil(t, err, "Sign with unlocked account should succeed")
+	valid, err = s.Backend.VerifySignature(s.DataToSign, sign, acc.Address())
+	assert.True(t, valid, "Verification should succeed")
+	assert.Nil(t, err, "Verification should not produce error")
 
-	sign, err = acc.SignDataWithPW(t.WalletPW, t.DataToSign)
-	assert.Nil(t.T, err, "SignPW with unlocked account should succeed")
-	valid, err = t.Backend.VerifySignature(t.DataToSign, sign, acc.Address())
-	assert.True(t.T, valid, "Verification should succeed")
-	assert.Nil(t.T, err, "Verification should not produce error")
+	sign, err = acc.SignDataWithPW(s.WalletPW, s.DataToSign)
+	assert.Nil(t, err, "SignPW with unlocked account should succeed")
+	valid, err = s.Backend.VerifySignature(s.DataToSign, sign, acc.Address())
+	assert.True(t, valid, "Verification should succeed")
+	assert.Nil(t, err, "Verification should not produce error")
 
-	addr, err := t.Backend.NewAddressFromString(t.AddrString)
-	assert.Nil(t.T, err, "Byte deserialization of Address should work")
-	valid, err = t.Backend.VerifySignature(t.DataToSign, sign, addr)
-	assert.False(t.T, valid, "Verification with wrong address should fail")
-	assert.Nil(t.T, err, "Verification of valid signature should not produce error")
+	addr, err := s.Backend.NewAddressFromString(s.AddrString)
+	assert.Nil(t, err, "Byte deserialization of Address should work")
+	valid, err = s.Backend.VerifySignature(s.DataToSign, sign, addr)
+	assert.False(t, valid, "Verification with wrong address should fail")
+	assert.Nil(t, err, "Verification of valid signature should not produce error")
 
 	sign[0] = ^sign[0] // invalidate signature
-	valid, err = t.Backend.VerifySignature(t.DataToSign, sign, acc.Address())
-	assert.False(t.T, valid, "Verification should fail")
-	assert.NotNil(t.T, err, "Verification of invalid signature should produce error")
-	assert.False(t.T, acc.IsLocked(), "Account should be unlocked")
+	valid, err = s.Backend.VerifySignature(s.DataToSign, sign, acc.Address())
+	assert.False(t, valid, "Verification should fail")
+	assert.NotNil(t, err, "Verification of invalid signature should produce error")
+	assert.False(t, acc.IsLocked(), "Account should be unlocked")
 
-	assert.Nil(t.T, t.Wallet.Disconnect(), "Expected disconnect to succeed")
+	assert.Nil(t, s.Wallet.Disconnect(), "Expected disconnect to succeed")
 }
 
 // GenericAddressTest runs a test suite designed to test the general functionality of addresses.
 // This function should be called by every implementation of the wallet interface.
-func GenericAddressTest(t *Setup) {
-	init, err := t.Backend.NewAddressFromString(t.AddrString)
-	assert.Nil(t.T, err, "String parsing of Address should work")
-	unInit, err := t.Backend.NewAddressFromBytes(make([]byte, len(init.Bytes()), len(init.Bytes())))
-	assert.Nil(t.T, err, "Byte deserialization of Address should work")
-	addr, err := t.Backend.NewAddressFromBytes(init.Bytes())
-	assert.Nil(t.T, err, "Byte deserialization of Address should work")
-	assert.Equal(t.T, init, addr, "Expected equality to serialized byte array")
-	addr, err = t.Backend.NewAddressFromString(init.String())
-	assert.Nil(t.T, err, "String parsing of Address should work")
+func GenericAddressTest(t *testing.T, s *Setup) {
+	init, err := s.Backend.NewAddressFromString(s.AddrString)
+	assert.Nil(t, err, "String parsing of Address should work")
+	unInit, err := s.Backend.NewAddressFromBytes(make([]byte, len(init.Bytes()), len(init.Bytes())))
+	assert.Nil(t, err, "Byte deserialization of Address should work")
+	addr, err := s.Backend.NewAddressFromBytes(init.Bytes())
+	assert.Nil(t, err, "Byte deserialization of Address should work")
+	assert.Equal(t, init, addr, "Expected equality to serialized byte array")
+	addr, err = s.Backend.NewAddressFromString(init.String())
+	assert.Nil(t, err, "String parsing of Address should work")
 
-	assert.Equal(t.T, init, addr, "Expected equality to serialized string array")
-	assert.True(t.T, init.Equals(init), "Expected equality to itself")
-	assert.False(t.T, init.Equals(unInit), "Expected non-equality to other")
-	assert.True(t.T, unInit.Equals(unInit), "Expected equality to itself")
+	assert.Equal(t, init, addr, "Expected equality to serialized string array")
+	assert.True(t, init.Equals(init), "Expected equality to itself")
+	assert.False(t, init.Equals(unInit), "Expected non-equality to other")
+	assert.True(t, unInit.Equals(unInit), "Expected equality to itself")
 }
