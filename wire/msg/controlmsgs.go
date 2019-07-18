@@ -5,8 +5,7 @@
 package msg
 
 import (
-	"io"
-
+	"perun.network/go-perun/pkg/io"
 	"perun.network/go-perun/wire"
 )
 
@@ -23,11 +22,11 @@ func (m *PingMsg) Type() ControlMsgType {
 }
 
 func (m *PingMsg) encode(writer io.Writer) error {
-	return wire.Encode(writer, &m.Created)
+	return io.Encode(writer, &m.Created)
 }
 
 func (m *PingMsg) decode(reader io.Reader) error {
-	return wire.Decode(reader, &m.Created)
+	return io.Decode(reader, &m.Created)
 }
 
 // PongMsg is the response to a ping message.
@@ -44,9 +43,9 @@ func (m *PongMsg) Type() ControlMsgType {
 }
 
 func (m *PongMsg) encode(writer io.Writer) error {
-	return wire.Encode(writer, &m.Created)
+	return io.Encode(writer, &m.Created)
 }
 
 func (m *PongMsg) decode(reader io.Reader) error {
-	return wire.Decode(reader, &m.Created)
+	return io.Decode(reader, &m.Created)
 }

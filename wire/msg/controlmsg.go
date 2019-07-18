@@ -5,8 +5,9 @@
 package msg
 
 import (
-	"io"
 	"strconv"
+
+	"perun.network/go-perun/pkg/io"
 
 	"github.com/pkg/errors"
 )

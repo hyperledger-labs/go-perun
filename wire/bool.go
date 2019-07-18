@@ -22,7 +22,13 @@ func (b *Bool) Decode(reader io.Reader) error {
 }
 
 func (b Bool) Encode(writer io.Writer) error {
-	buf := [1]byte{}
+	var v byte
+	if b {
+		v = 1
+	} else {
+		v = 0
+	}
+	buf := [1]byte{v}
 	if _, err := writer.Write(buf[:]); err != nil {
 		return errors.Wrap(err, "failed to write bool")
 	}

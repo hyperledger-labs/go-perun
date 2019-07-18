@@ -5,8 +5,10 @@
 package wire
 
 import (
-	"github.com/pkg/errors"
+	"encoding/binary"
 	"io"
+
+	"github.com/pkg/errors"
 )
 
 // Int64 is a serializable 64-bit integer.
@@ -18,20 +20,13 @@ func (i64 *Int64) Decode(reader io.Reader) error {
 		return errors.Wrap(err, "failed to read i64")
 	}
 
-	var u64 uint64
-	for i := 0; i < 8; i++ {
-		u64 |= uint64(buf[i]) << (uint64(8) * uint64(i))
-	}
-
-	*i64 = Int64(int64(u64))
+	*i64 = Int64(binary.LittleEndian.Uint64(buf[:]))
 	return nil
 }
 
 func (i64 Int64) Encode(writer io.Writer) error {
 	buf := [8]byte{}
-	for i := 0; i < 8; i++ {
-		buf[i] = byte(uint64(i64) >> (uint64(8) * uint64(i)))
-	}
+	binary.LittleEndian.PutUint64(buf[:], uint64(i64))
 
 	if _, err := writer.Write(buf[:]); err != nil {
 		return errors.Wrap(err, "failed to write i64")

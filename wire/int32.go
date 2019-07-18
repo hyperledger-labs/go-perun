@@ -5,6 +5,7 @@
 package wire
 
 import (
+	"encoding/binary"
 	"github.com/pkg/errors"
 	"io"
 )
@@ -17,12 +18,13 @@ func (i32 *Int32) Decode(reader io.Reader) error {
 	if _, err := reader.Read(buf[:]); err != nil {
 		return errors.Wrap(err, "failed to read int32")
 	}
-	*i32 = Int32((int(buf[0]) << 24) | (int(buf[1]) << 16) | (int(buf[2]) << 8) | (int(buf[3])))
+	*i32 = Int32(binary.LittleEndian.Uint32(buf[:]))
 	return nil
 }
 
 func (i32 Int32) Encode(writer io.Writer) error {
-	buf := [4]byte{byte(i32), byte(i32 >> 8), byte(i32 >> 16), byte(i32 >> 24)}
+	buf := [4]byte{}
+	binary.LittleEndian.PutUint32(buf[:], uint32(i32))
 	if _, err := writer.Write(buf[:]); err != nil {
 		return errors.Wrap(err, "failed to write int32")
 	}

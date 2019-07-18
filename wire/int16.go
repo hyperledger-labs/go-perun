@@ -5,8 +5,10 @@
 package wire
 
 import (
-	"github.com/pkg/errors"
+	"encoding/binary"
 	"io"
+
+	"github.com/pkg/errors"
 )
 
 // Int16 is a serializable network 16 bit integer.
@@ -17,13 +19,15 @@ func (i16 *Int16) Decode(reader io.Reader) error {
 	if _, err := reader.Read(buf[:]); err != nil {
 		return errors.Wrap(err, "failed to read int16")
 	}
-	*i16 = Int16(int(buf[0]) | (int(buf[1]) << 8))
+	*i16 = Int16(binary.LittleEndian.Uint16(buf[:]))
 
 	return nil
 }
 
 func (i16 Int16) Encode(writer io.Writer) error {
-	buf := [2]byte{byte(i16), byte(i16 >> 8)}
+	buf := [2]byte{}
+	binary.LittleEndian.PutUint16(buf[:], uint16(i16))
+
 	if _, err := writer.Write(buf[:]); err != nil {
 		return errors.Wrap(err, "failed to write int16")
 	}
