@@ -102,24 +102,78 @@ func TestAllocation_Sum(t *testing.T) {
 }
 
 func TestAllocation_valid(t *testing.T) {
-	type fields struct {
-		OfParts [][]Bal
-		Locked  []Alloc
-	}
+	// note that all valid branches are already indirectly tested in TestAllocation_Sum
 	tests := []struct {
-		name   string
-		fields fields
-		want   bool
+		name  string
+		alloc Allocation
+		want  bool
 	}{
-		// TODO: Add test cases.
+		{
+			"one participant/no locked valid",
+			Allocation{
+				OfParts: [][]Bal{[]Bal{big.NewInt(1)}},
+				Locked:  make([]Alloc, 0),
+			},
+			true,
+		},
+
+		{
+			"no participant/no locked",
+			Allocation{
+				OfParts: make([][]Bal, 0),
+				Locked:  make([]Alloc, 0),
+			},
+			false,
+		},
+
+		{
+			"nil participant/no locked",
+			Allocation{
+				OfParts: nil,
+				Locked:  make([]Alloc, 0),
+			},
+			false,
+		},
+
+		{
+			"no participant/nil locked",
+			Allocation{
+				OfParts: make([][]Bal, 0),
+				Locked:  nil,
+			},
+			false,
+		},
+
+		{
+			"two participants wrong dimension",
+			Allocation{
+				OfParts: [][]Bal{
+					[]Bal{big.NewInt(1), big.NewInt(8), big.NewInt(64)},
+					[]Bal{big.NewInt(2), big.NewInt(16)},
+				},
+				Locked: make([]Alloc, 0),
+			},
+			false,
+		},
+
+		{
+			"two participants/one locked wrong dimension",
+			Allocation{
+				OfParts: [][]Bal{
+					[]Bal{big.NewInt(1), big.NewInt(8), big.NewInt(64)},
+					[]Bal{big.NewInt(2), big.NewInt(16), big.NewInt(128)},
+				},
+				Locked: []Alloc{
+					Alloc{Zero, []Bal{big.NewInt(4)}},
+				},
+			},
+			false,
+		},
 	}
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			a := Allocation{
-				OfParts: tt.fields.OfParts,
-				Locked:  tt.fields.Locked,
-			}
-			if got := a.valid(); got != tt.want {
+			if got := tt.alloc.valid(); got != tt.want {
 				t.Errorf("Allocation.valid() = %v, want %v", got, tt.want)
 			}
 		})
