@@ -15,7 +15,7 @@ import (
 type Serializable interface {
 	// Decode reads an object from a stream.
 	// If the stream fails, the underlying error is returned.
-	// Returns an InvalidEncodingError if the stream's data is invalid.
+	// Returns an error if the stream's data is invalid.
 	Decode(Reader) error
 	// Encode writes an object to a stream.
 	// If the stream fails, the underyling error is returned.
@@ -27,7 +27,7 @@ type Serializable interface {
 func Encode(writer Writer, values ...Serializable) error {
 	for i, v := range values {
 		if err := v.Encode(writer); err != nil {
-			return errors.WithMessagef(err, "failed to encode %dth object", i)
+			return errors.WithMessagef(err, "failed to encode %dth object (%T)", i, v)
 		}
 	}
 
@@ -39,7 +39,7 @@ func Encode(writer Writer, values ...Serializable) error {
 func Decode(reader Reader, values ...Serializable) error {
 	for i, v := range values {
 		if err := v.Decode(reader); err != nil {
-			return errors.WithMessagef(err, "failed to decode %dth object", i)
+			return errors.WithMessagef(err, "failed to decode %dth object (%T)", i, v)
 		}
 	}
 

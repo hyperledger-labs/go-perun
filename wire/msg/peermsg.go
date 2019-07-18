@@ -62,7 +62,7 @@ type PeerMsgType uint8
 const (
 	// A dummy message, replace with real message types.
 	DummyPeerMsg PeerMsgType = iota
-	lastPeerMsgType
+	peerMsgTypeEnd
 )
 
 func (t PeerMsgType) String() string {
@@ -76,7 +76,7 @@ func (t PeerMsgType) String() string {
 
 // Valid checks whether a PeerMsgType is a valid value.
 func (t PeerMsgType) Valid() bool {
-	return t < lastPeerMsgType
+	return t < peerMsgTypeEnd
 }
 
 func (t PeerMsgType) Encode(writer io.Writer) error {

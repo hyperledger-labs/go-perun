@@ -6,8 +6,9 @@ package wire
 
 import (
 	"encoding/binary"
-	"github.com/pkg/errors"
 	"io"
+
+	"github.com/pkg/errors"
 )
 
 // Int32 is a serializable network 32 bit integer.

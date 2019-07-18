@@ -5,8 +5,9 @@
 package wire
 
 import (
-	"github.com/pkg/errors"
 	"io"
+
+	"github.com/pkg/errors"
 )
 
 // Time is a serializable network timestamp.

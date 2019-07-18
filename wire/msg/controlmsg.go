@@ -40,15 +40,30 @@ func decodeControlMsg(reader io.Reader) (ControlMsg, error) {
 		return nil, errors.WithMessage(err, "failed to read the message type")
 	}
 
+	var msg ControlMsg
 	// Decode message payload.
 	switch Type {
+	case Ping:
+		msg = &PingMsg{}
+	case Pong:
+		msg = &PongMsg{}
 	default:
 		panic("decodeControlMsg(): Unhandled control message type: " + Type.String())
 	}
+
+	if err := msg.decode(reader); err != nil {
+		return nil, errors.WithMessagef(err, "failed to decode %v", Type)
+	}
+	return msg, nil
 }
 
-// controlMsg allows default-implementing the Category function in control
+// controlMsg allows default-implementing the Category() function in control
 // messages.
+//
+// Example:
+// 	type SomeControlMsg struct {
+//  	controlMsg
+//  }
 type controlMsg struct{}
 
 func (m *controlMsg) Category() Category {

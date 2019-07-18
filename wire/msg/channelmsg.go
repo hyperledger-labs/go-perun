@@ -55,8 +55,13 @@ func encodeChannelMsg(msg ChannelMsg, writer io.Writer) error {
 	return nil
 }
 
-// channelMsg allows default-implementing the Category function in channel
-// messages.
+// channelMsg allows default-implementing the Category(), Channel() functions
+//  in channel messages.
+//
+// Example:
+// 	type SomeChannelMsg struct {
+//  	channelMsg
+//  }
 type channelMsg struct {
 	channelID ChannelID
 }
@@ -95,7 +100,7 @@ type ChannelMsgType uint8
 const (
 	// A dummy message, replace with real message types.
 	Dummy ChannelMsgType = iota
-	lastChannelMsgType
+	channelMsgTypeEnd
 )
 
 func (t ChannelMsgType) String() string {
@@ -109,7 +114,7 @@ func (t ChannelMsgType) String() string {
 
 // Valid checks whether a ChannelMsgType is a valid value.
 func (t ChannelMsgType) Valid() bool {
-	return t < lastChannelMsgType
+	return t < channelMsgTypeEnd
 }
 
 func (t ChannelMsgType) Encode(writer io.Writer) error {

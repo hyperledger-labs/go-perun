@@ -43,7 +43,7 @@ func Encode(msg Msg, writer io.Writer) error {
 	}
 
 	if err != nil {
-		return errors.Wrapf(err, "failed to write message (%v)", msg.Category())
+		return errors.Wrapf(err, "failed to write message with category %v", msg.Category())
 	}
 
 	return nil
@@ -82,7 +82,7 @@ const (
 
 func (c Category) String() string {
 	if !c.Valid() {
-		return strconv.Itoa(int(uint8(c)))
+		return strconv.Itoa(int(c))
 	}
 	return [...]string{
 		"ChannelMsg",
@@ -91,7 +91,7 @@ func (c Category) String() string {
 	}[c]
 }
 
-// Valid checks whether a ControlMsgType is a valid value.
+// Valid checks whether a Category is a valid value.
 func (c Category) Valid() bool {
 	return c < categoryEnd
 }
