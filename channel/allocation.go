@@ -6,22 +6,36 @@ package channel
 
 import (
 	"math/big"
+
+	"github.com/pkg/errors"
 )
 
-type Bal = *big.Int
+// Allocation and associated types
+type (
+	// Allocation is the distribution of assets were the channel to be finalized.
+	// OfParts holds the balance allocations to the participants.
+	// Its outer dimension must match the size of the Params.parts slice.
+	// Its inner dimension must match the size of the Params.assets slice.
+	// All asset distributions could have been saved as a single []Alloc, but this
+	// would have saved the participants slice twice, wasting space.
+	Allocation struct {
+		// OfParts is the allocation of assets to the Params.parts
+		OfParts [][]Bal
+		// Locked is the locked allocation to sub-app-channels
+		Locked []Alloc
+	}
 
-// Allocation is the distribution of assets were the channel to be finalized.
-// OfParts holds the balance allocations to the participants.
-// Its outer dimension must match the size of the Params.parts slice.
-// Its inner dimension must match the size of the Params.assets slice.
-// All asset distributions could have been saved as a single []Alloc, but this
-// would have saved the participants slice twice, wasting space.
-type Allocation struct {
-	// OfParts is the allocation of assets to the Params.parts
-	OfParts [][]Bal
-	// Locked is the locked allocation to sub-app-channels
-	Locked []Alloc
-}
+	// Alloc is the allocation of assets to a single receiver recv.
+	// The size of the balances slice must be of the same size as the assets slice
+	// of the channel Params
+	Alloc struct {
+		AppID ID
+		Bals  []Bal
+	}
+
+	// Bal is a single asset's balance
+	Bal = *big.Int
+)
 
 // valid checks that the asset-dimensions match and slices are not nil
 func (a Allocation) valid() bool {
@@ -74,10 +88,22 @@ func (a Allocation) Sum() []Bal {
 	return sum
 }
 
-// Alloc is the allocation of assets to a single receiver recv.
-// The size of the balances slice must be of the same size as the assets slice
-// of the channel Params
-type Alloc struct {
-	AppID ID
-	Bals  []Bal
+// Balancer returns sums of balances
+type summer interface {
+	Sum() []Bal
+}
+
+func equalSum(b0, b1 summer) (bool, error) {
+	s0, s1 := b0.Sum(), b1.Sum()
+	n := len(s0)
+	if n != len(s1) {
+		return false, errors.New("dimension mismatch")
+	}
+
+	for i := 0; i < n; i++ {
+		if s0[i].Cmp(s1[i]) != 0 {
+			return false, nil
+		}
+	}
+	return true, nil
 }
