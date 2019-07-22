@@ -2,18 +2,16 @@
 // This file is part of go-perun. Use of this source code is governed by a
 // MIT-style license that can be found in the LICENSE file.
 
-/*
-	Package memorydb provides an implementation of the db interfaces. The main
-	type, Database, is an in-memory key-value store. Since the database is not
-	persistent, the package is not suited for production use, and more suited
-	for simplifying tests and mockups. The database is thread-safe.
-
-	Constructors
-
-	The NewDatabase() constructor creates a new empty database. The FromData()
-	constructor takes a key-value mapping and uses that as the database's
-	contents.
-*/
+// Package memorydb provides an implementation of the db interfaces. The main
+// type, Database, is an in-memory key-value store. Since the database is not
+// persistent, the package is not suited for production use, and more suited
+// for simplifying tests and mockups. The database is thread-safe.
+//
+// Constructors
+//
+// The NewDatabase() constructor creates a new empty database. The FromData()
+// constructor takes a key-value mapping and uses that as the database's
+// contents.
 package memorydb // import "perun.network/go-perun/db/memorydb"
 
 import (
@@ -24,24 +22,22 @@ import (
 	"sync"
 )
 
-// Implementation of the Database interface that stores the values in memory.
+// Database implements the Database interface and stores the values in memory.
 type Database struct {
 	mutex sync.RWMutex
 	data  map[string]string
 }
 
-// Creates a new, empty Database.
+// NewDatabase creates a new, empty Database.
 func NewDatabase() db.Database {
 	return &Database{
 		data: make(map[string]string),
 	}
 }
 
-/*
-	FromData creates a Database from a map of values.
-	The provided data will not be cloned. If data is nil, an empty database is
-	created.
-*/
+// FromData creates a Database from a map of values.
+// The provided data will not be cloned. If data is nil, an empty database is
+// created.
 func FromData(data map[string]string) db.Database {
 	if data == nil {
 		data = make(map[string]string)
@@ -54,73 +50,79 @@ func FromData(data map[string]string) db.Database {
 
 // Reader interface.
 
-func (this *Database) Has(key string) (bool, error) {
-	this.mutex.RLock()
-	defer this.mutex.RUnlock()
+// Has returns true if the memorydb contains a key.
+func (d *Database) Has(key string) (bool, error) {
+	d.mutex.RLock()
+	defer d.mutex.RUnlock()
 
-	_, exists := this.data[key]
+	_, exists := d.data[key]
 	return exists, nil
 }
 
-func (this *Database) Get(key string) (string, error) {
-	this.mutex.RLock()
-	defer this.mutex.RUnlock()
+// Get returns a value to a key.
+func (d *Database) Get(key string) (string, error) {
+	d.mutex.RLock()
+	defer d.mutex.RUnlock()
 
-	value, exists := this.data[key]
+	value, exists := d.data[key]
 	if !exists {
 		return "", &db.ErrNotFound{Key: key}
-	} else {
-		return value, nil
 	}
+	return value, nil
 }
 
-func (this *Database) GetBytes(key string) ([]byte, error) {
-	value, err := this.Get(key)
+// GetBytes returns a value to a key in bytes.
+func (d *Database) GetBytes(key string) ([]byte, error) {
+	value, err := d.Get(key)
 	return []byte(value), err
 }
 
 // Writer interface.
 
-func (this *Database) Put(key string, value string) error {
-	this.mutex.Lock()
-	defer this.mutex.Unlock()
+// Put saves a value under a key.
+func (d *Database) Put(key string, value string) error {
+	d.mutex.Lock()
+	defer d.mutex.Unlock()
 
-	this.data[key] = value
+	d.data[key] = value
 	return nil
 }
 
-func (this *Database) PutBytes(key string, value []byte) error {
-	return this.Put(key, string(value))
+// PutBytes saves a bytes value under a key.
+func (d *Database) PutBytes(key string, value []byte) error {
+	return d.Put(key, string(value))
 }
 
-func (this *Database) Delete(key string) error {
-	this.mutex.Lock()
-	defer this.mutex.Unlock()
+// Delete deletes a key from the database.
+func (d *Database) Delete(key string) error {
+	d.mutex.Lock()
+	defer d.mutex.Unlock()
 
-	if _, has := this.data[key]; !has {
+	if _, has := d.data[key]; !has {
 		return &db.ErrNotFound{Key: key}
-	} else {
-		delete(this.data, key)
-		return nil
 	}
+	delete(d.data, key)
+	return nil
 }
 
 // Batcher interface.
 
-func (this *Database) NewBatch() db.Batch {
-	batch := Batch{db: this}
+// NewBatch creates a new batch.
+func (d *Database) NewBatch() db.Batch {
+	batch := Batch{db: d}
 	batch.Reset()
 	return &batch
 }
 
 // Iterateable interface.
 
-func (this *Database) NewIterator() db.Iterator {
-	this.mutex.RLock()
-	defer this.mutex.RUnlock()
+// NewIterator creates a new iterator.
+func (d *Database) NewIterator() db.Iterator {
+	d.mutex.RLock()
+	defer d.mutex.RUnlock()
 
-	keys := make([]string, 0, len(this.data))
-	for key := range this.data {
+	keys := make([]string, 0, len(d.data))
+	for key := range d.data {
 		keys = append(keys, key)
 	}
 
@@ -128,24 +130,25 @@ func (this *Database) NewIterator() db.Iterator {
 
 	return &Iterator{
 		keys:   keys,
-		values: this.readValues(keys),
+		values: d.readValues(keys),
 	}
 }
 
-func (this *Database) NewIteratorWithRange(start string, end string) db.Iterator {
-	this.mutex.RLock()
-	defer this.mutex.RUnlock()
+// NewIteratorWithRange creates a new iterator based on a given range.
+func (d *Database) NewIteratorWithRange(start string, end string) db.Iterator {
+	d.mutex.RLock()
+	defer d.mutex.RUnlock()
 
 	var keys []string
 	// No need to check for start == "", as all strings >= "".
 	if end == "" {
-		for key := range this.data {
+		for key := range d.data {
 			if key >= start {
 				keys = append(keys, key)
 			}
 		}
 	} else {
-		for key := range this.data {
+		for key := range d.data {
 			if key >= start && key < end {
 				keys = append(keys, key)
 			}
@@ -155,17 +158,18 @@ func (this *Database) NewIteratorWithRange(start string, end string) db.Iterator
 	sort.Strings(keys)
 	return &Iterator{
 		keys:   keys,
-		values: this.readValues(keys),
+		values: d.readValues(keys),
 	}
 }
 
-func (this *Database) NewIteratorWithPrefix(prefix string) db.Iterator {
-	this.mutex.RLock()
-	defer this.mutex.RUnlock()
+// NewIteratorWithPrefix creates a new iterator for a given prefix.
+func (d *Database) NewIteratorWithPrefix(prefix string) db.Iterator {
+	d.mutex.RLock()
+	defer d.mutex.RUnlock()
 
 	prefixString := string(prefix)
 	var keys []string
-	for key := range this.data {
+	for key := range d.data {
 		if strings.HasPrefix(key, prefixString) {
 			keys = append(keys, key)
 		}
@@ -173,18 +177,16 @@ func (this *Database) NewIteratorWithPrefix(prefix string) db.Iterator {
 	sort.Strings(keys)
 	return &Iterator{
 		keys:   keys,
-		values: this.readValues(keys),
+		values: d.readValues(keys),
 	}
 }
 
-/*
-	Reads the values matched to a set of keys from a database.
-	The database must be readlocked already.
-*/
-func (this *Database) readValues(keys []string) []string {
+// readValues reads the values matched to a set of keys from a database.
+// The database must be readlocked already.
+func (d *Database) readValues(keys []string) []string {
 	data := make([]string, 0, len(keys))
 	for key := range keys {
-		data = append(data, this.data[keys[key]])
+		data = append(data, d.data[keys[key]])
 	}
 
 	return data

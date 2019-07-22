@@ -28,14 +28,6 @@ vet:
   script:
     - go vet ./...
 
-unit_race_tests:  
-  image: golang
-  stage: tests
-  script:
-    - go test -race ./...
-  only:
-    - merge_requests
-
 unit_tests:
   image: golang
   stage: tests
@@ -43,4 +35,13 @@ unit_tests:
     - go test -cover ./...
   only:
     - merge_requests
+
+unit_race_tests:  
+  image: golang
+  stage: tests
+  script:
+    - go test -race ./...
+  only:
+    - merge_requests
+  when: on_success
 

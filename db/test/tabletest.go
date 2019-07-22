@@ -7,6 +7,7 @@ import (
 	"perun.network/go-perun/db/key"
 )
 
+// GenericTableTest provides generic tests for table implementations.
 func GenericTableTest(t *testing.T, database db.Database) {
 	dbtest := DatabaseTest{
 		T:        t,
