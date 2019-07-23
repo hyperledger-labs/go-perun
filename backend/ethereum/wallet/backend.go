@@ -5,6 +5,7 @@
 package wallet
 
 import (
+	"io"
 	"strconv"
 
 	"github.com/pkg/errors"
@@ -17,23 +18,31 @@ import (
 // Backend implements the utility interface defined in the wallet package.
 type Backend struct{}
 
+// compile-time check that the ethereum backend implements the perun backend
+var _ perun.Backend = (*Backend)(nil)
+
 // NewAddressFromString creates a new address from a string.
 func (h *Backend) NewAddressFromString(s string) (perun.Address, error) {
 	addr, err := common.NewMixedcaseAddressFromString(s)
 	if err != nil {
-		zeroAddr := common.BytesToAddress(make([]byte, 20, 20))
-		return &Address{zeroAddr}, err
+		return &Address{}, err
 	}
 	return &Address{addr.Address()}, nil
 }
 
 // NewAddressFromBytes creates a new address from a byte array.
 func (h *Backend) NewAddressFromBytes(data []byte) (perun.Address, error) {
-	if len(data) != 20 {
+	if len(data) != common.AddressLength {
 		errString := "could not create address from bytes of length: " + strconv.Itoa(len(data))
-		return &Address{ZeroAddr}, errors.New(errString)
+		return new(Address), errors.New(errString)
 	}
 	return &Address{common.BytesToAddress(data)}, nil
+}
+
+func (h *Backend) DecodeAddress(r io.Reader) (perun.Address, error) {
+	addr := new(Address)
+	err := addr.Decode(r)
+	return addr, err
 }
 
 // VerifySignature verifies if a signature was made by this account.
