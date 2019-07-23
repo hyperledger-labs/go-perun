@@ -15,20 +15,20 @@ import (
 type Int16 int16
 
 func (i16 *Int16) Decode(reader io.Reader) error {
-	buf := [2]byte{}
-	if _, err := reader.Read(buf[:]); err != nil {
+	buf := make([]byte, 2)
+	if _, err := reader.Read(buf); err != nil {
 		return errors.Wrap(err, "failed to read int16")
 	}
-	*i16 = Int16(binary.LittleEndian.Uint16(buf[:]))
+	*i16 = Int16(binary.LittleEndian.Uint16(buf))
 
 	return nil
 }
 
 func (i16 Int16) Encode(writer io.Writer) error {
-	buf := [2]byte{}
-	binary.LittleEndian.PutUint16(buf[:], uint16(i16))
+	buf := make([]byte, 2)
+	binary.LittleEndian.PutUint16(buf, uint16(i16))
 
-	if _, err := writer.Write(buf[:]); err != nil {
+	if _, err := writer.Write(buf); err != nil {
 		return errors.Wrap(err, "failed to write int16")
 	}
 

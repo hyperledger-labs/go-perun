@@ -14,8 +14,8 @@ import (
 type Bool bool
 
 func (b *Bool) Decode(reader io.Reader) error {
-	buf := [1]byte{}
-	if _, err := reader.Read(buf[:]); err != nil {
+	buf := make([]byte, 1)
+	if _, err := reader.Read(buf); err != nil {
 		return errors.Wrap(err, "failed to read bool")
 	}
 	*b = Bool(buf[0] != 0)
@@ -23,14 +23,12 @@ func (b *Bool) Decode(reader io.Reader) error {
 }
 
 func (b Bool) Encode(writer io.Writer) error {
-	var v byte
+	buf := []byte{0}
 	if b {
-		v = 1
-	} else {
-		v = 0
+		buf[0] = 1
 	}
-	buf := [1]byte{v}
-	if _, err := writer.Write(buf[:]); err != nil {
+
+	if _, err := writer.Write(buf); err != nil {
 		return errors.Wrap(err, "failed to write bool")
 	}
 	return nil

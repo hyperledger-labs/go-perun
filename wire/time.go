@@ -5,27 +5,26 @@
 package wire
 
 import (
-	"io"
-
-	"github.com/pkg/errors"
+	"time"
 )
 
 // Time is a serializable network timestamp.
 // It is a 64-bit unix timestamp, in nanoseconds.
-type Time uint64
-
-func (t *Time) Decode(reader io.Reader) error {
-	var i64 Int64
-	if err := i64.Decode(reader); err != nil {
-		return errors.WithMessage(err, "failed to decode timestamp.")
-	}
-	*t = Time(i64)
-	return nil
+type Time struct {
+	Int64
 }
 
-func (t Time) Encode(writer io.Writer) error {
-	if err := Int64(t).Encode(writer); err != nil {
-		return errors.WithMessage(err, "failed to encode timestamp.")
-	}
-	return nil
+// Time converts a wire Time into a system time.
+func (t Time) Time() time.Time {
+	return time.Unix(0, int64(t.Int64))
+}
+
+// FromTime creates a wire Time from a system time.
+func FromTime(time time.Time) Time {
+	return Time{Int64(time.UnixNano())}
+}
+
+// Now creates a wire Time representing the current moment.
+func Now() Time {
+	return Time{Int64(time.Now().UnixNano())}
 }

@@ -5,10 +5,11 @@
 package msg
 
 import (
-	"io"
 	"strconv"
 
 	"github.com/pkg/errors"
+
+	"perun.network/go-perun/pkg/io"
 )
 
 // PeerMsg objects are messages that are sent between peers, but do not belong
@@ -22,7 +23,7 @@ type PeerMsg interface {
 func decodePeerMsg(reader io.Reader) (PeerMsg, error) {
 	var Type PeerMsgType
 	if err := Type.Decode(reader); err != nil {
-		return nil, errors.Wrap(err, "failed to read the message type")
+		return nil, errors.WithMessage(err, "failed to read the message type")
 	}
 
 	switch Type {
@@ -33,11 +34,11 @@ func decodePeerMsg(reader io.Reader) (PeerMsg, error) {
 
 func encodePeerMsg(msg PeerMsg, writer io.Writer) error {
 	if err := msg.Type().Encode(writer); err != nil {
-		return errors.Wrap(err, "failed to write the message type")
+		return errors.WithMessage(err, "failed to write the message type")
 	}
 
 	if err := msg.encode(writer); err != nil {
-		return errors.Wrap(err, "failed to write the message contents")
+		return errors.WithMessage(err, "failed to write the message contents")
 	}
 
 	return nil
@@ -45,7 +46,7 @@ func encodePeerMsg(msg PeerMsg, writer io.Writer) error {
 
 // peerMsg allows default-implementing the Category function in peer messages.
 type peerMsg struct {
-	channelID ChannelID
+	// Currently empty, until we know what peer messages actually look like.
 }
 
 func (*peerMsg) Category() Category {
@@ -55,23 +56,26 @@ func (*peerMsg) Category() Category {
 // PeerMsgType is an enumeration used for (de)serializing channel messages
 // and identifying a channel message's type.
 //
-// When changing this type, also change encode() and decode().
+// When changing this type, also change Encode() and Decode().
 type PeerMsgType uint8
 
 // Enumeration of channel message types.
 const (
-	// A dummy message, replace with real message types.
+	// This is a dummy peer message. It is used for testing purposes until the
+	// first actual peer message type is added.
 	DummyPeerMsg PeerMsgType = iota
+
+	// This constant marks the first invalid enum value.
 	peerMsgTypeEnd
 )
 
+// String returns the name of a peer message type, if it is valid, otherwise,
+// returns its numerical representation for debugging purposes.
 func (t PeerMsgType) String() string {
 	if !t.Valid() {
 		return strconv.Itoa(int(t))
 	}
-	return []string{
-		"DummyPeerMsg",
-	}[t]
+	return [...]string{}[t]
 }
 
 // Valid checks whether a PeerMsgType is a valid value.
@@ -87,9 +91,9 @@ func (t PeerMsgType) Encode(writer io.Writer) error {
 }
 
 func (t *PeerMsgType) Decode(reader io.Reader) error {
-	buf := [1]byte{}
-	if _, err := reader.Read(buf[:]); err != nil {
-		return errors.Wrap(err, "failed to read channel message type")
+	buf := make([]byte, 1)
+	if err := io.ReadAll(reader, buf); err != nil {
+		return errors.WithMessage(err, "failed to read channel message type")
 	}
 	*t = PeerMsgType(buf[0])
 	if !t.Valid() {

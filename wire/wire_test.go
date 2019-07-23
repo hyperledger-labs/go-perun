@@ -5,7 +5,10 @@
 package wire
 
 import (
+	"io"
+	"reflect"
 	"testing"
+	"time"
 
 	"perun.network/go-perun/pkg/io/test"
 )
@@ -32,6 +35,39 @@ func TestInt64(t *testing.T) {
 }
 
 func TestTime(t *testing.T) {
-	var v1, v2, v3 Time = 0, 0x3478534567898762, 0x7975089975789098
+	v1, v2, v3 := Time{0}, Time{0x3478534567898762}, Time{0x7975089975789098}
 	test.GenericSerializableTest(t, &v1, &v2, &v3)
+}
+
+func TestEncodeDecode(t *testing.T) {
+	r, w := io.Pipe()
+
+	values := []interface{}{
+		true,
+		uint16(0x1234),
+		uint32(0x123567),
+		uint64(0x1234567890123456),
+		// The time has to be constructed this way, because otherwise DeepEqual fails.
+		time.Unix(0, time.Now().UnixNano()),
+	}
+
+	go func() {
+		if err := Encode(w, values...); err != nil {
+			t.Errorf("failed to write values: %+v", err)
+		}
+	}()
+
+	d := make([]interface{}, len(values))
+	for i, v := range values {
+		d[i] = reflect.New(reflect.TypeOf(v)).Interface()
+	}
+	if err := Decode(r, d...); err != nil {
+		t.Errorf("failed to read values: %+v", err)
+	}
+
+	for i, v := range values {
+		if !reflect.DeepEqual(reflect.ValueOf(d[i]).Elem().Interface(), v) {
+			t.Errorf("%dth values are not the same: %T %v, %T %v", i, v, v, d[i], d[i])
+		}
+	}
 }

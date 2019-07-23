@@ -5,28 +5,36 @@
 package msg
 
 import (
+	"time"
+
 	"perun.network/go-perun/pkg/io"
 	"perun.network/go-perun/wire"
 )
+
+// Since ping and pong messages are essentially the same, this is a common
+// implementation for both.
+type pingPongMsg struct {
+	controlMsg
+	Created time.Time
+}
+
+func (m pingPongMsg) encode(writer io.Writer) error {
+	return wire.Encode(writer, &m.Created)
+}
+
+func (m *pingPongMsg) decode(reader io.Reader) error {
+	return wire.Decode(reader, &m.Created)
+}
 
 // PingMsg is a ping request.
 // It contains the time at which it was sent, so that the recipient can also
 // measure the time it took to transmit the ping request.
 type PingMsg struct {
-	controlMsg
-	Created wire.Time
+	pingPongMsg
 }
 
 func (m *PingMsg) Type() ControlMsgType {
 	return Ping
-}
-
-func (m *PingMsg) encode(writer io.Writer) error {
-	return io.Encode(writer, &m.Created)
-}
-
-func (m *PingMsg) decode(reader io.Reader) error {
-	return io.Decode(reader, &m.Created)
 }
 
 // PongMsg is the response to a ping message.
@@ -34,18 +42,9 @@ func (m *PingMsg) decode(reader io.Reader) error {
 // long the ping request took to be transmitted, and how quickly the response
 // was sent.
 type PongMsg struct {
-	controlMsg
-	Created wire.Time
+	pingPongMsg
 }
 
 func (m *PongMsg) Type() ControlMsgType {
 	return Pong
-}
-
-func (m *PongMsg) encode(writer io.Writer) error {
-	return io.Encode(writer, &m.Created)
-}
-
-func (m *PongMsg) decode(reader io.Reader) error {
-	return io.Decode(reader, &m.Created)
 }

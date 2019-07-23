@@ -15,20 +15,20 @@ import (
 type Int64 int64
 
 func (i64 *Int64) Decode(reader io.Reader) error {
-	buf := [8]byte{}
-	if _, err := reader.Read(buf[:]); err != nil {
+	buf := make([]byte, 8)
+	if _, err := reader.Read(buf); err != nil {
 		return errors.Wrap(err, "failed to read i64")
 	}
 
-	*i64 = Int64(binary.LittleEndian.Uint64(buf[:]))
+	*i64 = Int64(binary.LittleEndian.Uint64(buf))
 	return nil
 }
 
 func (i64 Int64) Encode(writer io.Writer) error {
-	buf := [8]byte{}
-	binary.LittleEndian.PutUint64(buf[:], uint64(i64))
+	buf := make([]byte, 8)
+	binary.LittleEndian.PutUint64(buf, uint64(i64))
 
-	if _, err := writer.Write(buf[:]); err != nil {
+	if _, err := writer.Write(buf); err != nil {
 		return errors.Wrap(err, "failed to write i64")
 	}
 

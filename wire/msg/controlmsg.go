@@ -78,9 +78,13 @@ type ControlMsgType uint8
 const (
 	Ping ControlMsgType = iota
 	Pong
+
+	// This constant marks the first invalid enum value.
 	controlMsgTypeEnd
 )
 
+// String returns the name of a peer message type, if it is valid, otherwise,
+// returns its numerical representation for debugging purposes.
 func (t ControlMsgType) String() string {
 	if !t.Valid() {
 		return strconv.Itoa(int(t))
@@ -104,9 +108,9 @@ func (t ControlMsgType) Encode(writer io.Writer) error {
 }
 
 func (t *ControlMsgType) Decode(reader io.Reader) error {
-	buf := [1]byte{}
-	if _, err := reader.Read(buf[:]); err != nil {
-		return errors.Wrap(err, "failed to read control message type")
+	buf := make([]byte, 1)
+	if err := io.ReadAll(reader, buf); err != nil {
+		return errors.WithMessage(err, "failed to read control message type")
 	}
 	*t = ControlMsgType(buf[0])
 	if !t.Valid() {

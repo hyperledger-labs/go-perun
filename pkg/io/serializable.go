@@ -23,7 +23,7 @@ type Serializable interface {
 }
 
 // Encode encodes multiple serializable objects at once.
-// If an error occurs, the index at which it occurs is also reported.
+// If an error occurs, the index at which it occured is also reported.
 func Encode(writer Writer, values ...Serializable) error {
 	for i, v := range values {
 		if err := v.Encode(writer); err != nil {
@@ -35,7 +35,7 @@ func Encode(writer Writer, values ...Serializable) error {
 }
 
 // Decode decodes multiple serializable objects at once.
-// If an error occurs, the index at which it occurs is also reported.
+// If an error occurs, the index at which it occurred is also reported.
 func Decode(reader Reader, values ...Serializable) error {
 	for i, v := range values {
 		if err := v.Decode(reader); err != nil {
@@ -60,3 +60,16 @@ type ReadWriteCloser = io.ReadWriteCloser
 
 // Closer exports io.Closer.
 type Closer = io.Closer
+
+// ReadAll either reads the whole buffer or fails.
+func ReadAll(reader Reader, buf []byte) error {
+	if n, err := io.ReadAtLeast(reader, buf, len(buf)); n != len(buf) {
+		if err != nil {
+			return errors.Wrap(err, "io.ReadAtLeast failed")
+		} else {
+			return errors.New("io.ReadAtLeast failed")
+		}
+	} else {
+		return nil
+	}
+}
