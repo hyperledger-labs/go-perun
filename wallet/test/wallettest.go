@@ -5,9 +5,11 @@
 package test // import "perun.network/go-perun/wallet/test"
 
 import (
+	"bytes"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+
 	"perun.network/go-perun/wallet"
 )
 
@@ -134,7 +136,17 @@ func GenericAddressTest(t *testing.T, s *Setup) {
 	assert.Nil(t, err, "String parsing of Address should work")
 
 	assert.Equal(t, init, addr, "Expected equality to serialized string array")
-	assert.True(t, init.Equals(init), "Expected equality to itself")
+	assert.True(t, init.Equals(init), "Expected equality of non-zero to itself")
 	assert.False(t, init.Equals(unInit), "Expected non-equality to other")
-	assert.True(t, unInit.Equals(unInit), "Expected equality to itself")
+	assert.True(t, unInit.Equals(unInit), "Expected equality of zero to itself")
+
+	var buf bytes.Buffer
+	addr.Encode(&buf)
+	assert.Equal(t, buf.Bytes(), addr.Bytes(), "Encoding address into buffer")
+	addrDec, err := s.Backend.DecodeAddress(&buf)
+	assert.Nil(t, err, "Decoding address from buffer")
+	assert.Equal(t, addr.Bytes(), addrDec.Bytes(), "Decoding address from buffer")
+
+	_, err = s.Backend.DecodeAddress(&buf)
+	assert.NotNil(t, err, "Decoding address from empty stream should fail")
 }
