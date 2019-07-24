@@ -13,9 +13,16 @@ import (
 	"perun.network/go-perun/pkg/io"
 )
 
-// GenericSerializableTest tests whether encoding and then decoding
-// serializable values results in the original values.
+// GenericSerializableTest runs multiple tests to check whether encoding
+// and decoding of serializable values works.
 func GenericSerializableTest(t *testing.T, serializables ...io.Serializable) {
+	genericDecodeEncodeTest(t, serializables...)
+	genericBrokenPipeTests(t, serializables...)
+}
+
+// genericDecodeEncodeTest tests whether encoding and then decoding
+// serializable values results in the original values.
+func genericDecodeEncodeTest(t *testing.T, serializables ...io.Serializable) {
 	for i, v := range serializables {
 		r, w := _io.Pipe()
 
@@ -33,6 +40,21 @@ func GenericSerializableTest(t *testing.T, serializables ...io.Serializable) {
 
 		if !reflect.DeepEqual(v, dest.Interface()) {
 			t.Errorf("encoding and decoding the %dth element (%T) resulted in different value: %v, %v", i, v, reflect.ValueOf(v).Elem(), dest.Elem())
+		}
+	}
+}
+
+func genericBrokenPipeTests(t *testing.T, serializables ...io.Serializable) {
+	for i, v := range serializables {
+		r, w := _io.Pipe()
+		w.Close()
+		if err := v.Encode(w); err == nil {
+			t.Errorf("encoding on closed writer should fail, but does not. %dth element (%T)", i, v)
+		}
+
+		r.Close()
+		if err := v.Decode(r); err == nil {
+			t.Errorf("encoding on closed writer should fail, but does not. %dth element (%T)", i, v)
 		}
 	}
 }
