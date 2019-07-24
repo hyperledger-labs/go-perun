@@ -37,11 +37,11 @@ func TestLevellified(t *testing.T) {
 	// full test for Print and Println type methods
 	testLogger := func(logFn func(...interface{}), lvl Level) {
 		// should not log in range [Error..lvl-1]
-		for ll.Lvl = Error; ll.Lvl < lvl; ll.Lvl++ {
+		for ll.Lvl = ErrorLevel; ll.Lvl < lvl; ll.Lvl++ {
 			requireSilent(logFn)
 		}
 		// should log in range [lvl..Trace]
-		for ; ll.Lvl <= Trace; ll.Lvl++ {
+		for ; ll.Lvl <= TraceLevel; ll.Lvl++ {
 			requirePrefix(logFn, lvl)
 		}
 	}
@@ -52,25 +52,25 @@ func TestLevellified(t *testing.T) {
 		testLogger(logWrapper, lvl)
 	}
 
-	testLogger(ll.Trace, Trace)
-	testLogger(ll.Traceln, Trace)
-	testFLogger(ll.Tracef, Trace)
+	testLogger(ll.Trace, TraceLevel)
+	testLogger(ll.Traceln, TraceLevel)
+	testFLogger(ll.Tracef, TraceLevel)
 
-	testLogger(ll.Debug, Debug)
-	testLogger(ll.Debugln, Debug)
-	testFLogger(ll.Debugf, Debug)
+	testLogger(ll.Debug, DebugLevel)
+	testLogger(ll.Debugln, DebugLevel)
+	testFLogger(ll.Debugf, DebugLevel)
 
-	testLogger(ll.Info, Info)
-	testLogger(ll.Infoln, Info)
-	testFLogger(ll.Infof, Info)
+	testLogger(ll.Info, InfoLevel)
+	testLogger(ll.Infoln, InfoLevel)
+	testFLogger(ll.Infof, InfoLevel)
 
-	testLogger(ll.Warn, Warn)
-	testLogger(ll.Warnln, Warn)
-	testFLogger(ll.Warnf, Warn)
+	testLogger(ll.Warn, WarnLevel)
+	testLogger(ll.Warnln, WarnLevel)
+	testFLogger(ll.Warnf, WarnLevel)
 
-	testLogger(ll.Error, Error)
-	testLogger(ll.Errorln, Error)
-	testFLogger(ll.Errorf, Error)
+	testLogger(ll.Error, ErrorLevel)
+	testLogger(ll.Errorln, ErrorLevel)
+	testFLogger(ll.Errorf, ErrorLevel)
 
 	// note: Panic and Fatal don't need to be tested as those are just taken from
 	// the StdLogger itself.
