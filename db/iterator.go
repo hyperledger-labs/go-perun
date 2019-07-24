@@ -15,7 +15,7 @@ package db
 // is safe to use multiple iterators concurrently.
 type Iterator interface {
 	// Next moves the iterator to the next key/value pair. It returns false if the
-	// iterator is exhausted and true otherwise.
+	// iterator is exhausted or closed and true otherwise.
 	Next() bool
 
 	// Key returns the key of the current key/value pair, or "" if done.
