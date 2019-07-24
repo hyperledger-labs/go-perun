@@ -27,7 +27,7 @@ func (b *BigInt) Decode(reader io.Reader) error {
 	}
 
 	if length > maxBigIntLength {
-		return errors.New("big.Int to big to decode")
+		return errors.New("big.Int to big too decode")
 	}
 
 	bytes := make([]byte, length)
@@ -46,9 +46,11 @@ func (b BigInt) Encode(writer io.Writer) error {
 	// Write length
 	length := Int16(len(bytes))
 	if length > maxBigIntLength {
-		return errors.New("big.Int to big to encode")
+		return errors.New("big.Int to big too encode")
 	}
-	length.Encode(writer)
+	if err := length.Encode(writer); err != nil {
+		return errors.Wrap(err, "failed to write length")
+	}
 	// Write bytes
 	if _, err := writer.Write(bytes); err != nil {
 		return errors.Wrap(err, "failed to write big.Int")

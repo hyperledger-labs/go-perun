@@ -11,7 +11,9 @@ import (
 	"testing"
 	"time"
 
+	"github.com/pkg/errors"
 	"perun.network/go-perun/pkg/io/test"
+	_test "perun.network/go-perun/pkg/test"
 )
 
 func TestBool(t *testing.T) {
@@ -79,6 +81,23 @@ func TestBigInt(t *testing.T) {
 	}
 }
 
+func TestWrongTypes(t *testing.T) {
+	r, w := io.Pipe()
+
+	values := []interface{}{
+		errors.New(""),
+	}
+
+	_test.CheckPanic(func() { Encode(w, values...) })
+
+	d := make([]interface{}, len(values))
+	for i, v := range values {
+		d[i] = reflect.New(reflect.TypeOf(v)).Interface()
+	}
+
+	_test.CheckPanic(func() { Decode(r, d...) })
+}
+
 func TestEncodeDecode(t *testing.T) {
 	r, w := io.Pipe()
 
@@ -87,6 +106,9 @@ func TestEncodeDecode(t *testing.T) {
 		uint16(0x1234),
 		uint32(0x123567),
 		uint64(0x1234567890123456),
+		int16(0x1234),
+		int32(0x123567),
+		int64(0x1234567890123456),
 		// The time has to be constructed this way, because otherwise DeepEqual fails.
 		time.Unix(0, time.Now().UnixNano()),
 	}
@@ -101,6 +123,7 @@ func TestEncodeDecode(t *testing.T) {
 	for i, v := range values {
 		d[i] = reflect.New(reflect.TypeOf(v)).Interface()
 	}
+
 	if err := Decode(r, d...); err != nil {
 		t.Errorf("failed to read values: %+v", err)
 	}
@@ -142,7 +165,7 @@ func testByteSlices(t *testing.T, serial ...*ByteSlice) {
 
 		r.Close()
 		if err := v.Decode(r); err == nil && len(*v) != 0 {
-			t.Errorf("encoding on closed writer should fail, but does not. %dth element (%T)", i, v)
+			t.Errorf("decoding on closed reader should fail, but does not. %dth element (%T)", i, v)
 		}
 	}
 }

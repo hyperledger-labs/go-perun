@@ -47,14 +47,14 @@ func genericDecodeEncodeTest(t *testing.T, serializables ...io.Serializable) {
 func genericBrokenPipeTests(t *testing.T, serializables ...io.Serializable) {
 	for i, v := range serializables {
 		r, w := _io.Pipe()
-		w.Close()
+		_ = w.Close()
 		if err := v.Encode(w); err == nil {
 			t.Errorf("encoding on closed writer should fail, but does not. %dth element (%T)", i, v)
 		}
 
-		r.Close()
+		_ = r.Close()
 		if err := v.Decode(r); err == nil {
-			t.Errorf("encoding on closed writer should fail, but does not. %dth element (%T)", i, v)
+			t.Errorf("encoding on closed reader should fail, but does not. %dth element (%T)", i, v)
 		}
 	}
 }
