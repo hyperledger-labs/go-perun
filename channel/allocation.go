@@ -7,6 +7,8 @@ package channel
 import (
 	"math/big"
 
+	"perun.network/go-perun/log"
+
 	"github.com/pkg/errors"
 )
 

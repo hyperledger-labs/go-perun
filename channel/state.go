@@ -7,11 +7,8 @@
 package channel // import "perun.network/go-perun/channel"
 
 import (
-	_log "perun.network/go-perun/log"
 	"perun.network/go-perun/pkg/io"
 )
-
-var log = _log.Log
 
 // State is the full state of a state channel (app).
 // It does not include the channel parameters. However, the included channel ID
