@@ -15,7 +15,7 @@ type Bool bool
 
 func (b *Bool) Decode(reader io.Reader) error {
 	buf := make([]byte, 1)
-	if _, err := reader.Read(buf); err != nil {
+	if _, err := io.ReadFull(reader, buf); err != nil {
 		return errors.Wrap(err, "failed to read bool")
 	}
 	*b = Bool(buf[0] != 0)

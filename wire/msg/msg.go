@@ -8,8 +8,7 @@ package msg // import "perun.network/go-perun/wire/msg"
 
 import (
 	"strconv"
-
-	"perun.network/go-perun/pkg/io"
+	"io"
 
 	"github.com/pkg/errors"
 )
@@ -112,7 +111,7 @@ func (c Category) Encode(writer io.Writer) error {
 
 func (c *Category) Decode(reader io.Reader) error {
 	buf := make([]byte, 1)
-	if err := io.ReadAll(reader, buf); err != nil {
+	if _, err := io.ReadFull(reader, buf); err != nil {
 		return errors.WithMessage(err, "failed to write category")
 	}
 

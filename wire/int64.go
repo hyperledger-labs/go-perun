@@ -16,7 +16,7 @@ type Int64 int64
 
 func (i64 *Int64) Decode(reader io.Reader) error {
 	buf := make([]byte, 8)
-	if _, err := reader.Read(buf); err != nil {
+	if _, err := io.ReadFull(reader, buf); err != nil {
 		return errors.Wrap(err, "failed to read i64")
 	}
 

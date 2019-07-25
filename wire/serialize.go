@@ -6,11 +6,11 @@ package wire
 
 import (
 	"time"
+	"io"
 
 	"github.com/pkg/errors"
 
 	_log "perun.network/go-perun/log"
-	"perun.network/go-perun/pkg/io"
 )
 
 var log = _log.Log

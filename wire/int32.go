@@ -16,7 +16,7 @@ type Int32 int32
 
 func (i32 *Int32) Decode(reader io.Reader) error {
 	buf := make([]byte, 4)
-	if _, err := reader.Read(buf); err != nil {
+	if _, err := io.ReadFull(reader, buf); err != nil {
 		return errors.Wrap(err, "failed to read int32")
 	}
 	*i32 = Int32(binary.LittleEndian.Uint32(buf))
