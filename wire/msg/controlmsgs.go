@@ -19,11 +19,15 @@ type pingPongMsg struct {
 }
 
 func (m pingPongMsg) encode(writer io.Writer) error {
-	return wire.Encode(writer, &m.Created)
+	return wire.Encode(writer, m.Created)
 }
 
 func (m *pingPongMsg) decode(reader io.Reader) error {
 	return wire.Decode(reader, &m.Created)
+}
+
+func newPingPongMsg() pingPongMsg {
+	return pingPongMsg{Created: wire.Now().Time()}
 }
 
 // PingMsg is a ping request.
@@ -37,6 +41,10 @@ func (m *PingMsg) Type() ControlMsgType {
 	return Ping
 }
 
+func NewPingMsg() *PingMsg {
+	return &PingMsg{newPingPongMsg()}
+}
+
 // PongMsg is the response to a ping message.
 // It contains the time at which it was sent, so that the recipient knows how
 // long the ping request took to be transmitted, and how quickly the response
@@ -47,4 +55,8 @@ type PongMsg struct {
 
 func (m *PongMsg) Type() ControlMsgType {
 	return Pong
+}
+
+func NewPongMsg() *PongMsg {
+	return &PongMsg{newPingPongMsg()}
 }
