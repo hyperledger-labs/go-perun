@@ -2,6 +2,14 @@
 // This file is part of go-perun. Use of this source code is governed by a
 // MIT-style license that can be found in the LICENSE file.
 
+// Package test provides generic tests for network connections. 
+// It tests basic functionality that every net.Conn and net.Listener should implement.
+// For the definition of net.Conn and net.Listener see https://golang.org/pkg/net/. 
+//
+// Usage: 
+// 		Provide a Setup struct to the GenericXTest functions.
+// 		The setup struct must contain a function to create a listener/server
+// 		and a function to connect to this listener/server. 
 package test // import "perun.network/go-perun/net/test"
 
 import (
