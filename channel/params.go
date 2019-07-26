@@ -87,7 +87,13 @@ func (p *Params) ValidTransition(from, to *State) (bool, error) {
 
 	valid, err := p.App.ValidTransition(p, from, to)
 	if !valid {
-		return false, newTransitionError(p.id, "no valid application state transition")
+		if err == nil {
+			return false, newTransitionError(p.id, "no valid application state transition")
+		} else if IsTransitionError(err) {
+			return false, err
+		} else {
+			return false, errors.WithMessage(err, "runtime error in application's ValidTransition check")
+		}
 	}
 
 	return true, nil

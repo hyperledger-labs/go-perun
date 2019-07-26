@@ -14,7 +14,7 @@ import (
 
 // Allocation and associated types
 type (
-	// Allocation is the distribution of assets were the channel to be finalized.
+	// Allocation is the distribution of assets, were the channel to be finalized.
 	// OfParts holds the balance allocations to the participants.
 	// Its outer dimension must match the size of the Params.parts slice.
 	// Its inner dimension must match the size of the Params.assets slice.
@@ -29,7 +29,7 @@ type (
 
 	// Alloc is the allocation of assets to a single receiver recv.
 	// The size of the balances slice must be of the same size as the assets slice
-	// of the channel Params
+	// of the channel Params.
 	Alloc struct {
 		AppID ID
 		Bals  []Bal
@@ -70,27 +70,27 @@ func (a Allocation) Sum() []Bal {
 	}
 
 	n := len(a.OfParts[0])
-	sum := make([]*big.Int, n)
+	assets := make([]*big.Int, n)
 	for i := 0; i < n; i++ {
-		sum[i] = new(big.Int)
+		assets[i] = new(big.Int)
 	}
 
 	for _, bals := range a.OfParts {
 		for i, bal := range bals {
-			sum[i].Add(sum[i], bal)
+			assets[i].Add(assets[i], bal)
 		}
 	}
 
 	for _, a := range a.Locked {
 		for i, bal := range a.Bals {
-			sum[i].Add(sum[i], bal)
+			assets[i].Add(assets[i], bal)
 		}
 	}
 
-	return sum
+	return assets
 }
 
-// Balancer returns sums of balances
+// summer returns sums of balances
 type summer interface {
 	Sum() []Bal
 }

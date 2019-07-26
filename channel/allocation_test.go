@@ -19,7 +19,7 @@ func TestAllocation_Sum(t *testing.T) {
 	}
 	assert.Panics(t, func() { invalidAllocation.Sum() })
 
-	// note: different invalid allocations are testes in TestAllocation_valid
+	// note: different invalid allocations are tested in TestAllocation_valid
 
 	// valid Allocations
 	tests := []struct {

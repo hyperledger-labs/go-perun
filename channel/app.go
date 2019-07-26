@@ -13,7 +13,12 @@ type App interface {
 	// (counterfactual) on-chain address of the stateless contract that defines
 	// what is a validTransition
 	Def() wallet.Address
+
 	// ValidTransition checks if the application specific rules of the given
-	// transition from from to to are fulfilled
+	// transition from from to to are fulfilled.
+	// The implementation should return a TransitionError describing the
+	// invalidity of the transition, if it is not valid. It should return a normal
+	// error (with attached stacktrace from pkg/errors) if there was any other
+	// runtime error, not related to the invalidity of the transition itself.
 	ValidTransition(parameters *Params, from, to *State) (bool, error)
 }
