@@ -6,7 +6,6 @@ package wallet
 
 import (
 	"io"
-	"strconv"
 
 	"github.com/pkg/errors"
 
@@ -25,7 +24,7 @@ var _ perun.Backend = (*Backend)(nil)
 func (h *Backend) NewAddressFromString(s string) (perun.Address, error) {
 	addr, err := common.NewMixedcaseAddressFromString(s)
 	if err != nil {
-		return &Address{}, err
+		return nil, errors.Wrap(err, "parsing address from string")
 	}
 	return &Address{addr.Address()}, nil
 }
@@ -33,16 +32,14 @@ func (h *Backend) NewAddressFromString(s string) (perun.Address, error) {
 // NewAddressFromBytes creates a new address from a byte array.
 func (h *Backend) NewAddressFromBytes(data []byte) (perun.Address, error) {
 	if len(data) != common.AddressLength {
-		errString := "could not create address from bytes of length: " + strconv.Itoa(len(data))
-		return new(Address), errors.New(errString)
+		return nil, errors.Errorf("could not create address from bytes of length: %d", len(data))
 	}
 	return &Address{common.BytesToAddress(data)}, nil
 }
 
 func (h *Backend) DecodeAddress(r io.Reader) (perun.Address, error) {
 	addr := new(Address)
-	err := addr.Decode(r)
-	return addr, err
+	return addr, addr.Decode(r)
 }
 
 // VerifySignature verifies if a signature was made by this account.

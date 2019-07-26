@@ -5,6 +5,7 @@
 package wallet
 
 import (
+	"bytes"
 	"io"
 
 	"github.com/ethereum/go-ethereum/common"
@@ -37,15 +38,9 @@ func (a *Address) Encode(w io.Writer) error {
 // go-perun/pkg/io.Serializable interface.
 func (a *Address) Decode(r io.Reader) error {
 	buf := make([]byte, common.AddressLength)
-	n, err := io.ReadAtLeast(r, buf, common.AddressLength)
-	if err != nil {
-		return errors.Wrap(err, "error decoding address")
-	}
-	if n != common.AddressLength {
-		return errors.Errorf("error decoding address: read %d bytes", n)
-	}
+	_, err := io.ReadFull(r, buf)
 	a.Address.SetBytes(buf)
-	return nil
+	return errors.Wrap(err, "error decoding address")
 }
 
 // String converts this address to a string.
@@ -55,9 +50,9 @@ func (a *Address) String() string {
 
 // Equals checks the equality of two addresses.
 func (a *Address) Equals(addr perun.Address) bool {
-	ethaddr, ok := addr.(*Address)
+	_, ok := addr.(*Address)
 	if !ok {
 		panic("comparing ethereum address to address of different type")
 	}
-	return [common.AddressLength]byte(a.Address) == [common.AddressLength]byte(ethaddr.Address)
+	return bytes.Equal(a.Bytes(), addr.Bytes())
 }
