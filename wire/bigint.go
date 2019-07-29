@@ -13,7 +13,7 @@ import (
 
 // maxBigIntLength defines the maximum length of a big integer.
 // Default: 1024bit -> 128 bytes
-const maxBigIntLength = 128
+const maxBigIntLength uint8 = 128
 
 // BigInt is a serializable big integer.
 type BigInt big.Int
@@ -21,21 +21,33 @@ type BigInt big.Int
 // Decode reads a big.Int from the given stream.
 func (b *BigInt) Decode(reader io.Reader) error {
 	// Read length
-	var length Int16
-	if err := length.Decode(reader); err != nil {
+	var lengthData = make([]byte, 1)
+	n, err := reader.Read(lengthData)
+
+	if err != nil {
 		return errors.Wrap(err, "failed to decode length of big.Int")
 	}
+	if n != 1 {
+		return errors.New("failed to decode length of big.Int")
+	}
+	var length = uint8(lengthData[0])
 
-	if length > maxBigIntLength {
+	if length > maxBigIntLength || length < 0 {
 		return errors.New("big.Int to big too decode")
 	}
 
 	bytes := make([]byte, length)
-	if _, err := io.ReadFull(reader, bytes); err != nil {
+	n, err = io.ReadFull(reader, bytes)
+
+	if err != nil {
 		return errors.Wrap(err, "failed to read []byte in big.Int")
+	}
+	if n != int(length) {
+		return errors.New("failed to read []byte in big.Int")
 	}
 	tmp := new(big.Int)
 	*b = BigInt(*tmp.SetBytes(bytes))
+
 	return nil
 }
 
@@ -43,17 +55,27 @@ func (b *BigInt) Decode(reader io.Reader) error {
 func (b BigInt) Encode(writer io.Writer) error {
 	integer := big.Int(b)
 	bytes := integer.Bytes()
-	// Write length
-	length := Int16(len(bytes))
-	if length > maxBigIntLength {
+	// Dont cast it to SizeType here, otherwise it can overflow
+	length := len(bytes)
+
+	// 255 hardcoded because we serialize as uint8
+	if length > int(maxBigIntLength) || length > 255 || length < 0 {
 		return errors.New("big.Int to big too encode")
 	}
-	if err := length.Encode(writer); err != nil {
+	// Write length
+	n, err := writer.Write([]byte{uint8(length)})
+
+	if err != nil {
 		return errors.Wrap(err, "failed to write length")
 	}
-	// Write bytes
-	if _, err := writer.Write(bytes); err != nil {
-		return errors.Wrap(err, "failed to write big.Int")
+	if n != 1 {
+		return errors.New("failed to write length")
 	}
-	return nil
+
+	// Write bytes
+	n, err = writer.Write(bytes)
+	if n != length {
+		return errors.New("failed to write big.Int")
+	}
+	return errors.Wrap(err, "failed to write big.Int")
 }

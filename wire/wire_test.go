@@ -10,6 +10,7 @@ import (
 	"reflect"
 	"testing"
 	"time"
+	"unsafe"
 
 	"github.com/pkg/errors"
 	"perun.network/go-perun/pkg/io/test"
@@ -62,19 +63,20 @@ func TestBigInt(t *testing.T) {
 		t.Error("encoding of a big integer that is too big should fail")
 	}
 
-	go func(w io.Writer, length Int16) {
-		length.Encode(w)
-	}(w, Int16(len(bytes)))
+	go func(w io.Writer, length uint8) {
+		w.Write([]byte{length})
+	}(w, uint8(len(bytes)))
 
 	var result BigInt
 	if err := result.Decode(r); err == nil {
 		t.Error("decoding of an integer that is too big should fail")
 	}
+
 	// Test not sending value, only length
-	go func(w *io.PipeWriter, length Int16) {
-		length.Encode(w)
+	go func(w *io.PipeWriter, length uint8) {
+		w.Write([]byte{length})
 		w.Close()
-	}(w, Int16(10))
+	}(w, 10)
 
 	if err := result.Decode(r); err == nil {
 		t.Error("decoding after sender only send length should fail")
@@ -96,6 +98,10 @@ func TestWrongTypes(t *testing.T) {
 	}
 
 	_test.CheckPanic(func() { Decode(r, d...) })
+	// Assert that SizeType can
+	if unsafe.Sizeof(maxBigIntLength) != unsafe.Sizeof(uint8(0)) {
+		t.Error("maxBigIntLength must have type uint8")
+	}
 }
 
 func TestEncodeDecode(t *testing.T) {
