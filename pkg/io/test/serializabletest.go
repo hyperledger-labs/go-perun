@@ -23,18 +23,16 @@ func GenericSerializableTest(t *testing.T, serializables ...perunio.Serializable
 // genericDecodeEncodeTest tests whether encoding and then decoding
 // serializable values results in the original values.
 func genericDecodeEncodeTest(t *testing.T, serializables ...perunio.Serializable) {
-	r, w := io.Pipe()
-	go func() {
-		for i, v := range serializables {
+	for i, v := range serializables {
+		r, w := io.Pipe()
+
+		dest := reflect.New(reflect.TypeOf(v).Elem())
+
+		go func() {
 			if err := perunio.Encode(w, v); err != nil {
 				t.Errorf("failed to encode %dth element (%T): %+v", i, v, err)
 			}
-		}
-	}()
-
-	for i, v := range serializables {
-
-		dest := reflect.New(reflect.TypeOf(v).Elem())
+		}()
 
 		if err := perunio.Decode(r, dest.Interface().(perunio.Serializable)); err != nil {
 			t.Errorf("failed to decode %dth element (%T): %+v", i, v, err)
@@ -44,8 +42,6 @@ func genericDecodeEncodeTest(t *testing.T, serializables ...perunio.Serializable
 			t.Errorf("encoding and decoding the %dth element (%T) resulted in different value: %v, %v", i, v, reflect.ValueOf(v).Elem(), dest.Elem())
 		}
 	}
-	_ = r.Close()
-	_ = w.Close()
 }
 
 func genericBrokenPipeTests(t *testing.T, serializables ...perunio.Serializable) {
