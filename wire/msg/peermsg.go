@@ -9,6 +9,8 @@ import (
 	"io"
 
 	"github.com/pkg/errors"
+
+	"perun.network/go-perun/log"
 )
 
 // PeerMsg objects are messages that are sent between peers, but do not belong
@@ -19,16 +21,23 @@ type PeerMsg interface {
 	Type() PeerMsgType
 }
 
-func decodePeerMsg(reader io.Reader) (PeerMsg, error) {
+func decodePeerMsg(reader io.Reader) (msg PeerMsg, err error) {
 	var Type PeerMsgType
 	if err := Type.Decode(reader); err != nil {
 		return nil, errors.WithMessage(err, "failed to read the message type")
 	}
 
 	switch Type {
+	case PeerDummy:
+		msg = &DummyPeerMsg{}
 	default:
-		panic("decodePeerMsg(): Unhandled peer message type: " + Type.String())
+		log.Panicf("decodePeerMsg(): Unhandled peer message type: %v", Type)
 	}
+
+	if err := msg.decode(reader); err != nil {
+		return nil, errors.WithMessagef(err, "failed to decode %v", Type)
+	}
+	return msg, nil
 }
 
 func encodePeerMsg(msg PeerMsg, writer io.Writer) error {
@@ -62,7 +71,7 @@ type PeerMsgType uint8
 const (
 	// This is a dummy peer message. It is used for testing purposes until the
 	// first actual peer message type is added.
-	DummyPeerMsg PeerMsgType = iota
+	PeerDummy PeerMsgType = iota
 
 	// This constant marks the first invalid enum value.
 	peerMsgTypeEnd
@@ -74,7 +83,9 @@ func (t PeerMsgType) String() string {
 	if !t.Valid() {
 		return strconv.Itoa(int(t))
 	}
-	return [...]string{}[t]
+	return [...]string{
+		"DummyPeerMsg",
+	}[t]
 }
 
 // Valid checks whether a PeerMsgType is a valid value.

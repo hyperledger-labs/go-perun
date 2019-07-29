@@ -5,10 +5,12 @@
 package msg
 
 import (
-	"strconv"
 	"io"
+	"strconv"
 
 	"github.com/pkg/errors"
+
+	"perun.network/go-perun/log"
 )
 
 // ChannelMsg objects are channel-specific messages that are sent between
@@ -21,14 +23,14 @@ type ChannelMsg interface {
 	Type() ChannelMsgType
 }
 
-func decodeChannelMsg(reader io.Reader) (ChannelMsg, error) {
+func decodeChannelMsg(reader io.Reader) (msg ChannelMsg, err error) {
 	var Type ChannelMsgType
 	if err := Type.Decode(reader); err != nil {
 		return nil, errors.WithMessage(err, "failed to read the message type")
 	}
 
-	var id ChannelID
-	if err := id.Decode(reader); err != nil {
+	var m channelMsg
+	if err := m.channelID.Decode(reader); err != nil {
 		return nil, errors.WithMessage(err, "failed to read the channel ID")
 	}
 
@@ -36,9 +38,16 @@ func decodeChannelMsg(reader io.Reader) (ChannelMsg, error) {
 	// This switch handles all channel message types, but if any was forgotten,
 	// the program panics.
 	switch Type {
+	case ChannelDummy:
+		msg = &DummyChannelMsg{channelMsg: m}
 	default:
-		panic("decodeChannelMsg(): Unhandled channel message type: " + Type.String())
+		log.Panicf("decodeChannelMsg(): Unhandled channel message type: %v", Type)
 	}
+
+	if err := msg.decode(reader); err != nil {
+		return nil, errors.WithMessagef(err, "failed to decode %v", Type)
+	}
+	return msg, nil
 }
 
 func encodeChannelMsg(msg ChannelMsg, writer io.Writer) error {
@@ -103,7 +112,7 @@ type ChannelMsgType uint8
 const (
 	// This is a dummy peer message. It is used for testing purposes until the
 	// first actual channel message type is added.
-	Dummy ChannelMsgType = iota
+	ChannelDummy ChannelMsgType = iota
 
 	// This constant marks the first invalid enum value.
 	channelMsgTypeEnd
@@ -116,7 +125,7 @@ func (t ChannelMsgType) String() string {
 		return strconv.Itoa(int(t))
 	}
 	return [...]string{
-		"DummyMsg",
+		"DummyChannelMsg",
 	}[t]
 }
 

@@ -9,6 +9,8 @@ import (
 	"strconv"
 
 	"github.com/pkg/errors"
+
+	"perun.network/go-perun/log"
 )
 
 // ControlMsg objects are messages that are outside of the perun core protcol
@@ -47,7 +49,7 @@ func decodeControlMsg(reader io.Reader) (ControlMsg, error) {
 	case Pong:
 		msg = &PongMsg{}
 	default:
-		panic("decodeControlMsg(): Unhandled control message type: " + Type.String())
+		log.Panicf("decodeControlMsg(): Unhandled control message type: %v", Type)
 	}
 
 	if err := msg.decode(reader); err != nil {
