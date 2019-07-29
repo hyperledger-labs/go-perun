@@ -4,6 +4,8 @@
 
 package wallet
 
+import "io"
+
 // Backend provides useful methods for this blockchain.
 type Backend interface {
 	// NewAddressFromString creates a new address from the natural string representation of this blockchain.
@@ -11,6 +13,9 @@ type Backend interface {
 
 	// NewAddressFromBytes creates a new address from a byte array.
 	NewAddressFromBytes(data []byte) (Address, error)
+
+	// DecodeAddress reads and decodes an address from an io.Writer
+	DecodeAddress(io.Reader) (Address, error)
 
 	// VerifySignature verifies if this signature was signed by this address.
 	// It should return an error iff the signature or message are malformed.

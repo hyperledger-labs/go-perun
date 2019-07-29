@@ -4,12 +4,17 @@
 
 package wallet
 
-import "fmt"
+import (
+	"fmt"
+
+	"perun.network/go-perun/pkg/io"
+)
 
 // Address represents a identifier used in a cryptocurrency.
 // It is dependent on the currency and needs to be implemented for every blockchain.
 type Address interface {
-	// Bytes converts this address to bytes
+	io.Serializable
+	// Bytes should return the representation of the address as byte slice.
 	Bytes() []byte
 	// String converts this address to a string
 	fmt.Stringer
