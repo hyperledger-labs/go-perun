@@ -6,7 +6,7 @@ package wire
 
 import (
 	"io"
-
+	
 	"github.com/pkg/errors"
 )
 
