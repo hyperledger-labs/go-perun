@@ -34,22 +34,6 @@ func (b *Batch) Delete(key string) error {
 	return nil
 }
 
-// Len returns the amount of operations in the batch.
-func (b *Batch) Len() uint {
-	return uint(len(b.writes) + len(b.deletes))
-}
-
-// ValueSize returns the length of values in the batch.
-func (b *Batch) ValueSize() uint {
-	bytes := 0
-
-	for _, value := range b.writes {
-		bytes += len(value)
-	}
-
-	return uint(bytes)
-}
-
 // Apply applies the batch to the database.
 func (b *Batch) Apply() error {
 	for key, value := range b.writes {

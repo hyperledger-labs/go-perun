@@ -6,14 +6,12 @@ package wire
 
 import (
 	"time"
+	"io"
 
 	"github.com/pkg/errors"
-
-	_log "perun.network/go-perun/log"
-	"perun.network/go-perun/pkg/io"
+	
+	"perun.network/go-perun/log"
 )
-
-var log = _log.Log
 
 // Encode encodes multiple primitive values into a writer.
 // All passed values must be copies, not references.

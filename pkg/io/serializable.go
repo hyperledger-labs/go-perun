@@ -16,15 +16,15 @@ type Serializable interface {
 	// Decode reads an object from a stream.
 	// If the stream fails, the underlying error is returned.
 	// Returns an error if the stream's data is invalid.
-	Decode(Reader) error
+	Decode(io.Reader) error
 	// Encode writes an object to a stream.
 	// If the stream fails, the underyling error is returned.
-	Encode(Writer) error
+	Encode(io.Writer) error
 }
 
 // Encode encodes multiple serializable objects at once.
 // If an error occurs, the index at which it occured is also reported.
-func Encode(writer Writer, values ...Serializable) error {
+func Encode(writer io.Writer, values ...Serializable) error {
 	for i, v := range values {
 		if err := v.Encode(writer); err != nil {
 			return errors.WithMessagef(err, "failed to encode %dth object (%T)", i, v)
@@ -36,7 +36,7 @@ func Encode(writer Writer, values ...Serializable) error {
 
 // Decode decodes multiple serializable objects at once.
 // If an error occurs, the index at which it occurred is also reported.
-func Decode(reader Reader, values ...Serializable) error {
+func Decode(reader io.Reader, values ...Serializable) error {
 	for i, v := range values {
 		if err := v.Decode(reader); err != nil {
 			return errors.WithMessagef(err, "failed to decode %dth object (%T)", i, v)
@@ -44,32 +44,4 @@ func Decode(reader Reader, values ...Serializable) error {
 	}
 
 	return nil
-}
-
-// Writer exports io.Writer.
-type Writer = io.Writer
-
-// Reader exports io.Reader.
-type Reader = io.Reader
-
-// ReadWriter exports io.ReadWriter.
-type ReadWriter = io.ReadWriter
-
-// ReadWriteCloser exports io.ReadWriteCloser.
-type ReadWriteCloser = io.ReadWriteCloser
-
-// Closer exports io.Closer.
-type Closer = io.Closer
-
-// ReadAll either reads the whole buffer or fails.
-func ReadAll(reader Reader, buf []byte) error {
-	if n, err := io.ReadAtLeast(reader, buf, len(buf)); n != len(buf) {
-		if err != nil {
-			return errors.Wrap(err, "io.ReadAtLeast failed")
-		} else {
-			return errors.New("io.ReadAtLeast failed")
-		}
-	} else {
-		return nil
-	}
 }

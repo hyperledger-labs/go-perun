@@ -5,10 +5,10 @@
 package msg
 
 import (
+	"io"
 	"strconv"
 
 	"perun.network/go-perun/log"
-	"perun.network/go-perun/pkg/io"
 
 	"github.com/pkg/errors"
 )
@@ -102,16 +102,14 @@ func (t ControlMsgType) Valid() bool {
 }
 
 func (t ControlMsgType) Encode(writer io.Writer) error {
-	if _, err := writer.Write([]byte{byte(t)}); err != nil {
-		return errors.Wrap(err, "failed to write control message type")
-	}
-	return nil
+	_, err := writer.Write([]byte{byte(t)})
+	return errors.Wrap(err, "failed to write control message type")
 }
 
 func (t *ControlMsgType) Decode(reader io.Reader) error {
 	buf := make([]byte, 1)
-	if err := io.ReadAll(reader, buf); err != nil {
-		return errors.WithMessage(err, "failed to read control message type")
+	if _, err := io.ReadFull(reader, buf); err != nil {
+		return errors.Wrap(err, "failed to read control message type")
 	}
 	*t = ControlMsgType(buf[0])
 	if !t.Valid() {
