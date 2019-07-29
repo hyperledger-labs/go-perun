@@ -13,6 +13,8 @@ import (
 	"unsafe"
 
 	"github.com/pkg/errors"
+	"github.com/stretchr/testify/assert"
+
 	"perun.network/go-perun/pkg/io/test"
 	peruntest "perun.network/go-perun/pkg/test"
 )
@@ -49,38 +51,34 @@ func TestByteSlice(t *testing.T) {
 }
 
 func TestBigInt(t *testing.T) {
-	var v1 = BigInt(*big.NewInt(123456))
-	var v2 = BigInt(*big.NewInt(1))
-	var v3 = BigInt(*big.NewInt(0))
+	a := assert.New(t)
+	var v1 = BigInt{big.NewInt(123456)}
+	var v2 = BigInt{big.NewInt(1)}
+	var v3 = BigInt{big.NewInt(0)}
 	test.GenericSerializableTest(t, &v1, &v2, &v3)
 	// Test integers that are too big
 	bytes := make([]byte, maxBigIntLength+1)
 	bytes[0] = 1
 	_big := big.NewInt(1).SetBytes(bytes)
-	var tooBig = BigInt(*_big)
+	var tooBig = BigInt{_big}
 	r, w := io.Pipe()
-	if err := tooBig.Encode(w); err == nil {
-		t.Error("encoding of a big integer that is too big should fail")
-	}
 
-	go func(w io.Writer, length uint8) {
-		w.Write([]byte{length})
-	}(w, uint8(len(bytes)))
+	a.NotNil(tooBig.Encode(w), "encoding of a big integer that is too big should fail")
+
+	go func() {
+		w.Write([]byte{uint8(len(bytes))})
+	}()
 
 	var result BigInt
-	if err := result.Decode(r); err == nil {
-		t.Error("decoding of an integer that is too big should fail")
-	}
+	a.NotNil(result.Decode(r), "decoding of an integer that is too big should fail")
 
 	// Test not sending value, only length
-	go func(w *io.PipeWriter, length uint8) {
-		w.Write([]byte{length})
+	go func() {
+		w.Write([]byte{10})
 		w.Close()
-	}(w, 10)
+	}()
 
-	if err := result.Decode(r); err == nil {
-		t.Error("decoding after sender only send length should fail")
-	}
+	a.NotNil(result.Decode(r), "decoding after sender only send length should fail")
 }
 
 func TestWrongTypes(t *testing.T) {
@@ -88,6 +86,12 @@ func TestWrongTypes(t *testing.T) {
 
 	values := []interface{}{
 		errors.New(""),
+		int8(1),
+		byte(7),
+		float32(1.2),
+		float64(1.3),
+		complex(1, 2),
+		complex128(1),
 	}
 
 	peruntest.CheckPanic(func() { Encode(w, values...) })
@@ -105,6 +109,7 @@ func TestWrongTypes(t *testing.T) {
 }
 
 func TestEncodeDecode(t *testing.T) {
+	a := assert.New(t)
 	r, w := io.Pipe()
 
 	values := []interface{}{
@@ -120,9 +125,7 @@ func TestEncodeDecode(t *testing.T) {
 	}
 
 	go func() {
-		if err := Encode(w, values...); err != nil {
-			t.Errorf("failed to write values: %+v", err)
-		}
+		a.Nil(Encode(w, values...), "failed to encode values")
 	}()
 
 	d := make([]interface{}, len(values))
@@ -130,9 +133,7 @@ func TestEncodeDecode(t *testing.T) {
 		d[i] = reflect.New(reflect.TypeOf(v)).Interface()
 	}
 
-	if err := Decode(r, d...); err != nil {
-		t.Errorf("failed to read values: %+v", err)
-	}
+	a.Nil(Decode(r, d...), "failed to decode values")
 
 	for i, v := range values {
 		if !reflect.DeepEqual(reflect.ValueOf(d[i]).Elem().Interface(), v) {
@@ -142,36 +143,29 @@ func TestEncodeDecode(t *testing.T) {
 }
 
 func testByteSlices(t *testing.T, serial ...ByteSlice) {
+	a := assert.New(t)
 	for i, v := range serial {
 		r, w := io.Pipe()
 
 		d := make([]byte, len(v))
 		dest := ByteSlice(d)
-		go func(v ByteSlice, w io.Writer) {
-			if err := v.Encode(w); err != nil {
-				t.Errorf("failed to encode %dth element (%T): %+v", i, v, err)
-			}
-		}(v, w)
+		go func() {
+			a.Nil(v.Encode(w), "failed to encode element")
+		}()
 
-		if err := dest.Decode(r); err != nil {
-			t.Errorf("failed to decode %dth element (%T): %+v", i, v, err)
-		}
+		a.Nil(dest.Decode(r), "failed to decode element")
 
 		if !reflect.DeepEqual(v, dest) {
 			t.Errorf("encoding and decoding the %dth element (%T) resulted in different value: %v, %v", i, v, reflect.ValueOf(v).Elem(), dest)
 		}
 	}
 
-	for i, v := range serial {
+	for _, v := range serial {
 		r, w := io.Pipe()
 		w.Close()
-		if err := v.Encode(w); err == nil {
-			t.Errorf("encoding on closed writer should fail, but does not. %dth element (%T)", i, v)
-		}
+		a.NotNil(v.Encode(w), "encoding on closed writer should fail, but does not.")
 
 		r.Close()
-		if err := v.Decode(r); err == nil && len(v) != 0 {
-			t.Errorf("decoding on closed reader should fail, but does not. %dth element (%T)", i, v)
-		}
+		a.False(v.Decode(r) == nil && len(v) != 0, "decoding on closed reader should fail, but does not.")
 	}
 }

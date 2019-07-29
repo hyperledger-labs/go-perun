@@ -16,7 +16,9 @@ import (
 const maxBigIntLength uint8 = 128
 
 // BigInt is a serializable big integer.
-type BigInt big.Int
+type BigInt struct {
+	*big.Int
+}
 
 // Decode reads a big.Int from the given stream.
 func (b *BigInt) Decode(reader io.Reader) error {
@@ -46,15 +48,14 @@ func (b *BigInt) Decode(reader io.Reader) error {
 		return errors.New("failed to read []byte in big.Int")
 	}
 	tmp := new(big.Int)
-	*b = BigInt(*tmp.SetBytes(bytes))
+	*b = BigInt{tmp.SetBytes(bytes)}
 
 	return nil
 }
 
 // Encode writes a big.Int to the stream.
 func (b BigInt) Encode(writer io.Writer) error {
-	integer := big.Int(b)
-	bytes := integer.Bytes()
+	bytes := b.Bytes()
 	// Dont cast it to SizeType here, otherwise it can overflow
 	length := len(bytes)
 
