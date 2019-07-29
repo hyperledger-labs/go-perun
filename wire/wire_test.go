@@ -14,7 +14,7 @@ import (
 
 	"github.com/pkg/errors"
 	"perun.network/go-perun/pkg/io/test"
-	_test "perun.network/go-perun/pkg/test"
+	peruntest "perun.network/go-perun/pkg/test"
 )
 
 func TestBool(t *testing.T) {
@@ -45,7 +45,7 @@ func TestTime(t *testing.T) {
 
 func TestByteSlice(t *testing.T) {
 	var v1, v2, v3 ByteSlice = []byte{}, []byte{255}, []byte{1, 2, 3, 4, 5, 6}
-	testByteSlices(t, &v1, &v2, &v3)
+	testByteSlices(t, v1, v2, v3)
 }
 
 func TestBigInt(t *testing.T) {
@@ -90,14 +90,14 @@ func TestWrongTypes(t *testing.T) {
 		errors.New(""),
 	}
 
-	_test.CheckPanic(func() { Encode(w, values...) })
+	peruntest.CheckPanic(func() { Encode(w, values...) })
 
 	d := make([]interface{}, len(values))
 	for i, v := range values {
 		d[i] = reflect.New(reflect.TypeOf(v)).Interface()
 	}
 
-	_test.CheckPanic(func() { Decode(r, d...) })
+	peruntest.CheckPanic(func() { Decode(r, d...) })
 	// Assert that SizeType can
 	if unsafe.Sizeof(maxBigIntLength) != unsafe.Sizeof(uint8(0)) {
 		t.Error("maxBigIntLength must have type uint8")
@@ -141,23 +141,23 @@ func TestEncodeDecode(t *testing.T) {
 	}
 }
 
-func testByteSlices(t *testing.T, serial ...*ByteSlice) {
+func testByteSlices(t *testing.T, serial ...ByteSlice) {
 	for i, v := range serial {
 		r, w := io.Pipe()
 
-		d := make([]byte, len(*v))
+		d := make([]byte, len(v))
 		dest := ByteSlice(d)
 		go func(v ByteSlice, w io.Writer) {
 			if err := v.Encode(w); err != nil {
 				t.Errorf("failed to encode %dth element (%T): %+v", i, v, err)
 			}
-		}(*v, w)
+		}(v, w)
 
 		if err := dest.Decode(r); err != nil {
 			t.Errorf("failed to decode %dth element (%T): %+v", i, v, err)
 		}
 
-		if !reflect.DeepEqual(v, &dest) {
+		if !reflect.DeepEqual(v, dest) {
 			t.Errorf("encoding and decoding the %dth element (%T) resulted in different value: %v, %v", i, v, reflect.ValueOf(v).Elem(), dest)
 		}
 	}
@@ -170,7 +170,7 @@ func testByteSlices(t *testing.T, serial ...*ByteSlice) {
 		}
 
 		r.Close()
-		if err := v.Decode(r); err == nil && len(*v) != 0 {
+		if err := v.Decode(r); err == nil && len(v) != 0 {
 			t.Errorf("decoding on closed reader should fail, but does not. %dth element (%T)", i, v)
 		}
 	}
