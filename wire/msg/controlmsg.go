@@ -8,9 +8,9 @@ import (
 	"io"
 	"strconv"
 
-	"perun.network/go-perun/log"
-
 	"github.com/pkg/errors"
+
+	"perun.network/go-perun/log"
 )
 
 // ControlMsg objects are messages that are outside of the perun core protcol

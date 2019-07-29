@@ -7,12 +7,12 @@
 package msg // import "perun.network/go-perun/wire/msg"
 
 import (
-	"strconv"
 	"io"
-
-	"perun.network/go-perun/log"
+	"strconv"
 
 	"github.com/pkg/errors"
+
+	"perun.network/go-perun/log"
 )
 
 // Msg is the top-level abstraction for all messages sent between perun

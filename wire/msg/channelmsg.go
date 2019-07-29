@@ -5,12 +5,12 @@
 package msg
 
 import (
+	"io"
 	"strconv"
 
-	"perun.network/go-perun/log"
-	"io"
-
 	"github.com/pkg/errors"
+
+	"perun.network/go-perun/log"
 )
 
 // ChannelMsg objects are channel-specific messages that are sent between
