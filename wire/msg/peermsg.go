@@ -6,10 +6,9 @@ package msg
 
 import (
 	"strconv"
+	"io"
 
 	"github.com/pkg/errors"
-
-	"perun.network/go-perun/pkg/io"
 )
 
 // PeerMsg objects are messages that are sent between peers, but do not belong
@@ -92,7 +91,7 @@ func (t PeerMsgType) Encode(writer io.Writer) error {
 
 func (t *PeerMsgType) Decode(reader io.Reader) error {
 	buf := make([]byte, 1)
-	if err := io.ReadAll(reader, buf); err != nil {
+	if _, err := io.ReadFull(reader, buf); err != nil {
 		return errors.WithMessage(err, "failed to read channel message type")
 	}
 	*t = PeerMsgType(buf[0])

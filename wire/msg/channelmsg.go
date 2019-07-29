@@ -6,8 +6,7 @@ package msg
 
 import (
 	"strconv"
-
-	"perun.network/go-perun/pkg/io"
+	"io"
 
 	"github.com/pkg/errors"
 )
@@ -88,7 +87,7 @@ func (id ChannelID) Encode(writer io.Writer) error {
 }
 
 func (id *ChannelID) Decode(reader io.Reader) error {
-	if err := io.ReadAll(reader, id[:]); err != nil {
+	if _, err := io.ReadFull(reader, id[:]); err != nil {
 		return errors.WithMessage(err, "failed to read channel id")
 	}
 	return nil
@@ -135,7 +134,7 @@ func (t ChannelMsgType) Encode(writer io.Writer) error {
 
 func (t *ChannelMsgType) Decode(reader io.Reader) error {
 	buf := make([]byte, 1)
-	if err := io.ReadAll(reader, buf); err != nil {
+	if _, err := io.ReadFull(reader, buf); err != nil {
 		return errors.WithMessage(err, "failed to read channel message type")
 	}
 	*t = ChannelMsgType(buf[0])

@@ -16,7 +16,7 @@ type Int16 int16
 
 func (i16 *Int16) Decode(reader io.Reader) error {
 	buf := make([]byte, 2)
-	if _, err := reader.Read(buf); err != nil {
+	if _, err := io.ReadFull(reader, buf); err != nil {
 		return errors.Wrap(err, "failed to read int16")
 	}
 	*i16 = Int16(binary.LittleEndian.Uint16(buf))
