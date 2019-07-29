@@ -9,6 +9,7 @@ package msg // import "perun.network/go-perun/wire/msg"
 import (
 	"strconv"
 
+	"perun.network/go-perun/log"
 	"perun.network/go-perun/pkg/io"
 
 	"github.com/pkg/errors"
@@ -41,7 +42,7 @@ func Encode(msg Msg, writer io.Writer) (err error) {
 			pmsg, _ := msg.(PeerMsg)
 			err = encodePeerMsg(pmsg, writer)
 		default:
-			panic("Encode(): Unhandled message category: " + msg.Category().String())
+			log.Panicf("Encode(): Unhandled message category: %v", msg.Category())
 		}
 	}
 
@@ -67,7 +68,8 @@ func Decode(reader io.Reader) (Msg, error) {
 	case Peer:
 		return decodePeerMsg(reader)
 	default:
-		panic("Decode(): Unhandled message category: " + cat.String())
+		log.Panicf("Decode(): Unhandled message category: %v", cat)
+		panic("This should never happen")
 	}
 }
 

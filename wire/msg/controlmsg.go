@@ -7,6 +7,7 @@ package msg
 import (
 	"strconv"
 
+	"perun.network/go-perun/log"
 	"perun.network/go-perun/pkg/io"
 
 	"github.com/pkg/errors"
@@ -48,7 +49,7 @@ func decodeControlMsg(reader io.Reader) (ControlMsg, error) {
 	case Pong:
 		msg = &PongMsg{}
 	default:
-		panic("decodeControlMsg(): Unhandled control message type: " + Type.String())
+		log.Panicf("decodeControlMsg(): Unhandled control message type: %v", Type)
 	}
 
 	if err := msg.decode(reader); err != nil {

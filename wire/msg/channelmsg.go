@@ -7,6 +7,7 @@ package msg
 import (
 	"strconv"
 
+	"perun.network/go-perun/log"
 	"perun.network/go-perun/pkg/io"
 
 	"github.com/pkg/errors"
@@ -40,7 +41,7 @@ func decodeChannelMsg(reader io.Reader) (msg ChannelMsg, err error) {
 	case ChannelDummy:
 		msg = &DummyChannelMsg{channelMsg: m}
 	default:
-		panic("decodeChannelMsg(): Unhandled channel message type: " + Type.String())
+		log.Panicf("decodeChannelMsg(): Unhandled channel message type: %v", Type)
 	}
 
 	if err := msg.decode(reader); err != nil {

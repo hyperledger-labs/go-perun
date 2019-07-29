@@ -38,6 +38,7 @@ func TestPongMsg(t *testing.T) {
 }
 
 func newChannelMsg() (m channelMsg) {
+	// Set a non-0 channel ID, so that we can detect serializing errors.
 	for i := range m.channelID {
 		m.channelID[i] = byte(i)
 	}

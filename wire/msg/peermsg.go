@@ -9,6 +9,7 @@ import (
 
 	"github.com/pkg/errors"
 
+	"perun.network/go-perun/log"
 	"perun.network/go-perun/pkg/io"
 )
 
@@ -30,7 +31,7 @@ func decodePeerMsg(reader io.Reader) (msg PeerMsg, err error) {
 	case PeerDummy:
 		msg = &DummyPeerMsg{}
 	default:
-		panic("decodePeerMsg(): Unhandled peer message type: " + Type.String())
+		log.Panicf("decodePeerMsg(): Unhandled peer message type: %v", Type)
 	}
 
 	if err := msg.decode(reader); err != nil {
