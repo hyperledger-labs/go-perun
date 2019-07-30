@@ -51,11 +51,14 @@ func TestByteSlice(t *testing.T) {
 }
 
 func TestBigInt(t *testing.T) {
-	a := assert.New(t)
 	var v1 = BigInt{big.NewInt(123456)}
 	var v2 = BigInt{big.NewInt(1)}
 	var v3 = BigInt{big.NewInt(0)}
 	test.GenericSerializableTest(t, &v1, &v2, &v3)
+}
+
+func TestInvalidBigInt(t *testing.T) {
+	a := assert.New(t)
 	// Test integers that are too big
 	bytes := make([]byte, maxBigIntLength+1)
 	bytes[0] = 1
@@ -149,9 +152,9 @@ func testByteSlices(t *testing.T, serial ...ByteSlice) {
 
 		d := make([]byte, len(v))
 		dest := ByteSlice(d)
-		go func() {
+		go func(v ByteSlice) {
 			a.Nil(v.Encode(w), "failed to encode element")
-		}()
+		}(v)
 
 		a.Nil(dest.Decode(r), "failed to decode element")
 
