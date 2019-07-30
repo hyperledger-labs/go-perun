@@ -11,8 +11,8 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"perun.network/go-perun/wallet/test"
 	perun "perun.network/go-perun/wallet"
+	"perun.network/go-perun/wallet/test"
 )
 
 const (
@@ -100,12 +100,14 @@ func TestSignatures(t *testing.T) {
 	acc := w.Accounts()[0].(*Account)
 	_, err := acc.SignData([]byte(dataToSign))
 	assert.NotNil(t, err, "Sign with locked account should fail")
-	sign, err := acc.SignDataWithPW(password,  []byte(dataToSign))
+	sign, err := acc.SignDataWithPW(password, []byte(dataToSign))
 	assert.Nil(t, err, "SignPW with locked account should succeed")
-	valid, err := new(Backend).VerifySignature( []byte(dataToSign), sign, acc.Address())
+	valid, err := new(Backend).VerifySignature([]byte(dataToSign), sign, acc.Address())
 	assert.True(t, valid, "Verification should succeed")
 	assert.Nil(t, err, "Verification should succeed")
 	assert.True(t, acc.IsLocked(), "Account should not be unlocked")
+	_, err = acc.SignDataWithPW("", []byte(dataToSign))
+	assert.NotNil(t, err, "SignPW with wrong pw should fail")
 }
 
 func TestBackend(t *testing.T) {
@@ -133,16 +135,16 @@ func newSetup() *test.Setup {
 	acc := wallet.Accounts()[0].(*Account)
 	acc.Unlock(password)
 
-	initWallet := func (w perun.Wallet) (error) { return w.Connect("./" + keyDir, password)}
-	unlockedAccount := func () (perun.Account, error) {return acc, nil}
+	initWallet := func(w perun.Wallet) error { return w.Connect("./"+keyDir, password) }
+	unlockedAccount := func() (perun.Account, error) { return acc, nil }
 
 	return &test.Setup{
-		Wallet:     new(Wallet),
-		InitWallet: initWallet,
+		Wallet:          new(Wallet),
+		InitWallet:      initWallet,
 		UnlockedAccount: unlockedAccount,
-		Backend:    new(Backend),
-		AddrString: sampleAddr,
-		DataToSign: []byte(dataToSign),
+		Backend:         new(Backend),
+		AddrString:      sampleAddr,
+		DataToSign:      []byte(dataToSign),
 	}
 }
 
@@ -172,8 +174,8 @@ func BenchmarkGenericBackend(b *testing.B) {
 
 func BenchmarkEthereumAccounts(b *testing.B) {
 	s := newSetup()
-	b.Run("Lock", func(t *testing.B) { benchAccountLock(t, s) })
-	b.Run("Unlock", func(t *testing.B) { benchAccountUnlock(t, s) })
+	b.Run("Lock", func(b *testing.B) { benchAccountLock(b, s) })
+	b.Run("Unlock", func(b *testing.B) { benchAccountUnlock(b, s) })
 }
 
 func benchAccountLock(b *testing.B, s *test.Setup) {
@@ -203,4 +205,3 @@ func benchAccountUnlock(b *testing.B, s *test.Setup) {
 		}
 	}
 }
-
