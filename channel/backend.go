@@ -19,3 +19,7 @@ type Backend interface {
 func SetBackend(b Backend) {
 	backend = b
 }
+
+func ChannelID(p *Params) ID {
+	return backend.ChannelID(p)
+}
