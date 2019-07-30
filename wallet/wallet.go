@@ -32,8 +32,4 @@ type Wallet interface {
 
 	// Contains checks whether this wallet contains this account.
 	Contains(a Account) bool
-
-	// Lock locks all accounts, does not disconnect this wallet.
-	// Should return an error if the wallet is in a non-usable state.
-	Lock() error
 }
