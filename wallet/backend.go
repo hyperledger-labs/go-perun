@@ -32,3 +32,23 @@ type Backend interface {
 func SetBackend(b Backend) {
 	backend = b
 }
+
+// NewAddressFromString calls NewAddressFromString of the current backend
+func NewAddressFromString(s string) (Address, error) {
+	return backend.NewAddressFromString(s)
+}
+
+// NewAddressFromBytes calls NewAddressFromBytes of the current backend
+func NewAddressFromBytes(data []byte) (Address, error) {
+	return backend.NewAddressFromBytes(data)
+}
+
+// DecodeAddress calls DecodeAddress of the current backend
+func DecodeAddress(r io.Reader) (Address, error) {
+	return backend.DecodeAddress(r)
+}
+
+// VerifySignature calls VerifySignature of the current backend
+func VerifySignature(msg, sign []byte, a Address) (bool, error) {
+	return backend.VerifySignature(msg, sign, a)
+}
