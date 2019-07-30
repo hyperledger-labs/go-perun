@@ -13,13 +13,18 @@ import (
 	"perun.network/go-perun/wallet"
 )
 
+// InitWallet initializes a wallet.
+type InitWallet func (wallet.Wallet) error
+
+// UnlockedAccount provides an unlocked account.
+type UnlockedAccount func () (wallet.Account, error)
+
 // Setup provides all objects needed for the generic tests
 type Setup struct {
 	//Wallet tests
 	Wallet    wallet.Wallet // wallet implementation, should be uninitialized
-	Path      string        // path to a valid wallet, should contain exactly one account
-	WalletPW  string        // password to a valid wallet
-	AccountPW string        // password to the account of the wallet
+	UnlockedAccount   UnlockedAccount // provides an account that is ready to sign
+	InitWallet InitWallet // function that initializes a wallet.
 	//Address tests
 	AddrString string         // valid address, should not be in wallet
 	Backend    wallet.Backend // backend implementation
@@ -45,33 +50,19 @@ func testUninitializedWallet(t *testing.T, s *Setup) {
 	assert.NotNil(t, s.Wallet.Accounts(), "Expected empty byteslice")
 	assert.Equal(t, 0, len(s.Wallet.Accounts()), "Expected empty byteslice")
 	assert.False(t, s.Wallet.Contains(*new(wallet.Account)), "Uninitalized wallet should not contain account")
-	assert.NotNil(t, s.Wallet.Lock(), "Expected lock to fail")
 }
 
 func testInitializedWallet(t *testing.T, s *Setup) {
-	assert.Nil(t, s.Wallet.Connect(s.Path, s.WalletPW), "Expected connect to succeed")
+	assert.Nil(t, s.InitWallet(s.Wallet), "Expected connect to succeed")
 
 	_, err := s.Wallet.Status()
 	assert.Nil(t, err, "Unlocked wallet should not produce errors")
-	assert.Equal(t, s.Path, s.Wallet.Path(), "Expected T.path to match s.Wallet.Path()")
 	assert.NotNil(t, s.Wallet.Accounts(), "Expected accounts")
 	assert.False(t, s.Wallet.Contains(*new(wallet.Account)), "Expected wallet not to contain an empty account")
 	assert.Equal(t, 1, len(s.Wallet.Accounts()), "Expected one account")
 
 	acc := s.Wallet.Accounts()[0]
 	assert.True(t, s.Wallet.Contains(acc), "Expected wallet to contain account")
-	// Check unlock account
-	assert.True(t, acc.IsLocked(), "Account should be locked")
-	assert.NotNil(t, acc.Unlock(""), "Unlock with wrong pw should fail")
-	assert.Nil(t, acc.Unlock(s.AccountPW), "Expected unlock to work")
-	assert.False(t, acc.IsLocked(), "Account should be unlocked")
-	assert.Nil(t, acc.Lock(), "Expected lock to work")
-	assert.True(t, acc.IsLocked(), "Account should be locked")
-	// Check lock all accounts
-	assert.Nil(t, acc.Unlock(s.AccountPW), "Expected unlock to work")
-	assert.False(t, acc.IsLocked(), "Account should be unlocked")
-	assert.Nil(t, s.Wallet.Lock(), "Expected lock to succeed")
-	assert.True(t, acc.IsLocked(), "Account should be locked")
 
 	assert.Nil(t, s.Wallet.Disconnect(), "Expected disconnect to succeed")
 }
@@ -79,31 +70,12 @@ func testInitializedWallet(t *testing.T, s *Setup) {
 // GenericSignatureTest runs a test suite designed to test the general functionality of an account.
 // This function should be called by every implementation of the wallet interface.
 func GenericSignatureTest(t *testing.T, s *Setup) {
-	assert.Nil(t, s.Wallet.Connect(s.Path, s.WalletPW), "Expected connect to succeed")
-
-	assert.Equal(t, 1, len(s.Wallet.Accounts()), "Expected one account")
-
-	acc := s.Wallet.Accounts()[0]
-	// Check locked account
-	_, err := acc.SignData(s.DataToSign)
-	assert.NotNil(t, err, "Sign with locked account should fail")
-	sign, err := acc.SignDataWithPW(s.WalletPW, s.DataToSign)
-	assert.Nil(t, err, "SignPW with locked account should succeed")
-	valid, err := s.Backend.VerifySignature(s.DataToSign, sign, acc.Address())
-	assert.True(t, valid, "Verification should succeed")
-	assert.Nil(t, err, "Verification should succeed")
-	assert.True(t, acc.IsLocked(), "Account should not be unlocked")
+	acc, err := s.UnlockedAccount()
+	assert.Nil(t, err)
 	// Check unlocked account
-	assert.Nil(t, acc.Unlock(s.AccountPW), "Unlock should not fail")
-	sign, err = acc.SignData(s.DataToSign)
+	sign, err := acc.SignData(s.DataToSign)
 	assert.Nil(t, err, "Sign with unlocked account should succeed")
-	valid, err = s.Backend.VerifySignature(s.DataToSign, sign, acc.Address())
-	assert.True(t, valid, "Verification should succeed")
-	assert.Nil(t, err, "Verification should not produce error")
-
-	sign, err = acc.SignDataWithPW(s.WalletPW, s.DataToSign)
-	assert.Nil(t, err, "SignPW with unlocked account should succeed")
-	valid, err = s.Backend.VerifySignature(s.DataToSign, sign, acc.Address())
+	valid, err := s.Backend.VerifySignature(s.DataToSign, sign, acc.Address())
 	assert.True(t, valid, "Verification should succeed")
 	assert.Nil(t, err, "Verification should not produce error")
 
@@ -117,9 +89,6 @@ func GenericSignatureTest(t *testing.T, s *Setup) {
 	valid, err = s.Backend.VerifySignature(s.DataToSign, sign, acc.Address())
 	assert.False(t, valid, "Verification should fail")
 	assert.NotNil(t, err, "Verification of invalid signature should produce error")
-	assert.False(t, acc.IsLocked(), "Account should be unlocked")
-
-	assert.Nil(t, s.Wallet.Disconnect(), "Expected disconnect to succeed")
 }
 
 // GenericAddressTest runs a test suite designed to test the general functionality of addresses.

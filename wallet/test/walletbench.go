@@ -6,72 +6,24 @@ package test // import "perun.network/go-perun/wallet/test"
 
 import (
 	"testing"
+
+	"github.com/stretchr/testify/require"
 )
 
 // GenericAccountBenchmark runs a suite designed to benchmark the general speed of an implementation of an Account.
 // This function should be called by every implementation of the Account interface.
 func GenericAccountBenchmark(b *testing.B, s *Setup) {
-	err := s.Wallet.Connect(s.Path, s.WalletPW)
-
-	if err != nil {
-		b.Fatal(err)
-	}
-
-	b.Run("Lock", func(t *testing.B) { benchAccountLock(t, s) })
-	b.Run("Unlock", func(t *testing.B) { benchAccountUnlock(t, s) })
+	require.Nil(b, s.InitWallet(s.Wallet))
 	b.Run("Sign", func(t *testing.B) { benchAccountSign(t, s) })
-	b.Run("SignWithPW", func(t *testing.B) { benchAccountSignWithPW(t, s) })
 }
 
-func benchAccountLock(b *testing.B, s *Setup) {
-	perunAcc := s.Wallet.Accounts()[0]
-
-	for n := 0; n < b.N; n++ {
-		err := perunAcc.Lock()
-
-		if err != nil {
-			b.Fatal(err)
-		}
-	}
-}
-
-func benchAccountUnlock(b *testing.B, s *Setup) {
-	perunAcc := s.Wallet.Accounts()[0]
-
-	for n := 0; n < b.N; n++ {
-		err := perunAcc.Unlock(s.AccountPW)
-
-		if err != nil {
-			b.Fatal(err)
-		}
-	}
-}
 
 func benchAccountSign(b *testing.B, s *Setup) {
-	perunAcc := s.Wallet.Accounts()[0]
-
-	if perunAcc.IsLocked() {
-		b.Fatal("Account must be unlocked")
-	}
+	perunAcc, err := s.UnlockedAccount()
+	require.Nil(b, err)
 
 	for n := 0; n < b.N; n++ {
 		_, err := perunAcc.SignData(s.DataToSign)
-
-		if err != nil {
-			b.Fatal(err)
-		}
-	}
-}
-
-func benchAccountSignWithPW(b *testing.B, s *Setup) {
-	perunAcc := s.Wallet.Accounts()[0]
-
-	if perunAcc.IsLocked() {
-		b.Fatal("Account must be unlocked")
-	}
-
-	for n := 0; n < b.N; n++ {
-		_, err := perunAcc.SignDataWithPW(s.AccountPW, s.DataToSign)
 
 		if err != nil {
 			b.Fatal(err)
@@ -90,7 +42,7 @@ func GenericWalletBenchmark(b *testing.B, s *Setup) {
 
 func benchWalletConnect(b *testing.B, s *Setup) {
 	for n := 0; n < b.N; n++ {
-		err := s.Wallet.Connect(s.Path, s.WalletPW)
+		err := s.InitWallet(s.Wallet)
 
 		if err != nil {
 			b.Fatal(err)
@@ -100,7 +52,7 @@ func benchWalletConnect(b *testing.B, s *Setup) {
 
 func benchWalletConnectAndDisconnect(b *testing.B, s *Setup) {
 	for n := 0; n < b.N; n++ {
-		err := s.Wallet.Connect(s.Path, s.WalletPW)
+		err := s.InitWallet(s.Wallet)
 
 		if err != nil {
 			b.Fatal(err)
@@ -115,7 +67,8 @@ func benchWalletConnectAndDisconnect(b *testing.B, s *Setup) {
 }
 
 func benchWalletContains(b *testing.B, s *Setup) {
-	account := s.Wallet.Accounts()[0]
+	account, err := s.UnlockedAccount()
+	require.Nil(b, err)
 
 	for n := 0; n < b.N; n++ {
 		in := s.Wallet.Contains(account)
@@ -127,6 +80,7 @@ func benchWalletContains(b *testing.B, s *Setup) {
 }
 
 func benchWalletAccounts(b *testing.B, s *Setup) {
+	require.Nil(b, s.InitWallet(s.Wallet))
 	for n := 0; n < b.N; n++ {
 		accounts := s.Wallet.Accounts()
 
@@ -147,13 +101,10 @@ func GenericBackendBenchmark(b *testing.B, s *Setup) {
 func benchBackendVerifySig(b *testing.B, s *Setup) {
 	// We dont want to measure the SignDataWithPW here, just need it for the verification
 	b.StopTimer()
-	s.Wallet.Connect(s.Path, s.WalletPW)
-	perunAcc := s.Wallet.Accounts()[0]
-	signature, err := perunAcc.SignDataWithPW(s.AccountPW, s.DataToSign)
-
-	if err != nil {
-		b.Fatal(err)
-	}
+	perunAcc, err := s.UnlockedAccount()
+	require.Nil(b, err)
+	signature, err := perunAcc.SignData(s.DataToSign)
+	require.Nil(b, err)
 	b.StartTimer()
 
 	for n := 0; n < b.N; n++ {
