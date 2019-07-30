@@ -97,11 +97,14 @@ func TestWrongTypes(t *testing.T) {
 		complex128(1),
 	}
 
-	peruntest.CheckPanic(func() { Encode(w, values...) })
-
 	d := make([]interface{}, len(values))
 	for i, v := range values {
+		panics, _ := peruntest.CheckPanic(func() { Encode(w, v) })
+		assert.True(t, panics, "Encode() must panic on invalid type %T", v)
+
 		d[i] = reflect.New(reflect.TypeOf(v)).Interface()
+		panics, _ = peruntest.CheckPanic(func() { Decode(r, d[i]) })
+		assert.True(t, panics, "Decode() must panic on invalid type %T", v)
 	}
 
 	peruntest.CheckPanic(func() { Decode(r, d...) })
