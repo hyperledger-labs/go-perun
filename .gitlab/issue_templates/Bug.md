@@ -1,3 +1,16 @@
+**Severity**&emsp; <!-- Choose one of the following:
+	*Trivial*: Bugs that have no real impact.
+	*Minor*: Minor bugs are inconvenient, but do not affect the overall execution.
+	*Major*: Bugs that break features or specifications.
+	*Critical*: Bugs that prevent further investigation, such as crashes. -->
+
+**Frequency**:&emsp; <!-- Choose one of the following:
+	*Rare*: Almost never happens.
+	*Uncommon*: Happens from time to time.
+	*Common*: Happens often.
+	*High*: Always happens. -->
+
+
 **Location**&emsp; <!--
 	Where did it happen? If not clear, give a general context.
 	I.e.: [pkg/test] CheckPanic()
