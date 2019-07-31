@@ -14,14 +14,23 @@ package log // import "perun.network/go-perun/log"
 
 import "log"
 
-var (
-	// compile-time check that log.Logger implements a StdLogger
-	_ StdLogger = &log.Logger{}
+// logger is the framework logger. Framework users should set this variable to
+// their logger with Set(). It is set to the None non-logging logger by
+// default.
+var logger Logger = new(none)
 
-	// Log is the framework logger. Framework users should set this variable to
-	// their logger. It is set to the None non-logging logger by default.
-	Log = None
-)
+// Set sets the framework logger. It is set to the none-logger by default. Set
+// accepts nil and then sets the none-logger.
+func Set(l Logger) {
+	if l == nil {
+		logger = new(none)
+		return
+	}
+	logger = l
+}
+
+// compile-time check that log.Logger implements a StdLogger
+var _ StdLogger = &log.Logger{}
 
 // StdLogger describes the interface of the standard library log package logger.
 // It is the base for more complex loggers. A StdLogger can be converted into a

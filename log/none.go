@@ -9,9 +9,6 @@ import (
 	"os"
 )
 
-// None is a logger that doesn't do anything
-var None Logger = &none{}
-
 type none struct{}
 
 func (none) Printf(string, ...interface{}) {}
