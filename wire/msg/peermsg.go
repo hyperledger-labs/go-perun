@@ -5,8 +5,8 @@
 package msg
 
 import (
-	"strconv"
 	"io"
+	"strconv"
 
 	"github.com/pkg/errors"
 )

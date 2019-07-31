@@ -7,8 +7,8 @@
 package msg // import "perun.network/go-perun/wire/msg"
 
 import (
-	"strconv"
 	"io"
+	"strconv"
 
 	"github.com/pkg/errors"
 )

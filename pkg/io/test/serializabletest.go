@@ -17,7 +17,7 @@ import (
 // and decoding of serializable values works.
 func GenericSerializableTest(t *testing.T, serializables ...perunio.Serializable) {
 	genericDecodeEncodeTest(t, serializables...)
-	genericBrokenPipeTests(t, serializables...)
+	GenericBrokenPipeTest(t, serializables...)
 }
 
 // genericDecodeEncodeTest tests whether encoding and then decoding
@@ -26,7 +26,6 @@ func genericDecodeEncodeTest(t *testing.T, serializables ...perunio.Serializable
 	r, w := io.Pipe()
 	done := make(chan struct{})
 	go func(serializables []perunio.Serializable) {
-
 		for i, v := range serializables {
 			if err := perunio.Encode(w, v); err != nil {
 				t.Errorf("failed to encode %dth element (%T): %+v", i, v, err)
@@ -50,7 +49,8 @@ func genericDecodeEncodeTest(t *testing.T, serializables ...perunio.Serializable
 	<-done
 }
 
-func genericBrokenPipeTests(t *testing.T, serializables ...perunio.Serializable) {
+// GenericBrokenPipeTest tests that encoding and decoding on broken streams fails.
+func GenericBrokenPipeTest(t *testing.T, serializables ...perunio.Serializable) {
 	for i, v := range serializables {
 		r, w := io.Pipe()
 		_ = w.Close()
@@ -60,7 +60,7 @@ func genericBrokenPipeTests(t *testing.T, serializables ...perunio.Serializable)
 
 		_ = r.Close()
 		if err := v.Decode(r); err == nil {
-			t.Errorf("encoding on closed reader should fail, but does not. %dth element (%T)", i, v)
+			t.Errorf("decoding on closed reader should fail, but does not. %dth element (%T)", i, v)
 		}
 	}
 }

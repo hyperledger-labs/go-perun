@@ -16,8 +16,13 @@ type ByteSlice []byte
 // Decode reads a byte slice from the given stream.
 // Decode reads exactly len(b) bytes.
 // This means the caller has to specify how many bytes he wants to read.
-func (b *ByteSlice) Decode(reader io.Reader) error {
-	_, err := io.ReadFull(reader, *b)
+func (b *ByteSlice) Decode(reader io.Reader) (err error) {
+	n, err := reader.Read(*b)
+	for n < len(*b) && err == nil {
+		var nn int
+		nn, err = reader.Read((*b)[n:])
+		n += nn
+	}
 	return errors.Wrap(err, "failed to read []byte")
 }
 
