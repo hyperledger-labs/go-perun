@@ -27,25 +27,21 @@ const (
 )
 
 func TestGenericWalletTests(t *testing.T) {
-	t.Parallel()
 	setup := newSetup()
 	test.GenericWalletTest(t, setup)
 }
 
 func TestGenericSignatureTests(t *testing.T) {
-	t.Parallel()
 	setup := newSetup()
 	test.GenericSignatureTest(t, setup)
 }
 
 func TestGenericAddressTests(t *testing.T) {
-	t.Parallel()
 	setup := newSetup()
 	test.GenericAddressTest(t, setup)
 }
 
 func TestAddress(t *testing.T) {
-	t.Parallel()
 	w := connectTmpKeystore(t)
 	perunAcc := w.Accounts()[0]
 	ethAcc := new(accounts.Account)
@@ -63,7 +59,6 @@ func TestAddress(t *testing.T) {
 }
 
 func TestKeyStore(t *testing.T) {
-	t.Parallel()
 	w := new(Wallet)
 	assert.NotNil(t, w.Connect("", ""), "Expected connect to fail")
 	assert.NotNil(t, w.Connect("Invalid_Directory", ""), "Expected connect to fail")
@@ -76,26 +71,37 @@ func TestKeyStore(t *testing.T) {
 }
 
 func TestLocking(t *testing.T) {
-	t.Parallel()
-	w := connectTmpKeystore(t)
-	acc := w.Accounts()[0].(*Account)
-	assert.True(t, w.Contains(acc), "Expected wallet to contain account")
-	// Check unlock account
-	assert.True(t, acc.IsLocked(), "Account should be locked")
-	assert.NotNil(t, acc.Unlock(""), "Unlock with wrong pw should fail")
-	assert.Nil(t, acc.Unlock(password), "Expected unlock to work")
-	assert.False(t, acc.IsLocked(), "Account should be unlocked")
-	assert.Nil(t, acc.Lock(), "Expected lock to work")
-	assert.True(t, acc.IsLocked(), "Account should be locked")
-	// Check lock all accounts
-	assert.Nil(t, acc.Unlock(password), "Expected unlock to work")
-	assert.False(t, acc.IsLocked(), "Account should be unlocked")
-	assert.Nil(t, w.Lock(), "Expected lock to succeed")
-	assert.True(t, acc.IsLocked(), "Account should be locked")
+	t.Run("WrongUnlock", func(t *testing.T) {
+		t.Parallel()
+		w := connectTmpKeystore(t)
+		acc := w.Accounts()[0].(*Account)
+		assert.True(t, w.Contains(acc), "Expected wallet to contain account")
+		assert.True(t, acc.IsLocked(), "Account should be locked")
+		assert.NotNil(t, acc.Unlock(""), "Unlock with wrong pw should fail")
+	})
+	t.Run("Unlock&Lock", func(t *testing.T) {
+		t.Parallel()
+		w := connectTmpKeystore(t)
+		acc := w.Accounts()[0].(*Account)
+		assert.True(t, w.Contains(acc), "Expected wallet to contain account")
+		assert.Nil(t, acc.Unlock(password), "Expected unlock to work")
+		assert.False(t, acc.IsLocked(), "Account should be unlocked")
+		assert.Nil(t, acc.Lock(), "Expected lock to work")
+		assert.True(t, acc.IsLocked(), "Account should be locked")
+	})
+	t.Run("Unlock&LockWallet", func(t *testing.T) {
+		t.Parallel()
+		w := connectTmpKeystore(t)
+		acc := w.Accounts()[0].(*Account)
+		assert.True(t, w.Contains(acc), "Expected wallet to contain account")
+		assert.Nil(t, acc.Unlock(password), "Expected unlock to work")
+		assert.False(t, acc.IsLocked(), "Account should be unlocked")
+		assert.Nil(t, w.Lock(), "Expected lock to succeed")
+		assert.True(t, acc.IsLocked(), "Account should be locked")
+	})
 }
 
 func TestSignatures(t *testing.T) {
-	t.Parallel()
 	w := connectTmpKeystore(t)
 	acc := w.Accounts()[0].(*Account)
 	_, err := acc.SignData([]byte(dataToSign))
@@ -111,7 +117,6 @@ func TestSignatures(t *testing.T) {
 }
 
 func TestBackend(t *testing.T) {
-	t.Parallel()
 	backend := new(Backend)
 
 	addrStr, err := backend.NewAddressFromString(sampleAddr)

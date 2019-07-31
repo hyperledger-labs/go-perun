@@ -14,17 +14,17 @@ import (
 )
 
 // InitWallet initializes a wallet.
-type InitWallet func (wallet.Wallet) error
+type InitWallet func(wallet.Wallet) error
 
 // UnlockedAccount provides an unlocked account.
-type UnlockedAccount func () (wallet.Account, error)
+type UnlockedAccount func() (wallet.Account, error)
 
 // Setup provides all objects needed for the generic tests
 type Setup struct {
 	//Wallet tests
-	Wallet    wallet.Wallet // wallet implementation, should be uninitialized
-	UnlockedAccount   UnlockedAccount // provides an account that is ready to sign
-	InitWallet InitWallet // function that initializes a wallet.
+	Wallet          wallet.Wallet   // wallet implementation, should be uninitialized
+	UnlockedAccount UnlockedAccount // provides an account that is ready to sign
+	InitWallet      InitWallet      // function that initializes a wallet.
 	//Address tests
 	AddrString string         // valid address, should not be in wallet
 	Backend    wallet.Backend // backend implementation

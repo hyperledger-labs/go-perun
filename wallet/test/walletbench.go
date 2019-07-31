@@ -14,9 +14,8 @@ import (
 // This function should be called by every implementation of the Account interface.
 func GenericAccountBenchmark(b *testing.B, s *Setup) {
 	require.Nil(b, s.InitWallet(s.Wallet))
-	b.Run("Sign", func(t *testing.B) { benchAccountSign(t, s) })
+	b.Run("Sign", func(b *testing.B) { benchAccountSign(b, s) })
 }
-
 
 func benchAccountSign(b *testing.B, s *Setup) {
 	perunAcc, err := s.UnlockedAccount()
@@ -34,10 +33,10 @@ func benchAccountSign(b *testing.B, s *Setup) {
 // GenericWalletBenchmark runs a suite designed to benchmark the general speed of an implementation of a Wallet.
 // This function should be called by every implementation of the Wallet interface.
 func GenericWalletBenchmark(b *testing.B, s *Setup) {
-	b.Run("Conn&Disconn", func(t *testing.B) { benchWalletConnectAndDisconnect(t, s) })
-	b.Run("Connect", func(t *testing.B) { benchWalletConnect(t, s) })
-	b.Run("Accounts", func(t *testing.B) { benchWalletAccounts(t, s) })
-	b.Run("Contains", func(t *testing.B) { benchWalletContains(t, s) })
+	b.Run("Conn&Disconn", func(b *testing.B) { benchWalletConnectAndDisconnect(b, s) })
+	b.Run("Connect", func(b *testing.B) { benchWalletConnect(b, s) })
+	b.Run("Accounts", func(b *testing.B) { benchWalletAccounts(b, s) })
+	b.Run("Contains", func(b *testing.B) { benchWalletContains(b, s) })
 }
 
 func benchWalletConnect(b *testing.B, s *Setup) {
@@ -81,6 +80,7 @@ func benchWalletContains(b *testing.B, s *Setup) {
 
 func benchWalletAccounts(b *testing.B, s *Setup) {
 	require.Nil(b, s.InitWallet(s.Wallet))
+
 	for n := 0; n < b.N; n++ {
 		accounts := s.Wallet.Accounts()
 
@@ -93,9 +93,9 @@ func benchWalletAccounts(b *testing.B, s *Setup) {
 // GenericBackendBenchmark runs a suite designed to benchmark the general speed of an implementation of a Backend.
 // This function should be called by every implementation of the Backend interface.
 func GenericBackendBenchmark(b *testing.B, s *Setup) {
-	b.Run("VerifySig", func(t *testing.B) { benchBackendVerifySig(t, s) })
-	b.Run("FromString", func(t *testing.B) { benchBackendNewAddressFromString(t, s) })
-	b.Run("FromBytes", func(t *testing.B) { benchBackendNewAddressFromBytes(t, s) })
+	b.Run("VerifySig", func(b *testing.B) { benchBackendVerifySig(b, s) })
+	b.Run("FromString", func(b *testing.B) { benchBackendNewAddressFromString(b, s) })
+	b.Run("FromBytes", func(b *testing.B) { benchBackendNewAddressFromBytes(b, s) })
 }
 
 func benchBackendVerifySig(b *testing.B, s *Setup) {
