@@ -20,6 +20,25 @@ func TestByteSlice(t *testing.T) {
 	test.GenericBrokenPipeTest(t, &v1, &v2, &v3, &v4)
 }
 
+// TestStutter tests what happens if the network stutters (split one message into several network packages).
+func TestStutter(t *testing.T) {
+	var values = []byte{0, 1, 2, 3, 4, 5, 6, 255}
+	r, w := io.Pipe()
+
+	go func() {
+		for _, v := range values {
+			w.Write([]byte{v})
+		}
+	}()
+
+	var decodedValue ByteSlice = make([]byte, len(values))
+	assert.Nil(t, decodedValue.Decode(r), "failed to decode element")
+	for i, v := range values {
+		assert.Equal(t, decodedValue[i], v, "failed to decode element")
+	}
+	
+}
+
 func testByteSlices(t *testing.T, serial ...ByteSlice) {
 	a := assert.New(t)
 	r, w := io.Pipe()
