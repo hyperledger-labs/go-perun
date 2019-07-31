@@ -10,6 +10,8 @@ import (
 	"github.com/ethereum/go-ethereum/accounts"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+	perun "perun.network/go-perun/wallet"
 	"perun.network/go-perun/wallet/test"
 )
 
@@ -25,25 +27,21 @@ const (
 )
 
 func TestGenericWalletTests(t *testing.T) {
-	t.Parallel()
 	setup := newSetup()
 	test.GenericWalletTest(t, setup)
 }
 
 func TestGenericSignatureTests(t *testing.T) {
-	t.Parallel()
 	setup := newSetup()
 	test.GenericSignatureTest(t, setup)
 }
 
 func TestGenericAddressTests(t *testing.T) {
-	t.Parallel()
 	setup := newSetup()
 	test.GenericAddressTest(t, setup)
 }
 
 func TestAddress(t *testing.T) {
-	t.Parallel()
 	w := connectTmpKeystore(t)
 	perunAcc := w.Accounts()[0]
 	ethAcc := new(accounts.Account)
@@ -61,18 +59,64 @@ func TestAddress(t *testing.T) {
 }
 
 func TestKeyStore(t *testing.T) {
-	t.Parallel()
 	w := new(Wallet)
 	assert.NotNil(t, w.Connect("", ""), "Expected connect to fail")
-
+	assert.NotNil(t, w.Connect("Invalid_Directory", ""), "Expected connect to fail")
+	assert.NotNil(t, w.Disconnect(), "Expected disconnect on uninitialized wallet to fail")
+	assert.NotNil(t, w.Lock(), "Expected lock on uninitialized wallet to fail")
 	w = connectTmpKeystore(t)
 
 	unsetAccount := new(Account)
 	assert.False(t, w.Contains(unsetAccount), "Keystore should not contain empty account")
 }
 
+func TestLocking(t *testing.T) {
+	t.Run("WrongUnlock", func(t *testing.T) {
+		t.Parallel()
+		w := connectTmpKeystore(t)
+		acc := w.Accounts()[0].(*Account)
+		assert.True(t, w.Contains(acc), "Expected wallet to contain account")
+		assert.True(t, acc.IsLocked(), "Account should be locked")
+		assert.NotNil(t, acc.Unlock(""), "Unlock with wrong pw should fail")
+	})
+	t.Run("Unlock&Lock", func(t *testing.T) {
+		t.Parallel()
+		w := connectTmpKeystore(t)
+		acc := w.Accounts()[0].(*Account)
+		assert.True(t, w.Contains(acc), "Expected wallet to contain account")
+		assert.Nil(t, acc.Unlock(password), "Expected unlock to work")
+		assert.False(t, acc.IsLocked(), "Account should be unlocked")
+		assert.Nil(t, acc.Lock(), "Expected lock to work")
+		assert.True(t, acc.IsLocked(), "Account should be locked")
+	})
+	t.Run("Unlock&LockWallet", func(t *testing.T) {
+		t.Parallel()
+		w := connectTmpKeystore(t)
+		acc := w.Accounts()[0].(*Account)
+		assert.True(t, w.Contains(acc), "Expected wallet to contain account")
+		assert.Nil(t, acc.Unlock(password), "Expected unlock to work")
+		assert.False(t, acc.IsLocked(), "Account should be unlocked")
+		assert.Nil(t, w.Lock(), "Expected lock to succeed")
+		assert.True(t, acc.IsLocked(), "Account should be locked")
+	})
+}
+
+func TestSignatures(t *testing.T) {
+	w := connectTmpKeystore(t)
+	acc := w.Accounts()[0].(*Account)
+	_, err := acc.SignData([]byte(dataToSign))
+	assert.NotNil(t, err, "Sign with locked account should fail")
+	sign, err := acc.SignDataWithPW(password, []byte(dataToSign))
+	assert.Nil(t, err, "SignPW with locked account should succeed")
+	valid, err := new(Backend).VerifySignature([]byte(dataToSign), sign, acc.Address())
+	assert.True(t, valid, "Verification should succeed")
+	assert.Nil(t, err, "Verification should succeed")
+	assert.True(t, acc.IsLocked(), "Account should not be unlocked")
+	_, err = acc.SignDataWithPW("", []byte(dataToSign))
+	assert.NotNil(t, err, "SignPW with wrong pw should fail")
+}
+
 func TestBackend(t *testing.T) {
-	t.Parallel()
 	backend := new(Backend)
 
 	addrStr, err := backend.NewAddressFromString(sampleAddr)
@@ -91,14 +135,21 @@ func TestBackend(t *testing.T) {
 }
 
 func newSetup() *test.Setup {
+	wallet := new(Wallet)
+	wallet.Connect(keyDir, password)
+	acc := wallet.Accounts()[0].(*Account)
+	acc.Unlock(password)
+
+	initWallet := func(w perun.Wallet) error { return w.Connect("./"+keyDir, password) }
+	unlockedAccount := func() (perun.Account, error) { return acc, nil }
+
 	return &test.Setup{
-		Wallet:     new(Wallet),
-		Path:       "./" + keyDir,
-		WalletPW:   password,
-		AccountPW:  password,
-		Backend:    new(Backend),
-		AddrString: sampleAddr,
-		DataToSign: []byte(dataToSign),
+		Wallet:          new(Wallet),
+		InitWallet:      initWallet,
+		UnlockedAccount: unlockedAccount,
+		Backend:         new(Backend),
+		AddrString:      sampleAddr,
+		DataToSign:      []byte(dataToSign),
 	}
 }
 
@@ -124,4 +175,38 @@ func BenchmarkGenericWallet(b *testing.B) {
 func BenchmarkGenericBackend(b *testing.B) {
 	setup := newSetup()
 	test.GenericBackendBenchmark(b, setup)
+}
+
+func BenchmarkEthereumAccounts(b *testing.B) {
+	s := newSetup()
+	b.Run("Lock", func(b *testing.B) { benchAccountLock(b, s) })
+	b.Run("Unlock", func(b *testing.B) { benchAccountUnlock(b, s) })
+}
+
+func benchAccountLock(b *testing.B, s *test.Setup) {
+	perunAcc, err := s.UnlockedAccount()
+	require.Nil(b, err)
+	acc := perunAcc.(*Account)
+
+	for n := 0; n < b.N; n++ {
+		err := acc.Lock()
+
+		if err != nil {
+			b.Fatal(err)
+		}
+	}
+}
+
+func benchAccountUnlock(b *testing.B, s *test.Setup) {
+	perunAcc, err := s.UnlockedAccount()
+	require.Nil(b, err)
+	acc := perunAcc.(*Account)
+
+	for n := 0; n < b.N; n++ {
+		err := acc.Unlock(password)
+
+		if err != nil {
+			b.Fatal(err)
+		}
+	}
 }
