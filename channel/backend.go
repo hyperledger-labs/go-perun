@@ -4,8 +4,22 @@
 
 package channel
 
+// backend is set to the global channel backend. It must be set through
+// backend.Set(Collection).
+var backend Backend
+
 type Backend interface {
 	// ChannelID infers the channel id of a channel from its parameters. Usually,
 	// this should be a hash digest of some or all fields of the parameters.
 	ChannelID(*Params) ID
+}
+
+// SetBackend sets the global channel backend. Must not be called directly but
+// through backend.Set().
+func SetBackend(b Backend) {
+	backend = b
+}
+
+func ChannelID(p *Params) ID {
+	return backend.ChannelID(p)
 }
