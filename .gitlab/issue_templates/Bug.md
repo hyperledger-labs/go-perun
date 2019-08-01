@@ -1,8 +1,9 @@
 **Severity**&emsp; <!-- Choose one of the following:
 	*Trivial*: Bugs that have no real impact.
-	*Minor*: Minor bugs are inconvenient, but do not affect the overall execution.
+	*Minor*: Minor bugs are inconvenient for users, but do not break functionality.
 	*Major*: Bugs that break features or specifications.
 	*Critical*: Bugs that prevent further investigation, such as crashes. -->
+
 
 **Frequency**:&emsp; <!-- Choose one of the following:
 	*Rare*: Almost never happens.
