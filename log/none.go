@@ -33,9 +33,9 @@ func (none) Infoln(...interface{})         {}
 func (none) Warnln(...interface{})         {}
 func (none) Errorln(...interface{})        {}
 
-func (none) Panic(args ...interface{})                 { panic(args) }
+func (none) Panic(args ...interface{})                 { panic(fmt.Sprint(args...)) }
 func (none) Panicf(format string, args ...interface{}) { panic(fmt.Sprintf(format, args...)) }
-func (none) Panicln(args ...interface{})               { panic(args) }
+func (none) Panicln(args ...interface{})               { panic(fmt.Sprintln(args...)) }
 
 func (none) Fatal(args ...interface{}) {
 	fmt.Fprint(os.Stderr, args...)
