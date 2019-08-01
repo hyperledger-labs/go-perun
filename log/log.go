@@ -14,14 +14,23 @@ package log // import "perun.network/go-perun/log"
 
 import "log"
 
-var (
-	// compile-time check that log.Logger implements a StdLogger
-	_ StdLogger = &log.Logger{}
+// logger is the framework logger. Framework users should set this variable to
+// their logger with Set(). It is set to the None non-logging logger by
+// default.
+var logger Logger = new(none)
 
-	// Log is the framework logger. Framework users should set this variable to
-	// their logger. It is set to the None non-logging logger by default.
-	Log = None
-)
+// Set sets the framework logger. It is set to the none-logger by default. Set
+// accepts nil and then sets the none-logger.
+func Set(l Logger) {
+	if l == nil {
+		logger = new(none)
+		return
+	}
+	logger = l
+}
+
+// compile-time check that log.Logger implements a StdLogger
+var _ StdLogger = &log.Logger{}
 
 // StdLogger describes the interface of the standard library log package logger.
 // It is the base for more complex loggers. A StdLogger can be converted into a
@@ -77,73 +86,85 @@ type Logger interface {
 }
 
 // Printf calls Printf on the global Logger object
-func Printf(format string, args ...interface{}) { Log.Printf(format, args) }
+func Printf(format string, args ...interface{}) { logger.Printf(format, args...) }
 
 // Print calls Print on the global Logger object
-func Print(args ...interface{}) { Log.Print(args) }
+func Print(args ...interface{}) { logger.Print(args...) }
 
 // Println calls Println on the global Logger object
-func Println(args ...interface{}) { Log.Println(args) }
+func Println(args ...interface{}) { logger.Println(args...) }
 
 // Fatalf calls Fatalf on the global Logger object
-func Fatalf(format string, args ...interface{}) { Log.Fatalf(format, args) }
+func Fatalf(format string, args ...interface{}) { logger.Fatalf(format, args...) }
 
 // Fatal calls Fatal on the global Logger object
-func Fatal(args ...interface{}) { Log.Fatal(args) }
+func Fatal(args ...interface{}) { logger.Fatal(args...) }
 
 // Fatalln calls Fatalln on the global Logger object
-func Fatalln(args ...interface{}) { Log.Fatalln(args) }
+func Fatalln(args ...interface{}) { logger.Fatalln(args...) }
 
 // Panicf calls Panicf on the global Logger object
-func Panicf(format string, args ...interface{}) { Log.Panicf(format, args) }
+func Panicf(format string, args ...interface{}) { logger.Panicf(format, args...) }
 
 // Panic calls Panic on the global Logger object
-func Panic(args ...interface{}) { Log.Panic(args) }
+func Panic(args ...interface{}) { logger.Panic(args...) }
 
 // Panicln calls Panicln on the global Logger object
-func Panicln(args ...interface{}) { Log.Panicln(args) }
+func Panicln(args ...interface{}) { logger.Panicln(args...) }
 
 // Tracef calls Tracef on the global Logger object
-func Tracef(format string, args ...interface{}) { Log.Tracef(format, args) }
+func Tracef(format string, args ...interface{}) { logger.Tracef(format, args...) }
 
 // Trace calls Trace on the global Logger object
-func Trace(args ...interface{}) { Log.Trace(args) }
+func Trace(args ...interface{}) { logger.Trace(args...) }
 
 // Traceln calls Traceln on the global Logger object
-func Traceln(args ...interface{}) { Log.Traceln(args) }
+func Traceln(args ...interface{}) { logger.Traceln(args...) }
 
 // Debugf calls Debugf on the global Logger object
-func Debugf(format string, args ...interface{}) { Log.Debugf(format, args) }
+func Debugf(format string, args ...interface{}) { logger.Debugf(format, args...) }
 
 // Debug calls Debug on the global Logger object
-func Debug(args ...interface{}) { Log.Debug(args) }
+func Debug(args ...interface{}) { logger.Debug(args...) }
 
 // Debugln calls Debugln on the global Logger object
-func Debugln(args ...interface{}) { Log.Debugln(args) }
+func Debugln(args ...interface{}) { logger.Debugln(args...) }
 
 // Infof calls Infof on the global Logger object
-func Infof(format string, args ...interface{}) { Log.Infof(format, args) }
+func Infof(format string, args ...interface{}) { logger.Infof(format, args...) }
 
 // Info calls Info on the global Logger object
-func Info(args ...interface{}) { Log.Info(args) }
+func Info(args ...interface{}) { logger.Info(args...) }
 
 // Infoln calls Infoln on the global Logger object
-func Infoln(args ...interface{}) { Log.Infoln(args) }
+func Infoln(args ...interface{}) { logger.Infoln(args...) }
 
 // Warnf calls Warnf on the global Logger object
-func Warnf(format string, args ...interface{}) { Log.Warnf(format, args) }
+func Warnf(format string, args ...interface{}) { logger.Warnf(format, args...) }
 
 // Warn calls Warn on the global Logger object
-func Warn(args ...interface{}) { Log.Warn(args) }
+func Warn(args ...interface{}) { logger.Warn(args...) }
 
 // Warnln calls Warnln on the global Logger object
-func Warnln(args ...interface{}) { Log.Warnln(args) }
+func Warnln(args ...interface{}) { logger.Warnln(args...) }
 
 // Errorf calls Errorf on the global Logger object
-func Errorf(format string, args ...interface{}) { Log.Errorf(format, args) }
+func Errorf(format string, args ...interface{}) { logger.Errorf(format, args...) }
 
 // Error calls Error on the global Logger object
-func Error(args ...interface{}) { Log.Error(args) }
+func Error(args ...interface{}) { logger.Error(args...) }
 
 // Errorln calls Errorln on the global Logger object
-func Errorln(args ...interface{}) { Log.Errorln(args) }
+func Errorln(args ...interface{}) { logger.Errorln(args...) }
+
+func WithField(key string, value interface{}) Logger {
+	return logger.WithField(key, value)
+}
+
+func WithFields(fs Fields) Logger {
+	return logger.WithFields(fs)
+}
+
+func WithError(err error) Logger {
+	return logger.WithError(err)
+}

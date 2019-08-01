@@ -8,11 +8,14 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+
 	"perun.network/go-perun/pkg/test"
 )
 
 // TestNone tests the none logger for coverage :)
 func TestNone(t *testing.T) {
+	None := &none{}
+
 	None.Printf("")
 	None.Print()
 	None.Println()
@@ -34,17 +37,20 @@ func TestNone(t *testing.T) {
 
 	a := assert.New(t)
 
-	exits, code := test.CheckExit(func() { None.Fatalf("") } )
-	a.Equal(1, code); a.True(exits)
-	exits, code = test.CheckExit(func() { None.Fatal() } )
-	a.Equal(1, code); a.True(exits)
-	exits, code = test.CheckExit(func() { None.Fatalln() } )
-	a.Equal(1, code); a.True(exits)
+	exits, code := test.CheckExit(func() { None.Fatalf("") })
+	a.Equal(1, code)
+	a.True(exits)
+	exits, code = test.CheckExit(func() { None.Fatal() })
+	a.Equal(1, code)
+	a.True(exits)
+	exits, code = test.CheckExit(func() { None.Fatalln() })
+	a.Equal(1, code)
+	a.True(exits)
 
-	a.Panics(func() { None.Panicf("") } )
-	a.Panics(func() { None.Panic() } )
-	a.Panics(func() { None.Panicln() } ) 
-	
+	a.Panics(func() { None.Panicf("") })
+	a.Panics(func() { None.Panic() })
+	a.Panics(func() { None.Panicln() })
+
 	a.Equal(None.WithField("", ""), None)
 	a.Equal(None.WithFields(nil), None)
 	a.Equal(None.WithError(nil), None)
