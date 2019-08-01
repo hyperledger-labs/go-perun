@@ -5,9 +5,9 @@
 package msg
 
 import (
-	"time"
 	"io"
-	
+	"time"
+
 	"perun.network/go-perun/wire"
 )
 

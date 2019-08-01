@@ -10,36 +10,40 @@ import (
 	"testing"
 	"time"
 
-	"perun.network/go-perun/pkg/io/test"
+	"github.com/pkg/errors"
+	"github.com/stretchr/testify/assert"
+
+	peruntest "perun.network/go-perun/pkg/test"
 )
 
-func TestBool(t *testing.T) {
-	var tr Bool = true
-	var fa Bool = false
-	test.GenericSerializableTest(t, &tr, &fa)
-}
+func TestWrongTypes(t *testing.T) {
+	r, w := io.Pipe()
 
-func TestInt16(t *testing.T) {
-	var v1, v2, v3 Int16 = 0, -0x1117, 0x4334
-	test.GenericSerializableTest(t, &v1, &v2, &v3)
-}
+	values := []interface{}{
+		errors.New(""),
+		int8(1),
+		byte(7),
+		float32(1.2),
+		float64(1.3),
+		complex(1, 2),
+		complex128(1),
+	}
 
-func TestInt32(t *testing.T) {
-	var v1, v2, v3 Int32 = 0, -0x11223344, 0x34251607
-	test.GenericSerializableTest(t, &v1, &v2, &v3)
-}
+	d := make([]interface{}, len(values))
+	for i, v := range values {
+		panics, _ := peruntest.CheckPanic(func() { Encode(w, v) })
+		assert.True(t, panics, "Encode() must panic on invalid type %T", v)
 
-func TestInt64(t *testing.T) {
-	var v1, v2, v3 Int64 = 0, -0x1234567890123456, 0x5920838589479478
-	test.GenericSerializableTest(t, &v1, &v2, &v3)
-}
+		d[i] = reflect.New(reflect.TypeOf(v)).Interface()
+		panics, _ = peruntest.CheckPanic(func() { Decode(r, d[i]) })
+		assert.True(t, panics, "Decode() must panic on invalid type %T", v)
+	}
 
-func TestTime(t *testing.T) {
-	v1, v2, v3 := Time{0}, Time{0x3478534567898762}, Time{0x7975089975789098}
-	test.GenericSerializableTest(t, &v1, &v2, &v3)
+	peruntest.CheckPanic(func() { Decode(r, d...) })
 }
 
 func TestEncodeDecode(t *testing.T) {
+	a := assert.New(t)
 	r, w := io.Pipe()
 
 	values := []interface{}{
@@ -47,23 +51,23 @@ func TestEncodeDecode(t *testing.T) {
 		uint16(0x1234),
 		uint32(0x123567),
 		uint64(0x1234567890123456),
+		int16(0x1234),
+		int32(0x123567),
+		int64(0x1234567890123456),
 		// The time has to be constructed this way, because otherwise DeepEqual fails.
 		time.Unix(0, time.Now().UnixNano()),
 	}
 
 	go func() {
-		if err := Encode(w, values...); err != nil {
-			t.Errorf("failed to write values: %+v", err)
-		}
+		a.Nil(Encode(w, values...), "failed to encode values")
 	}()
 
 	d := make([]interface{}, len(values))
 	for i, v := range values {
 		d[i] = reflect.New(reflect.TypeOf(v)).Interface()
 	}
-	if err := Decode(r, d...); err != nil {
-		t.Errorf("failed to read values: %+v", err)
-	}
+
+	a.Nil(Decode(r, d...), "failed to decode values")
 
 	for i, v := range values {
 		if !reflect.DeepEqual(reflect.ValueOf(d[i]).Elem().Interface(), v) {

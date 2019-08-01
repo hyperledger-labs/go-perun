@@ -5,11 +5,11 @@
 package wire
 
 import (
-	"time"
 	"io"
+	"time"
 
 	"github.com/pkg/errors"
-	
+
 	"perun.network/go-perun/log"
 )
 
