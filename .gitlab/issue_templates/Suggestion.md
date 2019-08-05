@@ -3,7 +3,7 @@
 	be implemented. Use it to discuss a proposed feature with others. In the
 	end, the feature will either be accepted or rejected. If it is accepted,
 	create a FEATURE issue, which will contain the concept, and be linked to a
-	merge request.
+	merge request and to this suggestion issue.
 	If it is already clear that a feature will be implemented, maybe add a
 	FEATURE issue instead.
 -->
