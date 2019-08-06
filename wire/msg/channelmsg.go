@@ -10,6 +10,7 @@ import (
 
 	"github.com/pkg/errors"
 
+	"perun.network/go-perun/channel"
 	"perun.network/go-perun/log"
 )
 
@@ -18,7 +19,7 @@ import (
 type ChannelMsg interface {
 	Msg
 	// Connection returns the channel message's associated channel's ID.
-	ChannelID() ChannelID
+	ChannelID() channel.ID
 	// Type returns the message's implementing type.
 	Type() ChannelMsgType
 }
@@ -30,7 +31,7 @@ func decodeChannelMsg(reader io.Reader) (msg ChannelMsg, err error) {
 	}
 
 	var m channelMsg
-	if err := m.channelID.Decode(reader); err != nil {
+	if _, err := io.ReadFull(reader, m.channelID[:]); err != nil {
 		return nil, errors.WithMessage(err, "failed to read the channel ID")
 	}
 
@@ -55,7 +56,8 @@ func encodeChannelMsg(msg ChannelMsg, writer io.Writer) error {
 		return errors.WithMessage(err, "failed to write the message type")
 	}
 
-	if err := msg.ChannelID().Encode(writer); err != nil {
+	id := msg.ChannelID()
+	if _, err := writer.Write(id[:]); err != nil {
 		return errors.WithMessage(err, "failed to write the channel id")
 	}
 
@@ -74,32 +76,15 @@ func encodeChannelMsg(msg ChannelMsg, writer io.Writer) error {
 //  	channelMsg
 //  }
 type channelMsg struct {
-	channelID ChannelID
+	channelID channel.ID
 }
 
-func (m *channelMsg) ChannelID() ChannelID {
+func (m *channelMsg) ChannelID() channel.ID {
 	return m.channelID
 }
 
 func (*channelMsg) Category() Category {
 	return Channel
-}
-
-// ChannelID uniquely identifies a virtual connection to a peer node.
-type ChannelID [32]byte
-
-func (id ChannelID) Encode(writer io.Writer) error {
-	if _, err := writer.Write(id[:]); err != nil {
-		return errors.Wrap(err, "failed to write channel id")
-	}
-	return nil
-}
-
-func (id *ChannelID) Decode(reader io.Reader) error {
-	if _, err := io.ReadFull(reader, id[:]); err != nil {
-		return errors.WithMessage(err, "failed to read channel id")
-	}
-	return nil
 }
 
 // ChannelMsgType is an enumeration used for (de)serializing channel messages
