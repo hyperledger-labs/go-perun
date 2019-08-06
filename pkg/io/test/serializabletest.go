@@ -13,6 +13,19 @@ import (
 	perunio "perun.network/go-perun/pkg/io"
 )
 
+// bytewiseReader only reads a single byte at a time.
+type bytewiseReader struct {
+	reader io.Reader
+}
+
+func (r bytewiseReader) Read(data []byte) (n int, err error) {
+	if len(data) == 0 {
+		return r.reader.Read(data)
+	} else {
+		return r.reader.Read(data[:1])
+	}
+}
+
 // GenericSerializableTest runs multiple tests to check whether encoding
 // and decoding of serializable values works.
 func GenericSerializableTest(t *testing.T, serializables ...perunio.Serializable) {
@@ -24,6 +37,7 @@ func GenericSerializableTest(t *testing.T, serializables ...perunio.Serializable
 // serializable values results in the original values.
 func genericDecodeEncodeTest(t *testing.T, serializables ...perunio.Serializable) {
 	r, w := io.Pipe()
+	br := bytewiseReader{r}
 	done := make(chan struct{})
 	go func(serializables []perunio.Serializable) {
 		for i, v := range serializables {
@@ -38,7 +52,7 @@ func genericDecodeEncodeTest(t *testing.T, serializables ...perunio.Serializable
 
 		dest := reflect.New(reflect.TypeOf(v).Elem())
 
-		if err := perunio.Decode(r, dest.Interface().(perunio.Serializable)); err != nil {
+		if err := perunio.Decode(br, dest.Interface().(perunio.Serializable)); err != nil {
 			t.Errorf("failed to decode %dth element (%T): %+v", i, v, err)
 		}
 
