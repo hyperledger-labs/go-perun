@@ -2,14 +2,18 @@
 // This file is part of go-perun. Use of this source code is governed by a
 // MIT-style license that can be found in the LICENSE file.
 
-package wallet
+package sim
 
 import (
+	"bytes"
 	"crypto/ecdsa"
 	"crypto/elliptic"
 	"crypto/sha256"
 	"io"
 
+	"github.com/pkg/errors"
+
+	"perun.network/go-perun/log"
 	perun "perun.network/go-perun/wallet"
 )
 
@@ -19,47 +23,42 @@ var curve = elliptic.P256()
 type Backend struct{}
 
 // NewAddressFromString creates a new address from a string.
+// DEPRECATED
 func (h *Backend) NewAddressFromString(s string) (perun.Address, error) {
-	addr := Address(s)
-	return &addr, nil
+	return h.NewAddressFromBytes([]byte(s))
 }
 
 // NewAddressFromBytes creates a new address from a byte array.
+// DEPRECATED
 func (h *Backend) NewAddressFromBytes(data []byte) (perun.Address, error) {
-	addr := Address(data)
-	return &addr, nil
+	return h.DecodeAddress(bytes.NewReader(data))
 }
 
-// DecodeAddress decodes an address from an io.Reader.
+// DecodeAddress decodes an address from the given Reader
 func (h *Backend) DecodeAddress(r io.Reader) (perun.Address, error) {
-	addr := new(Address)
-	return addr, addr.Decode(r)
+	var addr Address
+	return &addr, addr.Decode(r)
 }
 
 // VerifySignature verifies if a signature was made by this account.
 func (h *Backend) VerifySignature(msg, sig []byte, a perun.Address) (bool, error) {
-	pubKey := addressToPubKey(a.(*Address))
+	addr, ok := a.(*Address)
+	if !ok {
+		log.Panic("Wrong address type passed to Backend.VerifySignature")
+	}
+	pk := (*ecdsa.PublicKey)(addr)
+
 	r, s, err := deserializeSignature(sig)
 	if err != nil {
-		return false, err
+		return false, errors.WithMessage(err, "could not deserialize signature")
 	}
-	return ecdsa.Verify(pubKey, hash(msg), r, s), nil
+
+	// escda.Verify needs a digest as input
+	// ref https://golang.org/pkg/crypto/ecdsa/#Verify
+	return ecdsa.Verify(pk, digest(msg), r, s), nil
 }
 
-func hash(msg []byte) []byte {
-	hash := sha256.Sum256(msg)
-	return hash[:]
-}
-
-func addressToPubKey(addr *Address) *ecdsa.PublicKey {
-	x, y := elliptic.Unmarshal(curve, *addr)
-	return &ecdsa.PublicKey{
-		X:     x,
-		Y:     y,
-		Curve: curve,
-	}
-}
-
-func pubKeyToAddress(pub *ecdsa.PublicKey) Address {
-	return elliptic.Marshal(curve, pub.X, pub.Y)
+func digest(msg []byte) []byte {
+	digest := sha256.Sum256(msg)
+	return digest[:]
 }

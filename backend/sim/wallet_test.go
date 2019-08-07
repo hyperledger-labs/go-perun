@@ -2,7 +2,7 @@
 // This file is part of go-perun. Use of this source code is governed by a
 // MIT-style license that can be found in the LICENSE file.
 
-package wallet
+package sim
 
 import (
 	"math/big"
@@ -19,23 +19,25 @@ import (
 func TestSignatureSerialize(t *testing.T) {
 	a := assert.New(t)
 	// Constant seed for determinism
-	rand.Seed(1337)
+	rng := rand.New(rand.NewSource(1337))
 
-	for i := 0; i < 100; i++ {
-		rBytes := make([]byte, AddressLength)
-		sBytes := make([]byte, AddressLength)
+	// More iterations are better for catching value dependent bugs
+	for i := 0; i < 10; i++ {
+		rBytes := make([]byte, 32)
+		sBytes := make([]byte, 32)
 
 		// These always return nil error
-		rand.Read(rBytes)
-		rand.Read(sBytes)
+		rng.Read(rBytes)
+		rng.Read(sBytes)
 
 		r := new(big.Int).SetBytes(rBytes)
 		s := new(big.Int).SetBytes(sBytes)
 
-		sig := serializeSignature(r, s)
-		R, S, err := deserializeSignature(sig)
+		sig, err1 := serializeSignature(r, s)
+		a.Nil(err1, "Serialization should not fail")
+		R, S, err2 := deserializeSignature(sig)
 
-		a.Nil(err, "Deserialization should not fail")
+		a.Nil(err2, "Deserialization should not fail")
 		a.Equal(r, R, "Serialized and deserialized r values should be equal")
 		a.Equal(s, S, "Serialized and deserialized s values should be equal")
 	}
@@ -44,30 +46,31 @@ func TestSignatureSerialize(t *testing.T) {
 func TestGenericTests(t *testing.T) {
 	t.Run("Generic Signature Test", func(t *testing.T) {
 		t.Parallel()
+		test.GenericAddressTest(t, newSetup())
+	})
+	t.Run("Generic Signature Test", func(t *testing.T) {
+		t.Parallel()
 		test.GenericWalletTest(t, newSetup())
 	})
 	t.Run("Generic Signature Test", func(t *testing.T) {
 		t.Parallel()
 		test.GenericSignatureTest(t, newSetup())
 	})
-	t.Run("Generic Signature Test", func(t *testing.T) {
-		t.Parallel()
-		test.GenericAddressTest(t, newSetup())
-	})
 }
 
 func newSetup() *test.Setup {
-	account := NewAccount()
-	initWallet := func(w perun.Wallet) error { return w.Connect("", "") }
-	unlockedAccount := func() (perun.Account, error) { return &account, nil }
+	rng := rand.New(rand.NewSource(1337))
 
-	secondAccount := NewAccount()
+	accountA := NewRandomAccount(rng)
+	accountB := NewRandomAccount(rng)
+	initWallet := func(w perun.Wallet) error { return w.Connect("", "") }
+	unlockedAccount := func() (perun.Account, error) { return &accountA, nil }
 
 	return &test.Setup{
-		Wallet:          new(Wallet),
+		Wallet:          &Wallet{directory: "", account: accountA},
 		Backend:         new(Backend),
 		UnlockedAccount: unlockedAccount,
 		InitWallet:      initWallet,
-		AddrString:      secondAccount.Address().String(),
+		AddrString:      accountB.Address().String(),
 	}
 }

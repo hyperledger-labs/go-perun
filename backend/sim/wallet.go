@@ -2,16 +2,17 @@
 // This file is part of go-perun. Use of this source code is governed by a
 // MIT-style license that can be found in the LICENSE file.
 
-// Package wallet provides a simulated wallet.
+// Package sim provides a simulated backend.
 // The simulated wallet can be used for internal testing.
 // DO NOT use this simulated wallet in production.
-package wallet // import "perun.network/go-perun/backend/sim/wallet"
+package sim // import "perun.network/go-perun/backend/sim"
 
 import (
 	"sync"
 
 	"github.com/pkg/errors"
 
+	"perun.network/go-perun/log"
 	perun "perun.network/go-perun/wallet"
 )
 
@@ -25,7 +26,10 @@ type Wallet struct {
 
 // Path returns the path to this wallet.
 func (w *Wallet) Path() string {
-	return ""
+	w.mu.RLock()
+	defer w.mu.RUnlock()
+
+	return w.directory
 }
 
 // Connect connects to this wallet.
@@ -33,7 +37,6 @@ func (w *Wallet) Connect(keyDir, password string) error {
 	w.mu.Lock()
 	defer w.mu.Unlock()
 
-	w.account = NewAccount()
 	w.connected = true
 	return nil
 }
@@ -46,6 +49,7 @@ func (w *Wallet) Disconnect() error {
 	if !w.connected {
 		return errors.New("Double disconnect")
 	}
+
 	w.connected = false
 	return nil
 }
@@ -58,6 +62,7 @@ func (w *Wallet) Status() (string, error) {
 	if !w.connected {
 		return "", errors.New("Not connected")
 	}
+
 	return "OK", nil
 }
 
@@ -69,6 +74,7 @@ func (w *Wallet) Accounts() []perun.Account {
 	if !w.connected {
 		return []perun.Account{}
 	}
+
 	return []perun.Account{&w.account}
 }
 
@@ -77,9 +83,14 @@ func (w *Wallet) Contains(a perun.Account) bool {
 	w.mu.RLock()
 	defer w.mu.RUnlock()
 
-	acc, ok := a.(*Account)
-	if !ok {
+	if !w.connected || a == nil {
 		return false
 	}
+
+	acc, ok := a.(*Account)
+	if !ok {
+		log.Panic("Wrong account type passed to wallet.Contains")
+	}
+
 	return w.account.Address().Equals(acc.Address())
 }
