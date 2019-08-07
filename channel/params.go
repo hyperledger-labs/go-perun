@@ -9,7 +9,6 @@ import (
 
 	"github.com/pkg/errors"
 
-	"perun.network/go-perun/pkg/io"
 	"perun.network/go-perun/wallet"
 )
 
@@ -25,12 +24,8 @@ var Zero ID = ID{}
 type Params struct {
 	// ChannelID is the channel ID as calculated by the backend
 	id ID
-	// Adjudicator resolves channel disputes
-	Adjudicator wallet.Address
 	// ChallengeDuration in seconds during disputes
 	ChallengeDuration uint64
-	// Assets are the asset types held in this channel
-	Assets []io.Serializable
 	// Parts are the channel participants
 	Parts []wallet.Address
 	// App identifies the application that this channel is running.
@@ -44,37 +39,34 @@ func (p *Params) ID() ID {
 }
 
 func NewParams(
-	b Backend,
-	adjudicator wallet.Address,
 	challengeDuration uint64,
-	assets []io.Serializable,
 	parts []wallet.Address,
+	app App,
 	nonce *big.Int,
 ) *Params {
 	p := &Params{
-		Adjudicator:       adjudicator,
 		ChallengeDuration: challengeDuration,
-		Assets:            assets,
 		Parts:             parts,
+		App:               app,
 		Nonce:             nonce,
 	}
 	// probably an expensive hash operation, do it only once during creation.
-	p.id = b.ChannelID(p)
+	p.id = ChannelID(p)
 
 	return p
 }
 
 func (p *Params) ValidTransition(from, to *State) (bool, error) {
-	if from.id != p.id || to.id != p.id {
+	if from.ID != p.id || to.ID != p.id {
 		return false, errors.New("states' IDs don't match parameters")
 	}
 
 	if from.IsFinal == true {
-		return false, newTransitionError(p.id, "cannot advance final state")
+		return false, newStateTransitionError(p.id, "cannot advance final state")
 	}
 
 	if from.Version+1 != to.Version {
-		return false, newTransitionError(p.id, "version must increase by one")
+		return false, newStateTransitionError(p.id, "version must increase by one")
 	}
 
 	eq, err := equalSum(from.Allocation, to.Allocation)
@@ -82,14 +74,14 @@ func (p *Params) ValidTransition(from, to *State) (bool, error) {
 		return false, err
 	}
 	if !eq {
-		return false, newTransitionError(p.id, "allocations must be preserved.")
+		return false, newStateTransitionError(p.id, "allocations must be preserved.")
 	}
 
 	valid, err := p.App.ValidTransition(p, from, to)
 	if !valid {
 		if err == nil {
-			return false, newTransitionError(p.id, "no valid application state transition")
-		} else if IsTransitionError(err) {
+			return false, newStateTransitionError(p.id, "no valid application state transition")
+		} else if IsStateTransitionError(err) {
 			return false, err
 		} else {
 			return false, errors.WithMessage(err, "runtime error in application's ValidTransition check")

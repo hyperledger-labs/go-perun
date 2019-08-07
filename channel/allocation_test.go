@@ -5,18 +5,39 @@
 package channel
 
 import (
+	"io"
 	"math/big"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+
+	perunio "perun.network/go-perun/pkg/io"
 )
+
+// asset is a test asset
+type asset struct{}
+
+// pkg/io.Serializable interface
+
+func (a asset) Decode(io.Reader) error {
+	return nil
+}
+
+func (a asset) Encode(io.Writer) error {
+	return nil
+}
+
+func assets(n uint) []perunio.Serializable {
+	as := make([]perunio.Serializable, n)
+	for i := uint(0); i < n; i++ {
+		as[i] = new(asset)
+	}
+	return as
+}
 
 func TestAllocation_Sum(t *testing.T) {
 	// invalid Allocation
-	invalidAllocation := Allocation{
-		OfParts: make([][]Bal, 0),
-		Locked:  make([]Alloc, 0),
-	}
+	invalidAllocation := Allocation{}
 	assert.Panics(t, func() { invalidAllocation.Sum() })
 
 	// note: different invalid allocations are tested in TestAllocation_valid
@@ -30,8 +51,8 @@ func TestAllocation_Sum(t *testing.T) {
 		{
 			"single asset/one participant",
 			Allocation{
+				Assets:  assets(1),
 				OfParts: [][]Bal{[]Bal{big.NewInt(1)}},
-				Locked:  make([]Alloc, 0),
 			},
 			[]Bal{big.NewInt(1)},
 		},
@@ -39,12 +60,12 @@ func TestAllocation_Sum(t *testing.T) {
 		{
 			"single asset/three participants",
 			Allocation{
+				Assets: assets(1),
 				OfParts: [][]Bal{
 					[]Bal{big.NewInt(1)},
 					[]Bal{big.NewInt(2)},
 					[]Bal{big.NewInt(4)},
 				},
-				Locked: make([]Alloc, 0),
 			},
 			[]Bal{big.NewInt(7)},
 		},
@@ -52,12 +73,12 @@ func TestAllocation_Sum(t *testing.T) {
 		{
 			"three assets/three participants",
 			Allocation{
+				Assets: assets(3),
 				OfParts: [][]Bal{
 					[]Bal{big.NewInt(1), big.NewInt(8), big.NewInt(64)},
 					[]Bal{big.NewInt(2), big.NewInt(16), big.NewInt(128)},
 					[]Bal{big.NewInt(4), big.NewInt(32), big.NewInt(256)},
 				},
-				Locked: make([]Alloc, 0),
 			},
 			[]Bal{big.NewInt(7), big.NewInt(56), big.NewInt(448)},
 		},
@@ -65,6 +86,7 @@ func TestAllocation_Sum(t *testing.T) {
 		{
 			"single assets/one participants/one locked",
 			Allocation{
+				Assets: assets(1),
 				OfParts: [][]Bal{
 					[]Bal{big.NewInt(1)},
 				},
@@ -78,6 +100,7 @@ func TestAllocation_Sum(t *testing.T) {
 		{
 			"three assets/two participants/three locked",
 			Allocation{
+				Assets: assets(3),
 				OfParts: [][]Bal{
 					[]Bal{big.NewInt(1), big.NewInt(0x20), big.NewInt(0x400)},
 					[]Bal{big.NewInt(2), big.NewInt(0x40), big.NewInt(0x800)},
@@ -113,17 +136,19 @@ func TestAllocation_valid(t *testing.T) {
 		{
 			"one participant/no locked valid",
 			Allocation{
+				Assets:  assets(1),
 				OfParts: [][]Bal{[]Bal{big.NewInt(1)}},
-				Locked:  make([]Alloc, 0),
+				Locked:  nil,
 			},
 			true,
 		},
 
 		{
-			"no participant/no locked",
+			"nil asset/nil participant",
 			Allocation{
-				OfParts: make([][]Bal, 0),
-				Locked:  make([]Alloc, 0),
+				Assets:  nil,
+				OfParts: nil,
+				Locked:  nil,
 			},
 			false,
 		},
@@ -131,17 +156,18 @@ func TestAllocation_valid(t *testing.T) {
 		{
 			"nil participant/no locked",
 			Allocation{
+				Assets:  assets(1),
 				OfParts: nil,
-				Locked:  make([]Alloc, 0),
+				Locked:  nil,
 			},
 			false,
 		},
 
 		{
-			"no participant/nil locked",
+			"no participant/no locked",
 			Allocation{
+				Assets:  assets(1),
 				OfParts: make([][]Bal, 0),
-				Locked:  nil,
 			},
 			false,
 		},
@@ -149,11 +175,11 @@ func TestAllocation_valid(t *testing.T) {
 		{
 			"two participants wrong dimension",
 			Allocation{
+				Assets: assets(3),
 				OfParts: [][]Bal{
 					[]Bal{big.NewInt(1), big.NewInt(8), big.NewInt(64)},
 					[]Bal{big.NewInt(2), big.NewInt(16)},
 				},
-				Locked: make([]Alloc, 0),
 			},
 			false,
 		},
@@ -161,6 +187,7 @@ func TestAllocation_valid(t *testing.T) {
 		{
 			"two participants/one locked wrong dimension",
 			Allocation{
+				Assets: assets(3),
 				OfParts: [][]Bal{
 					[]Bal{big.NewInt(1), big.NewInt(8), big.NewInt(64)},
 					[]Bal{big.NewInt(2), big.NewInt(16), big.NewInt(128)},
