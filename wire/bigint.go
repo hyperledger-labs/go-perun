@@ -9,6 +9,8 @@ import (
 	"math/big"
 
 	"github.com/pkg/errors"
+
+	"perun.network/go-perun/log"
 )
 
 // maxBigIntLength defines the maximum length of a big integer.
@@ -51,6 +53,10 @@ func (b *BigInt) Decode(reader io.Reader) error {
 
 // Encode writes a big.Int to the stream.
 func (b BigInt) Encode(writer io.Writer) error {
+	if b.Int == nil {
+		log.Panicln("logic error: tried to encode nil big.Int")
+	}
+
 	bytes := b.Bytes()
 	// Dont cast it to SizeType here, otherwise it can overflow
 	length := len(bytes)

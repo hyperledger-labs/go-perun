@@ -12,6 +12,7 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"perun.network/go-perun/pkg/io/test"
+	peruntest "perun.network/go-perun/pkg/test"
 )
 
 func TestBigInt(t *testing.T) {
@@ -46,4 +47,10 @@ func TestInvalidBigInt(t *testing.T) {
 	}()
 
 	a.NotNil(result.Decode(r), "decoding after sender only send length should fail")
+
+	_, w = io.Pipe()
+
+	if panics, _ := peruntest.CheckPanic(func() { BigInt{nil}.Encode(w) }); !panics {
+		t.Error("encoding nil BigInt failed to panic")
+	}
 }
