@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"perun.network/go-perun/pkg/test"
+	"perun.network/go-perun/wallet"
 )
 
 type mockBackend struct {
@@ -16,9 +17,19 @@ type mockBackend struct {
 
 // channel.Backend interface
 
-func (m *mockBackend) ChannelID(p *Params) ID {
+func (m *mockBackend) ChannelID(*Params) ID {
 	m.AssertWrapped()
 	return Zero
+}
+
+func (m *mockBackend) Sign(wallet.Account, *Params, *State) (Sig, error) {
+	m.AssertWrapped()
+	return nil, nil
+}
+
+func (m *mockBackend) Verify(wallet.Address, *Params, *State, Sig) (bool, error) {
+	m.AssertWrapped()
+	return false, nil
 }
 
 // compile-time check that mockBackend imlements Backend
@@ -28,6 +39,13 @@ var _ Backend = (*mockBackend)(nil)
 func TestGlobalBackend(t *testing.T) {
 	b := &mockBackend{test.NewWrapMock(t)}
 	SetBackend(b)
+
 	ChannelID(nil)
+	b.AssertCalled()
+
+	Sign(nil, nil, nil)
+	b.AssertCalled()
+
+	Verify(nil, nil, nil, nil)
 	b.AssertCalled()
 }
