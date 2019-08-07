@@ -8,19 +8,54 @@ import (
 	"github.com/pkg/errors"
 )
 
-type TransitionError struct {
-	error
-	ID ID
-}
+type (
+	// StateTransitionError happens in case of an invalid channel state transition
+	StateTransitionError struct {
+		error
+		ID ID
+	}
 
-func newTransitionError(id ID, msg string) *TransitionError {
-	return &TransitionError{
+	// PhaseTransitionError happens in case of an invalid channel machine phase
+	// transition
+	PhaseTransitionError struct {
+		error
+		ID      ID
+		current Phase
+		PhaseTransition
+	}
+)
+
+func newStateTransitionError(id ID, msg string) *StateTransitionError {
+	return &StateTransitionError{
 		error: errors.New(msg),
 		ID:    id,
 	}
 }
 
-func IsTransitionError(err error) bool {
-	_, ok := err.(*TransitionError)
+func newPhaseTransitionError(id ID, current Phase, t PhaseTransition, msg string) *PhaseTransitionError {
+	return &PhaseTransitionError{
+		error:           errors.New(msg),
+		ID:              id,
+		current:         current,
+		PhaseTransition: t,
+	}
+}
+
+func newPhaseTransitionErrorf(id ID, current Phase, t PhaseTransition, format string, args ...interface{}) *PhaseTransitionError {
+	return &PhaseTransitionError{
+		error:           errors.Errorf(format, args...),
+		ID:              id,
+		current:         current,
+		PhaseTransition: t,
+	}
+}
+
+func IsStateTransitionError(err error) bool {
+	_, ok := err.(*StateTransitionError)
+	return ok
+}
+
+func IsPhaseTransitionError(err error) bool {
+	_, ok := err.(*PhaseTransitionError)
 	return ok
 }
