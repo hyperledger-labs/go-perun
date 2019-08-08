@@ -6,6 +6,7 @@ package wire
 
 import (
 	"io"
+	"math/big"
 	"reflect"
 	"testing"
 	"time"
@@ -46,6 +47,7 @@ func TestEncodeDecode(t *testing.T) {
 	a := assert.New(t)
 	r, w := io.Pipe()
 
+	longInt, _ := new(big.Int).SetString("12345671823897123798901234561234567890", 16)
 	values := []interface{}{
 		true,
 		uint16(0x1234),
@@ -56,6 +58,8 @@ func TestEncodeDecode(t *testing.T) {
 		int64(0x1234567890123456),
 		// The time has to be constructed this way, because otherwise DeepEqual fails.
 		time.Unix(0, time.Now().UnixNano()),
+		big.NewInt(0x1234567890123456),
+		longInt,
 	}
 
 	go func() {

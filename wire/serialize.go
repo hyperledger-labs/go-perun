@@ -6,6 +6,7 @@ package wire
 
 import (
 	"io"
+	"math/big"
 	"time"
 
 	"github.com/pkg/errors"
@@ -34,6 +35,8 @@ func Encode(writer io.Writer, values ...interface{}) (err error) {
 			err = Int64(v).Encode(writer)
 		case time.Time:
 			err = FromTime(v).Encode(writer)
+		case *big.Int:
+			err = BigInt{v}.Encode(writer)
 		default:
 			log.Panicf("wire.Encode(): Invalid type %T", v)
 		}
@@ -83,6 +86,11 @@ func Decode(reader io.Reader, values ...interface{}) (err error) {
 			var d Time
 			err = d.Decode(reader)
 			*v = d.Time()
+		case **big.Int:
+			var d BigInt
+			err = d.Decode(reader)
+			*v = d.Int
+			d.Int = nil // Reset to nil because it might cause problems otherwise.
 		default:
 			log.Panicf("wire.Decode(): Invalid type %T", v)
 		}
