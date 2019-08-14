@@ -10,8 +10,6 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-
-	perunio "perun.network/go-perun/pkg/io"
 )
 
 // asset is a test asset
@@ -27,8 +25,8 @@ func (a asset) Encode(io.Writer) error {
 	return nil
 }
 
-func assets(n uint) []perunio.Serializable {
-	as := make([]perunio.Serializable, n)
+func assets(n uint) []Asset {
+	as := make([]Asset, n)
 	for i := uint(0); i < n; i++ {
 		as[i] = new(asset)
 	}
@@ -53,6 +51,16 @@ func TestAllocation_Sum(t *testing.T) {
 			Allocation{
 				Assets:  assets(1),
 				OfParts: [][]Bal{[]Bal{big.NewInt(1)}},
+			},
+			[]Bal{big.NewInt(1)},
+		},
+
+		{
+			"single asset/one participant/empty locked slice",
+			Allocation{
+				Assets:  assets(1),
+				OfParts: [][]Bal{[]Bal{big.NewInt(1)}},
+				Locked:  make([]SubAlloc, 0),
 			},
 			[]Bal{big.NewInt(1)},
 		},
@@ -90,8 +98,8 @@ func TestAllocation_Sum(t *testing.T) {
 				OfParts: [][]Bal{
 					[]Bal{big.NewInt(1)},
 				},
-				Locked: []Alloc{
-					Alloc{Zero, []Bal{big.NewInt(2)}},
+				Locked: []SubAlloc{
+					SubAlloc{Zero, []Bal{big.NewInt(2)}},
 				},
 			},
 			[]Bal{big.NewInt(3)},
@@ -105,10 +113,10 @@ func TestAllocation_Sum(t *testing.T) {
 					[]Bal{big.NewInt(1), big.NewInt(0x20), big.NewInt(0x400)},
 					[]Bal{big.NewInt(2), big.NewInt(0x40), big.NewInt(0x800)},
 				},
-				Locked: []Alloc{
-					Alloc{Zero, []Bal{big.NewInt(4), big.NewInt(0x80), big.NewInt(0x1000)}},
-					Alloc{Zero, []Bal{big.NewInt(8), big.NewInt(0x100), big.NewInt(0x2000)}},
-					Alloc{Zero, []Bal{big.NewInt(0x10), big.NewInt(0x200), big.NewInt(0x4000)}},
+				Locked: []SubAlloc{
+					SubAlloc{Zero, []Bal{big.NewInt(4), big.NewInt(0x80), big.NewInt(0x1000)}},
+					SubAlloc{Zero, []Bal{big.NewInt(8), big.NewInt(0x100), big.NewInt(0x2000)}},
+					SubAlloc{Zero, []Bal{big.NewInt(0x10), big.NewInt(0x200), big.NewInt(0x4000)}},
 				},
 			},
 			[]Bal{big.NewInt(0x1f), big.NewInt(0x3e0), big.NewInt(0x7c00)},
@@ -131,7 +139,7 @@ func TestAllocation_valid(t *testing.T) {
 	tests := []struct {
 		name  string
 		alloc Allocation
-		want  bool
+		valid bool
 	}{
 		{
 			"one participant/no locked valid",
@@ -192,8 +200,8 @@ func TestAllocation_valid(t *testing.T) {
 					[]Bal{big.NewInt(1), big.NewInt(8), big.NewInt(64)},
 					[]Bal{big.NewInt(2), big.NewInt(16), big.NewInt(128)},
 				},
-				Locked: []Alloc{
-					Alloc{Zero, []Bal{big.NewInt(4)}},
+				Locked: []SubAlloc{
+					SubAlloc{Zero, []Bal{big.NewInt(4)}},
 				},
 			},
 			false,
@@ -202,8 +210,8 @@ func TestAllocation_valid(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := tt.alloc.valid(); got != tt.want {
-				t.Errorf("Allocation.valid() = %v, want %v", got, tt.want)
+			if got := tt.alloc.valid(); (got == nil) != tt.valid {
+				t.Errorf("Allocation.valid() = %v, want valid = %v", got, tt.valid)
 			}
 		})
 	}

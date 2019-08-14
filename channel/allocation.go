@@ -23,65 +23,67 @@ type (
 	// OfParts holds the balance allocations to the participants.
 	// Its outer dimension must match the size of the Params.parts slice.
 	// Its inner dimension must match the size of Assets.
-	// All asset distributions could have been saved as a single []Alloc, but this
+	// All asset distributions could have been saved as a single []SubAlloc, but this
 	// would have saved the participants slice twice, wasting space.
 	//
 	// Locked holds the locked allocations to sub-app-channels.
 	Allocation struct {
 		// Assets are the asset types held in this channel
-		Assets []io.Serializable
+		Assets []Asset
 		// OfParts is the allocation of assets to the Params.parts
 		OfParts [][]Bal
 		// Locked is the locked allocation to sub-app-channels. It is allowed to be
 		// nil, in which case there's nothing locked.
-		Locked []Alloc
+		Locked []SubAlloc
 	}
 
-	// Alloc is the allocation of assets to a single receiver recv.
+	// SubAlloc is the allocation of assets to a single receiver channel `ID`.
 	// The size of the balances slice must be of the same size as the assets slice
 	// of the channel Params.
-	Alloc struct {
-		AppID ID
-		Bals  []Bal
+	SubAlloc struct {
+		ID   ID
+		Bals []Bal
 	}
 
 	// Bal is a single asset's balance
 	Bal = *big.Int
+
+	// Asset identifies an asset. E.g., it may be the address of the multi-sig
+	// where all participant's assets are deposited.
+	Asset = io.Serializable
 )
 
-// valid checks that the asset-dimensions match and slices are not nil
-func (a Allocation) valid() bool {
-	if a.Assets == nil || a.OfParts == nil || len(a.OfParts) == 0 {
-		return false
+// valid checks that the asset-dimensions match and slices are not nil.
+// Assets and OfParts cannot be of zero length.
+func (a Allocation) valid() error {
+	if len(a.Assets) == 0 || len(a.OfParts) == 0 {
+		return errors.New("assets and participant balances must not be of length zero")
 	}
 
 	n := len(a.Assets)
-	for _, pa := range a.OfParts {
+	for i, pa := range a.OfParts {
 		if len(pa) != n {
-			return false
+			return errors.Errorf("dimension mismatch of participant %d's balance vector", i)
 		}
 	}
 
-	// Locked is allowd to be nil, in which case there's nothing locked.
-	if a.Locked == nil {
-		return true
-	}
-
+	// Locked is allowed to have zero length, in which case there's nothing locked
+	// and the loop is empty.
 	for _, l := range a.Locked {
 		if len(l.Bals) != n {
-			return false
+			return errors.Errorf("dimension mismatch of app-channel balance vector (ID: %x)", l.ID)
 		}
 	}
 
-	return true
+	return nil
 }
 
 // Sum returns the sum of each asset over all participant and locked allocations
 // It runs an internal check that the dimensions of all slices are valid and
 // panics if not.
 func (a Allocation) Sum() []Bal {
-	if !a.valid() {
-		log.Panic("invalid dimensions in Allocation slices")
+	if err := a.valid(); err != nil {
+		log.Panic(err)
 	}
 
 	n := len(a.Assets)
@@ -96,11 +98,8 @@ func (a Allocation) Sum() []Bal {
 		}
 	}
 
-	// Locked is allowd to be nil, in which case there's nothing locked.
-	if a.Locked == nil {
-		return totals
-	}
-
+	// Locked is allowed to have zero length, in which case there's nothing locked
+	// and the loop is empty.
 	for _, a := range a.Locked {
 		for i, bal := range a.Bals {
 			totals[i].Add(totals[i], bal)
