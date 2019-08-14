@@ -13,11 +13,12 @@ var backend Backend
 type Backend interface {
 	// ChannelID infers the channel id of a channel from its parameters. Usually,
 	// this should be a hash digest of some or all fields of the parameters.
+	// If any parameters are omitted from the ChannelID digest, they need to be
+	// signed together with the State in Sign().
 	ChannelID(*Params) ID
 
-	// Sign signs a channel's State with given Account. May also use the provided
-	// parameters.  Returns the signature or an error and a nil signature, if not
-	// successful.
+	// Sign signs a channel's State with the given Account. Returns the signature
+	// or an error and a nil signature, if not successful.
 	Sign(wallet.Account, *Params, *State) (Sig, error)
 
 	// Verify verifies that the provided signature on the state belongs to the

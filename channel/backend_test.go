@@ -32,7 +32,7 @@ func (m *mockBackend) Verify(wallet.Address, *Params, *State, Sig) (bool, error)
 	return false, nil
 }
 
-// compile-time check that mockBackend imlements Backend
+// compile-time check that mockBackend implements Backend
 var _ Backend = (*mockBackend)(nil)
 
 // TestGlobalBackend tests all global backend wrappers
