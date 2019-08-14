@@ -11,13 +11,16 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestTransitionError(t *testing.T) {
+func TestTransitionErrors(t *testing.T) {
 	assert.False(t, IsStateTransitionError(errors.New("No StateTransitionError")))
 	assert.True(t, IsStateTransitionError(newStateTransitionError(Zero, "A StateTransitionError")))
 
+	assert.False(t, IsActionError(errors.New("No ActionError")))
+	assert.True(t, IsActionError(newActionError(Zero, "An ActionError")))
+
 	assert.False(t, IsPhaseTransitionError(errors.New("No PhaseTransitionError")))
 	assert.True(t, IsPhaseTransitionError(newPhaseTransitionError(
-		Zero, Nil, PhaseTransition{Nil, Nil}, "A PhaseTransitionError")))
+		Zero, InitActing, PhaseTransition{InitActing, InitActing}, "A PhaseTransitionError")))
 	assert.True(t, IsPhaseTransitionError(newPhaseTransitionErrorf(
-		Zero, Nil, PhaseTransition{Nil, Nil}, "A %s", "PhaseTransitionError")))
+		Zero, InitActing, PhaseTransition{InitActing, InitActing}, "A %s", "PhaseTransitionError")))
 }
