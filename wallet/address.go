@@ -22,9 +22,9 @@ type Address interface {
 	Equals(Address) bool
 }
 
-// AddrIdx returns the index of the given address in the address slice, or -1 if
+// IndexOfAddr returns the index of the given address in the address slice, or -1 if
 // it is not part of the slice.
-func AddrIdx(addrs []Address, addr Address) int {
+func IndexOfAddr(addrs []Address, addr Address) int {
 	idx := -1
 	for i, a := range addrs {
 		if addr.Equals(a) {
