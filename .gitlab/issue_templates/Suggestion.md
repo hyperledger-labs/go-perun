@@ -31,7 +31,8 @@
 <!-- End -->
 ---
 
-*This is a **suggestion** and not final, please discuss it. When it is approved, create a **FEATURE** issue, which will then be used to.*
+*This is a **suggestion** and not final, please discuss it.
+When it is approved, create a **FEATURE** issue, in which the concept specification is worked out and which will be linked to a merge request.*
 
 *To approve the suggestion, give it a :thumbsup:.*
 
