@@ -9,6 +9,8 @@ import (
 	"os"
 )
 
+var exit = os.Exit
+
 type none struct{}
 
 func (none) Printf(string, ...interface{}) {}
@@ -36,17 +38,17 @@ func (none) Panicln(args ...interface{})               { panic(fmt.Sprintln(args
 
 func (none) Fatal(args ...interface{}) {
 	fmt.Fprint(os.Stderr, args...)
-	os.Exit(1)
+	exit(1)
 }
 
 func (none) Fatalf(format string, args ...interface{}) {
 	fmt.Fprintf(os.Stderr, format, args...)
-	os.Exit(1)
+	exit(1)
 }
 
 func (none) Fatalln(args ...interface{}) {
 	fmt.Fprintln(os.Stderr, args...)
-	os.Exit(1)
+	exit(1)
 }
 
 func (n *none) WithField(key string, value interface{}) Logger {
