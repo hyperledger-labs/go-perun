@@ -37,7 +37,7 @@ func NewActionMachine(acc wallet.Account, params Params) (*ActionMachine, error)
 
 var actionPhases = []Phase{InitActing, Acting}
 
-// AccAction adds the action of participand idx to the staging actions.
+// AddAction adds the action of participant idx to the staging actions.
 // It is checked that the action of that participant is not already set as it
 // should not happen that an action is overwritten.
 // The validity of the action applied to the current state is also checked as
