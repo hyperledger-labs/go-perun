@@ -96,6 +96,16 @@ func (m *machine) setPhase(p Phase) {
 	m.notifySubs(oldPhase)
 }
 
+// inPhase returns whether phase is in phases.
+func inPhase(phase Phase, phases []Phase) bool {
+	for _, p := range phases {
+		if p == phase {
+			return true
+		}
+	}
+	return false
+}
+
 // Sig returns the own signature on the currently staged state.
 // The signature is caclulated and saved to the staging TX's signature slice
 // if it was not calculated before.
@@ -314,16 +324,6 @@ func (m *machine) error(expected PhaseTransition, msg string) error {
 // error constructs a new PhaseTransitionError
 func (m *machine) errorf(expected PhaseTransition, format string, args ...interface{}) error {
 	return newPhaseTransitionErrorf(m.params.ID(), m.phase, expected, format, args...)
-}
-
-// inPhase returns whether phase is in phases
-func inPhase(phase Phase, phases []Phase) bool {
-	for _, p := range phases {
-		if p == phase {
-			return true
-		}
-	}
-	return false
 }
 
 // selfTransition returns a PhaseTransition from current to current phase
