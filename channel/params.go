@@ -18,7 +18,7 @@ type ID = [IDLen]byte
 
 var Zero ID = ID{}
 
-// params are a channel's immutable parameters.  A channel's id is the hash of
+// Params are a channel's immutable parameters.  A channel's id is the hash of
 // (some of) its parameter, as determined by the backend.  All fields should be
 // treated as constant.
 // It should only be created through NewParams()

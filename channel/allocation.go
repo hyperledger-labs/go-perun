@@ -121,9 +121,9 @@ func (a Allocation) valid() error {
 	return nil
 }
 
-// Sum returns the sum of each asset over all participant and locked allocations
-// It runs an internal check that the dimensions of all slices are valid and
-// panics if not.
+// Sum returns the sum of each asset over all participants and locked
+// allocations.  It runs an internal check that the dimensions of all slices are
+// valid and panics if not.
 func (a Allocation) Sum() []Bal {
 	if err := a.valid(); err != nil {
 		log.Panic(err)

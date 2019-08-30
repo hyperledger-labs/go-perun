@@ -15,25 +15,25 @@ type (
 	App interface {
 		// Def is an identifier of the channel application. It is usually the
 		// (counterfactual) on-chain address of the stateless contract that defines
-		// what is a validTransition
+		// what valid actions or transitions are.
 		Def() wallet.Address
 	}
 
-	// A StateApp is advanced by full state udpates. The validity of state
+	// A StateApp is advanced by full state updates. The validity of state
 	// transitions is checked with method ValidTransition.
 	StateApp interface {
 		App
-		// ValidTransition checks if the application specific rules of the given
+		// ValidTransition should check that the app-specific rules of the given
 		// transition from `from` to `to` are fulfilled.
-		// The implementation should return a TransitionError describing the
+		// The implementation should return a StateTransitionError describing the
 		// invalidity of the transition, if it is not valid. It should return a normal
 		// error (with attached stacktrace from pkg/errors) if there was any other
 		// runtime error, not related to the invalidity of the transition itself.
 		ValidTransition(parameters *Params, from, to *State) error
 
-		// ValidInit checks whether the given State is a valid initial state.
-		// Note that version == 0 and correct channel IDs are checked by the
-		// framework. This method should only perform app-specific checks.
+		// ValidInit should perform app-specific checks for a valid initial state.
+		// The framework guarantees to only pass initial states with version == 0,
+		// correct channel ID and valid initial allocation.
 		ValidInit(*Params, *State) error
 	}
 
@@ -53,7 +53,7 @@ type (
 
 		// ApplyAction applies the given actions to the provided channel state and
 		// returns the resulting new state.
-		// the version counter should be increased by one.
+		// The version counter should be increased by one.
 		// The implementation should return an ActionError describing the invalidity
 		// of the action. It should return a normal error (with attached stacktrace
 		// from pkg/errors) if there was any other runtime error, not related to the

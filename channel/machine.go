@@ -45,6 +45,11 @@ var signingPhases = []Phase{InitSigning, Signing}
 
 // A machine is the channel pushdown automaton that handles phase transitions.
 // It checks for correct signatures and valid state transitions.
+// machine only contains implementations for the state transitions common to
+// both, ActionMachine and StateMachine, that is, AddSig, EnableInit, SetFunded,
+// EnableUpdate, EnableFinal and SetSettled.
+// The other transitions are specific to the type of machine and are implemented
+// individually.
 type machine struct {
 	phase     Phase
 	acc       wallet.Account
@@ -60,11 +65,11 @@ type machine struct {
 	log log.Logger
 }
 
-// newMachine retruns a new uninitialized machine for the given parameters.
+// newMachine returns a new uninitialized machine for the given parameters.
 func newMachine(acc wallet.Account, params Params) (*machine, error) {
 	idx := wallet.IndexOfAddr(params.Parts, acc.Address())
 	if idx == -1 {
-		return nil, errors.New("account not part of participant set.")
+		return nil, errors.New("account not part of participant set")
 	}
 
 	return &machine{
@@ -77,7 +82,7 @@ func newMachine(acc wallet.Account, params Params) (*machine, error) {
 	}, nil
 }
 
-// N returns the number of participants of the channel parameters of this machine
+// N returns the number of participants of the channel parameters of this machine.
 func (m *machine) N() uint {
 	return uint(len(m.params.Parts))
 }
@@ -88,7 +93,7 @@ func (m *machine) Phase() Phase {
 }
 
 // setPhase is internally used to set the phase and notify all subscribers of
-// the phase transition
+// the phase transition.
 func (m *machine) setPhase(p Phase) {
 	m.log.Tracef("phase transition: %v", PhaseTransition{m.phase, p})
 	oldPhase := m.phase
@@ -161,8 +166,6 @@ func (m *machine) AddSig(idx uint, sig Sig) error {
 }
 
 // setStaging sets the given phase and state as staging state.
-// It returns the signature on the staging state and an error if signature
-// generation fails.
 func (m *machine) setStaging(phase Phase, state *State) {
 	m.stagingTX = Transaction{
 		State: state,
@@ -218,7 +221,7 @@ func (m *machine) enableStaged(expected PhaseTransition) error {
 }
 
 // SetFunded tells the state machine that the channel got funded and progresses
-// to the Acting phase
+// to the Acting phase.
 func (m *machine) SetFunded() error {
 	if err := m.expect(PhaseTransition{Funding, Acting}); err != nil {
 		return err
@@ -229,7 +232,7 @@ func (m *machine) SetFunded() error {
 }
 
 // SetSettled tells the state machine that the final state was settled on the
-// blockchain or funding channel and progresses to the Settled state
+// blockchain or funding channel and progresses to the Settled state.
 func (m *machine) SetSettled() error {
 	if err := m.expect(PhaseTransition{Final, Settled}); err != nil {
 		return err
@@ -316,17 +319,17 @@ func (m *machine) notifySubs(from Phase) {
 	}
 }
 
-// error constructs a new PhaseTransitionError
+// error constructs a new PhaseTransitionError.
 func (m *machine) error(expected PhaseTransition, msg string) error {
 	return newPhaseTransitionError(m.params.ID(), m.phase, expected, msg)
 }
 
-// error constructs a new PhaseTransitionError
+// error constructs a new PhaseTransitionError.
 func (m *machine) errorf(expected PhaseTransition, format string, args ...interface{}) error {
 	return newPhaseTransitionErrorf(m.params.ID(), m.phase, expected, format, args...)
 }
 
-// selfTransition returns a PhaseTransition from current to current phase
+// selfTransition returns a PhaseTransition from current to current phase.
 func (m *machine) selfTransition() PhaseTransition {
 	return PhaseTransition{m.phase, m.phase}
 }

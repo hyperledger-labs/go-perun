@@ -13,8 +13,9 @@ var backend Backend
 type Backend interface {
 	// ChannelID infers the channel id of a channel from its parameters. Usually,
 	// this should be a hash digest of some or all fields of the parameters.
-	// If any parameters are omitted from the ChannelID digest, they need to be
-	// signed together with the State in Sign().
+	// In order to guarantee non-malleability of States, any parameters omitted
+	// from the ChannelID digest need to be signed together with the State in
+	// Sign().
 	ChannelID(*Params) ID
 
 	// Sign signs a channel's State with the given Account. Returns the signature

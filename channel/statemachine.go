@@ -10,6 +10,8 @@ import (
 	"perun.network/go-perun/wallet"
 )
 
+// A StateMachine is the channel pushdown automaton around a StateApp.
+// It implements the state transitions specific for StateApps: Init and Update.
 type StateMachine struct {
 	*machine
 

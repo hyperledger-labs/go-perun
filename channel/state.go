@@ -28,6 +28,10 @@ type (
 		Allocation
 		// Data is the app-specific data.
 		Data Data
+		// IsFinal indicates that the channel is in its final state. Such a state
+		// can immediately be settled on the blockchain or a funding channel, in
+		// case of sub- or virtual channels.
+		// A final state cannot be further progressed.
 		IsFinal bool
 	}
 
@@ -51,14 +55,14 @@ type (
 )
 
 // newState creates a new state, checking that the parameters and allocation are
-// compatible. This function is not exported as a user of the channel package
-// would usually not need to create a State directly, but creates a Machine
-// instead.
+// compatible. This function is not exported because a user of the channel
+// package would usually not create a State directly. The user receives the
+// initial state from the machine instead.
 func newState(params *Params, initBals Allocation, initData Data) (*State, error) {
 	// sanity checks
 	n := len(params.Parts)
 	if n != len(initBals.OfParts) {
-		return nil, errors.New("number of participants in parameters and initial balances don't match.")
+		return nil, errors.New("number of participants in parameters and initial balances don't match")
 	}
 	if err := initBals.valid(); err != nil {
 		return nil, err

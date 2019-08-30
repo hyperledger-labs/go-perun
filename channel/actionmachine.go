@@ -10,6 +10,9 @@ import (
 	"perun.network/go-perun/wallet"
 )
 
+// An ActionMachine is the channel pushdown automaton around an ActionApp.
+// It implements the state transitions specific for ActionApps: AddAction, Init
+// and Update.
 type ActionMachine struct {
 	*machine
 
