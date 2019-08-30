@@ -26,9 +26,8 @@ type (
 		// Allocation is the current allocation of channel assets to
 		// the channel participants and apps running inside this channel.
 		Allocation
-		// Data is the app data. The App of Params works with this object.
-		Data io.Serializable
-		// IsFinal
+		// Data is the app-specific data.
+		Data Data
 		IsFinal bool
 	}
 
@@ -43,7 +42,12 @@ type (
 	Sig = []byte
 
 	// Data is the data of the application running in this app channel
-	Data = io.Serializable
+	Data interface {
+		io.Serializable
+		// Clone should return a deep copy of the Data object.
+		// It should return nil if the Data object is nil.
+		Clone() Data
+	}
 )
 
 // newState creates a new state, checking that the parameters and allocation are
@@ -66,4 +70,19 @@ func newState(params *Params, initBals Allocation, initData Data) (*State, error
 		Allocation: initBals,
 		Data:       initData,
 	}, nil
+}
+
+// Clone makes a deep copy of the State object.
+// If it is nil, it returns nil.
+// App implementations should use this method when creating the next state from
+// an old one.
+func (s *State) Clone() *State {
+	if s == nil {
+		return nil
+	}
+
+	clone := *s
+	clone.Allocation = s.Allocation.Clone()
+	clone.Data = s.Data.Clone()
+	return &clone
 }

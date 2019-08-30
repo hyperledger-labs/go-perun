@@ -49,9 +49,52 @@ type (
 	Bal = *big.Int
 
 	// Asset identifies an asset. E.g., it may be the address of the multi-sig
-	// where all participant's assets are deposited.
+	// where all participants' assets are deposited.
+	// The same Asset should be shareable by multiple Allocation instances.
 	Asset = io.Serializable
 )
+
+// Clone returns a deep copy of the Allocation object.
+// If it is nil, it returns nil.
+func (orig Allocation) Clone() (clone Allocation) {
+	if orig.Assets != nil {
+		clone.Assets = make([]Asset, len(orig.Assets))
+		for i := 0; i < len(clone.Assets); i++ {
+			clone.Assets[i] = orig.Assets[i]
+		}
+	}
+
+	if orig.OfParts != nil {
+		clone.OfParts = make([][]Bal, len(orig.OfParts))
+		for i := 0; i < len(clone.OfParts); i++ {
+			clone.OfParts[i] = CloneBals(orig.OfParts[i])
+		}
+	}
+
+	if orig.Locked != nil {
+		clone.Locked = make([]SubAlloc, len(orig.Locked))
+		for i := 0; i < len(clone.Locked); i++ {
+			clone.Locked[i] = SubAlloc{
+				ID:   orig.Locked[i].ID,
+				Bals: CloneBals(orig.Locked[i].Bals),
+			}
+		}
+	}
+
+	return clone
+}
+
+func CloneBals(orig []Bal) []Bal {
+	if orig == nil {
+		return nil
+	}
+
+	clone := make([]Bal, len(orig))
+	for i := 0; i < len(clone); i++ {
+		clone[i] = new(big.Int).Set(orig[i])
+	}
+	return clone
+}
 
 // valid checks that the asset-dimensions match and slices are not nil.
 // Assets and OfParts cannot be of zero length.
