@@ -45,13 +45,13 @@ func (e *PhaseTransitionError) Error() string {
 	)
 }
 
-func newStateTransitionError(id ID, msg string) error {
+func NewStateTransitionError(id ID, msg string) error {
 	return errors.Wrap(&StateTransitionError{
 		ID: id,
 	}, msg)
 }
 
-func newActionError(id ID, msg string) error {
+func NewActionError(id ID, msg string) error {
 	return errors.Wrap(&ActionError{
 		ID: id,
 	}, msg)

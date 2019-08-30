@@ -273,17 +273,17 @@ func (m *machine) validTransition(to *State) error {
 	}
 
 	if m.currentTX.IsFinal == true {
-		return newStateTransitionError(m.params.id, "cannot advance final state")
+		return NewStateTransitionError(m.params.id, "cannot advance final state")
 	}
 
 	if m.currentTX.Version+1 != to.Version {
-		return newStateTransitionError(m.params.id, "version must increase by one")
+		return NewStateTransitionError(m.params.id, "version must increase by one")
 	}
 
 	if eq, err := equalSum(m.currentTX.Allocation, to.Allocation); err != nil {
 		return err
 	} else if !eq {
-		return newStateTransitionError(m.params.id, "allocations must be preserved.")
+		return NewStateTransitionError(m.params.id, "allocations must be preserved")
 	}
 
 	return nil
