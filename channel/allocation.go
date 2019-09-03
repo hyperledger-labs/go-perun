@@ -59,24 +59,24 @@ type (
 func (orig Allocation) Clone() (clone Allocation) {
 	if orig.Assets != nil {
 		clone.Assets = make([]Asset, len(orig.Assets))
-		for i := 0; i < len(clone.Assets); i++ {
-			clone.Assets[i] = orig.Assets[i]
+		for i, asset := range orig.Assets {
+			clone.Assets[i] = asset
 		}
 	}
 
 	if orig.OfParts != nil {
 		clone.OfParts = make([][]Bal, len(orig.OfParts))
-		for i := 0; i < len(clone.OfParts); i++ {
-			clone.OfParts[i] = CloneBals(orig.OfParts[i])
+		for i, pa := range orig.OfParts {
+			clone.OfParts[i] = CloneBals(pa)
 		}
 	}
 
 	if orig.Locked != nil {
 		clone.Locked = make([]SubAlloc, len(orig.Locked))
-		for i := 0; i < len(clone.Locked); i++ {
+		for i, sa := range orig.Locked {
 			clone.Locked[i] = SubAlloc{
-				ID:   orig.Locked[i].ID,
-				Bals: CloneBals(orig.Locked[i].Bals),
+				ID:   sa.ID,
+				Bals: CloneBals(sa.Bals),
 			}
 		}
 	}
@@ -90,8 +90,8 @@ func CloneBals(orig []Bal) []Bal {
 	}
 
 	clone := make([]Bal, len(orig))
-	for i := 0; i < len(clone); i++ {
-		clone[i] = new(big.Int).Set(orig[i])
+	for i, bal := range orig {
+		clone[i] = new(big.Int).Set(bal)
 	}
 	return clone
 }
