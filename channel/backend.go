@@ -20,10 +20,14 @@ type Backend interface {
 
 	// Sign signs a channel's State with the given Account. Returns the signature
 	// or an error and a nil signature, if not successful.
+	// The framework guarantees to not pass nil Account, *Params or *State, that
+	// the IDs of them match and that Params.ID = ChannelID(Params).
 	Sign(wallet.Account, *Params, *State) (Sig, error)
 
 	// Verify verifies that the provided signature on the state belongs to the
 	// provided address.
+	// The framework guarantees to not pass nil Address, *Params or *State, that
+	// the IDs of them match and that Params.ID = ChannelID(Params).
 	Verify(addr wallet.Address, params *Params, state *State, sig Sig) (bool, error)
 }
 
