@@ -7,7 +7,6 @@ package test // import "perun.network/go-perun/pkg/test"
 import (
 	"errors"
 	"fmt"
-	"log"
 	"reflect"
 	"testing"
 )
@@ -50,7 +49,7 @@ func isCloneable(t reflect.Type) bool {
 	inputType := methodType.In(0)
 
 	if inputType != ptrType {
-		return false
+		panic("This state never occurred during development")
 	}
 
 	numOut := methodType.NumOut()
@@ -73,15 +72,7 @@ func isCloneable(t reflect.Type) bool {
 func checkCloneImpl(v, w reflect.Value) error {
 	if v.Kind() == reflect.Ptr {
 		if v.Pointer() == 0 && w.Pointer() == 0 {
-			return nil
-		}
-
-		if v.Pointer() == 0 && w.Pointer() != 0 {
-			return errors.New("First pointer is nil, second pointer is non-nil")
-		}
-
-		if v.Pointer() != 0 && w.Pointer() == 0 {
-			return errors.New("First pointer is non-nil, second pointer is nil")
+			panic("BUG: checkCloneImpl got nil inputs")
 		}
 
 		if v.Pointer() == w.Pointer() {
@@ -90,7 +81,7 @@ func checkCloneImpl(v, w reflect.Value) error {
 	}
 
 	if v.Kind() == reflect.Ptr && v.Elem().Kind() != reflect.Struct {
-		log.Fatalf("BUG: expected reference to struct, got reference to reference")
+		panic("BUG: expected reference to struct, got reference to reference")
 	}
 
 
@@ -122,7 +113,7 @@ func checkCloneImpl(v, w reflect.Value) error {
 			kind == reflect.Map ||
 			kind == reflect.String ||
 			kind == reflect.UnsafePointer {
-			log.Fatalf("Implementation not tested with %v", kind)
+			panic(fmt.Sprintf("Implementation not tested with %v", kind))
 		}
 
 		tag, hasTag := f.Tag.Lookup("cloneable")
@@ -155,7 +146,6 @@ func checkCloneImpl(v, w reflect.Value) error {
 			q := right.Pointer()
 
 			if p != q && hasTag && tag == "shallow" {
-
 				format :=
 					"Expected fields %v.%s with tag '%s' to have same pointees"
 				return fmt.Errorf(format, t, f.Name, tag)
@@ -223,12 +213,15 @@ func checkClone(p, q interface{}) error {
 		return errors.New("Proper clones must be deeply equal")
 	}
 
-	if !isCloneable(reflect.TypeOf(p)) {
-		return errors.New("First argument must be cloneable")
+	if p == nil || q == nil {
+		return fmt.Errorf("Input must not be nil, got %v, %v", p, q)
 	}
 
-	if !isCloneable(reflect.TypeOf(q)) {
-		return errors.New("Second argument must be cloneable")
+	tP := reflect.TypeOf(p)
+	tQ := reflect.TypeOf(q)
+
+	if tP != tQ || !isCloneable(tP) {
+		return fmt.Errorf("Input must be cloneable, type %v is not", tP)
 	}
 
 	v := reflect.ValueOf(p)
@@ -250,16 +243,12 @@ func clone(x interface{}) (interface{}, error) {
 
 	v := reflect.ValueOf(x)
 
-	if v.Kind() != reflect.Ptr && v.Kind() != reflect.Struct {
-		return nil, fmt.Errorf("Expected pointer or struct, got %v", v.Kind())
-	}
-
 	if clone := v.MethodByName("Clone"); clone.IsValid() {
 		// num return values is checked by `isCloneable`
 		return clone.Call([]reflect.Value{})[0].Interface(), nil
 	}
 
-	return nil, fmt.Errorf("Type %T does not possess a Clone() method", x)
+	panic(fmt.Sprintf("Error when calling %T.Clone() with object %v", x, x))
 }
 
 
