@@ -2,7 +2,7 @@
 // This file is part of go-perun. Use of this source code is governed by a
 // MIT-style license that can be found in the LICENSE file.
 
-package sim
+package wallet // import "perun.network/go-perun/backend/sim/wallet"
 
 import (
 	"bufio"
@@ -12,16 +12,29 @@ import (
 	"math/big"
 
 	"github.com/pkg/errors"
+
 	"perun.network/go-perun/log"
-	perun "perun.network/go-perun/wallet"
+	"perun.network/go-perun/wallet"
 	"perun.network/go-perun/wire"
 )
 
-// compile time check that we implement the perun Address interface
-var _ perun.Address = (*Address)(nil)
-
 // Address represents a simulated address.
 type Address ecdsa.PublicKey
+
+// compile time check that we implement the perun Address interface
+var _ wallet.Address = (*Address)(nil)
+
+// NewRandomAddress creates a new address using the randomness
+// provided by rng
+func NewRandomAddress(rng io.Reader) *Address {
+	privateKey, err := ecdsa.GenerateKey(curve, rng)
+
+	if err != nil {
+		log.Panicf("Creation of account failed with error", err)
+	}
+
+	return &Address{Curve: privateKey.Curve, X: privateKey.X, Y: privateKey.Y}
+}
 
 // Bytes converts this address to bytes.
 func (a Address) Bytes() []byte {
@@ -44,7 +57,7 @@ func (a Address) String() string {
 }
 
 // Equals checks the equality of two addresses.
-func (a Address) Equals(addr perun.Address) bool {
+func (a Address) Equals(addr wallet.Address) bool {
 	acc, ok := addr.(*Address)
 	if !ok {
 		log.Panic("Passed non wrong address type to Equals")
@@ -55,7 +68,7 @@ func (a Address) Equals(addr perun.Address) bool {
 
 // Encode encodes this address into an io.Writer. Part of the
 // go-perun/pkg/io.Serializable interface.
-func (a Address) Encode(w io.Writer) error {
+func (a *Address) Encode(w io.Writer) error {
 	if err := (wire.BigInt{Int: a.X}.Encode(w)); err != nil {
 		return errors.Wrap(err, "address encode error")
 	}
