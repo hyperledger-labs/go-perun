@@ -212,7 +212,7 @@ func clone(x interface{}) (interface{}, error) {
 //   field is not a slice value, the test fails immediately.
 // * Otherwise, the field is tested with `reflect.DeepEqual`. Missing fields
 // cause an error.
-func CheckCloneable(t* testing.T, x interface{}) {
+func VerifyClone(t* testing.T, x interface{}) {
 	if !isCloneable(reflect.TypeOf(x)) {
 		t.Errorf("Expected cloneable input, got %v (type %T)", x, x)
 	}
