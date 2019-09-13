@@ -2,7 +2,7 @@
 // This file is part of go-perun. Use of this source code is governed by a
 // MIT-style license that can be found in the LICENSE file.
 
-package sim
+package wallet // import "perun.network/go-perun/backend/sim/wallet"
 
 import (
 	"math/big"
@@ -10,7 +10,8 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	perun "perun.network/go-perun/wallet"
+
+	"perun.network/go-perun/wallet"
 	"perun.network/go-perun/wallet/test"
 )
 
@@ -44,27 +45,34 @@ func TestSignatureSerialize(t *testing.T) {
 }
 
 func TestGenericTests(t *testing.T) {
-	t.Run("Generic Signature Test", func(t *testing.T) {
+	t.Run("Generic Address Test", func(t *testing.T) {
 		t.Parallel()
-		test.GenericAddressTest(t, newSetup())
+		test.GenericAddressTest(t, newWalletSetup())
+	})
+	t.Run("Generic Wallet Test", func(t *testing.T) {
+		t.Parallel()
+		test.GenericWalletTest(t, newWalletSetup())
 	})
 	t.Run("Generic Signature Test", func(t *testing.T) {
 		t.Parallel()
-		test.GenericWalletTest(t, newSetup())
+		test.GenericSignatureTest(t, newWalletSetup())
 	})
-	t.Run("Generic Signature Test", func(t *testing.T) {
-		t.Parallel()
-		test.GenericSignatureTest(t, newSetup())
-	})
+
+	// NewRandomAddress is also tested in channel_test but since they are two packages,
+	// we also need to test it here
+	rng := rand.New(rand.NewSource(1337))
+	for i := 0; i < 10; i++ {
+		assert.NotEqual(t, NewRandomAddress(rng), NewRandomAddress(rng), "Two random accounts should not be the same")
+	}
 }
 
-func newSetup() *test.Setup {
+func newWalletSetup() *test.Setup {
 	rng := rand.New(rand.NewSource(1337))
 
 	accountA := NewRandomAccount(rng)
 	accountB := NewRandomAccount(rng)
-	initWallet := func(w perun.Wallet) error { return w.Connect("", "") }
-	unlockedAccount := func() (perun.Account, error) { return &accountA, nil }
+	initWallet := func(w wallet.Wallet) error { return w.Connect("", "") }
+	unlockedAccount := func() (wallet.Account, error) { return &accountA, nil }
 
 	return &test.Setup{
 		Wallet:          &Wallet{directory: "", account: accountA},

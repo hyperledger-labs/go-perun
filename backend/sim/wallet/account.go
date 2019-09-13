@@ -2,7 +2,7 @@
 // This file is part of go-perun. Use of this source code is governed by a
 // MIT-style license that can be found in the LICENSE file.
 
-package sim
+package wallet // import "perun.network/go-perun/backend/sim/wallet"
 
 import (
 	"crypto/ecdsa"
@@ -12,8 +12,9 @@ import (
 	"math/big"
 
 	"github.com/pkg/errors"
+
 	"perun.network/go-perun/log"
-	perun "perun.network/go-perun/wallet"
+	"perun.network/go-perun/wallet"
 )
 
 // Account represents a mocked account.
@@ -38,8 +39,8 @@ func NewRandomAccount(rng io.Reader) Account {
 }
 
 // Address returns the address of this account.
-func (a Account) Address() perun.Address {
-	return perun.Address(&a.address)
+func (a Account) Address() wallet.Address {
+	return wallet.Address(&a.address)
 }
 
 // SignData is used to sign data with this account.

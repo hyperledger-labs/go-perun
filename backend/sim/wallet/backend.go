@@ -2,7 +2,7 @@
 // This file is part of go-perun. Use of this source code is governed by a
 // MIT-style license that can be found in the LICENSE file.
 
-package sim
+package wallet // import "perun.network/go-perun/backend/sim/wallet"
 
 import (
 	"bytes"
@@ -14,7 +14,7 @@ import (
 	"github.com/pkg/errors"
 
 	"perun.network/go-perun/log"
-	perun "perun.network/go-perun/wallet"
+	"perun.network/go-perun/wallet"
 )
 
 var curve = elliptic.P256()
@@ -22,26 +22,28 @@ var curve = elliptic.P256()
 // Backend implements the utility interface defined in the wallet package.
 type Backend struct{}
 
+var _ wallet.Backend = new(Backend)
+
 // NewAddressFromString creates a new address from a string.
 // DEPRECATED
-func (h *Backend) NewAddressFromString(s string) (perun.Address, error) {
-	return h.NewAddressFromBytes([]byte(s))
+func (b *Backend) NewAddressFromString(s string) (wallet.Address, error) {
+	return b.NewAddressFromBytes([]byte(s))
 }
 
 // NewAddressFromBytes creates a new address from a byte array.
 // DEPRECATED
-func (h *Backend) NewAddressFromBytes(data []byte) (perun.Address, error) {
-	return h.DecodeAddress(bytes.NewReader(data))
+func (b *Backend) NewAddressFromBytes(data []byte) (wallet.Address, error) {
+	return b.DecodeAddress(bytes.NewReader(data))
 }
 
 // DecodeAddress decodes an address from the given Reader
-func (h *Backend) DecodeAddress(r io.Reader) (perun.Address, error) {
+func (b *Backend) DecodeAddress(r io.Reader) (wallet.Address, error) {
 	var addr Address
 	return &addr, addr.Decode(r)
 }
 
 // VerifySignature verifies if a signature was made by this account.
-func (h *Backend) VerifySignature(msg, sig []byte, a perun.Address) (bool, error) {
+func (b *Backend) VerifySignature(msg, sig []byte, a wallet.Address) (bool, error) {
 	addr, ok := a.(*Address)
 	if !ok {
 		log.Panic("Wrong address type passed to Backend.VerifySignature")

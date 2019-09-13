@@ -2,10 +2,7 @@
 // This file is part of go-perun. Use of this source code is governed by a
 // MIT-style license that can be found in the LICENSE file.
 
-// Package sim provides a simulated backend.
-// The simulated wallet can be used for internal testing.
-// DO NOT use this simulated wallet in production.
-package sim // import "perun.network/go-perun/backend/sim"
+package wallet // import "perun.network/go-perun/backend/sim/wallet"
 
 import (
 	"sync"
@@ -13,7 +10,7 @@ import (
 	"github.com/pkg/errors"
 
 	"perun.network/go-perun/log"
-	perun "perun.network/go-perun/wallet"
+	"perun.network/go-perun/wallet"
 )
 
 // Wallet represents a simulated wallet.
@@ -67,19 +64,19 @@ func (w *Wallet) Status() (string, error) {
 }
 
 // Accounts returns all accounts held by this wallet.
-func (w *Wallet) Accounts() []perun.Account {
+func (w *Wallet) Accounts() []wallet.Account {
 	w.mu.RLock()
 	defer w.mu.RUnlock()
 
 	if !w.connected {
-		return []perun.Account{}
+		return []wallet.Account{}
 	}
 
-	return []perun.Account{&w.account}
+	return []wallet.Account{&w.account}
 }
 
 // Contains checks whether this wallet holds this account.
-func (w *Wallet) Contains(a perun.Account) bool {
+func (w *Wallet) Contains(a wallet.Account) bool {
 	w.mu.RLock()
 	defer w.mu.RUnlock()
 
