@@ -5,19 +5,18 @@
 package test // import "perun.network/go-perun/pkg/test"
 
 import (
-	"errors"
 	"fmt"
 	"reflect"
 	"testing"
-)
 
+	"github.com/pkg/errors"
+)
 
 // For the given type, this function checks if it possesses a method `Clone`.
 // Receiver and return value can be values or references, e.g., with a method
 // `func (*T) Clone() T`, the type `T` is considered cloneable.
 func isCloneable(t reflect.Type) bool {
 	kind := t.Kind()
-
 	if kind != reflect.Struct && kind != reflect.Ptr {
 		return false
 	}
@@ -25,56 +24,39 @@ func isCloneable(t reflect.Type) bool {
 	// t may be a **struct
 	baseType := t
 	ptrType := reflect.PtrTo(t)
-
 	for baseType.Kind() == reflect.Ptr {
 		ptrType = baseType
 		baseType = ptrType.Elem()
 	}
 
-
 	// check for clone method
 	method, ok := ptrType.MethodByName("Clone")
-
 	if !ok {
-		return ok
+		return false
 	}
 
 	methodType := method.Type
-	numIn := methodType.NumIn()
-
-	if numIn != 1 {
+	if numIn := methodType.NumIn(); numIn != 1 {
 		return false
 	}
-
-	inputType := methodType.In(0)
-
-	if inputType != ptrType {
+	if inputType := methodType.In(0); inputType != ptrType {
 		panic("This state never occurred during development")
 	}
-
-	numOut := methodType.NumOut()
-
-	if numOut != 1 {
+	if numOut := methodType.NumOut(); numOut != 1 {
 		return false
 	}
-
-	outputType := methodType.Out(0)
-
-	if outputType != baseType && outputType != ptrType {
+	if outputType := methodType.Out(0); outputType != baseType && outputType != ptrType {
 		return false
 	}
 
 	return true
 }
 
-
-
 func checkCloneImpl(v, w reflect.Value) error {
 	if v.Kind() == reflect.Ptr {
 		if v.Pointer() == 0 && w.Pointer() == 0 {
 			panic("BUG: checkCloneImpl got nil inputs")
 		}
-
 		if v.Pointer() == w.Pointer() {
 			return errors.New("Both arguments reference the same structure")
 		}
@@ -84,11 +66,9 @@ func checkCloneImpl(v, w reflect.Value) error {
 		panic("BUG: expected reference to struct, got reference to reference")
 	}
 
-
 	// get struct type
 	baseType := v.Type()
 	ptrType := reflect.PtrTo(baseType)
-
 	if baseType.Kind() == reflect.Ptr {
 		v = v.Elem()
 		w = w.Elem()
@@ -98,15 +78,12 @@ func checkCloneImpl(v, w reflect.Value) error {
 
 	t := baseType
 
-
 	// check for field tags
 	for i := 0; i < baseType.NumField(); i++ {
 		f := baseType.Field(i)
-
 		kind := f.Type.Kind()
 		left := v.Field(i)
 		right := w.Field(i)
-
 		// disallow some untested kinds
 		if kind == reflect.Chan ||
 			kind == reflect.Func || // disallow because of caputered references
@@ -117,26 +94,26 @@ func checkCloneImpl(v, w reflect.Value) error {
 		}
 
 		tag, hasTag := f.Tag.Lookup("cloneable")
-
 		// find unknown and misplaced tags
 		if hasTag {
 			if tag == "shallow" {
 				if kind != reflect.Ptr && kind != reflect.Slice {
-					format :=
-						"Expected field %v.%s with tag '%s' to be a " +
-						"pointer or a slice, got kind %v"
-					return fmt.Errorf(format, t, f.Name, tag, kind)
+					return errors.Errorf(
+						"Expected field %v.%s with tag '%s' to be a "+
+							"pointer or a slice, got kind %v",
+						t, f.Name, tag, kind)
 				}
 			} else if tag == "shallowElements" {
 				if kind != reflect.Array && kind != reflect.Slice {
-					format :=
+					return errors.Errorf(
 						"Expected field %v.%s with tag '%s' to be an array or "+
-						"a slice, got kind %v"
-					return fmt.Errorf(format, t, f.Name, tag, kind)
+							"a slice, got kind %v",
+						t, f.Name, tag, kind)
 				}
 			} else {
-				format := `Unknown tag 'cloneable:"%s"' on field %v.%s`
-				return fmt.Errorf(format, tag, t, f.Name)
+				return errors.Errorf(
+					`Unknown tag 'cloneable:"%s"' on field %v.%s`,
+					tag, t, f.Name)
 			}
 		}
 
@@ -144,67 +121,59 @@ func checkCloneImpl(v, w reflect.Value) error {
 		if kind == reflect.Ptr || kind == reflect.Slice {
 			p := left.Pointer()
 			q := right.Pointer()
-
 			if p != q && hasTag && tag == "shallow" {
-				format :=
-					"Expected fields %v.%s with tag '%s' to have same pointees"
-				return fmt.Errorf(format, t, f.Name, tag)
+				return errors.Errorf(
+					"Expected fields %v.%s with tag '%s' to have same pointees",
+					t, f.Name, tag)
 			}
-
 			// the length check below is necessary because all slices created
 			// empty seem to reference the same address in memory
 			if p == q && p != 0 &&
 				(!hasTag || tag != "shallow") &&
 				(kind == reflect.Ptr || left.Len() > 0) {
-				format := "Expected fields %v.%s to have different pointees"
-				return fmt.Errorf(format, t, f.Name)
+				return errors.Errorf(
+					"Expected fields %v.%s to have different pointees",
+					t, f.Name)
 			}
-
 			if p != q && kind == reflect.Ptr && isCloneable(f.Type) {
 				err := checkCloneImpl(left.Elem(), right.Elem())
-
 				if err != nil {
-					format := "Error in cloneable field %v.%s: %v"
-					return fmt.Errorf(format, t, f.Name, err)
+					return errors.Errorf(
+						"Error in cloneable field %v.%s: %v",
+						t, f.Name, err)
 				}
 			}
 		}
 
-
 		if kind == reflect.Array || kind == reflect.Slice {
 			n := left.Len()
-
 			for j := 0; j < n; j++ {
-				kind_j := left.Index(j).Kind()
-
-				if kind_j == reflect.Ptr || kind_j == reflect.Slice {
+				kindJ := left.Index(j).Kind()
+				if kindJ == reflect.Ptr || kindJ == reflect.Slice {
 					p := left.Index(j).Pointer()
 					q := right.Index(j).Pointer()
-
 					if p != q && hasTag && tag == "shallowElements" {
-						format :=
-							"Expected elements %v.%s[%d] in slices with tag " +
-							"'%s' to have same pointees"
-						return fmt.Errorf(format, t, f.Name, j, tag)
+						return errors.Errorf(
+							"Expected elements %v.%s[%d] in slices with tag "+
+								"'%s' to have same pointees",
+							t, f.Name, j, tag)
 					}
-
 					if p == q && p != 0 && (!hasTag || tag != "shallowElements") {
-						format :=
-							"Expected elements %v.%s[%d] to have different pointees"
-						return fmt.Errorf(format, t, f.Name, j)
+						return errors.Errorf(
+							"Expected elements %v.%s[%d] to have different pointees",
+							t, f.Name, j)
 					}
-				} else if kind_j == reflect.Struct && isCloneable(f.Type.Elem()) {
+				} else if kindJ == reflect.Struct && isCloneable(f.Type.Elem()) {
 					err := checkCloneImpl(left.Index(j), right.Index(j))
-
 					if err != nil {
-						format := "Error in cloneable element %v.%s[%d]: %v"
-						return fmt.Errorf(format, t, f.Name, j, err)
+						return errors.Errorf(
+							"Error in cloneable element %v.%s[%d]: %v",
+							t, f.Name, j, err)
 					}
 				}
 			}
 		} else if kind == reflect.Struct && isCloneable(f.Type) {
 			err := checkCloneImpl(left, right)
-
 			if err != nil {
 				return err
 			}
@@ -214,45 +183,36 @@ func checkCloneImpl(v, w reflect.Value) error {
 	return nil
 }
 
-
-
-
 // Given two values, this function checks if they could be clones.
 func checkClone(p, q interface{}) error {
 	if !reflect.DeepEqual(p, q) {
 		return errors.New("Proper clones must be deeply equal")
 	}
-
 	if p == nil || q == nil {
-		return fmt.Errorf("Input must not be nil, got %v, %v", p, q)
+		return errors.Errorf("Input must not be nil, got %v, %v", p, q)
 	}
 
 	tP := reflect.TypeOf(p)
 	tQ := reflect.TypeOf(q)
-
 	if tP != tQ || !isCloneable(tP) {
-		return fmt.Errorf("Input must be cloneable, type %v is not", tP)
+		return errors.Errorf("Input must be cloneable, type %v is not", tP)
 	}
 
 	v := reflect.ValueOf(p)
 	w := reflect.ValueOf(q)
-
 	return checkCloneImpl(v, w)
 }
-
-
 
 // Given `x`, call `x.Clone()` if possible, return an error otherwise.
 func clone(x interface{}) (interface{}, error) {
 	if x == nil {
-		return nil, fmt.Errorf("Cannot clone nil reference")
+		return nil, errors.Errorf("Cannot clone nil reference")
 	}
 	if !isCloneable(reflect.TypeOf(x)) {
-		return nil, fmt.Errorf("Input of type %T is not cloneable", x)
+		return nil, errors.Errorf("Input of type %T is not cloneable", x)
 	}
 
 	v := reflect.ValueOf(x)
-
 	if clone := v.MethodByName("Clone"); clone.IsValid() {
 		// num return values is checked by `isCloneable`
 		return clone.Call([]reflect.Value{})[0].Interface(), nil
@@ -261,9 +221,7 @@ func clone(x interface{}) (interface{}, error) {
 	panic(fmt.Sprintf("Error when calling %T.Clone() with object %v", x, x))
 }
 
-
-
-// This function attemps to recognize improper cloning.
+// VerifyClone attemps to recognize improper cloning.
 // Initially, this function will clone its input `x` by calling `x.Clone()`,
 // where `x` is an instance of a struct (or a reference). Then it attemps to
 // detect improper clones by taking the following steps:
@@ -282,17 +240,15 @@ func clone(x interface{}) (interface{}, error) {
 // cause an error. The code was not tested with some possible kinds (e.g.,
 // channels, maps, and unsafe pointers) and will immediately panic when seeing
 // these types.
-func VerifyClone(t* testing.T, x interface{}) {
+func VerifyClone(t *testing.T, x interface{}) {
 	if !isCloneable(reflect.TypeOf(x)) {
 		t.Errorf("Expected cloneable input, got %v (type %T)", x, x)
 	}
 
 	c, err := clone(x)
-
 	if err != nil {
 		t.Errorf("Cloning failure: %v", err)
 	}
-
 	if err = checkClone(x, c); err != nil {
 		t.Error(err)
 	}
