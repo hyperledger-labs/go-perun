@@ -253,7 +253,6 @@ func (this UnknownTag) Clone() UnknownTag {
 }
 
 
-
 func Test_checkClone(t *testing.T) {
 	tests := []struct {
 		Input interface{}
@@ -295,6 +294,100 @@ func Test_checkClone(t *testing.T) {
 
 		if !test.ExpectProperClone && err == nil {
 			t.Errorf("Expected checkClone(%T) to return a non-nil value", x)
+		}
+	}
+}
+
+
+
+// the code below tests `checkClone` with a more complex type.
+
+// This is a linked list node for a functional programming language meaning
+// only the preceeding nodes change. Below, y was modified to become y':
+//
+// x  -> y  -> z
+// x' -> y' ---^
+type ListNode struct {
+	prev *ListNode
+	next *ListNode `cloneable:"shallow"`
+	integer uint
+	xs []*big.Float
+	ys []*big.Float `cloneable:"shallowSlice"`
+}
+
+func (this *ListNode) ShallowClone() *ListNode {
+	clone := &ListNode{
+		nil,
+		this.next,
+		this.integer,
+		make([]*big.Float, len(this.xs)),
+		make([]*big.Float, len(this.ys)),
+	}
+
+	if this.prev != nil {
+		clone.prev = this.prev.Clone()
+	}
+
+	copy(clone.xs, this.xs)
+	copy(clone.ys, this.ys)
+
+	return clone
+}
+
+func (this *ListNode) Clone() *ListNode {
+	clone := this.ShallowClone()
+
+	for i, x := range this.xs {
+		y := big.NewFloat(0)
+		y.Copy(x)
+		clone.xs[i] = y
+	}
+
+	return clone
+}
+
+
+
+// "manually" because the clones are computed individually
+func Test_checkCloneManually(t *testing.T) {
+	p0 := ListNode{
+		nil, nil, 1, []*big.Float{big.NewFloat(1)}, []*big.Float{big.NewFloat(-1)},
+	}
+	p1 := ListNode{
+		&p0, nil, 2, []*big.Float{big.NewFloat(2)}, []*big.Float{big.NewFloat(-2)},
+	}
+	p2 := ListNode{
+		&p1, nil, 3, []*big.Float{big.NewFloat(3)}, []*big.Float{big.NewFloat(-3)},
+	}
+
+	p0.next = &p1
+	p1.next = &p2
+
+	tests := []struct {
+		Original interface{}
+		Clone interface{}
+		IsProperClone bool
+	}{
+		{&p0, p0.Clone(), true},
+		{p0, 1, false},
+		{p0, p0.Clone(), false},
+		{&p0, p0.ShallowClone(), false},
+	}
+
+	for _, test := range tests {
+		err := checkClone(test.Original, test.Clone)
+
+		if err != nil {
+			println(err.Error())
+		}
+
+		if test.IsProperClone && err != nil {
+			format := "Expected checkClone(%T) to return nil, got error '%v'"
+			t.Errorf(format, test.Original, err)
+		}
+
+		if !test.IsProperClone && err == nil {
+			t.Errorf("Expected checkClone(%T) to return a non-nil value", test.Original)
 		}
 	}
 }
