@@ -6,6 +6,7 @@ package wire
 
 import (
 	"io"
+	"bytes"
 	"math/big"
 	"testing"
 
@@ -23,6 +24,12 @@ func TestBigInt(t *testing.T) {
 }
 
 func TestInvalidBigInt(t *testing.T) {
+func TestBigInt_Negative(t *testing.T) {
+	neg, buf := BigInt{big.NewInt(-1)}, new(bytes.Buffer)
+	assert.Panics(t, func() { neg.Encode(buf) }, "encoding negative big.Int should panic")
+	assert.Zero(t, buf.Len(), "encoding negative big.Int should not write anything")
+}
+
 	a := assert.New(t)
 	// Test integers that are too big
 	bytes := make([]byte, maxBigIntLength+1)
