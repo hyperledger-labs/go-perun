@@ -368,6 +368,22 @@ func (this SelfContained) Clone() SelfContained {
 
 
 
+type HasArray struct {
+	xs [2]CloneableRef
+	ys [1]*big.Float `cloneable:"shallowElements"`
+	zs [1]int `cloneable:"shallowElements"`
+}
+
+func (this HasArray) Clone() HasArray {
+	return HasArray{
+		[2]CloneableRef{*this.xs[0].Clone(), *this.xs[1].Clone()},
+		[1]*big.Float{this.ys[0]},
+		[1]int{this.zs[0]},
+	}
+}
+
+
+
 // "manually" because the clones are computed individually
 func Test_checkCloneManually(t *testing.T) {
 	p0 := ListNode{
@@ -383,10 +399,15 @@ func Test_checkCloneManually(t *testing.T) {
 	p0.next = &p1
 	p1.next = &p2
 
-
 	ss := SelfContained{[]SelfContained{
 		SelfContained{[]SelfContained{}, nil},
 		SelfContained{[]SelfContained{}, nil}}, nil}
+
+	arr0 := HasArray{}
+	arr0.ys[0] = big.NewFloat(0)
+	arr1 := arr0.Clone()
+	arr1.ys[0] = big.NewFloat(0)
+	arr1.ys[0].Copy(arr0.ys[0])
 
 	tests := []struct {
 		Original interface{}
@@ -395,10 +416,12 @@ func Test_checkCloneManually(t *testing.T) {
 	}{
 		{&p0, p0.Clone(), true},
 		{ss, ss.Clone(), true},
+		{arr0, arr0.Clone(), true},
 		{p0, 1, false},
 		{p0, p0.Clone(), false},
 		{&p0, p0.ShallowClone(), false},
 		{ss, ss, false},
+		{arr0, arr1, false},
 	}
 
 	for _, test := range tests {
