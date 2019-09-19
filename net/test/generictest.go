@@ -2,19 +2,19 @@
 // This file is part of go-perun. Use of this source code is governed by a
 // MIT-style license that can be found in the LICENSE file.
 
-// Package test provides generic tests for network connections. 
+// Package test provides generic tests for network connections.
 // It tests basic functionality that every net.Conn and net.Listener should implement.
-// For the definition of net.Conn and net.Listener see https://golang.org/pkg/net/. 
+// For the definition of net.Conn and net.Listener see https://golang.org/pkg/net/.
 //
-// Usage: 
+// Usage:
 // 		Provide a Setup struct to the GenericXTest functions.
 // 		The setup struct must contain a function to create a listener/server
-// 		and a function to connect to this listener/server. 
+// 		and a function to connect to this listener/server.
 package test // import "perun.network/go-perun/net/test"
 
 import (
-	"testing"
 	"net"
+	"testing"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -29,7 +29,7 @@ type Dialer func() (net.Conn, error)
 // The methods should create a new listener, and connect to a peer.
 type Setup struct {
 	ListenerFactory ListenerFactory
-	Dialer   Dialer
+	Dialer          Dialer
 }
 
 // GenericListenerTest tests generic functionality of connecting and disconnecting of client and server.

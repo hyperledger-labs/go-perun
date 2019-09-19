@@ -94,10 +94,10 @@ func newChannelSetup() *test.Setup {
 	stateParamFields["ChallengeDuration"] = true
 
 	return &test.Setup{
-		Params:  params,
-		Params2: params2,
-		State:   state,
-		State2:  state2,
+		Params:        params,
+		Params2:       params2,
+		State:         state,
+		State2:        state2,
 		Account:       wallet.NewRandomAccount(rng),
 		RandomAddress: func() perun.Address { return wallet.NewRandomAddress(rng) },
 	}
