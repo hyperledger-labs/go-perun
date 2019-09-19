@@ -183,25 +183,25 @@ func (this BrokenShallowCloneSliceLen) Clone() BrokenShallowCloneSliceLen {
 
 
 // These struct test if `checkClone` detects improper field clones with
-// `shallowSlice` tag.
+// `shallowElements` tag.
 
-type BrokenShallowSliceClone struct {
-	Xs []int `cloneable:"shallowSlice"`
+type BrokenShallowElementsClone struct {
+	Xs []int `cloneable:"shallowElements"`
 }
 
-func (this BrokenShallowSliceClone) Clone() (clone BrokenShallowSliceClone) {
-	clone = BrokenShallowSliceClone{this.Xs}
+func (this BrokenShallowElementsClone) Clone() (clone BrokenShallowElementsClone) {
+	clone = BrokenShallowElementsClone{this.Xs}
 	return
 }
 
 
-type BrokenShallowSliceCloneLength struct {
-	Xs []int `cloneable:"shallowSlice"`
+type BrokenShallowElementsCloneLength struct {
+	Xs []int `cloneable:"shallowElements"`
 }
 
-func (this BrokenShallowSliceCloneLength) Clone() (clone BrokenShallowSliceCloneLength) {
+func (this BrokenShallowElementsCloneLength) Clone() (clone BrokenShallowElementsCloneLength) {
 	Xs := this.Xs
-	clone = BrokenShallowSliceCloneLength{make([]int, len(Xs)+1)}
+	clone = BrokenShallowElementsCloneLength{make([]int, len(Xs)+1)}
 
 	copy(clone.Xs, Xs)
 
@@ -235,12 +235,12 @@ func (this MisplacedTagShallow) Clone() MisplacedTagShallow {
 }
 
 
-type MisplacedTagShallowSlice struct {
-	x *CloneableRef `cloneable:"shallowSlice"`
+type MisplacedTagShallowElements struct {
+	x *CloneableRef `cloneable:"shallowElements"`
 }
 
-func (this MisplacedTagShallowSlice) Clone() MisplacedTagShallowSlice {
-	return MisplacedTagShallowSlice{this.x.Clone()}
+func (this MisplacedTagShallowElements) Clone() MisplacedTagShallowElements {
+	return MisplacedTagShallowElements{this.x.Clone()}
 }
 
 
@@ -265,11 +265,11 @@ func Test_checkClone(t *testing.T) {
 		{BrokenShallowClonePtr{&CloneableRef{1}}, false},
 		{BrokenShallowCloneSlice{[]int{1,2,3}}, false},
 		{BrokenShallowCloneSliceLen{[]int{1,2,3}}, false},
-		{BrokenShallowSliceClone{[]int{1,2,3}}, false},
-		{BrokenShallowSliceCloneLength{[]int{1,2,3}}, false},
+		{BrokenShallowElementsClone{[]int{1,2,3}}, false},
+		{BrokenShallowElementsCloneLength{[]int{1,2,3}}, false},
 		{BrokenDeepClone{[]*big.Float{big.NewFloat(1), big.NewFloat(2)}},false},
 		{MisplacedTagShallow{0}, false},
-		{MisplacedTagShallowSlice{&CloneableRef{0}}, false},
+		{MisplacedTagShallowElements{&CloneableRef{0}}, false},
 		{UnknownTag{[]int{1}}, false},
 	}
 
@@ -312,7 +312,7 @@ type ListNode struct {
 	next *ListNode `cloneable:"shallow"`
 	integer uint
 	xs []*big.Float
-	ys []*big.Float `cloneable:"shallowSlice"`
+	ys []*big.Float `cloneable:"shallowElements"`
 }
 
 func (this *ListNode) ShallowClone() *ListNode {
