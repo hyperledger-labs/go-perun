@@ -5,59 +5,75 @@
 package wire
 
 import (
-	"io"
 	"bytes"
 	"math/big"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 
+	"perun.network/go-perun/pkg/io"
 	"perun.network/go-perun/pkg/io/test"
-	peruntest "perun.network/go-perun/pkg/test"
 )
 
-func TestBigInt(t *testing.T) {
-	var v1 = BigInt{big.NewInt(123456)}
-	var v2 = BigInt{big.NewInt(1)}
-	var v3 = BigInt{big.NewInt(0)}
-	test.GenericSerializableTest(t, &v1, &v2, &v3)
+func TestBigInt_Generic(t *testing.T) {
+	vars := []io.Serializable{
+		&BigInt{big.NewInt(0)},
+		&BigInt{big.NewInt(1)},
+		&BigInt{big.NewInt(123456)},
+		&BigInt{new(big.Int).SetBytes([]byte{1, 2, 3, 4, 5, 6, 7, 8, 9, 10})}, // larger than uint64
+	}
+	test.GenericSerializableTest(t, vars...)
 }
 
-func TestInvalidBigInt(t *testing.T) {
+func TestBigInt_DecodeZeroLength(t *testing.T) {
+	assert := assert.New(t)
+
+	buf := bytes.NewBuffer([]byte{0})
+	var result BigInt
+	assert.NoError(result.Decode(buf), "decoding zero length big.Int should work")
+	assert.Zero(new(big.Int).Cmp(result.Int), "decoding zero length should set big.Int to 0")
+}
+
+func TestBigInt_DecodeToExisting(t *testing.T) {
+	x, buf := new(big.Int), bytes.NewBuffer([]byte{1, 42})
+	wx := BigInt{x}
+	assert.NoError(t, wx.Decode(buf), "decoding {1, 42} into big.Int should work")
+	assert.Zero(t, big.NewInt(42).Cmp(x), "decoding {1, 42} into big.Int should result in 42")
+}
+
 func TestBigInt_Negative(t *testing.T) {
 	neg, buf := BigInt{big.NewInt(-1)}, new(bytes.Buffer)
 	assert.Panics(t, func() { neg.Encode(buf) }, "encoding negative big.Int should panic")
 	assert.Zero(t, buf.Len(), "encoding negative big.Int should not write anything")
 }
 
+func TestBigInt_Invalid(t *testing.T) {
 	a := assert.New(t)
+	buf := new(bytes.Buffer)
 	// Test integers that are too big
-	bytes := make([]byte, maxBigIntLength+1)
-	bytes[0] = 1
-	_big := big.NewInt(1).SetBytes(bytes)
-	var tooBig = BigInt{_big}
-	r, w := io.Pipe()
+	tooBigBitPos := []uint{maxBigIntLength*8 + 1, 0xff*8 + 1} // too big uint8 and uint16 lengths
+	for _, pos := range tooBigBitPos {
+		var tooBig = BigInt{big.NewInt(1)}
+		tooBig.Lsh(tooBig.Int, pos)
 
-	a.NotNil(tooBig.Encode(w), "encoding of a big integer that is too big should fail")
+		a.Error(tooBig.Encode(buf), "encoding too big big.Int should fail")
+		a.Zero(buf.Len(), "encoding too big big.Int should not have written anything")
+		buf.Reset() // in case above test failed
+	}
 
-	go func() {
-		w.Write([]byte{uint8(len(bytes))})
-	}()
+	// manually encode too big number to test failing of decoding
+	buf.Write([]byte{maxBigIntLength + 1})
+	for i := 0; i < maxBigIntLength+1; i++ {
+		buf.WriteByte(0xff)
+	}
 
 	var result BigInt
-	a.NotNil(result.Decode(r), "decoding of an integer that is too big should fail")
+	a.Error(result.Decode(buf), "decoding of an integer that is too big should fail")
+	buf.Reset()
 
 	// Test not sending value, only length
-	go func() {
-		w.Write([]byte{10})
-		w.Close()
-	}()
+	buf.WriteByte(1)
+	a.Error(result.Decode(buf), "decoding after sender only sent length should fail")
 
-	a.NotNil(result.Decode(r), "decoding after sender only send length should fail")
-
-	_, w = io.Pipe()
-
-	if panics, _ := peruntest.CheckPanic(func() { BigInt{nil}.Encode(w) }); !panics {
-		t.Error("encoding nil BigInt failed to panic")
-	}
+	a.Panics(func() { BigInt{nil}.Encode(buf) }, "encoding nil big.Int failed to panic")
 }
