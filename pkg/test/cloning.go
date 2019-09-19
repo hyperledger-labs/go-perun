@@ -218,11 +218,6 @@ func checkCloneImpl(v, w reflect.Value) error {
 
 
 // Given two values, this function checks if they could be clones.
-// This implementation is incomplete:
-// * Slices are not checked.
-// * Not exported fields are ignored.
-// * Pointer equality is not checked meaning with `checkClone(&x,&x)` will not
-//   return an error when it should.
 func checkClone(p, q interface{}) error {
 	if !reflect.DeepEqual(p, q) {
 		return errors.New("Proper clones must be deeply equal")
@@ -272,19 +267,22 @@ func clone(x interface{}) (interface{}, error) {
 // This function attemps to recognize improper cloning.
 // Initially, this function will clone its input `x` by calling `x.Clone()`,
 // where `x` is an instance of a struct (or a reference). Then it attemps to
-// detect improper clones by taking the following steps for every exported
-// field of `x`:
-// * If the field of type `T` is itself is a cloneable, then this function is
-//   called on the field value.
-// * If the field has a `clonable:"shallow"` tag, it is checked that the
-//   pointer or slice value are the same. If the type of the field is a value
-//   type, the test fails immediately with the error that a value field cannot
-//   have this tag.
-// * If the field has a `clonable:"shallowElements"` tag, it is checked that the
-//   slice itself is different but that the slice values are the same. If the
-//   field is not a slice value, the test fails immediately.
-// * Otherwise, the field is tested with `reflect.DeepEqual`. Missing fields
-// cause an error.
+// detect improper clones by taking the following steps:
+// * Run `reflect.DeepEqual` and terminate with an error if it returns false.
+//
+// Then, for every exported field of `x`:
+// * If the field of type `T` is itself is a cloneable, then this value is
+//   checked recursively.
+// * If the field has kind pointer or slice and if it has a
+//   `cloneable:"shallow"` tag, it is checked that the pointer or slice value
+//   are the same.
+// * If the field has kind array or slice and a `cloneable:"shallowElements"`
+//   tag, it is checked that the the array and slice values shallow copies.
+//
+// Tags attached to inappropriate fields as well as unknown `cloneable` tags
+// cause an error. The code was not tested with some possible kinds (e.g.,
+// channels, maps, and unsafe pointers) and will immediately panic when seeing
+// these types.
 func VerifyClone(t* testing.T, x interface{}) {
 	if !isCloneable(reflect.TypeOf(x)) {
 		t.Errorf("Expected cloneable input, got %v (type %T)", x, x)
