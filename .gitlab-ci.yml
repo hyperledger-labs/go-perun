@@ -13,6 +13,13 @@ before_script:
   - export GOPATH=$HOME/go
   - export PATH=$PATH:$GOROOT/bin:$GOPATH/bin
 
+fmt:
+  <<: *only-default
+  image: golang
+  stage: vetting
+  script:
+    - "! gofmt -l `ls -d */` | grep ."
+
 lint:
   <<: *only-default
   image: golang
@@ -36,7 +43,7 @@ unit_tests:
   only:
     - merge_requests
 
-unit_race_tests:  
+unit_race_tests:
   image: golang
   stage: tests
   script:
