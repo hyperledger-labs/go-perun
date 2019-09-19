@@ -71,8 +71,22 @@ func isCloneable(t reflect.Type) bool {
 
 
 func checkCloneImpl(v, w reflect.Value) error {
-	if v.Kind() == reflect.Ptr && v.Pointer() == w.Pointer() {
-		return errors.New("Both arguments reference the same structure")
+	if v.Kind() == reflect.Ptr {
+		if v.Pointer() == 0 && w.Pointer() == 0 {
+			return nil
+		}
+
+		if v.Pointer() == 0 && w.Pointer() != 0 {
+			return errors.New("First pointer is nil, second pointer is non-nil")
+		}
+
+		if v.Pointer() != 0 && w.Pointer() == 0 {
+			return errors.New("First pointer is non-nil, second pointer is nil")
+		}
+
+		if v.Pointer() == w.Pointer() {
+			return errors.New("Both arguments reference the same structure")
+		}
 	}
 
 	if v.Kind() == reflect.Ptr && v.Elem().Kind() != reflect.Struct {
@@ -100,16 +114,10 @@ func checkCloneImpl(v, w reflect.Value) error {
 
 		tag := f.Tag
 		kind := f.Type.Kind()
+		left := v.Field(i)
+		right := w.Field(i)
 
-		if kind == reflect.Struct && isCloneable(f.Type) {
-			iLeft := v.Field(i)
-			iRight := w.Field(i)
-			err := checkCloneImpl(iLeft, iRight)
-
-			if err != nil {
-				return err
-			}
-		} else if value, ok := tag.Lookup("cloneable"); ok && value == "shallow" {
+		if value, ok := tag.Lookup("cloneable"); ok && value == "shallow" {
 			if kind != reflect.Ptr && kind != reflect.Slice {
 				format :=
 					"Expected field %v.%s with tag '%s' to be a " +
@@ -117,7 +125,7 @@ func checkCloneImpl(v, w reflect.Value) error {
 				return fmt.Errorf(format, t, f.Name, value, kind)
 			}
 
-			if v.Field(i).Pointer() != w.Field(i).Pointer() {
+			if left.Pointer() != right.Pointer() {
 				format :=
 					"Expected fields %v.%s with tag '%s' to have " +
 					"same references"
@@ -131,9 +139,6 @@ func checkCloneImpl(v, w reflect.Value) error {
 				return fmt.Errorf(format, t, f.Name, value, kind)
 			}
 
-			left := v.Field(i)
-			right := w.Field(i)
-
 			if left.Pointer() == right.Pointer() {
 				format := "Slices %v.%s with tag '%s' reference same memory"
 				return fmt.Errorf(format, t, f.Name, value)
@@ -141,6 +146,33 @@ func checkCloneImpl(v, w reflect.Value) error {
 		} else if value, ok := tag.Lookup("cloneable"); ok {
 			format := `Unknown tag 'cloneable:"%s"' on field %v.%s`
 			return fmt.Errorf(format, value, t, f.Name)
+		} else if isCloneable(f.Type) {
+			err := checkCloneImpl(left, right)
+
+			if err != nil {
+				return err
+			}
+		} else if kind == reflect.Ptr {
+			if v.Pointer() == w.Pointer() {
+				return fmt.Errorf("TODO so geht das aber nicht!")
+			}
+		} else if kind == reflect.Array || kind == reflect.Slice {
+			if kind == reflect.Slice && left.Pointer() == right.Pointer() {
+				return fmt.Errorf("ERROR")
+			}
+
+			n := left.Len()
+
+			for j := 0; j < n; j++ {
+				p := left.Index(j)
+				q := right.Index(j)
+
+				if (p.Kind() == reflect.Ptr || p.Kind() == reflect.Slice) &&
+					p.Pointer() == q.Pointer() {
+					format := "%v.%s[%d] contains a shallow copy"
+					return fmt.Errorf(format, t, f.Name, j)
+				}
+			}
 		}
 	}
 
