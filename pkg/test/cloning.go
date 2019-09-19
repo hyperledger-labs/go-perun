@@ -159,7 +159,17 @@ func checkCloneImpl(v, w reflect.Value) error {
 				format := "Expected fields %v.%s to have different pointees"
 				return fmt.Errorf(format, t, f.Name)
 			}
+
+			if p != q && kind == reflect.Ptr && isCloneable(f.Type) {
+				err := checkCloneImpl(left.Elem(), right.Elem())
+
+				if err != nil {
+					format := "Error in cloneable field %v.%s: %v"
+					return fmt.Errorf(format, t, f.Name, err)
+				}
+			}
 		}
+
 
 		if kind == reflect.Array || kind == reflect.Slice {
 			n := left.Len()
