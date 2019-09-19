@@ -7,6 +7,7 @@ package channel
 import (
 	"io"
 	"math/big"
+	"perun.network/go-perun/pkg/test"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -31,6 +32,67 @@ func assets(n uint) []Asset {
 		as[i] = new(asset)
 	}
 	return as
+}
+
+func TestAllocation_Clone(t *testing.T) {
+	tests := []struct {
+		name  string
+		alloc Allocation
+	}{
+		{
+			"assets-1,parts-1,locks-nil",
+			Allocation{assets(1), [][]Bal{[]Bal{big.NewInt(-1)}}, nil},
+		},
+
+		{
+			"assets-1,parts-1,locks",
+			Allocation{
+				assets(1),
+				[][]Bal{[]Bal{big.NewInt(0)}},
+				[]SubAlloc{SubAlloc{ID{123}, []*big.Int{big.NewInt(0)}}},
+			},
+		},
+
+		{
+			"assets-2,parties-4,locks-nil",
+			Allocation{
+				assets(2),
+				[][]Bal{
+					[]Bal{big.NewInt(1), big.NewInt(11)},
+					[]Bal{big.NewInt(2), big.NewInt(2)},
+					[]Bal{big.NewInt(3), big.NewInt(5)},
+					[]Bal{big.NewInt(10), big.NewInt(2)},
+				},
+				nil,
+			},
+		},
+
+		{
+			"assets-2,parties-4,locks",
+			Allocation{
+				assets(2),
+				[][]Bal{
+					[]Bal{big.NewInt(1), big.NewInt(11)},
+					[]Bal{big.NewInt(2), big.NewInt(2)},
+					[]Bal{big.NewInt(3), big.NewInt(5)},
+					[]Bal{big.NewInt(10), big.NewInt(2)},
+				},
+				[]SubAlloc{
+					SubAlloc{ID{1}, []Bal{big.NewInt(1), big.NewInt(2)}},
+				},
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if err := tt.alloc.valid(); err != nil {
+				t.Fatal(err.Error())
+			}
+
+			test.VerifyClone(t, tt.alloc)
+		})
+	}
 }
 
 func TestAllocation_Sum(t *testing.T) {
