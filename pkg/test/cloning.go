@@ -155,12 +155,17 @@ func checkCloneImpl(v, w reflect.Value) error {
 			q := right.Pointer()
 
 			if p != q && hasTag && tag == "shallow" {
+
 				format :=
 					"Expected fields %v.%s with tag '%s' to have same pointees"
 				return fmt.Errorf(format, t, f.Name, tag)
 			}
 
-			if p == q && p != 0 && (!hasTag || tag != "shallow") {
+			// the length check below is necessary because all slices created
+			// empty seem to reference the same address in memory
+			if p == q && p != 0 &&
+				(!hasTag || tag != "shallow") &&
+				(kind == reflect.Ptr || left.Len() > 0) {
 				format := "Expected fields %v.%s to have different pointees"
 				return fmt.Errorf(format, t, f.Name)
 			}
