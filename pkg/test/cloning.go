@@ -111,18 +111,24 @@ func checkCloneImpl(v, w reflect.Value) error {
 			}
 		} else if value, ok := tag.Lookup("cloneable"); ok && value == "shallow" {
 			if kind != reflect.Ptr && kind != reflect.Slice {
-				format := "Expected field %v.%s with 'shallow' tag to have pointer or slice kind, got kind '%v'"
-				return fmt.Errorf(format, t, f.Name, tag, kind)
+				format :=
+					"Expected field %v.%s with tag '%s' to be a " +
+					"pointer or a slice, got kind %v"
+				return fmt.Errorf(format, t, f.Name, value, kind)
 			}
 
 			if v.Field(i).Pointer() != w.Field(i).Pointer() {
-				format := "Expected fields %v.%s to have same references"
-				return fmt.Errorf(format, t, f.Name)
+				format :=
+					"Expected fields %v.%s with tag '%s' to have " +
+					"same references"
+				return fmt.Errorf(format, t, f.Name, value)
 			}
 		} else if value, ok := tag.Lookup("cloneable"); ok && value == "shallowSlice" {
 			if kind != reflect.Slice {
-				format := "Expected field %s to be a slice, got %v"
-				return fmt.Errorf(format, f.Name, kind)
+				format :=
+					"Expected field %v.%s with tag '%s' to be a " +
+					"slice, got kind %v"
+				return fmt.Errorf(format, t, f.Name, value, kind)
 			}
 
 			left := v.Field(i)
@@ -133,7 +139,7 @@ func checkCloneImpl(v, w reflect.Value) error {
 				return fmt.Errorf(format, t, f.Name, value)
 			}
 		} else if value, ok := tag.Lookup("cloneable"); ok {
-			format := "Unknown tag '%s' on field %v.%s"
+			format := `Unknown tag 'cloneable:"%s"' on field %v.%s`
 			return fmt.Errorf(format, value, t, f.Name)
 		}
 	}
