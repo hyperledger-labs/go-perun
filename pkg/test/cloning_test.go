@@ -38,7 +38,32 @@ func (this *BrokenCloneableRef) Clone() *BrokenCloneableRef {
 }
 
 
+type BrokenCloneablePtr struct {
+	x *int
+}
+
+func (this BrokenCloneablePtr) Clone() BrokenCloneablePtr {
+	return BrokenCloneablePtr{}
+}
+
+
 type NotCloneable struct {
+}
+
+
+type NotCloneableNumArgsIn struct {
+}
+
+func (NotCloneableNumArgsIn) Clone(NotCloneableNumArgsIn) NotCloneableNumArgsIn{
+	return NotCloneableNumArgsIn{}
+}
+
+
+type NotCloneableNumArgsOut struct {
+}
+
+func (NotCloneableNumArgsOut) Clone() (NotCloneableNumArgsOut,NotCloneableNumArgsOut) {
+	return NotCloneableNumArgsOut{}, NotCloneableNumArgsOut{}
 }
 
 
@@ -66,6 +91,14 @@ func (this RecursivelyCloneable) Clone() RecursivelyCloneable {
 	return RecursivelyCloneable{this.X.Clone()}
 }
 
+type RecursivelyCloneableRef struct {
+	x *RecursivelyCloneableRef
+}
+
+func (this *RecursivelyCloneableRef) Clone() *RecursivelyCloneableRef {
+	return &RecursivelyCloneableRef{this.x.Clone()}
+}
+
 
 func Test_isCloneable(t *testing.T) {
 	tests := []struct {
@@ -75,7 +108,11 @@ func Test_isCloneable(t *testing.T) {
 		{Cloneable{}, true},
 		{CloneableRef{}, true},
 		{RecursivelyCloneable{}, true},
+		{RecursivelyCloneableRef{}, true},
+		{RecursivelyCloneableRef{&RecursivelyCloneableRef{}}, true},
 		{NotCloneable{}, false},
+		{NotCloneableNumArgsIn{}, false},
+		{NotCloneableNumArgsOut{}, false},
 		{NotCloneableInt{}, false},
 		{NotCloneableIntRef{}, false},
 		{&Cloneable{}, true},
@@ -113,6 +150,8 @@ func Test_clone(t* testing.T) {
 		{&NotCloneable{}, false},
 		{1, false},
 		{1.0, false},
+		{[]int{1}, false},
+		{nil, false},
 	}
 
 	for _, test := range tests {
@@ -144,6 +183,37 @@ func Test_clone(t* testing.T) {
 			}
 		}
 	}
+}
+
+
+// detect broken clone detection for nested cloneable structures
+
+type BrokenCloneableNestedInner struct {
+	x *int
+}
+
+func (this BrokenCloneableNestedInner) Clone() BrokenCloneableNestedInner {
+	return BrokenCloneableNestedInner{this.x}
+}
+
+type BrokenCloneableNested struct {
+	inner BrokenCloneableNestedInner
+}
+
+func (this BrokenCloneableNested) Clone() BrokenCloneableNested {
+	return BrokenCloneableNested{this.inner.Clone()}
+}
+
+
+// detect broken clone detection for arrays
+
+type BrokenCloneableNestedArray struct {
+	inner [1]BrokenCloneableNestedInner
+}
+
+func (this BrokenCloneableNestedArray) Clone() BrokenCloneableNestedArray {
+	return BrokenCloneableNestedArray{
+		[1]BrokenCloneableNestedInner{this.inner[0].Clone()}}
 }
 
 
@@ -261,6 +331,12 @@ func Test_checkClone(t *testing.T) {
 		{Cloneable{}, true},
 		{&CloneableRef{}, true},
 		{&BrokenCloneableRef{}, false},
+		{&BrokenCloneableRef{}, false},
+		{BrokenCloneablePtr{new(int)}, false},
+		{BrokenCloneableNested{BrokenCloneableNestedInner{new(int)}}, false},
+		{BrokenCloneableNestedArray{
+			[1]BrokenCloneableNestedInner{BrokenCloneableNestedInner{new(int)}}},
+			false},
 		{RecursivelyCloneable{}, true},
 		{BrokenShallowClonePtr{&CloneableRef{1}}, false},
 		{BrokenShallowCloneSlice{[]int{1,2,3}}, false},
@@ -409,6 +485,10 @@ func Test_checkCloneManually(t *testing.T) {
 	arr1.ys[0] = big.NewFloat(0)
 	arr1.ys[0].Copy(arr0.ys[0])
 
+	rcr := RecursivelyCloneableRef{}
+	rcr0 := RecursivelyCloneableRef{&RecursivelyCloneableRef{&rcr}}
+	rcr1 := RecursivelyCloneableRef{&RecursivelyCloneableRef{&rcr}}
+
 	tests := []struct {
 		Original interface{}
 		Clone interface{}
@@ -417,11 +497,16 @@ func Test_checkCloneManually(t *testing.T) {
 		{&p0, p0.Clone(), true},
 		{ss, ss.Clone(), true},
 		{arr0, arr0.Clone(), true},
+		{nil, nil, false},
+		{NotCloneable{}, NotCloneable{}, false},
 		{p0, 1, false},
+		{p0, &p0, false},
+		{&p0, p0, false},
 		{p0, p0.Clone(), false},
 		{&p0, p0.ShallowClone(), false},
 		{ss, ss, false},
 		{arr0, arr1, false},
+		{rcr0, rcr1, false},
 	}
 
 	for _, test := range tests {
