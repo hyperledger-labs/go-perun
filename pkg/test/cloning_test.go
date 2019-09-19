@@ -226,6 +226,24 @@ func (this BrokenDeepClone) Clone() (clone BrokenDeepClone) {
 
 
 
+type MisplacedTagShallow struct {
+	x uint `cloneable:"shallow"`
+}
+
+func (this MisplacedTagShallow) Clone() MisplacedTagShallow {
+	return MisplacedTagShallow{this.x}
+}
+
+
+type MisplacedTagShallowSlice struct {
+	x *CloneableRef `cloneable:"shallowSlice"`
+}
+
+func (this MisplacedTagShallowSlice) Clone() MisplacedTagShallowSlice {
+	return MisplacedTagShallowSlice{this.x.Clone()}
+}
+
+
 type UnknownTag struct {
 	xs []int `cloneable:"thisIsNotATag"`
 }
@@ -251,6 +269,8 @@ func Test_checkClone(t *testing.T) {
 		{BrokenShallowSliceClone{[]int{1,2,3}}, false},
 		{BrokenShallowSliceCloneLength{[]int{1,2,3}}, false},
 		{BrokenDeepClone{[]*big.Float{big.NewFloat(1), big.NewFloat(2)}},false},
+		{MisplacedTagShallow{0}, false},
+		{MisplacedTagShallowSlice{&CloneableRef{0}}, false},
 		{UnknownTag{[]int{1}}, false},
 	}
 
@@ -263,6 +283,10 @@ func Test_checkClone(t *testing.T) {
 		}
 
 		err = checkClone(x, c)
+
+		if err != nil {
+			println(err.Error())
+		}
 
 		if test.ExpectProperClone && err != nil {
 			format := "Expected checkClone(%T) to return nil, got error '%v'"
