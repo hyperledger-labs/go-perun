@@ -5,11 +5,11 @@
 package net_test
 
 import (
+	"net"
 	"testing"
-	 "net"
 
-	"perun.network/go-perun/net/test"
 	_net "perun.network/go-perun/net"
+	"perun.network/go-perun/net/test"
 )
 
 func TestWrappedTCPConn(t *testing.T) {
@@ -26,7 +26,7 @@ func TestWrappedTCPConn(t *testing.T) {
 
 	s := &test.Setup{
 		ListenerFactory: listener,
-		Dialer:   dialer,
+		Dialer:          dialer,
 	}
 
 	test.GenericListenerTest(t, s)

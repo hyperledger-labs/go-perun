@@ -36,7 +36,7 @@ func TestStutter(t *testing.T) {
 	for i, v := range values {
 		assert.Equal(t, decodedValue[i], v, "failed to decode element")
 	}
-	
+
 }
 
 func testByteSlices(t *testing.T, serial ...ByteSlice) {
