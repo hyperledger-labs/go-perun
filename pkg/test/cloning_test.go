@@ -348,6 +348,26 @@ func (this *ListNode) Clone() *ListNode {
 
 
 
+type SelfContained struct {
+	xs []SelfContained
+	alwaysNil []SelfContained
+}
+
+func (this SelfContained) Clone() SelfContained {
+	n := len(this.xs)
+	clone := SelfContained{make([]SelfContained, n), nil}
+
+	if n != 0 {
+		for i, _ := range this.xs {
+			clone.xs[i] = this.xs[i].Clone()
+		}
+	}
+
+	return clone
+}
+
+
+
 // "manually" because the clones are computed individually
 func Test_checkCloneManually(t *testing.T) {
 	p0 := ListNode{
@@ -363,15 +383,22 @@ func Test_checkCloneManually(t *testing.T) {
 	p0.next = &p1
 	p1.next = &p2
 
+
+	ss := SelfContained{[]SelfContained{
+		SelfContained{[]SelfContained{}, nil},
+		SelfContained{[]SelfContained{}, nil}}, nil}
+
 	tests := []struct {
 		Original interface{}
 		Clone interface{}
 		IsProperClone bool
 	}{
 		{&p0, p0.Clone(), true},
+		{ss, ss.Clone(), true},
 		{p0, 1, false},
 		{p0, p0.Clone(), false},
 		{&p0, p0.ShallowClone(), false},
+		{ss, ss, false},
 	}
 
 	for _, test := range tests {
