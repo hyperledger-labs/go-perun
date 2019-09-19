@@ -112,66 +112,96 @@ func checkCloneImpl(v, w reflect.Value) error {
 	for i := 0; i < baseType.NumField(); i++ {
 		f := baseType.Field(i)
 
-		tag := f.Tag
 		kind := f.Type.Kind()
 		left := v.Field(i)
 		right := w.Field(i)
 
-		if value, ok := tag.Lookup("cloneable"); ok && value == "shallow" {
-			if kind != reflect.Ptr && kind != reflect.Slice {
+		// disallow some untested kinds
+		if kind == reflect.Chan ||
+			kind == reflect.Func || // disallow because of caputered references
+			kind == reflect.Map ||
+			kind == reflect.String ||
+			kind == reflect.UnsafePointer {
+			log.Fatalf("Implementation not tested with %v", kind)
+		}
+
+		tag, hasTag := f.Tag.Lookup("cloneable")
+
+		// find unknown and misplaced tags
+		if hasTag {
+			if tag == "shallow" {
+				if kind != reflect.Ptr && kind != reflect.Slice {
+					format :=
+						"Expected field %v.%s with tag '%s' to be a " +
+						"pointer or a slice, got kind %v"
+					return fmt.Errorf(format, t, f.Name, tag, kind)
+				}
+			} else if tag == "shallowElements" {
+				if kind != reflect.Array && kind != reflect.Slice {
+					format :=
+						"Expected field %v.%s with tag '%s' to be an array or "+
+						"a slice, got kind %v"
+					return fmt.Errorf(format, t, f.Name, tag, kind)
+				}
+			} else {
+				format := `Unknown tag 'cloneable:"%s"' on field %v.%s`
+				return fmt.Errorf(format, tag, t, f.Name)
+			}
+		}
+
+		// check actual field contents
+		if kind == reflect.Ptr || kind == reflect.Slice {
+			p := left.Pointer()
+			q := right.Pointer()
+
+			if p != q && hasTag && tag == "shallow" {
 				format :=
-					"Expected field %v.%s with tag '%s' to be a " +
-					"pointer or a slice, got kind %v"
-				return fmt.Errorf(format, t, f.Name, value, kind)
+					"Expected fields %v.%s with tag '%s' to have same pointees"
+				return fmt.Errorf(format, t, f.Name, tag)
 			}
 
-			if left.Pointer() != right.Pointer() {
-				format :=
-					"Expected fields %v.%s with tag '%s' to have " +
-					"same references"
-				return fmt.Errorf(format, t, f.Name, value)
+			if p == q && p != 0 && (!hasTag || tag != "shallow") {
+				format := "Expected fields %v.%s to have different pointees"
+				return fmt.Errorf(format, t, f.Name)
 			}
-		} else if value, ok := tag.Lookup("cloneable"); ok && value == "shallowSlice" {
-			if kind != reflect.Slice {
-				format :=
-					"Expected field %v.%s with tag '%s' to be a " +
-					"slice, got kind %v"
-				return fmt.Errorf(format, t, f.Name, value, kind)
-			}
+		}
 
-			if left.Pointer() == right.Pointer() {
-				format := "Slices %v.%s with tag '%s' reference same memory"
-				return fmt.Errorf(format, t, f.Name, value)
+		if kind == reflect.Array || kind == reflect.Slice {
+			n := left.Len()
+
+			for j := 0; j < n; j++ {
+				kind_j := left.Index(j).Kind()
+
+				if kind_j == reflect.Ptr || kind_j == reflect.Slice {
+					p := left.Index(j).Pointer()
+					q := right.Index(j).Pointer()
+
+					if p != q && hasTag && tag == "shallowElements" {
+						format :=
+							"Expected elements %v.%s[%d] in slices with tag " +
+							"'%s' to have same pointees"
+						return fmt.Errorf(format, t, f.Name, j, tag)
+					}
+
+					if p == q && p != 0 && (!hasTag || tag != "shallowElements") {
+						format :=
+							"Expected elements %v.%s[%d] to have different pointees"
+						return fmt.Errorf(format, t, f.Name, j)
+					}
+				} else if kind_j == reflect.Struct && isCloneable(f.Type.Elem()) {
+					err := checkCloneImpl(left.Index(j), right.Index(j))
+
+					if err != nil {
+						format := "Error in cloneable element %v.%s[%d]: %v"
+						return fmt.Errorf(format, t, f.Name, j, err)
+					}
+				}
 			}
-		} else if value, ok := tag.Lookup("cloneable"); ok {
-			format := `Unknown tag 'cloneable:"%s"' on field %v.%s`
-			return fmt.Errorf(format, value, t, f.Name)
-		} else if isCloneable(f.Type) {
+		} else if kind == reflect.Struct && isCloneable(f.Type) {
 			err := checkCloneImpl(left, right)
 
 			if err != nil {
 				return err
-			}
-		} else if kind == reflect.Ptr {
-			if v.Pointer() == w.Pointer() {
-				return fmt.Errorf("TODO so geht das aber nicht!")
-			}
-		} else if kind == reflect.Array || kind == reflect.Slice {
-			if kind == reflect.Slice && left.Pointer() == right.Pointer() {
-				return fmt.Errorf("ERROR")
-			}
-
-			n := left.Len()
-
-			for j := 0; j < n; j++ {
-				p := left.Index(j)
-				q := right.Index(j)
-
-				if (p.Kind() == reflect.Ptr || p.Kind() == reflect.Slice) &&
-					p.Pointer() == q.Pointer() {
-					format := "%v.%s[%d] contains a shallow copy"
-					return fmt.Errorf(format, t, f.Name, j)
-				}
 			}
 		}
 	}
@@ -245,7 +275,7 @@ func clone(x interface{}) (interface{}, error) {
 //   pointer or slice value are the same. If the type of the field is a value
 //   type, the test fails immediately with the error that a value field cannot
 //   have this tag.
-// * If the field has a `clonable:"shallowSlice"` tag, it is checked that the
+// * If the field has a `clonable:"shallowElements"` tag, it is checked that the
 //   slice itself is different but that the slice values are the same. If the
 //   field is not a slice value, the test fails immediately.
 // * Otherwise, the field is tested with `reflect.DeepEqual`. Missing fields
