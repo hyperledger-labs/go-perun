@@ -21,9 +21,8 @@ type bytewiseReader struct {
 func (r bytewiseReader) Read(data []byte) (n int, err error) {
 	if len(data) == 0 {
 		return r.reader.Read(data)
-	} else {
-		return r.reader.Read(data[:1])
 	}
+	return r.reader.Read(data[:1])
 }
 
 // GenericSerializableTest runs multiple tests to check whether encoding
@@ -36,31 +35,26 @@ func GenericSerializableTest(t *testing.T, serializables ...perunio.Serializable
 // genericDecodeEncodeTest tests whether encoding and then decoding
 // serializable values results in the original values.
 func genericDecodeEncodeTest(t *testing.T, serializables ...perunio.Serializable) {
-	r, w := io.Pipe()
-	br := bytewiseReader{r}
-	done := make(chan struct{})
-	go func(serializables []perunio.Serializable) {
-		for i, v := range serializables {
+	for i, v := range serializables {
+		r, w := io.Pipe()
+		br := bytewiseReader{r}
+		go func() {
 			if err := perunio.Encode(w, v); err != nil {
 				t.Errorf("failed to encode %dth element (%T): %+v", i, v, err)
 			}
-		}
-		close(done)
-	}(serializables)
-
-	for i, v := range serializables {
+		}()
 
 		dest := reflect.New(reflect.TypeOf(v).Elem())
-
-		if err := perunio.Decode(br, dest.Interface().(perunio.Serializable)); err != nil {
+		err := perunio.Decode(br, dest.Interface().(perunio.Serializable))
+		r.Close()
+		if err != nil {
 			t.Errorf("failed to decode %dth element (%T): %+v", i, v, err)
-		}
-
-		if !reflect.DeepEqual(v, dest.Interface()) {
-			t.Errorf("encoding and decoding the %dth element (%T) resulted in different value: %v, %v", i, v, reflect.ValueOf(v).Elem(), dest.Elem())
+		} else if !reflect.DeepEqual(v, dest.Interface()) {
+			t.Errorf(
+				"encoding and decoding the %dth element (%T) resulted in different value: %v, %v",
+				i, v, reflect.ValueOf(v).Elem(), dest.Elem())
 		}
 	}
-	<-done
 }
 
 // GenericBrokenPipeTest tests that encoding and decoding on broken streams fails.
