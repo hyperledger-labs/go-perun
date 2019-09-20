@@ -5,10 +5,13 @@
 package channel
 
 import (
+	"encoding/binary"
+	"io"
 	"math/big"
 
 	"perun.network/go-perun/log"
-	"perun.network/go-perun/pkg/io"
+	perunIo "perun.network/go-perun/pkg/io"
+	"perun.network/go-perun/wire"
 
 	"github.com/pkg/errors"
 )
@@ -51,7 +54,7 @@ type (
 	// Asset identifies an asset. E.g., it may be the address of the multi-sig
 	// where all participants' assets are deposited.
 	// The same Asset should be shareable by multiple Allocation instances.
-	Asset = io.Serializable
+	Asset = perunIo.Serializable
 )
 
 // Clone returns a deep copy of the Allocation object.
@@ -170,4 +173,61 @@ func equalSum(b0, b1 summer) (bool, error) {
 		}
 	}
 	return true, nil
+}
+
+// suballocation serialization
+func (s *SubAlloc) Encode(w io.Writer) error {
+	if _, err := w.Write(s.ID[:]); err != nil {
+		return errors.WithMessagef(
+			err, "Error encoding suballocation id %v", s.ID)
+	}
+
+	numAssets := 0
+	if s.Bals != nil {
+		numAssets = len(s.Bals)
+	}
+	if err := binary.Write(w, binary.LittleEndian, int32(numAssets)); err != nil {
+		return err
+	}
+
+	balances := make([]interface{}, numAssets)
+	for i := 0; i < numAssets; i++ {
+		balances[i] = s.Bals[i]
+	}
+	if err := wire.Encode(w, balances...); err != nil {
+		return errors.WithMessagef(
+			err, "Encoding error for participant balances")
+	}
+
+	return nil
+}
+
+func (s *SubAlloc) Decode(r io.Reader) error {
+	if n, err := io.ReadFull(r, s.ID[:]); n != len(s.ID) || err != nil {
+		if n != len(s.ID) {
+			return errors.Errorf(
+				"Expected to read %d bytes of ID, got %d", len(s.ID), n)
+		}
+		if err != nil {
+			return errors.WithMessage(err, "Error when reading suballocation ID")
+		}
+	}
+
+	var numAssets int32
+	if err := binary.Read(r, binary.LittleEndian, &numAssets); err != nil {
+		return err
+	}
+
+	s.Bals = make([]Bal, numAssets)
+	balances := make([]interface{}, numAssets)
+	for i := 0; i < int(numAssets); i++ {
+		s.Bals[i] = new(big.Int)
+		balances[i] = &s.Bals[i]
+	}
+	if err := wire.Decode(r, balances...); err != nil {
+		return errors.WithMessagef(
+			err, "Encoding error for participant balances")
+	}
+
+	return nil
 }
