@@ -17,37 +17,32 @@ fmt:
   <<: *only-default
   image: golang
   stage: vetting
-  script:
-    - "! gofmt -l `ls -d */` | grep ."
+  script: "! gofmt -l `ls -d */` | grep ."
 
 lint:
   <<: *only-default
   image: golang
   stage: vetting
-  script:
-    - golint -set_exit_status ./...
+  script: "golint -set_exit_status ./..."
   allow_failure: true
 
 vet:
   <<: *only-default
   image: golang
   stage: vetting
-  script:
-    - go vet ./...
+  script: "go vet ./..."
 
 unit_tests:
   image: golang
   stage: tests
-  script:
-    - go test -cover ./...
+  script: "go test -cover ./..."
   only:
     - merge_requests
 
 unit_race_tests:
   image: golang
   stage: tests
-  script:
-    - go test -race ./...
+  script: "go test -race ./..."
   only:
     - merge_requests
   when: on_success
