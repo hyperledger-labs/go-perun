@@ -14,7 +14,7 @@ import (
 )
 
 // maxBigIntLength defines the maximum length of a big integer.
-// Default: 1024bit -> 128 bytes
+// 1024bit -> 128 bytes
 const maxBigIntLength = 128
 
 // BigInt is a serializable big integer.
@@ -26,8 +26,7 @@ type BigInt struct {
 func (b *BigInt) Decode(reader io.Reader) error {
 	// Read length
 	var lengthData = make([]byte, 1)
-	_, err := reader.Read(lengthData)
-	if err != nil {
+	if _, err := reader.Read(lengthData); err != nil {
 		return errors.Wrap(err, "failed to decode length of big.Int")
 	}
 
@@ -36,40 +35,36 @@ func (b *BigInt) Decode(reader io.Reader) error {
 		return errors.New("big.Int too big to decode")
 	}
 
-	if length == 0 {
-		*b = BigInt{big.NewInt(0)}
-		return nil
-	}
-
 	bytes := make([]byte, length)
-	_, err = io.ReadFull(reader, bytes)
-	if err != nil {
-		return errors.Wrap(err, "failed to read []byte in big.Int")
+	if n, err := io.ReadFull(reader, bytes); err != nil {
+		return errors.Wrapf(err, "failed to read bytes for big.Int, read %d/%d", n, length)
 	}
 
-	b.Int = new(big.Int).SetBytes(bytes)
+	if b.Int == nil {
+		b.Int = new(big.Int)
+	}
+	b.Int.SetBytes(bytes)
 	return nil
 }
 
 // Encode writes a big.Int to the stream.
 func (b BigInt) Encode(writer io.Writer) error {
 	if b.Int == nil {
-		log.Panicln("logic error: tried to encode nil big.Int")
+		log.Panic("logic error: tried to encode nil big.Int")
+	}
+	if b.Int.Sign() == -1 {
+		log.Panic("encoding of negative big.Int not implemented")
 	}
 
 	bytes := b.Bytes()
-	// Dont cast it to SizeType here, otherwise it can overflow
 	length := len(bytes)
-
-	// 255 hardcoded because we serialize as uint8
-	if uint8(length) > maxBigIntLength {
+	// we serialize the length as uint8
+	if length > maxBigIntLength {
 		return errors.New("big.Int too big to encode")
 	}
 
 	// Write length
-	n, err := writer.Write([]byte{uint8(length)})
-
-	if err != nil {
+	if _, err := writer.Write([]byte{uint8(length)}); err != nil {
 		return errors.Wrap(err, "failed to write length")
 	}
 
@@ -78,6 +73,6 @@ func (b BigInt) Encode(writer io.Writer) error {
 	}
 
 	// Write bytes
-	n, err = writer.Write(bytes)
+	n, err := writer.Write(bytes)
 	return errors.Wrapf(err, "failed to write big.Int, wrote %d bytes of %d", n, length)
 }
