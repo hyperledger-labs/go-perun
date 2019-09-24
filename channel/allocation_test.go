@@ -98,6 +98,42 @@ func TestAllocation_Clone(t *testing.T) {
 	}
 }
 
+func TestAllocationSerialization(t *testing.T) {
+	inputs := []perunIo.Serializable{
+		&Allocation{
+			Assets:  []Asset{&DummyAsset{0}},
+			OfParts: [][]Bal{[]Bal{big.NewInt(123)}},
+			Locked:  []SubAlloc{},
+		},
+		&Allocation{
+			Assets: []Asset{&DummyAsset{1}},
+			OfParts: [][]Bal{
+				[]Bal{big.NewInt(1)},
+			},
+			Locked: []SubAlloc{
+				SubAlloc{ID{0}, []Bal{big.NewInt(2)}},
+			},
+		},
+		&Allocation{
+			Assets: []Asset{&DummyAsset{1}, &DummyAsset{2}, &DummyAsset{3}},
+			OfParts: [][]Bal{
+				[]Bal{big.NewInt(1), big.NewInt(10), big.NewInt(100)},
+				[]Bal{big.NewInt(7), big.NewInt(11), big.NewInt(13)},
+			},
+			Locked: []SubAlloc{
+				SubAlloc{
+					ID: ID{0},
+					Bals: []Bal{
+						big.NewInt(1), big.NewInt(3), big.NewInt(5),
+					},
+				},
+			},
+		},
+	}
+
+	ioTest.GenericSerializableTest(t, inputs...)
+}
+
 func TestAllocation_Sum(t *testing.T) {
 	// invalid Allocation
 	invalidAllocation := Allocation{}
