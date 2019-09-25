@@ -7,9 +7,12 @@
 package channel // import "perun.network/go-perun/channel"
 
 import (
+	"encoding/binary"
+	"io"
+
 	"github.com/pkg/errors"
 
-	"perun.network/go-perun/pkg/io"
+	perunIo "perun.network/go-perun/pkg/io"
 )
 
 type (
@@ -47,10 +50,14 @@ type (
 
 	// Data is the data of the application running in this app channel
 	Data interface {
-		io.Serializable
+		perunIo.Serializable
 		// Clone should return a deep copy of the Data object.
 		// It should return nil if the Data object is nil.
 		Clone() Data
+	}
+
+	DummyData struct {
+		X uint32
 	}
 )
 
@@ -89,4 +96,16 @@ func (s *State) Clone() *State {
 	clone.Allocation = s.Allocation.Clone()
 	clone.Data = s.Data.Clone()
 	return &clone
+}
+
+func (d *DummyData) Encode(w io.Writer) error {
+	return binary.Write(w, binary.LittleEndian, d.X)
+}
+
+func (d *DummyData) Decode(r io.Reader) error {
+	return binary.Read(r, binary.LittleEndian, &d.X)
+}
+
+func (d *DummyData) Clone() Data {
+	return &DummyData{d.X}
 }
