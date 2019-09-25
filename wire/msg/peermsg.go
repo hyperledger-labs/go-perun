@@ -27,17 +27,10 @@ func decodePeerMsg(reader io.Reader) (msg PeerMsg, err error) {
 		return nil, errors.WithMessage(err, "failed to read the message type")
 	}
 
-	switch Type {
-	case PeerDummy:
-		msg = &DummyPeerMsg{}
-	default:
+	if peerDecodeFuns[Type] == nil {
 		log.Panicf("decodePeerMsg(): Unhandled peer message type: %v", Type)
 	}
-
-	if err := msg.decode(reader); err != nil {
-		return nil, errors.WithMessagef(err, "failed to decode %v", Type)
-	}
-	return msg, nil
+	return peerDecodeFuns[Type](reader)
 }
 
 func encodePeerMsg(msg PeerMsg, writer io.Writer) error {
@@ -50,6 +43,17 @@ func encodePeerMsg(msg PeerMsg, writer io.Writer) error {
 	}
 
 	return nil
+}
+
+var peerDecodeFuns map[PeerMsgType]func(io.Reader) (PeerMsg, error)
+
+// RegisterPeerDecode register the function that will decode all messages of category PeerMsg
+func RegisterPeerDecode(t PeerMsgType, fun func(io.Reader) (PeerMsg, error)) {
+	if peerDecodeFuns[t] != nil || fun == nil {
+		log.Panic("RegisterPeerDecode called twice or with invalid argument")
+	}
+
+	peerDecodeFuns[t] = fun
 }
 
 // peerMsg allows default-implementing the Category function in peer messages.

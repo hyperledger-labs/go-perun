@@ -35,20 +35,10 @@ func decodeChannelMsg(reader io.Reader) (msg ChannelMsg, err error) {
 		return nil, errors.WithMessage(err, "failed to read the channel ID")
 	}
 
-	// Type is guaranteed to be valid at this point.
-	// This switch handles all channel message types, but if any was forgotten,
-	// the program panics.
-	switch Type {
-	case ChannelDummy:
-		msg = &DummyChannelMsg{channelMsg: m}
-	default:
+	if channelDecodeFuns[Type] == nil {
 		log.Panicf("decodeChannelMsg(): Unhandled channel message type: %v", Type)
 	}
-
-	if err := msg.decode(reader); err != nil {
-		return nil, errors.WithMessagef(err, "failed to decode %v", Type)
-	}
-	return msg, nil
+	return channelDecodeFuns[Type](reader)
 }
 
 func encodeChannelMsg(msg ChannelMsg, writer io.Writer) error {
@@ -66,6 +56,17 @@ func encodeChannelMsg(msg ChannelMsg, writer io.Writer) error {
 	}
 
 	return nil
+}
+
+var channelDecodeFuns map[ChannelMsgType]func(io.Reader) (ChannelMsg, error)
+
+// RegisterChannelDecode register the function that will decode all messages of category ChannelMsg
+func RegisterChannelDecode(t ChannelMsgType, fun func(io.Reader) (ChannelMsg, error)) {
+	if channelDecodeFuns[t] != nil || fun == nil {
+		log.Panic("RegisterChannelDecode called twice or with invalid argument")
+	}
+
+	channelDecodeFuns[t] = fun
 }
 
 // channelMsg allows default-implementing the Category(), Channel() functions

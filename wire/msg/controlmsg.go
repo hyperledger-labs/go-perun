@@ -41,21 +41,21 @@ func decodeControlMsg(reader io.Reader) (ControlMsg, error) {
 		return nil, errors.WithMessage(err, "failed to read the message type")
 	}
 
-	var msg ControlMsg
-	// Decode message payload.
-	switch Type {
-	case Ping:
-		msg = &PingMsg{}
-	case Pong:
-		msg = &PongMsg{}
-	default:
+	if controlDecodeFuns[Type] == nil {
 		log.Panicf("decodeControlMsg(): Unhandled control message type: %v", Type)
 	}
+	return controlDecodeFuns[Type](reader)
+}
 
-	if err := msg.decode(reader); err != nil {
-		return nil, errors.WithMessagef(err, "failed to decode %v", Type)
+var controlDecodeFuns map[ControlMsgType]func(io.Reader) (ControlMsg, error)
+
+// RegisterControlDecode register the function that will decode all messages of category ControlMsg
+func RegisterControlDecode(t ControlMsgType, fun func(io.Reader) (ControlMsg, error)) {
+	if controlDecodeFuns[t] != nil || fun == nil {
+		log.Panic("RegisterControlDecode called twice or with invalid argument")
 	}
-	return msg, nil
+
+	controlDecodeFuns[t] = fun
 }
 
 // controlMsg allows default-implementing the Category() function in control
