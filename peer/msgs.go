@@ -40,7 +40,6 @@ func (m *DummyPeerMsg) decode(reader io.Reader) error {
 	return wire.Decode(reader, &m.dummy)
 }
 
-type SessionID = [32]byte
 type Commitment = []byte
 
 type Proposal struct {
@@ -124,4 +123,75 @@ func (p *Proposal) decode(r io.Reader) error {
 
 func (p *Proposal) Type() MsgType {
 	return PeerProposal
+}
+
+type SessionID = [32]byte
+
+type Response struct {
+	SesID         SessionID
+	Commit        Commitment
+	EphemeralAddr wallet.Address
+}
+
+func (*Response) Category() wiremsg.Category {
+	return wiremsg.Peer
+}
+
+func (*Response) Type() MsgType {
+	return PeerResponse
+}
+
+func (r *Response) encode(w io.Writer) error {
+	if _, err := w.Write(r.SesID[:]); err != nil {
+		return errors.WithMessagef(err, "Response SID encoding")
+	}
+
+	if len(r.Commit) > math.MaxInt32 {
+		return errors.Errorf(
+			"Expected maximum response commitment length %d, got %d",
+			math.MaxInt32, len(r.Commit))
+	}
+
+	commitLen := int32(len(r.Commit))
+	if err := wire.Encode(w, commitLen); err != nil {
+		return errors.WithMessagef(err, "Response commitment length encoding")
+	}
+	if _, err := w.Write(r.Commit); err != nil {
+		return errors.WithMessagef(err, "Response commitment encoding")
+	}
+
+	if err := r.EphemeralAddr.Encode(w); err != nil {
+		return errors.WithMessagef(err, "Response ephemeral address encoding")
+	}
+
+	return nil
+}
+
+func (response *Response) decode(r io.Reader) error {
+	response.SesID = SessionID{}
+	if _, err := io.ReadFull(r, response.SesID[:]); err != nil {
+		return errors.WithMessagef(err, "Response SID decoding")
+	}
+
+	var commitLen int32
+	if err := binary.Read(r, binary.LittleEndian, &commitLen); err != nil {
+		return errors.WithMessagef(err, "Response commitment length decoding")
+	}
+	if commitLen < 0 {
+		return errors.Errorf(
+			"Decoded negative response commitment length %d", commitLen)
+	}
+
+	response.Commit = make([]byte, commitLen)
+	if _, err := io.ReadFull(r, response.Commit); err != nil {
+		return errors.WithMessagef(err, "Response commitment decoding")
+	}
+
+	if ephemeralAddr, err := wallet.DecodeAddress(r); err != nil {
+		return errors.WithMessagef(err, "App address decoding")
+	} else {
+		response.EphemeralAddr = ephemeralAddr
+	}
+
+	return nil
 }

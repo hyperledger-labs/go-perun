@@ -38,6 +38,8 @@ func decodeMsg(reader io.Reader) (wire.Msg, error) {
 		message = &DummyPeerMsg{}
 	case PeerProposal:
 		message = &Proposal{}
+	case PeerResponse:
+		message = &Response{}
 	default:
 		return nil, errors.Errorf("unknown peer message type: %v", Type)
 	}
@@ -79,6 +81,7 @@ const (
 	// first actual peer message type is added.
 	PeerDummy MsgType = iota
 	PeerProposal
+	PeerResponse
 
 	// This constant marks the first invalid enum value.
 	msgTypeEnd
@@ -93,6 +96,7 @@ func (t MsgType) String() string {
 	return [...]string{
 		"DummyPeerMsg",
 		"Proposal",
+		"Response",
 	}[t]
 }
 

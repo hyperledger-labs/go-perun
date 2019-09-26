@@ -69,3 +69,22 @@ func TestProposalSerialization(t *testing.T) {
 		wire.TestMsg(t, &inputs[i])
 	}
 }
+
+func TestResponseSerialization(t *testing.T) {
+	inputs := []Response{
+		Response{
+			SesID:         SessionID{0, 1, 2},
+			Commit:        []byte{3},
+			EphemeralAddr: newAddress(4),
+		},
+		Response{
+			SesID:         SessionID{0x0E, 0xA7, 0xBE, 0xEF},
+			Commit:        []byte{0xAB, 0xCD, 0xEF, 0x01, 0x23, 0x45, 0x67, 0x89},
+			EphemeralAddr: newAddress(123),
+		},
+	}
+
+	for i := range inputs {
+		wire.TestMsg(t, &inputs[i])
+	}
+}
