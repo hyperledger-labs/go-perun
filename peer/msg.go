@@ -36,6 +36,8 @@ func decodeMsg(reader io.Reader) (wire.Msg, error) {
 	switch Type {
 	case PeerDummy:
 		message = &DummyPeerMsg{}
+	case PeerProposal:
+		message = &Proposal{}
 	default:
 		return nil, errors.Errorf("unknown peer message type: %v", Type)
 	}
@@ -90,6 +92,7 @@ func (t MsgType) String() string {
 	}
 	return [...]string{
 		"DummyPeerMsg",
+		"Proposal",
 	}[t]
 }
 

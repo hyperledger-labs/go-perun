@@ -10,8 +10,8 @@ import (
 
 	simulatedWallet "perun.network/go-perun/backend/sim/wallet"
 	"perun.network/go-perun/channel"
-	"perun.network/go-perun/pkg/io/test"
 	"perun.network/go-perun/wallet"
+	wire "perun.network/go-perun/wire/msg"
 )
 
 type SequentialGenerator struct {
@@ -66,6 +66,6 @@ func TestProposalSerialization(t *testing.T) {
 	}
 
 	for i := range inputs {
-		test.GenericSerializableTest(t, &inputs[i])
+		wire.TestMsg(t, &inputs[i])
 	}
 }

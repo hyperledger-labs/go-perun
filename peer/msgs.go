@@ -56,7 +56,7 @@ func (p Proposal) Category() wiremsg.Category {
 	return wiremsg.Peer
 }
 
-func (p Proposal) Encode(w io.Writer) error {
+func (p Proposal) encode(w io.Writer) error {
 	if err := wire.Encode(w, p.ChallengeDuration); err != nil {
 		return errors.WithMessagef(err, "Challenge duration encoding")
 	}
@@ -82,7 +82,7 @@ func (p Proposal) Encode(w io.Writer) error {
 	return nil
 }
 
-func (p *Proposal) Decode(r io.Reader) error {
+func (p *Proposal) decode(r io.Reader) error {
 	if err := wire.Decode(r, &p.ChallengeDuration); err != nil {
 		return errors.WithMessagef(err, "Challenge duration decoding")
 	}
