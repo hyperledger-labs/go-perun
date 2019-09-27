@@ -35,22 +35,25 @@ func TestProposalSerialization(t *testing.T) {
 	inputs := []Proposal{
 		Proposal{
 			ChallengeDuration: 0,
-			Commit:            []byte{1, 2, 3, 4},
-			EphemeralAddr:     newAddress(5),
-			AppDef:            newAddress(6),
-			InitData:          &channel.DummyData{X: 7},
+			Nonce:             big.NewInt(1),
+			EphemeralAddr:     newAddress(2),
+			AppDef:            newAddress(3),
+			InitData:          &channel.DummyData{X: 6},
 			InitBals: channel.Allocation{
-				Assets:  []channel.Asset{&channel.DummyAsset{Value: 8}},
-				OfParts: [][]channel.Bal{[]channel.Bal{big.NewInt(9)}},
-				Locked:  []channel.SubAlloc{},
+				Assets: []channel.Asset{&channel.DummyAsset{Value: 7}},
+				OfParts: [][]channel.Bal{
+					[]channel.Bal{big.NewInt(8)},
+					[]channel.Bal{big.NewInt(9)}},
+				Locked: []channel.SubAlloc{},
 			},
+			PerunParts: []wallet.Address{newAddress(4), newAddress(5)},
 		},
 		Proposal{
-			ChallengeDuration: 100,
-			Commit:            []byte{1, 2, 3, 4, 255, 127, 0, 128},
+			ChallengeDuration: 99,
+			Nonce:             big.NewInt(100),
 			EphemeralAddr:     newAddress(101),
 			AppDef:            newAddress(102),
-			InitData:          &channel.DummyData{X: 128},
+			InitData:          &channel.DummyData{X: 103},
 			InitBals: channel.Allocation{
 				Assets: []channel.Asset{
 					&channel.DummyAsset{Value: 8}, &channel.DummyAsset{Value: 255}},
@@ -62,6 +65,7 @@ func TestProposalSerialization(t *testing.T) {
 						ID:   channel.ID{0xCA, 0xFE},
 						Bals: []channel.Bal{big.NewInt(11), big.NewInt(12)}}},
 			},
+			PerunParts: []wallet.Address{newAddress(101), newAddress(110)},
 		},
 	}
 
@@ -73,13 +77,11 @@ func TestProposalSerialization(t *testing.T) {
 func TestResponseSerialization(t *testing.T) {
 	inputs := []Response{
 		Response{
-			SesID:         SessionID{0, 1, 2},
-			Commit:        []byte{3},
+			SessID:        SessionID{0, 1, 2},
 			EphemeralAddr: newAddress(4),
 		},
 		Response{
-			SesID:         SessionID{0x0E, 0xA7, 0xBE, 0xEF},
-			Commit:        []byte{0xAB, 0xCD, 0xEF, 0x01, 0x23, 0x45, 0x67, 0x89},
+			SessID:        SessionID{0x0E, 0xA7, 0xBE, 0xEF},
 			EphemeralAddr: newAddress(123),
 		},
 	}

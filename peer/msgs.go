@@ -8,6 +8,7 @@ import (
 	"encoding/binary"
 	"io"
 	"math"
+	"math/big"
 
 	"github.com/pkg/errors"
 
@@ -40,15 +41,16 @@ func (m *DummyPeerMsg) decode(reader io.Reader) error {
 	return wire.Decode(reader, &m.dummy)
 }
 
-type Commitment = []byte
+type Nonce *big.Int
 
 type Proposal struct {
 	ChallengeDuration uint64
-	Commit            Commitment
+	Nonce             Nonce
 	EphemeralAddr     wallet.Address
 	AppDef            wallet.Address
 	InitData          channel.Data
 	InitBals          channel.Allocation
+	PerunParts        []wallet.Address
 }
 
 func (p Proposal) Category() wiremsg.Category {
@@ -56,66 +58,79 @@ func (p Proposal) Category() wiremsg.Category {
 }
 
 func (p Proposal) encode(w io.Writer) error {
-	if err := wire.Encode(w, p.ChallengeDuration); err != nil {
-		return errors.WithMessagef(err, "Challenge duration encoding")
-	}
-
-	if len(p.Commit) > math.MaxInt32 {
-		return errors.Errorf(
-			"Expected maximum commitment length of %d bytes, got %d",
-			math.MaxInt32, len(p.Commit))
-	}
-
-	commitLen := int32(len(p.Commit))
-	if err := wire.Encode(w, commitLen); err != nil {
-		return errors.WithMessagef(err, "Proposal commitment length encoding")
-	}
-	if _, err := w.Write(p.Commit); err != nil {
-		return errors.WithMessagef(err, "Proposal commitment encoding")
+	var nonceInt *big.Int
+	nonceInt = p.Nonce
+	if err := wire.Encode(w, p.ChallengeDuration, nonceInt); err != nil {
+		return err
 	}
 
 	if err := perunIo.Encode(w, p.EphemeralAddr, p.AppDef, p.InitData, &p.InitBals); err != nil {
-		return errors.WithMessagef(err, "Proposal encoding")
+		return err
+	}
+
+	if len(p.PerunParts) > math.MaxInt32 {
+		return errors.Errorf(
+			"Expected maximum number of participants %d, got %d",
+			math.MaxInt32, len(p.PerunParts))
+	}
+
+	numParts := int32(len(p.PerunParts))
+	if err := binary.Write(w, binary.LittleEndian, numParts); err != nil {
+		return err
+	}
+	ss := make([]perunIo.Serializable, len(p.PerunParts))
+	for i := 0; i < len(p.PerunParts); i++ {
+		ss[i] = p.PerunParts[i]
+	}
+	if err := perunIo.Encode(w, ss...); err != nil {
+		return err
 	}
 
 	return nil
 }
 
 func (p *Proposal) decode(r io.Reader) error {
-	if err := wire.Decode(r, &p.ChallengeDuration); err != nil {
-		return errors.WithMessagef(err, "Challenge duration decoding")
+	var nonceInt *big.Int
+	if err := wire.Decode(r, &p.ChallengeDuration, &nonceInt); err != nil {
+		return err
 	}
+	p.Nonce = new(big.Int).Set(nonceInt)
 
-	var commitLen int32
-	if err := binary.Read(r, binary.LittleEndian, &commitLen); err != nil {
-		return errors.WithMessagef(err, "Commitment length decoding")
-	} else if commitLen < 0 {
-		return errors.WithMessagef(err, "Negative decoded commitment length")
-	}
-
-	p.Commit = make([]byte, commitLen)
-
-	if n, err := io.ReadFull(r, p.Commit); n < int(commitLen) || err != nil {
-		return errors.WithMessagef(
-			err, "Expected reading %d bytes, got %d", commitLen, n)
-	}
-
+	// read p.EphemeralAddr, p.AppDef
 	if ephemeralAddr, err := wallet.DecodeAddress(r); err != nil {
-		return errors.WithMessagef(err, "Ephemeral address decoding")
+		return err
 	} else {
 		p.EphemeralAddr = ephemeralAddr
 	}
-
 	if appDef, err := wallet.DecodeAddress(r); err != nil {
-		return errors.WithMessagef(err, "App address decoding")
+		return err
 	} else {
 		p.AppDef = appDef
 	}
 
 	p.InitData = &channel.DummyData{}
 	p.InitBals = channel.Allocation{}
+
 	if err := perunIo.Decode(r, p.InitData, &p.InitBals); err != nil {
-		return errors.WithMessagef(err, "Initial state decoding")
+		return err
+	}
+
+	var numParts int32
+	if err := wire.Decode(r, &numParts); err != nil {
+		return err
+	}
+	if numParts < 2 {
+		return errors.Errorf(
+			"Expected at least 2 participants, got %d", numParts)
+	}
+
+	p.PerunParts = make([]wallet.Address, numParts)
+	for i := 0; i < len(p.PerunParts); i++ {
+		if addr, err := wallet.DecodeAddress(r); err != nil {
+			return err
+		} else {
+			p.PerunParts[i] = addr
+		}
 	}
 
 	return nil
@@ -128,8 +143,7 @@ func (p *Proposal) Type() MsgType {
 type SessionID = [32]byte
 
 type Response struct {
-	SesID         SessionID
-	Commit        Commitment
+	SessID        SessionID
 	EphemeralAddr wallet.Address
 }
 
@@ -142,22 +156,8 @@ func (*Response) Type() MsgType {
 }
 
 func (r *Response) encode(w io.Writer) error {
-	if _, err := w.Write(r.SesID[:]); err != nil {
+	if _, err := w.Write(r.SessID[:]); err != nil {
 		return errors.WithMessagef(err, "Response SID encoding")
-	}
-
-	if len(r.Commit) > math.MaxInt32 {
-		return errors.Errorf(
-			"Expected maximum response commitment length %d, got %d",
-			math.MaxInt32, len(r.Commit))
-	}
-
-	commitLen := int32(len(r.Commit))
-	if err := wire.Encode(w, commitLen); err != nil {
-		return errors.WithMessagef(err, "Response commitment length encoding")
-	}
-	if _, err := w.Write(r.Commit); err != nil {
-		return errors.WithMessagef(err, "Response commitment encoding")
 	}
 
 	if err := r.EphemeralAddr.Encode(w); err != nil {
@@ -168,23 +168,9 @@ func (r *Response) encode(w io.Writer) error {
 }
 
 func (response *Response) decode(r io.Reader) error {
-	response.SesID = SessionID{}
-	if _, err := io.ReadFull(r, response.SesID[:]); err != nil {
+	response.SessID = SessionID{}
+	if _, err := io.ReadFull(r, response.SessID[:]); err != nil {
 		return errors.WithMessagef(err, "Response SID decoding")
-	}
-
-	var commitLen int32
-	if err := binary.Read(r, binary.LittleEndian, &commitLen); err != nil {
-		return errors.WithMessagef(err, "Response commitment length decoding")
-	}
-	if commitLen < 0 {
-		return errors.Errorf(
-			"Decoded negative response commitment length %d", commitLen)
-	}
-
-	response.Commit = make([]byte, commitLen)
-	if _, err := io.ReadFull(r, response.Commit); err != nil {
-		return errors.WithMessagef(err, "Response commitment decoding")
 	}
 
 	if ephemeralAddr, err := wallet.DecodeAddress(r); err != nil {
