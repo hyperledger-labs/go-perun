@@ -46,11 +46,11 @@ type Nonce *big.Int
 type Proposal struct {
 	ChallengeDuration uint64
 	Nonce             Nonce
-	EphemeralAddr     wallet.Address
+	ParticipantAddr   wallet.Address
 	AppDef            wallet.Address
 	InitData          channel.Data
 	InitBals          channel.Allocation
-	PerunParts        []wallet.Address
+	Parts             []wallet.Address
 }
 
 func (p Proposal) Category() wiremsg.Category {
@@ -64,23 +64,23 @@ func (p Proposal) encode(w io.Writer) error {
 		return err
 	}
 
-	if err := perunIo.Encode(w, p.EphemeralAddr, p.AppDef, p.InitData, &p.InitBals); err != nil {
+	if err := perunIo.Encode(w, p.ParticipantAddr, p.AppDef, p.InitData, &p.InitBals); err != nil {
 		return err
 	}
 
-	if len(p.PerunParts) > math.MaxInt32 {
+	if len(p.Parts) > math.MaxInt32 {
 		return errors.Errorf(
 			"Expected maximum number of participants %d, got %d",
-			math.MaxInt32, len(p.PerunParts))
+			math.MaxInt32, len(p.Parts))
 	}
 
-	numParts := int32(len(p.PerunParts))
+	numParts := int32(len(p.Parts))
 	if err := binary.Write(w, binary.LittleEndian, numParts); err != nil {
 		return err
 	}
-	ss := make([]perunIo.Serializable, len(p.PerunParts))
-	for i := 0; i < len(p.PerunParts); i++ {
-		ss[i] = p.PerunParts[i]
+	ss := make([]perunIo.Serializable, len(p.Parts))
+	for i := 0; i < len(p.Parts); i++ {
+		ss[i] = p.Parts[i]
 	}
 	if err := perunIo.Encode(w, ss...); err != nil {
 		return err
@@ -96,11 +96,11 @@ func (p *Proposal) decode(r io.Reader) error {
 	}
 	p.Nonce = new(big.Int).Set(nonceInt)
 
-	// read p.EphemeralAddr, p.AppDef
+	// read p.ParticipantAddr, p.AppDef
 	if ephemeralAddr, err := wallet.DecodeAddress(r); err != nil {
 		return err
 	} else {
-		p.EphemeralAddr = ephemeralAddr
+		p.ParticipantAddr = ephemeralAddr
 	}
 	if appDef, err := wallet.DecodeAddress(r); err != nil {
 		return err
@@ -124,12 +124,12 @@ func (p *Proposal) decode(r io.Reader) error {
 			"Expected at least 2 participants, got %d", numParts)
 	}
 
-	p.PerunParts = make([]wallet.Address, numParts)
-	for i := 0; i < len(p.PerunParts); i++ {
+	p.Parts = make([]wallet.Address, numParts)
+	for i := 0; i < len(p.Parts); i++ {
 		if addr, err := wallet.DecodeAddress(r); err != nil {
 			return err
 		} else {
-			p.PerunParts[i] = addr
+			p.Parts[i] = addr
 		}
 	}
 
@@ -143,8 +143,8 @@ func (p *Proposal) Type() MsgType {
 type SessionID = [32]byte
 
 type Response struct {
-	SessID        SessionID
-	EphemeralAddr wallet.Address
+	SessID          SessionID
+	ParticipantAddr wallet.Address
 }
 
 func (*Response) Category() wiremsg.Category {
@@ -160,7 +160,7 @@ func (r *Response) encode(w io.Writer) error {
 		return errors.WithMessagef(err, "Response SID encoding")
 	}
 
-	if err := r.EphemeralAddr.Encode(w); err != nil {
+	if err := r.ParticipantAddr.Encode(w); err != nil {
 		return errors.WithMessagef(err, "Response ephemeral address encoding")
 	}
 
@@ -176,7 +176,7 @@ func (response *Response) decode(r io.Reader) error {
 	if ephemeralAddr, err := wallet.DecodeAddress(r); err != nil {
 		return errors.WithMessagef(err, "App address decoding")
 	} else {
-		response.EphemeralAddr = ephemeralAddr
+		response.ParticipantAddr = ephemeralAddr
 	}
 
 	return nil
