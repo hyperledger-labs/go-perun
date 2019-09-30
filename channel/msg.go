@@ -2,7 +2,7 @@
 // This file is part of go-perun. Use of this source code is governed by a
 // MIT-style license that can be found in the LICENSE file.
 
-package msg
+package channel
 
 import (
 	"io"
@@ -10,103 +10,109 @@ import (
 
 	"github.com/pkg/errors"
 
-	"perun.network/go-perun/channel"
 	"perun.network/go-perun/log"
+	wire "perun.network/go-perun/wire/msg"
 )
 
-// ChannelMsg objects are channel-specific messages that are sent between
+// Msg objects are channel-specific messages that are sent between
 // Perun nodes.
-type ChannelMsg interface {
-	Msg
+type Msg interface {
+	wire.Msg
 	// Connection returns the channel message's associated channel's ID.
-	ChannelID() channel.ID
+	ChannelID() ID
 	// Type returns the message's implementing type.
-	Type() ChannelMsgType
+	Type() MsgType
+
+	// encode encodes the message's contents (without headers or type info).
+	encode(io.Writer) error
+	// decode decodes the message's contents (without headers or type info).
+	decode(io.Reader) error
 }
 
-func decodeChannelMsg(reader io.Reader) (msg ChannelMsg, err error) {
-	var Type ChannelMsgType
+func decodeMsg(reader io.Reader) (wire.Msg, error) {
+	var Type MsgType
 	if err := Type.Decode(reader); err != nil {
 		return nil, errors.WithMessage(err, "failed to read the message type")
 	}
 
-	var m channelMsg
-	if _, err := io.ReadFull(reader, m.channelID[:]); err != nil {
+	var baseMsg msg
+	if _, err := io.ReadFull(reader, baseMsg.channelID[:]); err != nil {
 		return nil, errors.WithMessage(err, "failed to read the channel ID")
 	}
 
-	if channelDecodeFuns[Type] == nil {
-		log.Panicf("decodeChannelMsg(): Unhandled channel message type: %v", Type)
+	var message Msg
+	// Type is guaranteed to be valid at this point.
+	// This switch handles all channel message types, but if any was forgotten,
+	// the program panics.
+	switch Type {
+	case ChannelDummy:
+		message = &DummyChannelMsg{msg: baseMsg}
+	default:
+		log.Panicf("decodeMsg(): Unhandled channel message type: %v", Type)
 	}
-	return channelDecodeFuns[Type](reader)
+
+	if err := message.decode(reader); err != nil {
+		return nil, errors.WithMessagef(err, "failed to decode %v", Type)
+	}
+	return message, nil
 }
 
-func encodeChannelMsg(msg ChannelMsg, writer io.Writer) error {
-	if err := msg.Type().Encode(writer); err != nil {
+func encodeMsg(writer io.Writer, message wire.Msg) error {
+	var cmsg = message.(Msg)
+	if err := cmsg.Type().Encode(writer); err != nil {
 		return errors.WithMessage(err, "failed to write the message type")
 	}
 
-	id := msg.ChannelID()
+	id := cmsg.ChannelID()
 	if _, err := writer.Write(id[:]); err != nil {
 		return errors.WithMessage(err, "failed to write the channel id")
 	}
 
-	if err := msg.encode(writer); err != nil {
+	if err := cmsg.encode(writer); err != nil {
 		return errors.WithMessage(err, "failed to write the message contents")
 	}
 
 	return nil
 }
 
-var channelDecodeFuns map[ChannelMsgType]func(io.Reader) (ChannelMsg, error)
-
-// RegisterChannelDecode register the function that will decode all messages of category ChannelMsg
-func RegisterChannelDecode(t ChannelMsgType, fun func(io.Reader) (ChannelMsg, error)) {
-	if channelDecodeFuns[t] != nil || fun == nil {
-		log.Panic("RegisterChannelDecode called twice or with invalid argument")
-	}
-
-	channelDecodeFuns[t] = fun
-}
-
-// channelMsg allows default-implementing the Category(), Channel() functions
+// msg allows default-implementing the Category(), Channel() functions
 // in channel messages.
 //
 // Example:
 // 	type SomeChannelMsg struct {
-//  	channelMsg
+//  	msg
 //  }
-type channelMsg struct {
-	channelID channel.ID
+type msg struct {
+	channelID ID
 }
 
-func (m *channelMsg) ChannelID() channel.ID {
+func (m *msg) ChannelID() ID {
 	return m.channelID
 }
 
-func (*channelMsg) Category() Category {
-	return Channel
+func (*msg) Category() wire.Category {
+	return wire.Channel
 }
 
-// ChannelMsgType is an enumeration used for (de)serializing channel messages
+// MsgType is an enumeration used for (de)serializing channel messages
 // and identifying a channel message's type.
 //
 // When changing this type, also change Encode() and Decode().
-type ChannelMsgType uint8
+type MsgType uint8
 
 // Enumeration of channel message types.
 const (
 	// This is a dummy peer message. It is used for testing purposes until the
 	// first actual channel message type is added.
-	ChannelDummy ChannelMsgType = iota
+	ChannelDummy MsgType = iota
 
 	// This constant marks the first invalid enum value.
-	channelMsgTypeEnd
+	msgTypeEnd
 )
 
 // String returns the name of a channel message type, if it is valid, otherwise,
 // returns its numerical representation for debugging purposes.
-func (t ChannelMsgType) String() string {
+func (t MsgType) String() string {
 	if !t.Valid() {
 		return strconv.Itoa(int(t))
 	}
@@ -115,24 +121,24 @@ func (t ChannelMsgType) String() string {
 	}[t]
 }
 
-// Valid checks whether a ChannelMsgType is a valid value.
-func (t ChannelMsgType) Valid() bool {
-	return t < channelMsgTypeEnd
+// Valid checks whether a MsgType is a valid value.
+func (t MsgType) Valid() bool {
+	return t < msgTypeEnd
 }
 
-func (t ChannelMsgType) Encode(writer io.Writer) error {
+func (t MsgType) Encode(writer io.Writer) error {
 	if _, err := writer.Write([]byte{byte(t)}); err != nil {
 		return errors.Wrap(err, "failed to write channel message type")
 	}
 	return nil
 }
 
-func (t *ChannelMsgType) Decode(reader io.Reader) error {
+func (t *MsgType) Decode(reader io.Reader) error {
 	buf := make([]byte, 1)
 	if _, err := io.ReadFull(reader, buf); err != nil {
 		return errors.WithMessage(err, "failed to read channel message type")
 	}
-	*t = ChannelMsgType(buf[0])
+	*t = MsgType(buf[0])
 	if !t.Valid() {
 		return errors.New("invalid channel message type encoding: " + t.String())
 	}

@@ -2,12 +2,13 @@
 // This file is part of go-perun. Use of this source code is governed by a
 // MIT-style license that can be found in the LICENSE file.
 
-package msg
+package peer // import "perun.network/go-perun/peer"
 
 import (
-	"testing"
+	wire "perun.network/go-perun/wire/msg"
 )
 
-func TestPongMsg(t *testing.T) {
-	TestMsg(t, NewPongMsg())
+func init() {
+	wire.RegisterPeerDecode(decodeMsg)
+	wire.RegisterPeerEncode(encodeMsg)
 }

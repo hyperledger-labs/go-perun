@@ -20,11 +20,6 @@ import (
 type Msg interface {
 	// Category returns the message's subcategory.
 	Category() Category
-
-	// encode encodes the message's contents (without headers or type info).
-	encode(io.Writer) error
-	// decode decodes the message's contents (without headers or type info).
-	decode(io.Reader) error
 }
 
 // Encode encodes a message into an io.Writer.
@@ -36,11 +31,9 @@ func Encode(msg Msg, writer io.Writer) (err error) {
 			cmsg, _ := msg.(ControlMsg)
 			err = encodeControlMsg(cmsg, writer)
 		case Channel:
-			cmsg, _ := msg.(ChannelMsg)
-			err = encodeChannelMsg(cmsg, writer)
+			err = channelEncodeFun(writer, msg)
 		case Peer:
-			pmsg, _ := msg.(PeerMsg)
-			err = encodePeerMsg(pmsg, writer)
+			err = peerEncodeFun(writer, msg)
 		default:
 			log.Panicf("Encode(): Unhandled message category: %v", msg.Category())
 		}
@@ -64,13 +57,53 @@ func Decode(reader io.Reader) (Msg, error) {
 	case Control:
 		return decodeControlMsg(reader)
 	case Channel:
-		return decodeChannelMsg(reader)
+		return channelDecodeFun(reader)
 	case Peer:
-		return decodePeerMsg(reader)
+		return peerDecodeFun(reader)
 	default:
 		log.Panicf("Decode(): Unhandled message category: %v", cat)
 		panic("This should never happen")
 	}
+}
+
+var channelDecodeFun func(io.Reader) (Msg, error)
+
+// RegisterChannelDecode register the function that will decode all messages of category ChannelMsg
+func RegisterChannelDecode(fun func(io.Reader) (Msg, error)) {
+	if channelDecodeFun != nil || fun == nil {
+		log.Panic("RegisterChannelDecode called twice or with invalid argument")
+	}
+	channelDecodeFun = fun
+}
+
+var peerDecodeFun func(io.Reader) (Msg, error)
+
+// RegisterPeerDecode register the function that will decode all messages of category PeerMsg
+func RegisterPeerDecode(fun func(io.Reader) (Msg, error)) {
+	if peerDecodeFun != nil || fun == nil {
+		log.Panic("RegisterPeerDecode called twice or with invalid argument")
+	}
+	peerDecodeFun = fun
+}
+
+var channelEncodeFun func(io.Writer, Msg) error
+
+// RegisterChannelEncode register the function that will encode all messages of category ChannelMsg
+func RegisterChannelEncode(fun func(io.Writer, Msg) error) {
+	if channelEncodeFun != nil || fun == nil {
+		log.Panic("RegisterChannelEncode called twice or with invalid argument")
+	}
+	channelEncodeFun = fun
+}
+
+var peerEncodeFun func(io.Writer, Msg) error
+
+// RegisterPeerEncode register the function that will encode all messages of category PeerMsg
+func RegisterPeerEncode(fun func(io.Writer, Msg) error) {
+	if peerEncodeFun != nil || fun == nil {
+		log.Panic("RegisterPeerEncode called twice or with invalid argument")
+	}
+	peerEncodeFun = fun
 }
 
 // Category is an enumeration used for (de)serializing messages and

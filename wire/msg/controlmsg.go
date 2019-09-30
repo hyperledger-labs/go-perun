@@ -19,6 +19,11 @@ type ControlMsg interface {
 	Msg
 	// Type returns the control message's implementing type.
 	Type() ControlMsgType
+
+	// encode encodes the message's contents (without headers or type info).
+	encode(io.Writer) error
+	// decode decodes the message's contents (without headers or type info).
+	decode(io.Reader) error
 }
 
 // encodeControlMsg is a helper function that encodes a control message header.
@@ -41,10 +46,21 @@ func decodeControlMsg(reader io.Reader) (ControlMsg, error) {
 		return nil, errors.WithMessage(err, "failed to read the message type")
 	}
 
-	if controlDecodeFuns[Type] == nil {
+	var msg ControlMsg
+	// Decode message payload.
+	switch Type {
+	case Ping:
+		msg = &PingMsg{}
+	case Pong:
+		msg = &PongMsg{}
+	default:
 		log.Panicf("decodeControlMsg(): Unhandled control message type: %v", Type)
 	}
-	return controlDecodeFuns[Type](reader)
+
+	if err := msg.decode(reader); err != nil {
+		return nil, errors.WithMessagef(err, "failed to decode %v", Type)
+	}
+	return msg, nil
 }
 
 var controlDecodeFuns map[ControlMsgType]func(io.Reader) (ControlMsg, error)
