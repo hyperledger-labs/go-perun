@@ -10,7 +10,6 @@ import (
 
 	"github.com/pkg/errors"
 
-	"perun.network/go-perun/log"
 	wire "perun.network/go-perun/wire/msg"
 )
 
@@ -32,12 +31,12 @@ type Msg interface {
 func decodeMsg(reader io.Reader) (wire.Msg, error) {
 	var Type MsgType
 	if err := Type.Decode(reader); err != nil {
-		return nil, errors.WithMessage(err, "failed to read the message type")
+		return nil, errors.WithMessage(err, "failed to decode message type")
 	}
 
 	var baseMsg msg
 	if _, err := io.ReadFull(reader, baseMsg.channelID[:]); err != nil {
-		return nil, errors.WithMessage(err, "failed to read the channel ID")
+		return nil, errors.WithMessage(err, "failed to decode channel ID")
 	}
 
 	var message Msg
@@ -48,13 +47,10 @@ func decodeMsg(reader io.Reader) (wire.Msg, error) {
 	case ChannelDummy:
 		message = &DummyChannelMsg{msg: baseMsg}
 	default:
-		log.Panicf("decodeMsg(): Unhandled channel message type: %v", Type)
+		return nil, errors.Errorf("unknown channel message type: %v", Type)
 	}
 
-	if err := message.decode(reader); err != nil {
-		return nil, errors.WithMessagef(err, "failed to decode %v", Type)
-	}
-	return message, nil
+	return message, message.decode(reader)
 }
 
 func encodeMsg(writer io.Writer, message wire.Msg) error {
