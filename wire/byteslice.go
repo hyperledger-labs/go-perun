@@ -17,6 +17,8 @@ type ByteSlice []byte
 // Decode reads exactly len(b) bytes.
 // This means the caller has to specify how many bytes he wants to read.
 func (b *ByteSlice) Decode(reader io.Reader) (err error) {
+	// This is almost the same as io.ReadFull, but it also fails on closed
+	// readers.
 	n, err := reader.Read(*b)
 	for n < len(*b) && err == nil {
 		var nn int

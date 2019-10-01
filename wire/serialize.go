@@ -37,6 +37,8 @@ func Encode(writer io.Writer, values ...interface{}) (err error) {
 			err = FromTime(v).Encode(writer)
 		case *big.Int:
 			err = BigInt{v}.Encode(writer)
+		case []byte:
+			err = ByteSlice(v).Encode(writer)
 		default:
 			log.Panicf("wire.Encode(): Invalid type %T", v)
 		}
@@ -90,7 +92,9 @@ func Decode(reader io.Reader, values ...interface{}) (err error) {
 			var d BigInt
 			err = d.Decode(reader)
 			*v = d.Int
-			d.Int = nil // Reset to nil because it might cause problems otherwise.
+		case *[]byte:
+			d := ByteSlice(*v)
+			err = d.Decode(reader)
 		default:
 			log.Panicf("wire.Decode(): Invalid type %T", v)
 		}
