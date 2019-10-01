@@ -48,6 +48,7 @@ func TestEncodeDecode(t *testing.T) {
 	r, w := io.Pipe()
 
 	longInt, _ := new(big.Int).SetString("12345671823897123798901234561234567890", 16)
+	byteSlice := []byte{0, 1, 2, 4, 8, 0x10, 0x20, 0x40, 0x80}
 	values := []interface{}{
 		true,
 		uint16(0x1234),
@@ -60,6 +61,7 @@ func TestEncodeDecode(t *testing.T) {
 		time.Unix(0, time.Now().UnixNano()),
 		big.NewInt(0x1234567890123456),
 		longInt,
+		byteSlice,
 	}
 
 	go func() {
@@ -68,7 +70,13 @@ func TestEncodeDecode(t *testing.T) {
 
 	d := make([]interface{}, len(values))
 	for i, v := range values {
-		d[i] = reflect.New(reflect.TypeOf(v)).Interface()
+		if b, ok := v.([]byte); ok {
+			// destination byte slice has to be of correct size
+			_d := make([]byte, len(b))
+			d[i] = &_d
+		} else {
+			d[i] = reflect.New(reflect.TypeOf(v)).Interface()
+		}
 	}
 
 	a.Nil(Decode(r, d...), "failed to decode values")
