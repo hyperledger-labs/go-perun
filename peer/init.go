@@ -9,6 +9,6 @@ import (
 )
 
 func init() {
-	wire.RegisterPeerDecode(decodeMsg)
-	wire.RegisterPeerEncode(encodeMsg)
+	wire.RegisterDecoder(wire.Peer, decodeMsg)
+	wire.RegisterEncoder(wire.Peer, encodeMsg)
 }

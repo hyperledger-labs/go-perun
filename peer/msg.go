@@ -10,7 +10,6 @@ import (
 
 	"github.com/pkg/errors"
 
-	"perun.network/go-perun/log"
 	wire "perun.network/go-perun/wire/msg"
 )
 
@@ -30,7 +29,7 @@ type Msg interface {
 func decodeMsg(reader io.Reader) (wire.Msg, error) {
 	var Type MsgType
 	if err := Type.Decode(reader); err != nil {
-		return nil, errors.WithMessage(err, "failed to read the message type")
+		return nil, errors.WithMessage(err, "failed to decode message type")
 	}
 
 	var message Msg
@@ -38,23 +37,20 @@ func decodeMsg(reader io.Reader) (wire.Msg, error) {
 	case PeerDummy:
 		message = &DummyPeerMsg{}
 	default:
-		log.Panicf("decodePeerMsg(): Unhandled peer message type: %v", Type)
+		return nil, errors.Errorf("unknown peer message type: %v", Type)
 	}
 
-	if err := message.decode(reader); err != nil {
-		return nil, errors.WithMessagef(err, "failed to decode %v", Type)
-	}
-	return message, nil
+	return message, message.decode(reader)
 }
 
 func encodeMsg(writer io.Writer, message wire.Msg) error {
 	var pmsg = message.(Msg)
 	if err := pmsg.Type().Encode(writer); err != nil {
-		return errors.WithMessage(err, "failed to write the message type")
+		return errors.WithMessage(err, "failed to encode message type")
 	}
 
 	if err := pmsg.encode(writer); err != nil {
-		return errors.WithMessage(err, "failed to write the message contents")
+		return errors.WithMessage(err, "failed to encode peer message content")
 	}
 
 	return nil
@@ -114,8 +110,5 @@ func (t *MsgType) Decode(reader io.Reader) error {
 		return errors.WithMessage(err, "failed to read channel message type")
 	}
 	*t = MsgType(buf[0])
-	if !t.Valid() {
-		return errors.New("invalid channel message type encoding: " + t.String())
-	}
 	return nil
 }
