@@ -8,6 +8,10 @@ import (
 	"testing"
 )
 
+func TestPingMsg(t *testing.T) {
+	TestMsg(t, NewPingMsg())
+}
+
 func TestPongMsg(t *testing.T) {
 	TestMsg(t, NewPongMsg())
 }
