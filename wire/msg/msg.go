@@ -7,6 +7,7 @@
 package msg // import "perun.network/go-perun/wire/msg"
 
 import (
+	"fmt"
 	"io"
 	"strconv"
 
@@ -25,25 +26,33 @@ type Msg interface {
 // Encode encodes a message into an io.Writer.
 func Encode(msg Msg, writer io.Writer) (err error) {
 	// Encode the message category, then encode the message.
-	if err = msg.Category().Encode(writer); err == nil {
-		switch msg.Category() {
-		case Control:
-			cmsg, _ := msg.(ControlMsg)
-			err = encodeControlMsg(cmsg, writer)
-		case Channel:
-			err = channelEncodeFun(writer, msg)
-		case Peer:
-			err = peerEncodeFun(writer, msg)
-		default:
-			log.Panicf("Encode(): Unhandled message category: %v", msg.Category())
-		}
+	cat := msg.Category()
+	encoder, ok := encoders[cat]
+	// we don't use Category.Valid() here because it might happen that a decoder,
+	// but no encoder is set, because Valid() tests whether a decoder is set.
+	if !ok {
+		log.Panicf("no encoder registered for message category %v", cat)
+	}
+	if err = cat.Encode(writer); err != nil {
+		return err
 	}
 
-	// Handle both error sources at once.
-	if err != nil {
-		err = errors.WithMessagef(err, "failed to write message with category %v", msg.Category())
+	return encoder(writer, msg)
+}
+
+var encoders = make(map[Category]func(io.Writer, Msg) error)
+
+// RegisterEncoder sets the encoder of messages of category `cat`.
+func RegisterEncoder(cat Category, encoder func(io.Writer, Msg) error) {
+	if encoder == nil {
+		// encoder registration happens during init(), so we don't use log.Panic
+		panic("wire: encoder nil")
 	}
-	return
+	if encoders[cat] != nil {
+		panic(fmt.Sprintf("wire: encoder for category %v already set", cat))
+	}
+
+	encoders[cat] = encoder
 }
 
 // Decode decodes a message from an io.Reader.
@@ -53,77 +62,43 @@ func Decode(reader io.Reader) (Msg, error) {
 		return nil, errors.WithMessage(err, "failed to decode message category")
 	}
 
-	switch cat {
-	case Control:
-		return decodeControlMsg(reader)
-	case Channel:
-		return channelDecodeFun(reader)
-	case Peer:
-		return peerDecodeFun(reader)
-	default:
-		log.Panicf("Decode(): Unhandled message category: %v", cat)
-		panic("This should never happen")
+	if !cat.Valid() {
+		return nil, errors.Errorf("wire: invalid message category in Decode(): %v", cat)
 	}
+	return decoders[cat](reader)
 }
 
-var channelDecodeFun func(io.Reader) (Msg, error)
+var decoders = make(map[Category]func(io.Reader) (Msg, error))
 
-// RegisterChannelDecode register the function that will decode all messages of category ChannelMsg
-func RegisterChannelDecode(fun func(io.Reader) (Msg, error)) {
-	if channelDecodeFun != nil || fun == nil {
-		log.Panic("RegisterChannelDecode called twice or with invalid argument")
+// RegisterDecoder sets the decoder of messages of category `cat`.
+func RegisterDecoder(cat Category, decoder func(io.Reader) (Msg, error)) {
+	if decoder == nil {
+		// decoder registration happens during init(), so we don't use log.Panic
+		panic("wire: decoder nil")
 	}
-	channelDecodeFun = fun
-}
-
-var peerDecodeFun func(io.Reader) (Msg, error)
-
-// RegisterPeerDecode register the function that will decode all messages of category PeerMsg
-func RegisterPeerDecode(fun func(io.Reader) (Msg, error)) {
-	if peerDecodeFun != nil || fun == nil {
-		log.Panic("RegisterPeerDecode called twice or with invalid argument")
+	if decoders[cat] != nil {
+		panic(fmt.Sprintf("wire: decoder for category %v already set", cat))
 	}
-	peerDecodeFun = fun
-}
 
-var channelEncodeFun func(io.Writer, Msg) error
-
-// RegisterChannelEncode register the function that will encode all messages of category ChannelMsg
-func RegisterChannelEncode(fun func(io.Writer, Msg) error) {
-	if channelEncodeFun != nil || fun == nil {
-		log.Panic("RegisterChannelEncode called twice or with invalid argument")
-	}
-	channelEncodeFun = fun
-}
-
-var peerEncodeFun func(io.Writer, Msg) error
-
-// RegisterPeerEncode register the function that will encode all messages of category PeerMsg
-func RegisterPeerEncode(fun func(io.Writer, Msg) error) {
-	if peerEncodeFun != nil || fun == nil {
-		log.Panic("RegisterPeerEncode called twice or with invalid argument")
-	}
-	peerEncodeFun = fun
+	decoders[cat] = decoder
 }
 
 // Category is an enumeration used for (de)serializing messages and
-// identifying a message's subcategory.
+// identifying a message's category.
 type Category uint8
 
-// Enumeration of message categories.
+// Enumeration of message categories known to the Perun framework.
 const (
 	Control Category = iota
 	Peer
 	Channel
-
-	// This constant marks the first invalid enum value.
-	categoryEnd
 )
 
-// String returns the name of a message category, if it is valid, otherwise,
-// returns its numerical representation for debugging purposes.
+// String returns the name of a message category if it is valid and name known
+// or otherwise its numerical representation.
 func (c Category) String() string {
-	if !c.Valid() {
+	// Channel is currently the last known category to the framework
+	if c > Channel {
 		return strconv.Itoa(int(c))
 	}
 	return [...]string{
@@ -133,9 +108,10 @@ func (c Category) String() string {
 	}[c]
 }
 
-// Valid checks whether a Category is a valid value.
+// Valid checks whether a Category is a valid value, i.e., if a decoder is set.
 func (c Category) Valid() bool {
-	return c < categoryEnd
+	_, ok := decoders[c]
+	return ok
 }
 
 func (c Category) Encode(writer io.Writer) error {
@@ -148,12 +124,9 @@ func (c Category) Encode(writer io.Writer) error {
 func (c *Category) Decode(reader io.Reader) error {
 	buf := make([]byte, 1)
 	if _, err := io.ReadFull(reader, buf); err != nil {
-		return errors.WithMessage(err, "failed to write category")
+		return errors.Wrap(err, "failed to read category")
 	}
 
 	*c = Category(buf[0])
-	if !c.Valid() {
-		return errors.New("invalid message category encoding: " + c.String())
-	}
 	return nil
 }
