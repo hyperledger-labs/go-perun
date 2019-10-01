@@ -2,7 +2,7 @@
 // This file is part of go-perun. Use of this source code is governed by a
 // MIT-style license that can be found in the LICENSE file.
 
-package msg
+package channel
 
 import (
 	"io"
@@ -10,20 +10,20 @@ import (
 	"perun.network/go-perun/wire"
 )
 
-// DummyPeerMsg is a dummy message type used for testing.
-type DummyPeerMsg struct {
-	peerMsg
+// DummyChannelMsg is a dummy message type used for testing.
+type DummyChannelMsg struct {
+	msg
 	dummy int64
 }
 
-func (DummyPeerMsg) Type() PeerMsgType {
-	return PeerDummy
+func (DummyChannelMsg) Type() MsgType {
+	return ChannelDummy
 }
 
-func (m DummyPeerMsg) encode(writer io.Writer) error {
+func (m DummyChannelMsg) encode(writer io.Writer) error {
 	return wire.Encode(writer, m.dummy)
 }
 
-func (m *DummyPeerMsg) decode(reader io.Reader) error {
+func (m *DummyChannelMsg) decode(reader io.Reader) error {
 	return wire.Decode(reader, &m.dummy)
 }

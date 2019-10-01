@@ -5,40 +5,50 @@
 package msg
 
 import (
+	"fmt"
 	"io"
 	"strconv"
 
 	"github.com/pkg/errors"
-
-	"perun.network/go-perun/log"
 )
+
+func init() {
+	RegisterEncoder(Control, encodeControlMsg)
+	RegisterDecoder(Control, decodeControlMsg)
+}
 
 // ControlMsg objects are messages that are outside of the perun core protcol
 // that directly control what happens with a peer connection.
 type ControlMsg interface {
 	Msg
-	// Type returns the control message's implementing type.
+	// Type returns the control message's type.
 	Type() ControlMsgType
+
+	// encode encodes the message's contents (without headers or type).
+	encode(io.Writer) error
+	// decode decodes the message's contents (without headers or type).
+	decode(io.Reader) error
 }
 
 // encodeControlMsg is a helper function that encodes a control message header.
-func encodeControlMsg(msg ControlMsg, writer io.Writer) error {
-	if err := msg.Type().Encode(writer); err != nil {
-		return err
+func encodeControlMsg(writer io.Writer, _msg Msg) error {
+	msg := _msg.(ControlMsg) // should panic if wrong message type is passed
+	Type := msg.Type()
+	if !Type.Valid() {
+		panic(fmt.Sprintf("invalid control message type: %v", Type))
+	}
+	if err := Type.Encode(writer); err != nil {
+		return errors.WithMessage(err, "error encoding control message type")
 	}
 
-	if err := msg.encode(writer); err != nil {
-		return errors.WithMessage(err, "failed to encode message payload.")
-	}
-
-	return nil
+	return msg.encode(writer)
 }
 
 // decodeControlMsg decodes a ControlMsg from a reader.
-func decodeControlMsg(reader io.Reader) (ControlMsg, error) {
+func decodeControlMsg(reader io.Reader) (Msg, error) {
 	var Type ControlMsgType
 	if err := Type.Decode(reader); err != nil {
-		return nil, errors.WithMessage(err, "failed to read the message type")
+		return nil, errors.WithMessage(err, "error decoding message type")
 	}
 
 	var msg ControlMsg
@@ -49,13 +59,10 @@ func decodeControlMsg(reader io.Reader) (ControlMsg, error) {
 	case Pong:
 		msg = &PongMsg{}
 	default:
-		log.Panicf("decodeControlMsg(): Unhandled control message type: %v", Type)
+		return nil, errors.Errorf("invalid control message type %v", Type)
 	}
 
-	if err := msg.decode(reader); err != nil {
-		return nil, errors.WithMessagef(err, "failed to decode %v", Type)
-	}
-	return msg, nil
+	return msg, msg.decode(reader)
 }
 
 // controlMsg allows default-implementing the Category() function in control
@@ -112,8 +119,5 @@ func (t *ControlMsgType) Decode(reader io.Reader) error {
 		return errors.Wrap(err, "failed to read control message type")
 	}
 	*t = ControlMsgType(buf[0])
-	if !t.Valid() {
-		return errors.New("invalid control message type encoding: " + t.String())
-	}
 	return nil
 }
