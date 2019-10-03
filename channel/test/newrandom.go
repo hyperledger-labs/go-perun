@@ -23,8 +23,8 @@ type Backend interface {
 
 var backend Backend = &TestBackend{}
 
-func SetBackend(newBackend Backend) {
-	backend = newBackend
+func SetBackend(b Backend) {
+	backend = b
 }
 
 func NewRandomAllocation(rng *rand.Rand, params *channel.Params) *channel.Allocation {

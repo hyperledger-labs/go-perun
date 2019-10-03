@@ -16,8 +16,8 @@ type Backend interface {
 
 var backend Backend
 
-func SetBackend(newBackend Backend) {
-	backend = newBackend
+func SetBackend(b Backend) {
+	backend = b
 }
 
 func NewRandomAddress(rng *rand.Rand) wallet.Address {
