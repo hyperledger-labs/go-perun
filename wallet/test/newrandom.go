@@ -5,25 +5,21 @@
 package test // import "perun.network/go-perun/wallet/test"
 
 import (
-	"log"
 	"math/rand"
 
 	"perun.network/go-perun/wallet"
 )
 
-type TestBackend struct {
-	NewRandomAddressFunc func(*rand.Rand) wallet.Address
+type Backend interface {
+	NewRandomAddress(*rand.Rand) wallet.Address
 }
 
-var backend *TestBackend
+var backend Backend
 
-func SetBackend(new_backend TestBackend) {
-	if backend != nil {
-		log.Panic("TestBackend set twice")
-	}
-	backend = &new_backend
+func SetBackend(newBackend Backend) {
+	backend = newBackend
 }
 
 func NewRandomAddress(rng *rand.Rand) wallet.Address {
-	return backend.NewRandomAddressFunc(rng)
+	return backend.NewRandomAddress(rng)
 }

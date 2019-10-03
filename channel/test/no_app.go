@@ -2,17 +2,15 @@
 // This file is part of go-perun. Use of this source code is governed by a
 // MIT-style license that can be found in the LICENSE file.
 
-package channel // import "perun.network/go-perun/backend/sim/channel"
+package test // import "perun.network/go-perun/channel/test"
 
 import (
 	"io"
 	"math/rand"
 
+	"perun.network/go-perun/channel"
 	"perun.network/go-perun/wallet"
 	"perun.network/go-perun/wire"
-
-	"perun.network/go-perun/channel"
-	perun "perun.network/go-perun/wallet"
 )
 
 // NoApp Is a placeholder `ActionApp` and `StateApp` that does nothing
@@ -34,7 +32,7 @@ func NewNoAppData(value int64) *NoAppData {
 	return &NoAppData{Value: value}
 }
 
-func NewRandomNoAppData(rng *rand.Rand) *NoAppData {
+func newRandomNoAppData(rng *rand.Rand) *NoAppData {
 	return NewNoAppData(rng.Int63())
 }
 
@@ -56,7 +54,7 @@ func NewNoApp(definition wallet.Address) *NoApp {
 }
 
 // Def returns nil
-func (a NoApp) Def() perun.Address {
+func (a NoApp) Def() wallet.Address {
 	return a.definition
 }
 

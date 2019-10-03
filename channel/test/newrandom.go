@@ -15,25 +15,22 @@ import (
 	wallettest "perun.network/go-perun/wallet/test"
 )
 
-type TestBackend struct {
-	NewRandomAssetFunc func(*rand.Rand) channel.Asset
-	NewRandomAppFunc   func(*rand.Rand) channel.App
-	NewRandomDataFunc  func(*rand.Rand) channel.Data
+type Backend interface {
+	NewRandomAsset(*rand.Rand) channel.Asset
+	NewRandomApp(*rand.Rand) channel.App
+	NewRandomData(*rand.Rand) channel.Data
 }
 
-var backend *TestBackend
+var backend Backend = &TestBackend{}
 
-func SetBackend(new_backend TestBackend) {
-	if backend != nil {
-		log.Panic("TestBackend set twice")
-	}
-	backend = &new_backend
+func SetBackend(newBackend Backend) {
+	backend = newBackend
 }
 
 func NewRandomAllocation(rng *rand.Rand, params *channel.Params) *channel.Allocation {
 	assets := make([]perun.Serializable, rng.Int31n(9)+2)
 	for i := 0; i < len(assets); i++ {
-		assets[i] = backend.NewRandomAssetFunc(rng)
+		assets[i] = NewRandomAsset(rng)
 	}
 
 	ofparts := make([][]channel.Bal, len(params.Parts))
@@ -75,11 +72,15 @@ func NewRandomState(rng *rand.Rand, p *channel.Params) *channel.State {
 }
 
 func NewRandomApp(rng *rand.Rand) channel.App {
-	return backend.NewRandomAppFunc(rng)
+	return backend.NewRandomApp(rng)
 }
 
 func NewRandomData(rng *rand.Rand) channel.Data {
-	return backend.NewRandomDataFunc(rng)
+	return backend.NewRandomData(rng)
+}
+
+func NewRandomAsset(rng *rand.Rand) channel.Asset {
+	return backend.NewRandomAsset(rng)
 }
 
 func NewRandomChannelID(rng *rand.Rand) (id channel.ID) {

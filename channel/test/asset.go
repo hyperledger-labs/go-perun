@@ -2,7 +2,7 @@
 // This file is part of go-perun. Use of this source code is governed by a
 // MIT-style license that can be found in the LICENSE file.
 
-package channel // import "perun.network/go-perun/backend/sim/channel"
+package test // import "perun.network/go-perun/channel/test"
 
 import (
 	"io"
@@ -20,7 +20,7 @@ type Asset struct {
 var _ channel.Asset = new(Asset)
 
 // NewRandomAsset returns a new random Asset
-func NewRandomAsset(rng *rand.Rand) *Asset {
+func newRandomAsset(rng *rand.Rand) *Asset {
 	return &Asset{ID: rng.Int63()}
 }
 

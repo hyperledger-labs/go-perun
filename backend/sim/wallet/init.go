@@ -13,11 +13,13 @@ import (
 
 func init() {
 	wallet.SetBackend(new(Backend))
-	// The following is only needed for testing
-	testbackend := test.TestBackend{
-		NewRandomAddressFunc: func(rng *rand.Rand) wallet.Address {
-			return NewRandomAddress(rng)
+	test.SetBackend(&TestBackend{})
+}
 
-		}}
-	test.SetBackend(testbackend)
+type TestBackend struct{}
+
+var _ test.Backend = &TestBackend{}
+
+func (TestBackend) NewRandomAddress(rng *rand.Rand) wallet.Address {
+	return NewRandomAddress(rng)
 }
