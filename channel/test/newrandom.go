@@ -40,10 +40,14 @@ func NewRandomAllocation(rng *rand.Rand, params *channel.Params) *channel.Alloca
 
 	locked := make([]channel.SubAlloc, rng.Int31n(9)+2)
 	for i := 0; i < len(locked); i++ {
-		locked[i] = channel.SubAlloc{ID: NewRandomChannelID(rng), Bals: NewRandomBals(rng, len(assets))}
+		locked[i] = *NewRandomSubAlloc(rng, len(assets))
 	}
 
 	return &channel.Allocation{Assets: assets, OfParts: ofparts, Locked: locked}
+}
+
+func NewRandomSubAlloc(rng *rand.Rand, size int) *channel.SubAlloc {
+	return &channel.SubAlloc{ID: NewRandomChannelID(rng), Bals: NewRandomBals(rng, size)}
 }
 
 func NewRandomParams(rng *rand.Rand, app channel.App) *channel.Params {
