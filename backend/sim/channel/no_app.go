@@ -6,6 +6,7 @@ package channel // import "perun.network/go-perun/backend/sim/channel"
 
 import (
 	"io"
+	"math/rand"
 
 	"perun.network/go-perun/wallet"
 	"perun.network/go-perun/wire"
@@ -14,62 +15,68 @@ import (
 	perun "perun.network/go-perun/wallet"
 )
 
-// noApp Is a placeholder `ActionApp` and `StateApp` that does nothing
-type noApp struct {
+// NoApp Is a placeholder `ActionApp` and `StateApp` that does nothing
+type NoApp struct {
 	definition wallet.Address
 }
 
-type dummyData struct {
-	Flag bool
+// NoAppData the app data of the `NoApp`. It still needs a data field, otherwise the serializeable
+// tests fail because it succeeds on a closed socket.
+type NoAppData struct {
+	Value int64
 }
 
-var _ channel.ActionApp = new(noApp)
-var _ channel.StateApp = new(noApp)
-var _ channel.Data = new(dummyData)
+var _ channel.ActionApp = new(NoApp)
+var _ channel.StateApp = new(NoApp)
+var _ channel.Data = new(NoAppData)
 
-func newDummyData(flag bool) *dummyData {
-	return &dummyData{Flag: flag}
+func NewNoAppData(value int64) *NoAppData {
+	return &NoAppData{Value: value}
 }
 
-func (a dummyData) Encode(w io.Writer) error {
-	return wire.Encode(w, a.Flag)
+func NewRandomNoAppData(rng *rand.Rand) *NoAppData {
+	return NewNoAppData(rng.Int63())
 }
 
-func (a *dummyData) Decode(r io.Reader) error {
-	return wire.Decode(r, &a.Flag)
+func (a NoAppData) Encode(w io.Writer) error {
+	return wire.Encode(w, a.Value)
 }
 
-func (a dummyData) Clone() channel.Data {
-	return &dummyData{Flag: a.Flag}
+func (a *NoAppData) Decode(r io.Reader) error {
+	return wire.Decode(r, &a.Value)
 }
 
-// newNoApp return a new `NoApp`
-func newNoApp(definition wallet.Address) *noApp {
-	return &noApp{definition: definition}
+func (a NoAppData) Clone() channel.Data {
+	return &NoAppData{Value: a.Value}
+}
+
+// NewNoApp return a new `NoApp`
+func NewNoApp(definition wallet.Address) *NoApp {
+	return &NoApp{definition: definition}
 }
 
 // Def returns nil
-func (a noApp) Def() perun.Address {
+func (a NoApp) Def() perun.Address {
 	return a.definition
 }
 
 // ValidTransition returns nil
-func (a noApp) ValidTransition(*channel.Params, *channel.State, *channel.State) error {
+func (a NoApp) ValidTransition(*channel.Params, *channel.State, *channel.State) error {
 	return nil
 }
 
 // ValidInit returns nil
-func (a noApp) ValidInit(*channel.Params, *channel.State) error {
+func (a NoApp) ValidInit(*channel.Params, *channel.State) error {
 	return nil
 }
 
 // ValidAction returns nil
-func (a noApp) ValidAction(*channel.Params, *channel.State, uint, channel.Action) error {
+func (a NoApp) ValidAction(*channel.Params, *channel.State, uint, channel.Action) error {
 	return nil
 }
 
 // ApplyActions returns nil, nil
-func (a noApp) ApplyActions(params *channel.Params, state *channel.State, actions []channel.Action) (*channel.State, error) {
+func (a NoApp) ApplyActions(params *channel.Params, state *channel.State, actions []channel.Action) (*channel.State, error) {
 	newState := state.Clone()
 	newState.Version++
 
@@ -77,6 +84,6 @@ func (a noApp) ApplyActions(params *channel.Params, state *channel.State, action
 }
 
 // InitState returns channel.Allocation{}, nil, nil
-func (a noApp) InitState(*channel.Params, []channel.Action) (channel.Allocation, channel.Data, error) {
+func (a NoApp) InitState(*channel.Params, []channel.Action) (channel.Allocation, channel.Data, error) {
 	return channel.Allocation{}, nil, nil
 }
