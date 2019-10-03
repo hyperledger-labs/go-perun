@@ -5,9 +5,19 @@
 package wallet // import "perun.network/go-perun/backend/sim/wallet"
 
 import (
+	"math/rand"
+
 	"perun.network/go-perun/wallet"
+	"perun.network/go-perun/wallet/test"
 )
 
 func init() {
 	wallet.SetBackend(new(Backend))
+	// The following is only needed for testing
+	testbackend := test.TestBackend{
+		NewRandomAddressFunc: func(rng *rand.Rand) wallet.Address {
+			return NewRandomAddress(rng)
+
+		}}
+	test.SetBackend(testbackend)
 }
