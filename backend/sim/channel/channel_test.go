@@ -10,6 +10,7 @@ import (
 
 	"perun.network/go-perun/backend/sim/wallet"
 	"perun.network/go-perun/channel/test"
+	chtest "perun.network/go-perun/channel/test"
 	pkgtest "perun.network/go-perun/pkg/io/test"
 	perun "perun.network/go-perun/wallet"
 )
@@ -37,11 +38,11 @@ func newChannelSetup() *test.Setup {
 	app := NewNoApp(wallet.NewRandomAddress(rng))
 	app2 := NewNoApp(wallet.NewRandomAddress(rng))
 
-	params := NewRandomParams(rng, app)
-	params2 := NewRandomParams(rng, app2)
+	params := chtest.NewRandomParams(rng, app)
+	params2 := chtest.NewRandomParams(rng, app2)
 
-	state := NewRandomState(rng, params)
-	state2 := NewRandomState(rng, params2)
+	state := chtest.NewRandomState(rng, params)
+	state2 := chtest.NewRandomState(rng, params2)
 	state2.IsFinal = !state.IsFinal
 
 	stateParamFields := make(map[string]bool)
