@@ -11,7 +11,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	perunIo "perun.network/go-perun/pkg/io"
+	perunio "perun.network/go-perun/pkg/io"
 	ioTest "perun.network/go-perun/pkg/io/test"
 	"perun.network/go-perun/pkg/test"
 )
@@ -99,7 +99,7 @@ func TestAllocation_Clone(t *testing.T) {
 }
 
 func TestAllocationSerialization(t *testing.T) {
-	inputs := []perunIo.Serializable{
+	inputs := []perunio.Serializable{
 		&Allocation{
 			Assets:  []Asset{&DummyAsset{0}},
 			OfParts: [][]Bal{[]Bal{big.NewInt(123)}},
@@ -365,7 +365,7 @@ func TestEqualBalance(t *testing.T) {
 
 // suballocation serialization
 func TestSuballocSerialization(t *testing.T) {
-	ss := []perunIo.Serializable{
+	ss := []perunio.Serializable{
 		&SubAlloc{ID{2}, []Bal{}},
 		&SubAlloc{ID{3}, []Bal{big.NewInt(0)}},
 		&SubAlloc{ID{4}, []Bal{big.NewInt(5), big.NewInt(1 << 62)}},

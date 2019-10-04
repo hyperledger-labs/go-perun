@@ -11,7 +11,7 @@ import (
 	"math/big"
 
 	"perun.network/go-perun/log"
-	perunIo "perun.network/go-perun/pkg/io"
+	perunio "perun.network/go-perun/pkg/io"
 	"perun.network/go-perun/wire"
 
 	"github.com/pkg/errors"
@@ -55,7 +55,7 @@ type (
 	// Asset identifies an asset. E.g., it may be the address of the multi-sig
 	// where all participants' assets are deposited.
 	// The same Asset should be shareable by multiple Allocation instances.
-	Asset = perunIo.Serializable
+	Asset = perunio.Serializable
 
 	DummyAsset struct {
 		Value uint64
@@ -95,13 +95,13 @@ func (orig Allocation) Clone() (clone Allocation) {
 func (alloc Allocation) Encode(w io.Writer) error {
 	if err := alloc.valid(); err != nil {
 		return errors.WithMessagef(
-			err, "Invalid allocations cannot be encoded, got %v", alloc)
+			err, "invalid allocations cannot be encoded, got %v", alloc)
 	}
 
 	numAssets := len(alloc.Assets)
 	if numAssets > math.MaxInt32 {
 		return errors.Errorf(
-			"Expected at most %d assets, got %d", math.MaxInt32, numAssets)
+			"expected at most %d assets, got %d", math.MaxInt32, numAssets)
 	}
 	if err := binary.Write(w, binary.LittleEndian, int32(numAssets)); err != nil {
 		return err
@@ -110,7 +110,7 @@ func (alloc Allocation) Encode(w io.Writer) error {
 	numParts := len(alloc.OfParts)
 	if numParts > math.MaxInt32 {
 		return errors.Errorf(
-			"Expected at most %d participants, got %d", math.MaxInt32, numParts)
+			"expected at most %d participants, got %d", math.MaxInt32, numParts)
 	}
 	if err := binary.Write(w, binary.LittleEndian, int32(numParts)); err != nil {
 		return err
@@ -122,7 +122,7 @@ func (alloc Allocation) Encode(w io.Writer) error {
 	}
 	if numLocks > math.MaxInt32 {
 		return errors.Errorf(
-			"Expected at most %d suballocations, got %d", math.MaxInt32, numLocks)
+			"expected at most %d suballocations, got %d", math.MaxInt32, numLocks)
 	}
 	if err := binary.Write(w, binary.LittleEndian, int32(numLocks)); err != nil {
 		return err
@@ -131,7 +131,7 @@ func (alloc Allocation) Encode(w io.Writer) error {
 	// encode assets
 	for i := 0; i < numAssets; i++ {
 		if err := alloc.Assets[i].Encode(w); err != nil {
-			return errors.WithMessagef(err, "Encoding error for asset %d", i)
+			return errors.WithMessagef(err, "encoding error for asset %d", i)
 		}
 	}
 
@@ -139,7 +139,7 @@ func (alloc Allocation) Encode(w io.Writer) error {
 	for i := 0; i < len(alloc.OfParts); i++ {
 		if len(alloc.OfParts[i]) != numAssets {
 			return errors.Errorf(
-				"Expected %d asset allocations for participant %d, got %d",
+				"expected %d asset allocations for participant %d, got %d",
 				numAssets, i, len(alloc.OfParts[i]))
 		}
 
@@ -150,18 +150,18 @@ func (alloc Allocation) Encode(w io.Writer) error {
 
 		if err := wire.Encode(w, balances...); err != nil {
 			return errors.WithMessagef(
-				err, "Encoding error for participant balances")
+				err, "encoding error for participant balances")
 		}
 	}
 
 	// encode suballocations
-	ss := make([]perunIo.Serializable, numLocks)
+	ss := make([]perunio.Serializable, numLocks)
 	for i := 0; i < numLocks; i++ {
 		ss[i] = &alloc.Locked[i]
 	}
-	if err := perunIo.Encode(w, ss...); err != nil {
+	if err := perunio.Encode(w, ss...); err != nil {
 		return errors.WithMessagef(
-			err, "Suballocations encoding error")
+			err, "suballocations encoding error")
 	}
 
 	return nil
@@ -175,7 +175,7 @@ func (alloc *Allocation) Decode(r io.Reader) error {
 	}
 	if numAssets < 0 {
 		return errors.Errorf(
-			"Expected non-negative number of assets, got %d", numAssets)
+			"expected non-negative number of assets, got %d", numAssets)
 	}
 
 	var numParts int32
@@ -184,7 +184,7 @@ func (alloc *Allocation) Decode(r io.Reader) error {
 	}
 	if numParts < 0 {
 		return errors.Errorf(
-			"Expected non-negative number of participants, got %d", numParts)
+			"expected non-negative number of participants, got %d", numParts)
 	}
 
 	var numLocked int32
@@ -193,7 +193,7 @@ func (alloc *Allocation) Decode(r io.Reader) error {
 	}
 	if numLocked < 0 {
 		return errors.Errorf(
-			"Expected non-negative number of participants, got %d", numLocked)
+			"expected non-negative number of participants, got %d", numLocked)
 	}
 
 	// decode assets
@@ -201,7 +201,7 @@ func (alloc *Allocation) Decode(r io.Reader) error {
 	for i := 0; i < len(alloc.Assets); i++ {
 		alloc.Assets[i] = &DummyAsset{}
 		if err := alloc.Assets[i].Decode(r); err != nil {
-			return errors.WithMessagef(err, "Decoding error for asset %d", i)
+			return errors.WithMessagef(err, "decoding error for asset %d", i)
 		}
 	}
 
@@ -217,7 +217,7 @@ func (alloc *Allocation) Decode(r io.Reader) error {
 
 		if err := wire.Decode(r, balances...); err != nil {
 			return errors.WithMessagef(
-				err, "Decoding error for participant balances")
+				err, "decoding error for participant balances")
 		}
 	}
 
@@ -226,7 +226,7 @@ func (alloc *Allocation) Decode(r io.Reader) error {
 	for i := 0; i < len(alloc.Locked); i++ {
 		if err := alloc.Locked[i].Decode(r); err != nil {
 			return errors.WithMessagef(
-				err, "Decoding error for suballocation %d", i)
+				err, "decoding error for suballocation %d", i)
 		}
 	}
 
@@ -325,7 +325,7 @@ func equalSum(b0, b1 summer) (bool, error) {
 func (s *SubAlloc) Encode(w io.Writer) error {
 	if _, err := w.Write(s.ID[:]); err != nil {
 		return errors.WithMessagef(
-			err, "Error encoding suballocation id %v", s.ID)
+			err, "error encoding suballocation id %v", s.ID)
 	}
 
 	numAssets := 0
@@ -342,7 +342,7 @@ func (s *SubAlloc) Encode(w io.Writer) error {
 	}
 	if err := wire.Encode(w, balances...); err != nil {
 		return errors.WithMessagef(
-			err, "Encoding error for participant balances")
+			err, "encoding error for participant balances")
 	}
 
 	return nil
@@ -352,10 +352,10 @@ func (s *SubAlloc) Decode(r io.Reader) error {
 	if n, err := io.ReadFull(r, s.ID[:]); n != len(s.ID) || err != nil {
 		if n != len(s.ID) {
 			return errors.Errorf(
-				"Expected to read %d bytes of ID, got %d", len(s.ID), n)
+				"expected to read %d bytes of ID, got %d", len(s.ID), n)
 		}
 		if err != nil {
-			return errors.WithMessage(err, "Error when reading suballocation ID")
+			return errors.WithMessage(err, "error when reading suballocation ID")
 		}
 	}
 
@@ -372,7 +372,7 @@ func (s *SubAlloc) Decode(r io.Reader) error {
 	}
 	if err := wire.Decode(r, balances...); err != nil {
 		return errors.WithMessagef(
-			err, "Encoding error for participant balances")
+			err, "encoding error for participant balances")
 	}
 
 	return nil

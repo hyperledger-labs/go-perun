@@ -13,7 +13,7 @@ import (
 	"github.com/pkg/errors"
 
 	"perun.network/go-perun/channel"
-	perunIo "perun.network/go-perun/pkg/io"
+	perunio "perun.network/go-perun/pkg/io"
 	"perun.network/go-perun/wallet"
 	wire "perun.network/go-perun/wire"
 	wiremsg "perun.network/go-perun/wire/msg"
@@ -64,13 +64,13 @@ func (p Proposal) encode(w io.Writer) error {
 		return err
 	}
 
-	if err := perunIo.Encode(w, p.ParticipantAddr, p.AppDef, p.InitData, &p.InitBals); err != nil {
+	if err := perunio.Encode(w, p.ParticipantAddr, p.AppDef, p.InitData, &p.InitBals); err != nil {
 		return err
 	}
 
 	if len(p.Parts) > math.MaxInt32 {
 		return errors.Errorf(
-			"Expected maximum number of participants %d, got %d",
+			"expected maximum number of participants %d, got %d",
 			math.MaxInt32, len(p.Parts))
 	}
 
@@ -78,11 +78,11 @@ func (p Proposal) encode(w io.Writer) error {
 	if err := binary.Write(w, binary.LittleEndian, numParts); err != nil {
 		return err
 	}
-	ss := make([]perunIo.Serializable, len(p.Parts))
+	ss := make([]perunio.Serializable, len(p.Parts))
 	for i := 0; i < len(p.Parts); i++ {
 		ss[i] = p.Parts[i]
 	}
-	if err := perunIo.Encode(w, ss...); err != nil {
+	if err := perunio.Encode(w, ss...); err != nil {
 		return err
 	}
 
@@ -111,7 +111,7 @@ func (p *Proposal) decode(r io.Reader) error {
 	p.InitData = &channel.DummyData{}
 	p.InitBals = channel.Allocation{}
 
-	if err := perunIo.Decode(r, p.InitData, &p.InitBals); err != nil {
+	if err := perunio.Decode(r, p.InitData, &p.InitBals); err != nil {
 		return err
 	}
 
@@ -121,7 +121,7 @@ func (p *Proposal) decode(r io.Reader) error {
 	}
 	if numParts < 2 {
 		return errors.Errorf(
-			"Expected at least 2 participants, got %d", numParts)
+			"expected at least 2 participants, got %d", numParts)
 	}
 
 	p.Parts = make([]wallet.Address, numParts)
@@ -157,11 +157,11 @@ func (*Response) Type() MsgType {
 
 func (r *Response) encode(w io.Writer) error {
 	if _, err := w.Write(r.SessID[:]); err != nil {
-		return errors.WithMessagef(err, "Response SID encoding")
+		return errors.WithMessagef(err, "response SID encoding")
 	}
 
 	if err := r.ParticipantAddr.Encode(w); err != nil {
-		return errors.WithMessagef(err, "Response ephemeral address encoding")
+		return errors.WithMessagef(err, "response ephemeral address encoding")
 	}
 
 	return nil
@@ -170,11 +170,11 @@ func (r *Response) encode(w io.Writer) error {
 func (response *Response) decode(r io.Reader) error {
 	response.SessID = SessionID{}
 	if _, err := io.ReadFull(r, response.SessID[:]); err != nil {
-		return errors.WithMessagef(err, "Response SID decoding")
+		return errors.WithMessagef(err, "response SID decoding")
 	}
 
 	if ephemeralAddr, err := wallet.DecodeAddress(r); err != nil {
-		return errors.WithMessagef(err, "App address decoding")
+		return errors.WithMessagef(err, "app address decoding")
 	} else {
 		response.ParticipantAddr = ephemeralAddr
 	}

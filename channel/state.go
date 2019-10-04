@@ -12,7 +12,7 @@ import (
 
 	"github.com/pkg/errors"
 
-	perunIo "perun.network/go-perun/pkg/io"
+	perunio "perun.network/go-perun/pkg/io"
 )
 
 type (
@@ -50,7 +50,7 @@ type (
 
 	// Data is the data of the application running in this app channel
 	Data interface {
-		perunIo.Serializable
+		perunio.Serializable
 		// Clone should return a deep copy of the Data object.
 		// It should return nil if the Data object is nil.
 		Clone() Data
