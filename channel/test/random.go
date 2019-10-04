@@ -56,7 +56,7 @@ func NewRandomParams(rng *rand.Rand, app channel.App) *channel.Params {
 	for i := 0; i < len(parts); i++ {
 		parts[i] = wallettest.NewRandomAddress(rng)
 	}
-	nonce := big.NewInt(rng.Int63())
+	nonce := big.NewInt(int64(rng.Uint32()))
 
 	params, err := channel.NewParams(challengeDuration, parts, app, nonce)
 	if err != nil {
