@@ -116,10 +116,7 @@ func (alloc Allocation) Encode(w io.Writer) error {
 		return err
 	}
 
-	numLocks := 0
-	if alloc.Locked != nil {
-		numLocks = len(alloc.Locked)
-	}
+	numLocks := len(alloc.Locked)
 	if numLocks > math.MaxInt32 {
 		return errors.Errorf(
 			"expected at most %d suballocations, got %d", math.MaxInt32, numLocks)
@@ -129,39 +126,26 @@ func (alloc Allocation) Encode(w io.Writer) error {
 	}
 
 	// encode assets
-	for i := 0; i < numAssets; i++ {
-		if err := alloc.Assets[i].Encode(w); err != nil {
-			return errors.WithMessagef(err, "encoding error for asset %d", i)
-		}
+	if err := perunio.Encode(w, alloc.Assets...); err != nil {
+		return err
 	}
 
 	// encode participant allocations
 	for i := 0; i < len(alloc.OfParts); i++ {
-		if len(alloc.OfParts[i]) != numAssets {
-			return errors.Errorf(
-				"expected %d asset allocations for participant %d, got %d",
-				numAssets, i, len(alloc.OfParts[i]))
-		}
-
-		balances := make([]interface{}, numAssets)
-		for j := 0; j < numAssets; j++ {
-			balances[j] = alloc.OfParts[i][j]
-		}
-
-		if err := wire.Encode(w, balances...); err != nil {
-			return errors.WithMessagef(
-				err, "encoding error for participant balances")
+		for j := 0; j < len(alloc.OfParts[i]); j++ {
+			if err := wire.Encode(w, alloc.OfParts[i][j]); err != nil {
+				return errors.WithMessagef(
+					err, "encoding error for balance %d of participant %d", j, i)
+			}
 		}
 	}
 
 	// encode suballocations
-	ss := make([]perunio.Serializable, numLocks)
-	for i := 0; i < numLocks; i++ {
-		ss[i] = &alloc.Locked[i]
-	}
-	if err := perunio.Encode(w, ss...); err != nil {
-		return errors.WithMessagef(
-			err, "suballocations encoding error")
+	for i, s := range alloc.Locked {
+		if err := s.Encode(w); err != nil {
+			return errors.WithMessagef(
+				err, "encoding error for suballocation %d", i)
+		}
 	}
 
 	return nil
@@ -209,15 +193,12 @@ func (alloc *Allocation) Decode(r io.Reader) error {
 	alloc.OfParts = make([][]Bal, numParts)
 	for i := 0; i < len(alloc.OfParts); i++ {
 		alloc.OfParts[i] = make([]Bal, len(alloc.Assets))
-		balances := make([]interface{}, len(alloc.Assets))
-		for j := 0; j < len(alloc.Assets); j++ {
+		for j := range alloc.OfParts[i] {
 			alloc.OfParts[i][j] = new(big.Int)
-			balances[j] = &alloc.OfParts[i][j]
-		}
-
-		if err := wire.Decode(r, balances...); err != nil {
-			return errors.WithMessagef(
-				err, "decoding error for participant balances")
+			if err := wire.Decode(r, &alloc.OfParts[i][j]); err != nil {
+				return errors.WithMessagef(
+					err, "decoding error for balance %d of participant %d", j, i)
+			}
 		}
 	}
 
@@ -336,13 +317,11 @@ func (s *SubAlloc) Encode(w io.Writer) error {
 		return err
 	}
 
-	balances := make([]interface{}, numAssets)
-	for i := 0; i < numAssets; i++ {
-		balances[i] = s.Bals[i]
-	}
-	if err := wire.Encode(w, balances...); err != nil {
-		return errors.WithMessagef(
-			err, "encoding error for participant balances")
+	for i, bal := range s.Bals {
+		if err := wire.Encode(w, bal); err != nil {
+			return errors.WithMessagef(
+				err, "encoding error for balance of participant %d", i)
+		}
 	}
 
 	return nil
@@ -365,14 +344,12 @@ func (s *SubAlloc) Decode(r io.Reader) error {
 	}
 
 	s.Bals = make([]Bal, numAssets)
-	balances := make([]interface{}, numAssets)
-	for i := 0; i < int(numAssets); i++ {
+	for i := range s.Bals {
 		s.Bals[i] = new(big.Int)
-		balances[i] = &s.Bals[i]
-	}
-	if err := wire.Decode(r, balances...); err != nil {
-		return errors.WithMessagef(
-			err, "encoding error for participant balances")
+		if err := wire.Decode(r, &s.Bals[i]); err != nil {
+			return errors.WithMessagef(
+				err, "encoding error for participant balance %d", i)
+		}
 	}
 
 	return nil
