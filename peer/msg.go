@@ -76,6 +76,7 @@ const (
 	// This is a dummy peer message. It is used for testing purposes until the
 	// first actual peer message type is added.
 	PeerDummy MsgType = iota
+	PeerProposal
 
 	// This constant marks the first invalid enum value.
 	msgTypeEnd
