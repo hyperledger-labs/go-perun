@@ -41,77 +41,65 @@ func (m *DummyPeerMsg) decode(reader io.Reader) error {
 	return wire.Decode(reader, &m.dummy)
 }
 
-type Nonce *big.Int
-
-type Proposal struct {
+type ChannelProposal struct {
 	ChallengeDuration uint64
-	Nonce             Nonce
-	ParticipantAddr   wallet.Address
-	AppDef            wallet.Address
+	Nonce             *big.Int
+	ParticipantAddr   Address
+	AppDef            Address
 	InitData          channel.Data
 	InitBals          channel.Allocation
-	Parts             []wallet.Address
+	Parts             []Address
 }
 
-func (p Proposal) Category() wiremsg.Category {
+func (ChannelProposal) Category() wiremsg.Category {
 	return wiremsg.Peer
 }
 
-func (p Proposal) encode(w io.Writer) error {
-	var nonceInt *big.Int
-	nonceInt = p.Nonce
-	if err := wire.Encode(w, p.ChallengeDuration, nonceInt); err != nil {
+func (c ChannelProposal) encode(w io.Writer) error {
+	if err := wire.Encode(w, c.ChallengeDuration, c.Nonce); err != nil {
 		return err
 	}
 
-	if err := perunio.Encode(w, p.ParticipantAddr, p.AppDef, p.InitData, &p.InitBals); err != nil {
+	if err := perunio.Encode(w, c.ParticipantAddr, c.AppDef, c.InitData, &c.InitBals); err != nil {
 		return err
 	}
 
-	if len(p.Parts) > math.MaxInt32 {
+	if len(c.Parts) > math.MaxInt32 {
 		return errors.Errorf(
 			"expected maximum number of participants %d, got %d",
-			math.MaxInt32, len(p.Parts))
+			math.MaxInt32, len(c.Parts))
 	}
 
-	numParts := int32(len(p.Parts))
+	numParts := int32(len(c.Parts))
 	if err := binary.Write(w, binary.LittleEndian, numParts); err != nil {
 		return err
 	}
-	ss := make([]perunio.Serializable, len(p.Parts))
-	for i := 0; i < len(p.Parts); i++ {
-		ss[i] = p.Parts[i]
-	}
-	if err := perunio.Encode(w, ss...); err != nil {
-		return err
+	for i := range c.Parts {
+		if err := c.Parts[i].Encode(w); err != nil {
+			return errors.Errorf(
+				"error encoding participant %d", i)
+		}
 	}
 
 	return nil
 }
 
-func (p *Proposal) decode(r io.Reader) error {
-	var nonceInt *big.Int
-	if err := wire.Decode(r, &p.ChallengeDuration, &nonceInt); err != nil {
+func (c *ChannelProposal) decode(r io.Reader) (err error) {
+	if err := wire.Decode(r, &c.ChallengeDuration, &c.Nonce); err != nil {
 		return err
 	}
-	p.Nonce = new(big.Int).Set(nonceInt)
 
-	// read p.ParticipantAddr, p.AppDef
-	if ephemeralAddr, err := wallet.DecodeAddress(r); err != nil {
+	// read c.ParticipantAddr, c.AppDef
+	if c.ParticipantAddr, err = wallet.DecodeAddress(r); err != nil {
 		return err
-	} else {
-		p.ParticipantAddr = ephemeralAddr
 	}
-	if appDef, err := wallet.DecodeAddress(r); err != nil {
+	if c.AppDef, err = wallet.DecodeAddress(r); err != nil {
 		return err
-	} else {
-		p.AppDef = appDef
 	}
 
-	p.InitData = &channel.DummyData{}
-	p.InitBals = channel.Allocation{}
-
-	if err := perunio.Decode(r, p.InitData, &p.InitBals); err != nil {
+	c.InitData = &channel.DummyData{}
+	c.InitBals = channel.Allocation{}
+	if err := perunio.Decode(r, c.InitData, &c.InitBals); err != nil {
 		return err
 	}
 
@@ -124,38 +112,36 @@ func (p *Proposal) decode(r io.Reader) error {
 			"expected at least 2 participants, got %d", numParts)
 	}
 
-	p.Parts = make([]wallet.Address, numParts)
-	for i := 0; i < len(p.Parts); i++ {
-		if addr, err := wallet.DecodeAddress(r); err != nil {
+	c.Parts = make([]wallet.Address, numParts)
+	for i := 0; i < len(c.Parts); i++ {
+		if c.Parts[i], err = wallet.DecodeAddress(r); err != nil {
 			return err
-		} else {
-			p.Parts[i] = addr
 		}
 	}
 
 	return nil
 }
 
-func (p *Proposal) Type() MsgType {
-	return PeerProposal
+func (*ChannelProposal) Type() MsgType {
+	return PeerChannelProposal
 }
 
 type SessionID = [32]byte
 
-type Response struct {
+type ChannelProposalRes struct {
 	SessID          SessionID
 	ParticipantAddr wallet.Address
 }
 
-func (*Response) Category() wiremsg.Category {
+func (*ChannelProposalRes) Category() wiremsg.Category {
 	return wiremsg.Peer
 }
 
-func (*Response) Type() MsgType {
-	return PeerResponse
+func (*ChannelProposalRes) Type() MsgType {
+	return PeerChannelProposalRes
 }
 
-func (r *Response) encode(w io.Writer) error {
+func (r *ChannelProposalRes) encode(w io.Writer) error {
 	if _, err := w.Write(r.SessID[:]); err != nil {
 		return errors.WithMessagef(err, "response SID encoding")
 	}
@@ -167,7 +153,7 @@ func (r *Response) encode(w io.Writer) error {
 	return nil
 }
 
-func (response *Response) decode(r io.Reader) error {
+func (response *ChannelProposalRes) decode(r io.Reader) error {
 	response.SessID = SessionID{}
 	if _, err := io.ReadFull(r, response.SessID[:]); err != nil {
 		return errors.WithMessagef(err, "response SID decoding")

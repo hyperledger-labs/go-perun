@@ -31,9 +31,9 @@ func newAddress(init byte) wallet.Address {
 	return simulatedWallet.NewRandomAddress(&SequentialGenerator{init})
 }
 
-func TestProposalSerialization(t *testing.T) {
-	inputs := []Proposal{
-		Proposal{
+func TestChannelProposalSerialization(t *testing.T) {
+	inputs := []ChannelProposal{
+		ChannelProposal{
 			ChallengeDuration: 0,
 			Nonce:             big.NewInt(1),
 			ParticipantAddr:   newAddress(2),
@@ -48,7 +48,7 @@ func TestProposalSerialization(t *testing.T) {
 			},
 			Parts: []wallet.Address{newAddress(4), newAddress(5)},
 		},
-		Proposal{
+		ChannelProposal{
 			ChallengeDuration: 99,
 			Nonce:             big.NewInt(100),
 			ParticipantAddr:   newAddress(101),
@@ -74,13 +74,13 @@ func TestProposalSerialization(t *testing.T) {
 	}
 }
 
-func TestResponseSerialization(t *testing.T) {
-	inputs := []Response{
-		Response{
+func TestChannelProposalResSerialization(t *testing.T) {
+	inputs := []ChannelProposalRes{
+		ChannelProposalRes{
 			SessID:          SessionID{0, 1, 2},
 			ParticipantAddr: newAddress(4),
 		},
-		Response{
+		ChannelProposalRes{
 			SessID:          SessionID{0x0E, 0xA7, 0xBE, 0xEF},
 			ParticipantAddr: newAddress(123),
 		},
