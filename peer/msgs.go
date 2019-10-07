@@ -41,6 +41,11 @@ func (m *DummyPeerMsg) decode(reader io.Reader) error {
 	return wire.Decode(reader, &m.dummy)
 }
 
+// The ChannelProposal type contains all data necessary to propose a new
+// channel to a given set of peers.
+//
+// The type implements the channel proposal messages from the Multi-Party
+// Channel Proposal Protocol (MPCPP).
 type ChannelProposal struct {
 	ChallengeDuration uint64
 	Nonce             *big.Int
@@ -53,6 +58,10 @@ type ChannelProposal struct {
 
 func (ChannelProposal) Category() wiremsg.Category {
 	return wiremsg.Peer
+}
+
+func (*ChannelProposal) Type() MsgType {
+	return PeerChannelProposal
 }
 
 func (c ChannelProposal) encode(w io.Writer) error {
@@ -122,12 +131,17 @@ func (c *ChannelProposal) decode(r io.Reader) (err error) {
 	return nil
 }
 
-func (*ChannelProposal) Type() MsgType {
-	return PeerChannelProposal
-}
-
+// A SessionID is a unique identifier generated for every instantiantiation of
+// a channel.
 type SessionID = wire.Byte32
 
+// ChannelProposalRes contains all data for a response to a channel proposal
+// message. The SessID must be computed from the channel proposal messages on
+// wishes to respond to. ParticipantAddr should be an ephemeral address just
+// for this channel instantiantiation.
+//
+// The type implements the channel proposal response messages from the
+// Multi-Party Channel Proposal Protocol (MPCPP).
 type ChannelProposalRes struct {
 	SessID          SessionID
 	ParticipantAddr wallet.Address
