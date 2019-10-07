@@ -37,6 +37,8 @@ func Encode(writer io.Writer, values ...interface{}) (err error) {
 			err = FromTime(v).Encode(writer)
 		case *big.Int:
 			err = BigInt{v}.Encode(writer)
+		case [32]byte:
+			_, err = writer.Write(v[:])
 		case []byte:
 			err = ByteSlice(v).Encode(writer)
 		default:
@@ -92,6 +94,8 @@ func Decode(reader io.Reader, values ...interface{}) (err error) {
 			var d BigInt
 			err = d.Decode(reader)
 			*v = d.Int
+		case *[32]byte:
+			_, err = io.ReadFull(reader, v[:])
 		case *[]byte:
 			d := ByteSlice(*v)
 			err = d.Decode(reader)

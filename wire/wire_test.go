@@ -48,6 +48,10 @@ func TestEncodeDecode(t *testing.T) {
 	r, w := io.Pipe()
 
 	longInt, _ := new(big.Int).SetString("12345671823897123798901234561234567890", 16)
+	var byte32 [32]byte
+	for i := byte(0); i < 32; i++ {
+		byte32[i] = i + 1
+	}
 	byteSlice := []byte{0, 1, 2, 4, 8, 0x10, 0x20, 0x40, 0x80}
 	values := []interface{}{
 		true,
@@ -61,6 +65,7 @@ func TestEncodeDecode(t *testing.T) {
 		time.Unix(0, time.Now().UnixNano()),
 		big.NewInt(0x1234567890123456),
 		longInt,
+		byte32,
 		byteSlice,
 	}
 
