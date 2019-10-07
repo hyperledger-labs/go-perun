@@ -56,6 +56,8 @@ type (
 	// The same Asset should be shareable by multiple Allocation instances.
 	Asset = perunio.Serializable
 
+	// The type DummyAsset exists solely for development purposes until an
+	// actual implementation is available for all packages inside go-perun.
 	DummyAsset struct {
 		Value uint64
 	}

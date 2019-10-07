@@ -56,6 +56,8 @@ type (
 		Clone() Data
 	}
 
+	// The type DummyData exists solely for development purposes until an
+	// actual implementation is available for all packages inside go-perun.
 	DummyData struct {
 		X uint32
 	}
