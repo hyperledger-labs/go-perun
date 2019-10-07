@@ -7,12 +7,12 @@
 package channel // import "perun.network/go-perun/channel"
 
 import (
-	"encoding/binary"
 	"io"
 
 	"github.com/pkg/errors"
 
 	perunio "perun.network/go-perun/pkg/io"
+	"perun.network/go-perun/wire"
 )
 
 type (
@@ -99,11 +99,11 @@ func (s *State) Clone() *State {
 }
 
 func (d *DummyData) Encode(w io.Writer) error {
-	return binary.Write(w, binary.LittleEndian, d.X)
+	return wire.Encode(w, d.X)
 }
 
 func (d *DummyData) Decode(r io.Reader) error {
-	return binary.Read(r, binary.LittleEndian, &d.X)
+	return wire.Decode(r, &d.X)
 }
 
 func (d *DummyData) Clone() Data {

@@ -5,7 +5,6 @@
 package channel
 
 import (
-	"encoding/binary"
 	"io"
 	"math"
 	"math/big"
@@ -103,7 +102,7 @@ func (alloc Allocation) Encode(w io.Writer) error {
 		return errors.Errorf(
 			"expected at most %d assets, got %d", math.MaxInt32, numAssets)
 	}
-	if err := binary.Write(w, binary.LittleEndian, int32(numAssets)); err != nil {
+	if err := wire.Encode(w, int32(numAssets)); err != nil {
 		return err
 	}
 
@@ -112,7 +111,7 @@ func (alloc Allocation) Encode(w io.Writer) error {
 		return errors.Errorf(
 			"expected at most %d participants, got %d", math.MaxInt32, numParts)
 	}
-	if err := binary.Write(w, binary.LittleEndian, int32(numParts)); err != nil {
+	if err := wire.Encode(w, int32(numParts)); err != nil {
 		return err
 	}
 
@@ -121,7 +120,7 @@ func (alloc Allocation) Encode(w io.Writer) error {
 		return errors.Errorf(
 			"expected at most %d suballocations, got %d", math.MaxInt32, numLocks)
 	}
-	if err := binary.Write(w, binary.LittleEndian, int32(numLocks)); err != nil {
+	if err := wire.Encode(w, int32(numLocks)); err != nil {
 		return err
 	}
 
@@ -154,7 +153,7 @@ func (alloc Allocation) Encode(w io.Writer) error {
 func (alloc *Allocation) Decode(r io.Reader) error {
 	// decode dimensions
 	var numAssets int32
-	if err := binary.Read(r, binary.LittleEndian, &numAssets); err != nil {
+	if err := wire.Decode(r, &numAssets); err != nil {
 		return err
 	}
 	if numAssets < 0 {
@@ -163,7 +162,7 @@ func (alloc *Allocation) Decode(r io.Reader) error {
 	}
 
 	var numParts int32
-	if err := binary.Read(r, binary.LittleEndian, &numParts); err != nil {
+	if err := wire.Decode(r, &numParts); err != nil {
 		return err
 	}
 	if numParts < 0 {
@@ -172,7 +171,7 @@ func (alloc *Allocation) Decode(r io.Reader) error {
 	}
 
 	var numLocked int32
-	if err := binary.Read(r, binary.LittleEndian, &numLocked); err != nil {
+	if err := wire.Decode(r, &numLocked); err != nil {
 		return err
 	}
 	if numLocked < 0 {
@@ -313,7 +312,7 @@ func (s *SubAlloc) Encode(w io.Writer) error {
 	if s.Bals != nil {
 		numAssets = len(s.Bals)
 	}
-	if err := binary.Write(w, binary.LittleEndian, int32(numAssets)); err != nil {
+	if err := wire.Encode(w, int32(numAssets)); err != nil {
 		return err
 	}
 
@@ -339,7 +338,7 @@ func (s *SubAlloc) Decode(r io.Reader) error {
 	}
 
 	var numAssets int32
-	if err := binary.Read(r, binary.LittleEndian, &numAssets); err != nil {
+	if err := wire.Decode(r, &numAssets); err != nil {
 		return err
 	}
 
@@ -356,9 +355,9 @@ func (s *SubAlloc) Decode(r io.Reader) error {
 }
 
 func (d *DummyAsset) Encode(w io.Writer) error {
-	return binary.Write(w, binary.LittleEndian, d.Value)
+	return wire.Encode(w, d.Value)
 }
 
 func (d *DummyAsset) Decode(r io.Reader) error {
-	return binary.Read(r, binary.LittleEndian, &d.Value)
+	return wire.Decode(r, &d.Value)
 }
