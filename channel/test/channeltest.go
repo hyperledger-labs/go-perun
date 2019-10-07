@@ -11,7 +11,6 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"perun.network/go-perun/channel"
-	"perun.network/go-perun/pkg/io"
 	"perun.network/go-perun/wallet"
 )
 
@@ -205,10 +204,9 @@ func buildModifiedStates(s1, s2 *channel.State) (ret []channel.State) {
 					ret = append(ret, modState)
 				}
 				// Modify Assets[0]
-
 				{
 					modState := *s1
-					modState.Assets = make([]io.Serializable, len(s1.Allocation.Assets))
+					modState.Assets = make([]channel.Asset, len(s1.Allocation.Assets))
 					copy(modState.Allocation.Assets, s1.Allocation.Assets)
 					modState.Allocation.Assets[0] = s2.Allocation.Assets[0]
 					ret = append(ret, modState)
