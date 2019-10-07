@@ -15,7 +15,7 @@ import (
 	"perun.network/go-perun/channel"
 	perunio "perun.network/go-perun/pkg/io"
 	"perun.network/go-perun/wallet"
-	wire "perun.network/go-perun/wire"
+	"perun.network/go-perun/wire"
 	wiremsg "perun.network/go-perun/wire/msg"
 )
 
@@ -126,7 +126,7 @@ func (*ChannelProposal) Type() MsgType {
 	return PeerChannelProposal
 }
 
-type SessionID = [32]byte
+type SessionID = wire.Byte32
 
 type ChannelProposalRes struct {
 	SessID          SessionID
@@ -142,7 +142,7 @@ func (*ChannelProposalRes) Type() MsgType {
 }
 
 func (r *ChannelProposalRes) encode(w io.Writer) error {
-	if _, err := w.Write(r.SessID[:]); err != nil {
+	if err := r.SessID.Encode(w); err != nil {
 		return errors.WithMessagef(err, "response SID encoding")
 	}
 
@@ -154,8 +154,7 @@ func (r *ChannelProposalRes) encode(w io.Writer) error {
 }
 
 func (response *ChannelProposalRes) decode(r io.Reader) error {
-	response.SessID = SessionID{}
-	if _, err := io.ReadFull(r, response.SessID[:]); err != nil {
+	if err := response.SessID.Decode(r); err != nil {
 		return errors.WithMessagef(err, "response SID decoding")
 	}
 
