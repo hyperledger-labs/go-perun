@@ -303,7 +303,7 @@ func equalSum(b0, b1 summer) (bool, error) {
 
 // suballocation serialization
 func (s *SubAlloc) Encode(w io.Writer) error {
-	if _, err := w.Write(s.ID[:]); err != nil {
+	if err := s.ID.Encode(w); err != nil {
 		return errors.WithMessagef(
 			err, "error encoding suballocation id %v", s.ID)
 	}
@@ -327,14 +327,8 @@ func (s *SubAlloc) Encode(w io.Writer) error {
 }
 
 func (s *SubAlloc) Decode(r io.Reader) error {
-	if n, err := io.ReadFull(r, s.ID[:]); n != len(s.ID) || err != nil {
-		if n != len(s.ID) {
-			return errors.Errorf(
-				"expected to read %d bytes of ID, got %d", len(s.ID), n)
-		}
-		if err != nil {
-			return errors.WithMessage(err, "error when reading suballocation ID")
-		}
+	if err := s.ID.Decode(r); err != nil {
+		return errors.WithMessage(err, "error when decoding suballocation ID")
 	}
 
 	var numAssets int32
