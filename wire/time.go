@@ -11,20 +11,20 @@ import (
 // Time is a serializable network timestamp.
 // It is a 64-bit unix timestamp, in nanoseconds.
 type Time struct {
-	Int64
+	int64
 }
 
 // Time converts a wire Time into a system time.
 func (t Time) Time() time.Time {
-	return time.Unix(0, int64(t.Int64))
+	return time.Unix(0, int64(t.int64))
 }
 
 // FromTime creates a wire Time from a system time.
 func FromTime(time time.Time) Time {
-	return Time{Int64(time.UnixNano())}
+	return Time{int64(time.UnixNano())}
 }
 
 // Now creates a wire Time representing the current moment.
 func Now() Time {
-	return Time{Int64(time.Now().UnixNano())}
+	return Time{int64(time.Now().UnixNano())}
 }

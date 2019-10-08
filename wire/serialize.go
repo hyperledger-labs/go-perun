@@ -25,7 +25,7 @@ func Encode(writer io.Writer, values ...interface{}) (err error) {
 		case bool, int16, uint16, int32, uint32, int64, uint64:
 			err = binary.Write(writer, byteOrder, v)
 		case time.Time:
-			err = FromTime(v).Encode(writer)
+			err = binary.Write(writer, byteOrder, FromTime(v).int64)
 		case *big.Int:
 			err = BigInt{v}.Encode(writer)
 		case [32]byte:
@@ -52,9 +52,9 @@ func Decode(reader io.Reader, values ...interface{}) (err error) {
 		case *bool, *int16, *uint16, *int32, *uint32, *int64, *uint64:
 			err = binary.Read(reader, byteOrder, v)
 		case *time.Time:
-			var d Time
-			err = d.Decode(reader)
-			*v = d.Time()
+			var d int64
+			err = binary.Read(reader, byteOrder, &d)
+			*v = Time{d}.Time()
 		case **big.Int:
 			var d BigInt
 			err = d.Decode(reader)
