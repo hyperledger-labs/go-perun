@@ -5,6 +5,7 @@
 package wire
 
 import (
+	"encoding/binary"
 	"io"
 	"math/big"
 	"time"
@@ -14,25 +15,15 @@ import (
 	"perun.network/go-perun/log"
 )
 
+var byteOrder = binary.LittleEndian
+
 // Encode encodes multiple primitive values into a writer.
 // All passed values must be copies, not references.
 func Encode(writer io.Writer, values ...interface{}) (err error) {
 	for i, value := range values {
 		switch v := value.(type) {
-		case bool:
-			err = Bool(v).Encode(writer)
-		case int16:
-			err = Int16(v).Encode(writer)
-		case uint16:
-			err = Int16(v).Encode(writer)
-		case int32:
-			err = Int32(v).Encode(writer)
-		case uint32:
-			err = Int32(v).Encode(writer)
-		case int64:
-			err = Int64(v).Encode(writer)
-		case uint64:
-			err = Int64(v).Encode(writer)
+		case bool, int16, uint16, int32, uint32, int64, uint64:
+			err = binary.Write(writer, byteOrder, v)
 		case time.Time:
 			err = FromTime(v).Encode(writer)
 		case *big.Int:
@@ -58,34 +49,8 @@ func Encode(writer io.Writer, values ...interface{}) (err error) {
 func Decode(reader io.Reader, values ...interface{}) (err error) {
 	for i, value := range values {
 		switch v := value.(type) {
-		case *bool:
-			var d Bool
-			err = d.Decode(reader)
-			*v = bool(d)
-		case *int16:
-			var d Int16
-			err = d.Decode(reader)
-			*v = int16(d)
-		case *uint16:
-			var d Int16
-			err = d.Decode(reader)
-			*v = uint16(d)
-		case *int32:
-			var d Int32
-			err = d.Decode(reader)
-			*v = int32(d)
-		case *uint32:
-			var d Int32
-			err = d.Decode(reader)
-			*v = uint32(d)
-		case *int64:
-			var d Int64
-			err = d.Decode(reader)
-			*v = int64(d)
-		case *uint64:
-			var d Int64
-			err = d.Decode(reader)
-			*v = uint64(d)
+		case *bool, *int16, *uint16, *int32, *uint32, *int64, *uint64:
+			err = binary.Read(reader, byteOrder, v)
 		case *time.Time:
 			var d Time
 			err = d.Decode(reader)
