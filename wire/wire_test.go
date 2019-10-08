@@ -22,8 +22,6 @@ func TestWrongTypes(t *testing.T) {
 
 	values := []interface{}{
 		errors.New(""),
-		int8(1),
-		byte(7),
 		float32(1.2),
 		float64(1.3),
 		complex(1, 2),
@@ -55,6 +53,9 @@ func TestEncodeDecode(t *testing.T) {
 	byteSlice := []byte{0, 1, 2, 4, 8, 0x10, 0x20, 0x40, 0x80}
 	values := []interface{}{
 		true,
+		byte(0xB0),
+		int8(-127),
+		uint8(0xB0),
 		uint16(0x1234),
 		uint32(0x123567),
 		uint64(0x1234567890123456),
