@@ -22,7 +22,7 @@ var byteOrder = binary.LittleEndian
 func Encode(writer io.Writer, values ...interface{}) (err error) {
 	for i, value := range values {
 		switch v := value.(type) {
-		case bool, int16, uint16, int32, uint32, int64, uint64:
+		case bool, int8, uint8, int16, uint16, int32, uint32, int64, uint64:
 			err = binary.Write(writer, byteOrder, v)
 		case time.Time:
 			err = binary.Write(writer, byteOrder, FromTime(v).int64)
@@ -49,7 +49,7 @@ func Encode(writer io.Writer, values ...interface{}) (err error) {
 func Decode(reader io.Reader, values ...interface{}) (err error) {
 	for i, value := range values {
 		switch v := value.(type) {
-		case *bool, *int16, *uint16, *int32, *uint32, *int64, *uint64:
+		case *bool, *int8, *uint8, *int16, *uint16, *int32, *uint32, *int64, *uint64:
 			err = binary.Read(reader, byteOrder, v)
 		case *time.Time:
 			var d int64
