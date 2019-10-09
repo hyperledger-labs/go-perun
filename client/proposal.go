@@ -9,6 +9,7 @@ import (
 
 	"github.com/pkg/errors"
 
+	"perun.network/go-perun/channel"
 	"perun.network/go-perun/log"
 	"perun.network/go-perun/peer"
 	"perun.network/go-perun/pkg/sync/atomic"
@@ -52,6 +53,12 @@ type (
 	ctxProposalRej struct {
 		ctx    context.Context
 		reason string
+	}
+
+	channelProposalResult struct {
+		*channel.Params
+		channel.Data
+		*channel.Allocation
 	}
 )
 
@@ -159,4 +166,69 @@ func (c *Client) handleChannelProposal(p *peer.Peer, proposal *ChannelProposal) 
 		}
 	}
 	responder.err <- nil
+}
+
+func (c *Client) exchangeChannelProposal(
+	ctx context.Context,
+	proposal *ChannelProposal,
+) (*channelProposalResult, error) {
+	if err := proposal.Valid(); err != nil {
+		return nil, err
+	}
+
+	numParts := len(proposal.Parts)
+	if numParts != 2 {
+		return nil, errors.Errorf(
+			"Expected exactly two peers in proposal, got %d", numParts)
+	}
+
+	p := c.peers.Get(proposal.Parts[1])
+
+	app, err := channel.AppFromDefinition(proposal.AppDef)
+	if err != nil {
+		return nil, errors.WithMessagef(
+			err, "Error when getting app at address %v", proposal.AppDef)
+	}
+
+	// begin communication with peer
+	receiver := peer.NewReceiver()
+	defer receiver.Close()
+
+	sessID := proposal.SessID()
+	isResponse := func(m wire.Msg) bool {
+		return (m.Type() == wire.ChannelProposalAcc &&
+			m.(*ChannelProposalAcc).SessID == sessID) ||
+			(m.Type() == wire.ChannelProposalRej &&
+				m.(*ChannelProposalRej).SessID == sessID)
+	}
+	if err := receiver.Subscribe(p, isResponse); err != nil {
+		return nil, errors.WithMessagef(
+			err, "subscription error with peer %v", p.PerunAddress)
+	}
+
+	if err := p.Send(ctx, proposal); err != nil {
+		return nil, errors.WithMessage(err, "channel proposal broadcast")
+	}
+
+	_, rawResponse := receiver.Next(ctx)
+	if rawResponse == nil {
+		return nil, errors.New("timeout when waiting for proposal response")
+	}
+	if rejection, ok := rawResponse.(*ChannelProposalRej); ok {
+		return nil, errors.New(rejection.Reason)
+	}
+
+	approval := rawResponse.(*ChannelProposalAcc)
+	partAddrs := []wallet.Address{
+		proposal.ParticipantAddr, approval.ParticipantAddr}
+	params, err := channel.NewParams(
+		proposal.ChallengeDuration, partAddrs, app, proposal.Nonce,
+	)
+	if err != nil {
+		return nil, errors.WithMessage(
+			err, "error when computing params from channel proposal")
+	}
+
+	return &channelProposalResult{
+		params, proposal.InitData, proposal.InitBals}, nil
 }
