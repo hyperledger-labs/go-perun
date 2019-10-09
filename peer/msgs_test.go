@@ -39,7 +39,7 @@ func TestChannelProposalSerialization(t *testing.T) {
 			ParticipantAddr:   newAddress(2),
 			AppDef:            newAddress(3),
 			InitData:          &channel.DummyData{X: 6},
-			InitBals: channel.Allocation{
+			InitBals: &channel.Allocation{
 				Assets: []channel.Asset{&channel.DummyAsset{Value: 7}},
 				OfParts: [][]channel.Bal{
 					[]channel.Bal{big.NewInt(8)},
@@ -54,7 +54,7 @@ func TestChannelProposalSerialization(t *testing.T) {
 			ParticipantAddr:   newAddress(101),
 			AppDef:            newAddress(102),
 			InitData:          &channel.DummyData{X: 103},
-			InitBals: channel.Allocation{
+			InitBals: &channel.Allocation{
 				Assets: []channel.Asset{
 					&channel.DummyAsset{Value: 8}, &channel.DummyAsset{Value: 255}},
 				OfParts: [][]channel.Bal{

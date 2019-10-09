@@ -52,7 +52,7 @@ type ChannelProposal struct {
 	ParticipantAddr   Address
 	AppDef            Address
 	InitData          channel.Data
-	InitBals          channel.Allocation
+	InitBals          *channel.Allocation
 	Parts             []Address
 }
 
@@ -69,7 +69,7 @@ func (c ChannelProposal) encode(w io.Writer) error {
 		return err
 	}
 
-	if err := perunio.Encode(w, c.ParticipantAddr, c.AppDef, c.InitData, &c.InitBals); err != nil {
+	if err := perunio.Encode(w, c.ParticipantAddr, c.AppDef, c.InitData, c.InitBals); err != nil {
 		return err
 	}
 
@@ -107,8 +107,8 @@ func (c *ChannelProposal) decode(r io.Reader) (err error) {
 	}
 
 	c.InitData = &channel.DummyData{}
-	c.InitBals = channel.Allocation{}
-	if err := perunio.Decode(r, c.InitData, &c.InitBals); err != nil {
+	c.InitBals = &channel.Allocation{}
+	if err := perunio.Decode(r, c.InitData, c.InitBals); err != nil {
 		return err
 	}
 
