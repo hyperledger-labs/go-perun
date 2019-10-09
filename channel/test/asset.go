@@ -29,7 +29,7 @@ func (a *Asset) Encode(w io.Writer) error {
 	return wire.Encode(w, a.ID)
 }
 
-// Decode is not implemented in this simulation
+// Decode decodes an Asset from the io.Reader `r`
 func (a *Asset) Decode(r io.Reader) error {
 	return wire.Decode(r, &a.ID)
 }

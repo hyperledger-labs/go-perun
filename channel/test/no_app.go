@@ -85,3 +85,14 @@ func (a NoApp) ApplyActions(params *channel.Params, state *channel.State, action
 func (a NoApp) InitState(*channel.Params, []channel.Action) (channel.Allocation, channel.Data, error) {
 	return channel.Allocation{}, nil, nil
 }
+
+// DecodeData decodes a `NoAppData` from the reader and returns it
+func (NoApp) DecodeData(r io.Reader) (channel.Data, error) {
+	var data NoAppData
+	return &data, data.Decode(r)
+}
+
+// DecodeAction return nil, nil
+func (NoApp) DecodeAction(r io.Reader) (channel.Action, error) {
+	return nil, nil
+}

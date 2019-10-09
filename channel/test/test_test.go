@@ -13,12 +13,12 @@ import (
 
 func TestAsset(t *testing.T) {
 	rng := rand.New(rand.NewSource(1337))
-	asset := NewRandomAsset(rng)
+	asset := newRandomAsset(rng)
 	iotest.GenericSerializableTest(t, asset)
 }
 
 func TestNoAppData(t *testing.T) {
 	rng := rand.New(rand.NewSource(1337))
-	data := NewRandomData(rng)
+	data := newRandomNoAppData(rng)
 	iotest.GenericSerializableTest(t, data)
 }

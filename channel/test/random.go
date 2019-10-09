@@ -10,7 +10,6 @@ import (
 	"math/rand"
 
 	"perun.network/go-perun/channel"
-	perun "perun.network/go-perun/pkg/io"
 	"perun.network/go-perun/wallet"
 	wallettest "perun.network/go-perun/wallet/test"
 )
@@ -28,7 +27,7 @@ func SetBackend(b Backend) {
 }
 
 func NewRandomAllocation(rng *rand.Rand, params *channel.Params) *channel.Allocation {
-	assets := make([]perun.Serializable, rng.Int31n(9)+2)
+	assets := make([]channel.Asset, rng.Int31n(9)+2)
 	for i := 0; i < len(assets); i++ {
 		assets[i] = NewRandomAsset(rng)
 	}
