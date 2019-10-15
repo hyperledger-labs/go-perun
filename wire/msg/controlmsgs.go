@@ -27,7 +27,11 @@ func (m *pingPongMsg) decode(reader io.Reader) error {
 }
 
 func newPingPongMsg() pingPongMsg {
-	return pingPongMsg{Created: wire.Now().Time()}
+	// do not use `time.Now()` directly because it contains monotonic clock
+	// data specific to the current process which breaks, e.g.,
+	// `reflect.DeepEqual`, cf. "Marshal/Unmarshal functions are asymmetrical"
+	// https://github.com/golang/go/issues/19502
+	return pingPongMsg{Created: time.Unix(0, time.Now().UnixNano())}
 }
 
 // PingMsg is a ping request.
