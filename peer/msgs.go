@@ -156,11 +156,11 @@ func (*ChannelProposalRes) Type() MsgType {
 
 func (r *ChannelProposalRes) encode(w io.Writer) error {
 	if err := r.SessID.Encode(w); err != nil {
-		return errors.WithMessagef(err, "response SID encoding")
+		return errors.WithMessage(err, "response SID encoding")
 	}
 
 	if err := r.ParticipantAddr.Encode(w); err != nil {
-		return errors.WithMessagef(err, "response ephemeral address encoding")
+		return errors.WithMessage(err, "response participant address encoding")
 	}
 
 	return nil
@@ -168,11 +168,11 @@ func (r *ChannelProposalRes) encode(w io.Writer) error {
 
 func (response *ChannelProposalRes) decode(r io.Reader) error {
 	if err := response.SessID.Decode(r); err != nil {
-		return errors.WithMessagef(err, "response SID decoding")
+		return errors.WithMessage(err, "response SID decoding")
 	}
 
 	if ephemeralAddr, err := wallet.DecodeAddress(r); err != nil {
-		return errors.WithMessagef(err, "app address decoding")
+		return errors.WithMessage(err, "app address decoding")
 	} else {
 		response.ParticipantAddr = ephemeralAddr
 	}
