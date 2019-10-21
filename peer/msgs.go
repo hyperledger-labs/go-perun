@@ -136,7 +136,7 @@ type SessionID = wire.Byte32
 
 // ChannelProposalRes contains all data for a response to a channel proposal
 // message. The SessID must be computed from the channel proposal messages one
-// wishes to respond to. ParticipantAddr should be an ephemeral address just
+// wishes to respond to. ParticipantAddr should be a participant address just
 // for this channel instantiation.
 //
 // The type implements the channel proposal response messages from the
@@ -171,10 +171,10 @@ func (response *ChannelProposalRes) decode(r io.Reader) error {
 		return errors.WithMessage(err, "response SID decoding")
 	}
 
-	if ephemeralAddr, err := wallet.DecodeAddress(r); err != nil {
+	if participantAddr, err := wallet.DecodeAddress(r); err != nil {
 		return errors.WithMessage(err, "app address decoding")
 	} else {
-		response.ParticipantAddr = ephemeralAddr
+		response.ParticipantAddr = participantAddr
 	}
 
 	return nil
