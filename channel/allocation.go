@@ -344,7 +344,7 @@ func equalSum(b0, b1 summer) (bool, error) {
 }
 
 // Encode encodes the SubAlloc `s` into `w` and returns an error if it failed.
-func (s *SubAlloc) Encode(w io.Writer) error {
+func (s SubAlloc) Encode(w io.Writer) error {
 	if err := s.ID.Encode(w); err != nil {
 		return errors.WithMessagef(
 			err, "error encoding suballocation id %v", s.ID)
