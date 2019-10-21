@@ -5,7 +5,6 @@
 package peer
 
 import (
-	"encoding/binary"
 	"io"
 	"math"
 	"math/big"
@@ -80,7 +79,7 @@ func (c ChannelProposal) encode(w io.Writer) error {
 	}
 
 	numParts := int32(len(c.Parts))
-	if err := binary.Write(w, binary.LittleEndian, numParts); err != nil {
+	if err := wire.Encode(w, numParts); err != nil {
 		return err
 	}
 	for i := range c.Parts {
