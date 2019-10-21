@@ -98,6 +98,9 @@ type (
 	Asset = perunio.Serializable
 )
 
+
+var _ perunio.Serializable = new(Allocation)
+
 // Clone returns a deep copy of the Allocation object.
 // If it is nil, it returns nil.
 func (orig Allocation) Clone() (clone Allocation) {
@@ -342,6 +345,8 @@ func equalSum(b0, b1 summer) (bool, error) {
 	}
 	return true, nil
 }
+
+var _ perunio.Serializable = new(SubAlloc)
 
 // Encode encodes the SubAlloc `s` into `w` and returns an error if it failed.
 func (s SubAlloc) Encode(w io.Writer) error {
