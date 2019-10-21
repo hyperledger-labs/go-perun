@@ -55,12 +55,6 @@ type (
 	// where all participants' assets are deposited.
 	// The same Asset should be shareable by multiple Allocation instances.
 	Asset = perunio.Serializable
-
-	// The type DummyAsset exists solely for development purposes until an
-	// actual implementation is available for all packages inside go-perun.
-	DummyAsset struct {
-		Value uint64
-	}
 )
 
 // Clone returns a deep copy of the Allocation object.
@@ -184,9 +178,10 @@ func (alloc *Allocation) Decode(r io.Reader) error {
 	// decode assets
 	alloc.Assets = make([]Asset, numAssets)
 	for i := 0; i < len(alloc.Assets); i++ {
-		alloc.Assets[i] = &DummyAsset{}
-		if err := alloc.Assets[i].Decode(r); err != nil {
+		if asset, err := appBackend.DecodeAsset(r); err != nil {
 			return errors.WithMessagef(err, "decoding error for asset %d", i)
+		} else {
+			alloc.Assets[i] = asset
 		}
 	}
 
@@ -348,12 +343,4 @@ func (s *SubAlloc) Decode(r io.Reader) error {
 	}
 
 	return nil
-}
-
-func (d *DummyAsset) Encode(w io.Writer) error {
-	return wire.Encode(w, d.Value)
-}
-
-func (d *DummyAsset) Decode(r io.Reader) error {
-	return wire.Decode(r, &d.Value)
 }

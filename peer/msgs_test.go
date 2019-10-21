@@ -8,8 +8,10 @@ import (
 	"math/big"
 	"testing"
 
+	_ "perun.network/go-perun/backend/sim/channel"
 	simulatedWallet "perun.network/go-perun/backend/sim/wallet"
 	"perun.network/go-perun/channel"
+	"perun.network/go-perun/channel/test"
 	"perun.network/go-perun/wallet"
 	wire "perun.network/go-perun/wire/msg"
 )
@@ -40,7 +42,7 @@ func TestChannelProposalSerialization(t *testing.T) {
 			AppDef:            newAddress(3),
 			InitData:          &channel.DummyData{X: 6},
 			InitBals: &channel.Allocation{
-				Assets: []channel.Asset{&channel.DummyAsset{Value: 7}},
+				Assets: []channel.Asset{&test.Asset{ID: 7}},
 				OfParts: [][]channel.Bal{
 					[]channel.Bal{big.NewInt(8)},
 					[]channel.Bal{big.NewInt(9)}},
@@ -55,8 +57,7 @@ func TestChannelProposalSerialization(t *testing.T) {
 			AppDef:            newAddress(102),
 			InitData:          &channel.DummyData{X: 103},
 			InitBals: &channel.Allocation{
-				Assets: []channel.Asset{
-					&channel.DummyAsset{Value: 8}, &channel.DummyAsset{Value: 255}},
+				Assets: []channel.Asset{&test.Asset{ID: 8}, &test.Asset{ID: 255}},
 				OfParts: [][]channel.Bal{
 					[]channel.Bal{big.NewInt(9), big.NewInt(131)},
 					[]channel.Bal{big.NewInt(1), big.NewInt(1024)}},
