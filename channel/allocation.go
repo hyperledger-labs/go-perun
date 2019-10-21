@@ -305,9 +305,10 @@ func (s *SubAlloc) Encode(w io.Writer) error {
 			err, "error encoding suballocation id %v", s.ID)
 	}
 
-	numAssets := 0
-	if s.Bals != nil {
-		numAssets = len(s.Bals)
+	numAssets := len(s.Bals)
+	if numAssets > math.MaxInt32 {
+		return errors.Errorf(
+			"expected at most %d assets, got %d", math.MaxInt32, numAssets)
 	}
 	if err := wire.Encode(w, int32(numAssets)); err != nil {
 		return err
