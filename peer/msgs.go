@@ -59,7 +59,7 @@ func (ChannelProposal) Category() wiremsg.Category {
 	return wiremsg.Peer
 }
 
-func (*ChannelProposal) Type() MsgType {
+func (ChannelProposal) Type() MsgType {
 	return PeerChannelProposal
 }
 
@@ -146,15 +146,15 @@ type ChannelProposalRes struct {
 	ParticipantAddr wallet.Address
 }
 
-func (*ChannelProposalRes) Category() wiremsg.Category {
+func (ChannelProposalRes) Category() wiremsg.Category {
 	return wiremsg.Peer
 }
 
-func (*ChannelProposalRes) Type() MsgType {
+func (ChannelProposalRes) Type() MsgType {
 	return PeerChannelProposalRes
 }
 
-func (r *ChannelProposalRes) encode(w io.Writer) error {
+func (r ChannelProposalRes) encode(w io.Writer) error {
 	if err := r.SessID.Encode(w); err != nil {
 		return errors.WithMessage(err, "response SID encoding")
 	}
