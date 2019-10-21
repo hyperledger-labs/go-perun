@@ -5,9 +5,12 @@
 package test
 
 import (
+	"bytes"
 	"io"
 	"math/big"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 
 	"perun.network/go-perun/channel"
 	perunio "perun.network/go-perun/pkg/io"
@@ -31,9 +34,11 @@ func (noAppBackend) DecodeAsset(r io.Reader) (channel.Asset, error) {
 	return &asset, asset.Decode(r)
 }
 
-func TestAllocationSerialization(t *testing.T) {
+func init() {
 	channel.SetAppBackend(noAppBackend{})
+}
 
+func TestAllocationSerialization(t *testing.T) {
 	inputs := []perunio.Serializable{
 		&channel.Allocation{
 			Assets:  []channel.Asset{&Asset{0}},
@@ -69,4 +74,53 @@ func TestAllocationSerialization(t *testing.T) {
 	}
 
 	ioTest.GenericSerializableTest(t, inputs...)
+}
+
+func TestAllocationSerializationLimits(t *testing.T) {
+	inputs := []struct {
+		numAssets         int
+		numParts          int
+		numSuballocations int
+	}{
+		{channel.MaxNumAssets + 1, 1, 0},
+		{1, channel.MaxNumParts + 1, 0},
+		{1, 1, channel.MaxNumSuballocations + 1},
+		{channel.MaxNumAssets + 2, 2 * channel.MaxNumParts, 4 * channel.MaxNumSuballocations},
+	}
+
+	for _, x := range inputs {
+		allocation := &channel.Allocation{
+			Assets:  make([]channel.Asset, x.numAssets),
+			OfParts: make([][]channel.Bal, x.numParts),
+			Locked:  make([]channel.SubAlloc, x.numSuballocations),
+		}
+
+		for i := range allocation.Assets {
+			allocation.Assets[i] = &Asset{int64(i)}
+		}
+
+		for i := range allocation.OfParts {
+			allocation.OfParts[i] = make([]channel.Bal, x.numAssets)
+
+			for j := range allocation.OfParts[i] {
+				bal := big.NewInt(int64(x.numAssets)*int64(i) + int64(j))
+				allocation.OfParts[i][j] = bal
+			}
+		}
+
+		for i := range allocation.Locked {
+			allocation.Locked[i] = channel.SubAlloc{
+				ID:   channel.ID{byte(i), byte(i >> 8), byte(i >> 16), byte(i >> 24)},
+				Bals: make([]channel.Bal, x.numAssets)}
+
+			for j := range allocation.Locked[i].Bals {
+				bal := big.NewInt(int64(x.numAssets)*int64(i) + int64(j) + 1)
+				allocation.Locked[i].Bals[j] = bal
+			}
+		}
+
+		buffer := new(bytes.Buffer)
+		err := allocation.Encode(buffer)
+		assert.Errorf(t, err, "expected error for parameters %v", x)
+	}
 }

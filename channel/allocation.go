@@ -5,6 +5,7 @@
 package channel
 
 import (
+	"fmt"
 	"io"
 	"math"
 	"math/big"
@@ -15,6 +16,46 @@ import (
 
 	"github.com/pkg/errors"
 )
+
+// MaxNumAssets is an artificial limit on the number of serialized assets in an
+// Allocation to avoid having users run out of memory when a malicious peer
+// pretends to send a large number of assets.
+const MaxNumAssets = 1000
+
+// MaxNumParts is an artificial limit on the number participant assets in an
+// Allocation to avoid having users run out of memory when a malicious peer
+// pretends to send balances for a large number of participants.
+// Keep in mind that an Allocation contains information about every
+// participant's balance for every asset, i.e., there are num-assets times
+// num-participants balances in an Allocation.
+const MaxNumParts = 1000
+
+// MaxNumSubAllocations is an artificial limit on the number of suballocations
+// in an Allocation to avoid having users run out of memory when a malicious
+// peer pretends to send a large number of suballocations.
+// Keep in mind that an Allocation contains information about every
+// asset for every suballocation, i.e., there are num-assets times
+// num-suballocations items of information in an Allocation.
+const MaxNumSuballocations = 1000
+
+func init() {
+	// fake static assert
+	if MaxNumAssets > math.MaxInt32 {
+		panic(fmt.Sprintf(
+			"MaxNumAssets must be at most %d, got %d",
+			math.MaxInt32, MaxNumAssets))
+	}
+	if MaxNumParts > math.MaxInt32 {
+		panic(fmt.Sprintf(
+			"MaxNumParts must be at most %d, got %d",
+			math.MaxInt32, MaxNumParts))
+	}
+	if MaxNumSuballocations > math.MaxInt32 {
+		panic(fmt.Sprintf(
+			"MaxNumSuballocations must be at most %d, got %d",
+			math.MaxInt32, MaxNumSuballocations))
+	}
+}
 
 // Allocation and associated types
 type (
@@ -94,27 +135,28 @@ func (alloc Allocation) Encode(w io.Writer) error {
 	}
 
 	numAssets := len(alloc.Assets)
-	if numAssets > math.MaxInt32 {
+	if numAssets > MaxNumAssets {
 		return errors.Errorf(
-			"expected at most %d assets, got %d", math.MaxInt32, numAssets)
+			"expected at most %d assets, got %d", MaxNumAssets, numAssets)
 	}
 	if err := wire.Encode(w, int32(numAssets)); err != nil {
 		return err
 	}
 
 	numParts := len(alloc.OfParts)
-	if numParts > math.MaxInt32 {
+	if numParts > MaxNumParts {
 		return errors.Errorf(
-			"expected at most %d participants, got %d", math.MaxInt32, numParts)
+			"expected at most %d participants, got %d", MaxNumParts, numParts)
 	}
 	if err := wire.Encode(w, int32(numParts)); err != nil {
 		return err
 	}
 
 	numLocks := len(alloc.Locked)
-	if numLocks > math.MaxInt32 {
+	if numLocks > MaxNumSuballocations {
 		return errors.Errorf(
-			"expected at most %d suballocations, got %d", math.MaxInt32, numLocks)
+			"expected at most %d suballocations, got %d",
+			MaxNumSuballocations, numLocks)
 	}
 	if err := wire.Encode(w, int32(numLocks)); err != nil {
 		return err
@@ -152,27 +194,30 @@ func (alloc *Allocation) Decode(r io.Reader) error {
 	if err := wire.Decode(r, &numAssets); err != nil {
 		return err
 	}
-	if numAssets < 0 {
+	if numAssets < 0 || numAssets > MaxNumAssets {
 		return errors.Errorf(
-			"expected non-negative number of assets, got %d", numAssets)
+			"expected a positive number of assets at most %d, got %d",
+			MaxNumAssets, numAssets)
 	}
 
 	var numParts int32
 	if err := wire.Decode(r, &numParts); err != nil {
 		return err
 	}
-	if numParts < 0 {
+	if numParts < 0 || numParts > MaxNumParts {
 		return errors.Errorf(
-			"expected non-negative number of participants, got %d", numParts)
+			"expected a positive number of participants at most %d, got %d",
+			MaxNumParts, numParts)
 	}
 
 	var numLocked int32
 	if err := wire.Decode(r, &numLocked); err != nil {
 		return err
 	}
-	if numLocked < 0 {
+	if numLocked < 0 || numLocked > MaxNumSuballocations {
 		return errors.Errorf(
-			"expected non-negative number of participants, got %d", numLocked)
+			"expected a non-negative number of suballocations at most %d, got %d",
+			MaxNumSuballocations, numLocked)
 	}
 
 	// decode assets
