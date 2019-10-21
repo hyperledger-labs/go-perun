@@ -6,6 +6,7 @@ package peer
 
 import (
 	"math/big"
+	"math/rand"
 	"testing"
 
 	_ "perun.network/go-perun/backend/sim/channel"
@@ -16,21 +17,8 @@ import (
 	wire "perun.network/go-perun/wire/msg"
 )
 
-type SequentialGenerator struct {
-	state byte
-}
-
-func (s *SequentialGenerator) Read(buf []byte) (int, error) {
-	for i := 0; i < len(buf); i++ {
-		buf[i] = s.state
-		s.state++
-	}
-
-	return len(buf), nil
-}
-
-func newAddress(init byte) wallet.Address {
-	return simulatedWallet.NewRandomAddress(&SequentialGenerator{init})
+func newAddress(seed int64) wallet.Address {
+	return simulatedWallet.NewRandomAddress(rand.New(rand.NewSource(seed)))
 }
 
 func TestChannelProposalSerialization(t *testing.T) {
