@@ -298,7 +298,7 @@ func equalSum(b0, b1 summer) (bool, error) {
 	return true, nil
 }
 
-// suballocation serialization
+// Encode encodes the SubAlloc `s` into `w` and returns an error if it failed.
 func (s *SubAlloc) Encode(w io.Writer) error {
 	if err := s.ID.Encode(w); err != nil {
 		return errors.WithMessagef(
@@ -324,6 +324,8 @@ func (s *SubAlloc) Encode(w io.Writer) error {
 	return nil
 }
 
+// Decode decodes the SubAlloc `s` encoded in `r` and returns an error if it
+// failed.
 func (s *SubAlloc) Decode(r io.Reader) error {
 	if err := s.ID.Decode(r); err != nil {
 		return errors.WithMessage(err, "error when decoding suballocation ID")
