@@ -387,7 +387,6 @@ func (s *SubAlloc) Decode(r io.Reader) error {
 
 	s.Bals = make([]Bal, numAssets)
 	for i := range s.Bals {
-		s.Bals[i] = new(big.Int)
 		if err := wire.Decode(r, &s.Bals[i]); err != nil {
 			return errors.WithMessagef(
 				err, "encoding error for participant balance %d", i)
