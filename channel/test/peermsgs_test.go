@@ -2,17 +2,15 @@
 // This file is part of go-perun. Use of this source code is governed by a
 // MIT-style license that can be found in the LICENSE file.
 
-package peer
+package test
 
 import (
 	"math/big"
 	"math/rand"
 	"testing"
 
-	_ "perun.network/go-perun/backend/sim/channel"
-	simulatedWallet "perun.network/go-perun/backend/sim/wallet"
 	"perun.network/go-perun/channel"
-	"perun.network/go-perun/channel/test"
+	simulatedWallet "perun.network/go-perun/backend/sim/wallet"
 	"perun.network/go-perun/wallet"
 	wire "perun.network/go-perun/wire/msg"
 )
@@ -22,15 +20,15 @@ func newAddress(seed int64) wallet.Address {
 }
 
 func TestChannelProposalSerialization(t *testing.T) {
-	inputs := []ChannelProposal{
-		ChannelProposal{
+	inputs := []channel.ChannelProposal{
+		channel.ChannelProposal{
 			ChallengeDuration: 0,
 			Nonce:             big.NewInt(1),
 			ParticipantAddr:   newAddress(2),
 			AppDef:            newAddress(3),
 			InitData:          &channel.DummyData{X: 6},
 			InitBals: &channel.Allocation{
-				Assets: []channel.Asset{&test.Asset{ID: 7}},
+				Assets: []channel.Asset{&Asset{ID: 7}},
 				OfParts: [][]channel.Bal{
 					[]channel.Bal{big.NewInt(8)},
 					[]channel.Bal{big.NewInt(9)}},
@@ -38,14 +36,14 @@ func TestChannelProposalSerialization(t *testing.T) {
 			},
 			Parts: []wallet.Address{newAddress(4), newAddress(5)},
 		},
-		ChannelProposal{
+		channel.ChannelProposal{
 			ChallengeDuration: 99,
 			Nonce:             big.NewInt(100),
 			ParticipantAddr:   newAddress(101),
 			AppDef:            newAddress(102),
 			InitData:          &channel.DummyData{X: 103},
 			InitBals: &channel.Allocation{
-				Assets: []channel.Asset{&test.Asset{ID: 8}, &test.Asset{ID: 255}},
+				Assets: []channel.Asset{&Asset{ID: 8}, &Asset{ID: 255}},
 				OfParts: [][]channel.Bal{
 					[]channel.Bal{big.NewInt(9), big.NewInt(131)},
 					[]channel.Bal{big.NewInt(1), big.NewInt(1024)}},
@@ -64,13 +62,13 @@ func TestChannelProposalSerialization(t *testing.T) {
 }
 
 func TestChannelProposalResSerialization(t *testing.T) {
-	inputs := []ChannelProposalRes{
-		ChannelProposalRes{
-			SessID:          SessionID{0, 1, 2},
+	inputs := []channel.ChannelProposalRes{
+		channel.ChannelProposalRes{
+			SessID:          channel.SessionID{0, 1, 2},
 			ParticipantAddr: newAddress(4),
 		},
-		ChannelProposalRes{
-			SessID:          SessionID{0x0E, 0xA7, 0xBE, 0xEF},
+		channel.ChannelProposalRes{
+			SessID:          channel.SessionID{0x0E, 0xA7, 0xBE, 0xEF},
 			ParticipantAddr: newAddress(123),
 		},
 	}

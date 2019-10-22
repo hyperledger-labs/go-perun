@@ -6,7 +6,6 @@ package test
 
 import (
 	"bytes"
-	"io"
 	"math/big"
 	"testing"
 
@@ -15,28 +14,7 @@ import (
 	"perun.network/go-perun/channel"
 	perunio "perun.network/go-perun/pkg/io"
 	ioTest "perun.network/go-perun/pkg/io/test"
-	"perun.network/go-perun/wallet"
 )
-
-// noAppBackend implements channel.AppBackend. backend.sim.channel.AppBackend
-// cannot be used because it would introduce a cyclic import dependency since
-// this package uses channel.test.Asset.
-type noAppBackend struct{}
-
-var _ channel.AppBackend = &noAppBackend{}
-
-func (noAppBackend) AppFromDefinition(addr wallet.Address) (channel.App, error) {
-	return NewNoApp(addr), nil
-}
-
-func (noAppBackend) DecodeAsset(r io.Reader) (channel.Asset, error) {
-	var asset Asset
-	return &asset, asset.Decode(r)
-}
-
-func init() {
-	channel.SetAppBackend(noAppBackend{})
-}
 
 func TestAllocationSerialization(t *testing.T) {
 	inputs := []perunio.Serializable{

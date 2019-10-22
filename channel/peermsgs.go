@@ -2,7 +2,7 @@
 // This file is part of go-perun. Use of this source code is governed by a
 // MIT-style license that can be found in the LICENSE file.
 
-package peer
+package channel
 
 import (
 	"io"
@@ -11,7 +11,6 @@ import (
 
 	"github.com/pkg/errors"
 
-	"perun.network/go-perun/channel"
 	perunio "perun.network/go-perun/pkg/io"
 	"perun.network/go-perun/wallet"
 	"perun.network/go-perun/wire"
@@ -24,7 +23,7 @@ type DummyPeerMsg struct {
 	dummy int64
 }
 
-func (DummyPeerMsg) Type() MsgType {
+func (DummyPeerMsg) Type() PeerMsgType {
 	return PeerDummy
 }
 
@@ -48,18 +47,18 @@ func (m *DummyPeerMsg) decode(reader io.Reader) error {
 type ChannelProposal struct {
 	ChallengeDuration uint64
 	Nonce             *big.Int
-	ParticipantAddr   Address
-	AppDef            Address
-	InitData          channel.Data
-	InitBals          *channel.Allocation
-	Parts             []Address
+	ParticipantAddr   wallet.Address
+	AppDef            wallet.Address
+	InitData          Data
+	InitBals          *Allocation
+	Parts             []wallet.Address
 }
 
 func (ChannelProposal) Category() wiremsg.Category {
 	return wiremsg.Peer
 }
 
-func (ChannelProposal) Type() MsgType {
+func (ChannelProposal) Type() PeerMsgType {
 	return PeerChannelProposal
 }
 
@@ -84,8 +83,7 @@ func (c ChannelProposal) encode(w io.Writer) error {
 	}
 	for i := range c.Parts {
 		if err := c.Parts[i].Encode(w); err != nil {
-			return errors.Errorf(
-				"error encoding participant %d", i)
+			return errors.Errorf("error encoding participant %d", i)
 		}
 	}
 
@@ -105,8 +103,8 @@ func (c *ChannelProposal) decode(r io.Reader) (err error) {
 		return err
 	}
 
-	c.InitData = &channel.DummyData{}
-	c.InitBals = &channel.Allocation{}
+	c.InitData = &DummyData{}
+	c.InitBals = &Allocation{}
 	if err := perunio.Decode(r, c.InitData, c.InitBals); err != nil {
 		return err
 	}
@@ -150,7 +148,7 @@ func (ChannelProposalRes) Category() wiremsg.Category {
 	return wiremsg.Peer
 }
 
-func (ChannelProposalRes) Type() MsgType {
+func (ChannelProposalRes) Type() PeerMsgType {
 	return PeerChannelProposalRes
 }
 
