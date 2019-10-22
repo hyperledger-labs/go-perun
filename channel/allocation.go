@@ -98,7 +98,6 @@ type (
 	Asset = perunio.Serializable
 )
 
-
 var _ perunio.Serializable = new(Allocation)
 
 // Clone returns a deep copy of the Allocation object.

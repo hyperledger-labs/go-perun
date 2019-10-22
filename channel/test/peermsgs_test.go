@@ -9,8 +9,8 @@ import (
 	"math/rand"
 	"testing"
 
-	"perun.network/go-perun/channel"
 	simulatedWallet "perun.network/go-perun/backend/sim/wallet"
+	"perun.network/go-perun/channel"
 	"perun.network/go-perun/wallet"
 	wire "perun.network/go-perun/wire/msg"
 )

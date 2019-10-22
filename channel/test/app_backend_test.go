@@ -17,8 +17,6 @@ import (
 	"perun.network/go-perun/wallet"
 )
 
-
-
 // noAppBackend implements channel.AppBackend. backend.sim.channel.AppBackend
 // cannot be used because it would introduce a cyclic import dependency since
 // this package uses channel.test.Asset.
