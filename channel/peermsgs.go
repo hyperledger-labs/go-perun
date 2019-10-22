@@ -130,7 +130,7 @@ func (c *ChannelProposal) decode(r io.Reader) (err error) {
 
 // SessionID is a unique identifier generated for every instantiantiation of
 // a channel.
-type SessionID = wire.Byte32
+type SessionID = [32]byte
 
 // ChannelProposalRes contains all data for a response to a channel proposal
 // message. The SessID must be computed from the channel proposal messages one
@@ -153,7 +153,7 @@ func (ChannelProposalRes) Type() PeerMsgType {
 }
 
 func (r ChannelProposalRes) encode(w io.Writer) error {
-	if err := r.SessID.Encode(w); err != nil {
+	if err := wire.Encode(w, r.SessID); err != nil {
 		return errors.WithMessage(err, "response SID encoding")
 	}
 
@@ -165,7 +165,7 @@ func (r ChannelProposalRes) encode(w io.Writer) error {
 }
 
 func (response *ChannelProposalRes) decode(r io.Reader) error {
-	if err := response.SessID.Decode(r); err != nil {
+	if err := wire.Decode(r, &response.SessID); err != nil {
 		return errors.WithMessage(err, "response SID decoding")
 	}
 

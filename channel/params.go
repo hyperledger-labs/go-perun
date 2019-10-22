@@ -10,10 +10,11 @@ import (
 	"github.com/pkg/errors"
 
 	"perun.network/go-perun/wallet"
-	"perun.network/go-perun/wire"
 )
 
-type ID = wire.Byte32
+const IDLen = 32
+
+type ID = [IDLen]byte
 
 var Zero ID = ID{}
 

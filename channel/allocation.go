@@ -349,7 +349,7 @@ var _ perunio.Serializable = new(SubAlloc)
 
 // Encode encodes the SubAlloc `s` into `w` and returns an error if it failed.
 func (s SubAlloc) Encode(w io.Writer) error {
-	if err := s.ID.Encode(w); err != nil {
+	if err := wire.Encode(w, s.ID); err != nil {
 		return errors.WithMessagef(
 			err, "error encoding suballocation id %v", s.ID)
 	}
@@ -376,7 +376,7 @@ func (s SubAlloc) Encode(w io.Writer) error {
 // Decode decodes the SubAlloc `s` encoded in `r` and returns an error if it
 // failed.
 func (s *SubAlloc) Decode(r io.Reader) error {
-	if err := s.ID.Decode(r); err != nil {
+	if err := wire.Decode(r, &s.ID); err != nil {
 		return errors.WithMessage(err, "error when decoding suballocation ID")
 	}
 
