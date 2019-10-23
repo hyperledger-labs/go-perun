@@ -2,7 +2,7 @@
 // This file is part of go-perun. Use of this source code is governed by a
 // MIT-style license that can be found in the LICENSE file.
 
-package test
+package channel_test
 
 import (
 	"bytes"
@@ -12,19 +12,28 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"perun.network/go-perun/channel"
+	"perun.network/go-perun/channel/test"
 	perunio "perun.network/go-perun/pkg/io"
 	ioTest "perun.network/go-perun/pkg/io/test"
 )
 
+func assets(n uint) []channel.Asset {
+	as := make([]channel.Asset, n)
+	for i := uint(0); i < n; i++ {
+		as[i] = new(test.Asset)
+	}
+	return as
+}
+
 func TestAllocationSerialization(t *testing.T) {
 	inputs := []perunio.Serializable{
 		&channel.Allocation{
-			Assets:  []channel.Asset{&Asset{0}},
+			Assets:  assets(1),
 			OfParts: [][]channel.Bal{[]channel.Bal{big.NewInt(123)}},
 			Locked:  []channel.SubAlloc{},
 		},
 		&channel.Allocation{
-			Assets: []channel.Asset{&Asset{1}},
+			Assets: assets(1),
 			OfParts: [][]channel.Bal{
 				[]channel.Bal{big.NewInt(1)},
 			},
@@ -35,7 +44,7 @@ func TestAllocationSerialization(t *testing.T) {
 			},
 		},
 		&channel.Allocation{
-			Assets: []channel.Asset{&Asset{1}, &Asset{2}, &Asset{3}},
+			Assets: assets(3),
 			OfParts: [][]channel.Bal{
 				[]channel.Bal{big.NewInt(1), big.NewInt(10), big.NewInt(100)},
 				[]channel.Bal{big.NewInt(7), big.NewInt(11), big.NewInt(13)},
@@ -63,7 +72,10 @@ func TestAllocationSerializationLimits(t *testing.T) {
 		{channel.MaxNumAssets + 1, 1, 0},
 		{1, channel.MaxNumParts + 1, 0},
 		{1, 1, channel.MaxNumSuballocations + 1},
-		{channel.MaxNumAssets + 2, 2 * channel.MaxNumParts, 4 * channel.MaxNumSuballocations},
+		{
+			channel.MaxNumAssets + 2,
+			2 * channel.MaxNumParts,
+			4 * channel.MaxNumSuballocations},
 	}
 
 	for _, x := range inputs {
@@ -74,7 +86,7 @@ func TestAllocationSerializationLimits(t *testing.T) {
 		}
 
 		for i := range allocation.Assets {
-			allocation.Assets[i] = &Asset{int64(i)}
+			allocation.Assets[i] = &test.Asset{ID: 1}
 		}
 
 		for i := range allocation.OfParts {

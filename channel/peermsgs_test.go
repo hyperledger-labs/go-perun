@@ -2,7 +2,7 @@
 // This file is part of go-perun. Use of this source code is governed by a
 // MIT-style license that can be found in the LICENSE file.
 
-package test
+package channel_test
 
 import (
 	"math/big"
@@ -11,12 +11,17 @@ import (
 
 	simulatedWallet "perun.network/go-perun/backend/sim/wallet"
 	"perun.network/go-perun/channel"
+	"perun.network/go-perun/channel/test"
 	"perun.network/go-perun/wallet"
 	wire "perun.network/go-perun/wire/msg"
 )
 
 func newAddress(seed int64) wallet.Address {
 	return simulatedWallet.NewRandomAddress(rand.New(rand.NewSource(seed)))
+}
+
+func init() {
+	channel.SetAppBackend(new(test.NoAppBackend))
 }
 
 func TestChannelProposalSerialization(t *testing.T) {
@@ -28,7 +33,7 @@ func TestChannelProposalSerialization(t *testing.T) {
 			AppDef:            newAddress(3),
 			InitData:          &channel.DummyData{X: 6},
 			InitBals: &channel.Allocation{
-				Assets: []channel.Asset{&Asset{ID: 7}},
+				Assets: []channel.Asset{&test.Asset{ID: 7}},
 				OfParts: [][]channel.Bal{
 					[]channel.Bal{big.NewInt(8)},
 					[]channel.Bal{big.NewInt(9)}},
@@ -43,7 +48,7 @@ func TestChannelProposalSerialization(t *testing.T) {
 			AppDef:            newAddress(102),
 			InitData:          &channel.DummyData{X: 103},
 			InitBals: &channel.Allocation{
-				Assets: []channel.Asset{&Asset{ID: 8}, &Asset{ID: 255}},
+				Assets: []channel.Asset{&test.Asset{ID: 8}, &test.Asset{ID: 255}},
 				OfParts: [][]channel.Bal{
 					[]channel.Bal{big.NewInt(9), big.NewInt(131)},
 					[]channel.Bal{big.NewInt(1), big.NewInt(1024)}},
