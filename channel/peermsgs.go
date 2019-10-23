@@ -164,15 +164,13 @@ func (res ChannelProposalRes) encode(w io.Writer) error {
 	return nil
 }
 
-func (res *ChannelProposalRes) decode(r io.Reader) error {
-	if err := wire.Decode(r, &res.SessID); err != nil {
+func (res *ChannelProposalRes) decode(r io.Reader) (err error) {
+	if err = wire.Decode(r, &res.SessID); err != nil {
 		return errors.WithMessage(err, "response SID decoding")
 	}
 
-	if participantAddr, err := wallet.DecodeAddress(r); err != nil {
+	if res.ParticipantAddr, err = wallet.DecodeAddress(r); err != nil {
 		return errors.WithMessage(err, "app address decoding")
-	} else {
-		res.ParticipantAddr = participantAddr
 	}
 
 	return nil
