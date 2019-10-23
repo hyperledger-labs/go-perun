@@ -16,7 +16,9 @@ type Backend interface {
 	NewRandomAddress(*rand.Rand) wallet.Address
 }
 
-var backend Backend
+// backend is the currently set wallet testing backend. It is initially set to
+// the default backend.
+var backend Backend = new(DefaultBackend)
 
 // SetBackend sets the wallet testing backend. It may be set multiple times.
 func SetBackend(b Backend) {
