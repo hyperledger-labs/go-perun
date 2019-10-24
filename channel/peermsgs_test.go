@@ -28,14 +28,13 @@ func newAddress(seed int64) wallet.Address {
 }
 
 func TestChannelProposalSerialization(t *testing.T) {
-
 	inputs := []channel.ChannelProposal{
 		channel.ChannelProposal{
 			ChallengeDuration: 0,
 			Nonce:             big.NewInt(1),
 			ParticipantAddr:   newAddress(2),
 			AppDef:            newAddress(3),
-			InitData:          &channel.DummyData{X: 6},
+			InitData:          &test.NoAppData{Value: 6},
 			InitBals: &channel.Allocation{
 				Assets: []channel.Asset{&test.Asset{ID: 7}},
 				OfParts: [][]channel.Bal{
@@ -50,7 +49,7 @@ func TestChannelProposalSerialization(t *testing.T) {
 			Nonce:             big.NewInt(100),
 			ParticipantAddr:   newAddress(101),
 			AppDef:            newAddress(102),
-			InitData:          &channel.DummyData{X: 103},
+			InitData:          &test.NoAppData{Value: 103},
 			InitBals: &channel.Allocation{
 				Assets: []channel.Asset{&test.Asset{ID: 8}, &test.Asset{ID: 255}},
 				OfParts: [][]channel.Bal{

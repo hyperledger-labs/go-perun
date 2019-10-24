@@ -7,12 +7,9 @@
 package channel // import "perun.network/go-perun/channel"
 
 import (
-	"io"
-
 	"github.com/pkg/errors"
 
 	perunio "perun.network/go-perun/pkg/io"
-	"perun.network/go-perun/wire"
 )
 
 type (
@@ -55,12 +52,6 @@ type (
 		// It should return nil if the Data object is nil.
 		Clone() Data
 	}
-
-	// The type DummyData exists solely for development purposes until an
-	// actual implementation is available for all packages inside go-perun.
-	DummyData struct {
-		X uint32
-	}
 )
 
 // newState creates a new state, checking that the parameters and allocation are
@@ -98,16 +89,4 @@ func (s *State) Clone() *State {
 	clone.Allocation = s.Allocation.Clone()
 	clone.Data = s.Data.Clone()
 	return &clone
-}
-
-func (d *DummyData) Encode(w io.Writer) error {
-	return wire.Encode(w, d.X)
-}
-
-func (d *DummyData) Decode(r io.Reader) error {
-	return wire.Decode(r, &d.X)
-}
-
-func (d *DummyData) Clone() Data {
-	return &DummyData{d.X}
 }

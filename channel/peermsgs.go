@@ -95,17 +95,23 @@ func (c *ChannelProposal) decode(r io.Reader) (err error) {
 		return err
 	}
 
-	// read c.ParticipantAddr, c.AppDef
 	if c.ParticipantAddr, err = wallet.DecodeAddress(r); err != nil {
 		return err
 	}
 	if c.AppDef, err = wallet.DecodeAddress(r); err != nil {
 		return err
 	}
+	var app App
+	if app, err = AppFromDefinition(c.AppDef); err != nil {
+		return err
+	}
 
-	c.InitData = &DummyData{}
+	if c.InitData, err = app.DecodeData(r); err != nil {
+		return err
+	}
+
 	c.InitBals = &Allocation{}
-	if err := perunio.Decode(r, c.InitData, c.InitBals); err != nil {
+	if err := perunio.Decode(r, c.InitBals); err != nil {
 		return err
 	}
 
