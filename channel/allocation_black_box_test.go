@@ -7,6 +7,7 @@ package channel_test
 import (
 	"bytes"
 	"math/big"
+	"math/rand"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -14,26 +15,27 @@ import (
 	"perun.network/go-perun/channel"
 	"perun.network/go-perun/channel/test"
 	perunio "perun.network/go-perun/pkg/io"
-	ioTest "perun.network/go-perun/pkg/io/test"
+	iotest "perun.network/go-perun/pkg/io/test"
 )
 
-func assets(n uint) []channel.Asset {
+func assets(rng *rand.Rand, n uint) []channel.Asset {
 	as := make([]channel.Asset, n)
 	for i := uint(0); i < n; i++ {
-		as[i] = new(test.Asset)
+		as[i] = test.NewRandomAsset(rng)
 	}
 	return as
 }
 
 func TestAllocationSerialization(t *testing.T) {
+	rng := rand.New(rand.NewSource(1))
 	inputs := []perunio.Serializable{
 		&channel.Allocation{
-			Assets:  assets(1),
+			Assets:  assets(rng, 1),
 			OfParts: [][]channel.Bal{[]channel.Bal{big.NewInt(123)}},
 			Locked:  []channel.SubAlloc{},
 		},
 		&channel.Allocation{
-			Assets: assets(1),
+			Assets: assets(rng, 1),
 			OfParts: [][]channel.Bal{
 				[]channel.Bal{big.NewInt(1)},
 			},
@@ -44,7 +46,7 @@ func TestAllocationSerialization(t *testing.T) {
 			},
 		},
 		&channel.Allocation{
-			Assets: assets(3),
+			Assets: assets(rng, 3),
 			OfParts: [][]channel.Bal{
 				[]channel.Bal{big.NewInt(1), big.NewInt(10), big.NewInt(100)},
 				[]channel.Bal{big.NewInt(7), big.NewInt(11), big.NewInt(13)},
@@ -60,7 +62,7 @@ func TestAllocationSerialization(t *testing.T) {
 		},
 	}
 
-	ioTest.GenericSerializableTest(t, inputs...)
+	iotest.GenericSerializableTest(t, inputs...)
 }
 
 func TestAllocationSerializationLimits(t *testing.T) {

@@ -9,22 +9,26 @@ import (
 	"math/rand"
 	"testing"
 
-	simulatedWallet "perun.network/go-perun/backend/sim/wallet"
 	"perun.network/go-perun/channel"
 	"perun.network/go-perun/channel/test"
 	"perun.network/go-perun/wallet"
+	wallettest "perun.network/go-perun/wallet/test"
 	wire "perun.network/go-perun/wire/msg"
 )
 
-func newAddress(seed int64) wallet.Address {
-	return simulatedWallet.NewRandomAddress(rand.New(rand.NewSource(seed)))
-}
-
 func init() {
 	channel.SetAppBackend(new(test.NoAppBackend))
+	test.SetBackend(new(test.TestBackend))
+	wallet.SetBackend(new(wallettest.DefaultWalletBackend))
+	wallettest.SetBackend(new(wallettest.DefaultBackend))
+}
+
+func newAddress(seed int64) wallet.Address {
+	return wallettest.NewRandomAddress(rand.New(rand.NewSource(seed)))
 }
 
 func TestChannelProposalSerialization(t *testing.T) {
+
 	inputs := []channel.ChannelProposal{
 		channel.ChannelProposal{
 			ChallengeDuration: 0,
