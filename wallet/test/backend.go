@@ -10,16 +10,23 @@ import (
 	"perun.network/go-perun/wallet"
 )
 
+// Backend is the wallet testing backend. It currently supports the generation
+// of random addresses.
 type Backend interface {
 	NewRandomAddress(*rand.Rand) wallet.Address
 }
 
-var backend Backend
+// backend is the currently set wallet testing backend. It is initially set to
+// the default backend.
+var backend Backend = new(DefaultBackend)
 
+// SetBackend sets the wallet testing backend. It may be set multiple times.
 func SetBackend(b Backend) {
 	backend = b
 }
 
+// NewRandomAddress returns a new random address by calling the currently set
+// wallet testing backend.
 func NewRandomAddress(rng *rand.Rand) wallet.Address {
 	return backend.NewRandomAddress(rng)
 }
