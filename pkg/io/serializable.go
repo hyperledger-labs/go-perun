@@ -11,20 +11,31 @@ import (
 	"github.com/pkg/errors"
 )
 
-// Serializable objects can be serialized into and from streams.
-type Serializable interface {
-	// Decode reads an object from a stream.
-	// If the stream fails, the underlying error is returned.
-	// Returns an error if the stream's data is invalid.
-	Decode(io.Reader) error
-	// Encode writes an object to a stream.
-	// If the stream fails, the underyling error is returned.
-	Encode(io.Writer) error
-}
+type (
+	// Serializable objects can be serialized into and from streams.
+	Serializable interface {
+		Encoder
+		Decoder
+	}
+
+	// Encoders can encode itself to a stream.
+	Encoder interface {
+		// Encode writes itself to a stream.
+		// If the stream fails, the underyling error is returned.
+		Encode(io.Writer) error
+	}
+
+	// Decoders can decode itself from a stream.
+	Decoder interface {
+		// Decode reads an object from a stream.
+		// If the stream fails, the underlying error is returned.
+		Decode(io.Reader) error
+	}
+)
 
 // Encode encodes multiple serializable objects at once.
 // If an error occurs, the index at which it occured is also reported.
-func Encode(writer io.Writer, values ...Serializable) error {
+func Encode(writer io.Writer, values ...Encoder) error {
 	for i, v := range values {
 		if err := v.Encode(writer); err != nil {
 			return errors.WithMessagef(err, "failed to encode %dth object (%T)", i, v)
@@ -36,7 +47,7 @@ func Encode(writer io.Writer, values ...Serializable) error {
 
 // Decode decodes multiple serializable objects at once.
 // If an error occurs, the index at which it occurred is also reported.
-func Decode(reader io.Reader, values ...Serializable) error {
+func Decode(reader io.Reader, values ...Decoder) error {
 	for i, v := range values {
 		if err := v.Decode(reader); err != nil {
 			return errors.WithMessagef(err, "failed to decode %dth object (%T)", i, v)
