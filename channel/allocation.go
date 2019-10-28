@@ -165,8 +165,10 @@ func (alloc Allocation) Encode(w io.Writer) error {
 	}
 
 	// encode assets
-	if err := perunio.Encode(w, alloc.Assets...); err != nil {
-		return err
+	for i, a := range alloc.Assets {
+		if err := a.Encode(w); err != nil {
+			return errors.WithMessagef(err, "encoding error for asset %d", i)
+		}
 	}
 
 	// encode participant allocations
