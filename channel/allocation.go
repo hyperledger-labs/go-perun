@@ -36,7 +36,7 @@ const MaxNumParts = 1000
 // Keep in mind that an Allocation contains information about every
 // asset for every suballocation, i.e., there are num-assets times
 // num-suballocations items of information in an Allocation.
-const MaxNumSuballocations = 1000
+const MaxNumSubAllocations = 1000
 
 func init() {
 	// fake static assert
@@ -50,10 +50,10 @@ func init() {
 			"MaxNumParts must be at most %d, got %d",
 			math.MaxInt32, MaxNumParts))
 	}
-	if MaxNumSuballocations > math.MaxInt32 {
+	if MaxNumSubAllocations > math.MaxInt32 {
 		panic(fmt.Sprintf(
-			"MaxNumSuballocations must be at most %d, got %d",
-			math.MaxInt32, MaxNumSuballocations))
+			"MaxNumSubAllocations must be at most %d, got %d",
+			math.MaxInt32, MaxNumSubAllocations))
 	}
 }
 
@@ -155,10 +155,10 @@ func (alloc Allocation) Encode(w io.Writer) error {
 	}
 
 	numLocks := len(alloc.Locked)
-	if numLocks > MaxNumSuballocations {
+	if numLocks > MaxNumSubAllocations {
 		return errors.Errorf(
 			"expected at most %d suballocations, got %d",
-			MaxNumSuballocations, numLocks)
+			MaxNumSubAllocations, numLocks)
 	}
 	if err := wire.Encode(w, int32(numLocks)); err != nil {
 		return err
@@ -216,10 +216,10 @@ func (alloc *Allocation) Decode(r io.Reader) error {
 	if err := wire.Decode(r, &numLocked); err != nil {
 		return err
 	}
-	if numLocked < 0 || numLocked > MaxNumSuballocations {
+	if numLocked < 0 || numLocked > MaxNumSubAllocations {
 		return errors.Errorf(
 			"expected a non-negative number of suballocations at most %d, got %d",
-			MaxNumSuballocations, numLocked)
+			MaxNumSubAllocations, numLocked)
 	}
 
 	// decode assets

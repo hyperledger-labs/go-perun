@@ -73,11 +73,11 @@ func TestAllocationSerializationLimits(t *testing.T) {
 	}{
 		{channel.MaxNumAssets + 1, 1, 0},
 		{1, channel.MaxNumParts + 1, 0},
-		{1, 1, channel.MaxNumSuballocations + 1},
+		{1, 1, channel.MaxNumSubAllocations + 1},
 		{
 			channel.MaxNumAssets + 2,
 			2 * channel.MaxNumParts,
-			4 * channel.MaxNumSuballocations},
+			4 * channel.MaxNumSubAllocations},
 	}
 
 	for _, x := range inputs {
