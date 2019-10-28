@@ -81,7 +81,7 @@ type (
 		Locked []SubAlloc
 	}
 
-	// SubAlloc is the allocation of assets to a single receiver channel `ID`.
+	// SubAlloc is the allocation of assets to a single receiver channel ID.
 	// The size of the balances slice must be of the same size as the assets slice
 	// of the channel Params.
 	SubAlloc struct {
@@ -347,7 +347,7 @@ func equalSum(b0, b1 summer) (bool, error) {
 
 var _ perunio.Serializable = new(SubAlloc)
 
-// Encode encodes the SubAlloc `s` into `w` and returns an error if it failed.
+// Encode encodes the SubAlloc s into w and returns an error if it failed.
 func (s SubAlloc) Encode(w io.Writer) error {
 	if err := wire.Encode(w, s.ID); err != nil {
 		return errors.WithMessagef(
@@ -373,7 +373,7 @@ func (s SubAlloc) Encode(w io.Writer) error {
 	return nil
 }
 
-// Decode decodes the SubAlloc `s` encoded in `r` and returns an error if it
+// Decode decodes the SubAlloc s encoded in r and returns an error if it
 // failed.
 func (s *SubAlloc) Decode(r io.Reader) error {
 	if err := wire.Decode(r, &s.ID); err != nil {
