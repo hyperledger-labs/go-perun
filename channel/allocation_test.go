@@ -7,10 +7,13 @@ package channel
 import (
 	"io"
 	"math/big"
-	"perun.network/go-perun/pkg/test"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+
+	perunio "perun.network/go-perun/pkg/io"
+	ioTest "perun.network/go-perun/pkg/io/test"
+	"perun.network/go-perun/pkg/test"
 )
 
 // asset is a test asset
@@ -322,4 +325,15 @@ func TestEqualBalance(t *testing.T) {
 	eq, err = equalSum(two12, two48)
 	assert.Nil(err)
 	assert.False(eq)
+}
+
+// suballocation serialization
+func TestSuballocSerialization(t *testing.T) {
+	ss := []perunio.Serializable{
+		&SubAlloc{ID{2}, []Bal{}},
+		&SubAlloc{ID{3}, []Bal{big.NewInt(0)}},
+		&SubAlloc{ID{4}, []Bal{big.NewInt(5), big.NewInt(1 << 62)}},
+	}
+
+	ioTest.GenericSerializableTest(t, ss...)
 }

@@ -11,4 +11,7 @@ import (
 func init() {
 	wire.RegisterDecoder(wire.Channel, decodeMsg)
 	wire.RegisterEncoder(wire.Channel, encodeMsg)
+
+	wire.RegisterDecoder(wire.Peer, decodePeerMsg)
+	wire.RegisterEncoder(wire.Peer, encodePeerMsg)
 }

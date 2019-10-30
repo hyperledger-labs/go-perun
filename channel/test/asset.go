@@ -19,7 +19,7 @@ type Asset struct {
 
 var _ channel.Asset = new(Asset)
 
-// NewRandomAsset returns a new random Asset
+// newRandomAsset returns a new random Asset
 func newRandomAsset(rng *rand.Rand) *Asset {
 	return &Asset{ID: rng.Int63()}
 }
