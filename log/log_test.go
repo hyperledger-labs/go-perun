@@ -19,7 +19,7 @@ type none2 struct{ none }
 func TestSet(t *testing.T) {
 	l := new(none2)
 	Set(l)
-	assert.True(t, l == logger, "Set(l) should set global logger to l")
+	assert.Same(t, l, logger, "Set(l) should set global logger to l")
 
 	Set(nil)
 	assert.IsType(t, &none{}, logger, "Set(nil) should set global logger to none-logger")
