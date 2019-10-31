@@ -13,6 +13,7 @@ import (
 	"github.com/pkg/errors"
 
 	"perun.network/go-perun/log"
+	pio "perun.network/go-perun/pkg/io"
 )
 
 var byteOrder = binary.LittleEndian
@@ -33,7 +34,11 @@ func Encode(writer io.Writer, values ...interface{}) (err error) {
 		case []byte:
 			err = ByteSlice(v).Encode(writer)
 		default:
-			log.Panicf("wire.Encode(): Invalid type %T", v)
+			if enc, ok := value.(pio.Encoder); ok {
+				err = enc.Encode(writer)
+			} else {
+				log.Panicf("wire.Decode(): Invalid type %T", v)
+			}
 		}
 
 		if err != nil {
@@ -65,7 +70,11 @@ func Decode(reader io.Reader, values ...interface{}) (err error) {
 			d := ByteSlice(*v)
 			err = d.Decode(reader)
 		default:
-			log.Panicf("wire.Decode(): Invalid type %T", v)
+			if dec, ok := value.(pio.Decoder); ok {
+				err = dec.Decode(reader)
+			} else {
+				log.Panicf("wire.Decode(): Invalid type %T", v)
+			}
 		}
 
 		if err != nil {
