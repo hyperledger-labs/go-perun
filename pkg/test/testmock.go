@@ -126,14 +126,16 @@ func (t *Tester) AssertErrorNFatal(fn func(T), numCalls uint) {
 func (t *Tester) assert(checkState func(*Tester), fn func(T)) {
 	defer checkState(t)
 
+	panicked := true
 	defer func() {
-		// check that this panic came from Fatal() and rethrow otherwise
-		if r := recover(); r != nil && !t.fatalCalled {
-			panic(r)
+		// only recover panic from Fatal()
+		if panicked && t.fatalCalled {
+			recover()
 		}
 	}()
 
 	t.numErrorCalls = 0   // reset error state
 	t.fatalCalled = false // reset fatal state
 	fn(t)                 // call the test with the tester
+	panicked = false
 }

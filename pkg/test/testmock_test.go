@@ -120,13 +120,19 @@ func TestTester(_t *testing.T) {
 
 	// tests that the tester rethrows panics that are not caused by its fatal().
 	_t.Run("panicking assertion", func(_t *testing.T) {
+		assert := assert.New(_t)
 		tester := NewTester(_t)
-		assert.PanicsWithValue(_t,
+		assert.PanicsWithValue(
 			"boom",
 			func() {
 				tester.assert(func(*Tester) {}, func(T) { panic("boom") })
 			},
-			"Tester.assert did not rethrow panic",
+			"Tester.assert caught other panic",
 		)
+
+		// panic(nil)
+		panicked, pval := CheckPanic(func() { tester.assert(func(*Tester) {}, func(T) { panic(nil) }) })
+		assert.True(panicked, "Tester.assert caught panic(nil)")
+		assert.Nil(pval, "Tester.assert rethrew panic(nil) as non-nil")
 	})
 }
