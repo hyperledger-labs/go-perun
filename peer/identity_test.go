@@ -12,12 +12,16 @@ import (
 
 	sim "perun.network/go-perun/backend/sim/wallet"
 	"perun.network/go-perun/wallet"
-	_ "perun.network/go-perun/wire"
-	_ "perun.network/go-perun/wire/msg"
+	"perun.network/go-perun/wire/msg"
 )
 
 func init() {
 	wallet.SetBackend(new(sim.Backend))
+}
+
+func TestAuthResponseMsg(t *testing.T) {
+	rng := rand.New(rand.NewSource(1337))
+	msg.TestMsg(t, NewAuthResponseMsg(sim.NewRandomAccount(rng)))
 }
 
 func TestAuthenticate_NilParams(t *testing.T) {
