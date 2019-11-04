@@ -8,6 +8,8 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+
+	"perun.network/go-perun/pkg/test"
 )
 
 // TestNone tests the none logger for coverage :)
@@ -33,26 +35,19 @@ func TestNone(t *testing.T) {
 	None.Warnln()
 	None.Errorln()
 
-	a := assert.New(t)
-
-	// Monkey patch the exit function
-	code := 0
-	exit = func(i int) {
-		code = i
-	}
-	// Test fatal functions
+	// Test that fatal functions call exit
+	et := test.NewExit(t, &exit)
 	funs := []func(){func() { None.Fatalf("") }, func() { None.Fatal() }, func() { None.Fatalln() }}
-	for _, f := range funs {
-		code = 0
-		f()
-		a.Equal(1, code)
+	for _, fn := range funs {
+		et.AssertExit(fn, 1)
 	}
 
+	a := assert.New(t)
 	a.Panics(func() { None.Panicf("") })
 	a.Panics(func() { None.Panic() })
 	a.Panics(func() { None.Panicln() })
 
-	a.Equal(None.WithField("", ""), None)
-	a.Equal(None.WithFields(nil), None)
-	a.Equal(None.WithError(nil), None)
+	a.Same(None.WithField("", ""), None)
+	a.Same(None.WithFields(nil), None)
+	a.Same(None.WithError(nil), None)
 }
