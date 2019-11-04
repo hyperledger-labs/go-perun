@@ -19,8 +19,7 @@ func (msg *serializableMsg) Encode(writer io.Writer) error {
 	return Encode(msg.Msg, writer)
 }
 
-func (msg *serializableMsg) Decode(reader io.Reader) error {
-	var err error
+func (msg *serializableMsg) Decode(reader io.Reader) (err error) {
 	msg.Msg, err = Decode(reader)
 	return err
 }
