@@ -11,18 +11,22 @@ import (
 	"perun.network/go-perun/wire"
 )
 
+func init() {
+	RegisterDecoder(Ping, func(r io.Reader) (Msg, error) { var m PingMsg; return &m, m.Decode(r) })
+	RegisterDecoder(Pong, func(r io.Reader) (Msg, error) { var m PongMsg; return &m, m.Decode(r) })
+}
+
 // Since ping and pong messages are essentially the same, this is a common
 // implementation for both.
 type pingPongMsg struct {
-	controlMsg
 	Created time.Time
 }
 
-func (m pingPongMsg) encode(writer io.Writer) error {
+func (m pingPongMsg) Encode(writer io.Writer) error {
 	return wire.Encode(writer, m.Created)
 }
 
-func (m *pingPongMsg) decode(reader io.Reader) error {
+func (m *pingPongMsg) Decode(reader io.Reader) error {
 	return wire.Decode(reader, &m.Created)
 }
 
@@ -41,7 +45,7 @@ type PingMsg struct {
 	pingPongMsg
 }
 
-func (m *PingMsg) Type() ControlMsgType {
+func (m *PingMsg) Type() Type {
 	return Ping
 }
 
@@ -57,7 +61,7 @@ type PongMsg struct {
 	pingPongMsg
 }
 
-func (m *PongMsg) Type() ControlMsgType {
+func (m *PongMsg) Type() Type {
 	return Pong
 }
 
