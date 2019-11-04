@@ -70,6 +70,7 @@ const (
 	Pong
 	ChannelProposal
 	ChannelProposalRes
+	AuthResponse
 	msgTypeEnd // upper bound on the message type byte
 )
 
@@ -84,6 +85,7 @@ func (t Type) String() string {
 		"Pong",
 		"ChannelProposal",
 		"ChannelProposalRes",
+		"AuthResponse",
 	}[t]
 }
 
