@@ -57,17 +57,19 @@ func (e *Exit) AssertNoExit(fn func()) {
 // assert executes function fn and then calls the check function on the *Exit
 // tester. The check should check the desired state of *Exit after execution of
 // fn, possibly calling t.T.Error() on errors.
-// Panics caused by fatal() are recovered.
+// Panics caused by Exit() are recovered.
 func (e *Exit) assert(check func(*Exit), fn func()) {
 	defer check(e)
 
+	panicked := true
 	defer func() {
-		// check that this panic came from Exit() and rethrow otherwise
-		if r := recover(); r != nil && !e.called {
-			panic(r)
+		// check that this panic came from Exit() and let it bubble up the stack o/w
+		if panicked && e.called {
+			recover()
 		}
 	}()
 
 	e.called = false // reset called state
 	fn()
+	panicked = false
 }
