@@ -14,29 +14,20 @@ import (
 	perunio "perun.network/go-perun/pkg/io"
 	"perun.network/go-perun/wallet"
 	"perun.network/go-perun/wire"
-	wiremsg "perun.network/go-perun/wire/msg"
+	"perun.network/go-perun/wire/msg"
 )
 
-// DummyPeerMsg is a dummy message type used for testing.
-type DummyPeerMsg struct {
-	msg
-	dummy int64
-}
-
-func (DummyPeerMsg) Type() PeerMsgType {
-	return PeerDummy
-}
-
-func (DummyPeerMsg) Category() wiremsg.Category {
-	return wiremsg.Peer
-}
-
-func (m DummyPeerMsg) encode(writer io.Writer) error {
-	return wire.Encode(writer, m.dummy)
-}
-
-func (m *DummyPeerMsg) decode(reader io.Reader) error {
-	return wire.Decode(reader, &m.dummy)
+func init() {
+	msg.RegisterDecoder(msg.ChannelProposal,
+		func(r io.Reader) (msg.Msg, error) {
+			var m ChannelProposal
+			return &m, m.Decode(r)
+		})
+	msg.RegisterDecoder(msg.ChannelProposalRes,
+		func(r io.Reader) (msg.Msg, error) {
+			var m ChannelProposalRes
+			return &m, m.Decode(r)
+		})
 }
 
 // ChannelProposal contains all data necessary to propose a new
@@ -54,15 +45,11 @@ type ChannelProposal struct {
 	Parts             []wallet.Address
 }
 
-func (ChannelProposal) Category() wiremsg.Category {
-	return wiremsg.Peer
+func (ChannelProposal) Type() msg.Type {
+	return msg.ChannelProposal
 }
 
-func (ChannelProposal) Type() PeerMsgType {
-	return PeerChannelProposal
-}
-
-func (c ChannelProposal) encode(w io.Writer) error {
+func (c ChannelProposal) Encode(w io.Writer) error {
 	if err := wire.Encode(w, c.ChallengeDuration, c.Nonce); err != nil {
 		return err
 	}
@@ -90,7 +77,7 @@ func (c ChannelProposal) encode(w io.Writer) error {
 	return nil
 }
 
-func (c *ChannelProposal) decode(r io.Reader) (err error) {
+func (c *ChannelProposal) Decode(r io.Reader) (err error) {
 	if err := wire.Decode(r, &c.ChallengeDuration, &c.Nonce); err != nil {
 		return err
 	}
@@ -150,15 +137,11 @@ type ChannelProposalRes struct {
 	ParticipantAddr wallet.Address
 }
 
-func (ChannelProposalRes) Category() wiremsg.Category {
-	return wiremsg.Peer
+func (ChannelProposalRes) Type() msg.Type {
+	return msg.ChannelProposalRes
 }
 
-func (ChannelProposalRes) Type() PeerMsgType {
-	return PeerChannelProposalRes
-}
-
-func (res ChannelProposalRes) encode(w io.Writer) error {
+func (res ChannelProposalRes) Encode(w io.Writer) error {
 	if err := wire.Encode(w, res.SessID); err != nil {
 		return errors.WithMessage(err, "response SID encoding")
 	}
@@ -170,7 +153,7 @@ func (res ChannelProposalRes) encode(w io.Writer) error {
 	return nil
 }
 
-func (res *ChannelProposalRes) decode(r io.Reader) (err error) {
+func (res *ChannelProposalRes) Decode(r io.Reader) (err error) {
 	if err = wire.Decode(r, &res.SessID); err != nil {
 		return errors.WithMessage(err, "response SID decoding")
 	}

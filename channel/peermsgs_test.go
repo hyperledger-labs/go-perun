@@ -13,7 +13,7 @@ import (
 	"perun.network/go-perun/channel/test"
 	"perun.network/go-perun/wallet"
 	wallettest "perun.network/go-perun/wallet/test"
-	wire "perun.network/go-perun/wire/msg"
+	"perun.network/go-perun/wire/msg"
 )
 
 func init() {
@@ -28,8 +28,8 @@ func newAddress(seed int64) wallet.Address {
 }
 
 func TestChannelProposalSerialization(t *testing.T) {
-	inputs := []channel.ChannelProposal{
-		channel.ChannelProposal{
+	inputs := []*channel.ChannelProposal{
+		&channel.ChannelProposal{
 			ChallengeDuration: 0,
 			Nonce:             big.NewInt(1),
 			ParticipantAddr:   newAddress(2),
@@ -44,7 +44,7 @@ func TestChannelProposalSerialization(t *testing.T) {
 			},
 			Parts: []wallet.Address{newAddress(4), newAddress(5)},
 		},
-		channel.ChannelProposal{
+		&channel.ChannelProposal{
 			ChallengeDuration: 99,
 			Nonce:             big.NewInt(100),
 			ParticipantAddr:   newAddress(101),
@@ -64,24 +64,24 @@ func TestChannelProposalSerialization(t *testing.T) {
 		},
 	}
 
-	for i := range inputs {
-		wire.TestMsg(t, &inputs[i])
+	for _, m := range inputs {
+		msg.TestMsg(t, m)
 	}
 }
 
 func TestChannelProposalResSerialization(t *testing.T) {
-	inputs := []channel.ChannelProposalRes{
-		channel.ChannelProposalRes{
+	inputs := []*channel.ChannelProposalRes{
+		&channel.ChannelProposalRes{
 			SessID:          channel.SessionID{0, 1, 2},
 			ParticipantAddr: newAddress(4),
 		},
-		channel.ChannelProposalRes{
+		&channel.ChannelProposalRes{
 			SessID:          channel.SessionID{0x0E, 0xA7, 0xBE, 0xEF},
 			ParticipantAddr: newAddress(123),
 		},
 	}
 
-	for i := range inputs {
-		wire.TestMsg(t, &inputs[i])
+	for _, m := range inputs {
+		msg.TestMsg(t, m)
 	}
 }
