@@ -5,7 +5,6 @@
 package peer
 
 import (
-	"io"
 	"math/rand"
 	"sync"
 	"testing"
@@ -57,4 +56,15 @@ func TestAuthenticate_Success(t *testing.T) {
 	assert.True(t, recvAddr1.Equals(account1.Address()))
 
 	wg.Wait()
+}
+
+func TestAuthenticate_BogusMsg(t *testing.T) {
+	rng := rand.New(rand.NewSource(0xcafe))
+	acc := sim.NewRandomAccount(rng)
+	conn := newMockConn(nil)
+	conn.recvQueue <- msg.NewPingMsg()
+	addr, err := Authenticate(acc, conn)
+
+	assert.Error(t, err, "Authenticate should error when peer sends a non-AuthResponseMsg")
+	assert.Nil(t, addr)
 }
