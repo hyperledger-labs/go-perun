@@ -11,6 +11,8 @@ type T interface {
 	Errorf(string, ...interface{})
 	Fatal(...interface{})
 	Fatalf(string, ...interface{})
+
+	Helper()
 }
 
 // Tester is a testing.T mock to test tests.
