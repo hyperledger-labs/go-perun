@@ -5,7 +5,9 @@
 package peer
 
 import (
+	"io"
 	"math/rand"
+	"sync"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -31,4 +33,28 @@ func TestAuthenticate_NilParams(t *testing.T) {
 	assert.Panics(t, func() {
 		Authenticate(sim.NewRandomAccount(rnd), nil)
 	})
+}
+
+func TestAuthenticate_Success(t *testing.T) {
+	rng := rand.New(rand.NewSource(0xfedd))
+	conn0, conn1 := newPipeConnPair()
+	defer conn0.Close()
+	account0, account1 := sim.NewRandomAccount(rng), sim.NewRandomAccount(rng)
+	var wg sync.WaitGroup
+	wg.Add(1)
+
+	go func() {
+		defer wg.Done()
+		defer conn1.Close()
+
+		recvAddr0, err := Authenticate(account1, conn1)
+		assert.NoError(t, err)
+		assert.True(t, recvAddr0.Equals(account0.Address()))
+	}()
+
+	recvAddr1, err := Authenticate(account0, conn0)
+	assert.NoError(t, err)
+	assert.True(t, recvAddr1.Equals(account1.Address()))
+
+	wg.Wait()
 }
