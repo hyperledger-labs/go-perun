@@ -35,5 +35,5 @@ func (c *pipeConn) Close() (err error) {
 func newPipeConnPair() (a Conn, b Conn) {
 	ra, wa := io.Pipe()
 	rb, wb := io.Pipe()
-	return NewConn(&pipeConn{ra, wb, make(chan struct{})}), NewConn(&pipeConn{rb, wa, make(chan struct{})})
+	return NewIoConn(&pipeConn{ra, wb, make(chan struct{})}), NewIoConn(&pipeConn{rb, wa, make(chan struct{})})
 }
