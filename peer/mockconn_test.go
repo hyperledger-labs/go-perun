@@ -15,18 +15,22 @@ import (
 var _ Conn = (*mockConn)(nil)
 
 type mockConn struct {
-	mutex  sync.Mutex
-	closed bool
+	mutex     sync.Mutex
+	closed    bool
+	recvQueue chan wire.Msg
 
 	sent func(wire.Msg) // observes sent messages.
 }
 
-func newMockConn(sent func(wire.Msg)) Conn {
+func newMockConn(sent func(wire.Msg)) *mockConn {
 	if sent == nil {
 		sent = func(wire.Msg) {}
 	}
 
-	return &mockConn{sent: sent}
+	return &mockConn{
+		sent:      sent,
+		recvQueue: make(chan wire.Msg, 1),
+	}
 }
 
 func (c *mockConn) Send(m wire.Msg) error {
@@ -40,8 +44,13 @@ func (c *mockConn) Send(m wire.Msg) error {
 	}
 }
 
-func (*mockConn) Recv() (wire.Msg, error) {
-	return nil, errors.New("mocked")
+func (c *mockConn) Recv() (wire.Msg, error) {
+	c.mutex.Lock()
+	defer c.mutex.Unlock()
+	if c.closed {
+		return nil, errors.New("closed")
+	}
+	return <-c.recvQueue, nil
 }
 
 func (c *mockConn) Close() error {
