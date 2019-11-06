@@ -58,12 +58,12 @@ func (a Address) String() string {
 
 // Equals checks the equality of two addresses.
 func (a Address) Equals(addr wallet.Address) bool {
-	acc, ok := addr.(*Address)
+	b, ok := addr.(*Address)
 	if !ok {
-		log.Panic("Passed non wrong address type to Equals")
+		log.Panic("Equals(): wrong address type")
 	}
 
-	return (a.X == acc.X) && (a.Y == acc.Y)
+	return (a.X.Cmp(b.X) == 0) && (a.Y.Cmp(b.Y) == 0)
 }
 
 // Encode encodes this address into an io.Writer. Part of the

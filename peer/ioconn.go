@@ -10,21 +10,21 @@ import (
 	wire "perun.network/go-perun/wire/msg"
 )
 
-var _ Conn = (*serializedConn)(nil)
+var _ Conn = (*ioConn)(nil)
 
-// serializedConn is a connection that communicates its messages over a stream.
-type serializedConn struct {
+// IoConn is a connection that communicates its messages over an io stream.
+type ioConn struct {
 	conn io.ReadWriteCloser
 }
 
-// NewConn creates a serialized connection from a stream.
-func NewConn(conn io.ReadWriteCloser) Conn {
-	return &serializedConn{
+// NewIoConn creates a peer message connection from an io stream.
+func NewIoConn(conn io.ReadWriteCloser) Conn {
+	return &ioConn{
 		conn: conn,
 	}
 }
 
-func (c *serializedConn) Send(m wire.Msg) error {
+func (c *ioConn) Send(m wire.Msg) error {
 	if err := wire.Encode(m, c.conn); err != nil {
 		c.conn.Close()
 		return err
@@ -32,7 +32,7 @@ func (c *serializedConn) Send(m wire.Msg) error {
 	return nil
 }
 
-func (c *serializedConn) Recv() (wire.Msg, error) {
+func (c *ioConn) Recv() (wire.Msg, error) {
 	if m, err := wire.Decode(c.conn); err != nil {
 		c.conn.Close()
 		return nil, err
@@ -41,6 +41,6 @@ func (c *serializedConn) Recv() (wire.Msg, error) {
 	}
 }
 
-func (c *serializedConn) Close() error {
+func (c *ioConn) Close() error {
 	return c.conn.Close()
 }

@@ -170,7 +170,7 @@ func TestPeer_create(t *testing.T) {
 	case <-time.NewTimer(timeout).C:
 	}
 
-	conn, _ := newPipeConnPair()
+	conn := newMockConn(nil)
 	p.create(conn)
 
 	select {
@@ -179,11 +179,11 @@ func TestPeer_create(t *testing.T) {
 		t.Fatal("peer must exist")
 	}
 
-	assert.NoError(t, conn.Close(),
+	assert.False(t, conn.closed,
 		"Peer.create() on nonexisting peers must not close the new connection")
 
-	conn2, _ := newPipeConnPair()
+	conn2 := newMockConn(nil)
 	p.create(conn2)
-	assert.Error(t, conn2.Close(),
+	assert.True(t, conn2.closed,
 		"Peer.create() on existing peers must close the new connection")
 }
