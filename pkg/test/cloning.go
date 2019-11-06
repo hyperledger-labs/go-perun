@@ -78,7 +78,6 @@ func checkCloneImpl(v, w reflect.Value) error {
 
 	t := baseType
 
-	// check for field tags
 	for i := 0; i < baseType.NumField(); i++ {
 		f := baseType.Field(i)
 		kind := f.Type.Kind()
@@ -93,11 +92,14 @@ func checkCloneImpl(v, w reflect.Value) error {
 			panic(fmt.Sprintf("Implementation not tested with %v", kind))
 		}
 
+		// check for field tags
 		tag, hasTag := f.Tag.Lookup("cloneable")
 		// find unknown and misplaced tags
 		if hasTag {
 			if tag == "shallow" {
-				if kind != reflect.Ptr && kind != reflect.Slice {
+				if kind != reflect.Interface &&
+					kind != reflect.Ptr &&
+					kind != reflect.Slice {
 					return errors.Errorf(
 						"Expected field %v.%s with tag '%s' to be a "+
 							"pointer or a slice, got kind %v",
@@ -118,6 +120,37 @@ func checkCloneImpl(v, w reflect.Value) error {
 		}
 
 		// check actual field contents
+		if kind == reflect.Interface {
+			if left.IsZero() && right.IsZero() {
+				continue
+			}
+
+			if left.IsZero() != right.IsZero() {
+				// reflect.DeepEqual() should detect this case
+				panic(fmt.Sprintf(
+					"Expected both interfaces to be zero or both non-zero, got %v, %v",
+					left.InterfaceData(), right.InterfaceData()))
+			}
+
+			left = left.Elem()
+			right = right.Elem()
+			kindL := left.Type().Kind()
+			kindR := right.Type().Kind()
+
+			if kindL != reflect.Ptr && kindL != reflect.Struct {
+				panic(
+					fmt.Sprintf("Expected left kind ptr or struct, got %v",
+						left.Type().Kind()))
+			}
+			if kindR != reflect.Ptr && kindR != reflect.Struct {
+				panic(
+					fmt.Sprintf("Expected right kind ptr or struct, got %v",
+						right.Type().Kind()))
+			}
+
+			kind = left.Type().Kind()
+		}
+
 		if kind == reflect.Ptr || kind == reflect.Slice {
 			p := left.Pointer()
 			q := right.Pointer()
