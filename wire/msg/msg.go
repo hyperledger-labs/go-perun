@@ -40,7 +40,7 @@ func Decode(r io.Reader) (Msg, error) {
 	}
 
 	if !t.Valid() {
-		return nil, errors.Errorf("wire: invalid message Type in Decode(): %v", t)
+		return nil, errors.Errorf("wire: no decoder known for message Type): %v", t)
 	}
 	return decoders[t](r)
 }
@@ -60,6 +60,21 @@ func RegisterDecoder(t Type, decoder func(io.Reader) (Msg, error)) {
 	decoders[t] = decoder
 }
 
+// RegisterExternalDecoder sets the decoder of messages of external type `t`.
+// This is like RegisterDecoder but for message types not part of the Perun wire
+// protocol and thus not known natively. This can be used by users of the
+// framework to create additional message types and send them over the same
+// peer connection. It also comes in handy to register types for testing.
+func RegisterExternalDecoder(t Type, decoder func(io.Reader) (Msg, error), name string) {
+	if t < LastType {
+		panic("external decoders can only be registered for alien types")
+	}
+	RegisterDecoder(t, decoder)
+	// above registration panics if already set, so we don't need to check the
+	// next assignment.
+	typeNames[t] = name
+}
+
 // Type is an enumeration used for (de)serializing messages and
 // identifying a message's Type.
 type Type uint8
@@ -71,25 +86,29 @@ const (
 	ChannelProposal
 	ChannelProposalRes
 	AuthResponse
-	msgTypeEnd // upper bound on the message type byte
+	LastType // upper bound on the message types of the Perun wire protocol
 )
+
+var typeNames = map[Type]string{
+	Ping:               "Ping",
+	Pong:               "Pong",
+	ChannelProposal:    "ChannelProposal",
+	ChannelProposalRes: "ChannelProposalRes",
+	AuthResponse:       "AuthResponse",
+}
 
 // String returns the name of a message type if it is valid and name known
 // or otherwise its numerical representation.
 func (t Type) String() string {
-	if t > msgTypeEnd {
+	if name, ok := typeNames[t]; !ok {
 		return strconv.Itoa(int(t))
+	} else {
+		return name
 	}
-	return [...]string{
-		"Ping",
-		"Pong",
-		"ChannelProposal",
-		"ChannelProposalRes",
-		"AuthResponse",
-	}[t]
 }
 
-// Valid checks whether the type is known.
+// Valid checks whether a decoder is known for the type.
 func (t Type) Valid() bool {
-	return t < msgTypeEnd
+	_, ok := decoders[t]
+	return ok
 }
