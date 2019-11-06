@@ -26,15 +26,14 @@ func init() {
 // stub.
 type Identity = wallet.Account
 
-// Authenticate exchanges Perun addresses of peers. It's the initial protocol
+// ExchangeAddrs exchanges Perun addresses of peers. It's the initial protocol
 // that is run when a new peer connection is established. It returns the address
 // of the peer on the other end of the connection.
 //
-// In the future, Authenticate is changed to run a proper authentication protocol.
-// The protocol will then exchange Perun addresses and establish authenticity.
-//
-// NOTE: this protocol is not secure against man-in-the-middle attacks.
-func Authenticate(id Identity, conn Conn) (Address, error) {
+// In the future, ExchangeAddrs will be replaced by Authenticate to run a proper
+// authentication protocol.  The protocol will then exchange Perun addresses and
+// establish authenticity.
+func ExchangeAddrs(id Identity, conn Conn) (Address, error) {
 	sent := make(chan error, 1)
 	if id == nil || conn == nil {
 		// catch a nil id early to not cause a panic in the following go routine

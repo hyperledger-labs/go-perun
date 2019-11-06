@@ -25,16 +25,16 @@ func TestAuthResponseMsg(t *testing.T) {
 	msg.TestMsg(t, NewAuthResponseMsg(sim.NewRandomAccount(rng)))
 }
 
-func TestAuthenticate_NilParams(t *testing.T) {
+func TestExchangeAddrs_NilParams(t *testing.T) {
 	rnd := rand.New(rand.NewSource(0xb0ba))
-	assert.Panics(t, func() { Authenticate(nil, nil) })
-	assert.Panics(t, func() { Authenticate(nil, newMockConn(nil)) })
+	assert.Panics(t, func() { ExchangeAddrs(nil, nil) })
+	assert.Panics(t, func() { ExchangeAddrs(nil, newMockConn(nil)) })
 	assert.Panics(t, func() {
-		Authenticate(sim.NewRandomAccount(rnd), nil)
+		ExchangeAddrs(sim.NewRandomAccount(rnd), nil)
 	})
 }
 
-func TestAuthenticate_Success(t *testing.T) {
+func TestExchangeAddrs_Success(t *testing.T) {
 	rng := rand.New(rand.NewSource(0xfedd))
 	conn0, conn1 := newPipeConnPair()
 	defer conn0.Close()
@@ -46,25 +46,25 @@ func TestAuthenticate_Success(t *testing.T) {
 		defer wg.Done()
 		defer conn1.Close()
 
-		recvAddr0, err := Authenticate(account1, conn1)
+		recvAddr0, err := ExchangeAddrs(account1, conn1)
 		assert.NoError(t, err)
 		assert.True(t, recvAddr0.Equals(account0.Address()))
 	}()
 
-	recvAddr1, err := Authenticate(account0, conn0)
+	recvAddr1, err := ExchangeAddrs(account0, conn0)
 	assert.NoError(t, err)
 	assert.True(t, recvAddr1.Equals(account1.Address()))
 
 	wg.Wait()
 }
 
-func TestAuthenticate_BogusMsg(t *testing.T) {
+func TestExchangeAddrs_BogusMsg(t *testing.T) {
 	rng := rand.New(rand.NewSource(0xcafe))
 	acc := sim.NewRandomAccount(rng)
 	conn := newMockConn(nil)
 	conn.recvQueue <- msg.NewPingMsg()
-	addr, err := Authenticate(acc, conn)
+	addr, err := ExchangeAddrs(acc, conn)
 
-	assert.Error(t, err, "Authenticate should error when peer sends a non-AuthResponseMsg")
+	assert.Error(t, err, "ExchangeAddrs should error when peer sends a non-AuthResponseMsg")
 	assert.Nil(t, addr)
 }
