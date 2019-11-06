@@ -26,3 +26,17 @@ func TestType_Valid_String(t *testing.T) {
 	assert.Equal(t, testTypeStr, testType.String(),
 		"registered type's String() should be 'testType'")
 }
+
+func TestRegisterExternalDecoder(t *testing.T) {
+	const testTypeVal, testTypeStr = 251, "testTypeB"
+
+	RegisterExternalDecoder(testTypeVal, nilDecoder, testTypeStr)
+	assert.Panics(t,
+		func() { RegisterExternalDecoder(testTypeVal, nilDecoder, testTypeStr) },
+		"second registration of same type should fail",
+	)
+	assert.Panics(t,
+		func() { RegisterExternalDecoder(Ping, nilDecoder, "PingFail") },
+		"registration of internal type should fail",
+	)
+}
