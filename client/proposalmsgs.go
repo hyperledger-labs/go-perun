@@ -24,9 +24,9 @@ func init() {
 			var m ChannelProposal
 			return &m, m.Decode(r)
 		})
-	msg.RegisterDecoder(msg.ChannelProposalRes,
+	msg.RegisterDecoder(msg.ChannelProposalAcc,
 		func(r io.Reader) (msg.Msg, error) {
-			var m ChannelProposalRes
+			var m ChannelProposalAcc
 			return &m, m.Decode(r)
 		})
 }
@@ -126,23 +126,23 @@ func (c *ChannelProposal) Decode(r io.Reader) (err error) {
 // a channel.
 type SessionID = [32]byte
 
-// ChannelProposalRes contains all data for a response to a channel proposal
+// ChannelProposalAcc contains all data for a response to a channel proposal
 // message. The SessID must be computed from the channel proposal messages one
 // wishes to respond to. ParticipantAddr should be a participant address just
 // for this channel instantiation.
 //
 // The type implements the channel proposal response messages from the
 // Multi-Party Channel Proposal Protocol (MPCPP).
-type ChannelProposalRes struct {
+type ChannelProposalAcc struct {
 	SessID          SessionID
 	ParticipantAddr wallet.Address
 }
 
-func (ChannelProposalRes) Type() msg.Type {
-	return msg.ChannelProposalRes
+func (ChannelProposalAcc) Type() msg.Type {
+	return msg.ChannelProposalAcc
 }
 
-func (res ChannelProposalRes) Encode(w io.Writer) error {
+func (res ChannelProposalAcc) Encode(w io.Writer) error {
 	if err := wire.Encode(w, res.SessID); err != nil {
 		return errors.WithMessage(err, "response SID encoding")
 	}
@@ -154,7 +154,7 @@ func (res ChannelProposalRes) Encode(w io.Writer) error {
 	return nil
 }
 
-func (res *ChannelProposalRes) Decode(r io.Reader) (err error) {
+func (res *ChannelProposalAcc) Decode(r io.Reader) (err error) {
 	if err = wire.Decode(r, &res.SessID); err != nil {
 		return errors.WithMessage(err, "response SID decoding")
 	}

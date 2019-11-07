@@ -67,15 +67,15 @@ func TestChannelProposalSerialization(t *testing.T) {
 	}
 }
 
-func TestChannelProposalResSerialization(t *testing.T) {
+func TestChannelProposalAccSerialization(t *testing.T) {
 	rng := rand.New(rand.NewSource(0xcafecafe))
-	inputs := []*client.ChannelProposalRes{
-		&client.ChannelProposalRes{
-			SessID:          client.SessionID{0, 1, 2},
+	inputs := []*client.ChannelProposalAcc{
+		&client.ChannelProposalAcc{
+			SessID:          NewRandomSessID(rng),
 			ParticipantAddr: wallettest.NewRandomAddress(rng),
 		},
-		&client.ChannelProposalRes{
-			SessID:          client.SessionID{0x0E, 0xA7, 0xBE, 0xEF},
+		&client.ChannelProposalAcc{
+			SessID:          NewRandomSessID(rng),
 			ParticipantAddr: wallettest.NewRandomAddress(rng),
 		},
 	}
@@ -83,4 +83,9 @@ func TestChannelProposalResSerialization(t *testing.T) {
 	for _, m := range inputs {
 		msg.TestMsg(t, m)
 	}
+}
+
+func NewRandomSessID(rng *rand.Rand) (id client.SessionID) {
+	rng.Read(id[:])
+	return
 }
