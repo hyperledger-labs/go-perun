@@ -5,6 +5,7 @@
 package test // import "perun.network/go-perun/channel/test"
 
 import (
+	"fmt"
 	"log"
 	"math/big"
 	"math/rand"
@@ -26,13 +27,19 @@ func SetBackend(b Backend) {
 	backend = b
 }
 
-func NewRandomAllocation(rng *rand.Rand, params *channel.Params) *channel.Allocation {
+func NewRandomAllocation(rng *rand.Rand, numParts int) *channel.Allocation {
+	if numParts > channel.MaxNumParts {
+		panic(fmt.Sprintf(
+			"Expected at most %d participants, got %d",
+			channel.MaxNumParts, numParts))
+	}
+
 	assets := make([]channel.Asset, rng.Int31n(9)+2)
 	for i := 0; i < len(assets); i++ {
 		assets[i] = NewRandomAsset(rng)
 	}
 
-	ofparts := make([][]channel.Bal, len(params.Parts))
+	ofparts := make([][]channel.Bal, numParts)
 	for i := 0; i < len(ofparts); i++ {
 		ofparts[i] = NewRandomBals(rng, len(assets))
 	}
@@ -68,7 +75,7 @@ func NewRandomState(rng *rand.Rand, p *channel.Params) *channel.State {
 	return &channel.State{
 		ID:         p.ID(),
 		Version:    rng.Uint64(),
-		Allocation: *NewRandomAllocation(rng, p),
+		Allocation: *NewRandomAllocation(rng, len(p.Parts)),
 		Data:       NewRandomData(rng),
 		IsFinal:    (rng.Int31n(2) == 0),
 	}
