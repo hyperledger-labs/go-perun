@@ -9,7 +9,10 @@ import (
 	"math/rand"
 	"testing"
 
-	"perun.network/go-perun/channel"
+	"github.com/stretchr/testify/assert"
+
+	// import for channel app back-end initialization
+	_ "perun.network/go-perun/backend/sim/channel"
 	"perun.network/go-perun/channel/test"
 	"perun.network/go-perun/client"
 	"perun.network/go-perun/wallet"
@@ -18,7 +21,6 @@ import (
 )
 
 func init() {
-	channel.SetAppBackend(new(test.NoAppBackend))
 	test.SetBackend(new(test.TestBackend))
 	wallet.SetBackend(new(wallettest.DefaultWalletBackend))
 	wallettest.SetBackend(new(wallettest.DefaultBackend))
@@ -41,6 +43,37 @@ func TestChannelProposalSerialization(t *testing.T) {
 		}
 		msg.TestMsg(t, m)
 	}
+}
+
+func TestChannelProposalSessID(t *testing.T) {
+	rng := rand.New(rand.NewSource(0xc0ffee))
+	app := test.NewRandomApp(rng)
+	params := test.NewRandomParams(rng, app)
+	data := test.NewRandomData(rng)
+	alloc := test.NewRandomAllocation(rng, params)
+	participantAddr := wallettest.NewRandomAddress(rng)
+	p0 := client.ChannelProposal{
+		params.ChallengeDuration,
+		params.Nonce,
+		participantAddr,
+		params.App.Def(),
+		data,
+		alloc,
+		params.Parts,
+	}
+	p1 := p0
+	p1.ChallengeDuration = p0.ChallengeDuration + 1
+
+	p2 := p0
+	p2.ParticipantAddr = wallettest.NewRandomAddress(rng)
+
+	sid0 := p0.SessID()
+	sid1 := p1.SessID()
+	sid2 := p2.SessID()
+
+	assert.Equal(t, sid0, p0.SessID())
+	assert.NotEqual(t, sid0, sid1)
+	assert.Equal(t, sid0, sid2)
 }
 
 func TestChannelProposalAccSerialization(t *testing.T) {

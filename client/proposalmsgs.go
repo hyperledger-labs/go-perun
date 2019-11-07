@@ -5,7 +5,9 @@
 package client
 
 import (
+	"golang.org/x/crypto/sha3"
 	"io"
+	"log"
 	"math"
 	"math/big"
 
@@ -125,6 +127,32 @@ func (c *ChannelProposal) Decode(r io.Reader) (err error) {
 	}
 
 	return nil
+}
+
+func (c ChannelProposal) SessID() (sid SessionID) {
+	hasher := sha3.New256()
+	if err := wire.Encode(hasher, c.Nonce); err != nil {
+		log.Panicf("session ID nonce encoding: %v", err)
+	}
+
+	for _, p := range c.Parts {
+		if err := wire.Encode(hasher, p); err != nil {
+			log.Panicf("session ID participant encoding: %v", err)
+		}
+	}
+
+	if err := wire.Encode(
+		hasher,
+		c.ChallengeDuration,
+		c.InitData,
+		c.InitBals,
+		c.AppDef,
+	); err != nil {
+		log.Panicf("session ID data encoding error: %v", err)
+	}
+
+	copy(sid[:], hasher.Sum(nil))
+	return
 }
 
 // SessionID is a unique identifier generated for every instantiantiation of
