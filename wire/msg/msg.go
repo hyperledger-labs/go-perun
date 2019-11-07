@@ -85,6 +85,7 @@ const (
 	Pong
 	ChannelProposal
 	ChannelProposalAcc
+	ChannelProposalRej
 	AuthResponse
 	LastType // upper bound on the message types of the Perun wire protocol
 )
@@ -94,6 +95,7 @@ var typeNames = map[Type]string{
 	Pong:               "Pong",
 	ChannelProposal:    "ChannelProposal",
 	ChannelProposalAcc: "ChannelProposalAcc",
+	ChannelProposalRej: "ChannelProposalRej",
 	AuthResponse:       "AuthResponse",
 }
 

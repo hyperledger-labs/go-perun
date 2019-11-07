@@ -29,6 +29,11 @@ func init() {
 			var m ChannelProposalAcc
 			return &m, m.Decode(r)
 		})
+	msg.RegisterDecoder(msg.ChannelProposalRej,
+		func(r io.Reader) (msg.Msg, error) {
+			var m ChannelProposalRej
+			return &m, m.Decode(r)
+		})
 }
 
 // ChannelProposal contains all data necessary to propose a new
@@ -142,26 +147,43 @@ func (ChannelProposalAcc) Type() msg.Type {
 	return msg.ChannelProposalAcc
 }
 
-func (res ChannelProposalAcc) Encode(w io.Writer) error {
-	if err := wire.Encode(w, res.SessID); err != nil {
-		return errors.WithMessage(err, "response SID encoding")
+func (acc ChannelProposalAcc) Encode(w io.Writer) error {
+	if err := wire.Encode(w, acc.SessID); err != nil {
+		return errors.WithMessage(err, "SID encoding")
 	}
 
-	if err := res.ParticipantAddr.Encode(w); err != nil {
-		return errors.WithMessage(err, "response participant address encoding")
+	if err := acc.ParticipantAddr.Encode(w); err != nil {
+		return errors.WithMessage(err, "participant address encoding")
 	}
 
 	return nil
 }
 
-func (res *ChannelProposalAcc) Decode(r io.Reader) (err error) {
-	if err = wire.Decode(r, &res.SessID); err != nil {
-		return errors.WithMessage(err, "response SID decoding")
+func (acc *ChannelProposalAcc) Decode(r io.Reader) (err error) {
+	if err = wire.Decode(r, &acc.SessID); err != nil {
+		return errors.WithMessage(err, "SID decoding")
 	}
 
-	if res.ParticipantAddr, err = wallet.DecodeAddress(r); err != nil {
-		return errors.WithMessage(err, "app address decoding")
+	if acc.ParticipantAddr, err = wallet.DecodeAddress(r); err != nil {
+		return errors.WithMessage(err, "participant address decoding")
 	}
 
 	return nil
+}
+
+type ChannelProposalRej struct {
+	SessID SessionID
+	Reason string
+}
+
+func (ChannelProposalRej) Type() msg.Type {
+	return msg.ChannelProposalRej
+}
+
+func (rej ChannelProposalRej) Encode(w io.Writer) error {
+	return wire.Encode(w, rej.SessID, rej.Reason)
+}
+
+func (rej *ChannelProposalRej) Decode(r io.Reader) error {
+	return wire.Decode(r, &rej.SessID, &rej.Reason)
 }
