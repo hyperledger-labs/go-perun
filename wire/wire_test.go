@@ -69,6 +69,7 @@ func TestEncodeDecode(t *testing.T) {
 		byte32,
 		byteSlice,
 		ByteSlice{5, 6, 8, 3, 4, 5, 6},
+		"perun",
 	}
 
 	go func() {
