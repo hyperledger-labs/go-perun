@@ -18,6 +18,11 @@ import (
 	iotest "perun.network/go-perun/pkg/io/test"
 )
 
+func init() {
+	channel.SetAppBackend(new(test.NoAppBackend))
+	test.SetBackend(new(test.TestBackend))
+}
+
 func assets(rng *rand.Rand, n uint) []channel.Asset {
 	as := make([]channel.Asset, n)
 	for i := uint(0); i < n; i++ {

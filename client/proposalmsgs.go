@@ -2,7 +2,7 @@
 // This file is part of go-perun. Use of this source code is governed by a
 // MIT-style license that can be found in the LICENSE file.
 
-package channel
+package client
 
 import (
 	"io"
@@ -11,6 +11,7 @@ import (
 
 	"github.com/pkg/errors"
 
+	"perun.network/go-perun/channel"
 	perunio "perun.network/go-perun/pkg/io"
 	"perun.network/go-perun/wallet"
 	"perun.network/go-perun/wire"
@@ -40,8 +41,8 @@ type ChannelProposal struct {
 	Nonce             *big.Int
 	ParticipantAddr   wallet.Address
 	AppDef            wallet.Address
-	InitData          Data
-	InitBals          *Allocation
+	InitData          channel.Data
+	InitBals          *channel.Allocation
 	Parts             []wallet.Address
 }
 
@@ -88,8 +89,8 @@ func (c *ChannelProposal) Decode(r io.Reader) (err error) {
 	if c.AppDef, err = wallet.DecodeAddress(r); err != nil {
 		return err
 	}
-	var app App
-	if app, err = AppFromDefinition(c.AppDef); err != nil {
+	var app channel.App
+	if app, err = channel.AppFromDefinition(c.AppDef); err != nil {
 		return err
 	}
 
@@ -97,7 +98,7 @@ func (c *ChannelProposal) Decode(r io.Reader) (err error) {
 		return err
 	}
 
-	c.InitBals = &Allocation{}
+	c.InitBals = &channel.Allocation{}
 	if err := perunio.Decode(r, c.InitBals); err != nil {
 		return err
 	}
