@@ -12,14 +12,20 @@ import (
 type Client struct {
 	id      peer.Identity
 	peerReg *peer.Registry
+	quit        chan struct{}
 }
 
 func New(id peer.Identity, dialer peer.Dialer) *Client {
 	c := &Client{
 		id: id,
+		quit:        make(chan struct{}),
 	}
 	c.peerReg = peer.NewRegistry(c.subscribePeer, dialer)
 	return c
+}
+
+func (c *Client) Close() {
+	close(c.quit)
 }
 
 // Listen starts listening for incoming connections on the provided listener and
