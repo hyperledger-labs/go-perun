@@ -5,20 +5,26 @@
 package client
 
 import (
+	"github.com/pkg/errors"
+
 	"perun.network/go-perun/log"
 	"perun.network/go-perun/peer"
+	"perun.network/go-perun/pkg/sync/atomic"
 )
 
 type Client struct {
-	id      peer.Identity
+	id          peer.Identity
 	peers       *peer.Registry
-	quit        chan struct{}
+	propHandler ProposalHandler
 	log         log.Logger // structured logger for this client
+	quit        chan struct{}
+	closed      atomic.Bool
 }
 
-func New(id peer.Identity, dialer peer.Dialer) *Client {
+func New(id peer.Identity, dialer peer.Dialer, propHandler ProposalHandler) *Client {
 	c := &Client{
-		id: id,
+		id:          id,
+		propHandler: propHandler,
 		quit:        make(chan struct{}),
 		log:         log.WithField("client", id.Address),
 	}
@@ -26,8 +32,13 @@ func New(id peer.Identity, dialer peer.Dialer) *Client {
 	return c
 }
 
-func (c *Client) Close() {
+func (c *Client) Close() error {
+	if !c.closed.TrySet() {
+		return errors.New("client already closed")
+	}
 	close(c.quit)
+
+	return errors.WithMessage(c.peers.Close(), "closing registry")
 }
 
 // Listen starts listening for incoming connections on the provided listener and
@@ -35,6 +46,7 @@ func (c *Client) Close() {
 // This function does not start go routines but instead should
 // be started by the user as `go client.Listen()`.
 func (c *Client) Listen(listener peer.Listener) {
+	go func() { <-c.quit; listener.Close() }()
 	// start listener and accept all incoming peer connections, writing them to the registry
 	for {
 		conn, err := listener.Accept()
@@ -53,6 +65,12 @@ func (c *Client) Listen(listener peer.Listener) {
 }
 
 func (c *Client) subscribePeer(p *peer.Peer) {
-	log.Debugf("Client: subscribing peer: %v", p.PerunAddress)
-	// TODO actual subscriptions
+	c.logPeer(p).Debugf("setting up default subscriptions")
+
+	// handle incoming channel proposals
+	c.subChannelProposals(p)
+}
+
+func (c *Client) logPeer(p *peer.Peer) log.Logger {
+	return c.log.WithField("peer", p.PerunAddress)
 }
