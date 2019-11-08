@@ -26,43 +26,19 @@ func init() {
 
 func TestChannelProposalSerialization(t *testing.T) {
 	rng := rand.New(rand.NewSource(0xdeadbeef))
-	inputs := []*client.ChannelProposal{
-		&client.ChannelProposal{
+	for i := 0; i < 4; i++ {
+		m := &client.ChannelProposal{
 			ChallengeDuration: 0,
-			Nonce:             big.NewInt(1),
+			Nonce:             big.NewInt(rng.Int63()),
 			ParticipantAddr:   wallettest.NewRandomAddress(rng),
 			AppDef:            wallettest.NewRandomAddress(rng),
 			InitData:          test.NewRandomData(rng),
-			InitBals: &channel.Allocation{
-				Assets: []channel.Asset{&test.Asset{ID: 7}},
-				OfParts: [][]channel.Bal{
-					[]channel.Bal{big.NewInt(8)},
-					[]channel.Bal{big.NewInt(9)}},
-				Locked: []channel.SubAlloc{},
+			InitBals:          test.NewRandomAllocation(rng, 2),
+			Parts: []wallet.Address{
+				wallettest.NewRandomAddress(rng),
+				wallettest.NewRandomAddress(rng),
 			},
-			Parts: []wallet.Address{wallettest.NewRandomAddress(rng), wallettest.NewRandomAddress(rng)},
-		},
-		&client.ChannelProposal{
-			ChallengeDuration: 99,
-			Nonce:             big.NewInt(100),
-			ParticipantAddr:   wallettest.NewRandomAddress(rng),
-			AppDef:            wallettest.NewRandomAddress(rng),
-			InitData:          test.NewRandomData(rng),
-			InitBals: &channel.Allocation{
-				Assets: []channel.Asset{&test.Asset{ID: 8}, &test.Asset{ID: 255}},
-				OfParts: [][]channel.Bal{
-					[]channel.Bal{big.NewInt(9), big.NewInt(131)},
-					[]channel.Bal{big.NewInt(1), big.NewInt(1024)}},
-				Locked: []channel.SubAlloc{
-					channel.SubAlloc{
-						ID:   channel.ID{0xCA, 0xFE},
-						Bals: []channel.Bal{big.NewInt(11), big.NewInt(12)}}},
-			},
-			Parts: []wallet.Address{wallettest.NewRandomAddress(rng), wallettest.NewRandomAddress(rng)},
-		},
-	}
-
-	for _, m := range inputs {
+		}
 		msg.TestMsg(t, m)
 	}
 }
