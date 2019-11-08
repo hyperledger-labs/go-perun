@@ -26,7 +26,7 @@ func (b ByteSlice) Encode(w io.Writer) error {
 // Decode reads a byte slice from the given stream.
 // Decode reads exactly len(b) bytes.
 // This means the caller has to specify how many bytes he wants to read.
-func (b *ByteSlice) Decode(r io.Reader) (err error) {
+func (b *ByteSlice) Decode(r io.Reader) error {
 	// This is almost the same as io.ReadFull, but it also fails on closed
 	// readers.
 	n, err := r.Read(*b)
