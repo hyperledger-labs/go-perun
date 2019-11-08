@@ -11,7 +11,7 @@ import (
 
 type Client struct {
 	id      peer.Identity
-	peerReg *peer.Registry
+	peers       *peer.Registry
 	quit        chan struct{}
 	log         log.Logger // structured logger for this client
 }
@@ -22,7 +22,7 @@ func New(id peer.Identity, dialer peer.Dialer) *Client {
 		quit:        make(chan struct{}),
 		log:         log.WithField("client", id.Address),
 	}
-	c.peerReg = peer.NewRegistry(c.subscribePeer, dialer)
+	c.peers = peer.NewRegistry(c.subscribePeer, dialer)
 	return c
 }
 
@@ -47,7 +47,7 @@ func (c *Client) Listen(listener peer.Listener) {
 			c.log.Warnf("could not authenticate peer: %v", err)
 		} else {
 			// the peer registry is thread safe
-			c.peerReg.Register(peerAddr, conn)
+			c.peers.Register(peerAddr, conn)
 		}
 	}
 }
