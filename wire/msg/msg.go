@@ -84,7 +84,8 @@ const (
 	Ping Type = iota
 	Pong
 	ChannelProposal
-	ChannelProposalRes
+	ChannelProposalAcc
+	ChannelProposalRej
 	AuthResponse
 	LastType // upper bound on the message types of the Perun wire protocol
 )
@@ -93,7 +94,8 @@ var typeNames = map[Type]string{
 	Ping:               "Ping",
 	Pong:               "Pong",
 	ChannelProposal:    "ChannelProposal",
-	ChannelProposalRes: "ChannelProposalRes",
+	ChannelProposalAcc: "ChannelProposalAcc",
+	ChannelProposalRej: "ChannelProposalRej",
 	AuthResponse:       "AuthResponse",
 }
 

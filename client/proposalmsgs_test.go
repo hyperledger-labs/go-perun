@@ -26,61 +26,48 @@ func init() {
 
 func TestChannelProposalSerialization(t *testing.T) {
 	rng := rand.New(rand.NewSource(0xdeadbeef))
-	inputs := []*client.ChannelProposal{
-		&client.ChannelProposal{
+	for i := 0; i < 4; i++ {
+		m := &client.ChannelProposal{
 			ChallengeDuration: 0,
-			Nonce:             big.NewInt(1),
+			Nonce:             big.NewInt(rng.Int63()),
 			ParticipantAddr:   wallettest.NewRandomAddress(rng),
 			AppDef:            wallettest.NewRandomAddress(rng),
 			InitData:          test.NewRandomData(rng),
-			InitBals: &channel.Allocation{
-				Assets: []channel.Asset{&test.Asset{ID: 7}},
-				OfParts: [][]channel.Bal{
-					[]channel.Bal{big.NewInt(8)},
-					[]channel.Bal{big.NewInt(9)}},
-				Locked: []channel.SubAlloc{},
+			InitBals:          test.NewRandomAllocation(rng, 2),
+			Parts: []wallet.Address{
+				wallettest.NewRandomAddress(rng),
+				wallettest.NewRandomAddress(rng),
 			},
-			Parts: []wallet.Address{wallettest.NewRandomAddress(rng), wallettest.NewRandomAddress(rng)},
-		},
-		&client.ChannelProposal{
-			ChallengeDuration: 99,
-			Nonce:             big.NewInt(100),
-			ParticipantAddr:   wallettest.NewRandomAddress(rng),
-			AppDef:            wallettest.NewRandomAddress(rng),
-			InitData:          test.NewRandomData(rng),
-			InitBals: &channel.Allocation{
-				Assets: []channel.Asset{&test.Asset{ID: 8}, &test.Asset{ID: 255}},
-				OfParts: [][]channel.Bal{
-					[]channel.Bal{big.NewInt(9), big.NewInt(131)},
-					[]channel.Bal{big.NewInt(1), big.NewInt(1024)}},
-				Locked: []channel.SubAlloc{
-					channel.SubAlloc{
-						ID:   channel.ID{0xCA, 0xFE},
-						Bals: []channel.Bal{big.NewInt(11), big.NewInt(12)}}},
-			},
-			Parts: []wallet.Address{wallettest.NewRandomAddress(rng), wallettest.NewRandomAddress(rng)},
-		},
-	}
-
-	for _, m := range inputs {
+		}
 		msg.TestMsg(t, m)
 	}
 }
 
-func TestChannelProposalResSerialization(t *testing.T) {
+func TestChannelProposalAccSerialization(t *testing.T) {
 	rng := rand.New(rand.NewSource(0xcafecafe))
-	inputs := []*client.ChannelProposalRes{
-		&client.ChannelProposalRes{
-			SessID:          client.SessionID{0, 1, 2},
+	for i := 0; i < 16; i++ {
+		m := &client.ChannelProposalAcc{
+			SessID:          NewRandomSessID(rng),
 			ParticipantAddr: wallettest.NewRandomAddress(rng),
-		},
-		&client.ChannelProposalRes{
-			SessID:          client.SessionID{0x0E, 0xA7, 0xBE, 0xEF},
-			ParticipantAddr: wallettest.NewRandomAddress(rng),
-		},
-	}
-
-	for _, m := range inputs {
+		}
 		msg.TestMsg(t, m)
 	}
+}
+
+func TestChannelProposalRejSerialization(t *testing.T) {
+	rng := rand.New(rand.NewSource(0xcafecafe))
+	for i := 0; i < 16; i++ {
+		r := make([]byte, 16+rng.Intn(16)) // random string of length 16..32
+		rng.Read(r)
+		m := &client.ChannelProposalRej{
+			SessID: NewRandomSessID(rng),
+			Reason: string(r),
+		}
+		msg.TestMsg(t, m)
+	}
+}
+
+func NewRandomSessID(rng *rand.Rand) (id client.SessionID) {
+	rng.Read(id[:])
+	return
 }
