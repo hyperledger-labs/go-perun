@@ -33,6 +33,8 @@ func Encode(writer io.Writer, values ...interface{}) (err error) {
 			_, err = writer.Write(v[:])
 		case []byte:
 			err = ByteSlice(v).Encode(writer)
+		case string:
+			err = encodeString(writer, v)
 		default:
 			if enc, ok := value.(pio.Encoder); ok {
 				err = enc.Encode(writer)
@@ -69,6 +71,8 @@ func Decode(reader io.Reader, values ...interface{}) (err error) {
 		case *[]byte:
 			d := ByteSlice(*v)
 			err = d.Decode(reader)
+		case *string:
+			err = decodeString(reader, v)
 		default:
 			if dec, ok := value.(pio.Decoder); ok {
 				err = dec.Decode(reader)

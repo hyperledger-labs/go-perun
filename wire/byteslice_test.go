@@ -11,13 +11,13 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"perun.network/go-perun/pkg/io/test"
+	iotest "perun.network/go-perun/pkg/io/test"
 )
 
 func TestByteSlice(t *testing.T) {
 	var v1, v2, v3, v4 ByteSlice = []byte{}, []byte{255}, []byte{1, 2, 3, 4, 5, 6}, make([]byte, 20000)
 	testByteSlices(t, v1, v2, v3, v4)
-	test.GenericBrokenPipeTest(t, &v1, &v2, &v3, &v4)
+	iotest.GenericBrokenPipeTest(t, &v1, &v2, &v3, &v4)
 }
 
 // TestStutter tests what happens if the network stutters (split one message into several network packages).
@@ -32,9 +32,9 @@ func TestStutter(t *testing.T) {
 	}()
 
 	var decodedValue ByteSlice = make([]byte, len(values))
-	assert.Nil(t, decodedValue.Decode(r), "failed to decode element")
+	assert.Nil(t, decodedValue.Decode(r))
 	for i, v := range values {
-		assert.Equal(t, decodedValue[i], v, "failed to decode element")
+		assert.Equal(t, decodedValue[i], v)
 	}
 
 }
@@ -46,7 +46,7 @@ func testByteSlices(t *testing.T, serial ...ByteSlice) {
 
 	go func() {
 		for _, v := range serial {
-			a.Nil(v.Encode(w), "failed to encode element")
+			a.NoError(v.Encode(w))
 		}
 		close(done)
 	}()
@@ -56,7 +56,7 @@ func testByteSlices(t *testing.T, serial ...ByteSlice) {
 		d := make([]byte, len(v))
 		dest := ByteSlice(d)
 
-		a.Nil(dest.Decode(r), "failed to decode element")
+		a.NoError(dest.Decode(r), "failed to decode element")
 
 		if !reflect.DeepEqual(v, dest) {
 			t.Errorf("encoding and decoding the %dth element (%T) resulted in different value: %v, %v", i, v, reflect.ValueOf(v).Elem(), dest)
