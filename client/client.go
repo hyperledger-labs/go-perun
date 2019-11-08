@@ -13,12 +13,14 @@ type Client struct {
 	id      peer.Identity
 	peerReg *peer.Registry
 	quit        chan struct{}
+	log         log.Logger // structured logger for this client
 }
 
 func New(id peer.Identity, dialer peer.Dialer) *Client {
 	c := &Client{
 		id: id,
 		quit:        make(chan struct{}),
+		log:         log.WithField("client", id.Address),
 	}
 	c.peerReg = peer.NewRegistry(c.subscribePeer, dialer)
 	return c
@@ -37,12 +39,12 @@ func (c *Client) Listen(listener peer.Listener) {
 	for {
 		conn, err := listener.Accept()
 		if err != nil {
-			log.Debugf("Client: peer listener closed: %v", err)
+			c.log.Debugf("peer listener closed: %v", err)
 			return
 		}
 
 		if peerAddr, err := peer.ExchangeAddrs(c.id, conn); err != nil {
-			log.Warnf("could not authenticate peer: %v", err)
+			c.log.Warnf("could not authenticate peer: %v", err)
 		} else {
 			// the peer registry is thread safe
 			c.peerReg.Register(peerAddr, conn)
