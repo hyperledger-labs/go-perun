@@ -87,6 +87,9 @@ const (
 	ChannelProposal
 	ChannelProposalAcc
 	ChannelProposalRej
+	ChannelUpdate
+	ChannelUpdateAcc
+	ChannelUpdateRej
 	LastType // upper bound on the message types of the Perun wire protocol
 )
 
@@ -97,6 +100,9 @@ var typeNames = map[Type]string{
 	ChannelProposal:    "ChannelProposal",
 	ChannelProposalAcc: "ChannelProposalAcc",
 	ChannelProposalRej: "ChannelProposalRej",
+	ChannelUpdate:      "ChannelUpdate",
+	ChannelUpdateAcc:   "ChannelUpdateAcc",
+	ChannelUpdateRej:   "ChannelUpdateRej",
 }
 
 // String returns the name of a message type if it is valid and name known
