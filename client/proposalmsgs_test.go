@@ -9,7 +9,10 @@ import (
 	"math/rand"
 	"testing"
 
-	"perun.network/go-perun/channel"
+	"github.com/stretchr/testify/assert"
+
+	// import for channel app back-end initialization
+	_ "perun.network/go-perun/backend/sim/channel"
 	"perun.network/go-perun/channel/test"
 	"perun.network/go-perun/client"
 	"perun.network/go-perun/wallet"
@@ -18,7 +21,6 @@ import (
 )
 
 func init() {
-	channel.SetAppBackend(new(test.NoAppBackend))
 	test.SetBackend(new(test.TestBackend))
 	wallet.SetBackend(new(wallettest.DefaultWalletBackend))
 	wallettest.SetBackend(new(wallettest.DefaultBackend))
@@ -40,6 +42,63 @@ func TestChannelProposalSerialization(t *testing.T) {
 			},
 		}
 		msg.TestMsg(t, m)
+	}
+}
+
+func TestChannelProposalSessID(t *testing.T) {
+	original := *newRandomChannelProposal(rand.New(rand.NewSource(0xc0ffee)))
+	s := original.SessID()
+	fake := newRandomChannelProposal(rand.New(rand.NewSource(0xeeff0c)))
+
+	assert.NotEqual(t, original.ChallengeDuration, fake.ChallengeDuration)
+	assert.NotEqual(t, original.Nonce, fake.Nonce)
+	assert.NotEqual(t, original.ParticipantAddr, fake.ParticipantAddr)
+	assert.NotEqual(t, original.AppDef, fake.AppDef)
+
+	c0 := original
+	c0.ChallengeDuration = fake.ChallengeDuration
+	assert.NotEqual(t, s, c0.SessID())
+
+	c1 := original
+	c1.Nonce = fake.Nonce
+	assert.NotEqual(t, s, c1.SessID())
+
+	c2 := original
+	c2.ParticipantAddr = fake.ParticipantAddr
+	assert.Equal(t, s, c2.SessID())
+
+	c3 := original
+	c3.AppDef = fake.AppDef
+	assert.NotEqual(t, s, c3.SessID())
+
+	c4 := original
+	c4.InitData = fake.InitData
+	assert.NotEqual(t, s, c4.SessID())
+
+	c5 := original
+	c5.InitBals = fake.InitBals
+	assert.NotEqual(t, s, c5.SessID())
+
+	c6 := original
+	c6.Parts = fake.Parts
+	assert.NotEqual(t, s, c6.SessID())
+}
+
+func newRandomChannelProposal(rng *rand.Rand) *client.ChannelProposal {
+	app := test.NewRandomApp(rng)
+	params := test.NewRandomParams(rng, app)
+	data := test.NewRandomData(rng)
+	numParts := 2 + rng.Intn(8)
+	alloc := test.NewRandomAllocation(rng, numParts)
+	participantAddr := wallettest.NewRandomAddress(rng)
+	return &client.ChannelProposal{
+		params.ChallengeDuration,
+		params.Nonce,
+		participantAddr,
+		params.App.Def(),
+		data,
+		alloc,
+		params.Parts,
 	}
 }
 
