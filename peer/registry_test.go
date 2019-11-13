@@ -16,16 +16,21 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"perun.network/go-perun/backend/sim/wallet"
+	"perun.network/go-perun/pkg/sync/atomic"
 )
 
 var _ Dialer = (*mockDialer)(nil)
 
 type mockDialer struct {
-	dial  chan Conn
-	mutex sync.Mutex
+	dial   chan Conn
+	mutex  sync.RWMutex
+	closed atomic.Bool
 }
 
 func (d *mockDialer) Close() error {
+	if !d.closed.TrySet() {
+		return errors.New("dialer already closed")
+	}
 	close(d.dial)
 	return nil
 }
@@ -46,12 +51,17 @@ func (d *mockDialer) Dial(ctx context.Context, addr Address) (Conn, error) {
 	}
 }
 
+func (d *mockDialer) isClosed() bool {
+	return d.closed.IsSet()
+}
+
 // TestRegistry_Get tests that when calling Get(), existing peers are returned,
 // and when unknown peers are requested, a temporary peer is create that is
 // dialed in the background. It also tests that the dialing process combines
 // with the Listener, so that if a connection to a peer that is still being
 // dialed comes in, the peer is assigned that connection.
 func TestRegistry_Get(t *testing.T) {
+	assert := assert.New(t)
 	t.Parallel()
 	for i := 0; i < 2; i++ {
 		i := i
@@ -63,10 +73,10 @@ func TestRegistry_Get(t *testing.T) {
 
 			addr := wallet.NewRandomAddress(rng)
 			p := r.Get(addr)
-			assert.NotNil(t, p, "Get() must not return nil", i)
-			assert.Equal(t, p, r.Get(addr), "Get must return the existing peer", i)
+			assert.NotNil(p, "Get() must not return nil", i)
+			assert.Equal(p, r.Get(addr), "Get must return the existing peer", i)
 			<-time.NewTimer(timeout).C
-			assert.NotEqual(t, p, r.Get(wallet.NewRandomAddress(rng)),
+			assert.NotEqual(p, r.Get(wallet.NewRandomAddress(rng)),
 				"Get() must return different peers for different addresses", i)
 
 			select {
@@ -92,7 +102,13 @@ func TestRegistry_Get(t *testing.T) {
 				t.Fatal("Peer that is successfully dialed must exist", i)
 			}
 
-			assert.False(t, p.isClosed(), "Dialed peer must not be closed", i)
+			assert.False(p.isClosed(), "Dialed peer must not be closed", i)
+
+			assert.NoError(r.Close())
+			assert.True(d.isClosed(), "Registry.Close() should have closed its dialer")
+			assert.True(p.isClosed(), "Registry.Close() should have closed the peer")
+			assert.Error(r.Close(),
+				"closing the registry a second time should return the error from Dialer.Close()")
 		})
 	}
 }
