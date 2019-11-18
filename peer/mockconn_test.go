@@ -9,6 +9,7 @@ import (
 
 	"github.com/pkg/errors"
 
+	"perun.network/go-perun/pkg/sync/atomic"
 	wire "perun.network/go-perun/wire/msg"
 )
 
@@ -16,7 +17,7 @@ var _ Conn = (*mockConn)(nil)
 
 type mockConn struct {
 	mutex     sync.Mutex
-	closed    bool
+	closed    atomic.Bool
 	recvQueue chan wire.Msg
 
 	sent func(wire.Msg) // observes sent messages.
@@ -36,7 +37,7 @@ func newMockConn(sent func(wire.Msg)) *mockConn {
 func (c *mockConn) Send(m wire.Msg) error {
 	c.mutex.Lock()
 	defer c.mutex.Unlock()
-	if c.closed {
+	if c.closed.IsSet() {
 		return errors.New("closed")
 	} else {
 		c.sent(m)
@@ -47,20 +48,15 @@ func (c *mockConn) Send(m wire.Msg) error {
 func (c *mockConn) Recv() (wire.Msg, error) {
 	c.mutex.Lock()
 	defer c.mutex.Unlock()
-	if c.closed {
+	if c.closed.IsSet() {
 		return nil, errors.New("closed")
 	}
 	return <-c.recvQueue, nil
 }
 
 func (c *mockConn) Close() error {
-	c.mutex.Lock()
-	defer c.mutex.Unlock()
-
-	if c.closed {
+	if !c.closed.TrySet() {
 		return errors.New("double close")
-	} else {
-		c.closed = true
-		return nil
 	}
+	return nil
 }

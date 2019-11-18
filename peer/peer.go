@@ -49,7 +49,9 @@ type Peer struct {
 // called by the registry when the peer is registered.
 func (p *Peer) recvLoop() {
 	// Wait until the peer exists or is closed.
-	p.waitExists(nil)
+	if !p.waitExists(nil) {
+		return // closed before connection set
+	}
 
 	for {
 		if m, err := p.conn.Recv(); err != nil {
@@ -80,7 +82,9 @@ func (p *Peer) create(conn Conn) {
 
 // waitExists waits until the peer is either fully created, or closed.
 // The optional context can be used to add a third condition to wait for.
-func (p *Peer) waitExists(ctx context.Context) {
+// The functions returns whether the peer connection was set (true) or whether
+// the peer was prematurely closed or the context finshed (false).
+func (p *Peer) waitExists(ctx context.Context) bool {
 	var done <-chan struct{}
 	if ctx != nil {
 		done = ctx.Done()
@@ -88,9 +92,11 @@ func (p *Peer) waitExists(ctx context.Context) {
 
 	select {
 	case <-p.exists:
+		return true
 	case <-p.closed:
 	case <-done:
 	}
+	return false
 }
 
 // Send sends a single message to a peer.
@@ -100,11 +106,11 @@ func (p *Peer) waitExists(ctx context.Context) {
 // times out, the peer is closed.
 func (p *Peer) Send(ctx context.Context, m wire.Msg) error {
 	// Wait until peer exists, is closed, or context timeout.
-	p.waitExists(ctx)
-
-	if p.isClosed() {
-		return errors.New("peer closed")
+	if !p.waitExists(ctx) {
+		p.Close()                        // replace with p.conn.Close() when reintroducing repair.
+		return errors.New("peer closed") // closed before connection set
 	}
+
 	if !p.sending.TryLockCtx(ctx) {
 		p.Close() // replace with p.conn.Close() when reintroducing repair.
 		return errors.New("aborted manually")

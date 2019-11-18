@@ -179,11 +179,11 @@ func TestPeer_create(t *testing.T) {
 		t.Fatal("peer must exist")
 	}
 
-	assert.False(t, conn.closed,
+	assert.False(t, conn.closed.IsSet(),
 		"Peer.create() on nonexisting peers must not close the new connection")
 
 	conn2 := newMockConn(nil)
 	p.create(conn2)
-	assert.True(t, conn2.closed,
+	assert.True(t, conn2.closed.IsSet(),
 		"Peer.create() on existing peers must close the new connection")
 }

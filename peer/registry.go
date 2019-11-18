@@ -31,6 +31,22 @@ func NewRegistry(subscribe func(*Peer), dialer Dialer) *Registry {
 	}
 }
 
+func (r *Registry) Close() (err error) {
+	if r.dialer != nil {
+		r.mutex.Lock()
+		err = r.dialer.Close()
+		r.mutex.Unlock()
+	}
+	for len(r.peers) > 0 {
+		// when peers are closed, they delete themselves from the registry via their
+		// close hook, so we always just close the first peer.
+		if cerr := r.peers[0].Close(); cerr != nil && err == nil {
+			err = cerr // record first non-nil error
+		}
+	}
+	return err
+}
+
 // find looks up a peer via its Perun address.
 // If found, returns the peer and its index, otherwise returns a nil peer.
 func (r *Registry) find(addr Address) (*Peer, int) {
