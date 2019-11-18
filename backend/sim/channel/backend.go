@@ -108,6 +108,8 @@ func (b *backend) encodeState(s channel.State, w io.Writer) error {
 	if err := wire.Encode(w, s.Version); err != nil {
 		return errors.WithMessage(err, "state version encode")
 	}
+	// Don't write the App Definition, since we do not want to sign it.
+	// (The contract does not get the AppDef in the state and needs to verify the signature of it.)
 	// Write Allocation
 	if err := b.encodeAllocation(w, s.Allocation); err != nil {
 		return errors.WithMessage(err, "state allocation encode")
