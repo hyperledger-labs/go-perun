@@ -10,6 +10,8 @@ import (
 	"perun.network/go-perun/log"
 	"perun.network/go-perun/peer"
 	"perun.network/go-perun/pkg/sync/atomic"
+
+	wire "perun.network/go-perun/wire/msg"
 )
 
 type Client struct {
@@ -80,6 +82,11 @@ func (c *Client) subscribePeer(p *peer.Peer) {
 
 	// handle incoming channel proposals
 	c.subChannelProposals(p)
+
+	log := c.logPeer(p)
+	p.SetDefaultMsgHandler(func(m wire.Msg) {
+		log.Debugf("Received %T message without subscription: %v", m, m)
+	})
 }
 
 func (c *Client) logPeer(p *peer.Peer) log.Logger {
