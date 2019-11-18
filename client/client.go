@@ -46,7 +46,12 @@ func (c *Client) Close() error {
 // This function does not start go routines but instead should
 // be started by the user as `go client.Listen()`.
 func (c *Client) Listen(listener peer.Listener) {
-	go func() { <-c.quit; listener.Close() }()
+	go func() {
+		<-c.quit
+		if err := listener.Close(); err != nil {
+			c.log.Debugf("Closing listener while closing client failed: %v", err)
+		}
+	}()
 	// start listener and accept all incoming peer connections, writing them to the registry
 	for {
 		conn, err := listener.Accept()
@@ -55,12 +60,18 @@ func (c *Client) Listen(listener peer.Listener) {
 			return
 		}
 
-		if peerAddr, err := peer.ExchangeAddrs(c.id, conn); err != nil {
-			c.log.Warnf("could not authenticate peer: %v", err)
-		} else {
-			// the peer registry is thread safe
-			c.peers.Register(peerAddr, conn)
-		}
+		// setup connection in a serparate routine so that new incoming connections
+		// can immediately be handled.
+		go c.setupConn(conn)
+	}
+}
+
+func (c *Client) setupConn(conn peer.Conn) {
+	if peerAddr, err := peer.ExchangeAddrs(c.id, conn); err != nil {
+		c.log.Warnf("could not authenticate peer: %v", err)
+	} else {
+		// the peer registry is thread safe
+		c.peers.Register(peerAddr, conn)
 	}
 }
 
