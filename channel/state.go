@@ -49,9 +49,10 @@ type (
 	// Sig is a single signature
 	Sig = []byte
 
-	// Data is the data of the application running in this app channel
+	// Data is the data of the application running in this app channel.
+	// Decoding happens with App.DecodeData.
 	Data interface {
-		perunio.Serializable
+		perunio.Encoder
 		// Clone should return a deep copy of the Data object.
 		// It should return nil if the Data object is nil.
 		Clone() Data

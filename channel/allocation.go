@@ -95,7 +95,8 @@ type (
 	// Asset identifies an asset. E.g., it may be the address of the multi-sig
 	// where all participants' assets are deposited.
 	// The same Asset should be shareable by multiple Allocation instances.
-	Asset = perunio.Serializable
+	// Decoding happens with AppBackend.DecodeAsset.
+	Asset = perunio.Encoder
 )
 
 var _ perunio.Serializable = new(Allocation)

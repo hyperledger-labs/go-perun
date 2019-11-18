@@ -86,7 +86,7 @@ type (
 	// Actions need to be Encoders so they can be sent over the wire.
 	// Decoding happens with ActionApp.DecodeAction() since the app context needs
 	// to be known at the point of decoding.
-	Action = perunio.Serializable
+	Action = perunio.Encoder
 
 	AppBackend interface {
 		// AppFromDefinition creates an app from its defining address. It is
