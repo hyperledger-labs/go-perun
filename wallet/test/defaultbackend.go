@@ -98,8 +98,13 @@ func (b DefaultWalletBackend) DecodeAddress(r io.Reader) (wallet.Address, error)
 	return &a, a.Decode(r)
 }
 
+// DecodeSig calls DecodeSig of the current backend
+func (b DefaultWalletBackend) DecodeSig(r io.Reader) (wallet.Sig, error) {
+	panic("not implemented")
+}
+
 // VerifySignature not implemented for wallet backend of wallet/test default
 // backend.
-func (b DefaultWalletBackend) VerifySignature(msg []byte, sign []byte, a wallet.Address) (bool, error) {
+func (b DefaultWalletBackend) VerifySignature(msg []byte, sign wallet.Sig, a wallet.Address) (bool, error) {
 	panic("not implemented")
 }
