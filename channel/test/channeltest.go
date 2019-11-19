@@ -208,7 +208,7 @@ func buildModifiedStates(s1, s2 *channel.State, modifyApp bool) (ret []channel.S
 				// Modify Assets[0]
 				{
 					modState := s1.Clone()
-					modState.Assets = make([]channel.Asset, len(s1.Allocation.Assets))
+					modState.Assets = make([]channel.Asset, len(s1.Assets))
 					copy(modState.Allocation.Assets, s1.Allocation.Assets)
 					modState.Allocation.Assets[0] = s2.Allocation.Assets[0]
 					ret = append(ret, *modState)
