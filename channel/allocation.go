@@ -110,59 +110,32 @@ func (a Allocation) Clone() (clone Allocation) {
 	return clone
 }
 
-func (alloc Allocation) Encode(w io.Writer) error {
-	if err := alloc.valid(); err != nil {
+func (a Allocation) Encode(w io.Writer) error {
+	if err := a.Valid(); err != nil {
 		return errors.WithMessagef(
-			err, "invalid allocations cannot be encoded, got %v", alloc)
+			err, "invalid allocations cannot be encoded, got %v", a)
 	}
-
-	numAssets := len(alloc.Assets)
-	if numAssets > MaxNumAssets {
-		return errors.Errorf(
-			"expected at most %d assets, got %d", MaxNumAssets, numAssets)
-	}
-	if err := wire.Encode(w, int32(numAssets)); err != nil {
+	// encode dimensions
+	if err := wire.Encode(w, Index(len(a.Assets)), Index(len(a.OfParts)), Index(len(a.Locked))); err != nil {
 		return err
 	}
-
-	numParts := len(alloc.OfParts)
-	if numParts > MaxNumParts {
-		return errors.Errorf(
-			"expected at most %d participants, got %d", MaxNumParts, numParts)
-	}
-	if err := wire.Encode(w, int32(numParts)); err != nil {
-		return err
-	}
-
-	numLocks := len(alloc.Locked)
-	if numLocks > MaxNumSubAllocations {
-		return errors.Errorf(
-			"expected at most %d suballocations, got %d",
-			MaxNumSubAllocations, numLocks)
-	}
-	if err := wire.Encode(w, int32(numLocks)); err != nil {
-		return err
-	}
-
 	// encode assets
-	for i, a := range alloc.Assets {
+	for i, a := range a.Assets {
 		if err := a.Encode(w); err != nil {
 			return errors.WithMessagef(err, "encoding error for asset %d", i)
 		}
 	}
-
 	// encode participant allocations
-	for i := 0; i < len(alloc.OfParts); i++ {
-		for j := 0; j < len(alloc.OfParts[i]); j++ {
-			if err := wire.Encode(w, alloc.OfParts[i][j]); err != nil {
+	for i := 0; i < len(a.OfParts); i++ {
+		for j := 0; j < len(a.OfParts[i]); j++ {
+			if err := wire.Encode(w, a.OfParts[i][j]); err != nil {
 				return errors.WithMessagef(
 					err, "encoding error for balance %d of participant %d", j, i)
 			}
 		}
 	}
-
 	// encode suballocations
-	for i, s := range alloc.Locked {
+	for i, s := range a.Locked {
 		if err := s.Encode(w); err != nil {
 			return errors.WithMessagef(
 				err, "encoding error for suballocation %d", i)
@@ -172,71 +145,46 @@ func (alloc Allocation) Encode(w io.Writer) error {
 	return nil
 }
 
-func (alloc *Allocation) Decode(r io.Reader) error {
+func (a *Allocation) Decode(r io.Reader) error {
 	// decode dimensions
-	var numAssets int32
-	if err := wire.Decode(r, &numAssets); err != nil {
-		return err
+	var numAssets, numParts, numLocked Index
+	if err := wire.Decode(r, &numAssets, &numParts, &numLocked); err != nil {
+		return errors.WithMessage(err, "decoding error for numAssets, numParts or numLocked")
 	}
-	if numAssets < 0 || numAssets > MaxNumAssets {
-		return errors.Errorf(
-			"expected a positive number of assets at most %d, got %d",
-			MaxNumAssets, numAssets)
+	if numAssets > MaxNumAssets || numParts > MaxNumParts || numLocked > MaxNumSubAllocations {
+		return errors.New("numAssets, numParts or numLocked too big")
 	}
-
-	var numParts int32
-	if err := wire.Decode(r, &numParts); err != nil {
-		return err
-	}
-	if numParts < 0 || numParts > MaxNumParts {
-		return errors.Errorf(
-			"expected a positive number of participants at most %d, got %d",
-			MaxNumParts, numParts)
-	}
-
-	var numLocked int32
-	if err := wire.Decode(r, &numLocked); err != nil {
-		return err
-	}
-	if numLocked < 0 || numLocked > MaxNumSubAllocations {
-		return errors.Errorf(
-			"expected a non-negative number of suballocations at most %d, got %d",
-			MaxNumSubAllocations, numLocked)
-	}
-
 	// decode assets
-	alloc.Assets = make([]Asset, numAssets)
-	for i := 0; i < len(alloc.Assets); i++ {
+	a.Assets = make([]Asset, numAssets)
+	for i := 0; i < len(a.Assets); i++ {
 		if asset, err := appBackend.DecodeAsset(r); err != nil {
 			return errors.WithMessagef(err, "decoding error for asset %d", i)
 		} else {
-			alloc.Assets[i] = asset
+			a.Assets[i] = asset
 		}
 	}
-
 	// decode participant allocations
-	alloc.OfParts = make([][]Bal, numParts)
-	for i := 0; i < len(alloc.OfParts); i++ {
-		alloc.OfParts[i] = make([]Bal, len(alloc.Assets))
-		for j := range alloc.OfParts[i] {
-			alloc.OfParts[i][j] = new(big.Int)
-			if err := wire.Decode(r, &alloc.OfParts[i][j]); err != nil {
+	a.OfParts = make([][]Bal, numParts)
+	for i := 0; i < len(a.OfParts); i++ {
+		a.OfParts[i] = make([]Bal, len(a.Assets))
+		for j := range a.OfParts[i] {
+			a.OfParts[i][j] = new(big.Int)
+			if err := wire.Decode(r, &a.OfParts[i][j]); err != nil {
 				return errors.WithMessagef(
 					err, "decoding error for balance %d of participant %d", j, i)
 			}
 		}
 	}
-
 	// decode locked allocations
-	alloc.Locked = make([]SubAlloc, numLocked)
-	for i := 0; i < len(alloc.Locked); i++ {
-		if err := alloc.Locked[i].Decode(r); err != nil {
+	a.Locked = make([]SubAlloc, numLocked)
+	for i := 0; i < len(a.Locked); i++ {
+		if err := a.Locked[i].Decode(r); err != nil {
 			return errors.WithMessagef(
 				err, "decoding error for suballocation %d", i)
 		}
 	}
 
-	return alloc.valid()
+	return a.Valid()
 }
 
 func CloneBals(orig []Bal) []Bal {
@@ -344,20 +292,16 @@ func (s SubAlloc) Valid() error {
 
 // Encode encodes the SubAlloc s into w and returns an error if it failed.
 func (s SubAlloc) Encode(w io.Writer) error {
-	if err := wire.Encode(w, s.ID); err != nil {
+	if err := s.Valid(); err != nil {
 		return errors.WithMessagef(
-			err, "error encoding suballocation id %v", s.ID)
+			err, "invalid sub-allocations cannot be encoded, got %v", s)
 	}
-
-	numAssets := len(s.Bals)
-	if numAssets > math.MaxInt32 {
-		return errors.Errorf(
-			"expected at most %d assets, got %d", math.MaxInt32, numAssets)
+	// encode ID and dimension
+	if err := wire.Encode(w, s.ID, Index(len(s.Bals))); err != nil {
+		return errors.WithMessagef(
+			err, "encoding sub-allocation ID or dimension, id %v", s.ID)
 	}
-	if err := wire.Encode(w, int32(numAssets)); err != nil {
-		return err
-	}
-
+	// encode bals
 	for i, bal := range s.Bals {
 		if err := wire.Encode(w, bal); err != nil {
 			return errors.WithMessagef(
@@ -371,15 +315,15 @@ func (s SubAlloc) Encode(w io.Writer) error {
 // Decode decodes the SubAlloc s encoded in r and returns an error if it
 // failed.
 func (s *SubAlloc) Decode(r io.Reader) error {
-	if err := wire.Decode(r, &s.ID); err != nil {
-		return errors.WithMessage(err, "error when decoding suballocation ID")
+	var numAssets Index
+	// decode ID and dimension
+	if err := wire.Decode(r, &s.ID, &numAssets); err != nil {
+		return errors.WithMessage(err, "decoding sub-allocation ID or dimension")
 	}
-
-	var numAssets int32
-	if err := wire.Decode(r, &numAssets); err != nil {
-		return err
+	if numAssets > MaxNumAssets {
+		return errors.Errorf("numAssets too big, got: %d max: %d", numAssets, MaxNumAssets)
 	}
-
+	// decode bals
 	s.Bals = make([]Bal, numAssets)
 	for i := range s.Bals {
 		if err := wire.Decode(r, &s.Bals[i]); err != nil {
@@ -388,6 +332,5 @@ func (s *SubAlloc) Decode(r io.Reader) error {
 		}
 	}
 
-	return nil
 	return s.Valid()
 }
