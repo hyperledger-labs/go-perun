@@ -82,24 +82,24 @@ var _ perunio.Serializable = new(Allocation)
 
 // Clone returns a deep copy of the Allocation object.
 // If it is nil, it returns nil.
-func (orig Allocation) Clone() (clone Allocation) {
-	if orig.Assets != nil {
-		clone.Assets = make([]Asset, len(orig.Assets))
-		for i, asset := range orig.Assets {
+func (a Allocation) Clone() (clone Allocation) {
+	if a.Assets != nil {
+		clone.Assets = make([]Asset, len(a.Assets))
+		for i, asset := range a.Assets {
 			clone.Assets[i] = asset
 		}
 	}
 
-	if orig.OfParts != nil {
-		clone.OfParts = make([][]Bal, len(orig.OfParts))
-		for i, pa := range orig.OfParts {
+	if a.OfParts != nil {
+		clone.OfParts = make([][]Bal, len(a.OfParts))
+		for i, pa := range a.OfParts {
 			clone.OfParts[i] = CloneBals(pa)
 		}
 	}
 
-	if orig.Locked != nil {
-		clone.Locked = make([]SubAlloc, len(orig.Locked))
-		for i, sa := range orig.Locked {
+	if a.Locked != nil {
+		clone.Locked = make([]SubAlloc, len(a.Locked))
+		for i, sa := range a.Locked {
 			clone.Locked[i] = SubAlloc{
 				ID:   sa.ID,
 				Bals: CloneBals(sa.Bals),
