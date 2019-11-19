@@ -9,6 +9,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
+	"perun.network/go-perun/pkg/test"
 	wire "perun.network/go-perun/wire/msg"
 )
 
@@ -32,4 +33,29 @@ func TestSubscriptions(t *testing.T) {
 	assert.Equal(t, len(s.subs), 2)
 	assert.False(t, s.isEmpty())
 	assert.Panics(t, func() { s.delete(r0) })
+}
+
+func TestSubscriptions_put_DefaultMsgHandler(t *testing.T) {
+	missedMsg := make(chan wire.Msg, 1)
+	recv, send := newPipeConnPair()
+	p := newPeer(nil, recv, nil, nil)
+	go p.recvLoop()
+
+	p.SetDefaultMsgHandler(func(m wire.Msg) {
+		missedMsg <- m
+	})
+
+	test.AssertTerminates(t, timeout, func() {
+		r := NewReceiver()
+		r.Subscribe(p, func(m wire.Msg) bool { return m.Type() == wire.ChannelProposal })
+		assert.NoError(t, send.Send(wire.NewPingMsg()))
+		assert.IsType(t, &wire.PingMsg{}, <-missedMsg)
+	})
+
+	test.AssertNotTerminates(t, timeout, func() {
+		r := NewReceiver()
+		r.Subscribe(p, func(m wire.Msg) bool { return m.Type() == wire.Ping })
+		assert.NoError(t, send.Send(wire.NewPingMsg()))
+		<-missedMsg
+	})
 }

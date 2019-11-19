@@ -19,6 +19,8 @@ type subscriptions struct {
 	mutex sync.RWMutex
 	subs  []subscription
 	peer  *Peer
+
+	defaultMsgHandler func(wire.Msg) // Handles messages with no subscriber.
 }
 
 type subscription struct {
@@ -71,13 +73,32 @@ func (s *subscriptions) put(m wire.Msg, p *Peer) {
 	s.mutex.RLock()
 	defer s.mutex.RUnlock()
 
+	any := false
 	for _, sub := range s.subs {
 		if sub.predicate(m) {
 			sub.receiver.msgs <- msgTuple{p, m}
+			any = true
 		}
+	}
+
+	if !any {
+		s.defaultMsgHandler(m)
 	}
 }
 
+func logUnhandledMsg(m wire.Msg) {
+	log.Debugf("Received %T message without subscription: %v", m, m)
+}
+
+func (s *subscriptions) setDefaultMsgHandler(handler func(wire.Msg)) {
+	if handler == nil {
+		handler = logUnhandledMsg
+	}
+	s.mutex.Lock()
+	defer s.mutex.Unlock()
+	s.defaultMsgHandler = handler
+}
+
 func makeSubscriptions(p *Peer) subscriptions {
-	return subscriptions{peer: p}
+	return subscriptions{peer: p, defaultMsgHandler: logUnhandledMsg}
 }

@@ -9,6 +9,7 @@ import (
 	"context"
 	"io"
 	"math/rand"
+	"reflect"
 	"sync"
 	"testing"
 	"time"
@@ -186,4 +187,17 @@ func TestPeer_create(t *testing.T) {
 	p.create(conn2)
 	assert.True(t, conn2.closed.IsSet(),
 		"Peer.create() on existing peers must close the new connection")
+}
+
+func TestPeer_SetDefaultMsgHandler(t *testing.T) {
+	fn := func(wire.Msg) {}
+	p := newPeer(nil, nil, nil, nil)
+
+	logUnhandledMsgPtr := reflect.ValueOf(logUnhandledMsg).Pointer()
+
+	assert.Equal(t, logUnhandledMsgPtr, reflect.ValueOf(p.subs.defaultMsgHandler).Pointer())
+	p.SetDefaultMsgHandler(fn)
+	assert.Equal(t, reflect.ValueOf(fn).Pointer(), reflect.ValueOf(p.subs.defaultMsgHandler).Pointer())
+	p.SetDefaultMsgHandler(nil)
+	assert.Equal(t, logUnhandledMsgPtr, reflect.ValueOf(p.subs.defaultMsgHandler).Pointer())
 }
