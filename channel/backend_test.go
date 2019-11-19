@@ -5,8 +5,10 @@
 package channel
 
 import (
+	"math"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
 	"perun.network/go-perun/pkg/test"
 	"perun.network/go-perun/wallet"
 )
@@ -48,4 +50,10 @@ func TestGlobalBackend(t *testing.T) {
 
 	Verify(nil, nil, nil, nil)
 	b.AssertCalled()
+}
+
+func TestMaxConstants(t *testing.T) {
+	assert.LessOrEqual(t, MaxNumAssets, math.MaxUint16, "MaxNumAssets must not be greater than math.MaxUint16")
+	assert.LessOrEqual(t, MaxNumParts, math.MaxUint16, "MaxNumParts must not be greater than math.MaxUint16")
+	assert.LessOrEqual(t, MaxNumSubAllocations, math.MaxUint16, "MaxNumSubAllocations must not be greater than math.MaxUint16")
 }

@@ -5,9 +5,7 @@
 package channel
 
 import (
-	"fmt"
 	"io"
-	"math"
 	"math/big"
 
 	"perun.network/go-perun/log"
@@ -20,7 +18,7 @@ import (
 // MaxNumAssets is an artificial limit on the number of serialized assets in an
 // Allocation to avoid having users run out of memory when a malicious peer
 // pretends to send a large number of assets.
-const MaxNumAssets = 1000
+const MaxNumAssets = 1024
 
 // MaxNumParts is an artificial limit on the number participant assets in an
 // Allocation to avoid having users run out of memory when a malicious peer
@@ -28,7 +26,7 @@ const MaxNumAssets = 1000
 // Keep in mind that an Allocation contains information about every
 // participant's balance for every asset, i.e., there are num-assets times
 // num-participants balances in an Allocation.
-const MaxNumParts = 1000
+const MaxNumParts = 1024
 
 // MaxNumSubAllocations is an artificial limit on the number of suballocations
 // in an Allocation to avoid having users run out of memory when a malicious
@@ -36,26 +34,7 @@ const MaxNumParts = 1000
 // Keep in mind that an Allocation contains information about every
 // asset for every suballocation, i.e., there are num-assets times
 // num-suballocations items of information in an Allocation.
-const MaxNumSubAllocations = 1000
-
-func init() {
-	// fake static assert
-	if MaxNumAssets > math.MaxInt32 {
-		panic(fmt.Sprintf(
-			"MaxNumAssets must be at most %d, got %d",
-			math.MaxInt32, MaxNumAssets))
-	}
-	if MaxNumParts > math.MaxInt32 {
-		panic(fmt.Sprintf(
-			"MaxNumParts must be at most %d, got %d",
-			math.MaxInt32, MaxNumParts))
-	}
-	if MaxNumSubAllocations > math.MaxInt32 {
-		panic(fmt.Sprintf(
-			"MaxNumSubAllocations must be at most %d, got %d",
-			math.MaxInt32, MaxNumSubAllocations))
-	}
-}
+const MaxNumSubAllocations = 1024
 
 // Allocation and associated types
 type (
