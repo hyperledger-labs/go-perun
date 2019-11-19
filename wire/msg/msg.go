@@ -83,20 +83,20 @@ type Type uint8
 const (
 	Ping Type = iota
 	Pong
+	AuthResponse
 	ChannelProposal
 	ChannelProposalAcc
 	ChannelProposalRej
-	AuthResponse
 	LastType // upper bound on the message types of the Perun wire protocol
 )
 
 var typeNames = map[Type]string{
 	Ping:               "Ping",
 	Pong:               "Pong",
+	AuthResponse:       "AuthResponse",
 	ChannelProposal:    "ChannelProposal",
 	ChannelProposalAcc: "ChannelProposalAcc",
 	ChannelProposalRej: "ChannelProposalRej",
-	AuthResponse:       "AuthResponse",
 }
 
 // String returns the name of a message type if it is valid and name known
