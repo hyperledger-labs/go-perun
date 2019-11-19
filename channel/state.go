@@ -50,9 +50,6 @@ type (
 		Sigs []Sig
 	}
 
-	// Sig is a single signature
-	Sig = []byte
-
 	// Data is the data of the application running in this app channel.
 	// Decoding happens with App.DecodeData.
 	Data interface {

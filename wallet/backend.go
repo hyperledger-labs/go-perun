@@ -6,6 +6,9 @@ package wallet
 
 import "io"
 
+// Sig is a single signature
+type Sig = []byte
+
 // backend is set to the global wallet backend. It must be set through
 // backend.Set(Collection).
 var backend Backend
