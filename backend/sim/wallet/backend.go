@@ -15,6 +15,7 @@ import (
 
 	"perun.network/go-perun/log"
 	"perun.network/go-perun/wallet"
+	"perun.network/go-perun/wire"
 )
 
 var curve = elliptic.P256()
@@ -40,6 +41,12 @@ func (b *Backend) NewAddressFromBytes(data []byte) (wallet.Address, error) {
 func (b *Backend) DecodeAddress(r io.Reader) (wallet.Address, error) {
 	var addr Address
 	return &addr, addr.Decode(r)
+}
+
+// DecodeSig reads a []byte with length of a signature
+func (b *Backend) DecodeSig(r io.Reader) (wallet.Sig, error) {
+	buf := make(wallet.Sig, curve.Params().BitSize/4)
+	return buf, wire.Decode(r, &buf)
 }
 
 // VerifySignature verifies if a signature was made by this account.

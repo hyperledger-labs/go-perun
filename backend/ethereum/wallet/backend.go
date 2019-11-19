@@ -12,6 +12,7 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
 	perun "perun.network/go-perun/wallet"
+	"perun.network/go-perun/wire"
 )
 
 // Backend implements the utility interface defined in the wallet package.
@@ -40,6 +41,12 @@ func (h *Backend) NewAddressFromBytes(data []byte) (perun.Address, error) {
 func (h *Backend) DecodeAddress(r io.Reader) (perun.Address, error) {
 	addr := new(Address)
 	return addr, addr.Decode(r)
+}
+
+// DecodeSig reads a []byte with length of an ethereum signature
+func (*Backend) DecodeSig(r io.Reader) (perun.Sig, error) {
+	buf := make(perun.Sig, SignatureLength)
+	return buf, wire.Decode(r, &buf)
 }
 
 // VerifySignature verifies if a signature was made by this account.
