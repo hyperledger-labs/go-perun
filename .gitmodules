@@ -1,0 +1,4 @@
+
+[submodule "ethereum"]
+	path = ethereum
+	url = git@git.cac.informatik.tu-darmstadt.de:perun/adjudicator.git
