@@ -272,11 +272,14 @@ func CloneBals(orig []Bal) []Bal {
 	return clone
 }
 
-// valid checks that the asset-dimensions match and slices are not nil.
+// Valid checks that the asset-dimensions match and slices are not nil.
 // Assets and OfParts cannot be of zero length.
-func (a Allocation) valid() error {
+func (a Allocation) Valid() error {
 	if len(a.Assets) == 0 || len(a.OfParts) == 0 {
 		return errors.New("assets and participant balances must not be of length zero")
+	}
+	if len(a.Assets) > MaxNumAssets || len(a.OfParts) > MaxNumParts || len(a.Locked) > MaxNumSubAllocations {
+		return errors.New("too many assets or participant balances or sub-allocations")
 	}
 
 	n := len(a.Assets)
@@ -304,7 +307,7 @@ func (a Allocation) valid() error {
 // allocations.  It runs an internal check that the dimensions of all slices are
 // valid and panics if not.
 func (a Allocation) Sum() []Bal {
-	if err := a.valid(); err != nil {
+	if err := a.Valid(); err != nil {
 		log.Panic(err)
 	}
 
