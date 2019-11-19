@@ -24,12 +24,12 @@ func (m *mockBackend) ChannelID(*Params) ID {
 	return Zero
 }
 
-func (m *mockBackend) Sign(wallet.Account, *Params, *State) (Sig, error) {
+func (m *mockBackend) Sign(wallet.Account, *Params, *State) (wallet.Sig, error) {
 	m.AssertWrapped()
 	return nil, nil
 }
 
-func (m *mockBackend) Verify(wallet.Address, *Params, *State, Sig) (bool, error) {
+func (m *mockBackend) Verify(wallet.Address, *Params, *State, wallet.Sig) (bool, error) {
 	m.AssertWrapped()
 	return false, nil
 }

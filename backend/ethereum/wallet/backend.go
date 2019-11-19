@@ -43,7 +43,7 @@ func (h *Backend) DecodeAddress(r io.Reader) (perun.Address, error) {
 }
 
 // VerifySignature verifies if a signature was made by this account.
-func (h *Backend) VerifySignature(msg, sig []byte, a perun.Address) (bool, error) {
+func (*Backend) VerifySignature(msg []byte, sig perun.Sig, a perun.Address) (bool, error) {
 	hash := crypto.Keccak256(msg)
 	pk, err := crypto.SigToPub(hash, sig)
 	if err != nil {

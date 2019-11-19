@@ -119,7 +119,7 @@ func inPhase(phase Phase, phases []Phase) bool {
 // The signature is caclulated and saved to the staging TX's signature slice
 // if it was not calculated before.
 // A call to Sig only makes sense in a signing phase.
-func (m *machine) Sig() (sig Sig, err error) {
+func (m *machine) Sig() (sig wallet.Sig, err error) {
 	if !inPhase(m.phase, signingPhases) {
 		return nil, m.error(m.selfTransition(), "can only create own signature in a signing phase")
 	}
@@ -150,7 +150,7 @@ func (m *machine) StagingState() *State {
 // It is also checked that the current phase is a signing phase.
 // If the index is out of bounds, a panic occurs as this is an invalid usage of
 // the machine.
-func (m *machine) AddSig(idx Index, sig Sig) error {
+func (m *machine) AddSig(idx Index, sig wallet.Sig) error {
 	if !inPhase(m.phase, signingPhases) {
 		return m.error(m.selfTransition(), "can only add signature in a signing phase")
 	}
@@ -173,7 +173,7 @@ func (m *machine) AddSig(idx Index, sig Sig) error {
 func (m *machine) setStaging(phase Phase, state *State) {
 	m.stagingTX = Transaction{
 		State: state,
-		Sigs:  make([]Sig, m.N()),
+		Sigs:  make([]wallet.Sig, m.N()),
 	}
 
 	m.setPhase(phase)

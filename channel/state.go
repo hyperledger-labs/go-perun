@@ -47,7 +47,7 @@ type (
 	// channel participants.
 	Transaction struct {
 		*State
-		Sigs []Sig
+		Sigs []wallet.Sig
 	}
 
 	// Data is the data of the application running in this app channel.

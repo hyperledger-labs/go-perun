@@ -43,7 +43,7 @@ func (b *Backend) DecodeAddress(r io.Reader) (wallet.Address, error) {
 }
 
 // VerifySignature verifies if a signature was made by this account.
-func (b *Backend) VerifySignature(msg, sig []byte, a wallet.Address) (bool, error) {
+func (b *Backend) VerifySignature(msg []byte, sig wallet.Sig, a wallet.Address) (bool, error) {
 	addr, ok := a.(*Address)
 	if !ok {
 		log.Panic("Wrong address type passed to Backend.VerifySignature")

@@ -27,7 +27,7 @@ type Backend interface {
 	// VerifySignature verifies if this signature was signed by this address.
 	// It should return an error iff the signature or message are malformed.
 	// If the signature does not match the address it should return false, nil
-	VerifySignature(msg, sign []byte, a Address) (bool, error)
+	VerifySignature(msg []byte, sign Sig, a Address) (bool, error)
 }
 
 // SetBackend sets the global wallet backend. Must not be called directly but
@@ -52,6 +52,6 @@ func DecodeAddress(r io.Reader) (Address, error) {
 }
 
 // VerifySignature calls VerifySignature of the current backend
-func VerifySignature(msg, sign []byte, a Address) (bool, error) {
+func VerifySignature(msg []byte, sign Sig, a Address) (bool, error) {
 	return backend.VerifySignature(msg, sign, a)
 }
