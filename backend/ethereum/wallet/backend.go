@@ -18,6 +18,11 @@ import (
 // Backend implements the utility interface defined in the wallet package.
 type Backend struct{}
 
+// SignatureLength length of a signature in byte.
+// ref https://godoc.org/github.com/ethereum/go-ethereum/crypto/secp256k1#Sign
+// ref https://github.com/ethereum/go-ethereum/blob/54b271a86dd748f3b0bcebeaf678dc34e0d6177a/crypto/signature_cgo.go#L66
+const SignatureLength = 65
+
 // compile-time check that the ethereum backend implements the perun backend
 var _ perun.Backend = (*Backend)(nil)
 

@@ -108,6 +108,7 @@ func TestSignatures(t *testing.T) {
 	assert.NotNil(t, err, "Sign with locked account should fail")
 	sign, err := acc.SignDataWithPW(password, []byte(dataToSign))
 	assert.Nil(t, err, "SignPW with locked account should succeed")
+	assert.Equal(t, len(sign), SignatureLength, "Ethereum signature has wrong length")
 	valid, err := new(Backend).VerifySignature([]byte(dataToSign), sign, acc.Address())
 	assert.True(t, valid, "Verification should succeed")
 	assert.Nil(t, err, "Verification should succeed")

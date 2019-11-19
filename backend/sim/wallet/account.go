@@ -7,7 +7,6 @@ package wallet // import "perun.network/go-perun/backend/sim/wallet"
 import (
 	"crypto/ecdsa"
 	"crypto/rand"
-	"encoding/asn1"
 	"io"
 	"math/big"
 
@@ -60,34 +59,29 @@ type ecdsaSignature struct {
 	R, S *big.Int
 }
 
-// serializeSignature serializes a r and s in the manner of golang
-// by creating a ecdsaSignature and marshalling it with asn1.
-// ref https://en.wikipedia.org/wiki/Abstract_Syntax_Notation_One
-// ref https://golang.org/pkg/encoding/asn1/
+// serializeSignature serializes a signature into a []byte or returns an error.
+// The length of the []byte is dictated by the curves parameters and padded with 0 bytes if necessary.
 func serializeSignature(r, s *big.Int) ([]byte, error) {
-	data, err := asn1.Marshal(ecdsaSignature{r, s})
+	pointSize := curve.Params().BitSize / 8
+	rBytes := append(make([]byte, pointSize-len(r.Bytes())), r.Bytes()...)
+	sBytes := append(make([]byte, pointSize-len(s.Bytes())), s.Bytes()...)
 
-	if err != nil {
-		return nil, errors.Wrap(err, "asn1.Marshall error")
-	}
-
-	return data, nil
+	return append(rBytes, sBytes...), nil
 }
 
-// deserializeSignature deserializes a r and s in the manner of golang
-// by creating a ecdsaSignature and unmarshalling it with asn1.
-// ref https://en.wikipedia.org/wiki/Abstract_Syntax_Notation_One
-// ref https://golang.org/pkg/encoding/asn1/
-func deserializeSignature(b []byte) (r, s *big.Int, err error) {
-	var sig ecdsaSignature
-	rest, err := asn1.Unmarshal(b, &sig)
-
-	if err != nil {
-		return nil, nil, errors.Wrap(err, "asn1.Unmarshall error")
-	}
-	if len(rest) != 0 {
-		return nil, nil, errors.New("asn1.Unmarshall error")
+// deserializeSignature deserializes a signature from a byteslice and returns `r` and `s`
+// or an error.
+func deserializeSignature(b []byte) (*big.Int, *big.Int, error) {
+	pointSize := curve.Params().BitSize / 8
+	if len(b) != pointSize*2 {
+		return nil, nil, errors.Errorf("expected %d bytes for a signature but got: %d", pointSize*2, len(b))
 	}
 
-	return sig.R, sig.S, nil
+	var r, s big.Int
+	rBytes := b[0:pointSize]
+	sBytes := b[pointSize : pointSize*2]
+	r.SetBytes(rBytes)
+	s.SetBytes(sBytes)
+
+	return &r, &s, nil
 }
