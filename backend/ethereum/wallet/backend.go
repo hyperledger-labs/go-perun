@@ -27,7 +27,7 @@ const SignatureLength = 65
 var _ perun.Backend = (*Backend)(nil)
 
 // NewAddressFromString creates a new address from a string.
-func (h *Backend) NewAddressFromString(s string) (perun.Address, error) {
+func (*Backend) NewAddressFromString(s string) (perun.Address, error) {
 	addr, err := common.NewMixedcaseAddressFromString(s)
 	if err != nil {
 		return nil, errors.Wrap(err, "parsing address from string")
@@ -36,14 +36,14 @@ func (h *Backend) NewAddressFromString(s string) (perun.Address, error) {
 }
 
 // NewAddressFromBytes creates a new address from a byte array.
-func (h *Backend) NewAddressFromBytes(data []byte) (perun.Address, error) {
+func (*Backend) NewAddressFromBytes(data []byte) (perun.Address, error) {
 	if len(data) != common.AddressLength {
 		return nil, errors.Errorf("could not create address from bytes of length: %d", len(data))
 	}
 	return &Address{common.BytesToAddress(data)}, nil
 }
 
-func (h *Backend) DecodeAddress(r io.Reader) (perun.Address, error) {
+func (*Backend) DecodeAddress(r io.Reader) (perun.Address, error) {
 	addr := new(Address)
 	return addr, addr.Decode(r)
 }
