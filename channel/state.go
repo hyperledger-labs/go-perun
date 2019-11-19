@@ -23,6 +23,10 @@ type (
 		ID ID
 		// version counter
 		Version uint64
+		// App identifies the application that this channel is running.
+		// We do not want a deep copy here, since the Apps are just an immutable reference.
+		// They are only included in the State to support serialization of the `Data` field.
+		App App `cloneable:"shallow"`
 		// Allocation is the current allocation of channel assets to
 		// the channel participants and apps running inside this channel.
 		Allocation
@@ -71,6 +75,7 @@ func newState(params *Params, initBals Allocation, initData Data) (*State, error
 	return &State{
 		ID:         params.ID(),
 		Version:    0,
+		App:        params.App,
 		Allocation: initBals,
 		Data:       initData,
 	}, nil
@@ -88,5 +93,7 @@ func (s *State) Clone() *State {
 	clone := *s
 	clone.Allocation = s.Allocation.Clone()
 	clone.Data = s.Data.Clone()
+	// Shallow copy the app.
+	clone.App = s.App
 	return &clone
 }

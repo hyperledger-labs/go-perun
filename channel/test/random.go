@@ -75,6 +75,7 @@ func NewRandomState(rng *rand.Rand, p *channel.Params) *channel.State {
 	return &channel.State{
 		ID:         p.ID(),
 		Version:    rng.Uint64(),
+		App:        p.App,
 		Allocation: *NewRandomAllocation(rng, len(p.Parts)),
 		Data:       NewRandomData(rng),
 		IsFinal:    (rng.Int31n(2) == 0),
