@@ -58,12 +58,12 @@ func (m *StateMachine) Init(initBals Allocation, initData Data) error {
 // Update makes the provided state the staging state.
 // It returns the initial state and own signature on it.
 // It is checked whether this is a valid state transition.
-func (m *StateMachine) Update(stagingState *State) error {
+func (m *StateMachine) Update(stagingState *State, actor Index) error {
 	if err := m.expect(PhaseTransition{Acting, Signing}); err != nil {
 		return err
 	}
 
-	if err := m.validTransition(stagingState); err != nil {
+	if err := m.validTransition(stagingState, actor); err != nil {
 		return err
 	}
 
@@ -77,12 +77,15 @@ func (m *StateMachine) Update(stagingState *State) error {
 // every action is checked as being a valid action by the application definition
 // and the resulting state by applying all actions to the old state is by
 // definition a valid new state.
-func (m *StateMachine) validTransition(to *State) error {
+func (m *StateMachine) validTransition(to *State, actor Index) error {
+	if actor >= m.N() {
+		return errors.New("actor index is out of range")
+	}
 	if err := m.machine.validTransition(to); err != nil {
 		return err
 	}
 
-	if err := m.app.ValidTransition(&m.params, m.currentTX.State, to); IsStateTransitionError(err) {
+	if err := m.app.ValidTransition(&m.params, m.currentTX.State, to, actor); IsStateTransitionError(err) {
 		return err
 	} else if err != nil {
 		return errors.WithMessagef(err, "runtime error in application's ValidTransition() (ID: %x)", m.params.id)
