@@ -36,6 +36,7 @@ func TestSignatureSerialize(t *testing.T) {
 
 		sig, err1 := serializeSignature(r, s)
 		a.Nil(err1, "Serialization should not fail")
+		a.Equal(curve.Params().BitSize/4, len(sig), "Signature has wrong size")
 		R, S, err2 := deserializeSignature(sig)
 
 		a.Nil(err2, "Deserialization should not fail")
@@ -56,6 +57,7 @@ func TestGenericTests(t *testing.T) {
 	t.Run("Generic Signature Test", func(t *testing.T) {
 		t.Parallel()
 		test.GenericSignatureTest(t, newWalletSetup())
+		test.GenericSignatureSizeTest(t, newWalletSetup())
 	})
 
 	// NewRandomAddress is also tested in channel_test but since they are two packages,

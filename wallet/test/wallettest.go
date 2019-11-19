@@ -5,12 +5,15 @@
 package test // import "perun.network/go-perun/wallet/test"
 
 import (
+	"bytes"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	"perun.network/go-perun/pkg/io/test"
 	"perun.network/go-perun/wallet"
+	"perun.network/go-perun/wire"
 )
 
 // InitWallet initializes a wallet.
@@ -85,10 +88,65 @@ func GenericSignatureTest(t *testing.T, s *Setup) {
 	assert.False(t, valid, "Verification with wrong address should fail")
 	assert.Nil(t, err, "Verification of valid signature should not produce error")
 
-	sign[0] = ^sign[0] // invalidate signature
-	valid, err = s.Backend.VerifySignature(s.DataToSign, sign, acc.Address())
-	assert.False(t, valid, "Verification should fail")
-	assert.NotNil(t, err, "Verification of invalid signature should produce error")
+	tampered := make([]byte, len(sign))
+	copy(tampered, sign)
+	// Invalidate the signature and check for error
+	tampered[0] = ^sign[0]
+	valid, err = s.Backend.VerifySignature(s.DataToSign, tampered, acc.Address())
+	if valid && err == nil {
+		t.Error("Verification of invalid signature should produce error or return false")
+	}
+	// Truncate the signature and check for error
+	tampered = sign[:len(sign)-1]
+	valid, err = s.Backend.VerifySignature(s.DataToSign, tampered, acc.Address())
+	if valid && err != nil {
+		t.Error("Verification of invalid signature should produce error or return false")
+	}
+	// Expand the signature and check for error
+	tampered = append(sign, 0)
+	valid, err = s.Backend.VerifySignature(s.DataToSign, tampered, acc.Address())
+	if valid && err != nil {
+		t.Error("Verification of invalid signature should produce error or return false")
+	}
+
+	// Test DecodeSig
+	sign, err = acc.SignData(s.DataToSign)
+	require.NoError(t, err, "Sign with unlocked account should succeed")
+
+	buff := new(bytes.Buffer)
+	wire.Encode(buff, sign)
+	sign2, err := s.Backend.DecodeSig(buff)
+	assert.NoError(t, err, "Decoded signature should work")
+	assert.Equal(t, sign, sign2, "Decoded signature should be equal to the original")
+
+	// Test DecodeSig on short stream
+	wire.Encode(buff, sign)
+	shortBuff := bytes.NewBuffer(buff.Bytes()[:len(buff.Bytes())-1]) // remove one byte
+	_, err = s.Backend.DecodeSig(shortBuff)
+	assert.Error(t, err, "DecodeSig on short stream should error")
+}
+
+// GenericSignatureSizeTest tests that the size of the signatures produced by
+// Account.Sign(…) does not vary between executions (tested with 2048 samples).
+func GenericSignatureSizeTest(t *testing.T, s *Setup) {
+	acc, err := s.UnlockedAccount()
+	require.NoError(t, err)
+	// get a signature
+	sign, err := acc.SignData(s.DataToSign)
+	require.NoError(t, err, "Sign with unlocked account should succeed")
+
+	// Test that signatures have constant length
+	l := len(sign)
+	for i := 0; i < 8; i++ {
+		t.Run("parallel signing", func(t *testing.T) {
+			t.Parallel()
+			for i := 0; i < 256; i++ {
+				sign, err := acc.SignData(s.DataToSign)
+				require.NoError(t, err, "Sign with unlocked account should succeed")
+				require.Equal(t, l, len(sign), "Signatures should have constant length: %d vs %d", l, len(sign))
+			}
+		})
+	}
 }
 
 // GenericAddressTest runs a test suite designed to test the general functionality of addresses.

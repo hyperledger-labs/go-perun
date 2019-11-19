@@ -34,6 +34,7 @@ func TestGenericWalletTests(t *testing.T) {
 func TestGenericSignatureTests(t *testing.T) {
 	setup := newSetup()
 	test.GenericSignatureTest(t, setup)
+	test.GenericSignatureSizeTest(t, setup)
 }
 
 func TestGenericAddressTests(t *testing.T) {
