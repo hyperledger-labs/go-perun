@@ -8,9 +8,11 @@ import (
 	"math/rand"
 	"testing"
 
-	_ "perun.network/go-perun/backend/sim/channel" // backend init
 	"perun.network/go-perun/channel/test"
 	iotest "perun.network/go-perun/pkg/io/test"
+
+	_ "perun.network/go-perun/backend/sim/channel" // backend init
+	_ "perun.network/go-perun/backend/sim/wallet"  // backend init
 )
 
 func TestStateSerialization(t *testing.T) {
