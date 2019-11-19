@@ -289,6 +289,9 @@ func (a Allocation) valid() error {
 	// Locked is allowed to have zero length, in which case there's nothing locked
 	// and the loop is empty.
 	for _, l := range a.Locked {
+		if err := l.Valid(); err != nil {
+			return errors.WithMessage(err, "invalid sub-allocation")
+		}
 		if len(l.Bals) != n {
 			return errors.Errorf("dimension mismatch of app-channel balance vector (ID: %x)", l.ID)
 		}
@@ -350,6 +353,13 @@ func equalSum(b0, b1 summer) (bool, error) {
 
 var _ perunio.Serializable = new(SubAlloc)
 
+func (s SubAlloc) Valid() error {
+	if len(s.Bals) > MaxNumAssets {
+		return errors.New("too many bals")
+	}
+	return nil
+}
+
 // Encode encodes the SubAlloc s into w and returns an error if it failed.
 func (s SubAlloc) Encode(w io.Writer) error {
 	if err := wire.Encode(w, s.ID); err != nil {
@@ -397,4 +407,5 @@ func (s *SubAlloc) Decode(r io.Reader) error {
 	}
 
 	return nil
+	return s.Valid()
 }
