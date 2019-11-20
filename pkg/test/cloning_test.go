@@ -283,6 +283,38 @@ func (u UnknownTag) Clone() UnknownTag {
 	return UnknownTag{u.xs}
 }
 
+type CloneableInterface interface {
+	Clone() CloneableInterface
+}
+
+type CloneableInterfacePtr struct {
+	Value uint
+}
+
+func (c *CloneableInterfacePtr) Clone() CloneableInterface {
+	return &CloneableInterfacePtr{c.Value}
+}
+
+type CloneableInterfaceStruct struct {
+	Value uint
+}
+
+func (c CloneableInterfaceStruct) Clone() CloneableInterface {
+	return CloneableInterfaceStruct{c.Value}
+}
+
+type CloneableInterfaceOwner struct {
+	Property CloneableInterface
+}
+
+func (owner CloneableInterfaceOwner) ShallowClone() CloneableInterfaceOwner {
+	return CloneableInterfaceOwner{owner.Property}
+}
+
+func (owner CloneableInterfaceOwner) Clone() CloneableInterfaceOwner {
+	return CloneableInterfaceOwner{owner.Property.Clone()}
+}
+
 func Test_checkClone(t *testing.T) {
 	tests := []struct {
 		Input             interface{}
@@ -307,6 +339,8 @@ func Test_checkClone(t *testing.T) {
 		{MisplacedTagShallow{0}, false},
 		{MisplacedTagShallowElements{&CloneableRef{0}}, false},
 		{UnknownTag{[]int{1}}, false},
+		{CloneableInterfaceOwner{&CloneableInterfacePtr{123}}, true},
+		{CloneableInterfaceOwner{CloneableInterfaceStruct{123}}, true},
 	}
 
 	for _, test := range tests {
@@ -425,6 +459,10 @@ func Test_checkCloneManually(t *testing.T) {
 	rcr0 := RecursivelyCloneableRef{&RecursivelyCloneableRef{&rcr}}
 	rcr1 := RecursivelyCloneableRef{&RecursivelyCloneableRef{&rcr}}
 
+	cio := CloneableInterfaceOwner{&CloneableInterfacePtr{7}}
+	cioNilInterface := CloneableInterfaceOwner{nil}
+	cioNilProperty := CloneableInterfaceOwner{(*CloneableInterfacePtr)(nil)}
+
 	tests := []struct {
 		Original      interface{}
 		Clone         interface{}
@@ -443,6 +481,14 @@ func Test_checkCloneManually(t *testing.T) {
 		{ss, ss, false},
 		{arr0, arr1, false},
 		{rcr0, rcr1, false},
+		{cio, cio.Clone(), true},
+		{cio, cio.ShallowClone(), false},
+		{cio.Clone(), cio.Clone(), true},
+		{cio, cioNilInterface, false},
+		{cio, cioNilProperty, false},
+		{cioNilInterface, cioNilInterface, true},
+		{cioNilProperty, cioNilProperty, true},
+		{cioNilInterface, cioNilProperty, false},
 	}
 
 	for _, test := range tests {

@@ -12,9 +12,9 @@ import (
 	"github.com/pkg/errors"
 )
 
-// For the given type, this function checks if it possesses a method `Clone`.
-// Receiver and return value can be values or references, e.g., with a method
-// `func (*T) Clone() T`, the type `T` is considered cloneable.
+// isCloneable checks if the given type possesses a method `Clone`.  Receiver
+// and return value can be values or references, e.g., with a method `func (*T)
+// Clone() T`, the type `T` is considered cloneable.
 func isCloneable(t reflect.Type) bool {
 	kind := t.Kind()
 	if kind != reflect.Struct && kind != reflect.Ptr {
@@ -52,6 +52,14 @@ func isCloneable(t reflect.Type) bool {
 	return true
 }
 
+// checkCloneImpl recursively checks if the provided values could be clones and
+// it returns an error if they cannot be.
+//
+// checkCloneImpl requires that the values referenced by v and w are deeply
+// equal. Specifically, `reflect.DeepEqual(x, y)` must have had returned true,
+// where
+// * v = reflect.Value(x),
+// * w = reflect.Value(y).
 func checkCloneImpl(v, w reflect.Value) error {
 	if v.Kind() == reflect.Ptr {
 		if v.Pointer() == 0 && w.Pointer() == 0 {
@@ -78,7 +86,6 @@ func checkCloneImpl(v, w reflect.Value) error {
 
 	t := baseType
 
-	// check for field tags
 	for i := 0; i < baseType.NumField(); i++ {
 		f := baseType.Field(i)
 		kind := f.Type.Kind()
@@ -86,18 +93,21 @@ func checkCloneImpl(v, w reflect.Value) error {
 		right := w.Field(i)
 		// disallow some untested kinds
 		if kind == reflect.Chan ||
-			kind == reflect.Func || // disallow because of caputered references
+			kind == reflect.Func || // disallow because of captured references
 			kind == reflect.Map ||
 			kind == reflect.String ||
 			kind == reflect.UnsafePointer {
 			panic(fmt.Sprintf("Implementation not tested with %v", kind))
 		}
 
+		// check for field tags
 		tag, hasTag := f.Tag.Lookup("cloneable")
 		// find unknown and misplaced tags
 		if hasTag {
 			if tag == "shallow" {
-				if kind != reflect.Ptr && kind != reflect.Slice {
+				if kind != reflect.Interface &&
+					kind != reflect.Ptr &&
+					kind != reflect.Slice {
 					return errors.Errorf(
 						"Expected field %v.%s with tag '%s' to be a "+
 							"pointer or a slice, got kind %v",
@@ -118,6 +128,37 @@ func checkCloneImpl(v, w reflect.Value) error {
 		}
 
 		// check actual field contents
+		if kind == reflect.Interface {
+			if left.IsZero() && right.IsZero() {
+				continue
+			}
+
+			if left.IsZero() != right.IsZero() {
+				// reflect.DeepEqual() should detect this case
+				panic(fmt.Sprintf(
+					"Expected both interfaces to be zero or both non-zero, got %v, %v",
+					left.InterfaceData(), right.InterfaceData()))
+			}
+
+			left = left.Elem()
+			right = right.Elem()
+			kindL := left.Type().Kind()
+			kindR := right.Type().Kind()
+
+			if kindL != reflect.Ptr && kindL != reflect.Struct {
+				panic(
+					fmt.Sprintf("Expected left kind ptr or struct, got %v",
+						left.Type().Kind()))
+			}
+			if kindR != reflect.Ptr && kindR != reflect.Struct {
+				panic(
+					fmt.Sprintf("Expected right kind ptr or struct, got %v",
+						right.Type().Kind()))
+			}
+
+			kind = left.Type().Kind()
+		}
+
 		if kind == reflect.Ptr || kind == reflect.Slice {
 			p := left.Pointer()
 			q := right.Pointer()
@@ -183,7 +224,11 @@ func checkCloneImpl(v, w reflect.Value) error {
 	return nil
 }
 
-// Given two values, this function checks if they could be clones.
+// checkClone checks if the two provided values could be clones. If they are
+// not, an error is returned.
+//
+// checkClone initially calls reflect.DeepEqual and then checkCloneImpl tests
+// recursively if the provided values could be clones.
 func checkClone(p, q interface{}) error {
 	if !reflect.DeepEqual(p, q) {
 		return errors.New("Proper clones must be deeply equal")
@@ -203,7 +248,7 @@ func checkClone(p, q interface{}) error {
 	return checkCloneImpl(v, w)
 }
 
-// Given `x`, call `x.Clone()` if possible, return an error otherwise.
+// clone calls x.Clone() if possible, otherwise it returns an error.
 func clone(x interface{}) (interface{}, error) {
 	if x == nil {
 		return nil, errors.Errorf("Cannot clone nil reference")
