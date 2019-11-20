@@ -176,6 +176,10 @@ func (p *Peer) Close() error {
 	return nil
 }
 
+func (p *Peer) SetDefaultMsgHandler(handler func(wire.Msg)) {
+	p.subs.setDefaultMsgHandler(handler)
+}
+
 // newPeer creates a new peer from a peer address and connection.
 func newPeer(addr Address, conn Conn, closeWork func(*Peer), _ Dialer) *Peer {
 
