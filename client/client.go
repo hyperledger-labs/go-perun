@@ -9,7 +9,7 @@ import (
 
 	"perun.network/go-perun/log"
 	"perun.network/go-perun/peer"
-	"perun.network/go-perun/pkg/sync/atomic"
+	"perun.network/go-perun/pkg/sync"
 
 	wire "perun.network/go-perun/wire/msg"
 )
@@ -19,15 +19,14 @@ type Client struct {
 	peers       *peer.Registry
 	propHandler ProposalHandler
 	log         log.Logger // structured logger for this client
-	quit        chan struct{}
-	closed      atomic.Bool
+
+	sync.Closer
 }
 
 func New(id peer.Identity, dialer peer.Dialer, propHandler ProposalHandler) *Client {
 	c := &Client{
 		id:          id,
 		propHandler: propHandler,
-		quit:        make(chan struct{}),
 		log:         log.WithField("client", id.Address),
 	}
 	c.peers = peer.NewRegistry(c.subscribePeer, dialer)
@@ -35,10 +34,9 @@ func New(id peer.Identity, dialer peer.Dialer, propHandler ProposalHandler) *Cli
 }
 
 func (c *Client) Close() error {
-	if !c.closed.TrySet() {
-		return errors.New("client already closed")
+	if err := c.Closer.Close(); err != nil {
+		return err
 	}
-	close(c.quit)
 
 	return errors.WithMessage(c.peers.Close(), "closing registry")
 }
@@ -46,14 +44,14 @@ func (c *Client) Close() error {
 // Listen starts listening for incoming connections on the provided listener and
 // currently just automatically accepts them after successful authentication.
 // This function does not start go routines but instead should
-// be started by the user as `go client.Listen()`.
+// be started by the user as `go client.Listen()`. The client takes ownership of
+// the listener and will close it when the client is closed.
 func (c *Client) Listen(listener peer.Listener) {
-	go func() {
-		<-c.quit
+	c.OnClose(func() {
 		if err := listener.Close(); err != nil {
 			c.log.Debugf("Closing listener while closing client failed: %v", err)
 		}
-	}()
+	})
 	// start listener and accept all incoming peer connections, writing them to the registry
 	for {
 		conn, err := listener.Accept()
