@@ -27,10 +27,10 @@ var connection peer.Conn = new(fakeConn)
 
 const timeout = 100 * time.Millisecond
 
-func TestMockListener_Accept_Put(t *testing.T) {
+func TestListener_Accept_Put(t *testing.T) {
 	t.Parallel()
 
-	l := NewMockListener()
+	l := NewListener()
 	t.Run("accept", func(t *testing.T) {
 		t.Parallel()
 		test.AssertTerminates(t, timeout, func() {
@@ -50,11 +50,11 @@ func TestMockListener_Accept_Put(t *testing.T) {
 	})
 }
 
-func TestMockListener_Accept_Close(t *testing.T) {
+func TestListener_Accept_Close(t *testing.T) {
 	t.Parallel()
 
 	t.Run("close before accept", func(t *testing.T) {
-		l := NewMockListener()
+		l := NewListener()
 		l.Close()
 		test.AssertTerminates(t, timeout, func() {
 			conn, err := l.Accept()
@@ -64,7 +64,7 @@ func TestMockListener_Accept_Close(t *testing.T) {
 		})
 	})
 	t.Run("close during accept", func(t *testing.T) {
-		l := NewMockListener()
+		l := NewListener()
 
 		go func() {
 			<-time.After(timeout)
@@ -80,21 +80,21 @@ func TestMockListener_Accept_Close(t *testing.T) {
 	})
 }
 
-func TestMockListener_Put(t *testing.T) {
+func TestListener_Put(t *testing.T) {
 	t.Parallel()
 
 	t.Run("blocking", func(t *testing.T) {
 		t.Parallel()
 
 		test.AssertNotTerminates(t, timeout, func() {
-			NewMockListener().Put(connection)
+			NewListener().Put(connection)
 		})
 	})
 
 	t.Run("close", func(t *testing.T) {
 		t.Parallel()
 
-		l := NewMockListener()
+		l := NewListener()
 		l.Close()
 		test.AssertTerminates(t, timeout, func() {
 			// Closed listener must abort Put() calls.
@@ -108,8 +108,8 @@ func TestMockListener_Put(t *testing.T) {
 	})
 }
 
-func TestMockListener_Close(t *testing.T) {
-	l := NewMockListener()
+func TestListener_Close(t *testing.T) {
+	l := NewListener()
 	assert.False(t, l.IsClosed())
 	assert.NoError(t, l.Close())
 	assert.True(t, l.IsClosed())
