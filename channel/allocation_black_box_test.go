@@ -5,7 +5,6 @@
 package channel_test
 
 import (
-	"bytes"
 	"math/big"
 	"math/rand"
 	"testing"
@@ -70,7 +69,7 @@ func TestAllocationSerialization(t *testing.T) {
 	iotest.GenericSerializableTest(t, inputs...)
 }
 
-func TestAllocationSerializationLimits(t *testing.T) {
+func TestAllocationValidLimits(t *testing.T) {
 	inputs := []struct {
 		numAssets         int
 		numParts          int
@@ -116,8 +115,6 @@ func TestAllocationSerializationLimits(t *testing.T) {
 			}
 		}
 
-		buffer := new(bytes.Buffer)
-		err := allocation.Encode(buffer)
-		assert.Errorf(t, err, "expected error for parameters %v", x)
+		assert.Errorf(t, allocation.Valid(), "expected error for parameters %v", x)
 	}
 }

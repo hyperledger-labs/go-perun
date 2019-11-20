@@ -47,7 +47,7 @@ var actionPhases = []Phase{InitActing, Acting}
 // specified by the application.
 // If the index is out of bounds, a panic occurs as this is an invalid usage of
 // the machine.
-func (m *ActionMachine) AddAction(idx uint, a Action) error {
+func (m *ActionMachine) AddAction(idx Index, a Action) error {
 	if !inPhase(m.phase, actionPhases) {
 		return m.error(m.selfTransition(), "can only set action in an action phase")
 	}

@@ -59,7 +59,7 @@ func (a NoApp) Def() wallet.Address {
 }
 
 // ValidTransition returns nil
-func (a NoApp) ValidTransition(*channel.Params, *channel.State, *channel.State) error {
+func (a NoApp) ValidTransition(*channel.Params, *channel.State, *channel.State, channel.Index) error {
 	return nil
 }
 
@@ -69,7 +69,7 @@ func (a NoApp) ValidInit(*channel.Params, *channel.State) error {
 }
 
 // ValidAction returns nil
-func (a NoApp) ValidAction(*channel.Params, *channel.State, uint, channel.Action) error {
+func (a NoApp) ValidAction(*channel.Params, *channel.State, channel.Index, channel.Action) error {
 	return nil
 }
 

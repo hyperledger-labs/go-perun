@@ -34,11 +34,12 @@ type (
 
 		// ValidTransition should check that the app-specific rules of the given
 		// transition from `from` to `to` are fulfilled.
+		// `actor` is the index of the acting party whose action resulted in the new state.
 		// The implementation should return a StateTransitionError describing the
 		// invalidity of the transition, if it is not valid. It should return a normal
 		// error (with attached stacktrace from pkg/errors) if there was any other
 		// runtime error, not related to the invalidity of the transition itself.
-		ValidTransition(parameters *Params, from, to *State) error
+		ValidTransition(parameters *Params, from, to *State, actor Index) error
 
 		// ValidInit should perform app-specific checks for a valid initial state.
 		// The framework guarantees to only pass initial states with version == 0,
@@ -58,7 +59,7 @@ type (
 		// of the action. It should return a normal error (with attached stacktrace
 		// from pkg/errors) if there was any other runtime error, not related to the
 		// invalidity of the action itself.
-		ValidAction(*Params, *State, uint, Action) error
+		ValidAction(*Params, *State, Index, Action) error
 
 		// ApplyAction applies the given actions to the provided channel state and
 		// returns the resulting new state.

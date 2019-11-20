@@ -61,11 +61,11 @@ func MockStateAppTest(t *testing.T, app MockApp) {
 
 	t.Run("ValidTransition", func(t *testing.T) {
 		// ValidTransition only checks the first state.
-		assert.NoError(t, app.ValidTransition(nil, stateValid, nil))
-		assert.Error(t, app.ValidTransition(nil, stateErr, nil))
-		assert.True(t, channel.IsStateTransitionError(app.ValidTransition(nil, stateTransErr, nil)))
-		assert.True(t, channel.IsActionError(app.ValidTransition(nil, stateActErr, nil)))
-		assert.Panics(t, func() { assert.NoError(t, app.ValidTransition(nil, statePanic, nil)) })
+		assert.NoError(t, app.ValidTransition(nil, stateValid, nil, 0))
+		assert.Error(t, app.ValidTransition(nil, stateErr, nil, 0))
+		assert.True(t, channel.IsStateTransitionError(app.ValidTransition(nil, stateTransErr, nil, 0)))
+		assert.True(t, channel.IsActionError(app.ValidTransition(nil, stateActErr, nil, 0)))
+		assert.Panics(t, func() { assert.NoError(t, app.ValidTransition(nil, statePanic, nil, 0)) })
 	})
 
 	t.Run("ValidInit", func(t *testing.T) {

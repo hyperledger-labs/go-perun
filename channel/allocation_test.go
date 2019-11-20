@@ -89,7 +89,7 @@ func TestAllocation_Clone(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if err := tt.alloc.valid(); err != nil {
+			if err := tt.alloc.Valid(); err != nil {
 				t.Fatal(err.Error())
 			}
 
@@ -199,7 +199,7 @@ func TestAllocation_Sum(t *testing.T) {
 	}
 }
 
-func TestAllocation_valid(t *testing.T) {
+func TestAllocation_Valid(t *testing.T) {
 	// note that all valid branches are already indirectly tested in TestAllocation_Sum
 	tests := []struct {
 		name  string
@@ -275,7 +275,7 @@ func TestAllocation_valid(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := tt.alloc.valid(); (got == nil) != tt.valid {
+			if got := tt.alloc.Valid(); (got == nil) != tt.valid {
 				t.Errorf("Allocation.valid() = %v, want valid = %v", got, tt.valid)
 			}
 		})

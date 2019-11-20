@@ -54,6 +54,9 @@ func NewParams(
 	if len(parts) < 2 {
 		return nil, errors.New("need at least two participants")
 	}
+	if len(parts) > MaxNumParts {
+		return nil, errors.Errorf("too many participants, got: %d max: %d", len(parts), MaxNumParts)
+	}
 	if nonce == nil {
 		return nil, errors.New("nonce must not be nil")
 	}

@@ -13,6 +13,9 @@ import (
 	"perun.network/go-perun/wallet"
 )
 
+// Index is the type for the number of participants, assets, sub-allocations, actions and alike.
+type Index = uint16
+
 type (
 	// Phase is a phase of the channel pushdown automaton
 	Phase uint8
@@ -53,7 +56,7 @@ var signingPhases = []Phase{InitSigning, Signing}
 type machine struct {
 	phase     Phase
 	acc       wallet.Account
-	idx       uint
+	idx       Index
 	params    Params
 	stagingTX Transaction
 	currentTX Transaction
@@ -68,23 +71,24 @@ type machine struct {
 // newMachine returns a new uninitialized machine for the given parameters.
 func newMachine(acc wallet.Account, params Params) (*machine, error) {
 	idx := wallet.IndexOfAddr(params.Parts, acc.Address())
-	if idx == -1 {
+	if idx < 0 {
 		return nil, errors.New("account not part of participant set")
 	}
 
 	return &machine{
 		phase:  InitActing,
 		acc:    acc,
-		idx:    uint(idx),
+		idx:    Index(idx),
 		params: params,
 		subs:   make(map[Phase]map[string]chan<- PhaseTransition),
 		log:    log.WithField("ID", params.id),
 	}, nil
+
 }
 
 // N returns the number of participants of the channel parameters of this machine.
-func (m *machine) N() uint {
-	return uint(len(m.params.Parts))
+func (m *machine) N() Index {
+	return Index(len(m.params.Parts))
 }
 
 // Phase returns the current phase
@@ -146,7 +150,7 @@ func (m *machine) StagingState() *State {
 // It is also checked that the current phase is a signing phase.
 // If the index is out of bounds, a panic occurs as this is an invalid usage of
 // the machine.
-func (m *machine) AddSig(idx uint, sig Sig) error {
+func (m *machine) AddSig(idx Index, sig Sig) error {
 	if !inPhase(m.phase, signingPhases) {
 		return m.error(m.selfTransition(), "can only add signature in a signing phase")
 	}

@@ -69,7 +69,7 @@ func newState(params *Params, initBals Allocation, initData Data) (*State, error
 	if n != len(initBals.OfParts) {
 		return nil, errors.New("number of participants in parameters and initial balances don't match")
 	}
-	if err := initBals.valid(); err != nil {
+	if err := initBals.Valid(); err != nil {
 		return nil, err
 	}
 

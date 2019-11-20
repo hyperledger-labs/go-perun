@@ -22,15 +22,14 @@ type Address interface {
 	Equals(Address) bool
 }
 
-// IndexOfAddr returns the index of the given address in the address slice, or -1 if
-// it is not part of the slice.
+// IndexOfAddr returns the index of the given address in the address slice,
+// or -1 if it is not part of the slice.
 func IndexOfAddr(addrs []Address, addr Address) int {
-	idx := -1
 	for i, a := range addrs {
 		if addr.Equals(a) {
-			idx = i
-			break
+			return i
 		}
 	}
-	return idx
+
+	return -1
 }

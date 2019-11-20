@@ -86,7 +86,7 @@ func (a MockApp) DecodeData(r io.Reader) (channel.Data, error) {
 }
 
 // ValidTransition checks the transition for validity.
-func (a MockApp) ValidTransition(params *channel.Params, from, to *channel.State) error {
+func (a MockApp) ValidTransition(params *channel.Params, from, to *channel.State, actor channel.Index) error {
 	return a.execMockOp(from.Data.(*MockOp))
 }
 
@@ -96,7 +96,7 @@ func (a MockApp) ValidInit(params *channel.Params, state *channel.State) error {
 }
 
 // ValidAction checks the action for validity.
-func (a MockApp) ValidAction(params *channel.Params, state *channel.State, part uint, act channel.Action) error {
+func (a MockApp) ValidAction(params *channel.Params, state *channel.State, part channel.Index, act channel.Action) error {
 	return a.execMockOp(act.(*MockOp))
 }
 
