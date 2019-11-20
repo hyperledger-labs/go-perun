@@ -155,6 +155,26 @@ func (c ChannelProposal) SessID() (sid SessionID) {
 	return
 }
 
+// Valid checks that the channel proposal is valid:
+// * ParticipantAddr, InitBals and Nonce must not be nil
+// * 2 <= len(Parts) <= channel.MaxNumParts
+// * InitBals match the dimension of Parts (TODO: check is valid)
+// * No locked sub-allocations
+// * non-zero ChallengeDuration
+func (c ChannelProposal) Valid() error {
+	if c.ParticipantAddr == nil || c.InitBals == nil || c.Nonce == nil {
+		return errors.New("invalid nil fields")
+	} else if len(c.Parts) < 2 || len(c.Parts) > channel.MaxNumParts {
+		return errors.New("invalid number of participants")
+		// TODO(#190): check c.InitBals.Valid() in the following, after #143 is merged
+	} else if len(c.InitBals.OfParts) != len(c.Parts) || len(c.InitBals.Locked) > 0 {
+		return errors.New("invalid initial balance")
+	} else if c.ChallengeDuration == 0 {
+		return errors.New("challenge duration must not be zero")
+	}
+	return nil
+}
+
 // SessionID is a unique identifier generated for every instantiantiation of
 // a channel.
 type SessionID = [32]byte

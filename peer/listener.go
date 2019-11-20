@@ -11,8 +11,9 @@ type Listener interface {
 	// authentication to exchange addresses.
 	//
 	// This function does not have to be reentrant, but concurrent calls to
-	// Close() must abort ongoing Accept() calls. Accept() must never return
-	// errors except after Close() was called.
+	// Close() must abort ongoing Accept() calls. Accept() must only return
+	// errors after Close() was called or an unrecoverable fatal error occurred
+	// in the Listener and it is closed.
 	Accept() (Conn, error)
 	// Close closes the listener and aborts any ongoing Accept() call.
 	Close() error

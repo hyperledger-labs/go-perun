@@ -5,21 +5,40 @@
 package client
 
 import (
+	"github.com/pkg/errors"
+
 	"perun.network/go-perun/log"
 	"perun.network/go-perun/peer"
+	"perun.network/go-perun/pkg/sync/atomic"
 )
 
 type Client struct {
-	id      peer.Identity
-	peerReg *peer.Registry
+	id          peer.Identity
+	peers       *peer.Registry
+	propHandler ProposalHandler
+	log         log.Logger // structured logger for this client
+	quit        chan struct{}
+	closed      atomic.Bool
 }
 
-func New(id peer.Identity, dialer peer.Dialer) *Client {
+func New(id peer.Identity, dialer peer.Dialer, propHandler ProposalHandler) *Client {
 	c := &Client{
-		id: id,
+		id:          id,
+		propHandler: propHandler,
+		quit:        make(chan struct{}),
+		log:         log.WithField("client", id.Address),
 	}
-	c.peerReg = peer.NewRegistry(c.subscribePeer, dialer)
+	c.peers = peer.NewRegistry(c.subscribePeer, dialer)
 	return c
+}
+
+func (c *Client) Close() error {
+	if !c.closed.TrySet() {
+		return errors.New("client already closed")
+	}
+	close(c.quit)
+
+	return errors.WithMessage(c.peers.Close(), "closing registry")
 }
 
 // Listen starts listening for incoming connections on the provided listener and
@@ -27,24 +46,42 @@ func New(id peer.Identity, dialer peer.Dialer) *Client {
 // This function does not start go routines but instead should
 // be started by the user as `go client.Listen()`.
 func (c *Client) Listen(listener peer.Listener) {
+	go func() {
+		<-c.quit
+		if err := listener.Close(); err != nil {
+			c.log.Debugf("Closing listener while closing client failed: %v", err)
+		}
+	}()
 	// start listener and accept all incoming peer connections, writing them to the registry
 	for {
 		conn, err := listener.Accept()
 		if err != nil {
-			log.Debugf("Client: peer listener closed: %v", err)
+			c.log.Debugf("peer listener closed: %v", err)
 			return
 		}
 
-		if peerAddr, err := peer.ExchangeAddrs(c.id, conn); err != nil {
-			log.Warnf("could not authenticate peer: %v", err)
-		} else {
-			// the peer registry is thread safe
-			c.peerReg.Register(peerAddr, conn)
-		}
+		// setup connection in a serparate routine so that new incoming connections
+		// can immediately be handled.
+		go c.setupConn(conn)
+	}
+}
+
+func (c *Client) setupConn(conn peer.Conn) {
+	if peerAddr, err := peer.ExchangeAddrs(c.id, conn); err != nil {
+		c.log.Warnf("could not authenticate peer: %v", err)
+	} else {
+		// the peer registry is thread safe
+		c.peers.Register(peerAddr, conn)
 	}
 }
 
 func (c *Client) subscribePeer(p *peer.Peer) {
-	log.Debugf("Client: subscribing peer: %v", p.PerunAddress)
-	// TODO actual subscriptions
+	c.logPeer(p).Debugf("setting up default subscriptions")
+
+	// handle incoming channel proposals
+	c.subChannelProposals(p)
+}
+
+func (c *Client) logPeer(p *peer.Peer) log.Logger {
+	return c.log.WithField("peer", p.PerunAddress)
 }
