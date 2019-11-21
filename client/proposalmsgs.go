@@ -170,13 +170,16 @@ func (c ChannelProposal) SessID() (sid SessionID) {
 func (c ChannelProposal) Valid() error {
 	if c.ParticipantAddr == nil || c.InitBals == nil || c.Nonce == nil {
 		return errors.New("invalid nil fields")
-	} else if len(c.Parts) < 2 || len(c.Parts) > channel.MaxNumParts {
-		return errors.New("invalid number of participants")
-		// TODO(#190): check c.InitBals.Valid() in the following, after #143 is merged
-	} else if len(c.InitBals.OfParts) != len(c.Parts) || len(c.InitBals.Locked) > 0 {
-		return errors.New("invalid initial balance")
 	} else if c.ChallengeDuration == 0 {
 		return errors.New("challenge duration must not be zero")
+	} else if len(c.Parts) < 2 || len(c.Parts) > channel.MaxNumParts {
+		return errors.New("invalid number of participants")
+	} else if err := c.InitBals.Valid(); err != nil {
+		return err
+	} else if len(c.InitBals.Locked) > 0 {
+		return errors.New("initial allocation cannot have locked funds")
+	} else if len(c.InitBals.OfParts) != len(c.Parts) {
+		return errors.New("wrong dimension of initial balances")
 	}
 	return nil
 }
