@@ -21,7 +21,7 @@ import (
 )
 
 func init() {
-	test.SetBackend(new(test.TestBackend))
+	test.SetAppRandomizer(new(test.TestBackend))
 }
 
 func TestChannelProposalSerialization(t *testing.T) {

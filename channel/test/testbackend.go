@@ -13,7 +13,7 @@ import (
 
 type TestBackend struct{}
 
-var _ Backend = &TestBackend{}
+var _ AppRandomizer = &TestBackend{}
 
 func (TestBackend) NewRandomApp(rng *rand.Rand) channel.App {
 	return NewNoApp(wallettest.NewRandomAddress(rng))
