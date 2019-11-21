@@ -18,7 +18,7 @@ type Backend interface {
 
 // backend is the currently set wallet testing backend. It is initially set to
 // the default backend.
-var backend Backend = new(DefaultBackend)
+var backend Backend
 
 // SetBackend sets the wallet testing backend. It may be set multiple times.
 func SetBackend(b Backend) {
