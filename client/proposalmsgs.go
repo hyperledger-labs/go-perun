@@ -38,6 +38,10 @@ func init() {
 		})
 }
 
+// SessionID is a unique identifier generated for every instantiantiation of
+// a channel.
+type SessionID = [32]byte
+
 // ChannelProposal contains all data necessary to propose a new
 // channel to a given set of peers.
 //
@@ -105,7 +109,9 @@ func (c *ChannelProposal) Decode(r io.Reader) (err error) {
 		return err
 	}
 
-	c.InitBals = &channel.Allocation{}
+	if c.InitBals == nil {
+		c.InitBals = new(channel.Allocation)
+	}
 	if err := perunio.Decode(r, c.InitBals); err != nil {
 		return err
 	}
@@ -175,10 +181,6 @@ func (c ChannelProposal) Valid() error {
 	return nil
 }
 
-// SessionID is a unique identifier generated for every instantiantiation of
-// a channel.
-type SessionID = [32]byte
-
 // ChannelProposalAcc contains all data for a response to a channel proposal
 // message. The SessID must be computed from the channel proposal messages one
 // wishes to respond to. ParticipantAddr should be a participant address just
@@ -212,11 +214,8 @@ func (acc *ChannelProposalAcc) Decode(r io.Reader) (err error) {
 		return errors.WithMessage(err, "SID decoding")
 	}
 
-	if acc.ParticipantAddr, err = wallet.DecodeAddress(r); err != nil {
-		return errors.WithMessage(err, "participant address decoding")
-	}
-
-	return nil
+	acc.ParticipantAddr, err = wallet.DecodeAddress(r)
+	return errors.WithMessage(err, "participant address decoding")
 }
 
 type ChannelProposalRej struct {

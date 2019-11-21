@@ -11,8 +11,8 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	// import for channel app back-end initialization
-	_ "perun.network/go-perun/backend/sim/channel"
+	_ "perun.network/go-perun/backend/sim/channel" // backend init
+	_ "perun.network/go-perun/backend/sim/wallet"  // backend init
 	"perun.network/go-perun/channel/test"
 	"perun.network/go-perun/client"
 	"perun.network/go-perun/wallet"
@@ -22,8 +22,6 @@ import (
 
 func init() {
 	test.SetBackend(new(test.TestBackend))
-	wallet.SetBackend(new(wallettest.DefaultWalletBackend))
-	wallettest.SetBackend(new(wallettest.DefaultBackend))
 }
 
 func TestChannelProposalSerialization(t *testing.T) {
@@ -106,7 +104,7 @@ func TestChannelProposalAccSerialization(t *testing.T) {
 	rng := rand.New(rand.NewSource(0xcafecafe))
 	for i := 0; i < 16; i++ {
 		m := &client.ChannelProposalAcc{
-			SessID:          NewRandomSessID(rng),
+			SessID:          newRandomSessID(rng),
 			ParticipantAddr: wallettest.NewRandomAddress(rng),
 		}
 		msg.TestMsg(t, m)
@@ -116,17 +114,23 @@ func TestChannelProposalAccSerialization(t *testing.T) {
 func TestChannelProposalRejSerialization(t *testing.T) {
 	rng := rand.New(rand.NewSource(0xcafecafe))
 	for i := 0; i < 16; i++ {
-		r := make([]byte, 16+rng.Intn(16)) // random string of length 16..32
-		rng.Read(r)
 		m := &client.ChannelProposalRej{
-			SessID: NewRandomSessID(rng),
-			Reason: string(r),
+			SessID: newRandomSessID(rng),
+			Reason: newRandomString(rng, 16, 16),
 		}
 		msg.TestMsg(t, m)
 	}
 }
 
-func NewRandomSessID(rng *rand.Rand) (id client.SessionID) {
+func newRandomSessID(rng *rand.Rand) (id client.SessionID) {
 	rng.Read(id[:])
 	return
+}
+
+// newRandomstring returns a random string of length between minLen and
+// minLen+maxLenDiff
+func newRandomString(rng *rand.Rand, minLen, maxLenDiff int) string {
+	r := make([]byte, minLen+rng.Intn(maxLenDiff))
+	rng.Read(r)
+	return string(r)
 }
