@@ -14,6 +14,7 @@ import (
 // of random addresses.
 type Backend interface {
 	NewRandomAddress(*rand.Rand) wallet.Address
+	NewRandomAccount(*rand.Rand) wallet.Account
 }
 
 // backend is the currently set wallet testing backend. It is initially set to
@@ -29,4 +30,10 @@ func SetBackend(b Backend) {
 // wallet testing backend.
 func NewRandomAddress(rng *rand.Rand) wallet.Address {
 	return backend.NewRandomAddress(rng)
+}
+
+// NewRandomAccount returns a new random account by calling the currently set
+// wallet randomizer.
+func NewRandomAccount(rng *rand.Rand) wallet.Account {
+	return backend.NewRandomAccount(rng)
 }

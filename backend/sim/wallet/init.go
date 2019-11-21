@@ -23,3 +23,7 @@ var _ test.Backend = &TestBackend{}
 func (TestBackend) NewRandomAddress(rng *rand.Rand) wallet.Address {
 	return NewRandomAddress(rng)
 }
+
+func (TestBackend) NewRandomAccount(rng *rand.Rand) wallet.Account {
+	return NewRandomAccount(rng)
+}
