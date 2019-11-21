@@ -22,13 +22,13 @@ type Backend interface {
 	// Returns the signature or an error.
 	// The framework guarantees to not pass nil Account, *Params or *State, that
 	// the IDs of them match and that Params.ID = ChannelID(Params).
-	Sign(wallet.Account, *Params, *State) (Sig, error)
+	Sign(wallet.Account, *Params, *State) (wallet.Sig, error)
 
 	// Verify verifies that the provided signature on the state belongs to the
 	// provided address.
 	// The framework guarantees to not pass nil Address, *Params or *State, that
 	// the IDs of them match and that Params.ID = ChannelID(Params).
-	Verify(addr wallet.Address, params *Params, state *State, sig Sig) (bool, error)
+	Verify(addr wallet.Address, params *Params, state *State, sig wallet.Sig) (bool, error)
 }
 
 // SetBackend sets the global channel backend. Must not be called directly but
@@ -41,10 +41,10 @@ func ChannelID(p *Params) ID {
 	return backend.ChannelID(p)
 }
 
-func Sign(a wallet.Account, p *Params, s *State) (Sig, error) {
+func Sign(a wallet.Account, p *Params, s *State) (wallet.Sig, error) {
 	return backend.Sign(a, p, s)
 }
 
-func Verify(addr wallet.Address, params *Params, state *State, sig Sig) (bool, error) {
+func Verify(addr wallet.Address, params *Params, state *State, sig wallet.Sig) (bool, error) {
 	return backend.Verify(addr, params, state, sig)
 }

@@ -33,7 +33,12 @@ func (m *mockBackend) DecodeAddress(io.Reader) (Address, error) {
 	return nil, nil
 }
 
-func (m *mockBackend) VerifySignature([]byte, []byte, Address) (bool, error) {
+func (m *mockBackend) DecodeSig(io.Reader) (Sig, error) {
+	m.AssertWrapped()
+	return nil, nil
+}
+
+func (m *mockBackend) VerifySignature([]byte, Sig, Address) (bool, error) {
 	m.AssertWrapped()
 	return false, nil
 }
@@ -50,6 +55,8 @@ func TestGlobalBackend(t *testing.T) {
 	NewAddressFromBytes(nil)
 	b.AssertCalled()
 	DecodeAddress(nil)
+	b.AssertCalled()
+	DecodeSig(nil)
 	b.AssertCalled()
 	VerifySignature(nil, nil, nil)
 	b.AssertCalled()
