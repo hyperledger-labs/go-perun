@@ -10,30 +10,30 @@ import (
 	"perun.network/go-perun/wallet"
 )
 
-// Backend is the wallet testing backend. It currently supports the generation
+// Randomizer is the wallet testing backend. It currently supports the generation
 // of random addresses.
-type Backend interface {
+type Randomizer interface {
 	NewRandomAddress(*rand.Rand) wallet.Address
 	NewRandomAccount(*rand.Rand) wallet.Account
 }
 
-// backend is the currently set wallet testing backend. It is initially set to
-// the default backend.
-var backend Backend
+// randomizer is the currently set wallet testing randomizer. It is initially set to
+// the default randomizer.
+var randomizer Randomizer
 
-// SetBackend sets the wallet testing backend. It may be set multiple times.
-func SetBackend(b Backend) {
-	backend = b
+// SetRandomizer sets the wallet randomizer. It may be set multiple times.
+func SetRandomizer(b Randomizer) {
+	randomizer = b
 }
 
 // NewRandomAddress returns a new random address by calling the currently set
-// wallet testing backend.
+// wallet randomizer.
 func NewRandomAddress(rng *rand.Rand) wallet.Address {
-	return backend.NewRandomAddress(rng)
+	return randomizer.NewRandomAddress(rng)
 }
 
 // NewRandomAccount returns a new random account by calling the currently set
 // wallet randomizer.
 func NewRandomAccount(rng *rand.Rand) wallet.Account {
-	return backend.NewRandomAccount(rng)
+	return randomizer.NewRandomAccount(rng)
 }

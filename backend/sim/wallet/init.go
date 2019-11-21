@@ -13,17 +13,17 @@ import (
 
 func init() {
 	wallet.SetBackend(new(Backend))
-	test.SetBackend(&TestBackend{})
+	test.SetRandomizer(&Randomizer{})
 }
 
-type TestBackend struct{}
+type Randomizer struct{}
 
-var _ test.Backend = &TestBackend{}
+var _ test.Randomizer = &Randomizer{}
 
-func (TestBackend) NewRandomAddress(rng *rand.Rand) wallet.Address {
+func (Randomizer) NewRandomAddress(rng *rand.Rand) wallet.Address {
 	return NewRandomAddress(rng)
 }
 
-func (TestBackend) NewRandomAccount(rng *rand.Rand) wallet.Account {
+func (Randomizer) NewRandomAccount(rng *rand.Rand) wallet.Account {
 	return NewRandomAccount(rng)
 }
