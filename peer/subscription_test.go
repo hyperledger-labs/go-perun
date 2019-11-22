@@ -14,7 +14,7 @@ import (
 )
 
 func TestSubscriptions(t *testing.T) {
-	peer := newPeer(nil, nil, nil, nil)
+	peer := newPeer(nil, nil, nil)
 
 	r0 := NewReceiver()
 	r1 := NewReceiver()
@@ -38,7 +38,7 @@ func TestSubscriptions(t *testing.T) {
 func TestSubscriptions_put_DefaultMsgHandler(t *testing.T) {
 	missedMsg := make(chan wire.Msg, 1)
 	recv, send := newPipeConnPair()
-	p := newPeer(nil, recv, nil, nil)
+	p := newPeer(nil, recv, nil)
 	go p.recvLoop()
 
 	p.SetDefaultMsgHandler(func(m wire.Msg) {

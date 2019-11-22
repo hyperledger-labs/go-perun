@@ -36,12 +36,10 @@ type Peer struct {
 
 	creating sync.Mutex // Prevent races when concurrently creating the peer.
 	sending  sync.Mutex // Blocks multiple Send calls.
-	closing  sync.Mutex
 
 	exists chan struct{} // Indicates whether a peer has been created yet.
-	closed chan struct{} // Indicates whether the peer is closed.
 
-	closeWork func(*Peer) // Work to be done when the peer is closed.
+	sync.Closer
 }
 
 // recvLoop continuously receives messages from a peer until it is closed.
@@ -93,7 +91,7 @@ func (p *Peer) waitExists(ctx context.Context) bool {
 	select {
 	case <-p.exists:
 		return true
-	case <-p.closed:
+	case <-p.Closed():
 	case <-done:
 	}
 	return false
@@ -127,7 +125,7 @@ func (p *Peer) Send(ctx context.Context, m wire.Msg) error {
 	select {
 	case err := <-sent:
 		return err
-	case <-p.closed:
+	case <-p.Closed():
 		return errors.New("peer closed")
 	case <-ctx.Done():
 		p.Close() // replace with p.conn.Close() when reintroducing repair.
@@ -135,36 +133,19 @@ func (p *Peer) Send(ctx context.Context, m wire.Msg) error {
 	}
 }
 
-// isClosed checks whether the peer is marked as closed.
-// This is different from the peer's connection being closed, in that a closed
-// peer cannot have its connection restored and is marked for deletion.
-func (p *Peer) isClosed() bool {
-	select {
-	case <-p.closed:
-		return true
-	default:
-		return false
-	}
+func (p *Peer) SetDefaultMsgHandler(handler func(wire.Msg)) {
+	p.subs.setDefaultMsgHandler(handler)
 }
 
-// Close closes a peer's connection and deletes it from the registry. If the
-// peer was already closed, results in an error. A closed peer is no longer
-// usable.
-func (p *Peer) Close() error {
-	p.closing.Lock()
-	defer p.closing.Unlock()
-
-	if p.isClosed() {
-		return errors.New("already closed")
+// Close closes the peer's connection. A closed peer is no longer usable.
+func (p *Peer) Close() (err error) {
+	if err = p.Closer.Close(); err != nil {
+		return
 	}
 
-	// Unregister the peer.
-	p.closeWork(p)
-	// Mark the peer as closed.
-	close(p.closed)
 	// Close the peer's connection.
 	if p.conn != nil {
-		p.conn.Close()
+		err = p.conn.Close()
 	}
 	// Delete this peer from all receivers.
 	p.subs.mutex.Lock()
@@ -173,21 +154,11 @@ func (p *Peer) Close() error {
 		recv.receiver.unsubscribe(p, false)
 	}
 
-	return nil
-}
-
-func (p *Peer) SetDefaultMsgHandler(handler func(wire.Msg)) {
-	p.subs.setDefaultMsgHandler(handler)
+	return
 }
 
 // newPeer creates a new peer from a peer address and connection.
-func newPeer(addr Address, conn Conn, closeWork func(*Peer), _ Dialer) *Peer {
-
-	// In tests, it is useful to omit the function.
-	if closeWork == nil {
-		closeWork = func(*Peer) {}
-	}
-
+func newPeer(addr Address, conn Conn, _ Dialer) *Peer {
 	p := new(Peer)
 	*p = Peer{
 		PerunAddress: addr,
@@ -196,9 +167,6 @@ func newPeer(addr Address, conn Conn, closeWork func(*Peer), _ Dialer) *Peer {
 		subs: makeSubscriptions(p),
 
 		exists: make(chan struct{}),
-		closed: make(chan struct{}),
-
-		closeWork: closeWork,
 	}
 
 	if p.conn != nil {

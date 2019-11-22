@@ -129,24 +129,24 @@ func TestPeer_Send_ImmediateAbort(t *testing.T) {
 	// This operation should abort immediately.
 	assert.Error(t, s.alice.peer.Send(ctx, wire.NewPingMsg()))
 
-	assert.True(t, s.alice.peer.isClosed(), "peer must be closed after failed sending")
+	assert.True(t, s.alice.peer.IsClosed(), "peer must be closed after failed sending")
 }
 
 func TestPeer_Send_Timeout(t *testing.T) {
 	conn, _ := newPipeConnPair()
-	p := newPeer(nil, conn, nil, nil)
+	p := newPeer(nil, conn, nil)
 
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 
 	assert.Error(t, p.Send(ctx, wire.NewPingMsg()),
 		"Send() must timeout on blocked connection")
-	assert.True(t, p.isClosed(), "peer must be closed after failed Send()")
+	assert.True(t, p.IsClosed(), "peer must be closed after failed Send()")
 }
 
 func TestPeer_Send_Close(t *testing.T) {
 	conn, _ := newPipeConnPair()
-	p := newPeer(nil, conn, nil, nil)
+	p := newPeer(nil, conn, nil)
 
 	go func() {
 		<-time.NewTimer(timeout).C
@@ -156,15 +156,15 @@ func TestPeer_Send_Close(t *testing.T) {
 		"Send() must be aborted by Close()")
 }
 
-func TestPeer_isClosed(t *testing.T) {
+func TestPeer_IsClosed(t *testing.T) {
 	s := makeSetup(t)
-	assert.False(t, s.alice.peer.isClosed(), "fresh peer must be open")
+	assert.False(t, s.alice.peer.IsClosed(), "fresh peer must be open")
 	assert.NoError(t, s.alice.peer.Close(), "closing must succeed")
-	assert.True(t, s.alice.peer.isClosed(), "closed peer must be closed")
+	assert.True(t, s.alice.peer.IsClosed(), "closed peer must be closed")
 }
 
 func TestPeer_create(t *testing.T) {
-	p := newPeer(nil, nil, nil, nil)
+	p := newPeer(nil, nil, nil)
 	select {
 	case <-p.exists:
 		t.Fatal("peer must not yet exist")
@@ -191,7 +191,7 @@ func TestPeer_create(t *testing.T) {
 
 func TestPeer_SetDefaultMsgHandler(t *testing.T) {
 	fn := func(wire.Msg) {}
-	p := newPeer(nil, nil, nil, nil)
+	p := newPeer(nil, nil, nil)
 
 	logUnhandledMsgPtr := reflect.ValueOf(logUnhandledMsg).Pointer()
 

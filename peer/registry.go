@@ -32,15 +32,15 @@ func NewRegistry(subscribe func(*Peer), dialer Dialer) *Registry {
 }
 
 func (r *Registry) Close() (err error) {
+	r.mutex.Lock()
+	defer r.mutex.Unlock()
 	if r.dialer != nil {
-		r.mutex.Lock()
 		err = r.dialer.Close()
-		r.mutex.Unlock()
 	}
-	for len(r.peers) > 0 {
+	for _, p := range r.peers {
 		// when peers are closed, they delete themselves from the registry via their
 		// close hook, so we always just close the first peer.
-		if cerr := r.peers[0].Close(); cerr != nil && err == nil {
+		if cerr := p.Close(); cerr != nil && err == nil {
 			err = cerr // record first non-nil error
 		}
 	}
@@ -127,7 +127,8 @@ func (r *Registry) Has(addr Address) bool {
 // addPeer adds a new peer to the registry.
 func (r *Registry) addPeer(addr Address, conn Conn) *Peer {
 	// Create and register a new peer.
-	peer := newPeer(addr, conn, func(p *Peer) { r.delete(p) }, r.dialer)
+	peer := newPeer(addr, conn, r.dialer)
+	peer.OnClose(func() { r.delete(peer) })
 	r.peers = append(r.peers, peer)
 	// Setup the peer's subscriptions.
 	r.subscribe(peer)

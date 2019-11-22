@@ -108,13 +108,13 @@ func TestRegistry_Get(t *testing.T) {
 				t.Fatal("Peer that is successfully dialed must exist", i)
 			}
 
-			assert.False(p.isClosed(), "Dialed peer must not be closed", i)
+			assert.False(p.IsClosed(), "Dialed peer must not be closed", i)
 
 			assert.NoError(r.Close())
 			assert.Equal(0, r.NumPeers())
 			assert.False(r.Has(addr))
 			assert.True(d.isClosed(), "Registry.Close() should have closed its dialer")
-			assert.True(p.isClosed(), "Registry.Close() should have closed the peer")
+			assert.True(p.IsClosed(), "Registry.Close() should have closed the peer")
 			assert.Error(r.Close(),
 				"closing the registry a second time should return the error from Dialer.Close()")
 		})
