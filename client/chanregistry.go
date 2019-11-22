@@ -11,9 +11,6 @@ import (
 	"perun.network/go-perun/channel"
 )
 
-// Channel is a stub for now. Remove this in the channel PR.
-type Channel struct{}
-
 // ChanRegistry is a registry for channels.
 // You can safely look up channels via their ID and concurrently modify the
 // registry. Always initialize instances of this type with MakeChanRegistry().
