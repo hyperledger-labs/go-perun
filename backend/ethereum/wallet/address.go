@@ -7,6 +7,7 @@ package wallet
 import (
 	"bytes"
 	"io"
+	"math/rand"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/pkg/errors"
@@ -20,6 +21,13 @@ var _ perun.Address = (*Address)(nil)
 // Address represents an ethereum address as a perun address.
 type Address struct {
 	common.Address
+}
+
+// NewRandomAddress creates a new random ethereum address.
+func NewRandomAddress(rnd *rand.Rand) Address {
+	var a common.Address
+	rnd.Read(a[:])
+	return Address{Address: a}
 }
 
 // Bytes returns the address as a byte slice.
