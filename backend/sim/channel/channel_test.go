@@ -25,8 +25,8 @@ func newChannelSetup() *test.Setup {
 	app := chtest.NewRandomApp(rng)
 	app2 := chtest.NewRandomApp(rng)
 
-	params := chtest.NewRandomParams(rng, app)
-	params2 := chtest.NewRandomParams(rng, app2)
+	params := chtest.NewRandomParams(rng, app.Def())
+	params2 := chtest.NewRandomParams(rng, app2.Def())
 
 	state := chtest.NewRandomState(rng, params)
 	state2 := chtest.NewRandomState(rng, params2)

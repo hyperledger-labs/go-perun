@@ -56,7 +56,7 @@ func NewRandomSubAlloc(rng *rand.Rand, size int) *channel.SubAlloc {
 	return &channel.SubAlloc{ID: NewRandomChannelID(rng), Bals: NewRandomBals(rng, size)}
 }
 
-func NewRandomParams(rng *rand.Rand, app channel.App) *channel.Params {
+func NewRandomParams(rng *rand.Rand, appDef wallet.Address) *channel.Params {
 	var challengeDuration = rng.Uint64()
 	parts := make([]wallet.Address, rng.Int31n(5)+2)
 	for i := 0; i < len(parts); i++ {
@@ -64,7 +64,7 @@ func NewRandomParams(rng *rand.Rand, app channel.App) *channel.Params {
 	}
 	nonce := big.NewInt(int64(rng.Uint32()))
 
-	params, err := channel.NewParams(challengeDuration, parts, app, nonce)
+	params, err := channel.NewParams(challengeDuration, parts, appDef, nonce)
 	if err != nil {
 		log.Panic("NewParams failed ", err)
 	}

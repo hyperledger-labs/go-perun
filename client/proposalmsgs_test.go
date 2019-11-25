@@ -84,7 +84,7 @@ func TestChannelProposalSessID(t *testing.T) {
 
 func newRandomChannelProposal(rng *rand.Rand) *client.ChannelProposal {
 	app := test.NewRandomApp(rng)
-	params := test.NewRandomParams(rng, app)
+	params := test.NewRandomParams(rng, app.Def())
 	data := test.NewRandomData(rng)
 	numParts := 2 + rng.Intn(8)
 	alloc := test.NewRandomAllocation(rng, numParts)
