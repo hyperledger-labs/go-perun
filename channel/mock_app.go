@@ -23,7 +23,7 @@ var _ ActionApp = new(MockApp)
 var _ StateApp = new(MockApp)
 
 // MockOp serves as Action and State.Data for MockApp.
-type MockOp uint8
+type MockOp uint64
 
 var _ Action = new(MockOp)
 var _ Data = new(MockOp)
@@ -49,12 +49,12 @@ func NewMockOp(op MockOp) *MockOp {
 
 // Encode encodes a MockOp into an io.Writer.
 func (o MockOp) Encode(w io.Writer) error {
-	return wire.Encode(w, uint8(o))
+	return wire.Encode(w, uint64(o))
 }
 
 // Decode decodes a MockOp from an io.Reader.
 func (o *MockOp) Decode(r io.Reader) error {
-	return wire.Decode(r, (*uint8)(o))
+	return wire.Decode(r, (*uint64)(o))
 }
 
 // Clone returns a deep copy of a
