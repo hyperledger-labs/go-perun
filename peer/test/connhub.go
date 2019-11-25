@@ -25,10 +25,7 @@ func (h *ConnHub) Create(id peer.Identity) (peer.Dialer, peer.Listener, error) {
 	}
 
 	// Remove the listener from the hub after it's closed.
-	go func() {
-		<-listener.closed
-		h.erase(id.Address())
-	}()
+	listener.OnClose(func() { h.erase(id.Address()) })
 
 	dialer := &Dialer{hub: h, identity: id}
 	return dialer, listener, nil
