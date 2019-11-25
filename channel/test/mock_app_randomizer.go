@@ -15,9 +15,9 @@ type MockAppRandomizer struct {
 }
 
 func (MockAppRandomizer) NewRandomApp(rng *rand.Rand) channel.App {
-	return NewMockApp(test.NewRandomAddress(rng))
+	return channel.NewMockApp(test.NewRandomAddress(rng))
 }
 
 func (MockAppRandomizer) NewRandomData(rng *rand.Rand) channel.Data {
-	return NewMockOp(MockOp(rng.Uint64()))
+	return channel.NewMockOp(channel.MockOp(rng.Uint64()))
 }
