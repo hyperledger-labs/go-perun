@@ -5,6 +5,7 @@
 package channel
 
 import (
+	"log"
 	"math/big"
 
 	"github.com/pkg/errors"
@@ -42,28 +43,49 @@ func (p *Params) ID() ID {
 // NewParams creates Params from the given data and performs sanity checks. The
 // channel id is also calculated here and persisted because it probably is an
 // expensive hash operation.
-func NewParams(
-	challengeDuration uint64,
-	parts []wallet.Address,
-	app App,
-	nonce *big.Int,
-) (*Params, error) {
+func NewParams(challengeDuration uint64, parts []wallet.Address, appDef wallet.Address, nonce *big.Int) (*Params, error) {
+	if err := ValidateParameters(challengeDuration, len(parts), appDef, nonce); err != nil {
+		return nil, errors.WithMessage(err, "invalid parameter for NewParams")
+	}
+	return NewParamsUnsafe(challengeDuration, parts, appDef, nonce), nil
+}
+
+// ValidateParameters checks that the arguments form valid Params:
+// * non-zero ChallengeDuration
+// * non-nil nonce
+// * at least two and at most MaxNumParts parts
+// * appDef belongs to either a StateApp or ActionApp
+func ValidateParameters(challengeDuration uint64, numParts int, appDef wallet.Address, nonce *big.Int) error {
 	if challengeDuration == 0 {
-		return nil, errors.New("ChallengeDuration must be > 0")
-	}
-	if len(parts) < 2 {
-		return nil, errors.New("need at least two participants")
-	}
-	if len(parts) > MaxNumParts {
-		return nil, errors.Errorf("too many participants, got: %d max: %d", len(parts), MaxNumParts)
+		return errors.New("challengeDuration must be != 0")
 	}
 	if nonce == nil {
-		return nil, errors.New("nonce must not be nil")
+		return errors.New("nonce must not be nil")
+	}
+	if numParts < 2 {
+		return errors.New("need at least two participants")
+	}
+	if numParts > MaxNumParts {
+		return errors.Errorf("too many participants, got: %d max: %d", numParts, MaxNumParts)
+	}
+	app, err := AppFromDefinition(appDef)
+	if err != nil {
+		return errors.WithMessage(err, "app from definition")
 	}
 	if !IsStateApp(app) && !IsActionApp(app) {
-		return nil, errors.New("app must either be a StateApp or ActionApp")
+		return errors.New("app must be either an Action- or StateApp")
 	}
+	return nil
+}
 
+// NewParamsUnsafe creates Params from the given data and does NOT perform sanity checks.
+// The channel id is also calculated here and persisted because it probably is an
+// expensive hash operation.
+func NewParamsUnsafe(challengeDuration uint64, parts []wallet.Address, appDef wallet.Address, nonce *big.Int) *Params {
+	app, err := AppFromDefinition(appDef)
+	if err != nil {
+		log.Panic("AppFromDefinition on validated parameters returned error")
+	}
 	p := &Params{
 		ChallengeDuration: challengeDuration,
 		Parts:             parts,
@@ -72,6 +94,5 @@ func NewParams(
 	}
 	// probably an expensive hash operation, do it only once during creation.
 	p.id = ChannelID(p)
-
-	return p, nil
+	return p
 }

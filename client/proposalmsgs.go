@@ -162,11 +162,11 @@ func (c ChannelProposal) SessID() (sid SessionID) {
 }
 
 // Valid checks that the channel proposal is valid:
-// * ParticipantAddr, InitBals and Nonce must not be nil
-// * 2 <= len(Parts) <= channel.MaxNumParts
-// * InitBals match the dimension of Parts (TODO: check is valid)
+// * ParticipantAddr, InitBals must not be nil
+// * ValidateParameters returns nil
+// * InitBals are valid
 // * No locked sub-allocations
-// * non-zero ChallengeDuration
+// * InitBals match the dimension of Parts
 func (c ChannelProposal) Valid() error {
 	if c.ParticipantAddr == nil || c.InitBals == nil || c.Nonce == nil {
 		return errors.New("invalid nil fields")
