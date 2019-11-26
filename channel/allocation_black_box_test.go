@@ -65,6 +65,7 @@ func TestAllocationSerialization(t *testing.T) {
 }
 
 func TestAllocationValidLimits(t *testing.T) {
+	rng := rand.New(rand.NewSource(1337))
 	inputs := []struct {
 		numAssets         int
 		numParts          int
@@ -87,7 +88,7 @@ func TestAllocationValidLimits(t *testing.T) {
 		}
 
 		for i := range allocation.Assets {
-			allocation.Assets[i] = &test.Asset{ID: 1}
+			allocation.Assets[i] = test.NewRandomAsset(rng)
 		}
 
 		for i := range allocation.OfParts {

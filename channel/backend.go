@@ -4,7 +4,11 @@
 
 package channel
 
-import "perun.network/go-perun/wallet"
+import (
+	"io"
+
+	"perun.network/go-perun/wallet"
+)
 
 // backend is set to the global channel backend. It must be set through
 // backend.Set(Collection).
@@ -29,6 +33,9 @@ type Backend interface {
 	// The framework guarantees to not pass nil Address, *Params or *State, that
 	// the IDs of them match and that Params.ID = ChannelID(Params).
 	Verify(addr wallet.Address, params *Params, state *State, sig wallet.Sig) (bool, error)
+
+	// DecodeAsset decodes an asset from a stream.
+	DecodeAsset(io.Reader) (Asset, error)
 }
 
 // SetBackend sets the global channel backend. Must not be called directly but
@@ -47,4 +54,8 @@ func Sign(a wallet.Account, p *Params, s *State) (wallet.Sig, error) {
 
 func Verify(addr wallet.Address, params *Params, state *State, sig wallet.Sig) (bool, error) {
 	return backend.Verify(addr, params, state, sig)
+}
+
+func DecodeAsset(r io.Reader) (Asset, error) {
+	return backend.DecodeAsset(r)
 }

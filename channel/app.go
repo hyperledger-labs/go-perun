@@ -96,9 +96,6 @@ type (
 		// is that the app is just read from an app registry, mapping addresses to
 		// apps.
 		AppFromDefinition(wallet.Address) (App, error)
-
-		// DecodeAsset decodes an asset from a stream.
-		DecodeAsset(io.Reader) (Asset, error)
 	}
 )
 
@@ -129,9 +126,4 @@ func SetAppBackend(b AppBackend) {
 // AppFromDefinition is a global wrapper call to the app backend function.
 func AppFromDefinition(def wallet.Address) (App, error) {
 	return appBackend.AppFromDefinition(def)
-}
-
-// DecodeAsset is a global wrapper call to the app backend function.
-func DecodeAsset(r io.Reader) (Asset, error) {
-	return appBackend.DecodeAsset(r)
 }

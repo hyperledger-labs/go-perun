@@ -5,6 +5,7 @@
 package channel
 
 import (
+	"io"
 	"math"
 	"testing"
 
@@ -34,6 +35,11 @@ func (m *mockBackend) Verify(wallet.Address, *Params, *State, wallet.Sig) (bool,
 	return false, nil
 }
 
+func (m *mockBackend) DecodeAsset(io.Reader) (Asset, error) {
+	m.AssertWrapped()
+	return nil, nil
+}
+
 // compile-time check that mockBackend implements Backend
 var _ Backend = (*mockBackend)(nil)
 
@@ -49,6 +55,9 @@ func TestGlobalBackend(t *testing.T) {
 	b.AssertCalled()
 
 	Verify(nil, nil, nil, nil)
+	b.AssertCalled()
+
+	DecodeAsset(nil)
 	b.AssertCalled()
 }
 
