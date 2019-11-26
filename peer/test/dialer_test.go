@@ -12,7 +12,6 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"perun.network/go-perun/backend/sim/wallet"
-	"perun.network/go-perun/peer"
 )
 
 func TestDialer_Dial(t *testing.T) {
@@ -23,34 +22,6 @@ func TestDialer_Dial(t *testing.T) {
 		d.Close()
 
 		conn, err := d.Dial(context.Background(), wallet.NewRandomAddress(rng))
-		assert.Nil(t, conn)
-		assert.Error(t, err)
-	})
-
-	// Failed ExchangeAddr execution must result in error.
-	t.Run("ExchangeAddr fail", func(t *testing.T) {
-		identity := wallet.NewRandomAccount(rng)
-		var hub ConnHub
-		d, l, _ := hub.Create(identity)
-		go func() {
-			conn, _ := l.Accept()
-			conn.Close()
-		}()
-		conn, err := d.Dial(context.Background(), identity.Address())
-		assert.Nil(t, conn)
-		assert.Error(t, err)
-	})
-
-	// Wrong exchanged address must result in error.
-	t.Run("ExchangeAddr wrong address", func(t *testing.T) {
-		identity := wallet.NewRandomAccount(rng)
-		var hub ConnHub
-		d, l, err := hub.Create(identity)
-		go func() {
-			conn, _ := l.Accept()
-			peer.ExchangeAddrs(wallet.NewRandomAccount(rng), conn)
-		}()
-		conn, err := d.Dial(context.Background(), identity.Address())
 		assert.Nil(t, conn)
 		assert.Error(t, err)
 	})

@@ -25,7 +25,7 @@ type ConnHub struct {
 // Create creates a new test dialer and test listener for the given identity.
 // Registers the new listener in the hub. Fails if the address was already
 // entered or the hub is closed.
-func (h *ConnHub) Create(id peer.Identity) (peer.Dialer, peer.Listener, error) {
+func (h *ConnHub) Create(addr peer.Address) (peer.Dialer, peer.Listener, error) {
 	h.mutex.RLock()
 	defer h.mutex.RUnlock()
 
@@ -34,14 +34,14 @@ func (h *ConnHub) Create(id peer.Identity) (peer.Dialer, peer.Listener, error) {
 	}
 
 	listener := NewListener()
-	if err := h.insert(id.Address(), listener); err != nil {
+	if err := h.insert(addr, listener); err != nil {
 		return nil, nil, errors.New("double registration")
 	}
 
 	// Remove the listener from the hub after it's closed.
-	listener.OnClose(func() { h.erase(id.Address()) })
+	listener.OnClose(func() { h.erase(addr) })
 
-	dialer := &Dialer{hub: h, identity: id}
+	dialer := &Dialer{hub: h}
 	h.dialers.insert(dialer)
 	dialer.OnClose(func() { h.dialers.erase(dialer) })
 	return dialer, listener, nil
