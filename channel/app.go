@@ -117,8 +117,8 @@ var appBackend AppBackend
 // It should be set in the init() function of the package that implements the
 // application.
 func SetAppBackend(b AppBackend) {
-	if appBackend != nil {
-		panic("App backend already set")
+	if appBackend != nil || b == nil {
+		panic("app backend already set or nil argument")
 	}
 	appBackend = b
 }

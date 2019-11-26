@@ -5,8 +5,6 @@
 package wallet // import "perun.network/go-perun/backend/sim/wallet"
 
 import (
-	"math/rand"
-
 	"perun.network/go-perun/wallet"
 	"perun.network/go-perun/wallet/test"
 )
@@ -14,16 +12,4 @@ import (
 func init() {
 	wallet.SetBackend(new(Backend))
 	test.SetRandomizer(&Randomizer{})
-}
-
-type Randomizer struct{}
-
-var _ test.Randomizer = &Randomizer{}
-
-func (Randomizer) NewRandomAddress(rng *rand.Rand) wallet.Address {
-	return NewRandomAddress(rng)
-}
-
-func (Randomizer) NewRandomAccount(rng *rand.Rand) wallet.Account {
-	return NewRandomAccount(rng)
 }
