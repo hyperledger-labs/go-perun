@@ -70,14 +70,20 @@ func TestRegistry_Get(t *testing.T) {
 			rng := rand.New(rand.NewSource(0xb0baFEDD))
 			d := &mockDialer{dial: make(chan Conn)}
 			r := NewRegistry(func(*Peer) {}, d)
+			assert.Equal(0, r.NumPeers())
 
 			addr := wallet.NewRandomAddress(rng)
+			assert.False(r.Has(addr))
 			p := r.Get(addr)
+			assert.Equal(1, r.NumPeers())
+			assert.True(r.Has(addr))
 			assert.NotNil(p, "Get() must not return nil", i)
 			assert.Equal(p, r.Get(addr), "Get must return the existing peer", i)
 			<-time.NewTimer(timeout).C
 			assert.NotEqual(p, r.Get(wallet.NewRandomAddress(rng)),
 				"Get() must return different peers for different addresses", i)
+			assert.Equal(2, r.NumPeers())
+			assert.True(r.Has(addr))
 
 			select {
 			case <-p.exists:
@@ -105,6 +111,8 @@ func TestRegistry_Get(t *testing.T) {
 			assert.False(p.isClosed(), "Dialed peer must not be closed", i)
 
 			assert.NoError(r.Close())
+			assert.Equal(0, r.NumPeers())
+			assert.False(r.Has(addr))
 			assert.True(d.isClosed(), "Registry.Close() should have closed its dialer")
 			assert.True(p.isClosed(), "Registry.Close() should have closed the peer")
 			assert.Error(r.Close(),
@@ -131,11 +139,16 @@ func TestRegistry_delete(t *testing.T) {
 	r := NewRegistry(func(*Peer) {}, d)
 
 	addr := wallet.NewRandomAddress(rng)
+	assert.Equal(t, 0, r.NumPeers())
 	p := r.Get(addr)
+	assert.Equal(t, 1, r.NumPeers())
+	assert.True(t, r.Has(addr))
 	p2, _ := r.find(addr)
 	assert.Equal(t, p, p2)
 
 	r.delete(p2)
+	assert.Equal(t, 0, r.NumPeers())
+	assert.False(t, r.Has(addr))
 	p2, _ = r.find(addr)
 	assert.Nil(t, p2)
 
