@@ -144,6 +144,19 @@ func TestPeer_Send_Timeout(t *testing.T) {
 	assert.True(t, p.IsClosed(), "peer must be closed after failed Send()")
 }
 
+func TestPeer_Send_Timeout_Mutex_TryLockCtx(t *testing.T) {
+	conn, _ := newPipeConnPair()
+	p := newPeer(nil, conn, nil)
+
+	p.sending.Lock()
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	defer cancel()
+
+	assert.Error(t, p.Send(ctx, wire.NewPingMsg()),
+		"Send() must timeout on locked mutex")
+	assert.True(t, p.IsClosed(), "peer must be closed after failed Send()")
+}
+
 func TestPeer_Send_Close(t *testing.T) {
 	conn, _ := newPipeConnPair()
 	p := newPeer(nil, conn, nil)

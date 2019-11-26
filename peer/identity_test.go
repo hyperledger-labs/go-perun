@@ -34,6 +34,13 @@ func TestExchangeAddrs_NilParams(t *testing.T) {
 	})
 }
 
+func TestExchangeAddrs_ConnFail(t *testing.T) {
+	rng := rand.New(rand.NewSource(0xDDDDDEDE))
+	a, _ := newPipeConnPair()
+	a.Close()
+	ExchangeAddrs(sim.NewRandomAccount(rng), a)
+}
+
 func TestExchangeAddrs_Success(t *testing.T) {
 	rng := rand.New(rand.NewSource(0xfedd))
 	conn0, conn1 := newPipeConnPair()
@@ -42,14 +49,16 @@ func TestExchangeAddrs_Success(t *testing.T) {
 	var wg sync.WaitGroup
 	wg.Add(1)
 
-	go func() {
-		defer wg.Done()
-		defer conn1.Close()
+	t.Run("remote part", func(t *testing.T) {
+		go func() {
+			defer wg.Done()
+			defer conn1.Close()
 
-		recvAddr0, err := ExchangeAddrs(account1, conn1)
-		assert.NoError(t, err)
-		assert.True(t, recvAddr0.Equals(account0.Address()))
-	}()
+			recvAddr0, err := ExchangeAddrs(account1, conn1)
+			assert.NoError(t, err)
+			assert.True(t, recvAddr0.Equals(account0.Address()))
+		}()
+	})
 
 	recvAddr1, err := ExchangeAddrs(account0, conn0)
 	assert.NoError(t, err)
