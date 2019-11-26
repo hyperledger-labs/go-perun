@@ -14,13 +14,8 @@ import (
 
 	sim "perun.network/go-perun/backend/sim/wallet"
 	"perun.network/go-perun/pkg/test"
-	"perun.network/go-perun/wallet"
 	"perun.network/go-perun/wire/msg"
 )
-
-func init() {
-	wallet.SetBackend(new(sim.Backend))
-}
 
 func TestAuthResponseMsg(t *testing.T) {
 	rng := rand.New(rand.NewSource(1337))
