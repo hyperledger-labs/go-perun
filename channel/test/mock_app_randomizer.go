@@ -8,17 +8,16 @@ import (
 	"math/rand"
 
 	"perun.network/go-perun/channel"
-	wallettest "perun.network/go-perun/wallet/test"
+	"perun.network/go-perun/wallet/test"
 )
 
-type TestBackend struct{}
-
-var _ Backend = &TestBackend{}
-
-func (TestBackend) NewRandomApp(rng *rand.Rand) channel.App {
-	return NewNoApp(wallettest.NewRandomAddress(rng))
+type MockAppRandomizer struct {
 }
 
-func (TestBackend) NewRandomData(rng *rand.Rand) channel.Data {
-	return newRandomNoAppData(rng)
+func (MockAppRandomizer) NewRandomApp(rng *rand.Rand) channel.App {
+	return NewMockApp(test.NewRandomAddress(rng))
+}
+
+func (MockAppRandomizer) NewRandomData(rng *rand.Rand) channel.Data {
+	return NewMockOp(MockOp(rng.Uint64()))
 }

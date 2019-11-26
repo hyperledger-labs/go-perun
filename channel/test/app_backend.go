@@ -5,8 +5,6 @@
 package test
 
 import (
-	"io"
-
 	"perun.network/go-perun/channel"
 	"perun.network/go-perun/wallet"
 )
@@ -20,9 +18,4 @@ var _ channel.AppBackend = &NoAppBackend{}
 
 func (NoAppBackend) AppFromDefinition(addr wallet.Address) (channel.App, error) {
 	return NewNoApp(addr), nil
-}
-
-func (NoAppBackend) DecodeAsset(r io.Reader) (channel.Asset, error) {
-	var asset Asset
-	return &asset, asset.Decode(r)
 }

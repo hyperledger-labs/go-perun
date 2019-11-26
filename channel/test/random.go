@@ -16,12 +16,11 @@ import (
 )
 
 type Backend interface {
-	NewRandomAsset(*rand.Rand) channel.Asset
 	NewRandomApp(*rand.Rand) channel.App
 	NewRandomData(*rand.Rand) channel.Data
 }
 
-var backend Backend = &TestBackend{}
+var backend Backend = &MockAppRandomizer{}
 
 func SetBackend(b Backend) {
 	backend = b
@@ -88,10 +87,6 @@ func NewRandomApp(rng *rand.Rand) channel.App {
 
 func NewRandomData(rng *rand.Rand) channel.Data {
 	return backend.NewRandomData(rng)
-}
-
-func NewRandomAsset(rng *rand.Rand) channel.Asset {
-	return backend.NewRandomAsset(rng)
 }
 
 func NewRandomChannelID(rng *rand.Rand) (id channel.ID) {
