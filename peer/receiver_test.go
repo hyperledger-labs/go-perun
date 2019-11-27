@@ -24,6 +24,14 @@ func TestNewReceiver(t *testing.T) {
 	assert.Zero(t, len(NewReceiver().subs), "fresh receivers must be empty")
 }
 
+func TestReceiver_Close(t *testing.T) {
+	t.Parallel()
+
+	r := NewReceiver()
+	assert.NoError(t, r.Close())
+	assert.Error(t, r.Close())
+}
+
 func pred(wire.Msg) bool { return true }
 
 func TestReceiver_Subscribe(t *testing.T) {
