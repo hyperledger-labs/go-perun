@@ -23,7 +23,7 @@ func TestBroadcaster_Send(t *testing.T) {
 	check := func(m wire.Msg) { assert.Equal(t, msg, m) }
 
 	for i := 0; i < N; i++ {
-		peers[i] = newPeer(nil, newMockConn(check), nil, nil)
+		peers[i] = newPeer(nil, newMockConn(check), nil)
 	}
 
 	b := NewBroadcaster(peers)
@@ -38,7 +38,7 @@ func TestBroadcaster_Send_Error(t *testing.T) {
 	peers := make([]*Peer, N)
 
 	for i := 0; i < N; i++ {
-		peers[i] = newPeer(nil, newMockConn(nil), nil, nil)
+		peers[i] = newPeer(nil, newMockConn(nil), nil)
 	}
 
 	peers[1].Close()

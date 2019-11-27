@@ -11,6 +11,7 @@ import (
 	"github.com/pkg/errors"
 
 	"perun.network/go-perun/log"
+	perunsync "perun.network/go-perun/pkg/sync"
 	wire "perun.network/go-perun/wire/msg"
 )
 
@@ -36,10 +37,11 @@ type msgTuple struct {
 // Next() will fail when the receiver is not subscribed to any peers, while
 // NextWait() will only fail if the receiver is manually closed via Close().
 type Receiver struct {
-	mutex  sync.Mutex    // Protects all fields.
-	msgs   chan msgTuple // Queued messages.
-	closed bool
-	subs   []*Peer // The receiver's subscription list.
+	mutex sync.Mutex    // Protects all fields.
+	msgs  chan msgTuple // Queued messages.
+	subs  []*Peer       // The receiver's subscription list.
+
+	perunsync.Closer
 }
 
 // Subscribe subscribes a receiver to all of a peer's messages of the requested
@@ -48,7 +50,7 @@ func (r *Receiver) Subscribe(p *Peer, predicate func(wire.Msg) bool) error {
 	r.mutex.Lock()
 	defer r.mutex.Unlock()
 
-	if r.closed {
+	if r.IsClosed() {
 		return errors.New("receiver is closed")
 	}
 
@@ -89,10 +91,7 @@ func (r *Receiver) unsubscribe(p *Peer, doDelete bool) {
 func (r *Receiver) UnsubscribeAll() {
 	r.mutex.Lock()
 	defer r.mutex.Unlock()
-	r.unsubscribeAll()
-}
 
-func (r *Receiver) unsubscribeAll() {
 	for _, p := range r.subs {
 		p.subs.delete(r)
 	}
@@ -104,6 +103,12 @@ func (r *Receiver) Next(ctx context.Context) (*Peer, wire.Msg) {
 	select {
 	case <-ctx.Done():
 		return nil, nil
+	default:
+	}
+
+	select {
+	case <-ctx.Done():
+		return nil, nil
 	case tuple := <-r.msgs:
 		return tuple.Peer, tuple.Msg
 	}
@@ -112,17 +117,17 @@ func (r *Receiver) Next(ctx context.Context) (*Peer, wire.Msg) {
 // Close closes a receiver.
 // Any ongoing receiver operations will be aborted (if there are no messages in
 // backlog).
-func (r *Receiver) Close() {
-	r.mutex.Lock()
-	defer r.mutex.Unlock()
-
-	if !r.closed {
-		r.closed = true
-		// Remove all subscriptions.
-		r.unsubscribeAll()
-		// Close the message channel.
-		close(r.msgs)
+func (r *Receiver) Close() error {
+	if err := r.Closer.Close(); err != nil {
+		return err
 	}
+
+	// Remove all subscriptions.
+	r.UnsubscribeAll()
+	// Close the message channel.
+	close(r.msgs)
+
+	return nil
 }
 
 // NewReceiver creates a new receiver.

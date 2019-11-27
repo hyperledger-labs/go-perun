@@ -35,7 +35,7 @@ func (s *subscriptions) add(predicate func(wire.Msg) bool, r *Receiver) error {
 	s.mutex.Lock()
 	defer s.mutex.Unlock()
 
-	if s.peer.isClosed() {
+	if s.peer.IsClosed() {
 		return errors.New("peer closed")
 	}
 

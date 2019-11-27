@@ -24,13 +24,21 @@ func TestNewReceiver(t *testing.T) {
 	assert.Zero(t, len(NewReceiver().subs), "fresh receivers must be empty")
 }
 
+func TestReceiver_Close(t *testing.T) {
+	t.Parallel()
+
+	r := NewReceiver()
+	assert.NoError(t, r.Close())
+	assert.Error(t, r.Close())
+}
+
 func pred(wire.Msg) bool { return true }
 
 func TestReceiver_Subscribe(t *testing.T) {
 	t.Parallel()
 
 	r := NewReceiver()
-	p := newPeer(nil, nil, nil, nil)
+	p := newPeer(nil, nil, nil)
 
 	assert.Zero(t, len(r.subs), "receiver must be empty")
 	assert.NoError(t, r.Subscribe(p, pred), "first subscribe must not fail")
@@ -44,7 +52,7 @@ func TestReceiver_Subscribe(t *testing.T) {
 	r.UnsubscribeAll()
 	assert.Zero(t, len(r.subs), "receiver must be empty")
 
-	close(p.closed) // Manual close needed here.
+	p.Close()
 	assert.Error(t, r.Subscribe(p, pred), "subscription on closed peer must fail")
 	r.Close()
 	assert.Error(t, r.Subscribe(p, pred), "subscription on closed receiver must fail")
@@ -54,7 +62,7 @@ func TestReceiver_Next(t *testing.T) {
 	t.Parallel()
 
 	in, out := newPipeConnPair()
-	p := newPeer(nil, in, nil, nil)
+	p := newPeer(nil, in, nil)
 	go p.recvLoop()
 	r := NewReceiver()
 

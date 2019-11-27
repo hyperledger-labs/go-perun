@@ -68,3 +68,11 @@ func (m *listenerMap) erase(key peer.Address) error {
 		return errors.New("Tried to erase nonexistent entry.")
 	}
 }
+
+func (m *listenerMap) clear() []listenerMapEntry {
+	m.mutex.Lock()
+	defer m.mutex.Unlock()
+	ret := m.entries
+	m.entries = nil
+	return ret
+}

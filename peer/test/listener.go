@@ -10,6 +10,7 @@ import (
 	"github.com/pkg/errors"
 
 	"perun.network/go-perun/peer"
+	"perun.network/go-perun/pkg/sync"
 )
 
 var _ peer.Listener = (*Listener)(nil)
@@ -19,8 +20,8 @@ var _ peer.Listener = (*Listener)(nil)
 // tracks the number of accepted connections. IsClosed() can be used to detect
 // whether a Listener is still open.
 type Listener struct {
-	closed chan struct{}  // Whether the listener is closed.
-	queue  chan peer.Conn // The connection queue (unbuffered).
+	sync.Closer
+	queue chan peer.Conn // The connection queue (unbuffered).
 
 	accepted int32 // The number of connections that have been accepted.
 }
@@ -28,7 +29,6 @@ type Listener struct {
 // NewListener creates a new test listener.
 func NewListener() *Listener {
 	return &Listener{
-		closed:   make(chan struct{}),
 		queue:    make(chan peer.Conn),
 		accepted: 0,
 	}
@@ -36,16 +36,16 @@ func NewListener() *Listener {
 
 // Accept returns the next connection that is enqueued via Put(). This function
 // blocks until either Put() is called or until the listener is closed.
-func (m *Listener) Accept() (peer.Conn, error) {
-	if m.IsClosed() {
+func (l *Listener) Accept() (peer.Conn, error) {
+	if l.IsClosed() {
 		return nil, errors.New("listener closed")
 	}
 
 	select {
-	case <-m.closed:
+	case <-l.Closed():
 		return nil, errors.New("listener closed")
-	case conn := <-m.queue:
-		atomic.AddInt32(&m.accepted, 1)
+	case conn := <-l.queue:
+		atomic.AddInt32(&l.accepted, 1)
 		return conn, nil
 	}
 }
@@ -53,22 +53,8 @@ func (m *Listener) Accept() (peer.Conn, error) {
 // Close closes the test listener.
 // This aborts any ongoing Accept() call and all future Accept() calls will
 // fail. If the listener is already closed, returns an error.
-func (m *Listener) Close() (err error) {
-	defer func() { recover() }()
-	err = errors.New("listener already closed")
-	close(m.closed)
-	err = nil
-	return
-}
-
-// IsClosed returns whether the listener is closed.
-func (m *Listener) IsClosed() bool {
-	select {
-	case <-m.closed:
-		return true
-	default:
-		return false
-	}
+func (l *Listener) Close() error {
+	return errors.WithMessage(l.Closer.Close(), "listener was already closed")
 }
 
 // Put enqueues one connection to be returned by Accept().
@@ -77,10 +63,10 @@ func (m *Listener) IsClosed() bool {
 //
 // Note that if Put() is called in parallel, there is no ordering guarantee for
 // the accepted connections.
-func (m *Listener) Put(conn peer.Conn) {
+func (l *Listener) Put(conn peer.Conn) {
 	select {
-	case m.queue <- conn:
-	case <-m.closed:
+	case l.queue <- conn:
+	case <-l.Closed():
 		return
 	}
 }
@@ -88,6 +74,6 @@ func (m *Listener) Put(conn peer.Conn) {
 // NumAccepted returns the number of connections that have been accepted by the
 // listener. Note that this number is updated before Accept() returns, but not
 // necessarily before Put() returns.
-func (m *Listener) NumAccepted() int {
-	return int(atomic.LoadInt32(&m.accepted))
+func (l *Listener) NumAccepted() int {
+	return int(atomic.LoadInt32(&l.accepted))
 }

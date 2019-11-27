@@ -8,7 +8,9 @@ import (
 	"context"
 	"sync"
 
+	"github.com/pkg/errors"
 	"perun.network/go-perun/log"
+	perunsync "perun.network/go-perun/pkg/sync"
 )
 
 // Registry is a peer Registry.
@@ -19,6 +21,8 @@ type Registry struct {
 
 	dialer    Dialer      // Used for dialing peers (and later: repairing).
 	subscribe func(*Peer) // Sets up peer subscriptions.
+
+	perunsync.Closer
 }
 
 // NewRegistry creates a new registry.
@@ -31,20 +35,26 @@ func NewRegistry(subscribe func(*Peer), dialer Dialer) *Registry {
 	}
 }
 
+// Close closes the registry's dialer and all its peers.
 func (r *Registry) Close() (err error) {
-	if r.dialer != nil {
-		r.mutex.Lock()
-		err = r.dialer.Close()
-		r.mutex.Unlock()
+	if err = r.Closer.Close(); err != nil {
+		return
 	}
-	for len(r.peers) > 0 {
-		// when peers are closed, they delete themselves from the registry via their
-		// close hook, so we always just close the first peer.
-		if cerr := r.peers[0].Close(); cerr != nil && err == nil {
-			err = cerr // record first non-nil error
+
+	r.mutex.Lock()
+	defer r.mutex.Unlock()
+
+	for _, p := range r.peers {
+		// When peers are closed, they delete themselves from the registry.
+		if cerr := p.Close(); cerr != nil && err == nil {
+			err = errors.WithMessage(cerr, "closing peer")
 		}
 	}
-	return err
+
+	if r.dialer != nil && err == nil {
+		err = errors.WithMessage(r.dialer.Close(), "closing dialer")
+	}
+	return
 }
 
 // find looks up a peer via its Perun address.
@@ -64,7 +74,7 @@ func (r *Registry) find(addr Address) (*Peer, int) {
 // requested address. When the dialling finishes, completes the peer or closes
 // it, depending on the success of the dialing operation. The unfinished peer
 // object can be used already, but it will block until the peer is finished or
-// closed.
+// closed. If the registry is already closed, returns a closed peer.
 func (r *Registry) Get(addr Address) *Peer {
 	r.mutex.Lock()
 	defer r.mutex.Unlock()
@@ -79,8 +89,14 @@ func (r *Registry) Get(addr Address) *Peer {
 	// Dial the peer in the background.
 	go func() {
 		conn, err := r.dialer.Dial(context.Background(), addr)
+		r.mutex.Lock()
+		defer r.mutex.Unlock()
 		if err != nil {
-			peer.Close()
+			select {
+			case <-peer.exists:
+			default:
+				peer.Close()
+			}
 		} else {
 			peer.create(conn)
 		}
@@ -127,7 +143,8 @@ func (r *Registry) Has(addr Address) bool {
 // addPeer adds a new peer to the registry.
 func (r *Registry) addPeer(addr Address, conn Conn) *Peer {
 	// Create and register a new peer.
-	peer := newPeer(addr, conn, func(p *Peer) { r.delete(p) }, r.dialer)
+	peer := newPeer(addr, conn, r.dialer)
+	peer.OnClose(func() { r.delete(peer) })
 	r.peers = append(r.peers, peer)
 	// Setup the peer's subscriptions.
 	r.subscribe(peer)
