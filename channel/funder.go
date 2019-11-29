@@ -26,11 +26,11 @@ type (
 	FundingReq struct {
 		Params     *Params
 		Allocation *Allocation
-		Idx        uint16 // our index
+		Idx        Index // our index
 	}
 
 	PeerTimedOutFundingError struct {
-		TimedOutPeerIdx uint16 // index of the peer who timed-out funding
+		TimedOutPeerIdx Index // index of the peer who timed-out funding
 	}
 )
 
