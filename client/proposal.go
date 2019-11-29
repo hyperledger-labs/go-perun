@@ -149,8 +149,8 @@ func (c *Client) subChannelProposals(p *peer.Peer) {
 // two-party channel proposal protocol.
 // The proposer is expected to be the first peer in the participant list.
 func (c *Client) handleChannelProposal(p *peer.Peer, proposal *ChannelProposalReq) {
-	if err := proposal.Valid(); err != nil {
-		c.logPeer(p).Debugf("received invalid channel proposal")
+	if err := c.validTwoPartyProposal(proposal, 1, p.PerunAddress); err != nil {
+		c.logPeer(p).Debugf("received invalid channel proposal: %v", err)
 		return
 	}
 
@@ -195,8 +195,8 @@ func (c *Client) exchangeChannelProposal(
 	ctx context.Context,
 	proposal *ChannelProposalReq,
 ) (*channelProposalResult, error) {
-	if err := proposal.Valid(); err != nil {
-		return nil, err
+	if err := c.validTwoPartyProposal(proposal, 0, proposal.PeerAddrs[1]); err != nil {
+		return nil, errors.WithMessage(err, "invalid channel proposal")
 	}
 
 	numParts := len(proposal.PeerAddrs)
@@ -257,4 +257,35 @@ func (c *Client) exchangeChannelProposal(
 
 	return &channelProposalResult{
 		params, proposal.InitData, proposal.InitBals}, nil
+}
+
+// validTwoPartyProposal checks that the proposal is valid in the two-party
+// setting, where the proposer is expected to have index 0 in the peer list and
+// the receiver to have index 1. The generic validity of the proposal is also
+// checked.
+func (c *Client) validTwoPartyProposal(
+	proposal *ChannelProposalReq,
+	ourIdx int,
+	peerAddr wallet.Address,
+) error {
+	if err := proposal.Valid(); err != nil {
+		return err
+	}
+
+	if len(proposal.PeerAddrs) != 2 {
+		return errors.Errorf("exptected 2 peers, got %d", len(proposal.PeerAddrs))
+	}
+
+	peerIdx := ourIdx ^ 1
+	// In the 2PCPP, the proposer is expected to have index 0
+	if !proposal.PeerAddrs[peerIdx].Equals(peerAddr) {
+		return errors.Errorf("remote peer doesn't have peer index %d", peerIdx)
+	}
+
+	// In the 2PCPP, the receiver is expected to have index 1
+	if !proposal.PeerAddrs[ourIdx].Equals(c.id.Address()) {
+		return errors.Errorf("we don't have peer index %d", ourIdx)
+	}
+
+	return nil
 }
