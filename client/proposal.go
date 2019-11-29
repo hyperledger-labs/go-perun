@@ -52,7 +52,6 @@ type (
 
 	ProposalAcc struct {
 		Participant wallet.Account
-		// TODO add Funder
 		// TODO add UpdateHandler
 	}
 
