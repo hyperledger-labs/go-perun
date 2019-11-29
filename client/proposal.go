@@ -175,6 +175,8 @@ func (c *Client) handleChannelProposal(p *peer.Peer, proposal *ChannelProposalRe
 			responder.err <- err
 			return
 		}
+
+		//participants := []wallet.Address{proposal.ParticipantAddr, acc.Participant.Address()}
 		// TODO setup channel controller and start it
 
 	case rej := <-responder.reject:
@@ -288,4 +290,46 @@ func (c *Client) validTwoPartyProposal(
 	}
 
 	return nil
+}
+
+// setupChannel sets up a new channel controller for the given proposal and
+// participant addresses, using the account for our participant. The parameters
+// are assembled and the channel controller is started. The channel will be
+// funded and if successful, the *Channel is returned. It does not perform a
+// validity check on the proposal, so make sure to only paste valid proposals.
+func (c *Client) setupChannel(
+	ctx context.Context,
+	prop *ChannelProposal,
+	parts []wallet.Address, // result of the MPCPP on prop
+) (*Channel, error) {
+	params := channel.NewParamsUnsafe(prop.ChallengeDuration, parts, prop.AppDef, prop.Nonce)
+
+	peers, err := c.getPeers(ctx, prop.PeerAddrs)
+	if err != nil {
+		return nil, errors.WithMessage(err, "getting peers from the registry")
+	}
+
+	ch, err := newChannel(prop.Account, peers, *params)
+	if err != nil {
+		return nil, err
+	}
+	ch.setLogger(c.logChan(params.ID()))
+	ch.init(prop.InitBals, prop.InitData)
+	// TODO: Exchange Sigs on initial state
+
+	if err = c.funder.Fund(ctx,
+		channel.FundingReq{
+			Params:     params,
+			Allocation: prop.InitBals,
+			Idx:        ch.machine.Idx(),
+		}); channel.IsPeerTimedOutFundingError(err) {
+		// TODO: initiate dispute and withdrawal
+		ch.log.Warnf("error while funding channel: %v", err)
+		return ch, errors.WithMessage(err, "error while funding channel")
+	} else if err != nil { // other runtime error
+		ch.log.Warnf("error while funding channel: %v", err)
+		return ch, errors.WithMessage(err, "error while funding channel")
+	}
+
+	return ch, ch.machine.SetFunded()
 }
