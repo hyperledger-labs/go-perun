@@ -29,6 +29,11 @@ func Set(l Logger) {
 	logger = l
 }
 
+// Get returns the currently set framework logger.
+func Get() Logger {
+	return logger
+}
+
 // compile-time check that log.Logger implements a StdLogger
 var _ StdLogger = &log.Logger{}
 
