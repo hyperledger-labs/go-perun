@@ -73,3 +73,7 @@ func (c *Client) subscribePeer(p *peer.Peer) {
 func (c *Client) logPeer(p *peer.Peer) log.Logger {
 	return c.log.WithField("peer", p.PerunAddress)
 }
+
+func (c *Client) logChan(id channel.ID) log.Logger {
+	return c.log.WithField("channel", id)
+}
