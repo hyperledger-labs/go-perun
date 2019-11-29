@@ -7,6 +7,7 @@ package client
 
 import (
 	"context"
+	"math/big"
 
 	"github.com/pkg/errors"
 
@@ -19,8 +20,23 @@ import (
 )
 
 type (
+	// ChannelProposal contains all data necessary to propose a new
+	// channel to a given set of peers.
+	//
+	// This is the same as ChannelProposalMsg but with an account instead of only
+	// the address of the proposer. ChannelProposal is not sent over the wire.
+	ChannelProposal struct {
+		ChallengeDuration uint64
+		Nonce             *big.Int
+		Account           wallet.Account // local account to use when creating this channel
+		AppDef            wallet.Address
+		InitData          channel.Data
+		InitBals          *channel.Allocation
+		PeerAddrs         []wallet.Address // Perun addresses of all peers, including the proposer's
+	}
+
 	ProposalHandler interface {
-		Handle(*ChannelProposal, *ProposalResponder)
+		Handle(*ChannelProposalReq, *ProposalResponder)
 	}
 
 	// ProposalResponder lets the user respond to a channel proposal. If the user
@@ -124,13 +140,16 @@ func (c *Client) subChannelProposals(p *peer.Peer) {
 				c.logPeer(p).Debugf("proposal subscription closed")
 				return
 			}
-			proposal := m.(*ChannelProposal) // safe because that's the predicate
+			proposal := m.(*ChannelProposalReq) // safe because that's the predicate
 			go c.handleChannelProposal(p, proposal)
 		}
 	}()
 }
 
-func (c *Client) handleChannelProposal(p *peer.Peer, proposal *ChannelProposal) {
+// handleChannelProposal implements the receiving side of the (currently)
+// two-party channel proposal protocol.
+// The proposer is expected to be the first peer in the participant list.
+func (c *Client) handleChannelProposal(p *peer.Peer, proposal *ChannelProposalReq) {
 	if err := proposal.Valid(); err != nil {
 		c.logPeer(p).Debugf("received invalid channel proposal")
 		return
@@ -175,19 +194,19 @@ func (c *Client) handleChannelProposal(p *peer.Peer, proposal *ChannelProposal) 
 
 func (c *Client) exchangeChannelProposal(
 	ctx context.Context,
-	proposal *ChannelProposal,
+	proposal *ChannelProposalReq,
 ) (*channelProposalResult, error) {
 	if err := proposal.Valid(); err != nil {
 		return nil, err
 	}
 
-	numParts := len(proposal.Parts)
+	numParts := len(proposal.PeerAddrs)
 	if numParts != 2 {
 		return nil, errors.Errorf(
 			"Expected exactly two peers in proposal, got %d", numParts)
 	}
 
-	p, err := c.peers.Get(ctx, proposal.Parts[1])
+	p, err := c.peers.Get(ctx, proposal.PeerAddrs[1])
 	if err != nil {
 		return nil, errors.WithMessage(err, "failed to Get() participant [1]")
 	}
