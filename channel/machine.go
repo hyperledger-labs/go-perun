@@ -86,6 +86,11 @@ func newMachine(acc wallet.Account, params Params) (*machine, error) {
 
 }
 
+// Idx returns our index in the channel participants list.
+func (m *machine) Idx() Index {
+	return m.idx
+}
+
 // N returns the number of participants of the channel parameters of this machine.
 func (m *machine) N() Index {
 	return Index(len(m.params.Parts))
