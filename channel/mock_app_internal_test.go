@@ -10,14 +10,14 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"perun.network/go-perun/backend/sim/wallet"
 	iotest "perun.network/go-perun/pkg/io/test"
+	wallettest "perun.network/go-perun/wallet/test"
 )
 
 func TestMockApp(t *testing.T) {
 	rng := rand.New(rand.NewSource(1337))
 
-	address := wallet.NewRandomAddress(rng)
+	address := wallettest.NewRandomAddress(rng)
 	app := NewMockApp(address)
 
 	t.Run("App", func(t *testing.T) {
