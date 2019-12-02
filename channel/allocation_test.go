@@ -2,69 +2,149 @@
 // This file is part of go-perun. Use of this source code is governed by a
 // MIT-style license that can be found in the LICENSE file.
 
-package channel
+package channel_test
 
 import (
-	"io"
 	"math/big"
+	"math/rand"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 
+	"perun.network/go-perun/channel"
+	"perun.network/go-perun/channel/test"
 	perunio "perun.network/go-perun/pkg/io"
-	ioTest "perun.network/go-perun/pkg/io/test"
-	"perun.network/go-perun/pkg/test"
+	iotest "perun.network/go-perun/pkg/io/test"
+	pkgtest "perun.network/go-perun/pkg/test"
 )
 
-// asset is a test asset
-type asset struct{}
-
-// pkg/io.Serializable interface
-
-func (a asset) Decode(io.Reader) error {
-	return nil
-}
-
-func (a asset) Encode(io.Writer) error {
-	return nil
-}
-
-func assets(n uint) []Asset {
-	as := make([]Asset, n)
+func assets(rng *rand.Rand, n uint) []channel.Asset {
+	as := make([]channel.Asset, n)
 	for i := uint(0); i < n; i++ {
-		as[i] = new(asset)
+		as[i] = test.NewRandomAsset(rng)
 	}
 	return as
 }
 
+func TestAllocationSerialization(t *testing.T) {
+	rng := rand.New(rand.NewSource(1))
+	inputs := []perunio.Serializable{
+		&channel.Allocation{
+			Assets:  assets(rng, 1),
+			OfParts: [][]channel.Bal{[]channel.Bal{big.NewInt(123)}},
+			Locked:  []channel.SubAlloc{},
+		},
+		&channel.Allocation{
+			Assets: assets(rng, 1),
+			OfParts: [][]channel.Bal{
+				[]channel.Bal{big.NewInt(1)},
+			},
+			Locked: []channel.SubAlloc{
+				channel.SubAlloc{
+					ID:   channel.ID{0},
+					Bals: []channel.Bal{big.NewInt(2)}},
+			},
+		},
+		&channel.Allocation{
+			Assets: assets(rng, 3),
+			OfParts: [][]channel.Bal{
+				[]channel.Bal{big.NewInt(1), big.NewInt(10), big.NewInt(100)},
+				[]channel.Bal{big.NewInt(7), big.NewInt(11), big.NewInt(13)},
+			},
+			Locked: []channel.SubAlloc{
+				channel.SubAlloc{
+					ID: channel.ID{0},
+					Bals: []channel.Bal{
+						big.NewInt(1), big.NewInt(3), big.NewInt(5),
+					},
+				},
+			},
+		},
+	}
+
+	iotest.GenericSerializableTest(t, inputs...)
+}
+
+func TestAllocationValidLimits(t *testing.T) {
+	rng := rand.New(rand.NewSource(1337))
+	inputs := []struct {
+		numAssets         int
+		numParts          int
+		numSuballocations int
+	}{
+		{channel.MaxNumAssets + 1, 1, 0},
+		{1, channel.MaxNumParts + 1, 0},
+		{1, 1, channel.MaxNumSubAllocations + 1},
+		{
+			channel.MaxNumAssets + 2,
+			2 * channel.MaxNumParts,
+			4 * channel.MaxNumSubAllocations},
+	}
+
+	for ti, x := range inputs {
+		allocation := &channel.Allocation{
+			Assets:  make([]channel.Asset, x.numAssets),
+			OfParts: make([][]channel.Bal, x.numParts),
+			Locked:  make([]channel.SubAlloc, x.numSuballocations),
+		}
+
+		for i := range allocation.Assets {
+			allocation.Assets[i] = test.NewRandomAsset(rng)
+		}
+
+		for i := range allocation.OfParts {
+			allocation.OfParts[i] = make([]channel.Bal, x.numAssets)
+
+			for j := range allocation.OfParts[i] {
+				bal := big.NewInt(int64(x.numAssets)*int64(i) + int64(j))
+				allocation.OfParts[i][j] = bal
+			}
+		}
+
+		for i := range allocation.Locked {
+			allocation.Locked[i] = channel.SubAlloc{
+				ID:   channel.ID{byte(i), byte(i >> 8), byte(i >> 16), byte(i >> 24)},
+				Bals: make([]channel.Bal, x.numAssets)}
+
+			for j := range allocation.Locked[i].Bals {
+				bal := big.NewInt(int64(x.numAssets)*int64(i) + int64(j) + 1)
+				allocation.Locked[i].Bals[j] = bal
+			}
+		}
+
+		assert.Errorf(t, allocation.Valid(), "[%d] expected error for parameters %v", ti, x)
+	}
+}
+
 func TestAllocation_Clone(t *testing.T) {
+	rng := rand.New(rand.NewSource(1337))
 	tests := []struct {
 		name  string
-		alloc Allocation
+		alloc channel.Allocation
 	}{
 		{
 			"assets-1,parts-1,locks-nil",
-			Allocation{assets(1), [][]Bal{[]Bal{big.NewInt(-1)}}, nil},
+			channel.Allocation{assets(rng, 1), [][]channel.Bal{[]channel.Bal{big.NewInt(-1)}}, nil},
 		},
 
 		{
 			"assets-1,parts-1,locks",
-			Allocation{
-				assets(1),
-				[][]Bal{[]Bal{big.NewInt(0)}},
-				[]SubAlloc{SubAlloc{ID{123}, []*big.Int{big.NewInt(0)}}},
+			channel.Allocation{
+				assets(rng, 1),
+				[][]channel.Bal{[]channel.Bal{big.NewInt(0)}},
+				[]channel.SubAlloc{channel.SubAlloc{channel.ID{123}, []*big.Int{big.NewInt(0)}}},
 			},
 		},
 
 		{
 			"assets-2,parties-4,locks-nil",
-			Allocation{
-				assets(2),
-				[][]Bal{
-					[]Bal{big.NewInt(1), big.NewInt(11)},
-					[]Bal{big.NewInt(2), big.NewInt(2)},
-					[]Bal{big.NewInt(3), big.NewInt(5)},
-					[]Bal{big.NewInt(10), big.NewInt(2)},
+			channel.Allocation{
+				assets(rng, 2),
+				[][]channel.Bal{
+					[]channel.Bal{big.NewInt(1), big.NewInt(11)},
+					[]channel.Bal{big.NewInt(2), big.NewInt(2)},
+					[]channel.Bal{big.NewInt(3), big.NewInt(5)},
+					[]channel.Bal{big.NewInt(10), big.NewInt(2)},
 				},
 				nil,
 			},
@@ -72,16 +152,16 @@ func TestAllocation_Clone(t *testing.T) {
 
 		{
 			"assets-2,parties-4,locks",
-			Allocation{
-				assets(2),
-				[][]Bal{
-					[]Bal{big.NewInt(1), big.NewInt(11)},
-					[]Bal{big.NewInt(2), big.NewInt(2)},
-					[]Bal{big.NewInt(3), big.NewInt(5)},
-					[]Bal{big.NewInt(10), big.NewInt(2)},
+			channel.Allocation{
+				assets(rng, 2),
+				[][]channel.Bal{
+					[]channel.Bal{big.NewInt(1), big.NewInt(11)},
+					[]channel.Bal{big.NewInt(2), big.NewInt(2)},
+					[]channel.Bal{big.NewInt(3), big.NewInt(5)},
+					[]channel.Bal{big.NewInt(10), big.NewInt(2)},
 				},
-				[]SubAlloc{
-					SubAlloc{ID{1}, []Bal{big.NewInt(1), big.NewInt(2)}},
+				[]channel.SubAlloc{
+					channel.SubAlloc{channel.ID{1}, []channel.Bal{big.NewInt(1), big.NewInt(2)}},
 				},
 			},
 		},
@@ -93,14 +173,15 @@ func TestAllocation_Clone(t *testing.T) {
 				t.Fatal(err.Error())
 			}
 
-			test.VerifyClone(t, tt.alloc)
+			pkgtest.VerifyClone(t, tt.alloc)
 		})
 	}
 }
 
 func TestAllocation_Sum(t *testing.T) {
+	rng := rand.New(rand.NewSource(1337))
 	// invalid Allocation
-	invalidAllocation := Allocation{}
+	invalidAllocation := channel.Allocation{}
 	assert.Panics(t, func() { invalidAllocation.Sum() })
 
 	// note: different invalid allocations are tested in TestAllocation_valid
@@ -108,83 +189,83 @@ func TestAllocation_Sum(t *testing.T) {
 	// valid Allocations
 	tests := []struct {
 		name  string
-		alloc Allocation
-		want  []Bal
+		alloc channel.Allocation
+		want  []channel.Bal
 	}{
 		{
 			"single asset/one participant",
-			Allocation{
-				Assets:  assets(1),
-				OfParts: [][]Bal{[]Bal{big.NewInt(1)}},
+			channel.Allocation{
+				Assets:  assets(rng, 1),
+				OfParts: [][]channel.Bal{[]channel.Bal{big.NewInt(1)}},
 			},
-			[]Bal{big.NewInt(1)},
+			[]channel.Bal{big.NewInt(1)},
 		},
 
 		{
 			"single asset/one participant/empty locked slice",
-			Allocation{
-				Assets:  assets(1),
-				OfParts: [][]Bal{[]Bal{big.NewInt(1)}},
-				Locked:  make([]SubAlloc, 0),
+			channel.Allocation{
+				Assets:  assets(rng, 1),
+				OfParts: [][]channel.Bal{[]channel.Bal{big.NewInt(1)}},
+				Locked:  make([]channel.SubAlloc, 0),
 			},
-			[]Bal{big.NewInt(1)},
+			[]channel.Bal{big.NewInt(1)},
 		},
 
 		{
 			"single asset/three participants",
-			Allocation{
-				Assets: assets(1),
-				OfParts: [][]Bal{
-					[]Bal{big.NewInt(1)},
-					[]Bal{big.NewInt(2)},
-					[]Bal{big.NewInt(4)},
+			channel.Allocation{
+				Assets: assets(rng, 1),
+				OfParts: [][]channel.Bal{
+					[]channel.Bal{big.NewInt(1)},
+					[]channel.Bal{big.NewInt(2)},
+					[]channel.Bal{big.NewInt(4)},
 				},
 			},
-			[]Bal{big.NewInt(7)},
+			[]channel.Bal{big.NewInt(7)},
 		},
 
 		{
 			"three assets/three participants",
-			Allocation{
-				Assets: assets(3),
-				OfParts: [][]Bal{
-					[]Bal{big.NewInt(1), big.NewInt(8), big.NewInt(64)},
-					[]Bal{big.NewInt(2), big.NewInt(16), big.NewInt(128)},
-					[]Bal{big.NewInt(4), big.NewInt(32), big.NewInt(256)},
+			channel.Allocation{
+				Assets: assets(rng, 3),
+				OfParts: [][]channel.Bal{
+					[]channel.Bal{big.NewInt(1), big.NewInt(8), big.NewInt(64)},
+					[]channel.Bal{big.NewInt(2), big.NewInt(16), big.NewInt(128)},
+					[]channel.Bal{big.NewInt(4), big.NewInt(32), big.NewInt(256)},
 				},
 			},
-			[]Bal{big.NewInt(7), big.NewInt(56), big.NewInt(448)},
+			[]channel.Bal{big.NewInt(7), big.NewInt(56), big.NewInt(448)},
 		},
 
 		{
 			"single assets/one participants/one locked",
-			Allocation{
-				Assets: assets(1),
-				OfParts: [][]Bal{
-					[]Bal{big.NewInt(1)},
+			channel.Allocation{
+				Assets: assets(rng, 1),
+				OfParts: [][]channel.Bal{
+					[]channel.Bal{big.NewInt(1)},
 				},
-				Locked: []SubAlloc{
-					SubAlloc{Zero, []Bal{big.NewInt(2)}},
+				Locked: []channel.SubAlloc{
+					channel.SubAlloc{channel.Zero, []channel.Bal{big.NewInt(2)}},
 				},
 			},
-			[]Bal{big.NewInt(3)},
+			[]channel.Bal{big.NewInt(3)},
 		},
 
 		{
 			"three assets/two participants/three locked",
-			Allocation{
-				Assets: assets(3),
-				OfParts: [][]Bal{
-					[]Bal{big.NewInt(1), big.NewInt(0x20), big.NewInt(0x400)},
-					[]Bal{big.NewInt(2), big.NewInt(0x40), big.NewInt(0x800)},
+			channel.Allocation{
+				Assets: assets(rng, 3),
+				OfParts: [][]channel.Bal{
+					[]channel.Bal{big.NewInt(1), big.NewInt(0x20), big.NewInt(0x400)},
+					[]channel.Bal{big.NewInt(2), big.NewInt(0x40), big.NewInt(0x800)},
 				},
-				Locked: []SubAlloc{
-					SubAlloc{Zero, []Bal{big.NewInt(4), big.NewInt(0x80), big.NewInt(0x1000)}},
-					SubAlloc{Zero, []Bal{big.NewInt(8), big.NewInt(0x100), big.NewInt(0x2000)}},
-					SubAlloc{Zero, []Bal{big.NewInt(0x10), big.NewInt(0x200), big.NewInt(0x4000)}},
+				Locked: []channel.SubAlloc{
+					channel.SubAlloc{channel.Zero, []channel.Bal{big.NewInt(4), big.NewInt(0x80), big.NewInt(0x1000)}},
+					channel.SubAlloc{channel.Zero, []channel.Bal{big.NewInt(8), big.NewInt(0x100), big.NewInt(0x2000)}},
+					channel.SubAlloc{channel.Zero, []channel.Bal{big.NewInt(0x10), big.NewInt(0x200), big.NewInt(0x4000)}},
 				},
 			},
-			[]Bal{big.NewInt(0x1f), big.NewInt(0x3e0), big.NewInt(0x7c00)},
+			[]channel.Bal{big.NewInt(0x1f), big.NewInt(0x3e0), big.NewInt(0x7c00)},
 		},
 	}
 
@@ -200,17 +281,18 @@ func TestAllocation_Sum(t *testing.T) {
 }
 
 func TestAllocation_Valid(t *testing.T) {
+	rng := rand.New(rand.NewSource(1337))
 	// note that all valid branches are already indirectly tested in TestAllocation_Sum
 	tests := []struct {
 		name  string
-		alloc Allocation
+		alloc channel.Allocation
 		valid bool
 	}{
 		{
 			"one participant/no locked valid",
-			Allocation{
-				Assets:  assets(1),
-				OfParts: [][]Bal{[]Bal{big.NewInt(1)}},
+			channel.Allocation{
+				Assets:  assets(rng, 1),
+				OfParts: [][]channel.Bal{[]channel.Bal{big.NewInt(1)}},
 				Locked:  nil,
 			},
 			true,
@@ -218,7 +300,7 @@ func TestAllocation_Valid(t *testing.T) {
 
 		{
 			"nil asset/nil participant",
-			Allocation{
+			channel.Allocation{
 				Assets:  nil,
 				OfParts: nil,
 				Locked:  nil,
@@ -228,8 +310,8 @@ func TestAllocation_Valid(t *testing.T) {
 
 		{
 			"nil participant/no locked",
-			Allocation{
-				Assets:  assets(1),
+			channel.Allocation{
+				Assets:  assets(rng, 1),
 				OfParts: nil,
 				Locked:  nil,
 			},
@@ -238,20 +320,20 @@ func TestAllocation_Valid(t *testing.T) {
 
 		{
 			"no participant/no locked",
-			Allocation{
-				Assets:  assets(1),
-				OfParts: make([][]Bal, 0),
+			channel.Allocation{
+				Assets:  assets(rng, 1),
+				OfParts: make([][]channel.Bal, 0),
 			},
 			false,
 		},
 
 		{
 			"two participants wrong dimension",
-			Allocation{
-				Assets: assets(3),
-				OfParts: [][]Bal{
-					[]Bal{big.NewInt(1), big.NewInt(8), big.NewInt(64)},
-					[]Bal{big.NewInt(2), big.NewInt(16)},
+			channel.Allocation{
+				Assets: assets(rng, 3),
+				OfParts: [][]channel.Bal{
+					[]channel.Bal{big.NewInt(1), big.NewInt(8), big.NewInt(64)},
+					[]channel.Bal{big.NewInt(2), big.NewInt(16)},
 				},
 			},
 			false,
@@ -259,14 +341,14 @@ func TestAllocation_Valid(t *testing.T) {
 
 		{
 			"two participants/one locked wrong dimension",
-			Allocation{
-				Assets: assets(3),
-				OfParts: [][]Bal{
-					[]Bal{big.NewInt(1), big.NewInt(8), big.NewInt(64)},
-					[]Bal{big.NewInt(2), big.NewInt(16), big.NewInt(128)},
+			channel.Allocation{
+				Assets: assets(rng, 3),
+				OfParts: [][]channel.Bal{
+					[]channel.Bal{big.NewInt(1), big.NewInt(8), big.NewInt(64)},
+					[]channel.Bal{big.NewInt(2), big.NewInt(16), big.NewInt(128)},
 				},
-				Locked: []SubAlloc{
-					SubAlloc{Zero, []Bal{big.NewInt(4)}},
+				Locked: []channel.SubAlloc{
+					channel.SubAlloc{channel.Zero, []channel.Bal{big.NewInt(4)}},
 				},
 			},
 			false,
@@ -282,58 +364,13 @@ func TestAllocation_Valid(t *testing.T) {
 	}
 }
 
-// simple summer for testing
-type balsum struct {
-	b []Bal
-}
-
-func (b balsum) Sum() []Bal {
-	return b.b
-}
-
-func TestEqualBalance(t *testing.T) {
-	empty := balsum{make([]Bal, 0)}
-	one1 := balsum{[]Bal{big.NewInt(1)}}
-	one2 := balsum{[]Bal{big.NewInt(2)}}
-	two12 := balsum{[]Bal{big.NewInt(1), big.NewInt(2)}}
-	two48 := balsum{[]Bal{big.NewInt(4), big.NewInt(8)}}
-
-	assert := assert.New(t)
-
-	_, err := equalSum(empty, one1)
-	assert.NotNil(err)
-
-	eq, err := equalSum(empty, empty)
-	assert.Nil(err)
-	assert.True(eq)
-
-	eq, err = equalSum(one1, one1)
-	assert.Nil(err)
-	assert.True(eq)
-
-	eq, err = equalSum(one1, one2)
-	assert.Nil(err)
-	assert.False(eq)
-
-	_, err = equalSum(one1, two12)
-	assert.NotNil(err)
-
-	eq, err = equalSum(two12, two12)
-	assert.Nil(err)
-	assert.True(eq)
-
-	eq, err = equalSum(two12, two48)
-	assert.Nil(err)
-	assert.False(eq)
-}
-
 // suballocation serialization
 func TestSuballocSerialization(t *testing.T) {
 	ss := []perunio.Serializable{
-		&SubAlloc{ID{2}, []Bal{}},
-		&SubAlloc{ID{3}, []Bal{big.NewInt(0)}},
-		&SubAlloc{ID{4}, []Bal{big.NewInt(5), big.NewInt(1 << 62)}},
+		&channel.SubAlloc{channel.ID{2}, []channel.Bal{}},
+		&channel.SubAlloc{channel.ID{3}, []channel.Bal{big.NewInt(0)}},
+		&channel.SubAlloc{channel.ID{4}, []channel.Bal{big.NewInt(5), big.NewInt(1 << 62)}},
 	}
 
-	ioTest.GenericSerializableTest(t, ss...)
+	iotest.GenericSerializableTest(t, ss...)
 }
