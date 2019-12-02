@@ -5,6 +5,7 @@
 package peer
 
 import (
+	"context"
 	"math/rand"
 	"sync"
 	"testing"
@@ -12,6 +13,7 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	sim "perun.network/go-perun/backend/sim/wallet"
+	"perun.network/go-perun/pkg/test"
 	"perun.network/go-perun/wallet"
 	"perun.network/go-perun/wire/msg"
 )
@@ -27,10 +29,10 @@ func TestAuthResponseMsg(t *testing.T) {
 
 func TestExchangeAddrs_NilParams(t *testing.T) {
 	rnd := rand.New(rand.NewSource(0xb0ba))
-	assert.Panics(t, func() { ExchangeAddrs(nil, nil) })
-	assert.Panics(t, func() { ExchangeAddrs(nil, newMockConn(nil)) })
+	assert.Panics(t, func() { ExchangeAddrs(context.Background(), nil, nil) })
+	assert.Panics(t, func() { ExchangeAddrs(context.Background(), nil, newMockConn(nil)) })
 	assert.Panics(t, func() {
-		ExchangeAddrs(sim.NewRandomAccount(rnd), nil)
+		ExchangeAddrs(context.Background(), sim.NewRandomAccount(rnd), nil)
 	})
 }
 
@@ -38,7 +40,9 @@ func TestExchangeAddrs_ConnFail(t *testing.T) {
 	rng := rand.New(rand.NewSource(0xDDDDDEDE))
 	a, _ := newPipeConnPair()
 	a.Close()
-	ExchangeAddrs(sim.NewRandomAccount(rng), a)
+	addr, err := ExchangeAddrs(context.Background(), sim.NewRandomAccount(rng), a)
+	assert.Nil(t, addr)
+	assert.Error(t, err)
 }
 
 func TestExchangeAddrs_Success(t *testing.T) {
@@ -54,17 +58,30 @@ func TestExchangeAddrs_Success(t *testing.T) {
 			defer wg.Done()
 			defer conn1.Close()
 
-			recvAddr0, err := ExchangeAddrs(account1, conn1)
+			recvAddr0, err := ExchangeAddrs(context.Background(), account1, conn1)
 			assert.NoError(t, err)
 			assert.True(t, recvAddr0.Equals(account0.Address()))
 		}()
 	})
 
-	recvAddr1, err := ExchangeAddrs(account0, conn0)
+	recvAddr1, err := ExchangeAddrs(context.Background(), account0, conn0)
 	assert.NoError(t, err)
 	assert.True(t, recvAddr1.Equals(account1.Address()))
 
 	wg.Wait()
+}
+
+func TestExchangeAddrs_Timeout(t *testing.T) {
+	rng := rand.New(rand.NewSource(0xDDDDDeDe))
+	a, _ := newPipeConnPair()
+
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	defer cancel()
+	test.AssertTerminates(t, 2*timeout, func() {
+		addr, err := ExchangeAddrs(ctx, sim.NewRandomAccount(rng), a)
+		assert.Nil(t, addr)
+		assert.Error(t, err)
+	})
 }
 
 func TestExchangeAddrs_BogusMsg(t *testing.T) {
@@ -72,7 +89,7 @@ func TestExchangeAddrs_BogusMsg(t *testing.T) {
 	acc := sim.NewRandomAccount(rng)
 	conn := newMockConn(nil)
 	conn.recvQueue <- msg.NewPingMsg()
-	addr, err := ExchangeAddrs(acc, conn)
+	addr, err := ExchangeAddrs(context.Background(), acc, conn)
 
 	assert.Error(t, err, "ExchangeAddrs should error when peer sends a non-AuthResponseMsg")
 	assert.Nil(t, addr)

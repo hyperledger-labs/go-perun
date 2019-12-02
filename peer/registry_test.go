@@ -132,7 +132,7 @@ func TestRegistry_Get(t *testing.T) {
 				// completes.
 				go r.setupConn(a)
 			}
-			ExchangeAddrs(remoteId, b)
+			ExchangeAddrs(context.Background(), remoteId, b)
 
 			<-time.NewTimer(timeout).C
 
@@ -194,7 +194,7 @@ func TestRegistry_authenticatedDial(t *testing.T) {
 		p := newPeer(nil, nil, nil)
 		a, b := newPipeConnPair()
 		go d.put(a)
-		go ExchangeAddrs(wallet.NewRandomAccount(rng), b)
+		go ExchangeAddrs(context.Background(), wallet.NewRandomAccount(rng), b)
 		test.AssertTerminates(t, timeout, func() {
 			assert.Error(t, r.authenticatedDial(p, remoteAddr))
 		})
@@ -204,7 +204,7 @@ func TestRegistry_authenticatedDial(t *testing.T) {
 		p := newPeer(nil, nil, nil)
 		a, b := newPipeConnPair()
 		go d.put(a)
-		go ExchangeAddrs(remoteId, b)
+		go ExchangeAddrs(context.Background(), remoteId, b)
 		test.AssertTerminates(t, timeout, func() {
 			assert.NoError(t, r.authenticatedDial(p, remoteAddr))
 		})
@@ -230,7 +230,7 @@ func TestRegistry_setupConn(t *testing.T) {
 
 	t.Run("ExchangeAddrs success", func(t *testing.T) {
 		a, b := newPipeConnPair()
-		go ExchangeAddrs(remoteId, b)
+		go ExchangeAddrs(context.Background(), remoteId, b)
 		test.AssertTerminates(t, timeout, func() {
 			assert.NoError(t, r.setupConn(a))
 		})
@@ -260,7 +260,7 @@ func TestRegistry_Listen(t *testing.T) {
 	a, b := newPipeConnPair()
 	l.put(a)
 	test.AssertTerminates(t, timeout, func() {
-		address, err := ExchangeAddrs(remoteId, b)
+		address, err := ExchangeAddrs(context.Background(), remoteId, b)
 		require.NoError(err)
 		assert.True(address.Equals(addr))
 	})

@@ -7,6 +7,7 @@ package peer
 import (
 	"context"
 	"sync"
+	"time"
 
 	"github.com/pkg/errors"
 	"perun.network/go-perun/log"
@@ -19,6 +20,8 @@ type Registry struct {
 	mutex sync.RWMutex
 	peers []*Peer  // The list of all of the registry's peers.
 	id    Identity // The identity of the node.
+
+	exchangeAddrsTimeout time.Duration
 
 	dialer    Dialer      // Used for dialing peers (and later: repairing).
 	subscribe func(*Peer) // Sets up peer subscriptions.
@@ -34,6 +37,8 @@ func NewRegistry(id Identity, subscribe func(*Peer), dialer Dialer) *Registry {
 		id:        id,
 		subscribe: subscribe,
 		dialer:    dialer,
+
+		exchangeAddrsTimeout: 10 * time.Second,
 	}
 }
 
@@ -84,7 +89,10 @@ func (r *Registry) Listen(listener Listener) {
 // setupConn authenticates a fresh connection, and if successful, adds it to the
 // registry.
 func (r *Registry) setupConn(conn Conn) error {
-	if peerAddr, err := ExchangeAddrs(r.id, conn); err != nil {
+	ctx, cancel := context.WithTimeout(context.Background(), r.exchangeAddrsTimeout)
+	defer cancel()
+
+	if peerAddr, err := ExchangeAddrs(ctx, r.id, conn); err != nil {
 		conn.Close()
 		return errors.WithMessage(err, "could not authenticate peer")
 	} else {
@@ -119,7 +127,7 @@ func (r *Registry) authenticatedDial(peer *Peer, addr Address) error {
 		}
 	}
 
-	a, err := ExchangeAddrs(r.id, conn)
+	a, err := ExchangeAddrs(context.Background(), r.id, conn)
 	if err != nil {
 		conn.Close()
 		peer.Close()
