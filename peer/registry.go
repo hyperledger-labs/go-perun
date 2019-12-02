@@ -111,10 +111,9 @@ func (r *Registry) authenticatedDial(peer *Peer, addr Address) error {
 	r.mutex.Lock()
 	defer r.mutex.Unlock()
 	if err != nil {
-		select {
-		case <-peer.exists:
-			return nil // failed to dial, but peer was created anyway.
-		default:
+		if peer.exists() {
+			return nil // Failed to dial, but peer was created anyway.
+		} else {
 			peer.Close()
 			return errors.WithMessage(err, "failed to dial")
 		}

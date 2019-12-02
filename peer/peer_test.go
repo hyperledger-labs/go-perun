@@ -178,20 +178,12 @@ func TestPeer_IsClosed(t *testing.T) {
 
 func TestPeer_create(t *testing.T) {
 	p := newPeer(nil, nil, nil)
-	select {
-	case <-p.exists:
-		t.Fatal("peer must not yet exist")
-	case <-time.NewTimer(timeout).C:
-	}
+	assert.False(t, p.exists(), "peer must not yet exist")
 
 	conn := newMockConn(nil)
 	p.create(conn)
 
-	select {
-	case <-p.exists:
-	default:
-		t.Fatal("peer must exist")
-	}
+	assert.True(t, p.exists(), "peer must exist")
 
 	assert.False(t, conn.closed.IsSet(),
 		"Peer.create() on nonexisting peers must not close the new connection")
@@ -244,4 +236,20 @@ func TestPeer_ClosedByRecvLoopOnConnClose(t *testing.T) {
 	}
 
 	assert.True(t, peer.IsClosed())
+}
+
+func TestPeer_WaitExists_Timeout(t *testing.T) {
+	p := newPeer(nil, nil, nil)
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+	assert.False(t, p.waitExists(ctx))
+}
+
+func TestPeer_WaitExists_2nd_Close(t *testing.T) {
+	p := newPeer(nil, nil, nil)
+	go func() {
+		<-time.After(timeout)
+		p.Close()
+	}()
+	assert.False(t, p.waitExists(nil))
 }

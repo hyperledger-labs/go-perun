@@ -121,11 +121,7 @@ func TestRegistry_Get(t *testing.T) {
 			assert.Equal(2, r.NumPeers())
 			assert.True(r.Has(remoteAddr))
 
-			select {
-			case <-p.exists:
-				t.Fatal("Peer that is still being dialed must not exist", i)
-			default:
-			}
+			require.False(t, p.exists(), "Peer that is still being dialed must not exist", i)
 
 			a, b := newPipeConnPair()
 			if i == 0 {
@@ -140,11 +136,7 @@ func TestRegistry_Get(t *testing.T) {
 
 			<-time.NewTimer(timeout).C
 
-			select {
-			case <-p.exists:
-			default:
-				t.Fatal("Peer that is successfully dialed must exist", i)
-			}
+			require.True(t, p.exists(), "Peer that is successfully dialed must exist", i)
 
 			assert.False(p.IsClosed(), "Dialed peer must not be closed", i)
 
