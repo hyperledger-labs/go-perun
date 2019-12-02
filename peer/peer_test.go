@@ -201,3 +201,34 @@ func TestPeer_SetDefaultMsgHandler(t *testing.T) {
 	p.SetDefaultMsgHandler(nil)
 	assert.Equal(t, logUnhandledMsgPtr, reflect.ValueOf(p.subs.defaultMsgHandler).Pointer())
 }
+
+// TestPeer_ClosedByRecvLoopOnConnClose is a regression test for
+// #181 `peer.Peer` does not handle connection termination properly
+func TestPeer_ClosedByRecvLoopOnConnClose(t *testing.T) {
+	eofReceived := make(chan struct{})
+	onCloseCalled := make(chan struct{})
+
+	rng := rand.New(rand.NewSource(0xcaffe2))
+	addr := wallet.NewRandomAddress(rng)
+	conn0, conn1 := newPipeConnPair()
+	peer := newPeer(addr, conn0, nil)
+	peer.OnClose(func() {
+		close(onCloseCalled)
+	})
+
+	go func() {
+		peer.recvLoop()
+		close(eofReceived)
+	}()
+
+	conn1.Close()
+	<-eofReceived
+
+	select {
+	case <-onCloseCalled:
+	case <-time.After(10 * time.Millisecond):
+		t.Error("on close callback time-out")
+	}
+
+	assert.True(t, peer.IsClosed())
+}
