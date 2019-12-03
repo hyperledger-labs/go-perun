@@ -162,21 +162,19 @@ func (c ChannelProposal) SessID() (sid SessionID) {
 }
 
 // Valid checks that the channel proposal is valid:
-// * ParticipantAddr, InitBals and Nonce must not be nil
-// * 2 <= len(Parts) <= channel.MaxNumParts
-// * InitBals match the dimension of Parts (TODO: check is valid)
+// * ParticipantAddr, InitBals must not be nil
+// * ValidateParameters returns nil
+// * InitBals are valid
 // * No locked sub-allocations
-// * non-zero ChallengeDuration
+// * InitBals match the dimension of Parts
 func (c ChannelProposal) Valid() error {
-	if c.ParticipantAddr == nil || c.InitBals == nil || c.Nonce == nil {
+	if c.InitBals == nil || c.ParticipantAddr == nil {
 		return errors.New("invalid nil fields")
-	} else if c.ChallengeDuration == 0 {
-		return errors.New("challenge duration must not be zero")
-	} else if len(c.Parts) < 2 || len(c.Parts) > channel.MaxNumParts {
-		return errors.New("invalid number of participants")
+	} else if err := channel.ValidateParameters(c.ChallengeDuration, len(c.Parts), c.AppDef, c.Nonce); err != nil {
+		return errors.WithMessage(err, "invalid channel parameters")
 	} else if err := c.InitBals.Valid(); err != nil {
 		return err
-	} else if len(c.InitBals.Locked) > 0 {
+	} else if len(c.InitBals.Locked) != 0 {
 		return errors.New("initial allocation cannot have locked funds")
 	} else if len(c.InitBals.OfParts) != len(c.Parts) {
 		return errors.New("wrong dimension of initial balances")

@@ -226,7 +226,7 @@ func (c *Client) exchangeChannelProposal(
 	partAddrs := []wallet.Address{
 		proposal.ParticipantAddr, approval.ParticipantAddr}
 	params, err := channel.NewParams(
-		proposal.ChallengeDuration, partAddrs, app, proposal.Nonce,
+		proposal.ChallengeDuration, partAddrs, app.Def(), proposal.Nonce,
 	)
 	if err != nil {
 		return nil, errors.WithMessage(

@@ -17,7 +17,7 @@ import (
 func TestChannelUpdateSerialization(t *testing.T) {
 	rng := rand.New(rand.NewSource(0xdeadbeef))
 	for i := 0; i < 4; i++ {
-		params := test.NewRandomParams(rng, test.NewRandomApp(rng))
+		params := test.NewRandomParams(rng, test.NewRandomApp(rng).Def())
 		sig, _ := wallet.DecodeSig(rng)
 		m := &client.ChannelUpdate{
 			State:    test.NewRandomState(rng, params),
@@ -44,7 +44,7 @@ func TestChannelUpdateAccSerialization(t *testing.T) {
 func TestChannelUpdateRejSerialization(t *testing.T) {
 	rng := rand.New(rand.NewSource(0xdeadbeef))
 	for i := 0; i < 4; i++ {
-		params := test.NewRandomParams(rng, test.NewRandomApp(rng))
+		params := test.NewRandomParams(rng, test.NewRandomApp(rng).Def())
 		sig, _ := wallet.DecodeSig(rng)
 		m := &client.ChannelUpdateRej{
 			Reason:   newRandomString(rng, 16, 16),
