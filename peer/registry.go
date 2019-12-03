@@ -119,14 +119,35 @@ func (r *Registry) setupConn(conn Conn) error {
 
 // find looks up a peer via its Perun address.
 // If found, returns the peer and its index, otherwise returns a nil peer.
+// find is not thread safe and is assumed to be called from a method which has
+// the r.mutex lock.
 func (r *Registry) find(addr Address) (*Peer, int) {
 	for i, peer := range r.peers {
 		if peer.PerunAddress.Equals(addr) {
+			if peer.IsClosed() {
+				// remove from slice
+				r.peers[i] = r.peers[len(r.peers)-1]
+				r.peers = r.peers[:len(r.peers)-1]
+				return nil, -1
+			}
 			return peer, i
 		}
 	}
 
 	return nil, -1
+}
+
+// prune removes all closed peers from the Registry.
+// prune is not thread safe and is assumed to be called from a method which has
+// the r.mutex lock.
+func (r *Registry) prune() {
+	peers := r.peers[:0]
+	for _, peer := range r.peers {
+		if !peer.IsClosed() {
+			peers = append(peers, peer)
+		}
+	}
+	r.peers = peers
 }
 
 // Get looks up the peer via its perun address.
@@ -194,6 +215,7 @@ func (r *Registry) NumPeers() int {
 	r.mutex.RLock()
 	defer r.mutex.RUnlock()
 
+	r.prune()
 	return len(r.peers)
 }
 
@@ -210,10 +232,11 @@ func (r *Registry) Has(addr Address) bool {
 }
 
 // addPeer adds a new peer to the registry.
+// addPeer is not thread safe and is assumed to be called from a method which has
+// the r.mutex lock.
 func (r *Registry) addPeer(addr Address, conn Conn) *Peer {
 	// Create and register a new peer.
 	peer := newPeer(addr, conn, r.dialer)
-	peer.OnClose(func() { r.delete(peer) })
 	r.peers = append(r.peers, peer)
 	// Setup the peer's subscriptions.
 	r.subscribe(peer)
