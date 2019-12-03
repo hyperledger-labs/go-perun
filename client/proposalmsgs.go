@@ -72,6 +72,18 @@ func (c *ChannelProposal) AsReq() *ChannelProposalReq {
 	}
 }
 
+func (c *ChannelProposalReq) AsProp(acc wallet.Account) *ChannelProposal {
+	return &ChannelProposal{
+		ChallengeDuration: c.ChallengeDuration,
+		Nonce:             c.Nonce,
+		Account:           acc,
+		AppDef:            c.AppDef,
+		InitData:          c.InitData,
+		InitBals:          c.InitBals,
+		PeerAddrs:         c.PeerAddrs,
+	}
+}
+
 func (ChannelProposalReq) Type() msg.Type {
 	return msg.ChannelProposal
 }

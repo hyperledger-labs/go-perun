@@ -79,6 +79,16 @@ func TestChannelProposalReqSessID(t *testing.T) {
 	assert.NotEqual(t, s, c6.SessID())
 }
 
+func TestChannelProposal_AsReqAsProp(t *testing.T) {
+	rng := rand.New(rand.NewSource(7))
+	acc := wallettest.NewRandomAccount(rng)
+	prop := newRandomChannelProposalReq(rng).AsProp(acc)
+	req := prop.AsReq()
+	assert.True(t, req.ParticipantAddr.Equals(acc.Address()))
+	prop2 := req.AsProp(acc)
+	assert.Equal(t, prop2, prop)
+}
+
 func newRandomChannelProposalReq(rng *rand.Rand) *client.ChannelProposalReq {
 	app := test.NewRandomApp(rng)
 	params := test.NewRandomParams(rng, app.Def())
