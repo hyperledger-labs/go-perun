@@ -69,7 +69,7 @@ func TestRegistry_Get(t *testing.T) {
 			t.Parallel()
 			rng := rand.New(rand.NewSource(0xb0baFEDD))
 			d := &mockDialer{dial: make(chan Conn)}
-			r := NewRegistry(func(*Peer) {}, d)
+			r := NewRegistry(wallet.NewRandomAccount(rng), func(*Peer) {}, d)
 			assert.Equal(0, r.NumPeers())
 
 			addr := wallet.NewRandomAddress(rng)
@@ -126,8 +126,9 @@ func TestRegistry_Get(t *testing.T) {
 // TestRegistry_addPeer tests that addPeer() calls the Registry's subscription
 // function. Other aspects of the function are already tested in other tests.
 func TestRegistry_addPeer_Subscribe(t *testing.T) {
+	rng := rand.New(rand.NewSource(0xDDDDDeDe))
 	called := false
-	r := NewRegistry(func(*Peer) { called = true }, nil)
+	r := NewRegistry(wallet.NewRandomAccount(rng), func(*Peer) { called = true }, nil)
 
 	assert.False(t, called, "subscription must not have been called yet")
 	r.addPeer(nil, nil)
@@ -138,7 +139,7 @@ func TestRegistry_delete(t *testing.T) {
 	t.Parallel()
 	rng := rand.New(rand.NewSource(0xb0baFEDD))
 	d := &mockDialer{dial: make(chan Conn)}
-	r := NewRegistry(func(*Peer) {}, d)
+	r := NewRegistry(wallet.NewRandomAccount(rng), func(*Peer) {}, d)
 
 	addr := wallet.NewRandomAddress(rng)
 	assert.Equal(t, 0, r.NumPeers())

@@ -29,7 +29,7 @@ func New(id peer.Identity, dialer peer.Dialer, propHandler ProposalHandler) *Cli
 		propHandler: propHandler,
 		log:         log.WithField("client", id.Address),
 	}
-	c.peers = peer.NewRegistry(c.subscribePeer, dialer)
+	c.peers = peer.NewRegistry(id, c.subscribePeer, dialer)
 	return c
 }
 
@@ -47,34 +47,8 @@ func (c *Client) Close() error {
 // be started by the user as `go client.Listen()`. The client takes ownership of
 // the listener and will close it when the client is closed.
 func (c *Client) Listen(listener peer.Listener) {
-	c.OnClose(func() {
-		if err := listener.Close(); err != nil {
-			c.log.Debugf("Closing listener while closing client failed: %v", err)
-		}
-	})
-	// start listener and accept all incoming peer connections, writing them to the registry
-	for {
-		conn, err := listener.Accept()
-		if err != nil {
-			c.log.Debugf("peer listener closed: %v", err)
-			return
-		}
-
-		// setup connection in a serparate routine so that new incoming connections
-		// can immediately be handled.
-		go c.setupConn(conn)
-	}
+	c.peers.Listen(listener)
 }
-
-func (c *Client) setupConn(conn peer.Conn) {
-	if peerAddr, err := peer.ExchangeAddrs(c.id, conn); err != nil {
-		c.log.Warnf("could not authenticate peer: %v", err)
-	} else {
-		// the peer registry is thread safe
-		c.peers.Register(peerAddr, conn)
-	}
-}
-
 func (c *Client) subscribePeer(p *peer.Peer) {
 	c.logPeer(p).Debugf("setting up default subscriptions")
 

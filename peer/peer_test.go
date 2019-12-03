@@ -87,7 +87,7 @@ type client struct {
 // makeClient creates a simulated test client.
 func makeClient(t *testing.T, conn Conn, rng io.Reader, dialer Dialer) *client {
 	var receiver = NewReceiver()
-	var registry = NewRegistry(func(p *Peer) {
+	var registry = NewRegistry(wallet.NewRandomAccount(rng), func(p *Peer) {
 		assert.NoError(
 			t,
 			receiver.Subscribe(p, func(wire.Msg) bool { return true }),

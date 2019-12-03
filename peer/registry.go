@@ -17,7 +17,8 @@ import (
 // It should not be used manually, but only internally by the client.
 type Registry struct {
 	mutex sync.RWMutex
-	peers []*Peer // The list of all of the registry's peers.
+	peers []*Peer  // The list of all of the registry's peers.
+	id    Identity // The identity of the node.
 
 	dialer    Dialer      // Used for dialing peers (and later: repairing).
 	subscribe func(*Peer) // Sets up peer subscriptions.
@@ -28,8 +29,9 @@ type Registry struct {
 // NewRegistry creates a new registry.
 // The provided callback is used to set up new peer's subscriptions and it is
 // called before the peer starts receiving messages.
-func NewRegistry(subscribe func(*Peer), dialer Dialer) *Registry {
+func NewRegistry(id Identity, subscribe func(*Peer), dialer Dialer) *Registry {
 	return &Registry{
+		id:        id,
 		subscribe: subscribe,
 		dialer:    dialer,
 	}
@@ -55,6 +57,38 @@ func (r *Registry) Close() (err error) {
 		err = errors.WithMessage(r.dialer.Close(), "closing dialer")
 	}
 	return
+}
+
+// Listen starts listening for incoming connections on the provided listener and
+// currently just automatically accepts them after successful authentication.
+// This function does not start go routines but instead should be started by the
+// user as `go registry.Listen()`.
+func (r *Registry) Listen(listener Listener) {
+	// Start listener and accept all incoming peer connections, writing them to
+	// the registry.
+	for {
+		conn, err := listener.Accept()
+		if err != nil {
+			log.Debugf("peer listener closed: %v", err)
+			return
+		}
+
+		// setup connection in a serparate routine so that new incoming
+		// connections can immediately be handled.
+		go r.setupConn(conn)
+	}
+}
+
+// setupConn authenticates a fresh connection, and if successful, adds it to the
+// registry.
+func (r *Registry) setupConn(conn Conn) {
+	if peerAddr, err := ExchangeAddrs(r.id, conn); err != nil {
+		log.Warnf("could not authenticate peer: %v", err)
+		conn.Close()
+	} else {
+		// the peer registry is thread safe
+		r.Register(peerAddr, conn)
+	}
 }
 
 // find looks up a peer via its Perun address.
