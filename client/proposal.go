@@ -186,7 +186,7 @@ func (c *Client) exchangeChannelProposal(
 			"Expected exactly two peers in proposal, got %d", numParts)
 	}
 
-	p := c.peers.Get(proposal.Parts[1])
+	p := c.peers.Get(ctx, proposal.Parts[1])
 
 	app, err := channel.AppFromDefinition(proposal.AppDef)
 	if err != nil {

@@ -96,8 +96,14 @@ func (r *Registry) setupConn(conn Conn) error {
 		conn.Close()
 		return errors.WithMessage(err, "could not authenticate peer")
 	} else {
-		// the peer registry is thread safe
-		r.Register(peerAddr, conn)
+		r.mutex.Lock()
+		defer r.mutex.Unlock()
+
+		if peer, _ := r.find(peerAddr); peer == nil {
+			r.addPeer(peerAddr, conn)
+		} else {
+			peer.create(conn)
+		}
 		return nil
 	}
 }
@@ -114,10 +120,9 @@ func (r *Registry) find(addr Address) (*Peer, int) {
 	return nil, -1
 }
 
-func (r *Registry) authenticatedDial(peer *Peer, addr Address) error {
-	conn, err := r.dialer.Dial(context.Background(), addr)
-	r.mutex.Lock()
-	defer r.mutex.Unlock()
+func (r *Registry) authenticatedDial(ctx context.Context, peer *Peer, addr Address) error {
+	conn, err := r.dialer.Dial(ctx, addr)
+
 	if err != nil {
 		if peer.exists() {
 			return nil // Failed to dial, but peer was created anyway.
@@ -127,16 +132,18 @@ func (r *Registry) authenticatedDial(peer *Peer, addr Address) error {
 		}
 	}
 
-	a, err := ExchangeAddrs(context.Background(), r.id, conn)
-	if err != nil {
+	a, err := ExchangeAddrs(ctx, r.id, conn)
+	if err != nil || !a.Equals(addr) {
 		conn.Close()
-		peer.Close()
-		return errors.WithMessage(err, "ExchangeAddrs failed")
-	}
-	if !a.Equals(addr) {
-		conn.Close()
-		peer.Close()
-		return errors.New("Dialed impersonator")
+		if !peer.exists() {
+			peer.Close()
+			if err != nil {
+				return errors.WithMessage(err, "ExchangeAddrs failed")
+			} else {
+				return errors.New("Dialed impersonator")
+			}
+		}
+		return nil
 	}
 
 	peer.create(conn)
@@ -149,35 +156,26 @@ func (r *Registry) authenticatedDial(peer *Peer, addr Address) error {
 // it, depending on the success of the dialing operation. The unfinished peer
 // object can be used already, but it will block until the peer is finished or
 // closed. If the registry is already closed, returns a closed peer.
-func (r *Registry) Get(addr Address) *Peer {
+func (r *Registry) Get(ctx context.Context, addr Address) *Peer {
 	r.mutex.Lock()
-	defer r.mutex.Unlock()
-
 	if p, i := r.find(addr); i != -1 {
-		return p
+		r.mutex.Unlock()
+		if p.waitExists(ctx) {
+			return p
+		} else {
+			return nil
+		}
 	}
 
 	// Create "nonexistent" peer (nil connection).
 	peer := r.addPeer(addr, nil)
+	r.mutex.Unlock()
 
-	// Dial the peer in the background.
-	go r.authenticatedDial(peer, addr)
-
-	return peer
-}
-
-// Register registers a peer in the registry.
-// If a peer with the same perun address already exists, it is returned,
-// initialized with the given connection, if it did not already have a
-// connection. Otherwise, enters a new peer into the registry and returns it.
-func (r *Registry) Register(addr Address, conn Conn) (peer *Peer) {
-	r.mutex.Lock()
-	defer r.mutex.Unlock()
-
-	if peer, _ = r.find(addr); peer == nil {
-		return r.addPeer(addr, conn)
+	if err := r.authenticatedDial(ctx, peer, addr); err != nil {
+		peer.Close()
+		return nil
 	}
-	peer.create(conn)
+
 	return peer
 }
 

@@ -56,10 +56,10 @@ func (s *setup) Dial(ctx context.Context, addr Address) (Conn, error) {
 	a, b := newPipeConnPair()
 
 	if addr.Equals(s.alice.peer.PerunAddress) { // Dialing Bob?
-		s.bob.Registry.Register(s.bob.peer.PerunAddress, b) // Bob accepts connection.
+		s.bob.Registry.addPeer(s.bob.peer.PerunAddress, b) // Bob accepts connection.
 		return a, nil
 	} else if addr.Equals(s.bob.peer.PerunAddress) { // Dialing Alice?
-		s.alice.Registry.Register(s.alice.peer.PerunAddress, a) // Alice accepts connection.
+		s.alice.Registry.addPeer(s.alice.peer.PerunAddress, a) // Alice accepts connection.
 		return b, nil
 	} else {
 		return nil, errors.New("unknown peer")
@@ -95,7 +95,7 @@ func makeClient(t *testing.T, conn Conn, rng io.Reader, dialer Dialer) *client {
 	}, dialer)
 
 	return &client{
-		peer:     registry.Register(wallet.NewRandomAddress(rng), conn),
+		peer:     registry.addPeer(wallet.NewRandomAddress(rng), conn),
 		Registry: registry,
 		Receiver: receiver,
 	}
