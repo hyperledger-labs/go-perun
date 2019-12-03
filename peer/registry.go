@@ -60,7 +60,7 @@ func (r *Registry) Close() (err error) {
 
 	for _, p := range r.peers {
 		// When peers are closed, they delete themselves from the registry.
-		if cerr := p.Close(); cerr != nil && err == nil {
+		if cerr := p.Close(); !perunsync.IsAlreadyClosedError(cerr) && cerr != nil && err == nil {
 			err = errors.WithMessage(cerr, "closing peer")
 		}
 	}
