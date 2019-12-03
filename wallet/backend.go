@@ -15,9 +15,6 @@ var backend Backend
 
 // Backend provides useful methods for this blockchain.
 type Backend interface {
-	// NewAddressFromString creates a new address from the natural string representation of this blockchain.
-	NewAddressFromString(s string) (Address, error)
-
 	// NewAddressFromBytes creates a new address from a byte array.
 	NewAddressFromBytes(data []byte) (Address, error)
 
@@ -41,11 +38,6 @@ func SetBackend(b Backend) {
 		panic("wallet backend already set or nil argument")
 	}
 	backend = b
-}
-
-// NewAddressFromString calls NewAddressFromString of the current backend
-func NewAddressFromString(s string) (Address, error) {
-	return backend.NewAddressFromString(s)
 }
 
 // NewAddressFromBytes calls NewAddressFromBytes of the current backend
