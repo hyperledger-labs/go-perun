@@ -112,6 +112,32 @@ func (r *ProposalResponder) Reject(ctx context.Context, reason string) error {
 	return <-r.rejectRet
 }
 
+// ProposeChannel attempts to open a channel witht the parameters and peers from
+// ChannelProposal prop:
+// - the proposal is sent to the peers and if all peers accept,
+// - the channel is funded. If successful,
+// - the channel controller is returned.
+// The user is required to start the update handler with
+// Channel.ListenUpdates(UpdateHandler)
+func (c *Client) ProposeChannel(ctx context.Context, prop *ChannelProposal) (*Channel, error) {
+	// 1. check valid proposal
+	req := prop.AsReq()
+	if err := c.validTwoPartyProposal(req, 0, req.PeerAddrs[1]); err != nil {
+		return nil, errors.WithMessage(err, "invalid channel proposal")
+	}
+
+	// 2. send proposal and wait for response
+	parts, err := c.exchangeTwoPartyProposal(ctx, req)
+	if err != nil {
+		return nil, errors.WithMessage(err, "sending proposal")
+	}
+
+	// 3. create params, channel machine from gathered participant addresses
+	// 4. fund channel
+	// 5. return controller on successful funding
+	return c.setupChannel(ctx, prop, parts)
+}
+
 // This function is called during the setup of new peers by the registry. The
 // passed peer is not yet receiving any messages, thus, subscription is
 // race-free. After the function returns, the peer starts receiving messages.
