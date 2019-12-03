@@ -53,8 +53,10 @@ func (r *Registry) Close() (err error) {
 		}
 	}
 
-	if r.dialer != nil && err == nil {
-		err = errors.WithMessage(r.dialer.Close(), "closing dialer")
+	if r.dialer != nil {
+		if cerr := r.dialer.Close(); cerr != nil && err == nil {
+			err = errors.WithMessage(cerr, "closing dialer")
+		}
 	}
 	return
 }
@@ -81,13 +83,14 @@ func (r *Registry) Listen(listener Listener) {
 
 // setupConn authenticates a fresh connection, and if successful, adds it to the
 // registry.
-func (r *Registry) setupConn(conn Conn) {
+func (r *Registry) setupConn(conn Conn) error {
 	if peerAddr, err := ExchangeAddrs(r.id, conn); err != nil {
-		log.Warnf("could not authenticate peer: %v", err)
 		conn.Close()
+		return errors.WithMessage(err, "could not authenticate peer")
 	} else {
 		// the peer registry is thread safe
 		r.Register(peerAddr, conn)
+		return nil
 	}
 }
 
@@ -101,6 +104,36 @@ func (r *Registry) find(addr Address) (*Peer, int) {
 	}
 
 	return nil, -1
+}
+
+func (r *Registry) authenticatedDial(peer *Peer, addr Address) error {
+	conn, err := r.dialer.Dial(context.Background(), addr)
+	r.mutex.Lock()
+	defer r.mutex.Unlock()
+	if err != nil {
+		select {
+		case <-peer.exists:
+			return nil // failed to dial, but peer was created anyway.
+		default:
+			peer.Close()
+			return errors.WithMessage(err, "failed to dial")
+		}
+	}
+
+	a, err := ExchangeAddrs(r.id, conn)
+	if err != nil {
+		conn.Close()
+		peer.Close()
+		return errors.WithMessage(err, "ExchangeAddrs failed")
+	}
+	if !a.Equals(addr) {
+		conn.Close()
+		peer.Close()
+		return errors.New("Dialed impersonator")
+	}
+
+	peer.create(conn)
+	return nil
 }
 
 // Get looks up the peer via its perun address.
@@ -121,20 +154,8 @@ func (r *Registry) Get(addr Address) *Peer {
 	peer := r.addPeer(addr, nil)
 
 	// Dial the peer in the background.
-	go func() {
-		conn, err := r.dialer.Dial(context.Background(), addr)
-		r.mutex.Lock()
-		defer r.mutex.Unlock()
-		if err != nil {
-			select {
-			case <-peer.exists:
-			default:
-				peer.Close()
-			}
-		} else {
-			peer.create(conn)
-		}
-	}()
+	go r.authenticatedDial(peer, addr)
+
 	return peer
 }
 
