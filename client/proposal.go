@@ -318,8 +318,12 @@ func (c *Client) setupChannel(
 		return nil, err
 	}
 	ch.setLogger(c.logChan(params.ID()))
-	ch.init(prop.InitBals, prop.InitData)
-	// TODO: Exchange Sigs on initial state
+	if err := ch.init(prop.InitBals, prop.InitData); err != nil {
+		return ch, errors.WithMessage(err, "setting initial bals and data")
+	}
+	if err := ch.initExchangeSigsAndEnable(ctx); err != nil {
+		return ch, errors.WithMessage(err, "exchanging initial sigs and enabling state")
+	}
 
 	if err = c.funder.Fund(ctx,
 		channel.FundingReq{
