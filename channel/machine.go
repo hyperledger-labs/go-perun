@@ -86,6 +86,11 @@ func newMachine(acc wallet.Account, params Params) (*machine, error) {
 
 }
 
+// ID returns the channel id
+func (m *machine) ID() ID {
+	return m.params.ID()
+}
+
 // Idx returns our index in the channel participants list.
 func (m *machine) Idx() Index {
 	return m.idx
