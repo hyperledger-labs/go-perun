@@ -72,6 +72,47 @@ type channelConn struct {
 	peerIdx map[*peer.Peer]channel.Index
 }
 
+// initExchangeSigsAndEnable exchanges signatures on the initial state.
+// The state machine is not locked as this function is expected to be called
+// during the initialization phase of the channel controller.
+func (c *Channel) initExchangeSigsAndEnable(ctx context.Context) error {
+	sig, err := c.machine.Sig()
+	if err != nil {
+		return err
+	}
+
+	send := make(chan error)
+	go func() {
+		send <- c.conn.send(ctx, &ChannelUpdateAcc{
+			ChannelID: c.ID(),
+			Version:   0,
+			Sig:       sig,
+		})
+	}()
+
+	pidx, cm := c.conn.recv(ctx) // ignore index in 2PC
+	acc, ok := cm.(*ChannelUpdateAcc)
+	if !ok {
+		return errors.Errorf(
+			"received unexpected message type (%T) from peer",
+			cm)
+	}
+	if acc.Version != 0 {
+		return errors.Errorf(
+			"received signature on unexpected version %d from peer",
+			acc.Version)
+	}
+
+	if err := c.machine.AddSig(pidx, acc.Sig); err != nil {
+		return err
+	}
+	if err := c.machine.EnableInit(); err != nil {
+		return err
+	}
+
+	return errors.WithMessage(<-send, "sending initial signature")
+}
+
 // newChannelConn creates a new channel connection for the given channel ID. It
 // subscribes on all peers to all messages regarding this channel. The order of
 // the peers is important: it must match their position in the channel
