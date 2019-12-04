@@ -6,7 +6,6 @@ package test // import "perun.network/go-perun/wallet/test"
 
 import (
 	"bytes"
-	"encoding/hex"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -30,7 +29,7 @@ type Setup struct {
 	UnlockedAccount UnlockedAccount // provides an account that is ready to sign
 	InitWallet      InitWallet      // function that initializes a wallet.
 	//Address tests
-	AddressBytes []byte         // valid address, should not be in wallet
+	AddressBytes []byte         // a valid nonzero address not in the wallet
 	Backend      wallet.Backend // backend implementation
 	// Signature tests
 	DataToSign []byte
@@ -57,10 +56,10 @@ func testUninitializedWallet(t *testing.T, s *Setup) {
 }
 
 func testInitializedWallet(t *testing.T, s *Setup) {
-	assert.Nil(t, s.InitWallet(s.Wallet), "Expected connect to succeed")
+	assert.NoError(t, s.InitWallet(s.Wallet), "Expected connect to succeed")
 
 	_, err := s.Wallet.Status()
-	assert.Nil(t, err, "Unlocked wallet should not produce errors")
+	assert.NoError(t, err, "Unlocked wallet should not produce errors")
 	assert.NotNil(t, s.Wallet.Accounts(), "Expected accounts")
 	assert.False(t, s.Wallet.Contains(*new(wallet.Account)), "Expected wallet not to contain an empty account")
 	assert.Equal(t, 1, len(s.Wallet.Accounts()), "Expected one account")
@@ -68,26 +67,26 @@ func testInitializedWallet(t *testing.T, s *Setup) {
 	acc := s.Wallet.Accounts()[0]
 	assert.True(t, s.Wallet.Contains(acc), "Expected wallet to contain account")
 
-	assert.Nil(t, s.Wallet.Disconnect(), "Expected disconnect to succeed")
+	assert.NoError(t, s.Wallet.Disconnect(), "Expected disconnect to succeed")
 }
 
 // GenericSignatureTest runs a test suite designed to test the general functionality of an account.
 // This function should be called by every implementation of the wallet interface.
 func GenericSignatureTest(t *testing.T, s *Setup) {
 	acc, err := s.UnlockedAccount()
-	assert.Nil(t, err)
+	assert.NoError(t, err)
 	// Check unlocked account
 	sign, err := acc.SignData(s.DataToSign)
-	assert.Nil(t, err, "Sign with unlocked account should succeed")
+	assert.NoError(t, err, "Sign with unlocked account should succeed")
 	valid, err := s.Backend.VerifySignature(s.DataToSign, sign, acc.Address())
 	assert.True(t, valid, "Verification should succeed")
-	assert.Nil(t, err, "Verification should not produce error")
+	assert.NoError(t, err, "Verification should not produce error")
 
 	addr, err := s.Backend.NewAddressFromBytes(s.AddressBytes)
-	assert.Nil(t, err, "Byte deserialization of address should work")
+	assert.NoError(t, err, "Byte deserialization of address should work")
 	valid, err = s.Backend.VerifySignature(s.DataToSign, sign, addr)
 	assert.False(t, valid, "Verification with wrong address should fail")
-	assert.Nil(t, err, "Verification of valid signature should not produce error")
+	assert.NoError(t, err, "Verification of valid signature should not produce error")
 
 	tampered := make([]byte, len(sign))
 	copy(tampered, sign)
@@ -154,18 +153,16 @@ func GenericSignatureSizeTest(t *testing.T, s *Setup) {
 // This function should be called by every implementation of the wallet interface.
 func GenericAddressTest(t *testing.T, s *Setup) {
 	addrLen := len(s.AddressBytes)
-	null, err := s.Backend.NewAddressFromBytes(make([]byte, addrLen, addrLen))
-	assert.Nil(t, err, "Byte deserialization of zero address should work")
+	null, err := s.Backend.NewAddressFromBytes(make([]byte, addrLen))
+	assert.NoError(t, err, "Byte deserialization of zero address should work")
 	addr, err := s.Backend.NewAddressFromBytes(s.AddressBytes)
-	assert.Nil(t, err, "Byte deserialization of address should work")
+	assert.NoError(t, err, "Byte deserialization of address should work")
 
+	nullString := null.String()
 	addrString := addr.String()
-	if addrString[:2] == "0x" {
-		addrString = addrString[2:]
-	}
-	fullAddrString := hex.EncodeToString(s.AddressBytes)
+	assert.Greater(t, len(nullString), 0)
 	assert.Greater(t, len(addrString), 0)
-	assert.Contains(t, fullAddrString, addrString)
+	assert.NotEqual(t, addrString, nullString)
 
 	assert.Equal(t, s.AddressBytes, addr.Bytes(), "Expected equality of address bytes")
 	assert.False(t, addr.Equals(null), "Expected inequality of zero, nonzero address")
