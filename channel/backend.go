@@ -41,6 +41,9 @@ type Backend interface {
 // SetBackend sets the global channel backend. Must not be called directly but
 // through backend.Set().
 func SetBackend(b Backend) {
+	if backend != nil || b == nil {
+		panic("channel backend already set or nil argument")
+	}
 	backend = b
 }
 

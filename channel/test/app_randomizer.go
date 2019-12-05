@@ -17,7 +17,14 @@ type AppRandomizer interface {
 
 var appRandomizer AppRandomizer = &MockAppRandomizer{}
 
+// isAppRandomizerSet whether the appRandomizer was already set with `SetAppRandomizer`
+var isAppRandomizerSet bool
+
 func SetAppRandomizer(r AppRandomizer) {
+	if r == nil || isAppRandomizerSet {
+		panic("app randomizer already set or nil argument")
+	}
+	isAppRandomizerSet = true
 	appRandomizer = r
 }
 

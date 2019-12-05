@@ -22,6 +22,9 @@ type Randomizer interface {
 var randomizer Randomizer
 
 func SetRandomizer(r Randomizer) {
+	if randomizer != nil || r == nil {
+		panic("channel/test randomizer already set or nil argument")
+	}
 	randomizer = r
 }
 
