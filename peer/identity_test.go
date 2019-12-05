@@ -12,14 +12,14 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	sim "perun.network/go-perun/backend/sim/wallet"
 	"perun.network/go-perun/pkg/test"
+	wallettest "perun.network/go-perun/wallet/test"
 	"perun.network/go-perun/wire/msg"
 )
 
 func TestAuthResponseMsg(t *testing.T) {
 	rng := rand.New(rand.NewSource(1337))
-	msg.TestMsg(t, NewAuthResponseMsg(sim.NewRandomAccount(rng)))
+	msg.TestMsg(t, NewAuthResponseMsg(wallettest.NewRandomAccount(rng)))
 }
 
 func TestExchangeAddrs_NilParams(t *testing.T) {
@@ -27,16 +27,16 @@ func TestExchangeAddrs_NilParams(t *testing.T) {
 	assert.Panics(t, func() { ExchangeAddrs(context.Background(), nil, nil) })
 	assert.Panics(t, func() { ExchangeAddrs(context.Background(), nil, newMockConn(nil)) })
 	assert.Panics(t, func() {
-		ExchangeAddrs(context.Background(), sim.NewRandomAccount(rnd), nil)
+		ExchangeAddrs(context.Background(), wallettest.NewRandomAccount(rnd), nil)
 	})
-	assert.Panics(t, func() { ExchangeAddrs(nil, sim.NewRandomAccount(rnd), newMockConn(nil)) })
+	assert.Panics(t, func() { ExchangeAddrs(nil, wallettest.NewRandomAccount(rnd), newMockConn(nil)) })
 }
 
 func TestExchangeAddrs_ConnFail(t *testing.T) {
 	rng := rand.New(rand.NewSource(0xDDDDDEDE))
 	a, _ := newPipeConnPair()
 	a.Close()
-	addr, err := ExchangeAddrs(context.Background(), sim.NewRandomAccount(rng), a)
+	addr, err := ExchangeAddrs(context.Background(), wallettest.NewRandomAccount(rng), a)
 	assert.Nil(t, addr)
 	assert.Error(t, err)
 }
@@ -45,7 +45,7 @@ func TestExchangeAddrs_Success(t *testing.T) {
 	rng := rand.New(rand.NewSource(0xfedd))
 	conn0, conn1 := newPipeConnPair()
 	defer conn0.Close()
-	account0, account1 := sim.NewRandomAccount(rng), sim.NewRandomAccount(rng)
+	account0, account1 := wallettest.NewRandomAccount(rng), wallettest.NewRandomAccount(rng)
 	var wg sync.WaitGroup
 	wg.Add(1)
 
@@ -74,7 +74,7 @@ func TestExchangeAddrs_Timeout(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 	test.AssertTerminates(t, 2*timeout, func() {
-		addr, err := ExchangeAddrs(ctx, sim.NewRandomAccount(rng), a)
+		addr, err := ExchangeAddrs(ctx, wallettest.NewRandomAccount(rng), a)
 		assert.Nil(t, addr)
 		assert.Error(t, err)
 	})
@@ -82,7 +82,7 @@ func TestExchangeAddrs_Timeout(t *testing.T) {
 
 func TestExchangeAddrs_BogusMsg(t *testing.T) {
 	rng := rand.New(rand.NewSource(0xcafe))
-	acc := sim.NewRandomAccount(rng)
+	acc := wallettest.NewRandomAccount(rng)
 	conn := newMockConn(nil)
 	conn.recvQueue <- msg.NewPingMsg()
 	addr, err := ExchangeAddrs(context.Background(), acc, conn)

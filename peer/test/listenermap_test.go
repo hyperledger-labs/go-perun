@@ -10,7 +10,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"perun.network/go-perun/backend/sim/wallet"
+	"perun.network/go-perun/wallet/test"
 )
 
 func TestListenerMap_find(t *testing.T) {
@@ -18,13 +18,13 @@ func TestListenerMap_find(t *testing.T) {
 
 	t.Run("empty map", func(t *testing.T) {
 		m := listenerMap{}
-		l, ok := m.find(wallet.NewRandomAddress(rng))
+		l, ok := m.find(test.NewRandomAddress(rng))
 		assert.Nil(t, l)
 		assert.False(t, ok)
 	})
 
 	t.Run("map with entry", func(t *testing.T) {
-		key := wallet.NewRandomAddress(rng)
+		key := test.NewRandomAddress(rng)
 		listener := NewListener()
 		entry := listenerMapEntry{key, listener}
 		m := listenerMap{entries: []listenerMapEntry{entry}}
@@ -33,7 +33,7 @@ func TestListenerMap_find(t *testing.T) {
 		assert.Same(t, l, listener)
 		assert.True(t, ok)
 
-		l, ok = m.find(wallet.NewRandomAddress(rng))
+		l, ok = m.find(test.NewRandomAddress(rng))
 		assert.Nil(t, l)
 		assert.False(t, ok)
 	})
@@ -45,7 +45,7 @@ func TestListenerMap_insert(t *testing.T) {
 	t.Run("insert new", func(t *testing.T) {
 		m := listenerMap{}
 		for i := 0; i < 10; i++ {
-			key := wallet.NewRandomAddress(rng)
+			key := test.NewRandomAddress(rng)
 			assert.NoError(t, m.insert(key, NewListener()))
 			_, ok := m.find(key)
 			assert.True(t, ok)
@@ -54,7 +54,7 @@ func TestListenerMap_insert(t *testing.T) {
 
 	t.Run("double insert", func(t *testing.T) {
 		m := listenerMap{}
-		key := wallet.NewRandomAddress(rng)
+		key := test.NewRandomAddress(rng)
 		assert.NoError(t, m.insert(key, NewListener()))
 		assert.Error(t, m.insert(key, NewListener()))
 	})
@@ -66,7 +66,7 @@ func TestListenerMap_erase(t *testing.T) {
 	t.Run("erase existing", func(t *testing.T) {
 		m := listenerMap{}
 		for i := 0; i < 10; i++ {
-			key := wallet.NewRandomAddress(rng)
+			key := test.NewRandomAddress(rng)
 			assert.NoError(t, m.insert(key, NewListener()))
 			assert.NoError(t, m.erase(key))
 			_, ok := m.find(key)
@@ -76,6 +76,6 @@ func TestListenerMap_erase(t *testing.T) {
 
 	t.Run("erase nonexistent", func(t *testing.T) {
 		m := listenerMap{}
-		assert.Error(t, m.erase(wallet.NewRandomAddress(rng)))
+		assert.Error(t, m.erase(test.NewRandomAddress(rng)))
 	})
 }
