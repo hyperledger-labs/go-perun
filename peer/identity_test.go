@@ -34,6 +34,7 @@ func TestExchangeAddrs_NilParams(t *testing.T) {
 	assert.Panics(t, func() {
 		ExchangeAddrs(context.Background(), sim.NewRandomAccount(rnd), nil)
 	})
+	assert.Panics(t, func() { ExchangeAddrs(nil, sim.NewRandomAccount(rnd), newMockConn(nil)) })
 }
 
 func TestExchangeAddrs_ConnFail(t *testing.T) {

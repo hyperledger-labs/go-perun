@@ -145,9 +145,10 @@ func TestPeer_Send_Timeout(t *testing.T) {
 }
 
 func TestPeer_Send_Timeout_Mutex_TryLockCtx(t *testing.T) {
-	conn, _ := newPipeConnPair()
+	conn, remote := newPipeConnPair()
 	p := newPeer(nil, conn, nil)
 
+	go remote.Recv()
 	p.sending.Lock()
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
@@ -251,5 +252,5 @@ func TestPeer_WaitExists_2nd_Close(t *testing.T) {
 		<-time.After(timeout)
 		p.Close()
 	}()
-	assert.False(t, p.waitExists(nil))
+	assert.False(t, p.waitExists(context.Background()))
 }

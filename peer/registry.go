@@ -7,6 +7,7 @@ package peer
 import (
 	"context"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/pkg/errors"
@@ -21,13 +22,15 @@ type Registry struct {
 	peers []*Peer  // The list of all of the registry's peers.
 	id    Identity // The identity of the node.
 
-	exchangeAddrsTimeout time.Duration
+	exchangeAddrsTimeout int64
 
 	dialer    Dialer      // Used for dialing peers (and later: repairing).
 	subscribe func(*Peer) // Sets up peer subscriptions.
 
 	perunsync.Closer
 }
+
+const defaultExchangeAddrsTimeout = 10 * time.Second
 
 // NewRegistry creates a new registry.
 // The provided callback is used to set up new peer's subscriptions and it is
@@ -38,8 +41,12 @@ func NewRegistry(id Identity, subscribe func(*Peer), dialer Dialer) *Registry {
 		subscribe: subscribe,
 		dialer:    dialer,
 
-		exchangeAddrsTimeout: 10 * time.Second,
+		exchangeAddrsTimeout: int64(defaultExchangeAddrsTimeout),
 	}
+}
+
+func (r *Registry) SetExchangeAddrsTimeout(d time.Duration) {
+	atomic.StoreInt64(&r.exchangeAddrsTimeout, int64(d))
 }
 
 // Close closes the registry's dialer and all its peers.
@@ -80,7 +87,7 @@ func (r *Registry) Listen(listener Listener) {
 			return
 		}
 
-		// setup connection in a serparate routine so that new incoming
+		// setup connection in a separate routine so that new incoming
 		// connections can immediately be handled.
 		go r.setupConn(conn)
 	}
@@ -89,23 +96,25 @@ func (r *Registry) Listen(listener Listener) {
 // setupConn authenticates a fresh connection, and if successful, adds it to the
 // registry.
 func (r *Registry) setupConn(conn Conn) error {
-	ctx, cancel := context.WithTimeout(context.Background(), r.exchangeAddrsTimeout)
+	timeout := time.Duration(atomic.LoadInt64(&r.exchangeAddrsTimeout))
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 
-	if peerAddr, err := ExchangeAddrs(ctx, r.id, conn); err != nil {
+	var peerAddr Address
+	var err error
+	if peerAddr, err = ExchangeAddrs(ctx, r.id, conn); err != nil {
 		conn.Close()
 		return errors.WithMessage(err, "could not authenticate peer")
-	} else {
-		r.mutex.Lock()
-		defer r.mutex.Unlock()
-
-		if peer, _ := r.find(peerAddr); peer == nil {
-			r.addPeer(peerAddr, conn)
-		} else {
-			peer.create(conn)
-		}
-		return nil
 	}
+	r.mutex.Lock()
+	defer r.mutex.Unlock()
+
+	if peer, _ := r.find(peerAddr); peer == nil {
+		r.addPeer(peerAddr, conn)
+	} else {
+		peer.create(conn)
+	}
+	return nil
 }
 
 // find looks up a peer via its Perun address.
@@ -120,16 +129,45 @@ func (r *Registry) find(addr Address) (*Peer, int) {
 	return nil, -1
 }
 
+// Get looks up the peer via its perun address.
+// If the peer does not exist yet, creates a placeholder peer and dials the
+// requested address. When the dialling finishes, completes the peer or closes
+// it, depending on the success of the dialing operation. The unfinished peer
+// object can be used already, but it will block until the peer is finished or
+// closed. If the registry is already closed, returns a closed peer.
+func (r *Registry) Get(ctx context.Context, addr Address) (*Peer, error) {
+	r.mutex.Lock()
+	if p, i := r.find(addr); i != -1 {
+		r.mutex.Unlock()
+		if p.waitExists(ctx) {
+			return p, nil
+		} else {
+			return nil, errors.New("peer was not created in time")
+		}
+	}
+
+	// Create "nonexistent" peer (nil connection).
+	peer := r.addPeer(addr, nil)
+	r.mutex.Unlock()
+
+	if err := r.authenticatedDial(ctx, peer, addr); err != nil {
+		peer.Close()
+		return nil, errors.WithMessage(err, "failed to dial peer")
+	}
+
+	return peer, nil
+}
+
 func (r *Registry) authenticatedDial(ctx context.Context, peer *Peer, addr Address) error {
 	conn, err := r.dialer.Dial(ctx, addr)
 
-	if err != nil {
-		if peer.exists() {
-			return nil // Failed to dial, but peer was created anyway.
-		} else {
-			peer.Close()
-			return errors.WithMessage(err, "failed to dial")
+	if peer.exists() {
+		if conn != nil {
+			conn.Close()
 		}
+		return nil
+	} else if err != nil {
+		return errors.WithMessage(err, "failed to dial")
 	}
 
 	a, err := ExchangeAddrs(ctx, r.id, conn)
@@ -148,35 +186,6 @@ func (r *Registry) authenticatedDial(ctx context.Context, peer *Peer, addr Addre
 
 	peer.create(conn)
 	return nil
-}
-
-// Get looks up the peer via its perun address.
-// If the peer does not exist yet, creates a placeholder peer and dials the
-// requested address. When the dialling finishes, completes the peer or closes
-// it, depending on the success of the dialing operation. The unfinished peer
-// object can be used already, but it will block until the peer is finished or
-// closed. If the registry is already closed, returns a closed peer.
-func (r *Registry) Get(ctx context.Context, addr Address) *Peer {
-	r.mutex.Lock()
-	if p, i := r.find(addr); i != -1 {
-		r.mutex.Unlock()
-		if p.waitExists(ctx) {
-			return p
-		} else {
-			return nil
-		}
-	}
-
-	// Create "nonexistent" peer (nil connection).
-	peer := r.addPeer(addr, nil)
-	r.mutex.Unlock()
-
-	if err := r.authenticatedDial(ctx, peer, addr); err != nil {
-		peer.Close()
-		return nil
-	}
-
-	return peer
 }
 
 // NumPeers returns the current number of peers in the registry including

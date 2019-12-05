@@ -109,7 +109,9 @@ func TestRegistry_Get(t *testing.T) {
 
 		r.peers = []*Peer{closed}
 		test.AssertTerminates(t, timeout, func() {
-			assert.Nil(t, r.Get(context.Background(), peerAddr))
+			p, err := r.Get(context.Background(), peerAddr)
+			assert.Error(t, err)
+			assert.Nil(t, p)
 		})
 	})
 
@@ -122,7 +124,9 @@ func TestRegistry_Get(t *testing.T) {
 
 		r.peers = []*Peer{existing}
 		test.AssertTerminates(t, timeout, func() {
-			assert.Same(t, r.Get(context.Background(), peerAddr), existing)
+			p, err := r.Get(context.Background(), peerAddr)
+			assert.NoError(t, err)
+			assert.Same(t, p, existing)
 		})
 	})
 
@@ -134,7 +138,9 @@ func TestRegistry_Get(t *testing.T) {
 
 		dialer.Close()
 		test.AssertTerminates(t, timeout, func() {
-			assert.Nil(t, r.Get(context.Background(), peerAddr))
+			p, err := r.Get(context.Background(), peerAddr)
+			assert.Error(t, err)
+			assert.Nil(t, p)
 		})
 
 		<-time.After(timeout)
@@ -153,7 +159,8 @@ func TestRegistry_Get(t *testing.T) {
 			ExchangeAddrs(context.Background(), peerId, b)
 		}()
 		test.AssertTerminates(t, timeout, func() {
-			p := r.Get(context.Background(), peerAddr)
+			p, err := r.Get(context.Background(), peerAddr)
+			require.NoError(t, err)
 			require.NotNil(t, p)
 			require.True(t, p.exists())
 			require.False(t, p.IsClosed())
