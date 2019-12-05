@@ -25,10 +25,9 @@ func TestConnHub_Create(t *testing.T) {
 
 		var c ConnHub
 		addr := wallet.NewRandomAddress(rng)
-		d, l, err := c.Create(addr)
+		d, l := c.NewDialer(), c.NewListener(addr)
 		assert.NotNil(d)
 		assert.NotNil(l)
-		assert.NoError(err)
 
 		t.Run("accept", func(t *testing.T) {
 			go test.AssertTerminates(t, timeout, func() {
@@ -55,24 +54,18 @@ func TestConnHub_Create(t *testing.T) {
 		var c ConnHub
 		addr := wallet.NewRandomAddress(rng)
 
-		d, l, err := c.Create(addr)
-		assert.NotNil(d)
+		l := c.NewListener(addr)
 		assert.NotNil(l)
-		assert.NoError(err)
 
-		d, l, err = c.Create(addr)
-		assert.Nil(d)
-		assert.Nil(l)
-		assert.Error(err)
+		assert.Panics(func() { c.NewListener(addr) })
 	})
 
 	t.Run("dial nonexisting", func(t *testing.T) {
 		assert := assert.New(t)
 
 		var c ConnHub
-		addr := wallet.NewRandomAddress(rng)
 
-		d, _, _ := c.Create(addr)
+		d := c.NewDialer()
 		test.AssertTerminates(t, timeout, func() {
 			conn, err := d.Dial(context.Background(), wallet.NewRandomAddress(rng))
 			assert.Nil(conn)
@@ -87,16 +80,8 @@ func TestConnHub_Create(t *testing.T) {
 		c.Close()
 		addr := wallet.NewRandomAddress(rng)
 
-		d, l, err := c.Create(addr)
-		assert.Nil(d)
-		assert.Nil(l)
-		assert.Error(err)
-		assert.True(sync.IsAlreadyClosedError(err))
-
-		d, l, err = c.Create(addr)
-		assert.Nil(d)
-		assert.Nil(l)
-		assert.Error(err)
+		assert.Panics(func() { c.NewDialer() })
+		assert.Panics(func() { c.NewListener(addr) })
 	})
 }
 
@@ -106,7 +91,7 @@ func TestConnHub_Close(t *testing.T) {
 		assert := assert.New(t)
 
 		var c ConnHub
-		_, l, _ := c.Create(wallet.NewRandomAddress(rng))
+		l := c.NewListener(wallet.NewRandomAddress(rng))
 		assert.NoError(c.Close())
 		assert.True(l.(*Listener).IsClosed())
 	})
@@ -115,7 +100,7 @@ func TestConnHub_Close(t *testing.T) {
 		assert := assert.New(t)
 
 		var c ConnHub
-		_, l, _ := c.Create(wallet.NewRandomAddress(rng))
+		l := c.NewListener(wallet.NewRandomAddress(rng))
 		l2 := NewListener()
 		l2.Close()
 		c.insert(wallet.NewRandomAccount(rng).Address(), l2)
@@ -127,7 +112,7 @@ func TestConnHub_Close(t *testing.T) {
 		assert := assert.New(t)
 
 		var c ConnHub
-		d, _, _ := c.Create(wallet.NewRandomAddress(rng))
+		d := c.NewDialer()
 		d2 := &Dialer{}
 		d2.Close()
 		c.dialers.insert(d2)
