@@ -212,8 +212,8 @@ func (r *Registry) authenticatedDial(ctx context.Context, peer *Peer, addr Addre
 // NumPeers returns the current number of peers in the registry including
 // placeholder peers (cf. Registry.Get).
 func (r *Registry) NumPeers() int {
-	r.mutex.RLock()
-	defer r.mutex.RUnlock()
+	r.mutex.Lock()
+	defer r.mutex.Unlock()
 
 	r.prune()
 	return len(r.peers)
