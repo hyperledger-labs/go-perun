@@ -99,20 +99,19 @@ func TestRegistry_Get(t *testing.T) {
 	peerId := wallet.NewRandomAccount(rng)
 	peerAddr := peerId.Address()
 
-	t.Run("peer already in progress (closed)", func(t *testing.T) {
+	t.Run("peer already in progress (nonexisting)", func(t *testing.T) {
 		t.Parallel()
 
 		dialer := newMockDialer()
 		r := NewRegistry(id, func(*Peer) {}, dialer)
 		closed := newPeer(peerAddr, nil, nil)
-		closed.Close()
 
 		r.peers = []*Peer{closed}
-		test.AssertTerminates(t, timeout, func() {
-			p, err := r.Get(context.Background(), peerAddr)
-			assert.Error(t, err)
-			assert.Nil(t, p)
-		})
+		ctx, cancel := context.WithTimeout(context.Background(), timeout)
+		defer cancel()
+		p, err := r.Get(ctx, peerAddr)
+		assert.Error(t, err)
+		assert.Nil(t, p)
 	})
 
 	t.Run("peer already in progress (existing)", func(t *testing.T) {
@@ -379,10 +378,15 @@ func TestRegistry_Close(t *testing.T) {
 		d := &mockDialer{dial: make(chan Conn)}
 		r := NewRegistry(wallet.NewRandomAccount(rng), func(*Peer) {}, d)
 
-		p := newPeer(nil, nil, nil)
-		p.Close()
+		mc := newMockConn(nil)
+		p := newPeer(nil, mc, nil)
+		// we close the mockConn so that a second Close() call returns an error.
+		// Note that the mockConn doesn't return an AlreadyClosedError on a
+		// double-close.
+		mc.Close()
 		r.peers = append(r.peers, p)
-		assert.Error(t, r.Close())
+		assert.Error(t, r.Close(),
+			"a close error from a peer should be propagated to Registry.Close()")
 	})
 
 	t.Run("dialer close error", func(t *testing.T) {
