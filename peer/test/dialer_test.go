@@ -11,7 +11,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"perun.network/go-perun/backend/sim/wallet"
+	"perun.network/go-perun/wallet/test"
 )
 
 func TestDialer_Dial(t *testing.T) {
@@ -21,7 +21,7 @@ func TestDialer_Dial(t *testing.T) {
 		var d Dialer
 		d.Close()
 
-		conn, err := d.Dial(context.Background(), wallet.NewRandomAddress(rng))
+		conn, err := d.Dial(context.Background(), test.NewRandomAddress(rng))
 		assert.Nil(t, conn)
 		assert.Error(t, err)
 	})
@@ -31,7 +31,7 @@ func TestDialer_Dial(t *testing.T) {
 		var d Dialer
 		ctx, cancel := context.WithCancel(context.Background())
 		cancel()
-		conn, err := d.Dial(ctx, wallet.NewRandomAddress(rng))
+		conn, err := d.Dial(ctx, test.NewRandomAddress(rng))
 		assert.Nil(t, conn)
 		assert.Error(t, err)
 	})

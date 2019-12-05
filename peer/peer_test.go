@@ -7,7 +7,6 @@ package peer
 
 import (
 	"context"
-	"io"
 	"math/rand"
 	"reflect"
 	"sync"
@@ -17,7 +16,8 @@ import (
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 
-	"perun.network/go-perun/backend/sim/wallet"
+	_ "perun.network/go-perun/backend/sim/wallet" // backend init
+	wallettest "perun.network/go-perun/wallet/test"
 	wire "perun.network/go-perun/wire/msg"
 )
 
@@ -85,9 +85,9 @@ type client struct {
 }
 
 // makeClient creates a simulated test client.
-func makeClient(t *testing.T, conn Conn, rng io.Reader, dialer Dialer) *client {
+func makeClient(t *testing.T, conn Conn, rng *rand.Rand, dialer Dialer) *client {
 	var receiver = NewReceiver()
-	var registry = NewRegistry(wallet.NewRandomAccount(rng), func(p *Peer) {
+	var registry = NewRegistry(wallettest.NewRandomAccount(rng), func(p *Peer) {
 		assert.NoError(
 			t,
 			receiver.Subscribe(p, func(wire.Msg) bool { return true }),
@@ -95,7 +95,7 @@ func makeClient(t *testing.T, conn Conn, rng io.Reader, dialer Dialer) *client {
 	}, dialer)
 
 	return &client{
-		peer:     registry.addPeer(wallet.NewRandomAddress(rng), conn),
+		peer:     registry.addPeer(wallettest.NewRandomAddress(rng), conn),
 		Registry: registry,
 		Receiver: receiver,
 	}
@@ -215,7 +215,7 @@ func TestPeer_ClosedByRecvLoopOnConnClose(t *testing.T) {
 	onCloseCalled := make(chan struct{})
 
 	rng := rand.New(rand.NewSource(0xcaffe2))
-	addr := wallet.NewRandomAddress(rng)
+	addr := wallettest.NewRandomAddress(rng)
 	conn0, conn1 := newPipeConnPair()
 	peer := newPeer(addr, conn0, nil)
 	peer.OnClose(func() {

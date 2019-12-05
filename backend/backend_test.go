@@ -16,6 +16,7 @@ func TestSet(t *testing.T) {
 		Wallet:  nil,
 	}
 
-	assert.NotPanics(t, func() { Set(nilBackend) }, "First backend.Set should not panic")
-	assert.Panics(t, func() { Set(nilBackend) }, "Second backend.Set should panic")
+	// We cannot test here, that it is set to non nil, since it is not part of this package.
+	// We should kick out Collection.
+	assert.Panics(t, func() { Set(nilBackend) }, "setting a backend twice should panic")
 }

@@ -12,9 +12,10 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"perun.network/go-perun/backend/sim/wallet"
+	_ "perun.network/go-perun/backend/sim/wallet"
 	"perun.network/go-perun/pkg/sync"
 	"perun.network/go-perun/pkg/test"
+	wallettest "perun.network/go-perun/wallet/test"
 	"perun.network/go-perun/wire/msg"
 )
 
@@ -24,7 +25,7 @@ func TestConnHub_Create(t *testing.T) {
 		assert, require := assert.New(t), require.New(t)
 
 		var c ConnHub
-		addr := wallet.NewRandomAddress(rng)
+		addr := wallettest.NewRandomAddress(rng)
 		d, l := c.NewDialer(), c.NewListener(addr)
 		assert.NotNil(d)
 		assert.NotNil(l)
@@ -52,7 +53,7 @@ func TestConnHub_Create(t *testing.T) {
 		assert := assert.New(t)
 
 		var c ConnHub
-		addr := wallet.NewRandomAddress(rng)
+		addr := wallettest.NewRandomAddress(rng)
 
 		l := c.NewListener(addr)
 		assert.NotNil(l)
@@ -67,7 +68,7 @@ func TestConnHub_Create(t *testing.T) {
 
 		d := c.NewDialer()
 		test.AssertTerminates(t, timeout, func() {
-			conn, err := d.Dial(context.Background(), wallet.NewRandomAddress(rng))
+			conn, err := d.Dial(context.Background(), wallettest.NewRandomAddress(rng))
 			assert.Nil(conn)
 			assert.Error(err)
 		})
@@ -78,7 +79,7 @@ func TestConnHub_Create(t *testing.T) {
 
 		var c ConnHub
 		c.Close()
-		addr := wallet.NewRandomAddress(rng)
+		addr := wallettest.NewRandomAddress(rng)
 
 		assert.Panics(func() { c.NewDialer() })
 		assert.Panics(func() { c.NewListener(addr) })
@@ -91,7 +92,7 @@ func TestConnHub_Close(t *testing.T) {
 		assert := assert.New(t)
 
 		var c ConnHub
-		l := c.NewListener(wallet.NewRandomAddress(rng))
+		l := c.NewListener(wallettest.NewRandomAddress(rng))
 		assert.NoError(c.Close())
 		assert.True(l.(*Listener).IsClosed())
 	})
@@ -100,10 +101,10 @@ func TestConnHub_Close(t *testing.T) {
 		assert := assert.New(t)
 
 		var c ConnHub
-		l := c.NewListener(wallet.NewRandomAddress(rng))
+		l := c.NewListener(wallettest.NewRandomAddress(rng))
 		l2 := NewListener()
 		l2.Close()
-		c.insert(wallet.NewRandomAccount(rng).Address(), l2)
+		c.insert(wallettest.NewRandomAccount(rng).Address(), l2)
 		assert.Error(c.Close())
 		assert.True(l.(*Listener).IsClosed())
 	})

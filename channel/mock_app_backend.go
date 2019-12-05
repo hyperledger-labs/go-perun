@@ -2,16 +2,16 @@
 // This file is part of go-perun. Use of this source code is governed by a
 // MIT-style license that can be found in the LICENSE file.
 
-// +build !wrap_test
-
-package wallet // import "perun.network/go-perun/backend/sim/wallet"
+package channel // import "perun.network/go-perun/channel"
 
 import (
 	"perun.network/go-perun/wallet"
-	"perun.network/go-perun/wallet/test"
 )
 
-func init() {
-	wallet.SetBackend(new(Backend))
-	test.SetRandomizer(&Randomizer{})
+type MockAppBackend struct{}
+
+var _ AppBackend = &MockAppBackend{}
+
+func (MockAppBackend) AppFromDefinition(addr wallet.Address) (App, error) {
+	return NewMockApp(addr), nil
 }

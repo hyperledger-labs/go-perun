@@ -157,7 +157,7 @@ func (a *Allocation) Decode(r io.Reader) error {
 	// decode assets
 	a.Assets = make([]Asset, numAssets)
 	for i := 0; i < len(a.Assets); i++ {
-		if asset, err := appBackend.DecodeAsset(r); err != nil {
+		if asset, err := DecodeAsset(r); err != nil {
 			return errors.WithMessagef(err, "decoding error for asset %d", i)
 		} else {
 			a.Assets[i] = asset

@@ -96,9 +96,6 @@ type (
 		// is that the app is just read from an app registry, mapping addresses to
 		// apps.
 		AppFromDefinition(wallet.Address) (App, error)
-
-		// DecodeAsset decodes an asset from a stream.
-		DecodeAsset(io.Reader) (Asset, error)
 	}
 )
 
@@ -113,25 +110,26 @@ func IsActionApp(app App) bool {
 }
 
 // appBackend stores the AppBackend globally for the channel package.
-var appBackend AppBackend
+var appBackend AppBackend = &MockAppBackend{}
+
+// isAppBackendSet whether the appBackend was already set with `SetAppBackend`
+var isAppBackendSet bool
 
 // SetAppBackend sets the channel package's app backend. This is more specific
 // than the blockchain backend, so it has to be set separately.
-// It should be set in the init() function of the package that implements the
-// application.
+// The app backend is set to the MockAppBackend by default. Because the MockApp is in
+// package channel, we cannot set it through the usual init.go idiom.
+// The app backend can be changed once by another app (by a SetAppBackend call
+// of the app package's init() function).
 func SetAppBackend(b AppBackend) {
-	if appBackend != nil {
-		panic("App backend already set")
+	if b == nil || isAppBackendSet {
+		panic("app backend already set or nil argument")
 	}
+	isAppBackendSet = true
 	appBackend = b
 }
 
 // AppFromDefinition is a global wrapper call to the app backend function.
 func AppFromDefinition(def wallet.Address) (App, error) {
 	return appBackend.AppFromDefinition(def)
-}
-
-// DecodeAsset is a global wrapper call to the app backend function.
-func DecodeAsset(r io.Reader) (Asset, error) {
-	return appBackend.DecodeAsset(r)
 }

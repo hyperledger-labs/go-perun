@@ -20,10 +20,6 @@ import (
 	"perun.network/go-perun/wire/msg"
 )
 
-func init() {
-	test.SetBackend(new(test.TestBackend))
-}
-
 func TestChannelProposalSerialization(t *testing.T) {
 	rng := rand.New(rand.NewSource(0xdeadbeef))
 	for i := 0; i < 4; i++ {

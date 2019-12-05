@@ -2,7 +2,7 @@
 // This file is part of go-perun. Use of this source code is governed by a
 // MIT-style license that can be found in the LICENSE file.
 
-package test // import "perun.network/go-perun/channel/test"
+package test
 
 import (
 	"fmt"
@@ -15,16 +15,21 @@ import (
 	wallettest "perun.network/go-perun/wallet/test"
 )
 
-type Backend interface {
+type Randomizer interface {
 	NewRandomAsset(*rand.Rand) channel.Asset
-	NewRandomApp(*rand.Rand) channel.App
-	NewRandomData(*rand.Rand) channel.Data
 }
 
-var backend Backend = &TestBackend{}
+var randomizer Randomizer
 
-func SetBackend(b Backend) {
-	backend = b
+func SetRandomizer(r Randomizer) {
+	if randomizer != nil || r == nil {
+		panic("channel/test randomizer already set or nil argument")
+	}
+	randomizer = r
+}
+
+func NewRandomAsset(rng *rand.Rand) channel.Asset {
+	return randomizer.NewRandomAsset(rng)
 }
 
 func NewRandomAllocation(rng *rand.Rand, numParts int) *channel.Allocation {
@@ -80,18 +85,6 @@ func NewRandomState(rng *rand.Rand, p *channel.Params) *channel.State {
 		Data:       NewRandomData(rng),
 		IsFinal:    (rng.Int31n(2) == 0),
 	}
-}
-
-func NewRandomApp(rng *rand.Rand) channel.App {
-	return backend.NewRandomApp(rng)
-}
-
-func NewRandomData(rng *rand.Rand) channel.Data {
-	return backend.NewRandomData(rng)
-}
-
-func NewRandomAsset(rng *rand.Rand) channel.Asset {
-	return backend.NewRandomAsset(rng)
 }
 
 func NewRandomChannelID(rng *rand.Rand) (id channel.ID) {

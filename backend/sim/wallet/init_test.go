@@ -7,11 +7,13 @@
 package wallet // import "perun.network/go-perun/backend/sim/wallet"
 
 import (
+	"testing"
+
 	"perun.network/go-perun/wallet"
 	"perun.network/go-perun/wallet/test"
 )
 
-func init() {
-	wallet.SetBackend(new(Backend))
-	test.SetRandomizer(&Randomizer{})
+func TestSetBackend(t *testing.T) {
+	wallet.SetBackendTest(t)
+	test.SetRandomizerTest(t)
 }

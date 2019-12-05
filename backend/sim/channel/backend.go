@@ -173,3 +173,8 @@ func (*backend) encodeBals(w io.Writer, bals []channel.Bal) error {
 
 	return nil
 }
+
+func (*backend) DecodeAsset(r io.Reader) (channel.Asset, error) {
+	var asset Asset
+	return &asset, asset.Decode(r)
+}

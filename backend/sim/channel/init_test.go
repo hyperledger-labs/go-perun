@@ -4,14 +4,14 @@
 
 // +build !wrap_test
 
-package channel // import "perun.network/go-perun/backend/sim/channel"
+package channel
 
 import (
+	"testing"
+
 	"perun.network/go-perun/channel"
-	"perun.network/go-perun/channel/test"
 )
 
-func init() {
-	channel.SetBackend(new(backend))
-	test.SetRandomizer(new(randomizer))
+func TestSetBackend(t *testing.T) {
+	channel.SetBackendTest(t)
 }
