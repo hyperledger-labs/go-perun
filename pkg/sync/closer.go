@@ -44,13 +44,13 @@ func (c *Closer) Close() error {
 		return newAlreadyClosedError()
 	}
 
-	close(c.closed)
-
 	c.onClosedMtx.Lock()
 	defer c.onClosedMtx.Unlock()
 	for _, fn := range c.onClosed {
-		go fn()
+		fn()
 	}
+
+	close(c.closed)
 
 	return nil
 }
@@ -69,7 +69,7 @@ func (c *Closer) OnClose(handler func()) {
 	// Check again, because Close might have been called before the lock was
 	// acquired.
 	if c.IsClosed() {
-		go handler()
+		handler()
 	} else {
 		c.onClosed = append(c.onClosed, handler)
 	}
