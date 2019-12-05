@@ -18,8 +18,7 @@ var _ peer.Dialer = (*Dialer)(nil)
 
 // Dialer is a test dialer that can dial connections to Listeners via a ConnHub.
 type Dialer struct {
-	hub      *ConnHub
-	identity peer.Identity
+	hub *ConnHub
 
 	sync.Closer
 }
@@ -42,14 +41,7 @@ func (d *Dialer) Dial(ctx context.Context, address peer.Address) (peer.Conn, err
 
 	local, remote := net.Pipe()
 	l.Put(peer.NewIoConn(remote))
-	conn := peer.NewIoConn(local)
-	if addr, err := peer.ExchangeAddrs(d.identity, conn); err != nil {
-		return nil, err
-	} else if !addr.Equals(address) {
-		return nil, errors.New("invalid peer address")
-	}
-
-	return conn, nil
+	return peer.NewIoConn(local), nil
 }
 
 func (d *Dialer) Close() error {

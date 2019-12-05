@@ -37,7 +37,7 @@ type Peer struct {
 	creating sync.Mutex // Prevent races when concurrently creating the peer.
 	sending  sync.Mutex // Blocks multiple Send calls.
 
-	exists chan struct{} // Indicates whether a peer has been created yet.
+	created chan struct{} // Indicates whether a peer has been created yet.
 
 	sync.Closer
 }
@@ -73,7 +73,7 @@ func (p *Peer) create(conn Conn) {
 
 	if p.conn == nil {
 		p.conn = conn
-		close(p.exists)
+		close(p.created)
 	} else {
 		conn.Close()
 	}
@@ -89,13 +89,27 @@ func (p *Peer) waitExists(ctx context.Context) bool {
 		done = ctx.Done()
 	}
 
+	if p.IsClosed() {
+		return false
+	}
+
 	select {
-	case <-p.exists:
+	case <-p.created:
 		return true
 	case <-p.Closed():
 	case <-done:
 	}
 	return false
+}
+
+// exists returns whether the peer has been fully created.
+func (p *Peer) exists() bool {
+	select {
+	case <-p.created:
+		return true
+	default:
+		return false
+	}
 }
 
 // Send sends a single message to a peer.
@@ -167,11 +181,11 @@ func newPeer(addr Address, conn Conn, _ Dialer) *Peer {
 		conn: conn,
 		subs: makeSubscriptions(p),
 
-		exists: make(chan struct{}),
+		created: make(chan struct{}),
 	}
 
 	if p.conn != nil {
-		close(p.exists)
+		close(p.created)
 	}
 
 	return p

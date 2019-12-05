@@ -5,10 +5,13 @@
 package peer
 
 import (
+	"context"
 	"io"
 
 	"github.com/pkg/errors"
 
+	"perun.network/go-perun/log"
+	"perun.network/go-perun/pkg/test"
 	"perun.network/go-perun/wallet"
 	"perun.network/go-perun/wire/msg"
 )
@@ -28,27 +31,40 @@ type Identity = wallet.Account
 
 // ExchangeAddrs exchanges Perun addresses of peers. It's the initial protocol
 // that is run when a new peer connection is established. It returns the address
-// of the peer on the other end of the connection.
+// of the peer on the other end of the connection. If the supplied context times
+// out before the protocol finishes, closes the connection.
 //
 // In the future, ExchangeAddrs will be replaced by Authenticate to run a proper
-// authentication protocol.  The protocol will then exchange Perun addresses and
+// authentication protocol. The protocol will then exchange Perun addresses and
 // establish authenticity.
-func ExchangeAddrs(id Identity, conn Conn) (Address, error) {
-	sent := make(chan error, 1)
-	if id == nil || conn == nil {
-		// catch a nil id early to not cause a panic in the following go routine
-		panic("Authenticate(): nil Identity or Conn")
+func ExchangeAddrs(ctx context.Context, id Identity, conn Conn) (Address, error) {
+	if ctx == nil || id == nil || conn == nil {
+		// Catch a nil id early to not cause a panic in the following goroutine.
+		log.Panic("ExchangeAddrs(): nil Context, Identity, or Conn")
 	}
-	go func() { sent <- conn.Send(NewAuthResponseMsg(id)) }()
+	var addr Address
+	var err error
+	ok := test.TerminatesCtx(ctx, func() {
+		sent := make(chan error, 1)
+		go func() { sent <- conn.Send(NewAuthResponseMsg(id)) }()
 
-	if m, err := conn.Recv(); err != nil {
-		return nil, errors.WithMessage(err, "Failed to receive message")
-	} else if addrM, ok := m.(*AuthResponseMsg); !ok {
-		return nil, errors.Errorf("Expected AuthResponse wire msg, got %v", m.Type())
-	} else {
-		err := <-sent // Wait until the message was sent.
-		return addrM.Address, err
+		var m msg.Msg
+		if m, err = conn.Recv(); err != nil {
+			err = errors.WithMessage(err, "Failed to receive message")
+		} else if addrM, ok := m.(*AuthResponseMsg); !ok {
+			err = errors.Errorf("Expected AuthResponse wire msg, got %v", m.Type())
+		} else {
+			err = <-sent // Wait until the message was sent.
+			addr = addrM.Address
+		}
+	})
+
+	if !ok {
+		conn.Close()
+		return nil, ctx.Err()
 	}
+
+	return addr, err
 }
 
 var _ msg.Msg = (*AuthResponseMsg)(nil)

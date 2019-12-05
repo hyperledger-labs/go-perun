@@ -56,10 +56,10 @@ func (s *setup) Dial(ctx context.Context, addr Address) (Conn, error) {
 	a, b := newPipeConnPair()
 
 	if addr.Equals(s.alice.peer.PerunAddress) { // Dialing Bob?
-		s.bob.Registry.Register(s.bob.peer.PerunAddress, b) // Bob accepts connection.
+		s.bob.Registry.addPeer(s.bob.peer.PerunAddress, b) // Bob accepts connection.
 		return a, nil
 	} else if addr.Equals(s.bob.peer.PerunAddress) { // Dialing Alice?
-		s.alice.Registry.Register(s.alice.peer.PerunAddress, a) // Alice accepts connection.
+		s.alice.Registry.addPeer(s.alice.peer.PerunAddress, a) // Alice accepts connection.
 		return b, nil
 	} else {
 		return nil, errors.New("unknown peer")
@@ -87,7 +87,7 @@ type client struct {
 // makeClient creates a simulated test client.
 func makeClient(t *testing.T, conn Conn, rng io.Reader, dialer Dialer) *client {
 	var receiver = NewReceiver()
-	var registry = NewRegistry(func(p *Peer) {
+	var registry = NewRegistry(wallet.NewRandomAccount(rng), func(p *Peer) {
 		assert.NoError(
 			t,
 			receiver.Subscribe(p, func(wire.Msg) bool { return true }),
@@ -95,7 +95,7 @@ func makeClient(t *testing.T, conn Conn, rng io.Reader, dialer Dialer) *client {
 	}, dialer)
 
 	return &client{
-		peer:     registry.Register(wallet.NewRandomAddress(rng), conn),
+		peer:     registry.addPeer(wallet.NewRandomAddress(rng), conn),
 		Registry: registry,
 		Receiver: receiver,
 	}
@@ -144,6 +144,20 @@ func TestPeer_Send_Timeout(t *testing.T) {
 	assert.True(t, p.IsClosed(), "peer must be closed after failed Send()")
 }
 
+func TestPeer_Send_Timeout_Mutex_TryLockCtx(t *testing.T) {
+	conn, remote := newPipeConnPair()
+	p := newPeer(nil, conn, nil)
+
+	go remote.Recv()
+	p.sending.Lock()
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	defer cancel()
+
+	assert.Error(t, p.Send(ctx, wire.NewPingMsg()),
+		"Send() must timeout on locked mutex")
+	assert.True(t, p.IsClosed(), "peer must be closed after failed Send()")
+}
+
 func TestPeer_Send_Close(t *testing.T) {
 	conn, _ := newPipeConnPair()
 	p := newPeer(nil, conn, nil)
@@ -165,20 +179,12 @@ func TestPeer_IsClosed(t *testing.T) {
 
 func TestPeer_create(t *testing.T) {
 	p := newPeer(nil, nil, nil)
-	select {
-	case <-p.exists:
-		t.Fatal("peer must not yet exist")
-	case <-time.NewTimer(timeout).C:
-	}
+	assert.False(t, p.exists(), "peer must not yet exist")
 
 	conn := newMockConn(nil)
 	p.create(conn)
 
-	select {
-	case <-p.exists:
-	default:
-		t.Fatal("peer must exist")
-	}
+	assert.True(t, p.exists(), "peer must exist")
 
 	assert.False(t, conn.closed.IsSet(),
 		"Peer.create() on nonexisting peers must not close the new connection")
@@ -231,4 +237,20 @@ func TestPeer_ClosedByRecvLoopOnConnClose(t *testing.T) {
 	}
 
 	assert.True(t, peer.IsClosed())
+}
+
+func TestPeer_WaitExists_Timeout(t *testing.T) {
+	p := newPeer(nil, nil, nil)
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+	assert.False(t, p.waitExists(ctx))
+}
+
+func TestPeer_WaitExists_2nd_Close(t *testing.T) {
+	p := newPeer(nil, nil, nil)
+	go func() {
+		<-time.After(timeout)
+		p.Close()
+	}()
+	assert.False(t, p.waitExists(context.Background()))
 }

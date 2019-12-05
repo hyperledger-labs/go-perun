@@ -13,7 +13,6 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"perun.network/go-perun/backend/sim/wallet"
-	"perun.network/go-perun/peer"
 	"perun.network/go-perun/pkg/sync"
 	"perun.network/go-perun/pkg/test"
 	"perun.network/go-perun/wire/msg"
@@ -25,8 +24,8 @@ func TestConnHub_Create(t *testing.T) {
 		assert, require := assert.New(t), require.New(t)
 
 		var c ConnHub
-		id := wallet.NewRandomAccount(rng)
-		d, l, err := c.Create(id)
+		addr := wallet.NewRandomAddress(rng)
+		d, l, err := c.Create(addr)
 		assert.NotNil(d)
 		assert.NotNil(l)
 		assert.NoError(err)
@@ -36,14 +35,12 @@ func TestConnHub_Create(t *testing.T) {
 				conn, err := l.Accept()
 				assert.NoError(err)
 				require.NotNil(t, conn)
-				_, err = peer.ExchangeAddrs(id, conn)
-				assert.NoError(err)
 				assert.NoError(conn.Send(msg.NewPingMsg()))
 			})
 		})
 
 		test.AssertTerminates(t, timeout, func() {
-			conn, err := d.Dial(context.Background(), id.Address())
+			conn, err := d.Dial(context.Background(), addr)
 			assert.NoError(err)
 			require.NotNil(conn)
 			m, err := conn.Recv()
@@ -56,14 +53,14 @@ func TestConnHub_Create(t *testing.T) {
 		assert := assert.New(t)
 
 		var c ConnHub
-		id := wallet.NewRandomAccount(rng)
+		addr := wallet.NewRandomAddress(rng)
 
-		d, l, err := c.Create(id)
+		d, l, err := c.Create(addr)
 		assert.NotNil(d)
 		assert.NotNil(l)
 		assert.NoError(err)
 
-		d, l, err = c.Create(id)
+		d, l, err = c.Create(addr)
 		assert.Nil(d)
 		assert.Nil(l)
 		assert.Error(err)
@@ -73,9 +70,9 @@ func TestConnHub_Create(t *testing.T) {
 		assert := assert.New(t)
 
 		var c ConnHub
-		id := wallet.NewRandomAccount(rng)
+		addr := wallet.NewRandomAddress(rng)
 
-		d, _, _ := c.Create(id)
+		d, _, _ := c.Create(addr)
 		test.AssertTerminates(t, timeout, func() {
 			conn, err := d.Dial(context.Background(), wallet.NewRandomAddress(rng))
 			assert.Nil(conn)
@@ -88,15 +85,15 @@ func TestConnHub_Create(t *testing.T) {
 
 		var c ConnHub
 		c.Close()
-		id := wallet.NewRandomAccount(rng)
+		addr := wallet.NewRandomAddress(rng)
 
-		d, l, err := c.Create(id)
+		d, l, err := c.Create(addr)
 		assert.Nil(d)
 		assert.Nil(l)
 		assert.Error(err)
 		assert.True(sync.IsAlreadyClosedError(err))
 
-		d, l, err = c.Create(id)
+		d, l, err = c.Create(addr)
 		assert.Nil(d)
 		assert.Nil(l)
 		assert.Error(err)
@@ -109,7 +106,7 @@ func TestConnHub_Close(t *testing.T) {
 		assert := assert.New(t)
 
 		var c ConnHub
-		_, l, _ := c.Create(wallet.NewRandomAccount(rng))
+		_, l, _ := c.Create(wallet.NewRandomAddress(rng))
 		assert.NoError(c.Close())
 		assert.True(l.(*Listener).IsClosed())
 	})
@@ -118,7 +115,7 @@ func TestConnHub_Close(t *testing.T) {
 		assert := assert.New(t)
 
 		var c ConnHub
-		_, l, _ := c.Create(wallet.NewRandomAccount(rng))
+		_, l, _ := c.Create(wallet.NewRandomAddress(rng))
 		l2 := NewListener()
 		l2.Close()
 		c.insert(wallet.NewRandomAccount(rng).Address(), l2)
@@ -130,7 +127,7 @@ func TestConnHub_Close(t *testing.T) {
 		assert := assert.New(t)
 
 		var c ConnHub
-		d, _, _ := c.Create(wallet.NewRandomAccount(rng))
+		d, _, _ := c.Create(wallet.NewRandomAddress(rng))
 		d2 := &Dialer{}
 		d2.Close()
 		c.dialers.insert(d2)
