@@ -17,7 +17,6 @@ import (
 	"perun.network/go-perun/backend/ethereum/bindings/adjudicator"
 	"perun.network/go-perun/backend/ethereum/wallet"
 	"perun.network/go-perun/channel"
-	perunio "perun.network/go-perun/pkg/io"
 	perunwallet "perun.network/go-perun/wallet"
 )
 
@@ -47,8 +46,7 @@ func (*Backend) ChannelID(p *channel.Params) (id channel.ID) {
 		log.Panicf("could not encode parameters: %v", err)
 	}
 	// Hash encoded params.
-	copy(id[:], crypto.Keccak256(bytes))
-	return id
+	return crypto.Keccak256Hash(bytes)
 }
 
 // Sign signs the channel state as needed by the ethereum smart contracts.
@@ -189,7 +187,7 @@ func encodeSubAlloc(sub *adjudicator.PerunTypesSubAlloc) ([]byte, error) {
 }
 
 // assetToCommonAddresses converts an array of io.Encoder's to common.Address's.
-func assetToCommonAddresses(addr []perunio.Encoder) []common.Address {
+func assetToCommonAddresses(addr []channel.Asset) []common.Address {
 	cAddrs := make([]common.Address, len(addr))
 	for i, part := range addr {
 		asset := part.(*Asset)
