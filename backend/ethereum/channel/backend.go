@@ -64,6 +64,11 @@ func (*Backend) Sign(acc perunwallet.Account, p *channel.Params, s *channel.Stat
 
 // Verify verifies that a state was signed correctly.
 func (*Backend) Verify(addr perunwallet.Address, p *channel.Params, s *channel.State, sig perunwallet.Sig) (bool, error) {
+	for i := 0; i < len(s.OfParts); i++ {
+		if len(s.OfParts[i]) != len(s.OfParts[0]) {
+			return false, errors.New("Malformed OfParts array")
+		}
+	}
 	state := channelStateToEthState(s)
 	enc, err := encodeState(&state)
 	if err != nil {
@@ -100,7 +105,7 @@ func channelStateToEthState(s *channel.State) adjudicator.PerunTypesState {
 	}
 	outcome := adjudicator.PerunTypesAllocation{
 		Assets:   assetToCommonAddresses(s.Allocation.Assets),
-		Balances: s.OfParts,
+		Balances: transformPartBals(s.OfParts),
 		Locked:   locked,
 	}
 	appData := new(bytes.Buffer)
@@ -203,4 +208,26 @@ func pwToCommonAddresses(addr []perunwallet.Address) []common.Address {
 		cAddrs[i] = part.(*wallet.Address).Address
 	}
 	return cAddrs
+}
+
+// transformPartBals turns valid channel.Allocation.OfParts into adjudicator.Allocation.balances.
+// Currently the channel.Allocation.OfParts are encoded as following:
+// OfParts[i][k] is the balance for the i-th participant on the k-th asset.
+// For ethereum it is cheaper to translate this to the following.
+// balances[i][k] is the balance for the i-th asset of participant k.
+func transformPartBals(ofBals [][]*big.Int) [][]*big.Int {
+	if len(ofBals) == 0 || len(ofBals[0]) == 0 {
+		return [][]*big.Int{}
+	}
+	trans := make([][]*big.Int, len(ofBals[0]))
+	for k := 0; k < len(ofBals[0]); k++ {
+		trans[k] = make([]*big.Int, len(ofBals))
+	}
+	// Fill with balances.
+	for i := 0; i < len(ofBals); i++ {
+		for k := 0; k < len(ofBals[i]); k++ {
+			trans[k][i] = ofBals[i][k]
+		}
+	}
+	return trans
 }

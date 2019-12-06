@@ -8,6 +8,7 @@ import (
 	"encoding/hex"
 	"math/big"
 	"math/rand"
+	"reflect"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -95,6 +96,33 @@ func TestChannelID(t *testing.T) {
 			preCalc, err := hex.DecodeString(tt.channelID)
 			assert.NoError(t, err, "Decoding the channelID should not error")
 			assert.Equal(t, preCalc, cID[:], "ChannelID should match the testcase")
+		})
+	}
+}
+
+func Test_transformPartBals(t *testing.T) {
+	tests := []struct {
+		name string
+		args [][]*big.Int
+		want [][]*big.Int
+	}{
+		{"Test1",
+			[][]*big.Int{
+				[]*big.Int{big.NewInt(1), big.NewInt(4)},
+				[]*big.Int{big.NewInt(2), big.NewInt(3)},
+				[]*big.Int{big.NewInt(6), big.NewInt(5)},
+				[]*big.Int{big.NewInt(7), big.NewInt(9)}},
+			[][]*big.Int{
+				[]*big.Int{big.NewInt(1), big.NewInt(2), big.NewInt(6), big.NewInt(7)},
+				[]*big.Int{big.NewInt(4), big.NewInt(3), big.NewInt(5), big.NewInt(9)},
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := transformPartBals(tt.args); !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("transformPartBals() = %v, want %v", got, tt.want)
+			}
 		})
 	}
 }
