@@ -100,7 +100,7 @@ func (r *ProposalResponder) Reject(ctx context.Context, reason string) error {
 // race-free. After the function returns, the peer starts receiving messages.
 func (c *Client) subChannelProposals(p *peer.Peer) {
 	proposalReceiver := peer.NewReceiver()
-	if err := proposalReceiver.Subscribe(p,
+	if err := p.Subscribe(proposalReceiver,
 		func(m wire.Msg) bool { return m.Type() == wire.ChannelProposal },
 	); err != nil {
 		c.logPeer(p).Errorf("failed to subscribe to channel proposals on new peer")
@@ -208,7 +208,7 @@ func (c *Client) exchangeChannelProposal(
 			(m.Type() == wire.ChannelProposalRej &&
 				m.(*ChannelProposalRej).SessID == sessID)
 	}
-	if err := receiver.Subscribe(p, isResponse); err != nil {
+	if err := p.Subscribe(receiver, isResponse); err != nil {
 		return nil, errors.WithMessagef(
 			err, "subscription error with peer %v", p.PerunAddress)
 	}

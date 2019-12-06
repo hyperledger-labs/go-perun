@@ -31,15 +31,14 @@ import (
 type Peer struct {
 	PerunAddress Address // The peer's perun address.
 
-	conn Conn          // The peer's connection.
-	subs subscriptions // The receivers that are subscribed to the peer.
+	conn Conn // The peer's connection.
 
 	creating sync.Mutex // Prevent races when concurrently creating the peer.
 	sending  sync.Mutex // Blocks multiple Send calls.
 
 	created chan struct{} // Indicates whether a peer has been created yet.
 
-	sync.Closer
+	producer
 }
 
 // recvLoop continuously receives messages from a peer until it is closed.
@@ -58,7 +57,7 @@ func (p *Peer) recvLoop() {
 			return
 		} else {
 			// Broadcast the received message to all interested subscribers.
-			p.subs.put(m, p)
+			p.produce(m, p)
 		}
 	}
 }
@@ -148,25 +147,17 @@ func (p *Peer) Send(ctx context.Context, m wire.Msg) error {
 	}
 }
 
-func (p *Peer) SetDefaultMsgHandler(handler func(wire.Msg)) {
-	p.subs.setDefaultMsgHandler(handler)
-}
-
 // Close closes the peer's connection. A closed peer is no longer usable.
 func (p *Peer) Close() (err error) {
-	if err = p.Closer.Close(); err != nil {
+	if err = p.producer.Close(); sync.IsAlreadyClosedError(err) {
 		return
 	}
 
 	// Close the peer's connection.
 	if p.conn != nil {
-		err = p.conn.Close()
-	}
-	// Delete this peer from all receivers.
-	p.subs.mutex.Lock()
-	defer p.subs.mutex.Unlock()
-	for _, recv := range p.subs.subs {
-		recv.receiver.unsubscribe(p, false)
+		if cerr := p.conn.Close(); cerr != nil && err == nil {
+			err = errors.WithMessage(cerr, "closing connection")
+		}
 	}
 
 	return
@@ -178,8 +169,8 @@ func newPeer(addr Address, conn Conn, _ Dialer) *Peer {
 	*p = Peer{
 		PerunAddress: addr,
 
-		conn: conn,
-		subs: makeSubscriptions(p),
+		conn:     conn,
+		producer: makeProducer(),
 
 		created: make(chan struct{}),
 	}

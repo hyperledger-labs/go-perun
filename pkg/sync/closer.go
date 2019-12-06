@@ -24,6 +24,11 @@ type Closer struct {
 	onClosed    []func()   // Executed when Close() is called.
 }
 
+// OnCloser contains the OnClose function.
+type OnCloser interface {
+	OnClose(func())
+}
+
 func (c *Closer) initOnce() {
 	c.once.Do(func() { c.closed = make(chan struct{}) })
 }
