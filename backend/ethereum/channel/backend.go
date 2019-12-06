@@ -64,10 +64,8 @@ func (*Backend) Sign(acc perunwallet.Account, p *channel.Params, s *channel.Stat
 
 // Verify verifies that a state was signed correctly.
 func (*Backend) Verify(addr perunwallet.Address, p *channel.Params, s *channel.State, sig perunwallet.Sig) (bool, error) {
-	for i := 0; i < len(s.OfParts); i++ {
-		if len(s.OfParts[i]) != len(s.OfParts[0]) {
-			return false, errors.New("Malformed OfParts array")
-		}
+	if err := s.Valid(); err != nil {
+		return false, errors.Wrap(err, "Can not verify invalid state")
 	}
 	state := channelStateToEthState(s)
 	enc, err := encodeState(&state)
@@ -107,6 +105,10 @@ func channelStateToEthState(s *channel.State) adjudicator.PerunTypesState {
 		Assets:   assetToCommonAddresses(s.Allocation.Assets),
 		Balances: transformPartBals(s.OfParts),
 		Locked:   locked,
+	}
+	// Check allocation dimensions
+	if len(outcome.Assets) != len(outcome.Balances) {
+		panic("invalid allocation dimensions")
 	}
 	appData := new(bytes.Buffer)
 	s.Data.Encode(appData)
