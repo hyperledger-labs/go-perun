@@ -13,6 +13,15 @@ import (
 )
 
 type (
+	// ChannelUpdate is a channel update proposal.
+	ChannelUpdate struct {
+		// State is the proposed new state.
+		State *channel.State
+		// ActorIdx is the actor causing the new state.  It does not need to
+		// coincide with the sender of the request.
+		ActorIdx uint16
+	}
+
 	UpdateHandler interface {
 		Handle(ChannelUpdate, *UpdateResponder)
 	}

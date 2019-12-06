@@ -40,14 +40,10 @@ type (
 		ID() channel.ID
 	}
 
-		// State is the proposed new state.
-		State *channel.State
-		// ActorIdx is the actor causing the new state.  It does not need to
-		// coincide with the sender of the request.
-		ActorIdx uint16
 	// msgChannelUpdate is the wire message of a channel update proposal. It
 	// additionally holds the signature on the proposed state.
 	msgChannelUpdate struct {
+		ChannelUpdate
 		// Sig is the signature on the proposed state by the peer sending the
 		// ChannelUpdate.
 		Sig wallet.Sig
