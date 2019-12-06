@@ -6,6 +6,7 @@ package channel // import "perun.network/go-perun/backend/ethereum/channel"
 
 import (
 	"bytes"
+	"io"
 	"log"
 	"math/big"
 
@@ -16,8 +17,7 @@ import (
 	"perun.network/go-perun/backend/ethereum/bindings/adjudicator"
 	"perun.network/go-perun/backend/ethereum/wallet"
 	"perun.network/go-perun/channel"
-	"perun.network/go-perun/channel/test"
-	"perun.network/go-perun/pkg/io"
+	perunio "perun.network/go-perun/pkg/io"
 	perunwallet "perun.network/go-perun/wallet"
 )
 
@@ -72,6 +72,12 @@ func (*Backend) Verify(addr perunwallet.Address, p *channel.Params, s *channel.S
 		return false, errors.Wrap(err, "Failed to encode state")
 	}
 	return perunwallet.VerifySignature(enc, sig, addr)
+}
+
+// DecodeAsset decodes an asset from a stream.
+func (*Backend) DecodeAsset(r io.Reader) (channel.Asset, error) {
+	var asset Asset
+	return asset, asset.Decode(r)
 }
 
 // channelParamsToEthParams converts a channel.Params to a PerunTypesParams struct.
@@ -183,11 +189,11 @@ func encodeSubAlloc(sub *adjudicator.PerunTypesSubAlloc) ([]byte, error) {
 }
 
 // assetToCommonAddresses converts an array of io.Encoder's to common.Address's.
-func assetToCommonAddresses(addr []io.Encoder) []common.Address {
+func assetToCommonAddresses(addr []perunio.Encoder) []common.Address {
 	cAddrs := make([]common.Address, len(addr))
 	for i, part := range addr {
-		asset := part.(*test.Asset)
-		cAddrs[i] = asset.Address.(*wallet.Address).Address
+		asset := part.(*Asset)
+		cAddrs[i] = asset.Address
 	}
 	return cAddrs
 }

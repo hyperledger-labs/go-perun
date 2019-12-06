@@ -11,7 +11,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	"perun.network/go-perun/backend/ethereum/wallet"
+	_ "perun.network/go-perun/backend/ethereum/wallet"
 	"perun.network/go-perun/channel"
 	"perun.network/go-perun/channel/test"
 	perunwallet "perun.network/go-perun/wallet"
@@ -26,8 +26,8 @@ func TestGenericTests(t *testing.T) {
 func newChannelSetup() *test.Setup {
 	rng := rand.New(rand.NewSource(1337))
 
-	app := test.NewRandomApp(rng)
-	app2 := test.NewRandomApp(rng)
+	app := wallettest.NewRandomAddress(rng)
+	app2 := wallettest.NewRandomAddress(rng)
 
 	params := test.NewRandomParams(rng, app)
 	params2 := test.NewRandomParams(rng, app2)
@@ -37,8 +37,7 @@ func newChannelSetup() *test.Setup {
 	state2.IsFinal = !state.IsFinal
 
 	createAddr := func() perunwallet.Address {
-		addr := wallet.NewRandomAddress(rng)
-		return &addr
+		return wallettest.NewRandomAddress(rng)
 	}
 
 	return &test.Setup{
@@ -90,7 +89,7 @@ func TestChannelID(t *testing.T) {
 				ChallengeDuration: tt.challengDur,
 				Nonce:             nonce,
 				Parts:             []perunwallet.Address{alice, bob},
-				App:               test.NewMockApp(app),
+				App:               channel.NewMockApp(app),
 			}
 			cID := channel.ChannelID(&params)
 			preCalc, err := hex.DecodeString(tt.channelID)

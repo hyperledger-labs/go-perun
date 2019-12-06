@@ -18,7 +18,7 @@ import (
 
 func init() {
 	perunwallet.SetBackend(new(Backend))
-	test.SetBackend(newRandomizer())
+	test.SetRandomizer(newRandomizer())
 }
 
 // randomizer implements the channel.test.Backend interface.
