@@ -6,12 +6,8 @@ package peer
 
 import (
 	"context"
-	"sync"
 
-	"github.com/pkg/errors"
-
-	"perun.network/go-perun/log"
-	perunsync "perun.network/go-perun/pkg/sync"
+	"perun.network/go-perun/pkg/sync"
 	wire "perun.network/go-perun/wire/msg"
 )
 
@@ -27,75 +23,16 @@ type msgTuple struct {
 	wire.Msg
 }
 
+var _ Consumer = (*Receiver)(nil)
+
 // Receiver is a helper object that can subscribe to different message
 // categories from multiple peers. Receivers must only be used by a single
 // execution context at a time. If multiple contexts need to access a peer's
 // messages, then multiple receivers have to be created.
-//
-// Receivers have two ways of accessing peer messages: Next() and NextWait().
-// Both will return a channel to the next message, but the difference is that
-// Next() will fail when the receiver is not subscribed to any peers, while
-// NextWait() will only fail if the receiver is manually closed via Close().
 type Receiver struct {
-	mutex sync.Mutex    // Protects all fields.
-	msgs  chan msgTuple // Queued messages.
-	subs  []*Peer       // The receiver's subscription list.
+	msgs chan msgTuple // Queued messages.
 
-	perunsync.Closer
-}
-
-// Subscribe subscribes a receiver to all of a peer's messages of the requested
-// message category. Returns an error if the receiver is closed.
-func (r *Receiver) Subscribe(p *Peer, predicate func(wire.Msg) bool) error {
-	r.mutex.Lock()
-	defer r.mutex.Unlock()
-
-	if r.IsClosed() {
-		return errors.New("receiver is closed")
-	}
-
-	if err := p.subs.add(predicate, r); err != nil {
-		return err
-	}
-
-	r.subs = append(r.subs, p)
-
-	return nil
-}
-
-// Unsubscribe removes a receiver's subscription to a peer's messages of the
-// requested category. Returns an error if the receiver was not subscribed to
-// the requested peer and message category.
-func (r *Receiver) Unsubscribe(p *Peer) {
-	r.unsubscribe(p, true)
-}
-
-func (r *Receiver) unsubscribe(p *Peer, doDelete bool) {
-	r.mutex.Lock()
-	defer r.mutex.Unlock()
-	for i, _p := range r.subs {
-		if _p == p {
-			if doDelete {
-				p.subs.delete(r)
-			}
-			r.subs[i] = r.subs[len(r.subs)-1]
-			r.subs = r.subs[:len(r.subs)-1]
-
-			return
-		}
-	}
-	log.Panic("unsubscribe called on not-subscribed source")
-}
-
-// UnsubscribeAll removes all of a receiver's subscriptions.
-func (r *Receiver) UnsubscribeAll() {
-	r.mutex.Lock()
-	defer r.mutex.Unlock()
-
-	for _, p := range r.subs {
-		p.subs.delete(r)
-	}
-	r.subs = nil
+	sync.Closer
 }
 
 // Next returns a channel to the next message.
@@ -103,31 +40,26 @@ func (r *Receiver) Next(ctx context.Context) (*Peer, wire.Msg) {
 	select {
 	case <-ctx.Done():
 		return nil, nil
+	case <-r.Closed():
+		return nil, nil
 	default:
 	}
 
 	select {
 	case <-ctx.Done():
 		return nil, nil
+	case <-r.Closed():
+		return nil, nil
 	case tuple := <-r.msgs:
 		return tuple.Peer, tuple.Msg
 	}
 }
 
-// Close closes a receiver.
-// Any ongoing receiver operations will be aborted (if there are no messages in
-// backlog).
-func (r *Receiver) Close() error {
-	if err := r.Closer.Close(); err != nil {
-		return err
+func (r *Receiver) Put(peer *Peer, msg wire.Msg) {
+	select {
+	case r.msgs <- msgTuple{peer, msg}:
+	case <-r.Closed():
 	}
-
-	// Remove all subscriptions.
-	r.UnsubscribeAll()
-	// Close the message channel.
-	close(r.msgs)
-
-	return nil
 }
 
 // NewReceiver creates a new receiver.
