@@ -65,16 +65,12 @@ type (
 	// ChannelUpdate.  It references the channel ID and version and states a
 	// reason for the rejection.
 	msgChannelUpdateRej struct {
+		// ChannelID is the channel ID.
+		ChannelID channel.ID
+		// Version of the state that is accepted.
+		Version uint64
 		// Reason states why the sender rejectes the proposed new state.
 		Reason string
-		// Alt is the proposed new alternative state with same version number as the
-		// proposed state.
-		Alt *channel.State
-		// ActorIdx is the actor causing the new alternative state.  It does not
-		// need to coincide with the sender of the rejection.
-		ActorIdx uint16
-		// Sig is the signature on the alternative state by the sender.
-		Sig wallet.Sig
 	}
 )
 
@@ -127,18 +123,11 @@ func (c *msgChannelUpdateAcc) Decode(r io.Reader) (err error) {
 }
 
 func (c msgChannelUpdateRej) Encode(w io.Writer) error {
-	return wire.Encode(w, c.Reason, c.Alt, c.ActorIdx, c.Sig)
+	return wire.Encode(w, c.ChannelID, c.Version, c.Reason)
 }
 
 func (c *msgChannelUpdateRej) Decode(r io.Reader) (err error) {
-	if c.Alt == nil {
-		c.Alt = new(channel.State)
-	}
-	if err := wire.Decode(r, &c.Reason, c.Alt, &c.ActorIdx); err != nil {
-		return err
-	}
-	c.Sig, err = wallet.DecodeSig(r)
-	return err
+	return wire.Decode(r, &c.ChannelID, &c.Version, &c.Reason)
 }
 
 // ID returns the id of the channel this update refers to.
@@ -153,5 +142,5 @@ func (c *msgChannelUpdateAcc) ID() channel.ID {
 
 // ID returns the id of the channel this update rejection refers to.
 func (c *msgChannelUpdateRej) ID() channel.ID {
-	return c.Alt.ID
+	return c.ChannelID
 }
