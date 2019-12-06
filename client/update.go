@@ -131,6 +131,95 @@ func (c *Channel) Update(ctx context.Context, up ChannelUpdate) (err error) {
 	return errors.WithMessage(c.machine.EnableUpdate(), "enabling update")
 }
 
+func (c *Channel) ListenUpdates(uh UpdateHandler) {
+	for {
+		pidx, upReq := c.conn.nextUpdateReq(context.Background())
+		if upReq == nil {
+			c.log.Debug("update req receiver closed")
+			return
+		}
+		go c.handleUpdateReq(pidx, upReq, uh)
+	}
+}
+
+func (c *Channel) handleUpdateReq(
+	pidx channel.Index,
+	req *msgChannelUpdate,
+	uh UpdateHandler) {
+	if err := c.validTwoPartyUpdate(req.ChannelUpdate, pidx); err != nil {
+		// TODO: how to handle invalid updates? Just drop and ignore em?
+		c.logPeer(pidx).Warnf("invalid update received: %v", err)
+		return
+	}
+
+	c.machMtx.Lock() // lock machine while update is in progress
+	defer c.machMtx.Unlock()
+
+	if err := c.machine.CheckUpdate(req.State, req.ActorIdx, req.Sig, pidx); err != nil {
+		// TODO: how to handle invalid updates? Just drop and ignore em?
+		c.logPeer(pidx).Warnf("invalid update received: %v", err)
+		return
+	}
+
+	res := newUpdateResponder()
+	go uh.Handle(req.ChannelUpdate, res)
+
+	// wait for user response
+	select {
+	case accCtx := <-res.accept:
+		err := func(ctx context.Context) error {
+			// machine.Update and AddSig should never fail after CheckUpdate...
+			if err := c.machine.Update(req.State, req.ActorIdx); err != nil {
+				return errors.WithMessage(err, "updating machine")
+			}
+			if err := c.machine.AddSig(pidx, req.Sig); err != nil {
+				return errors.WithMessage(err, "adding peer signature")
+			}
+			sig, err := c.machine.Sig()
+			if err != nil {
+				return errors.WithMessage(err, "signing updated state")
+			}
+
+			msgUpAcc := &msgChannelUpdateAcc{
+				ChannelID: c.ID(),
+				Version:   req.State.Version,
+				Sig:       sig,
+			}
+			if err := c.conn.send(ctx, msgUpAcc); err != nil {
+				// TODO: does it make sense to discard on failed send?
+				if derr := c.machine.DiscardUpdate(); derr != nil {
+					// this should be impossible
+					return errors.WithMessagef(derr,
+						"sending accept message failed: %v, then discarding update failed", err)
+				}
+				return errors.WithMessage(err, "sending accept message")
+			}
+
+			return c.machine.EnableUpdate()
+		}(accCtx)
+
+		if err != nil {
+			c.logPeer(pidx).Errorf("error accepting state: %v", err)
+		}
+		res.err <- err
+
+	case rej := <-res.reject:
+		err := func(ctx context.Context) error {
+			msgUpRej := &msgChannelUpdateRej{
+				ChannelID: c.ID(),
+				Version:   req.State.Version,
+				Reason:    rej.reason,
+			}
+			return c.conn.send(ctx, msgUpRej)
+		}(rej.ctx)
+
+		if err != nil {
+			c.logPeer(pidx).Errorf("error rejecting state: %v", err)
+		}
+		res.err <- err
+	}
+}
+
 // validTwoPartyUpdate performs additional protocol-dependent checks on the
 // proposed update that go beyond the machine's checks:
 // * actor and signer must be the same
