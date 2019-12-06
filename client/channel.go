@@ -6,15 +6,15 @@ package client
 
 import (
 	"context"
-	"github.com/pkg/errors"
 	"sync"
+
+	"github.com/pkg/errors"
 
 	"perun.network/go-perun/channel"
 	"perun.network/go-perun/log"
 	"perun.network/go-perun/peer"
 	perunsync "perun.network/go-perun/pkg/sync"
 	"perun.network/go-perun/wallet"
-
 	wire "perun.network/go-perun/wire/msg"
 )
 
@@ -52,6 +52,10 @@ func (c *Channel) setLogger(l log.Logger) {
 	c.log = l
 }
 
+func (c *Channel) logPeer(idx channel.Index) log.Logger {
+	return c.log.WithField("peerIdx", idx)
+}
+
 func (c *Channel) ID() channel.ID {
 	return c.machine.ID()
 }
@@ -83,7 +87,7 @@ func (c *Channel) initExchangeSigsAndEnable(ctx context.Context) error {
 
 	send := make(chan error)
 	go func() {
-		send <- c.conn.send(ctx, &ChannelUpdateAcc{
+		send <- c.conn.send(ctx, &msgChannelUpdateAcc{
 			ChannelID: c.ID(),
 			Version:   0,
 			Sig:       sig,
@@ -91,7 +95,7 @@ func (c *Channel) initExchangeSigsAndEnable(ctx context.Context) error {
 	}()
 
 	pidx, cm := c.conn.recv(ctx) // ignore index in 2PC
-	acc, ok := cm.(*ChannelUpdateAcc)
+	acc, ok := cm.(*msgChannelUpdateAcc)
 	if !ok {
 		return errors.Errorf(
 			"received unexpected message type (%T) from peer",
@@ -148,6 +152,7 @@ func newChannelConn(id channel.ID, peers []*peer.Peer, idx channel.Index) (*chan
 	}, nil
 }
 
+// send broadcasts the message to all channel participants
 func (c *channelConn) send(ctx context.Context, msg wire.Msg) error {
 	return c.b.Send(ctx, msg)
 }
