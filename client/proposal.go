@@ -163,7 +163,7 @@ func (c *Client) subChannelProposals(p *peer.Peer) {
 		for {
 			_p, m := proposalReceiver.Next(context.Background())
 			if _p == nil {
-				c.logPeer(p).Debugf("proposal subscription closed")
+				c.logPeer(p).Debug("proposal subscription closed")
 				return
 			}
 			proposal := m.(*ChannelProposalReq) // safe because that's the predicate
