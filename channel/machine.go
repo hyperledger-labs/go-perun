@@ -189,6 +189,19 @@ func (m *machine) setStaging(phase Phase, state *State) {
 	m.setPhase(phase)
 }
 
+// DiscardUpdate discards the current staging transaction and sets the machine's
+// phase back to Acting. This method is useful in the case where a valid update
+// request is rejected.
+func (m *machine) DiscardUpdate() error {
+	if err := m.expect(PhaseTransition{Signing, Acting}); err != nil {
+		return err
+	}
+
+	m.stagingTX = Transaction{} // clear staging tx
+	m.setPhase(Acting)
+	return nil
+}
+
 // EnableInit promotes the initial staging state to the current funding state.
 // A valid phase transition and the existence of all signatures is checked.
 func (m *machine) EnableInit() error {
