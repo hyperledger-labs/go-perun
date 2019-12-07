@@ -16,7 +16,7 @@ import (
 // Account represents an ethereum account.
 type Account struct {
 	address Address
-	account *accounts.Account
+	Account *accounts.Account
 	wallet  *Wallet
 	locked  bool
 	mu      sync.RWMutex
@@ -32,7 +32,7 @@ func (a *Account) Unlock(password string) error {
 	a.mu.Lock()
 	defer a.mu.Unlock()
 
-	err := a.wallet.ks.Unlock(*a.account, password)
+	err := a.wallet.Ks.Unlock(*a.Account, password)
 	if err != nil {
 		return err
 	}
@@ -53,7 +53,7 @@ func (a *Account) Lock() error {
 	a.mu.Lock()
 	defer a.mu.Unlock()
 
-	err := a.wallet.ks.Lock(a.address.Address)
+	err := a.wallet.Ks.Lock(a.address.Address)
 	if err != nil {
 		return err
 	}
@@ -67,7 +67,7 @@ func (a *Account) SignData(data []byte) ([]byte, error) {
 	defer a.mu.RUnlock()
 
 	hash := crypto.Keccak256(data)
-	return a.wallet.ks.SignHash(*a.account, hash)
+	return a.wallet.Ks.SignHash(*a.Account, hash)
 }
 
 // SignDataWithPW is used to sign a hash with this account and a pw.
@@ -76,13 +76,13 @@ func (a *Account) SignDataWithPW(password string, data []byte) ([]byte, error) {
 	defer a.mu.RUnlock()
 
 	hash := crypto.Keccak256(data)
-	return a.wallet.ks.SignHashWithPassphrase(*a.account, password, hash)
+	return a.wallet.Ks.SignHashWithPassphrase(*a.Account, password, hash)
 }
 
 func newAccountFromEth(wallet *Wallet, account *accounts.Account) *Account {
 	return &Account{
 		address: Address{account.Address},
-		account: account,
+		Account: account,
 		wallet:  wallet,
 		locked:  true,
 	}

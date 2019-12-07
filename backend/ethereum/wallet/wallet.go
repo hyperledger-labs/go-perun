@@ -23,7 +23,7 @@ import (
 // It uses the go-ethereum keystore to store keys.
 // Accessing the wallet is threadsafe, however you should not create two wallets from the same key directory.
 type Wallet struct {
-	ks        *keystore.KeyStore
+	Ks        *keystore.KeyStore
 	directory string
 	accounts  map[string]*Account
 	mu        sync.RWMutex
@@ -36,13 +36,13 @@ func (w *Wallet) Path() string {
 
 // refreshAccounts refreshes which accounts are connected to this wallet.
 func (w *Wallet) refreshAccounts() {
-	if w.ks == nil {
+	if w.Ks == nil {
 		return
 	}
 	w.mu.Lock()
 	defer w.mu.Unlock()
 
-	accounts := w.ks.Accounts()
+	accounts := w.Ks.Accounts()
 	for _, tmp := range accounts {
 		if _, exists := w.accounts[tmp.Address.String()]; !exists {
 			w.accounts[tmp.Address.String()] = newAccountFromEth(w, &tmp)
@@ -55,7 +55,7 @@ func (w *Wallet) Connect(keyDir, password string) error {
 	if _, err := os.Stat(keyDir); os.IsNotExist(err) {
 		return errors.New("key directory does not exist")
 	}
-	w.ks = keystore.NewKeyStore(keyDir, keystore.StandardScryptN, keystore.StandardScryptP)
+	w.Ks = keystore.NewKeyStore(keyDir, keystore.StandardScryptN, keystore.StandardScryptP)
 	w.accounts = make(map[string]*Account)
 	w.directory = keyDir
 
@@ -66,7 +66,7 @@ func (w *Wallet) Connect(keyDir, password string) error {
 
 // Disconnect disconnects from this wallet.
 func (w *Wallet) Disconnect() error {
-	if w.ks == nil {
+	if w.Ks == nil {
 		return errors.New("keystore not initialized properly")
 	}
 
@@ -77,7 +77,7 @@ func (w *Wallet) Disconnect() error {
 	w.mu.Lock()
 	defer w.mu.Unlock()
 
-	w.ks = nil
+	w.Ks = nil
 	w.accounts = make(map[string]*Account)
 	w.directory = ""
 	return nil
@@ -85,7 +85,7 @@ func (w *Wallet) Disconnect() error {
 
 // Status returns the state of this wallet.
 func (w *Wallet) Status() (string, error) {
-	if w.ks == nil {
+	if w.Ks == nil {
 		return "not initialized", errors.New("keystore not initialized properly")
 	}
 	return "OK", nil
@@ -121,7 +121,7 @@ func (w *Wallet) Contains(a perun.Account) bool {
 
 	// if not found, query the keystore
 	if acc, ok := a.(*Account); ok {
-		found := w.ks.HasAddress(acc.address.Address)
+		found := w.Ks.HasAddress(acc.address.Address)
 		// add to the cache
 		if found {
 			w.accounts[a.Address().String()] = acc
@@ -136,7 +136,7 @@ func (w *Wallet) Lock() error {
 	w.mu.Lock()
 	defer w.mu.Unlock()
 
-	if w.ks == nil {
+	if w.Ks == nil {
 		return errors.New("keystore not initialized properly")
 	}
 

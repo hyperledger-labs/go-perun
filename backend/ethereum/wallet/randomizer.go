@@ -32,7 +32,7 @@ func newRandomizer() *randomizer {
 	const scryptP = 1
 	return &randomizer{
 		wallet: Wallet{
-			ks:        keystore.NewKeyStore(tmpDir, scryptN, scryptP),
+			Ks:        keystore.NewKeyStore(tmpDir, scryptN, scryptP),
 			directory: tmpDir,
 		},
 	}
@@ -53,7 +53,7 @@ func (r *randomizer) NewRandomAccount(rnd *rand.Rand) perunwallet.Account {
 	}
 
 	// Store the private key in the keystore.
-	keystore := r.wallet.ks
+	keystore := r.wallet.Ks
 	ethAcc, err := keystore.ImportECDSA(privateKey, "secret")
 	if err != nil {
 		log.Panicf("Could not store private key in keystore: %v", err)
