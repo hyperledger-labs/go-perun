@@ -24,7 +24,7 @@ type Channel struct {
 	perunsync.Closer
 	log log.Logger
 
-	conn    channelConn
+	conn    *channelConn
 	machine channel.StateMachine
 	machMtx sync.RWMutex
 }
@@ -43,7 +43,7 @@ func newChannel(acc wallet.Account, peers []*peer.Peer, params channel.Params) (
 
 	return &Channel{
 		log:     log.WithField("channel", params.ID), // default to global field logger
-		conn:    *conn,
+		conn:    conn,
 		machine: *machine,
 	}, nil
 }
@@ -68,12 +68,17 @@ func (c *Channel) init(initBals *channel.Allocation, initData channel.Data) erro
 	return c.machine.Init(*initBals, initData)
 }
 
-// A channelConn bundles a peer receiver and broadcaster. It is an abstraction
-// over a set of peers. Peers are translated into their index in the channel.
+// A channelConn bundles the message sending and receiving infrastructure for a
+// channel. It is an abstraction over a set of peers. Peers are translated into
+// their index in the channel.
 type channelConn struct {
-	r       *peer.Receiver
-	b       *peer.Broadcaster
-	peerIdx map[*peer.Peer]channel.Index
+	b         *peer.Broadcaster
+	r         *peer.Relay
+	upReqRecv *peer.Receiver
+	upResRecv *peer.Receiver
+	peerIdx   map[*peer.Peer]channel.Index
+
+	log log.Logger
 }
 
 // initExchangeSigsAndEnable exchanges signatures on the initial state.
@@ -94,12 +99,12 @@ func (c *Channel) initExchangeSigsAndEnable(ctx context.Context) error {
 		})
 	}()
 
-	pidx, cm := c.conn.recv(ctx) // ignore index in 2PC
+	pidx, cm := c.conn.nextUpdateRes(ctx)
 	acc, ok := cm.(*msgChannelUpdateAcc)
 	if !ok {
 		return errors.Errorf(
-			"received unexpected message type (%T) from peer",
-			cm)
+			"received unexpected message of type (%T) from peer: %v",
+			cm, cm)
 	}
 	if acc.Version != 0 {
 		return errors.Errorf(
@@ -131,7 +136,10 @@ func newChannelConn(id channel.ID, peers []*peer.Peer, idx channel.Index) (*chan
 		return cm.ID() == id
 	}
 
-	rec := peer.NewReceiver()
+	// setup receiving infrastructure:
+	// 1. one relay to combine all channel messages from all peers
+	// 2. two receivers for update requests and update responses
+	relay := peer.NewRelay()
 	peerIdx := make(map[*peer.Peer]channel.Index)
 	for i, peer := range peers {
 		i := channel.Index(i)
@@ -140,15 +148,32 @@ func newChannelConn(id channel.ID, peers []*peer.Peer, idx channel.Index) (*chan
 		if i >= idx {
 			peerIdx[peer]++
 		}
-		if err := rec.Subscribe(peer, forThisChannel); err != nil {
-			return nil, errors.WithMessagef(err, "subscribing peer[%d] (%v)", i, peer)
+		if err := peer.Subscribe(relay, forThisChannel); err != nil {
+			return nil, errors.WithMessagef(err,
+				"subscribing relay to peer[%d] (%v)", i, peer)
 		}
 	}
 
+	upReqRecv, upResRecv := peer.NewReceiver(), peer.NewReceiver()
+	if err := relay.Subscribe(upReqRecv, func(m wire.Msg) bool {
+		return m.Type() == wire.ChannelUpdate
+	}); err != nil {
+		return nil, errors.WithMessagef(err, "subscribing update request receiver")
+	}
+	if err := relay.Subscribe(upResRecv, func(m wire.Msg) bool {
+		return (m.Type() == wire.ChannelUpdateAcc) ||
+			(m.Type() == wire.ChannelUpdateRej)
+	}); err != nil {
+		return nil, errors.WithMessagef(err, "subscribing update response receiver")
+	}
+
 	return &channelConn{
-		r:       rec,
-		b:       peer.NewBroadcaster(peers),
-		peerIdx: peerIdx,
+		b:         peer.NewBroadcaster(peers),
+		r:         relay,
+		upReqRecv: upReqRecv,
+		upResRecv: upResRecv,
+		peerIdx:   peerIdx,
+		log:       log.WithField("channel", id),
 	}, nil
 }
 
@@ -157,15 +182,31 @@ func (c *channelConn) send(ctx context.Context, msg wire.Msg) error {
 	return c.b.Send(ctx, msg)
 }
 
-func (c *channelConn) recv(ctx context.Context) (channel.Index, ChannelMsg) {
-	peer, msg := c.r.Next(ctx)
+func (c *channelConn) nextUpdateReq(ctx context.Context) (channel.Index, *msgChannelUpdate) {
+	peer, msg := c.upReqRecv.Next(ctx)
 	idx, ok := c.peerIdx[peer]
 	if !ok {
-		log.Panicf("channel connection received message from unknown peer %v", peer)
+		c.log.Panicf("channel connection received message from unknown peer %v", peer)
+	}
+	return idx, msg.(*msgChannelUpdate) // safe by the predicate
+}
+
+func (c *channelConn) nextUpdateRes(ctx context.Context) (channel.Index, ChannelMsg) {
+	peer, msg := c.upResRecv.Next(ctx)
+	idx, ok := c.peerIdx[peer]
+	if !ok {
+		c.log.Panicf("channel connection received message from unknown peer %v", peer)
 	}
 	return idx, msg.(ChannelMsg) // safe by the predicate
 }
 
-func (c *channelConn) close() {
-	c.r.Close()
+func (c *channelConn) close() error {
+	err := c.r.Close()
+	if rerr := c.upReqRecv.Close(); err != nil && rerr != nil {
+		err = rerr
+	}
+	if rerr := c.upResRecv.Close(); err != nil && rerr != nil {
+		err = rerr
+	}
+	return err
 }
