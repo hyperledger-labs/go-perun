@@ -107,7 +107,7 @@ func channelStateToEthState(s *channel.State) adjudicator.PerunTypesState {
 		Locked:   locked,
 	}
 	// Check allocation dimensions
-	if len(outcome.Assets) != len(outcome.Balances) {
+	if len(outcome.Assets) != len(outcome.Balances) || len(s.OfParts) != len(outcome.Balances[0]) {
 		panic("invalid allocation dimensions")
 	}
 	appData := new(bytes.Buffer)
