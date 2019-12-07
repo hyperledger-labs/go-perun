@@ -78,7 +78,7 @@ func (*Backend) Verify(addr perunwallet.Address, p *channel.Params, s *channel.S
 // DecodeAsset decodes an asset from a stream.
 func (*Backend) DecodeAsset(r io.Reader) (channel.Asset, error) {
 	var asset Asset
-	return asset, asset.Decode(r)
+	return &asset, asset.Decode(r)
 }
 
 // channelParamsToEthParams converts a channel.Params to a ChannelParams struct.
