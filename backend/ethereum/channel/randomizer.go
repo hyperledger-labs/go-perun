@@ -5,11 +5,13 @@
 package channel // import "perun.network/go-perun/backend/ethereum/channel"
 
 import (
+	"math/rand"
+
 	"perun.network/go-perun/channel"
-	"perun.network/go-perun/channel/test"
 )
 
-func init() {
-	channel.SetBackend(new(Backend))
-	test.SetRandomizer(new(randomizer))
+type randomizer struct{}
+
+func (randomizer) NewRandomAsset(rng *rand.Rand) channel.Asset {
+	return NewRandomAsset(rng)
 }
