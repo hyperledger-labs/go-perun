@@ -68,19 +68,6 @@ func (c *Channel) init(initBals *channel.Allocation, initData channel.Data) erro
 	return c.machine.Init(*initBals, initData)
 }
 
-// A channelConn bundles the message sending and receiving infrastructure for a
-// channel. It is an abstraction over a set of peers. Peers are translated into
-// their index in the channel.
-type channelConn struct {
-	b         *peer.Broadcaster
-	r         *peer.Relay
-	upReqRecv *peer.Receiver
-	upResRecv *peer.Receiver
-	peerIdx   map[*peer.Peer]channel.Index
-
-	log log.Logger
-}
-
 // initExchangeSigsAndEnable exchanges signatures on the initial state.
 // The state machine is not locked as this function is expected to be called
 // during the initialization phase of the channel controller.
@@ -120,6 +107,19 @@ func (c *Channel) initExchangeSigsAndEnable(ctx context.Context) error {
 	}
 
 	return errors.WithMessage(<-send, "sending initial signature")
+}
+
+// A channelConn bundles the message sending and receiving infrastructure for a
+// channel. It is an abstraction over a set of peers. Peers are translated into
+// their index in the channel.
+type channelConn struct {
+	b         *peer.Broadcaster
+	r         *peer.Relay
+	upReqRecv *peer.Receiver
+	upResRecv *peer.Receiver
+	peerIdx   map[*peer.Peer]channel.Index
+
+	log log.Logger
 }
 
 // newChannelConn creates a new channel connection for the given channel ID. It
