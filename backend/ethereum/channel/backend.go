@@ -81,10 +81,10 @@ func (*Backend) DecodeAsset(r io.Reader) (channel.Asset, error) {
 	return asset, asset.Decode(r)
 }
 
-// channelParamsToEthParams converts a channel.Params to a PerunTypesParams struct.
-func channelParamsToEthParams(p *channel.Params) adjudicator.PerunTypesParams {
+// channelParamsToEthParams converts a channel.Params to a ChannelParams struct.
+func channelParamsToEthParams(p *channel.Params) adjudicator.ChannelParams {
 	app := p.App.Def().(*wallet.Address)
-	return adjudicator.PerunTypesParams{
+	return adjudicator.ChannelParams{
 		ChallengeDuration: new(big.Int).SetUint64(p.ChallengeDuration),
 		Nonce:             p.Nonce,
 		App:               app.Address,
@@ -92,16 +92,16 @@ func channelParamsToEthParams(p *channel.Params) adjudicator.PerunTypesParams {
 	}
 }
 
-// channelStateToEthState converts a channel.State to a PerunTypesState struct.
-func channelStateToEthState(s *channel.State) adjudicator.PerunTypesState {
-	var locked []adjudicator.PerunTypesSubAlloc
+// channelStateToEthState converts a channel.State to a ChannelState struct.
+func channelStateToEthState(s *channel.State) adjudicator.ChannelState {
+	var locked []adjudicator.ChannelSubAlloc
 	for _, sub := range s.Locked {
 		locked = append(
 			locked,
-			adjudicator.PerunTypesSubAlloc{ID: sub.ID, Balances: sub.Bals},
+			adjudicator.ChannelSubAlloc{ID: sub.ID, Balances: sub.Bals},
 		)
 	}
-	outcome := adjudicator.PerunTypesAllocation{
+	outcome := adjudicator.ChannelAllocation{
 		Assets:   assetToCommonAddresses(s.Allocation.Assets),
 		Balances: transformPartBals(s.OfParts),
 		Locked:   locked,
@@ -112,7 +112,7 @@ func channelStateToEthState(s *channel.State) adjudicator.PerunTypesState {
 	}
 	appData := new(bytes.Buffer)
 	s.Data.Encode(appData)
-	return adjudicator.PerunTypesState{
+	return adjudicator.ChannelState{
 		ChannelID: s.ID,
 		Version:   s.Version,
 		Outcome:   outcome,
@@ -122,7 +122,7 @@ func channelStateToEthState(s *channel.State) adjudicator.PerunTypesState {
 }
 
 // encodeParams encodes the parameters as with abi.encode() in the smart contracts.
-func encodeParams(params *adjudicator.PerunTypesParams) ([]byte, error) {
+func encodeParams(params *adjudicator.ChannelParams) ([]byte, error) {
 	args := abi.Arguments{
 		{Type: abiUint256},
 		{Type: abiUint256},
@@ -138,7 +138,7 @@ func encodeParams(params *adjudicator.PerunTypesParams) ([]byte, error) {
 }
 
 // encodeState encodes the state as with abi.encode() in the smart contracts.
-func encodeState(state *adjudicator.PerunTypesState) ([]byte, error) {
+func encodeState(state *adjudicator.ChannelState) ([]byte, error) {
 	args := abi.Arguments{
 		{Type: abiBytes32},
 		{Type: abiUint64},
@@ -160,7 +160,7 @@ func encodeState(state *adjudicator.PerunTypesState) ([]byte, error) {
 }
 
 // encodeAllocation encodes the allocation as with abi.encode() in the smart contracts.
-func encodeAllocation(alloc *adjudicator.PerunTypesAllocation) ([]byte, error) {
+func encodeAllocation(alloc *adjudicator.ChannelAllocation) ([]byte, error) {
 	args := abi.Arguments{
 		{Type: abiAddressArr},
 		{Type: abiUint256ArrArr},
@@ -182,7 +182,7 @@ func encodeAllocation(alloc *adjudicator.PerunTypesAllocation) ([]byte, error) {
 }
 
 // encodeSubAlloc encodes the suballoc as with abi.encode() in the smart contracts.
-func encodeSubAlloc(sub *adjudicator.PerunTypesSubAlloc) ([]byte, error) {
+func encodeSubAlloc(sub *adjudicator.ChannelSubAlloc) ([]byte, error) {
 	args := abi.Arguments{
 		{Type: abiBytes32},
 		{Type: abiUint256Arr},
