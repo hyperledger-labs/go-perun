@@ -12,14 +12,11 @@ import (
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/accounts/keystore"
-	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/pkg/errors"
 	"perun.network/go-perun/backend/ethereum/wallet"
 	"perun.network/go-perun/channel"
-	"perun.network/go-perun/channel/test"
-	"perun.network/go-perun/pkg/io"
 	perunwallet "perun.network/go-perun/wallet"
 )
 
@@ -64,11 +61,6 @@ func (c *contractBackend) newTransactor(ctx context.Context, ks *keystore.KeySto
 	auth.GasPrice = big.NewInt(0)
 
 	return auth, nil
-}
-
-func assetToAddress(asset io.Encoder) common.Address {
-	ass := asset.(*test.Asset)
-	return ass.Address.(*wallet.Address).Address
 }
 
 func calcFundingIDs(participants []perunwallet.Address, channelID channel.ID) ([][32]byte, error) {

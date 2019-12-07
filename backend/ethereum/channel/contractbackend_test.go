@@ -15,8 +15,6 @@ import (
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 	"perun.network/go-perun/backend/ethereum/wallet"
-	"perun.network/go-perun/channel/test"
-	perunio "perun.network/go-perun/pkg/io"
 	perunwallet "perun.network/go-perun/wallet"
 )
 
@@ -58,35 +56,6 @@ func (t *testInvalidAsset) Encode(w io.Writer) error {
 
 func (t *testInvalidAsset) Decode(r io.Reader) error {
 	return errors.New("Unimplemented")
-}
-
-func Test_assetToAddress(t *testing.T) {
-
-	var invAsset testInvalidAsset
-	tests := []struct {
-		name    string
-		asset   perunio.Serializable
-		want    common.Address
-		wantErr bool
-	}{
-		{"Test invalid address", &invAsset, common.Address{}, true},
-		{"Test valid address", &test.Asset{Address: &wallet.Address{}}, common.Address{}, false},
-		{"Test valid address",
-			&test.Asset{Address: &wallet.Address{Address: common.Address{1, 2, 3, 4, 5}}},
-			common.Address{1, 2, 3, 4, 5}, false},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if tt.wantErr {
-				assert.Panics(t, func() { assetToAddress(tt.asset) })
-				return
-			}
-			got := assetToAddress(tt.asset)
-			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("assetToAddress() = %v, want %v", got, tt.want)
-			}
-		})
-	}
 }
 
 func Test_NewTransactor(t *testing.T) {

@@ -98,7 +98,7 @@ func (f *Funder) connectToContracts(request channel.FundingReq) ([]contract, err
 	// Connect to all AssetHolder contracts.
 	for assetIndex, asset := range request.Allocation.Assets {
 		// Decode and set the asset address.
-		assetAddr := assetToAddress(asset)
+		assetAddr := asset.(*Asset).Address
 		ctr, err := assets.NewAssetHolder(assetAddr, f.client)
 		if err != nil {
 			return nil, errors.Wrap(err, fmt.Sprintf("Could not connect to asset holder %d", assetIndex))
@@ -160,9 +160,9 @@ func (f *Funder) waitForFundingConfirmations(ctx context.Context, request channe
 
 	allocation := request.Allocation.Clone()
 	// Precompute assets -> address
-	var assets []common.Address
-	for _, a := range request.Allocation.Assets {
-		assets = append(assets, assetToAddress(a))
+	assets := make([]common.Address, len(request.Allocation.Assets))
+	for i, a := range request.Allocation.Assets {
+		assets[i] = a.(*Asset).Address
 	}
 
 	for i := 0; i < len(request.Params.Parts)*len(request.Allocation.Assets); i++ {

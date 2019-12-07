@@ -97,7 +97,7 @@ func newSimulatedFunder() *Funder {
 	wall.Connect(keyDir, password)
 	acc := wall.Accounts()[0].(*wallet.Account)
 	acc.Unlock(password)
-	ks := wall.KeyStore()
+	ks := wall.Ks
 	f.ks = ks
 	f.account = acc.Account
 	f.client = contractBackend{newSimulatedBackend()}
