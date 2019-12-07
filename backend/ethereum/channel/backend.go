@@ -20,9 +20,6 @@ import (
 	perunwallet "perun.network/go-perun/wallet"
 )
 
-// Backend implements the interface defined in channel/Backend.go.
-type Backend struct{}
-
 var (
 	// compile time check that we implement the channel backend interface.
 	_ channel.Backend = new(Backend)
@@ -38,8 +35,31 @@ var (
 	abiBool, _          = abi.NewType("bool", nil)
 )
 
+// Backend implements the interface defined in channel/Backend.go.
+type Backend struct{}
+
 // ChannelID calculates the channelID as needed by the ethereum smart contracts.
 func (*Backend) ChannelID(p *channel.Params) (id channel.ID) {
+	return ChannelID(p)
+}
+
+// Sign signs the channel state as needed by the ethereum smart contracts.
+func (*Backend) Sign(acc perunwallet.Account, p *channel.Params, s *channel.State) (perunwallet.Sig, error) {
+	return Sign(acc, p, s)
+}
+
+// Verify verifies that a state was signed correctly.
+func (*Backend) Verify(addr perunwallet.Address, p *channel.Params, s *channel.State, sig perunwallet.Sig) (bool, error) {
+	return Verify(addr, p, s, sig)
+}
+
+// DecodeAsset decodes an asset from a stream.
+func (*Backend) DecodeAsset(r io.Reader) (channel.Asset, error) {
+	return DecodeAsset(r)
+}
+
+// ChannelID calculates the channelID as needed by the ethereum smart contracts.
+func ChannelID(p *channel.Params) (id channel.ID) {
 	params := channelParamsToEthParams(p)
 	bytes, err := encodeParams(&params)
 	if err != nil {
@@ -50,33 +70,33 @@ func (*Backend) ChannelID(p *channel.Params) (id channel.ID) {
 }
 
 // Sign signs the channel state as needed by the ethereum smart contracts.
-func (*Backend) Sign(acc perunwallet.Account, p *channel.Params, s *channel.State) (perunwallet.Sig, error) {
+func Sign(acc perunwallet.Account, p *channel.Params, s *channel.State) (perunwallet.Sig, error) {
 	if acc == nil || p == nil || s == nil {
 		return nil, errors.New("Sign called with invalid parameters")
 	}
 	state := channelStateToEthState(s)
 	enc, err := encodeState(&state)
 	if err != nil {
-		return nil, errors.Wrap(err, "Failed to encode state")
+		return nil, errors.WithMessage(err, "Failed to encode state")
 	}
 	return acc.SignData(enc)
 }
 
 // Verify verifies that a state was signed correctly.
-func (*Backend) Verify(addr perunwallet.Address, p *channel.Params, s *channel.State, sig perunwallet.Sig) (bool, error) {
+func Verify(addr perunwallet.Address, p *channel.Params, s *channel.State, sig perunwallet.Sig) (bool, error) {
 	if err := s.Valid(); err != nil {
-		return false, errors.Wrap(err, "Can not verify invalid state")
+		return false, errors.WithMessage(err, "invalid state")
 	}
 	state := channelStateToEthState(s)
 	enc, err := encodeState(&state)
 	if err != nil {
-		return false, errors.Wrap(err, "Failed to encode state")
+		return false, errors.WithMessage(err, "Failed to encode state")
 	}
-	return perunwallet.VerifySignature(enc, sig, addr)
+	return wallet.VerifySignature(enc, sig, addr)
 }
 
 // DecodeAsset decodes an asset from a stream.
-func (*Backend) DecodeAsset(r io.Reader) (channel.Asset, error) {
+func DecodeAsset(r io.Reader) (channel.Asset, error) {
 	var asset Asset
 	return &asset, asset.Decode(r)
 }
@@ -94,12 +114,9 @@ func channelParamsToEthParams(p *channel.Params) adjudicator.ChannelParams {
 
 // channelStateToEthState converts a channel.State to a ChannelState struct.
 func channelStateToEthState(s *channel.State) adjudicator.ChannelState {
-	var locked []adjudicator.ChannelSubAlloc
-	for _, sub := range s.Locked {
-		locked = append(
-			locked,
-			adjudicator.ChannelSubAlloc{ID: sub.ID, Balances: sub.Bals},
-		)
+	locked := make([]adjudicator.ChannelSubAlloc, len(s.Locked))
+	for i, sub := range s.Locked {
+		locked[i] = adjudicator.ChannelSubAlloc{ID: sub.ID, Balances: sub.Bals}
 	}
 	outcome := adjudicator.ChannelAllocation{
 		Assets:   assetToCommonAddresses(s.Allocation.Assets),
@@ -108,10 +125,12 @@ func channelStateToEthState(s *channel.State) adjudicator.ChannelState {
 	}
 	// Check allocation dimensions
 	if len(outcome.Assets) != len(outcome.Balances) || len(s.OfParts) != len(outcome.Balances[0]) {
-		panic("invalid allocation dimensions")
+		log.Panic("invalid allocation dimensions")
 	}
 	appData := new(bytes.Buffer)
-	s.Data.Encode(appData)
+	if err := s.Data.Encode(appData); err != nil {
+		log.Panicf("error encoding app data: %v", err)
+	}
 	return adjudicator.ChannelState{
 		ChannelID: s.ID,
 		Version:   s.Version,
@@ -129,12 +148,13 @@ func encodeParams(params *adjudicator.ChannelParams) ([]byte, error) {
 		{Type: abiAddress},
 		{Type: abiAddressArr},
 	}
-	return args.Pack(
+	enc, err := args.Pack(
 		params.ChallengeDuration,
 		params.Nonce,
 		params.App,
 		params.Participants,
 	)
+	return enc, errors.WithStack(err)
 }
 
 // encodeState encodes the state as with abi.encode() in the smart contracts.
@@ -150,13 +170,14 @@ func encodeState(state *adjudicator.ChannelState) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	return args.Pack(
+	enc, err := args.Pack(
 		state.ChannelID,
 		state.Version,
 		alloc,
 		state.AppData,
 		state.IsFinal,
 	)
+	return enc, errors.WithStack(err)
 }
 
 // encodeAllocation encodes the allocation as with abi.encode() in the smart contracts.
@@ -174,11 +195,12 @@ func encodeAllocation(alloc *adjudicator.ChannelAllocation) ([]byte, error) {
 		}
 		subAllocs = append(subAllocs, subAlloc...)
 	}
-	return args.Pack(
+	enc, err := args.Pack(
 		alloc.Assets,
 		alloc.Balances,
 		subAllocs,
 	)
+	return enc, errors.WithStack(err)
 }
 
 // encodeSubAlloc encodes the suballoc as with abi.encode() in the smart contracts.
@@ -187,10 +209,11 @@ func encodeSubAlloc(sub *adjudicator.ChannelSubAlloc) ([]byte, error) {
 		{Type: abiBytes32},
 		{Type: abiUint256Arr},
 	}
-	return args.Pack(
+	enc, err := args.Pack(
 		sub.ID,
 		sub.Balances,
 	)
+	return enc, errors.WithStack(err)
 }
 
 // assetToCommonAddresses converts an array of io.Encoder's to common.Address's.
@@ -222,13 +245,13 @@ func transformPartBals(ofBals [][]*big.Int) [][]*big.Int {
 		return [][]*big.Int{}
 	}
 	trans := make([][]*big.Int, len(ofBals[0]))
-	for k := 0; k < len(ofBals[0]); k++ {
+	for k := range ofBals[0] {
 		trans[k] = make([]*big.Int, len(ofBals))
 	}
 	// Fill with balances.
-	for i := 0; i < len(ofBals); i++ {
-		for k := 0; k < len(ofBals[i]); k++ {
-			trans[k][i] = ofBals[i][k]
+	for i := range ofBals {
+		for k, bal := range ofBals[i] {
+			trans[k][i] = bal
 		}
 	}
 	return trans

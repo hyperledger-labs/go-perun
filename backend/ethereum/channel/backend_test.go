@@ -6,15 +6,17 @@ package channel
 
 import (
 	"encoding/hex"
+	"io"
 	"math/big"
 	"math/rand"
-	"reflect"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"perun.network/go-perun/backend/ethereum/wallet"
 	_ "perun.network/go-perun/backend/ethereum/wallet"
 	"perun.network/go-perun/channel"
 	"perun.network/go-perun/channel/test"
+	serializabletest "perun.network/go-perun/pkg/io/test"
 	perunwallet "perun.network/go-perun/wallet"
 	wallettest "perun.network/go-perun/wallet/test"
 )
@@ -120,9 +122,24 @@ func Test_transformPartBals(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := transformPartBals(tt.args); !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("transformPartBals() = %v, want %v", got, tt.want)
-			}
+			assert.Equal(t, tt.want, transformPartBals(tt.args), tt.name)
 		})
 	}
+}
+
+func TestAssetSerialization(t *testing.T) {
+	rng := rand.New(rand.NewSource(1337))
+	var asset Asset = wallet.NewRandomAddress(rng)
+	reader, writer := io.Pipe()
+	t.Run("asset encoding", func(t *testing.T) {
+		t.Parallel()
+		assert.NoError(t, asset.Encode(writer))
+	})
+	t.Run("asset decoding", func(t *testing.T) {
+		t.Parallel()
+		asset2, err := DecodeAsset(reader)
+		assert.NoError(t, err, "Decode asset should not produce error")
+		assert.Equal(t, &asset, asset2, "Decode asset should return the initial asset")
+	})
+	serializabletest.GenericSerializableTest(t, &asset)
 }
