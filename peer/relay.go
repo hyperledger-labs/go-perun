@@ -17,8 +17,8 @@ type Relay struct {
 }
 
 // MakeRelay initialises a new relay.
-func MakeRelay() Relay {
-	return Relay{makeProducer()}
+func NewRelay() *Relay {
+	return &Relay{makeProducer()}
 }
 
 func (r *Relay) Put(p *Peer, msg wire.Msg) {
