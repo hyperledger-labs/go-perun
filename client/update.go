@@ -107,23 +107,28 @@ func (c *Channel) Update(ctx context.Context, up ChannelUpdate) (err error) {
 		},
 		Sig: sig,
 	}
-	if err = c.conn.send(ctx, msgUpdate); err != nil {
+	if err = c.conn.Send(ctx, msgUpdate); err != nil {
 		return errors.WithMessage(err, "sending update acceptance")
 	}
 
-	// TODO: filter on version recvUpdateRes(ctx, version)
-	pidx, cm := c.conn.nextUpdateRes(ctx)
-	if cm == nil {
+	resRecv, err := c.conn.NewUpdateResRecv(up.State.Version)
+	if err != nil {
+		return errors.WithMessage(err, "creating update response receiver")
+	}
+	defer resRecv.Close()
+
+	pidx, res := resRecv.Next(ctx)
+	if res == nil {
 		return errors.WithMessage(err, "receiving update response")
 	}
 
-	if rej, ok := cm.(*msgChannelUpdateRej); ok {
+	if rej, ok := res.(*msgChannelUpdateRej); ok {
 		// on reject, we discard the update again... TODO: alternative state
 		discardUpdate = true
 		return errors.Errorf("update rejected: %s", rej.Reason)
 	}
 
-	acc := cm.(*msgChannelUpdateAcc) // safe by predicate of channelConn.upResRecv
+	acc := res.(*msgChannelUpdateAcc) // safe by predicate of the updateResRecv
 	if err := c.machine.AddSig(pidx, acc.Sig); err != nil {
 		return errors.WithMessage(err, "adding peer signature")
 	}
@@ -133,12 +138,12 @@ func (c *Channel) Update(ctx context.Context, up ChannelUpdate) (err error) {
 
 func (c *Channel) ListenUpdates(uh UpdateHandler) {
 	for {
-		pidx, upReq := c.conn.nextUpdateReq(context.Background())
-		if upReq == nil {
-			c.log.Debug("update req receiver closed")
+		pidx, req := c.conn.NextUpdateReq(context.Background())
+		if req == nil {
+			c.log.Debug("update request receiver closed")
 			return
 		}
-		go c.handleUpdateReq(pidx, upReq, uh)
+		go c.handleUpdateReq(pidx, req, uh)
 	}
 }
 
@@ -185,7 +190,7 @@ func (c *Channel) handleUpdateReq(
 				Version:   req.State.Version,
 				Sig:       sig,
 			}
-			if err := c.conn.send(ctx, msgUpAcc); err != nil {
+			if err := c.conn.Send(ctx, msgUpAcc); err != nil {
 				// TODO: does it make sense to discard on failed send?
 				if derr := c.machine.DiscardUpdate(); derr != nil {
 					// this should be impossible
@@ -210,7 +215,7 @@ func (c *Channel) handleUpdateReq(
 				Version:   req.State.Version,
 				Reason:    rej.reason,
 			}
-			return c.conn.send(ctx, msgUpRej)
+			return c.conn.Send(ctx, msgUpRej)
 		}(rej.ctx)
 
 		if err != nil {
