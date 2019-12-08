@@ -40,6 +40,11 @@ type (
 		ID() channel.ID
 	}
 
+	channelUpdateResMsg interface {
+		ChannelMsg
+		Ver() uint64
+	}
+
 	// msgChannelUpdate is the wire message of a channel update proposal. It
 	// additionally holds the signature on the proposed state.
 	msgChannelUpdate struct {
@@ -75,9 +80,9 @@ type (
 )
 
 var (
-	_ ChannelMsg = (*msgChannelUpdate)(nil)
-	_ ChannelMsg = (*msgChannelUpdateAcc)(nil)
-	_ ChannelMsg = (*msgChannelUpdateRej)(nil)
+	_ ChannelMsg          = (*msgChannelUpdate)(nil)
+	_ channelUpdateResMsg = (*msgChannelUpdateAcc)(nil)
+	_ channelUpdateResMsg = (*msgChannelUpdateRej)(nil)
 )
 
 // Type returns this message's type: ChannelUpdate
@@ -143,4 +148,14 @@ func (c *msgChannelUpdateAcc) ID() channel.ID {
 // ID returns the id of the channel this update rejection refers to.
 func (c *msgChannelUpdateRej) ID() channel.ID {
 	return c.ChannelID
+}
+
+// Ver returns the version of the state this update acceptance refers to.
+func (c *msgChannelUpdateAcc) Ver() uint64 {
+	return c.Version
+}
+
+// Ver returns the version of the state this update rejection refers to.
+func (c *msgChannelUpdateRej) Ver() uint64 {
+	return c.Version
 }
