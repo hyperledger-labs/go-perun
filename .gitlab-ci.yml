@@ -35,14 +35,14 @@ vet:
 unit_tests:
   image: golang
   stage: tests
-  script: "go test -cover ./..."
+  script: "go test -timeout 60s -cover ./..."
   only:
     - merge_requests
 
 unit_race_tests:
   image: golang
   stage: tests
-  script: "go test -race ./..."
+  script: "go test -timeout 120s -race ./..."
   only:
     - merge_requests
   when: on_success
