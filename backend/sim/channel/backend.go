@@ -82,6 +82,9 @@ func (b *backend) Verify(addr wallet.Address, params *channel.Params, state *cha
 	if addr == nil || params == nil || state == nil {
 		return false, errors.New("argument nil")
 	}
+	if err := state.Valid(); err != nil {
+		return false, errors.Wrap(err, "Cannot verify invalid state")
+	}
 	log.Tracef("Verifying state %s version %d", string(state.ID[:]), state.Version)
 
 	buff := new(bytes.Buffer)

@@ -102,8 +102,12 @@ func genericVerifyTest(t *testing.T, s *Setup) {
 	for _, modParams := range buildModifiedParams(s.Params, s.Params2, s) {
 		for _, fakeState := range buildModifiedStates(s.State, s.State2, false) {
 			ok, err = channel.Verify(addr, &modParams, &fakeState, sig)
-			assert.NoError(t, err, "Verify should not return an error")
 			assert.False(t, ok, "Verify should return false")
+			if err2 := fakeState.Valid(); err2 != nil {
+				assert.Error(t, err, "Verify should return error on an invalid state")
+			} else {
+				assert.NoError(t, err, "Verify should not return an error on a valid state")
+			}
 		}
 	}
 
@@ -225,7 +229,7 @@ func buildModifiedStates(s1, s2 *channel.State, modifyApp bool) (ret []channel.S
 				// Modify OfParts[0]
 				{
 					modState := s1.Clone()
-					modState.Allocation.OfParts[0] = s2.Allocation.OfParts[0]
+					copy(modState.Allocation.OfParts[0], s2.Allocation.OfParts[0])
 					ret = append(ret, *modState)
 				}
 				// Modify OfParts[0][0]

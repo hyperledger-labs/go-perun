@@ -28,6 +28,37 @@ var _ perun.Backend = (*Backend)(nil)
 
 // NewAddressFromString creates a new address from a string.
 func (*Backend) NewAddressFromString(s string) (perun.Address, error) {
+	return NewAddressFromString(s)
+}
+
+// NewAddressFromBytes creates a new address from a byte array.
+func (*Backend) NewAddressFromBytes(data []byte) (perun.Address, error) {
+	return NewAddressFromBytes(data)
+}
+
+func (*Backend) DecodeAddress(r io.Reader) (perun.Address, error) {
+	return DecodeAddress(r)
+}
+
+// DecodeSig reads a []byte with length of an ethereum signature
+func (*Backend) DecodeSig(r io.Reader) (perun.Sig, error) {
+	return DecodeSig(r)
+}
+
+func (*Backend) VerifySignature(msg []byte, sig perun.Sig, a perun.Address) (bool, error) {
+	return VerifySignature(msg, sig, a)
+}
+
+// NewAddressFromBytes creates a new address from a byte array.
+func NewAddressFromBytes(data []byte) (perun.Address, error) {
+	if len(data) != common.AddressLength {
+		return nil, errors.Errorf("could not create address from bytes of length: %d", len(data))
+	}
+	return &Address{common.BytesToAddress(data)}, nil
+}
+
+// NewAddressFromString creates a new address from a string.
+func NewAddressFromString(s string) (perun.Address, error) {
 	addr, err := common.NewMixedcaseAddressFromString(s)
 	if err != nil {
 		return nil, errors.Wrap(err, "parsing address from string")
@@ -35,27 +66,19 @@ func (*Backend) NewAddressFromString(s string) (perun.Address, error) {
 	return &Address{addr.Address()}, nil
 }
 
-// NewAddressFromBytes creates a new address from a byte array.
-func (*Backend) NewAddressFromBytes(data []byte) (perun.Address, error) {
-	if len(data) != common.AddressLength {
-		return nil, errors.Errorf("could not create address from bytes of length: %d", len(data))
-	}
-	return &Address{common.BytesToAddress(data)}, nil
-}
-
-func (*Backend) DecodeAddress(r io.Reader) (perun.Address, error) {
+func DecodeAddress(r io.Reader) (perun.Address, error) {
 	addr := new(Address)
 	return addr, addr.Decode(r)
 }
 
 // DecodeSig reads a []byte with length of an ethereum signature
-func (*Backend) DecodeSig(r io.Reader) (perun.Sig, error) {
+func DecodeSig(r io.Reader) (perun.Sig, error) {
 	buf := make(perun.Sig, SignatureLength)
 	return buf, wire.Decode(r, &buf)
 }
 
 // VerifySignature verifies if a signature was made by this account.
-func (*Backend) VerifySignature(msg []byte, sig perun.Sig, a perun.Address) (bool, error) {
+func VerifySignature(msg []byte, sig perun.Sig, a perun.Address) (bool, error) {
 	hash := crypto.Keccak256(msg)
 	pk, err := crypto.SigToPub(hash, sig)
 	if err != nil {
