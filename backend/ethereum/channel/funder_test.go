@@ -10,6 +10,7 @@ import (
 	"math/rand"
 	"testing"
 
+	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind/backends"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
@@ -81,12 +82,20 @@ func (s *simulatedBackend) SendTransaction(ctx context.Context, tx *types.Transa
 
 func deployETHAssetHolder(f *Funder, adjudicatorAddr common.Address) common.Address {
 	auth, err := f.client.newTransactor(context.Background(), f.ks, f.account, big.NewInt(0), 7999999)
-	addr, _, _, err := assets.DeployAssetHolderETH(auth, f.client, adjudicatorAddr)
-	mixedCase := common.NewMixedcaseAddress(addr)
-	ETHAssetHolder = &mixedCase
 	if err != nil {
 		panic(err)
 	}
+	addr, tx, _, err := assets.DeployAssetHolderETH(auth, f.client, adjudicatorAddr)
+	if err != nil {
+		panic(err)
+	}
+	receipt, err := bind.WaitMined(context.Background(), f.client, tx)
+	_ = receipt
+	if err != nil {
+		panic(err)
+	}
+	mixedCase := common.NewMixedcaseAddress(addr)
+	ETHAssetHolder = &mixedCase
 	return addr
 }
 
