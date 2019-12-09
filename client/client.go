@@ -38,7 +38,7 @@ func New(
 		id:          id,
 		propHandler: propHandler,
 		funder:      funder,
-		log:         log.WithField("client", id.Address),
+		log:         log.WithField("id", id.Address()),
 	}
 	c.peers = peer.NewRegistry(id, c.subscribePeer, dialer)
 	return c
