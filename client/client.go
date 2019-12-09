@@ -73,6 +73,11 @@ func (c *Client) subscribePeer(p *peer.Peer) {
 	})
 }
 
+// Log is the getter for the client's field logger.
+func (c *Client) Log() log.Logger {
+	return c.log
+}
+
 func (c *Client) logPeer(p *peer.Peer) log.Logger {
 	return c.log.WithField("peer", p.PerunAddress)
 }
