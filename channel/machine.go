@@ -146,9 +146,16 @@ func (m *machine) Sig() (sig wallet.Sig, err error) {
 	return
 }
 
+// State returns the current state.
+// Clone the state first if you need to modify it.
+func (m *machine) State() *State {
+	return m.currentTX.State
+}
+
 // StagingState returns the staging state. It should usually be called after
 // entering a signing phase to get the new staging state, which might have been
 // created during Init() or Update() (for ActionApps).
+// Clone the state first if you need to modify it.
 func (m *machine) StagingState() *State {
 	return m.stagingTX.State
 }
