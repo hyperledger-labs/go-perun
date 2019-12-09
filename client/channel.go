@@ -48,6 +48,14 @@ func newChannel(acc wallet.Account, peers []*peer.Peer, params channel.Params) (
 	}, nil
 }
 
+// Close closes the channel and all associated peer subscriptions.
+func (c *Channel) Close() error {
+	if err := c.Closer.Close(); err != nil {
+		return err
+	}
+	return c.conn.Close()
+}
+
 func (c *Channel) setLogger(l log.Logger) {
 	c.log = l
 }
@@ -56,8 +64,20 @@ func (c *Channel) logPeer(idx channel.Index) log.Logger {
 	return c.log.WithField("peerIdx", idx)
 }
 
+// ID returns the channel ID.
 func (c *Channel) ID() channel.ID {
 	return c.machine.ID()
+}
+
+// Idx returns our index in the channel.
+func (c *Channel) Idx() channel.Index {
+	return c.machine.Idx()
+}
+
+// State returns the current state.
+// Clone it if you want to modify it.
+func (c *Channel) State() *channel.State {
+	return c.machine.State()
 }
 
 // init brings the state machine into the InitSigning phase. It is not callable
