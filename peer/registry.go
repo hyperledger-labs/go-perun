@@ -27,6 +27,7 @@ type Registry struct {
 	dialer    Dialer      // Used for dialing peers (and later: repairing).
 	subscribe func(*Peer) // Sets up peer subscriptions.
 
+	log log.Logger
 	perunsync.Closer
 }
 
@@ -42,6 +43,8 @@ func NewRegistry(id Identity, subscribe func(*Peer), dialer Dialer) *Registry {
 		dialer:    dialer,
 
 		exchangeAddrsTimeout: int64(defaultExchangeAddrsTimeout),
+
+		log: log.WithField("id", id.Address()),
 	}
 }
 
@@ -83,10 +86,11 @@ func (r *Registry) Listen(listener Listener) {
 	for {
 		conn, err := listener.Accept()
 		if err != nil {
-			log.Debugf("peer listener closed: %v", err)
+			log.Debugf("Registry.Listen: peer listener closed: %v", err)
 			return
 		}
 
+		r.log.Debug("Registry.Listen: setting up incoming connection")
 		// setup connection in a separate routine so that new incoming
 		// connections can immediately be handled.
 		go r.setupConn(conn)
@@ -157,16 +161,21 @@ func (r *Registry) prune() {
 // object can be used already, but it will block until the peer is finished or
 // closed. If the registry is already closed, returns a closed peer.
 func (r *Registry) Get(ctx context.Context, addr Address) (*Peer, error) {
+	log := r.log.WithField("peer", addr)
+	log.Trace("Registry.Get")
 	r.mutex.Lock()
 	if p, i := r.find(addr); i != -1 {
 		r.mutex.Unlock()
+		log.Trace("Registry.Get: peer found, waiting for conn...")
 		if p.waitExists(ctx) {
+			log.Trace("Registry.Get: peer connection established")
 			return p, nil
 		} else {
 			return nil, errors.New("peer was not created in time")
 		}
 	}
 
+	log.Trace("Registry.Get: peer not found, dialing...")
 	// Create "nonexistent" peer (nil connection).
 	peer := r.addPeer(addr, nil)
 	r.mutex.Unlock()
@@ -223,8 +232,8 @@ func (r *Registry) NumPeers() int {
 // registry. The function does not differentiate between regular and
 // placeholder peers.
 func (r *Registry) Has(addr Address) bool {
-	r.mutex.RLock()
-	defer r.mutex.RUnlock()
+	r.mutex.Lock()
+	defer r.mutex.Unlock()
 
 	p, _ := r.find(addr)
 
@@ -235,6 +244,7 @@ func (r *Registry) Has(addr Address) bool {
 // addPeer is not thread safe and is assumed to be called from a method which has
 // the r.mutex lock.
 func (r *Registry) addPeer(addr Address, conn Conn) *Peer {
+	r.log.WithField("peer", addr).Trace("Registry.addPeer")
 	// Create and register a new peer.
 	peer := newPeer(addr, conn, r.dialer)
 	r.peers = append(r.peers, peer)
