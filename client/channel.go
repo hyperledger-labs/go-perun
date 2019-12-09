@@ -97,6 +97,12 @@ func (c *Channel) initExchangeSigsAndEnable(ctx context.Context) error {
 		return err
 	}
 
+	resRecv, err := c.conn.NewUpdateResRecv(0)
+	if err != nil {
+		return errors.WithMessage(err, "creating update response receiver")
+	}
+	defer resRecv.Close()
+
 	send := make(chan error)
 	go func() {
 		send <- c.conn.Send(ctx, &msgChannelUpdateAcc{
@@ -105,12 +111,6 @@ func (c *Channel) initExchangeSigsAndEnable(ctx context.Context) error {
 			Sig:       sig,
 		})
 	}()
-
-	resRecv, err := c.conn.NewUpdateResRecv(0)
-	if err != nil {
-		return errors.WithMessage(err, "creating update response receiver")
-	}
-	defer resRecv.Close()
 
 	pidx, cm := resRecv.Next(ctx)
 	acc, ok := cm.(*msgChannelUpdateAcc)

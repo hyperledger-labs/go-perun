@@ -100,6 +100,12 @@ func (c *Channel) Update(ctx context.Context, up ChannelUpdate) (err error) {
 	// from now on, we don't discard the update on errors
 	discardUpdate = false
 
+	resRecv, err := c.conn.NewUpdateResRecv(up.State.Version)
+	if err != nil {
+		return errors.WithMessage(err, "creating update response receiver")
+	}
+	defer resRecv.Close()
+
 	msgUpdate := &msgChannelUpdate{
 		ChannelUpdate: ChannelUpdate{
 			State:    up.State,
@@ -110,12 +116,6 @@ func (c *Channel) Update(ctx context.Context, up ChannelUpdate) (err error) {
 	if err = c.conn.Send(ctx, msgUpdate); err != nil {
 		return errors.WithMessage(err, "sending update acceptance")
 	}
-
-	resRecv, err := c.conn.NewUpdateResRecv(up.State.Version)
-	if err != nil {
-		return errors.WithMessage(err, "creating update response receiver")
-	}
-	defer resRecv.Close()
 
 	pidx, res := resRecv.Next(ctx)
 	if res == nil {
