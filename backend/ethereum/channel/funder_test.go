@@ -11,10 +11,7 @@ import (
 	"testing"
 
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
-	"github.com/ethereum/go-ethereum/accounts/abi/bind/backends"
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/core/types"
-	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 	"perun.network/go-perun/backend/ethereum/bindings/assets"
 	"perun.network/go-perun/backend/ethereum/wallet"
@@ -35,7 +32,7 @@ const (
 
 func TestFunder_Fund(t *testing.T) {
 	f := newSimulatedFunder()
-	assert.Error(t, f.Fund(context.Background(), channel.FundingReq{}), "Funding with invalid funding req should fail")
+	assert.Panics(t, func() { f.Fund(context.Background(), channel.FundingReq{}) }, "Funding with invalid funding req should fail")
 	req := channel.FundingReq{
 		Params:     &channel.Params{},
 		Allocation: &channel.Allocation{},
@@ -57,29 +54,6 @@ func TestFunder_Fund(t *testing.T) {
 	assert.NoError(t, f.Fund(context.Background(), req))
 }
 
-type simulatedBackend struct {
-	backends.SimulatedBackend
-}
-
-func newSimulatedBackend() *simulatedBackend {
-	return &simulatedBackend{*backends.NewSimulatedBackend(nil, 8000000)}
-}
-
-func (s *simulatedBackend) BlockByNumber(_ context.Context, number *big.Int) (*types.Block, error) {
-	if number == nil {
-		return s.Blockchain().CurrentBlock(), nil
-	}
-	return s.Blockchain().GetBlockByNumber(number.Uint64()), nil
-}
-
-func (s *simulatedBackend) SendTransaction(ctx context.Context, tx *types.Transaction) error {
-	if err := s.SimulatedBackend.SendTransaction(ctx, tx); err != nil {
-		return errors.WithStack(err)
-	}
-	s.Commit()
-	return nil
-}
-
 func deployETHAssetHolder(f *Funder, adjudicatorAddr common.Address) common.Address {
 	auth, err := f.client.newTransactor(context.Background(), f.ks, f.account, big.NewInt(0), 7999999)
 	if err != nil {
@@ -94,8 +68,6 @@ func deployETHAssetHolder(f *Funder, adjudicatorAddr common.Address) common.Addr
 	if err != nil {
 		panic(err)
 	}
-	mixedCase := common.NewMixedcaseAddress(addr)
-	ETHAssetHolder = &mixedCase
 	return addr
 }
 
@@ -115,6 +87,7 @@ func newSimulatedFunder() *Funder {
 
 func newValidAllocation(f *Funder, parts []perunwallet.Address, adjudicatorAddr common.Address) *channel.Allocation {
 	assetETH := deployETHAssetHolder(f, adjudicatorAddr)
+	f.ethAssetHolder = assetETH
 	assets := []channel.Asset{
 		&Asset{Address: assetETH},
 	}

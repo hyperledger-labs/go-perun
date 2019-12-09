@@ -11,12 +11,50 @@ import (
 	"reflect"
 	"testing"
 
+	"github.com/ethereum/go-ethereum/accounts/abi/bind/backends"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 	"perun.network/go-perun/backend/ethereum/wallet"
 	perunwallet "perun.network/go-perun/wallet"
 )
+
+type simulatedBackend struct {
+	backends.SimulatedBackend
+}
+
+func newSimulatedBackend() *simulatedBackend {
+	return &simulatedBackend{*backends.NewSimulatedBackend(nil, 8000000)}
+}
+
+func (s *simulatedBackend) BlockByNumber(_ context.Context, number *big.Int) (*types.Block, error) {
+	if number == nil {
+		return s.Blockchain().CurrentBlock(), nil
+	}
+	if block := s.Blockchain().GetBlockByNumber(number.Uint64()); block != nil {
+		return block, nil
+	}
+	return nil, errors.New("got nil block from blockchain")
+}
+
+func (s *simulatedBackend) SendTransaction(ctx context.Context, tx *types.Transaction) error {
+	if err := s.SimulatedBackend.SendTransaction(ctx, tx); err != nil {
+		return errors.WithStack(err)
+	}
+	s.Commit()
+	return nil
+}
+
+type testInvalidAsset [33]byte
+
+func (t *testInvalidAsset) Encode(w io.Writer) error {
+	return errors.New("Unimplemented")
+}
+
+func (t *testInvalidAsset) Decode(r io.Reader) error {
+	return errors.New("Unimplemented")
+}
 
 func Test_calcFundingIDs(t *testing.T) {
 	tests := []struct {
@@ -46,16 +84,6 @@ func Test_calcFundingIDs(t *testing.T) {
 			}
 		})
 	}
-}
-
-type testInvalidAsset [33]byte
-
-func (t *testInvalidAsset) Encode(w io.Writer) error {
-	return errors.New("Unimplemented")
-}
-
-func (t *testInvalidAsset) Decode(r io.Reader) error {
-	return errors.New("Unimplemented")
 }
 
 func Test_NewTransactor(t *testing.T) {

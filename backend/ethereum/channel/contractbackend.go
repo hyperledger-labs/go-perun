@@ -72,7 +72,7 @@ func (c *contractBackend) newTransactor(ctx context.Context, ks *keystore.KeySto
 		return nil, err
 	}
 
-	auth.Nonce = big.NewInt(int64(nonce))
+	auth.Nonce = new(big.Int).SetUint64(nonce)
 	auth.Value = value       // in wei
 	auth.GasLimit = gasLimit // in units
 	auth.GasPrice = big.NewInt(0)

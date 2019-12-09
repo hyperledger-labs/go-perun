@@ -9,7 +9,6 @@ import (
 	"context"
 	"fmt"
 	"math/big"
-	"sort"
 
 	"github.com/ethereum/go-ethereum/accounts"
 	"github.com/ethereum/go-ethereum/accounts/abi"
@@ -28,9 +27,6 @@ import (
 const gasLimit = 200000
 
 var (
-	// ETHAssetHolder is the on-chain address of the ETH asset holder.
-	// This is needed to distinguish between ETH and ERC-20 transactions.
-	ETHAssetHolder, _ = common.NewMixedcaseAddressFromString("0x5038c45153948095faee9f6947ec1d5afa61f1d6")
 	// Declaration for abi-encoding.
 	abibytes32, _ = abi.NewType("bytes32", nil)
 	abiaddress, _ = abi.NewType("address", nil)
@@ -46,6 +42,9 @@ type Funder struct {
 	client  contractBackend
 	ks      *keystore.KeyStore
 	account *accounts.Account
+	// ETHAssetHolder is the on-chain address of the ETH asset holder.
+	// This is needed to distinguish between ETH and ERC-20 transactions.
+	ethAssetHolder common.Address
 }
 
 // compile time check that we implement the perun funder interface
@@ -65,7 +64,7 @@ func NewETHFunder(client *ethclient.Client, keystore *keystore.KeyStore, account
 // It can be used to fund state channels on the ethereum blockchain.
 func (f *Funder) Fund(ctx context.Context, request channel.FundingReq) error {
 	if request.Params == nil || request.Allocation == nil {
-		return errors.New("Invalid funding request")
+		panic("invalid funding request")
 	}
 	var channelID = request.Params.ID()
 	log.Debugf("Funding Channel with ChannelID %d", channelID)
@@ -114,7 +113,7 @@ func (f *Funder) fundAssets(ctx context.Context, request channel.FundingReq, con
 		balance := new(big.Int).Set(request.Allocation.OfParts[request.Idx][assetIndex])
 		var auth *bind.TransactOpts
 		// If we want to fund the channel with ether, send eth in transaction.
-		if bytes.Equal(asset.Bytes(), ETHAssetHolder.Address().Bytes()) {
+		if bytes.Equal(asset.Bytes(), f.ethAssetHolder.Bytes()) {
 			auth, err = f.client.newTransactor(ctx, f.ks, f.account, balance, gasLimit)
 		} else {
 			auth, err = f.client.newTransactor(ctx, f.ks, f.account, big.NewInt(0), gasLimit)
@@ -136,9 +135,9 @@ func (f *Funder) fundAssets(ctx context.Context, request channel.FundingReq, con
 // both we and all peers sucessfully funded the channel.
 func (f *Funder) waitForFundingConfirmations(ctx context.Context, request channel.FundingReq, contracts []contract, partIDs [][32]byte) error {
 	deposited := make(chan *assets.AssetHolderDeposited)
-	subs := make([]event.Subscription, len(request.Allocation.Assets))
+	subs := make([]event.Subscription, len(contracts))
 	// Wait for confirmation on each asset.
-	for assetIndex := range request.Allocation.Assets {
+	for assetIndex := range contracts {
 		watchOpts, err := f.client.newWatchOpts(ctx)
 		if err != nil {
 			return errors.Wrap(err, "error creating watchopts")
@@ -150,24 +149,24 @@ func (f *Funder) waitForFundingConfirmations(ctx context.Context, request channe
 	}
 
 	allocation := request.Allocation.Clone()
-	// Precompute assets -> address
-	assets := make([]common.Address, len(request.Allocation.Assets))
-	for i, a := range request.Allocation.Assets {
-		assets[i] = a.(*Asset).Address
-	}
-
-	for i := 0; i < len(request.Params.Parts)*len(request.Allocation.Assets); i++ {
+	for i := 0; i < len(request.Params.Parts)*len(contracts); i++ {
 		select {
 		case event := <-deposited:
 			// Calculate the position in the participant array.
-			idx := sort.Search(len(partIDs), func(i int) bool {
-				return partIDs[i] == event.FundingID
-			})
+			idx := -1
+			for k, ele := range partIDs {
+				if ele == event.FundingID {
+					idx = k
+				}
+			}
 			// Retrieve the position in the asset array.
-			assetIdx := sort.Search(len(request.Allocation.Assets), func(i int) bool {
-				return assets[i] == event.Raw.Address
-			})
-
+			assetIdx := -1
+			for k, ele := range contracts {
+				if *ele.Address == event.Raw.Address {
+					assetIdx = k
+				}
+			}
+			// Check if the participant send enough funds.
 			if allocation.OfParts[idx][assetIdx].Cmp(event.Amount) != 0 {
 				return errors.New("deposit in asset %d from pariticipant %d does not match agreed upon asset")
 			}
