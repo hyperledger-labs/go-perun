@@ -12,6 +12,7 @@ import (
 	"perun.network/go-perun/channel"
 	"perun.network/go-perun/log"
 	"perun.network/go-perun/pkg/sync/atomic"
+	"perun.network/go-perun/wallet"
 )
 
 type (
@@ -172,15 +173,28 @@ func (c *Channel) handleUpdateReq(
 	// wait for user response
 	select {
 	case accCtx := <-res.accept:
-		err := func(ctx context.Context) error {
+		err := func(ctx context.Context) (err error) {
 			// machine.Update and AddSig should never fail after CheckUpdate...
-			if err := c.machine.Update(req.State, req.ActorIdx); err != nil {
+			if err = c.machine.Update(req.State, req.ActorIdx); err != nil {
 				return errors.WithMessage(err, "updating machine")
 			}
-			if err := c.machine.AddSig(pidx, req.Sig); err != nil {
+			// if anything below goes wrong, we discard the update
+			defer func() {
+				if err != nil {
+					// we discard the update if anything went wrong
+					if derr := c.machine.DiscardUpdate(); derr != nil {
+						// discarding update should never fail at this point
+						err = errors.WithMessagef(derr,
+							"sending accept message failed: %v, then discarding update failed", err)
+					}
+				}
+			}()
+
+			if err = c.machine.AddSig(pidx, req.Sig); err != nil {
 				return errors.WithMessage(err, "adding peer signature")
 			}
-			sig, err := c.machine.Sig()
+			var sig wallet.Sig
+			sig, err = c.machine.Sig()
 			if err != nil {
 				return errors.WithMessage(err, "signing updated state")
 			}
@@ -191,12 +205,6 @@ func (c *Channel) handleUpdateReq(
 				Sig:       sig,
 			}
 			if err := c.conn.Send(ctx, msgUpAcc); err != nil {
-				// TODO: does it make sense to discard on failed send?
-				if derr := c.machine.DiscardUpdate(); derr != nil {
-					// this should be impossible
-					return errors.WithMessagef(derr,
-						"sending accept message failed: %v, then discarding update failed", err)
-				}
 				return errors.WithMessage(err, "sending accept message")
 			}
 
