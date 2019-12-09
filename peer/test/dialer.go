@@ -7,6 +7,7 @@ package test
 import (
 	"context"
 	"net"
+	"sync/atomic"
 
 	"github.com/pkg/errors"
 
@@ -18,7 +19,8 @@ var _ peer.Dialer = (*Dialer)(nil)
 
 // Dialer is a test dialer that can dial connections to Listeners via a ConnHub.
 type Dialer struct {
-	hub *ConnHub
+	hub    *ConnHub
+	dialed int32
 
 	sync.Closer
 }
@@ -45,9 +47,14 @@ func (d *Dialer) Dial(ctx context.Context, address peer.Address) (peer.Conn, err
 		remote.Close()
 		return nil, errors.New("Put() failed")
 	}
+	atomic.AddInt32(&d.dialed, 1)
 	return peer.NewIoConn(local), nil
 }
 
 func (d *Dialer) Close() error {
 	return errors.WithMessage(d.Closer.Close(), "dialer was already closed")
+}
+
+func (d *Dialer) NumDialed() int {
+	return int(atomic.LoadInt32(&d.dialed))
 }
