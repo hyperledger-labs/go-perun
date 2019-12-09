@@ -21,6 +21,9 @@ import (
 	perunwallet "perun.network/go-perun/wallet"
 )
 
+// How many blocks we query into the past for events.
+const startBlockOffset = 100
+
 type contractInterface interface {
 	bind.ContractBackend
 	BlockByNumber(context.Context, *big.Int) (*types.Block, error)
@@ -31,11 +34,23 @@ type contractBackend struct {
 	contractInterface
 }
 
-func (c *contractBackend) newWatchOpts(ctx context.Context, startBlock uint64) *bind.WatchOpts {
-	return &bind.WatchOpts{
-		Start:   &startBlock,
-		Context: ctx,
+func (c *contractBackend) newWatchOpts(ctx context.Context) (*bind.WatchOpts, error) {
+	latestBlock, err := c.BlockByNumber(ctx, nil)
+	if err != nil {
+		return nil, errors.Wrap(err, "Could not retrieve latest block")
 	}
+	// max(1, latestBlock - offset)
+	var blockNum uint64
+	if latestBlock.NumberU64() > startBlockOffset {
+		blockNum = latestBlock.NumberU64() - startBlockOffset
+	} else {
+		blockNum = 1
+	}
+
+	return &bind.WatchOpts{
+		Start:   &blockNum,
+		Context: ctx,
+	}, nil
 }
 
 func (c *contractBackend) newTransactor(ctx context.Context, ks *keystore.KeyStore, acc *accounts.Account, value *big.Int, gasLimit uint64) (*bind.TransactOpts, error) {

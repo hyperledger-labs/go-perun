@@ -80,9 +80,11 @@ func Test_NewTransactor(t *testing.T) {
 
 func Test_NewWatchOpts(t *testing.T) {
 	f := &contractBackend{}
-	watchOpts := f.newWatchOpts(context.Background(), 0)
-	assert.Equal(t, uint64(0), *watchOpts.Start, "Creating watchopts with no context should succeed")
-	watchOpts = f.newWatchOpts(context.Background(), 123)
+	assert.Panics(t, func() { f.newWatchOpts(context.Background()) }, "Creating watchopts on invalid backend should panic")
+	sf := newSimulatedFunder()
+	f = &contractBackend{sf.client}
+	watchOpts, err := f.newWatchOpts(context.Background())
+	assert.NoError(t, err, "Creating watchopts on valid contractBackend should succeed")
 	assert.Equal(t, context.Background(), watchOpts.Context, "Creating watchopts with context should succeed")
-	assert.Equal(t, uint64(123), *watchOpts.Start, "Creating watchopts with no context should succeed")
+	assert.Equal(t, uint64(1), *watchOpts.Start, "Creating watchopts with no context should succeed")
 }

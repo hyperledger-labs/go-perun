@@ -26,7 +26,6 @@ import (
 )
 
 const gasLimit = 200000
-const startBlockOffset = 100
 
 var (
 	// ETHAssetHolder is the on-chain address of the ETH asset holder.
@@ -136,22 +135,14 @@ func (f *Funder) fundAssets(ctx context.Context, request channel.FundingReq, con
 // waitForFundingConfirmations waits for the confirmations events on the blockchain that
 // both we and all peers sucessfully funded the channel.
 func (f *Funder) waitForFundingConfirmations(ctx context.Context, request channel.FundingReq, contracts []contract, partIDs [][32]byte) error {
-	latestBlock, err := f.client.BlockByNumber(ctx, nil)
-	if err != nil {
-		return errors.Wrap(err, "Could not retrieve latest block")
-	}
-	var blockNum uint64
-	if latestBlock.NumberU64() > startBlockOffset {
-		blockNum = latestBlock.NumberU64() - startBlockOffset
-	} else {
-		blockNum = 1
-	}
-
 	deposited := make(chan *assets.AssetHolderDeposited)
 	subs := make([]event.Subscription, len(request.Allocation.Assets))
 	// Wait for confirmation on each asset.
 	for assetIndex := range request.Allocation.Assets {
-		watchOpts := f.client.newWatchOpts(ctx, blockNum)
+		watchOpts, err := f.client.newWatchOpts(ctx)
+		if err != nil {
+			return errors.Wrap(err, "error creating watchopts")
+		}
 		subs[assetIndex], err = contracts[assetIndex].WatchDeposited(watchOpts, deposited, partIDs)
 		if err != nil {
 			return errors.Wrap(err, fmt.Sprintf("WatchDeposit on asset %d failed", assetIndex))
@@ -183,7 +174,7 @@ func (f *Funder) waitForFundingConfirmations(ctx context.Context, request channe
 			allocation.OfParts[idx][assetIdx] = big.NewInt(0)
 		case <-ctx.Done():
 			return errors.Wrap(ctx.Err(), "Waiting for events cancelled by context")
-		case err = <-subs[i].Err():
+		case err := <-subs[i].Err():
 			return errors.Wrap(err, "Error while waiting for events")
 		}
 	}
