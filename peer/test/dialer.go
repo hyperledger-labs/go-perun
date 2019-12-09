@@ -40,7 +40,11 @@ func (d *Dialer) Dial(ctx context.Context, address peer.Address) (peer.Conn, err
 	}
 
 	local, remote := net.Pipe()
-	l.Put(peer.NewIoConn(remote))
+	if !l.Put(ctx, peer.NewIoConn(remote)) {
+		local.Close()
+		remote.Close()
+		return nil, errors.New("Put() failed")
+	}
 	return peer.NewIoConn(local), nil
 }
 

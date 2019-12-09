@@ -5,6 +5,7 @@
 package test // import "perun.network/go-perun/peer/test"
 
 import (
+	"context"
 	"sync/atomic"
 
 	"github.com/pkg/errors"
@@ -59,15 +60,19 @@ func (l *Listener) Close() error {
 
 // Put enqueues one connection to be returned by Accept().
 // If the listener is already closed, does nothing. This function blocks until
-// either Accept() is called or until the listener is closed.
+// either Accept() is called or until the listener is closed. Returns whether
+// the connection has been retrieved by Accept().
 //
 // Note that if Put() is called in parallel, there is no ordering guarantee for
 // the accepted connections.
-func (l *Listener) Put(conn peer.Conn) {
+func (l *Listener) Put(ctx context.Context, conn peer.Conn) bool {
 	select {
 	case l.queue <- conn:
+		return true
 	case <-l.Closed():
-		return
+		return false
+	case <-ctx.Done():
+		return false
 	}
 }
 
