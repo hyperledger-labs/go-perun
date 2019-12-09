@@ -5,6 +5,7 @@
 package test
 
 import (
+	"context"
 	"testing"
 	"time"
 
@@ -45,7 +46,7 @@ func TestListener_Accept_Put(t *testing.T) {
 	t.Run("put", func(t *testing.T) {
 		t.Parallel()
 		test.AssertTerminates(t, timeout, func() {
-			l.Put(connection)
+			assert.True(t, l.Put(context.Background(), connection))
 		})
 	})
 }
@@ -86,8 +87,10 @@ func TestListener_Put(t *testing.T) {
 	t.Run("blocking", func(t *testing.T) {
 		t.Parallel()
 
-		test.AssertNotTerminates(t, timeout, func() {
-			NewListener().Put(connection)
+		ctx, cancel := context.WithCancel(context.Background())
+		cancel()
+		test.AssertTerminates(t, timeout, func() {
+			assert.False(t, NewListener().Put(ctx, connection))
 		})
 	})
 
@@ -98,7 +101,7 @@ func TestListener_Put(t *testing.T) {
 		l.Close()
 		test.AssertTerminates(t, timeout, func() {
 			// Closed listener must abort Put() calls.
-			l.Put(connection)
+			assert.False(t, l.Put(context.Background(), connection))
 			// Accept() must always fail when closed.
 			conn, err := l.Accept()
 			assert.Nil(t, conn)
