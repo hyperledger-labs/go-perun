@@ -99,7 +99,7 @@ func (p *producer) delete(c Consumer) {
 			return
 		}
 	}
-	log.Panic("deleted receiver that was not subscribed")
+	log.Panic("deleted consumer that was not subscribed")
 }
 
 func (p *producer) isEmpty() bool {
