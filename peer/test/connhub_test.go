@@ -94,7 +94,7 @@ func TestConnHub_Close(t *testing.T) {
 		var c ConnHub
 		l := c.NewListener(wallettest.NewRandomAddress(rng))
 		assert.NoError(c.Close())
-		assert.True(l.(*Listener).IsClosed())
+		assert.True(l.IsClosed())
 	})
 
 	t.Run("nonempty close with error (listener)", func(t *testing.T) {
@@ -106,7 +106,7 @@ func TestConnHub_Close(t *testing.T) {
 		l2.Close()
 		c.insert(wallettest.NewRandomAccount(rng).Address(), l2)
 		assert.Error(c.Close())
-		assert.True(l.(*Listener).IsClosed())
+		assert.True(l.IsClosed())
 	})
 
 	t.Run("nonempty close with error (dialer)", func(t *testing.T) {
@@ -118,7 +118,7 @@ func TestConnHub_Close(t *testing.T) {
 		d2.Close()
 		c.dialers.insert(d2)
 		assert.Error(c.Close())
-		assert.True(d.(*Dialer).IsClosed())
+		assert.True(d.IsClosed())
 	})
 
 	t.Run("double close", func(t *testing.T) {
