@@ -5,6 +5,7 @@
 package wallet
 
 import (
+	"encoding/hex"
 	"testing"
 
 	"github.com/ethereum/go-ethereum/accounts"
@@ -18,7 +19,7 @@ import (
 const (
 	keyDir      = "testdata"
 	password    = "secret"
-	sampleAddr  = "0x1234560000000000000000000000000000000000"
+	sampleAddr  = "1234560000000000000000000000000000000000"
 	invalidAddr = "0x12345600000000000000000000000000000000001"
 	dataToSign  = "SomeLongDataThatShouldBeSignedPlease"
 
@@ -121,18 +122,13 @@ func TestSignatures(t *testing.T) {
 func TestBackend(t *testing.T) {
 	backend := new(Backend)
 
-	addrStr, err := backend.NewAddressFromString(sampleAddr)
-	assert.Nil(t, err, "NewAddress from valid address string should work")
-	assert.Equal(t, addrStr.String(), sampleAddr, "NewAddress from valid address string should be the same")
+	s := newSetup()
 
-	addrBytes, err := backend.NewAddressFromBytes(addrStr.Bytes())
+	addr, err := backend.NewAddressFromBytes(s.AddressBytes)
 	assert.Nil(t, err, "NewAddress from Bytes should work")
-	assert.True(t, addrStr.Equals(addrBytes), "Address from bytes or string should be the same")
+	assert.Equal(t, s.AddressBytes, addr.Bytes())
 
 	_, err = backend.NewAddressFromBytes([]byte(invalidAddr))
-	assert.NotNil(t, err, "Conversion from wrong address should fail")
-
-	_, err = backend.NewAddressFromString(invalidAddr)
 	assert.NotNil(t, err, "Conversion from wrong address should fail")
 }
 
@@ -142,6 +138,11 @@ func newSetup() *test.Setup {
 	acc := wallet.Accounts()[0].(*Account)
 	acc.Unlock(password)
 
+	sampleBytes, err := hex.DecodeString(sampleAddr)
+	if err != nil {
+		panic("invalid sample address")
+	}
+
 	initWallet := func(w perun.Wallet) error { return w.Connect("./"+keyDir, password) }
 	unlockedAccount := func() (perun.Account, error) { return acc, nil }
 
@@ -150,7 +151,7 @@ func newSetup() *test.Setup {
 		InitWallet:      initWallet,
 		UnlockedAccount: unlockedAccount,
 		Backend:         new(Backend),
-		AddrString:      sampleAddr,
+		AddressBytes:    sampleBytes,
 		DataToSign:      []byte(dataToSign),
 	}
 }

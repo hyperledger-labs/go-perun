@@ -11,7 +11,9 @@ import (
 	"math/rand"
 	"testing"
 
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/stretchr/testify/assert"
+
 	"perun.network/go-perun/backend/ethereum/wallet"
 	_ "perun.network/go-perun/backend/ethereum/wallet"
 	"perun.network/go-perun/channel"
@@ -53,6 +55,10 @@ func newChannelSetup() *test.Setup {
 	}
 }
 
+func newAddressFromString(s string) *wallet.Address {
+	return &wallet.Address{Address: common.HexToAddress(s)}
+}
+
 func TestChannelID(t *testing.T) {
 	tests := []struct {
 		name        string
@@ -82,12 +88,9 @@ func TestChannelID(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			nonce, ok := new(big.Int).SetString(tt.nonceStr, 16)
 			assert.True(t, ok, "Setting the nonce should not fail")
-			alice, err := perunwallet.NewAddressFromString(tt.aliceAddr)
-			assert.NoError(t, err, "Creating Alices address should not fail")
-			bob, err := perunwallet.NewAddressFromString(tt.bobAddr)
-			assert.NoError(t, err, "Creating Bobs address should not fail")
-			app, err := perunwallet.NewAddressFromString(tt.appAddr)
-			assert.NoError(t, err, "Creating the MockApp address should not fail")
+			alice := newAddressFromString(tt.aliceAddr)
+			bob := newAddressFromString(tt.bobAddr)
+			app := newAddressFromString(tt.appAddr)
 			params := channel.Params{
 				ChallengeDuration: tt.challengDur,
 				Nonce:             nonce,

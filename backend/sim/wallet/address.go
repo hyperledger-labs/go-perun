@@ -8,6 +8,7 @@ import (
 	"bufio"
 	"bytes"
 	"crypto/ecdsa"
+	"encoding/hex"
 	"io"
 	"math/big"
 
@@ -51,9 +52,16 @@ func (a Address) Bytes() []byte {
 	return buff.Bytes()
 }
 
-// String converts this address to a string.
+// String converts this address to a human-readable string.
 func (a Address) String() string {
-	return string(a.Bytes())
+	// Encode the address directly instead of using Address.Bytes() because
+	// * some addresses may have a very short encoding, e.g., the null address,
+	// * the Address.Bytes() output may contain encoding information, e.g., the
+	//   length.
+	bs := make([]byte, 4)
+	copy(bs, a.X.Bytes())
+
+	return "0x" + hex.EncodeToString(bs)
 }
 
 // Equals checks the equality of two addresses.
@@ -75,8 +83,7 @@ func (a *Address) Encode(w io.Writer) error {
 	if err := (wire.BigInt{Int: a.Y}.Encode(w)); err != nil {
 		return errors.Wrap(err, "address encode error")
 	}
-	// Dont sezialize the curve since its constant
-
+	// Do not serialize the curve because it is constant.
 	return nil
 }
 

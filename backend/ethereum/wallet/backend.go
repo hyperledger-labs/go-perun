@@ -26,11 +26,6 @@ const SignatureLength = 65
 // compile-time check that the ethereum backend implements the perun backend
 var _ perun.Backend = (*Backend)(nil)
 
-// NewAddressFromString creates a new address from a string.
-func (*Backend) NewAddressFromString(s string) (perun.Address, error) {
-	return NewAddressFromString(s)
-}
-
 // NewAddressFromBytes creates a new address from a byte array.
 func (*Backend) NewAddressFromBytes(data []byte) (perun.Address, error) {
 	return NewAddressFromBytes(data)
@@ -55,15 +50,6 @@ func NewAddressFromBytes(data []byte) (perun.Address, error) {
 		return nil, errors.Errorf("could not create address from bytes of length: %d", len(data))
 	}
 	return &Address{common.BytesToAddress(data)}, nil
-}
-
-// NewAddressFromString creates a new address from a string.
-func NewAddressFromString(s string) (perun.Address, error) {
-	addr, err := common.NewMixedcaseAddressFromString(s)
-	if err != nil {
-		return nil, errors.Wrap(err, "parsing address from string")
-	}
-	return &Address{addr.Address()}, nil
 }
 
 func DecodeAddress(r io.Reader) (perun.Address, error) {

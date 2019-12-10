@@ -94,7 +94,6 @@ func benchWalletAccounts(b *testing.B, s *Setup) {
 // This function should be called by every implementation of the Backend interface.
 func GenericBackendBenchmark(b *testing.B, s *Setup) {
 	b.Run("VerifySig", func(b *testing.B) { benchBackendVerifySig(b, s) })
-	b.Run("FromString", func(b *testing.B) { benchBackendNewAddressFromString(b, s) })
 	b.Run("FromBytes", func(b *testing.B) { benchBackendNewAddressFromBytes(b, s) })
 }
 
@@ -116,26 +115,9 @@ func benchBackendVerifySig(b *testing.B, s *Setup) {
 	}
 }
 
-func benchBackendNewAddressFromString(b *testing.B, s *Setup) {
-	for n := 0; n < b.N; n++ {
-		_, err := s.Backend.NewAddressFromString(s.AddrString)
-
-		if err != nil {
-			b.Fatal(err)
-		}
-	}
-}
-
 func benchBackendNewAddressFromBytes(b *testing.B, s *Setup) {
-	data, err := s.Backend.NewAddressFromString(s.AddrString)
-	bytes := data.Bytes()
-
-	if err != nil {
-		b.Fatal(err)
-	}
-
 	for n := 0; n < b.N; n++ {
-		_, err := s.Backend.NewAddressFromBytes(bytes)
+		_, err := s.Backend.NewAddressFromBytes(s.AddressBytes)
 
 		if err != nil {
 			b.Fatal(err)

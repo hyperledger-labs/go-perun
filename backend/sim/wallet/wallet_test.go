@@ -64,7 +64,19 @@ func TestGenericTests(t *testing.T) {
 	// we also need to test it here
 	rng := rand.New(rand.NewSource(1337))
 	for i := 0; i < 10; i++ {
-		assert.NotEqual(t, NewRandomAddress(rng), NewRandomAddress(rng), "Two random accounts should not be the same")
+		addr0 := NewRandomAddress(rng)
+		addr1 := NewRandomAddress(rng)
+		assert.NotEqual(
+			t, addr0, addr1, "Two random accounts should not be the same")
+
+		str0 := addr0.String()
+		str1 := addr1.String()
+		assert.Equal(
+			t, 10, len(str0), "First address '%v' has wrong length", str0)
+		assert.Equal(
+			t, 10, len(str1), "Second address '%v' has wrong length", str1)
+		assert.NotEqual(
+			t, str0, str1, "Printed addresses are unlikely to be identical")
 	}
 }
 
@@ -81,6 +93,6 @@ func newWalletSetup() *test.Setup {
 		Backend:         new(Backend),
 		UnlockedAccount: unlockedAccount,
 		InitWallet:      initWallet,
-		AddrString:      accountB.Address().String(),
+		AddressBytes:    accountB.Address().Bytes(),
 	}
 }

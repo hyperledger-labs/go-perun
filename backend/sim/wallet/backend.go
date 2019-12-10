@@ -25,12 +25,6 @@ type Backend struct{}
 
 var _ wallet.Backend = new(Backend)
 
-// NewAddressFromString creates a new address from a string.
-// DEPRECATED
-func (b *Backend) NewAddressFromString(s string) (wallet.Address, error) {
-	return b.NewAddressFromBytes([]byte(s))
-}
-
 // NewAddressFromBytes creates a new address from a byte array.
 // DEPRECATED
 func (b *Backend) NewAddressFromBytes(data []byte) (wallet.Address, error) {
