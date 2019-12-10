@@ -5,27 +5,29 @@
 package peer
 
 import (
+	"context"
 	stdsync "sync"
 
 	"github.com/pkg/errors"
 
 	"perun.network/go-perun/log"
 	"perun.network/go-perun/pkg/sync"
-	wire "perun.network/go-perun/wire/msg"
+	"perun.network/go-perun/wire/msg"
 )
 
 // producer handles (un)registering Consumers for a message producer's messages.
 type producer struct {
+	sync.Closer
 	mutex     stdsync.RWMutex
 	consumers []subscription
-	sync.Closer
 
-	defaultMsgHandler func(wire.Msg) // Handles messages with no subscriber.
+	cache             msg.Cache
+	defaultMsgHandler func(msg.Msg) // Handles messages with no subscriber.
 }
 
 type subscription struct {
 	consumer  Consumer
-	predicate func(wire.Msg) bool
+	predicate msg.Predicate
 }
 
 func (p *producer) Close() error {
@@ -37,13 +39,25 @@ func (p *producer) Close() error {
 	defer p.mutex.Unlock()
 
 	p.consumers = nil
+
+	cs := p.cache.Size()
+	if cs != 0 {
+		p.cache.Flush() // GC
+		return errors.Errorf("cache was not empty (%d)", cs)
+	}
 	return nil
+}
+
+// Cache enables caching of messages that don't match any consumer. They are
+// only cached if they match the given predicate, within the given context.
+func (p *producer) Cache(ctx context.Context, predicate msg.Predicate) {
+	p.cache.Cache(ctx, predicate)
 }
 
 // add adds a receiver to the subscriptions.
 // If the receiver was already subscribed, panics.
 // If the peer is closed, returns an error.
-func (p *producer) Subscribe(c Consumer, predicate func(wire.Msg) bool) error {
+func (p *producer) Subscribe(c Consumer, predicate msg.Predicate) error {
 	p.mutex.Lock()
 	defer p.mutex.Unlock()
 
@@ -59,6 +73,15 @@ func (p *producer) Subscribe(c Consumer, predicate func(wire.Msg) bool) error {
 
 	p.consumers = append(p.consumers, subscription{consumer: c, predicate: predicate})
 	c.OnClose(func() { p.delete(c) })
+
+	// Put cached messages into consumer in a go routine because receiving on it
+	// probably starts after subscription.
+	cached := p.cache.Get(predicate)
+	go func() {
+		for _, m := range cached {
+			c.Put(m.Annex.(*Peer), m.Msg)
+		}
+	}()
 
 	return nil
 }
@@ -86,7 +109,7 @@ func (p *producer) isEmpty() bool {
 	return len(p.consumers) == 0
 }
 
-func (p *producer) produce(m wire.Msg, peer *Peer) {
+func (p *producer) produce(m msg.Msg, peer *Peer) {
 	p.mutex.RLock()
 	defer p.mutex.RUnlock()
 
@@ -99,15 +122,17 @@ func (p *producer) produce(m wire.Msg, peer *Peer) {
 	}
 
 	if !any {
-		p.defaultMsgHandler(m)
+		if !p.cache.Put(m, peer) {
+			p.defaultMsgHandler(m)
+		}
 	}
 }
 
-func logUnhandledMsg(m wire.Msg) {
+func logUnhandledMsg(m msg.Msg) {
 	log.Debugf("Received %T message without subscription: %v", m, m)
 }
 
-func (p *producer) SetDefaultMsgHandler(handler func(wire.Msg)) {
+func (p *producer) SetDefaultMsgHandler(handler func(msg.Msg)) {
 	if handler == nil {
 		handler = logUnhandledMsg
 	}
