@@ -25,7 +25,7 @@ type ConnHub struct {
 // NewListener creates a new test listener for the given address.
 // Registers the new listener in the hub. Panics if the address was already
 // entered or the hub is closed.
-func (h *ConnHub) NewListener(addr peer.Address) peer.Listener {
+func (h *ConnHub) NewListener(addr peer.Address) *Listener {
 	h.mutex.RLock()
 	defer h.mutex.RUnlock()
 
@@ -46,7 +46,7 @@ func (h *ConnHub) NewListener(addr peer.Address) peer.Listener {
 
 // NewDialer creates a new test dialer.
 // Registers the new dialer in the hub. Panics if the hub is closed.
-func (h *ConnHub) NewDialer() peer.Dialer {
+func (h *ConnHub) NewDialer() *Dialer {
 	h.mutex.RLock()
 	defer h.mutex.RUnlock()
 
