@@ -29,12 +29,12 @@ type subscription struct {
 }
 
 func (p *producer) Close() error {
-	p.mutex.Lock()
-	defer p.mutex.Unlock()
-
 	if err := p.Closer.Close(); err != nil {
 		return err
 	}
+
+	p.mutex.Lock()
+	defer p.mutex.Unlock()
 
 	p.consumers = nil
 	return nil
@@ -80,6 +80,9 @@ func (p *producer) delete(c Consumer) {
 }
 
 func (p *producer) isEmpty() bool {
+	p.mutex.RLock()
+	defer p.mutex.RUnlock()
+
 	return len(p.consumers) == 0
 }
 
