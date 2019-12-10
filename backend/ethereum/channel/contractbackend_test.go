@@ -90,8 +90,6 @@ func Test_NewTransactor(t *testing.T) {
 	f := &contractBackend{}
 	_, err := f.newTransactor(nil, nil, nil, big.NewInt(0), 1000)
 	assert.Error(t, err, "Funder has to have a context set")
-	_, err = f.newTransactor(nil, nil, nil, big.NewInt(0), 1000)
-	assert.Error(t, err, "Creating a transactor without a connection should fail")
 	sf := newSimulatedFunder()
 	f = &contractBackend{sf.client}
 	transactor, err := f.newTransactor(context.Background(), sf.ks, sf.account, big.NewInt(0), 1000)
@@ -104,6 +102,7 @@ func Test_NewTransactor(t *testing.T) {
 	assert.Equal(t, sf.account.Address, transactor.From, "Transactor address not properly set")
 	assert.Equal(t, uint64(12345), transactor.GasLimit, "Gas limit not set properly")
 	assert.Equal(t, big.NewInt(12345), transactor.Value, "Transaction value not set properly")
+	// TODO test gas price once we prefund accounts in the simulatedBackend
 }
 
 func Test_NewWatchOpts(t *testing.T) {
@@ -115,4 +114,11 @@ func Test_NewWatchOpts(t *testing.T) {
 	assert.NoError(t, err, "Creating watchopts on valid contractBackend should succeed")
 	assert.Equal(t, context.Background(), watchOpts.Context, "Creating watchopts with context should succeed")
 	assert.Equal(t, uint64(1), *watchOpts.Start, "Creating watchopts with no context should succeed")
+}
+
+func BenchmarkFunder(b *testing.B) {
+	var t testing.T
+	for i := 0; i < b.N; i++ {
+		TestFunder_Fund(&t)
+	}
 }
