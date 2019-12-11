@@ -8,6 +8,7 @@ import (
 	"context"
 	"testing"
 
+	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -28,10 +29,10 @@ func TestBroadcaster_Send(t *testing.T) {
 
 	b := NewBroadcaster(peers)
 
-	assert.Nil(t, b.Send(context.Background(), msg), "broadcast must succeed")
+	assert.NoError(t, b.Send(context.Background(), msg), "broadcast must succeed")
 }
 
-// TestBroadcaster_Send_Error tests that when a single transmission fails, the
+// TestBroadcaster_Send_Error tests that when a single transmission fails, thee
 // whole operation fails.
 func TestBroadcaster_Send_Error(t *testing.T) {
 	N := 5
@@ -46,8 +47,11 @@ func TestBroadcaster_Send_Error(t *testing.T) {
 	b := NewBroadcaster(peers)
 
 	err := b.Send(context.Background(), wire.NewPingMsg())
+	require.IsType(t, &BroadcastError{}, errors.Cause(err))
+	berr := errors.Cause(err).(*BroadcastError)
+
 	require.Error(t, err, "broadcast must fail")
-	assert.Equal(t, len(err.errors), 1)
-	assert.Equal(t, err.errors[0].index, 1)
-	assert.Equal(t, err.Error(), "failed to send message:\npeer[1]: "+err.errors[0].err.Error())
+	assert.Equal(t, len(berr.errors), 1)
+	assert.Equal(t, berr.errors[0].index, 1)
+	assert.Equal(t, err.Error(), "failed to send message:\npeer[1]: "+berr.errors[0].err.Error())
 }

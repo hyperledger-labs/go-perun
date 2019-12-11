@@ -26,7 +26,7 @@ type Broadcaster struct {
 // The returned error is nil if the message was successfully sent to all peers.
 // Otherwise, the returned error contains an array of all individual errors
 // that occurred.
-func (b *Broadcaster) Send(ctx context.Context, m wire.Msg) *BroadcastError {
+func (b *Broadcaster) Send(ctx context.Context, m wire.Msg) error {
 	gather := make(chan sendError, len(b.peers))
 	// Send all messages in parallel.
 	for i, p := range b.peers {
