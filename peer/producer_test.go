@@ -5,10 +5,12 @@
 package peer
 
 import (
+	"context"
 	"reflect"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	"perun.network/go-perun/pkg/sync"
 	"perun.network/go-perun/pkg/test"
@@ -96,4 +98,49 @@ func TestProducer_Subscribe(t *testing.T) {
 		assert.NoError(t, p.Subscribe(r, fn))
 		assert.Panics(t, func() { p.Subscribe(r, fn) })
 	})
+}
+
+// TestProducer_caching tests that the producer correctly writes unhandled
+// messages to the cache.
+func TestProducer_caching(t *testing.T) {
+	assert := assert.New(t)
+	isPing := func(m wire.Msg) bool { return m.Type() == wire.Ping }
+	isPong := func(m wire.Msg) bool { return m.Type() == wire.Pong }
+	prod := makeProducer()
+	unhandlesMsg := make([]wire.Msg, 0, 2)
+	prod.SetDefaultMsgHandler(func(m wire.Msg) { unhandlesMsg = append(unhandlesMsg, m) })
+
+	ctx := context.Background()
+	prod.Cache(ctx, isPing)
+	ping0, peer0 := wire.NewPingMsg(), &Peer{} // dummy peer
+	pong1 := wire.NewPongMsg()
+	pong2 := wire.NewPongMsg()
+
+	prod.produce(ping0, peer0)
+	assert.Equal(1, prod.cache.Size())
+	assert.Len(unhandlesMsg, 0)
+
+	prod.produce(pong1, &Peer{})
+	assert.Equal(1, prod.cache.Size())
+	assert.Len(unhandlesMsg, 1)
+
+	prod.Cache(ctx, isPong)
+	prod.produce(pong2, &Peer{})
+	assert.Equal(2, prod.cache.Size())
+	assert.Len(unhandlesMsg, 1)
+
+	rec := NewReceiver()
+	prod.Subscribe(rec, isPing)
+	test.AssertTerminates(t, timeout, func() {
+		recpeer, recmsg := rec.Next(ctx)
+		assert.Same(recpeer, peer0)
+		assert.Same(recmsg, ping0)
+	})
+	assert.Equal(1, prod.cache.Size())
+	assert.Len(unhandlesMsg, 1)
+
+	err := prod.Close()
+	require.Error(t, err)
+	assert.Contains(err.Error(), "cache")
+	assert.Zero(prod.cache.Size(), "producer.Close should flush the cache")
 }
