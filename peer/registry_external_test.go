@@ -7,7 +7,6 @@ package peer_test
 import (
 	"context"
 	"math/rand"
-	"runtime"
 	"testing"
 	"time"
 
@@ -39,7 +38,7 @@ func TestRegistry_Get_Pair(t *testing.T) {
 		listenerReg.Listen(listener)
 	}()
 
-	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	ctx, cancel := context.WithTimeout(context.Background(), 2*timeout)
 	defer cancel()
 	p, err := dialerReg.Get(ctx, listenerId.Address())
 	assert.NoError(err)
@@ -47,7 +46,7 @@ func TestRegistry_Get_Pair(t *testing.T) {
 	assert.True(p.PerunAddress.Equals(listenerId.Address()))
 
 	// should allow the listener routine to add the peer to its registry
-	runtime.Gosched()
+	time.Sleep(timeout)
 	p, err = listenerReg.Get(ctx, dialerId.Address())
 	assert.NoError(err)
 	require.NotNil(p)
@@ -80,7 +79,7 @@ func TestRegistry_Get_Multiple(t *testing.T) {
 		listenerReg.Listen(listener)
 	}()
 
-	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	ctx, cancel := context.WithTimeout(context.Background(), 2*timeout)
 	defer cancel()
 
 	const N = 4
@@ -109,7 +108,7 @@ func TestRegistry_Get_Multiple(t *testing.T) {
 	assert.Equal(1, dialer.NumDialed())
 
 	// should allow the listener routine to add the peer to its registry
-	runtime.Gosched()
+	time.Sleep(timeout)
 	p, err := listenerReg.Get(ctx, dialerId.Address())
 	assert.NoError(err)
 	assert.NotNil(p)
