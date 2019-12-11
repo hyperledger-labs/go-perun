@@ -23,8 +23,8 @@ const (
 	invalidAddr = "0x12345600000000000000000000000000000000001"
 	dataToSign  = "SomeLongDataThatShouldBeSignedPlease"
 
-	keystoreAddr = "0xf4c288068b32474dedc3620233c"
-	keyStorePath = "UTC--2019-06-07T12-12-48.775026092Z--3c5a96ff258b1f4c288068b32474dedc3620233c"
+	keystoreAddr = "0x647ec26ae49b14060660504f4DA1c2059E1C5Ab6"
+	keyStorePath = "UTC--2019-12-11T17-00-07.156850888Z--647ec26ae49b14060660504f4da1c2059e1c5ab6"
 )
 
 func TestGenericWalletTests(t *testing.T) {
