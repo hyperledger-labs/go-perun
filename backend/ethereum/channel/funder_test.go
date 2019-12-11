@@ -81,7 +81,9 @@ func newSimulatedFunder() *Funder {
 	ks := wall.Ks
 	f.ks = ks
 	f.account = acc.Account
-	f.client = contractBackend{newSimulatedBackend()}
+	simBackend := newSimulatedBackend()
+	simBackend.fundAddress(context.Background(), f.account.Address)
+	f.client = contractBackend{simBackend}
 	return f
 }
 
@@ -95,7 +97,7 @@ func newValidAllocation(f *Funder, parts []perunwallet.Address, adjudicatorAddr 
 	for i := 0; i < len(ofparts); i++ {
 		ofparts[i] = make([]channel.Bal, len(assets))
 		for k := 0; k < len(assets); k++ {
-			ofparts[i][k] = big.NewInt(0)
+			ofparts[i][k] = big.NewInt(1)
 		}
 	}
 	return &channel.Allocation{

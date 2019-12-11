@@ -166,7 +166,7 @@ func (f *Funder) waitForFundingConfirmations(ctx context.Context, request channe
 					assetIdx = k
 				}
 			}
-			// Check if the participant send enough funds.
+			// Check if the participant send the correct amounts of funds.
 			if allocation.OfParts[idx][assetIdx].Cmp(event.Amount) != 0 {
 				return errors.New("deposit in asset %d from pariticipant %d does not match agreed upon asset")
 			}

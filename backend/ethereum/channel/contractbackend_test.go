@@ -6,14 +6,18 @@ package channel
 
 import (
 	"context"
+	"crypto/ecdsa"
 	"io"
 	"math/big"
 	"reflect"
 	"testing"
 
+	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind/backends"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/core"
 	"github.com/ethereum/go-ethereum/core/types"
+	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 	"perun.network/go-perun/backend/ethereum/wallet"
@@ -22,10 +26,29 @@ import (
 
 type simulatedBackend struct {
 	backends.SimulatedBackend
+	faucetSK   *ecdsa.PrivateKey
+	faucetAddr common.Address
 }
 
 func newSimulatedBackend() *simulatedBackend {
-	return &simulatedBackend{*backends.NewSimulatedBackend(nil, 8000000)}
+	sk, err := crypto.GenerateKey()
+	if err != nil {
+		panic(err)
+	}
+	faucetAddr := crypto.PubkeyToAddress(sk.PublicKey)
+	addr := map[common.Address]core.GenesisAccount{
+		common.BytesToAddress([]byte{1}): {Balance: big.NewInt(1)}, // ECRecover
+		common.BytesToAddress([]byte{2}): {Balance: big.NewInt(1)}, // SHA256
+		common.BytesToAddress([]byte{3}): {Balance: big.NewInt(1)}, // RIPEMD
+		common.BytesToAddress([]byte{4}): {Balance: big.NewInt(1)}, // Identity
+		common.BytesToAddress([]byte{5}): {Balance: big.NewInt(1)}, // ModExp
+		common.BytesToAddress([]byte{6}): {Balance: big.NewInt(1)}, // ECAdd
+		common.BytesToAddress([]byte{7}): {Balance: big.NewInt(1)}, // ECScalarMul
+		common.BytesToAddress([]byte{8}): {Balance: big.NewInt(1)}, // ECPairing
+		faucetAddr:                       {Balance: new(big.Int).Sub(new(big.Int).Lsh(big.NewInt(1), 256), big.NewInt(9))},
+	}
+	alloc := core.GenesisAlloc(addr)
+	return &simulatedBackend{*backends.NewSimulatedBackend(alloc, 8000000), sk, faucetAddr}
 }
 
 func (s *simulatedBackend) BlockByNumber(_ context.Context, number *big.Int) (*types.Block, error) {
@@ -44,6 +67,24 @@ func (s *simulatedBackend) SendTransaction(ctx context.Context, tx *types.Transa
 	}
 	s.Commit()
 	return nil
+}
+
+func (s *simulatedBackend) fundAddress(ctx context.Context, addr common.Address) {
+	nonce, err := s.PendingNonceAt(context.Background(), s.faucetAddr)
+	if err != nil {
+		panic(err)
+	}
+	value := new(big.Int).Lsh(big.NewInt(1), 64) // 10 eth in wei
+	tx := types.NewTransaction(nonce, addr, value, gasLimit, big.NewInt(1), nil)
+	signer := types.NewEIP155Signer(big.NewInt(1337))
+	signedTX, err := types.SignTx(tx, signer, s.faucetSK)
+	if err != nil {
+		panic(err)
+	}
+	if err := s.SendTransaction(ctx, signedTX); err != nil {
+		panic(err)
+	}
+	bind.WaitMined(context.Background(), s, signedTX)
 }
 
 type testInvalidAsset [33]byte
@@ -97,12 +138,13 @@ func Test_NewTransactor(t *testing.T) {
 	assert.Equal(t, sf.account.Address, transactor.From, "Transactor address not properly set")
 	assert.Equal(t, uint64(1000), transactor.GasLimit, "Gas limit not set properly")
 	assert.Equal(t, big.NewInt(0), transactor.Value, "Transaction value not set properly")
+	assert.Equal(t, big.NewInt(1), transactor.GasPrice, "Invalid gas price")
 	transactor, err = f.newTransactor(context.Background(), sf.ks, sf.account, big.NewInt(12345), 12345)
 	assert.NoError(t, err, "Creating Transactor should succeed")
 	assert.Equal(t, sf.account.Address, transactor.From, "Transactor address not properly set")
 	assert.Equal(t, uint64(12345), transactor.GasLimit, "Gas limit not set properly")
 	assert.Equal(t, big.NewInt(12345), transactor.Value, "Transaction value not set properly")
-	// TODO test gas price once we prefund accounts in the simulatedBackend
+	assert.Equal(t, big.NewInt(1), transactor.GasPrice, "Invalid gas price")
 }
 
 func Test_NewWatchOpts(t *testing.T) {

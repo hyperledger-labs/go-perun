@@ -62,7 +62,7 @@ func (c *contractBackend) newTransactor(ctx context.Context, ks *keystore.KeySto
 		return nil, err
 	}
 
-	_, err = c.SuggestGasPrice(ctx)
+	gasPrice, err := c.SuggestGasPrice(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -75,7 +75,7 @@ func (c *contractBackend) newTransactor(ctx context.Context, ks *keystore.KeySto
 	auth.Nonce = new(big.Int).SetUint64(nonce)
 	auth.Value = value       // in wei
 	auth.GasLimit = gasLimit // in units
-	auth.GasPrice = big.NewInt(0)
+	auth.GasPrice = gasPrice
 
 	return auth, nil
 }
