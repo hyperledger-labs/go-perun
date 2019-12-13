@@ -51,7 +51,8 @@ func TestFunder_Fund(t *testing.T) {
 		Allocation: allocation,
 		Idx:        0,
 	}
-	assert.NoError(t, f.Fund(context.Background(), req))
+	assert.NoError(t, f.Fund(context.Background(), req), "funding with valid request should succeed")
+	assert.NoError(t, f.Fund(context.Background(), req), "multiple funding should succeed")
 }
 
 func deployETHAssetHolder(f *Funder, adjudicatorAddr common.Address) common.Address {

@@ -9,6 +9,7 @@ import (
 	"context"
 	"fmt"
 	"math/big"
+	"sync"
 
 	"github.com/ethereum/go-ethereum/accounts"
 	"github.com/ethereum/go-ethereum/accounts/abi"
@@ -42,6 +43,7 @@ type Funder struct {
 	client  contractBackend
 	ks      *keystore.KeyStore
 	account *accounts.Account
+	mu      sync.Mutex
 	// ETHAssetHolder is the on-chain address of the ETH asset holder.
 	// This is needed to distinguish between ETH and ERC-20 transactions.
 	ethAssetHolder common.Address
@@ -113,16 +115,19 @@ func (f *Funder) fundAssets(ctx context.Context, request channel.FundingReq, con
 		balance := new(big.Int).Set(request.Allocation.OfParts[request.Idx][assetIndex])
 		var auth *bind.TransactOpts
 		// If we want to fund the channel with ether, send eth in transaction.
+		f.mu.Lock()
 		if bytes.Equal(asset.Bytes(), f.ethAssetHolder.Bytes()) {
 			auth, err = f.client.newTransactor(ctx, f.ks, f.account, balance, gasLimit)
 		} else {
 			auth, err = f.client.newTransactor(ctx, f.ks, f.account, big.NewInt(0), gasLimit)
 		}
 		if err != nil {
+			f.mu.Unlock()
 			return errors.Wrap(err, fmt.Sprintf("Could not create Transactor for asset %d", assetIndex))
 		}
 		// Call the asset holder contract.
 		tx, err := contracts[assetIndex].Deposit(auth, partIDs[request.Idx], balance)
+		f.mu.Unlock()
 		if err != nil {
 			return errors.Wrap(err, fmt.Sprintf(("Deposit failed for asset %d"), assetIndex))
 		}
@@ -136,6 +141,11 @@ func (f *Funder) fundAssets(ctx context.Context, request channel.FundingReq, con
 func (f *Funder) waitForFundingConfirmations(ctx context.Context, request channel.FundingReq, contracts []contract, partIDs [][32]byte) error {
 	deposited := make(chan *assets.AssetHolderDeposited)
 	subs := make([]event.Subscription, len(contracts))
+	defer func() {
+		for _, sub := range subs {
+			sub.Unsubscribe()
+		}
+	}()
 	// Wait for confirmation on each asset.
 	for assetIndex := range contracts {
 		watchOpts, err := f.client.newWatchOpts(ctx)
