@@ -7,6 +7,7 @@ package channel
 import (
 	"context"
 	"math/big"
+	"sync"
 
 	"github.com/ethereum/go-ethereum/accounts"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
@@ -28,6 +29,7 @@ type Settler struct {
 	ks      *keystore.KeyStore
 	account *accounts.Account
 	adjAddr common.Address
+	mu      sync.Mutex
 }
 
 // compile time check that we implement the perun settler interface
@@ -55,7 +57,7 @@ func (s *Settler) Settle(ctx context.Context, req channel.SettleReq, acc perunwa
 }
 
 func (s *Settler) cooperativeSettle(ctx context.Context, req channel.SettleReq) error {
-	adjInstance, trans, err := s.connectToContract(ctx)
+	adjInstance, err := s.connectToContract(ctx)
 	if err != nil {
 		return errors.Wrap(err, "cooperative settle")
 	}
@@ -67,7 +69,14 @@ func (s *Settler) cooperativeSettle(ctx context.Context, req channel.SettleReq) 
 	// Call concludeFinal on the adjudicator.
 	ethParams := channelParamsToEthParams(req.Params)
 	ethState := channelStateToEthState(req.Tx.State)
+	s.mu.Lock()
+	trans, err := s.client.newTransactor(ctx, s.ks, s.account, big.NewInt(0), gasLimit)
+	if err != nil {
+		s.mu.Unlock()
+		return errors.WithMessage(err, "failed to create transactor")
+	}
 	tx, err := adjInstance.ConcludeFinal(trans, ethParams, ethState, req.Tx.Sigs)
+	s.mu.Unlock()
 	if err != nil {
 		return errors.WithMessage(err, "failed to call concludeFinal")
 	}
@@ -94,6 +103,7 @@ func (s *Settler) waitForSettlingConfirmation(ctx context.Context, adjInstance *
 	}
 	concluded := make(chan *adjudicator.AdjudicatorFinalConcluded)
 	sub, err := adjInstance.WatchFinalConcluded(watchOpts, concluded, [][32]byte{channelID})
+	defer sub.Unsubscribe()
 	if err != nil {
 		return errors.WithMessage(err, "WatchFinalConcluded failed")
 	}
@@ -107,14 +117,10 @@ func (s *Settler) waitForSettlingConfirmation(ctx context.Context, adjInstance *
 	}
 }
 
-func (s *Settler) connectToContract(ctx context.Context) (*adjudicator.Adjudicator, *bind.TransactOpts, error) {
+func (s *Settler) connectToContract(ctx context.Context) (*adjudicator.Adjudicator, error) {
 	adjInstance, err := adjudicator.NewAdjudicator(s.adjAddr, s.client)
 	if err != nil {
-		return nil, nil, errors.WithMessage(err, "failed to connect to adjudicator")
+		return nil, errors.WithMessage(err, "failed to connect to adjudicator")
 	}
-	trans, err := s.client.newTransactor(ctx, s.ks, s.account, big.NewInt(0), gasLimit)
-	if err != nil {
-		return nil, nil, errors.WithMessage(err, "fialed to create transactor")
-	}
-	return adjInstance, trans, nil
+	return adjInstance, nil
 }
