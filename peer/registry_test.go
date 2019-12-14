@@ -83,6 +83,10 @@ func (l *mockListener) put(conn Conn) {
 	l.dialer.put(conn)
 }
 
+func (l *mockListener) isClosed() bool {
+	return l.dialer.isClosed()
+}
+
 func newMockListener() *mockListener {
 	return &mockListener{dialer: mockDialer{dial: make(chan Conn)}}
 }
@@ -307,10 +311,10 @@ func TestRegistry_Listen(t *testing.T) {
 	l := newMockListener()
 	r := NewRegistry(id, func(*Peer) {}, d)
 
-	go t.Run("listen", func(t *testing.T) {
+	go func() {
 		// Listen() will only terminate if the listener is closed.
-		test.AssertTerminates(t, timeout, func() { r.Listen(l) })
-	})
+		test.AssertTerminates(t, 2*timeout, func() { r.Listen(l) })
+	}()
 
 	a, b := newPipeConnPair()
 	l.put(a)
@@ -320,11 +324,18 @@ func TestRegistry_Listen(t *testing.T) {
 		assert.True(address.Equals(addr))
 	})
 
-	l.Close()
-
 	<-time.After(timeout)
-
 	assert.True(r.Has(remoteAddr))
+
+	assert.NoError(r.Close())
+	assert.True(l.isClosed(), "closing the registry should close the listener")
+
+	l2 := newMockListener()
+	test.AssertTerminates(t, timeout, func() {
+		r.Listen(l2)
+		assert.True(l2.isClosed(),
+			"Listen on closed registry should close the listener immediately")
+	})
 }
 
 // TestRegistry_addPeer tests that addPeer() calls the Registry's subscription
