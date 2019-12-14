@@ -27,6 +27,12 @@ type (
 		ctx context.Context
 		p   Predicate
 	}
+
+	// A Cacher has the Cache method to enable caching of messages.
+	Cacher interface {
+		// Cache should enable the caching of messages
+		Cache(context.Context, Predicate)
+	}
 )
 
 // Cache is a message cache. The default value is a valid empty cache.
