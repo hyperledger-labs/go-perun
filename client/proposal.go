@@ -193,6 +193,11 @@ func (c *Client) handleChannelProposal(p *peer.Peer, req *ChannelProposalReq) {
 			return
 		}
 
+		// enables caching of incoming version 0 signatures before sending any message
+		// that might trigger a fast peer to send those. We don't know the channel id
+		// yet so the cache predicate is coarser than the later subscription.
+		enableVer0Cache(acc.ctx, p)
+
 		msgAccept := &ChannelProposalAcc{
 			SessID:          req.SessID(),
 			ParticipantAddr: acc.Participant.Address(),
@@ -234,6 +239,11 @@ func (c *Client) exchangeTwoPartyProposal(
 	if err != nil {
 		return nil, errors.WithMessage(err, "failed to Get() participant[1]")
 	}
+
+	// enables caching of incoming version 0 signatures before sending any message
+	// that might trigger a fast peer to send those. We don't know the channel id
+	// yet so the cache predicate is coarser than the later subscription.
+	enableVer0Cache(ctx, p)
 
 	sessID := proposal.SessID()
 	isResponse := func(m wire.Msg) bool {
@@ -340,4 +350,12 @@ func (c *Client) setupChannel(
 	}
 
 	return ch, ch.machine.SetFunded()
+}
+
+// enableVer0Cache enables caching of incoming version 0 signatures
+func enableVer0Cache(ctx context.Context, c wire.Cacher) {
+	c.Cache(ctx, func(m wire.Msg) bool {
+		return m.Type() == wire.ChannelUpdateAcc &&
+			m.(*msgChannelUpdateAcc).Version == 0
+	})
 }
