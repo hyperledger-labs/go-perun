@@ -24,9 +24,10 @@ type Channel struct {
 	perunsync.Closer
 	log log.Logger
 
-	conn    *channelConn
-	machine channel.StateMachine
-	machMtx sync.RWMutex
+	conn      *channelConn
+	machine   channel.StateMachine
+	machMtx   sync.RWMutex
+	updateSub chan<- *channel.State
 }
 
 func newChannel(acc wallet.Account, peers []*peer.Peer, params channel.Params) (*Channel, error) {

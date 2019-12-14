@@ -134,7 +134,7 @@ func (c *Channel) Update(ctx context.Context, up ChannelUpdate) (err error) {
 		return errors.WithMessage(err, "adding peer signature")
 	}
 
-	return errors.WithMessage(c.machine.EnableUpdate(), "enabling update")
+	return c.enableNotifyUpdate()
 }
 
 func (c *Channel) ListenUpdates(uh UpdateHandler) {
@@ -208,7 +208,7 @@ func (c *Channel) handleUpdateReq(
 				return errors.WithMessage(err, "sending accept message")
 			}
 
-			return c.machine.EnableUpdate()
+			return c.enableNotifyUpdate()
 		}(accCtx)
 
 		if err != nil {
@@ -231,6 +231,38 @@ func (c *Channel) handleUpdateReq(
 		}
 		res.err <- err
 	}
+}
+
+// enableNotifyUpdate enables the current staging state of the machine. If the
+// state is final, machine.EnableFinal is called. Finally, if there is a
+// notification on channel updates, the enabled state is sent on it.
+func (c *Channel) enableNotifyUpdate() error {
+	var updater func() error
+	if c.machine.StagingState().IsFinal {
+		updater = c.machine.EnableFinal
+	} else {
+		updater = c.machine.EnableUpdate
+	}
+
+	if err := updater(); err != nil {
+		return errors.WithMessage(c.machine.EnableUpdate(), "enabling update")
+	}
+
+	if c.updateSub != nil {
+		c.updateSub <- c.machine.State()
+	}
+	return nil
+}
+
+// SubUpdates sets up a subscription to state updates on the provided go channel.
+// The subscription cannot be canceled, but it can be replaced.
+// The provided go channel is not closed if the Channel is closed. It must not
+// be closed while the Channel is not closed.
+// The States that are sent on the channel are not clones but pointers to the
+// State in the channel machine, so they must not be modified. If you need to
+// modify the State, .Clone() it first.
+func (c *Channel) SubUpdates(updateSub chan<- *channel.State) {
+	c.updateSub = updateSub
 }
 
 // validTwoPartyUpdate performs additional protocol-dependent checks on the
