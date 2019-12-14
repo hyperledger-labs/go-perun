@@ -62,6 +62,15 @@ func TestProducer_produce_DefaultMsgHandler(t *testing.T) {
 	})
 }
 
+func TestProducer_produce_closed(t *testing.T) {
+	var missed wire.Msg
+	p := makeProducer()
+	p.SetDefaultMsgHandler(func(m wire.Msg) { missed = m })
+	assert.NoError(t, p.Close())
+	p.produce(wire.NewPingMsg(), &Peer{})
+	assert.Nil(t, missed, "produce() on closed producer shouldn't do anything")
+}
+
 func TestProducer_SetDefaultMsgHandler(t *testing.T) {
 	fn := func(wire.Msg) {}
 	p := makeProducer()
@@ -82,6 +91,9 @@ func TestProducer_Close(t *testing.T) {
 	err := p.Close()
 	assert.Error(t, err)
 	assert.True(t, sync.IsAlreadyClosedError(err))
+
+	assert.NotPanics(t, func() { p.delete(nil) },
+		"delete() on closed producer shouldn't do anything")
 }
 
 func TestProducer_Subscribe(t *testing.T) {
@@ -143,4 +155,8 @@ func TestProducer_caching(t *testing.T) {
 	require.Error(t, err)
 	assert.Contains(err.Error(), "cache")
 	assert.Zero(prod.cache.Size(), "producer.Close should flush the cache")
+
+	prod.Cache(ctx, func(wire.Msg) bool { return true })
+	prod.cache.Put(ping0, nil)
+	assert.Zero(prod.cache.Size(), "Cache on closed producer should not enable caching")
 }
