@@ -91,9 +91,19 @@ func (m *machine) ID() ID {
 	return m.params.ID()
 }
 
+// Account returns the account this channel is using for signing state updates
+func (m *machine) Account() wallet.Account {
+	return m.acc
+}
+
 // Idx returns our index in the channel participants list.
 func (m *machine) Idx() Index {
 	return m.idx
+}
+
+// Params returns the channel parameters
+func (m *machine) Params() *Params {
+	return &m.params
 }
 
 // N returns the number of participants of the channel parameters of this machine.
@@ -150,6 +160,16 @@ func (m *machine) Sig() (sig wallet.Sig, err error) {
 // Clone the state first if you need to modify it.
 func (m *machine) State() *State {
 	return m.currentTX.State
+}
+
+// SettleReq returns the settlement request for the current channel transaction
+// (the current state together with all participants' signatures on it).
+func (m *machine) SettleReq() SettleReq {
+	return SettleReq{
+		Params: &m.params,
+		Idx:    m.idx,
+		Tx:     m.currentTX,
+	}
 }
 
 // StagingState returns the staging state. It should usually be called after
