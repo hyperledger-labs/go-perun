@@ -108,17 +108,15 @@ func (c *Channel) Update(ctx context.Context, up ChannelUpdate) (err error) {
 	defer resRecv.Close()
 
 	msgUpdate := &msgChannelUpdate{
-		ChannelUpdate: ChannelUpdate{
-			State:    up.State,
-			ActorIdx: c.machine.Idx(),
-		},
-		Sig: sig,
+		ChannelUpdate: up,
+		Sig:           sig,
 	}
 	if err = c.conn.Send(ctx, msgUpdate); err != nil {
-		return errors.WithMessage(err, "sending update acceptance")
+		return errors.WithMessage(err, "sending update")
 	}
 
 	pidx, res := resRecv.Next(ctx)
+	c.log.Tracef("Received update response (%T): %v", res, res)
 	if res == nil {
 		return errors.WithMessage(err, "receiving update response")
 	}
