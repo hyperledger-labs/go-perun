@@ -28,9 +28,15 @@ type Channel struct {
 	machine   channel.StateMachine
 	machMtx   sync.RWMutex
 	updateSub chan<- *channel.State
+	settler   channel.Settler
 }
 
-func newChannel(acc wallet.Account, peers []*peer.Peer, params channel.Params) (*Channel, error) {
+func newChannel(
+	acc wallet.Account,
+	peers []*peer.Peer,
+	params channel.Params,
+	settler channel.Settler,
+) (*Channel, error) {
 	machine, err := channel.NewStateMachine(acc, params)
 	if err != nil {
 		return nil, errors.WithMessage(err, "creating state machine")
@@ -48,6 +54,7 @@ func newChannel(acc wallet.Account, peers []*peer.Peer, params channel.Params) (
 		log:     logger,
 		conn:    conn,
 		machine: *machine,
+		settler: settler,
 	}, nil
 }
 
@@ -131,6 +138,24 @@ func (c *Channel) initExchangeSigsAndEnable(ctx context.Context) error {
 	}
 
 	return errors.WithMessage(<-send, "sending initial signature")
+}
+
+// Settle settles the channel using the Settler. The channel must be in a
+// final state.
+func (c *Channel) Settle(ctx context.Context) error {
+	c.machMtx.Lock()
+	defer c.machMtx.Unlock()
+
+	// check final state
+	if c.machine.Phase() != channel.Final || !c.machine.State().IsFinal {
+		return errors.New("currently, only channels in a final state can be settled")
+	}
+
+	if err := c.settler.Settle(ctx, c.machine.SettleReq(), c.machine.Account()); err != nil {
+		return errors.WithMessage(err, "calling settler")
+	}
+
+	return c.machine.SetSettled()
 }
 
 // A channelConn bundles the message sending and receiving infrastructure for a

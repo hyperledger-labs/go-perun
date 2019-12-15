@@ -323,7 +323,7 @@ func (c *Client) setupChannel(
 		return nil, errors.WithMessage(err, "getting peers from the registry")
 	}
 
-	ch, err := newChannel(prop.Account, peers, *params)
+	ch, err := newChannel(prop.Account, peers, *params, c.settler)
 	if err != nil {
 		return nil, err
 	}

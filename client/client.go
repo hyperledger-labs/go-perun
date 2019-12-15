@@ -23,6 +23,7 @@ type Client struct {
 	peers       *peer.Registry
 	propHandler ProposalHandler
 	funder      channel.Funder
+	settler     channel.Settler
 	log         log.Logger // structured logger for this client
 
 	sync.Closer
@@ -33,11 +34,13 @@ func New(
 	dialer peer.Dialer,
 	propHandler ProposalHandler,
 	funder channel.Funder,
+	settler channel.Settler,
 ) *Client {
 	c := &Client{
 		id:          id,
 		propHandler: propHandler,
 		funder:      funder,
+		settler:     settler,
 		log:         log.WithField("id", id.Address()),
 	}
 	c.peers = peer.NewRegistry(id, c.subscribePeer, dialer)
