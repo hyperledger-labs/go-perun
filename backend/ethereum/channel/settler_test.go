@@ -11,9 +11,10 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"perun.network/go-perun/backend/ethereum/channel/test"
 	"perun.network/go-perun/backend/ethereum/wallet"
 	"perun.network/go-perun/channel"
-	"perun.network/go-perun/channel/test"
+	channeltest "perun.network/go-perun/channel/test"
 	perunwallet "perun.network/go-perun/wallet"
 	wallettest "perun.network/go-perun/wallet/test"
 )
@@ -33,7 +34,7 @@ func TestSettler_Settle(t *testing.T) {
 	assert.Panics(t, func() { s.Settle(context.Background(), channel.SettleReq{}, &wallet.Account{}) },
 		"Funding with invalid settle request should fail")
 	// Create valid parameters.
-	app := test.NewRandomApp(rng)
+	app := channeltest.NewRandomApp(rng)
 	offChainAcc := wallettest.NewRandomAccount(rng)
 	parts := []perunwallet.Address{
 		offChainAcc.Address(),
@@ -61,7 +62,7 @@ func TestSettler_Settle(t *testing.T) {
 		Version:    4,
 		App:        params.App,
 		Allocation: allocation,
-		Data:       test.NewRandomData(rng),
+		Data:       channeltest.NewRandomData(rng),
 		IsFinal:    true,
 	}
 	// Sign valid state.
@@ -90,8 +91,8 @@ func newSimulatedSettler() *Settler {
 	acc := wall.Accounts()[0].(*wallet.Account)
 	acc.Unlock(password)
 	ks := wall.Ks
-	simBackend := newSimulatedBackend()
-	simBackend.fundAddress(context.Background(), acc.Account.Address)
+	simBackend := test.NewSimulatedBackend()
+	simBackend.FundAddress(context.Background(), acc.Account.Address)
 	return &Settler{
 		ContractBackend: ContractBackend{simBackend, ks, acc.Account},
 	}

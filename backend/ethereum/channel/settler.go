@@ -65,7 +65,7 @@ func (s *Settler) cooperativeSettle(ctx context.Context, req channel.SettleReq) 
 	ethParams := channelParamsToEthParams(req.Params)
 	ethState := channelStateToEthState(req.Tx.State)
 	s.mu.Lock()
-	trans, err := s.newTransactor(ctx, s.ks, s.account, big.NewInt(0), gasLimit)
+	trans, err := s.newTransactor(ctx, s.ks, s.account, big.NewInt(0), GasLimit)
 	if err != nil {
 		s.mu.Unlock()
 		return errors.WithMessage(err, "failed to create transactor")
