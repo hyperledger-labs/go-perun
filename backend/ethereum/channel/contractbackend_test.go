@@ -6,86 +6,17 @@ package channel
 
 import (
 	"context"
-	"crypto/ecdsa"
 	"io"
 	"math/big"
 	"reflect"
 	"testing"
 
-	"github.com/ethereum/go-ethereum/accounts/abi/bind"
-	"github.com/ethereum/go-ethereum/accounts/abi/bind/backends"
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/core"
-	"github.com/ethereum/go-ethereum/core/types"
-	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 	"perun.network/go-perun/backend/ethereum/wallet"
 	perunwallet "perun.network/go-perun/wallet"
 )
-
-type simulatedBackend struct {
-	backends.SimulatedBackend
-	faucetSK   *ecdsa.PrivateKey
-	faucetAddr common.Address
-}
-
-func newSimulatedBackend() *simulatedBackend {
-	sk, err := crypto.GenerateKey()
-	if err != nil {
-		panic(err)
-	}
-	faucetAddr := crypto.PubkeyToAddress(sk.PublicKey)
-	addr := map[common.Address]core.GenesisAccount{
-		common.BytesToAddress([]byte{1}): {Balance: big.NewInt(1)}, // ECRecover
-		common.BytesToAddress([]byte{2}): {Balance: big.NewInt(1)}, // SHA256
-		common.BytesToAddress([]byte{3}): {Balance: big.NewInt(1)}, // RIPEMD
-		common.BytesToAddress([]byte{4}): {Balance: big.NewInt(1)}, // Identity
-		common.BytesToAddress([]byte{5}): {Balance: big.NewInt(1)}, // ModExp
-		common.BytesToAddress([]byte{6}): {Balance: big.NewInt(1)}, // ECAdd
-		common.BytesToAddress([]byte{7}): {Balance: big.NewInt(1)}, // ECScalarMul
-		common.BytesToAddress([]byte{8}): {Balance: big.NewInt(1)}, // ECPairing
-		faucetAddr:                       {Balance: new(big.Int).Sub(new(big.Int).Lsh(big.NewInt(1), 256), big.NewInt(9))},
-	}
-	alloc := core.GenesisAlloc(addr)
-	return &simulatedBackend{*backends.NewSimulatedBackend(alloc, 8000000), sk, faucetAddr}
-}
-
-func (s *simulatedBackend) BlockByNumber(_ context.Context, number *big.Int) (*types.Block, error) {
-	if number == nil {
-		return s.Blockchain().CurrentBlock(), nil
-	}
-	if block := s.Blockchain().GetBlockByNumber(number.Uint64()); block != nil {
-		return block, nil
-	}
-	return nil, errors.New("got nil block from blockchain")
-}
-
-func (s *simulatedBackend) SendTransaction(ctx context.Context, tx *types.Transaction) error {
-	if err := s.SimulatedBackend.SendTransaction(ctx, tx); err != nil {
-		return errors.WithStack(err)
-	}
-	s.Commit()
-	return nil
-}
-
-func (s *simulatedBackend) fundAddress(ctx context.Context, addr common.Address) {
-	nonce, err := s.PendingNonceAt(context.Background(), s.faucetAddr)
-	if err != nil {
-		panic(err)
-	}
-	value := new(big.Int).Lsh(big.NewInt(1), 64) // 10 eth in wei
-	tx := types.NewTransaction(nonce, addr, value, gasLimit, big.NewInt(1), nil)
-	signer := types.NewEIP155Signer(big.NewInt(1337))
-	signedTX, err := types.SignTx(tx, signer, s.faucetSK)
-	if err != nil {
-		panic(err)
-	}
-	if err := s.SendTransaction(ctx, signedTX); err != nil {
-		panic(err)
-	}
-	bind.WaitMined(context.Background(), s, signedTX)
-}
 
 type testInvalidAsset [33]byte
 

@@ -10,6 +10,9 @@ import (
 	"perun.network/go-perun/channel/test"
 )
 
+// GasLimit is the max amount of gas we want to send per transaction.
+const GasLimit = 200000
+
 func init() {
 	channel.SetBackend(new(Backend))
 	test.SetRandomizer(new(randomizer))

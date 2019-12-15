@@ -14,7 +14,9 @@ import (
 	"github.com/stretchr/testify/assert"
 	"perun.network/go-perun/backend/ethereum/wallet"
 	"perun.network/go-perun/channel"
-	"perun.network/go-perun/channel/test"
+
+	"perun.network/go-perun/backend/ethereum/channel/test"
+	channeltest "perun.network/go-perun/channel/test"
 	perunwallet "perun.network/go-perun/wallet"
 )
 
@@ -41,7 +43,7 @@ func TestFunder_Fund(t *testing.T) {
 		&wallet.Address{Address: f.account.Address},
 	}
 	rng := rand.New(rand.NewSource(1337))
-	app := test.NewRandomApp(rng)
+	app := channeltest.NewRandomApp(rng)
 	params := channel.NewParamsUnsafe(uint64(0), parts, app.Def(), big.NewInt(rng.Int63()))
 	allocation := newValidAllocation(f, parts, common.HexToAddress(keystoreAddr))
 	req = channel.FundingReq{
@@ -60,8 +62,8 @@ func newSimulatedFunder() *Funder {
 	acc := wall.Accounts()[0].(*wallet.Account)
 	acc.Unlock(password)
 	ks := wall.Ks
-	simBackend := newSimulatedBackend()
-	simBackend.fundAddress(context.Background(), acc.Account.Address)
+	simBackend := test.NewSimulatedBackend()
+	simBackend.FundAddress(context.Background(), acc.Account.Address)
 	return &Funder{
 		ContractBackend: ContractBackend{simBackend, ks, acc.Account}}
 }

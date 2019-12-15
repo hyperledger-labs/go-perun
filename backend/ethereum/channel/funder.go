@@ -25,8 +25,6 @@ import (
 	"perun.network/go-perun/log"
 )
 
-const gasLimit = 200000
-
 var (
 	// Declaration for abi-encoding.
 	abibytes32, _ = abi.NewType("bytes32", nil)
@@ -113,9 +111,9 @@ func (f *Funder) fundAssets(ctx context.Context, request channel.FundingReq, con
 		// If we want to fund the channel with ether, send eth in transaction.
 		f.mu.Lock()
 		if bytes.Equal(asset.Bytes(), f.ethAssetHolder.Bytes()) {
-			auth, err = f.newTransactor(ctx, f.ks, f.account, balance, gasLimit)
+			auth, err = f.newTransactor(ctx, f.ks, f.account, balance, GasLimit)
 		} else {
-			auth, err = f.newTransactor(ctx, f.ks, f.account, big.NewInt(0), gasLimit)
+			auth, err = f.newTransactor(ctx, f.ks, f.account, big.NewInt(0), GasLimit)
 		}
 		if err != nil {
 			f.mu.Unlock()
