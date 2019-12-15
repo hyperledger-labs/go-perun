@@ -40,10 +40,8 @@ type contract struct {
 
 // Funder implements the channel.Funder interface for Ethereum.
 type Funder struct {
-	client  contractBackend
-	ks      *keystore.KeyStore
-	account *accounts.Account
-	mu      sync.Mutex
+	ContractBackend
+	mu sync.Mutex
 	// ETHAssetHolder is the on-chain address of the ETH asset holder.
 	// This is needed to distinguish between ETH and ERC-20 transactions.
 	ethAssetHolder common.Address
@@ -55,10 +53,8 @@ var _ channel.Funder = (*Funder)(nil)
 // NewETHFunder creates a new ethereum funder.
 func NewETHFunder(client *ethclient.Client, keystore *keystore.KeyStore, account *accounts.Account, ethAssetHolder common.Address) Funder {
 	return Funder{
-		client:         contractBackend{client},
-		ks:             keystore,
-		account:        account,
-		ethAssetHolder: ethAssetHolder,
+		ContractBackend: ContractBackend{client, keystore, account},
+		ethAssetHolder:  ethAssetHolder,
 	}
 }
 
@@ -99,7 +95,7 @@ func (f *Funder) connectToContracts(request channel.FundingReq) ([]contract, err
 	for assetIndex, asset := range request.Allocation.Assets {
 		// Decode and set the asset address.
 		assetAddr := asset.(*Asset).Address
-		ctr, err := assets.NewAssetHolder(assetAddr, f.client)
+		ctr, err := assets.NewAssetHolder(assetAddr, f)
 		if err != nil {
 			return nil, errors.Wrap(err, fmt.Sprintf("Could not connect to asset holder %d", assetIndex))
 		}
@@ -117,9 +113,9 @@ func (f *Funder) fundAssets(ctx context.Context, request channel.FundingReq, con
 		// If we want to fund the channel with ether, send eth in transaction.
 		f.mu.Lock()
 		if bytes.Equal(asset.Bytes(), f.ethAssetHolder.Bytes()) {
-			auth, err = f.client.newTransactor(ctx, f.ks, f.account, balance, gasLimit)
+			auth, err = f.newTransactor(ctx, f.ks, f.account, balance, gasLimit)
 		} else {
-			auth, err = f.client.newTransactor(ctx, f.ks, f.account, big.NewInt(0), gasLimit)
+			auth, err = f.newTransactor(ctx, f.ks, f.account, big.NewInt(0), gasLimit)
 		}
 		if err != nil {
 			f.mu.Unlock()
@@ -148,7 +144,7 @@ func (f *Funder) waitForFundingConfirmations(ctx context.Context, request channe
 	}()
 	// Wait for confirmation on each asset.
 	for assetIndex := range contracts {
-		watchOpts, err := f.client.newWatchOpts(ctx)
+		watchOpts, err := f.newWatchOpts(ctx)
 		if err != nil {
 			return errors.Wrap(err, "error creating watchopts")
 		}

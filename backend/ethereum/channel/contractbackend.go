@@ -30,11 +30,13 @@ type contractInterface interface {
 	TransactionReceipt(ctx context.Context, txHash common.Hash) (*types.Receipt, error)
 }
 
-type contractBackend struct {
+type ContractBackend struct {
 	contractInterface
+	ks      *keystore.KeyStore
+	account *accounts.Account
 }
 
-func (c *contractBackend) newWatchOpts(ctx context.Context) (*bind.WatchOpts, error) {
+func (c *ContractBackend) newWatchOpts(ctx context.Context) (*bind.WatchOpts, error) {
 	latestBlock, err := c.BlockByNumber(ctx, nil)
 	if err != nil {
 		return nil, errors.Wrap(err, "Could not retrieve latest block")
@@ -53,7 +55,7 @@ func (c *contractBackend) newWatchOpts(ctx context.Context) (*bind.WatchOpts, er
 	}, nil
 }
 
-func (c *contractBackend) newTransactor(ctx context.Context, ks *keystore.KeyStore, acc *accounts.Account, value *big.Int, gasLimit uint64) (*bind.TransactOpts, error) {
+func (c *ContractBackend) newTransactor(ctx context.Context, ks *keystore.KeyStore, acc *accounts.Account, value *big.Int, gasLimit uint64) (*bind.TransactOpts, error) {
 	if ks == nil {
 		return nil, errors.New("contract backend is not configured properly")
 	}

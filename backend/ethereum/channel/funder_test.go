@@ -10,10 +10,8 @@ import (
 	"math/rand"
 	"testing"
 
-	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/stretchr/testify/assert"
-	"perun.network/go-perun/backend/ethereum/bindings/assets"
 	"perun.network/go-perun/backend/ethereum/wallet"
 	"perun.network/go-perun/channel"
 	"perun.network/go-perun/channel/test"
@@ -55,42 +53,27 @@ func TestFunder_Fund(t *testing.T) {
 	assert.NoError(t, f.Fund(context.Background(), req), "multiple funding should succeed")
 }
 
-func deployETHAssetHolder(f *Funder, adjudicatorAddr common.Address) common.Address {
-	auth, err := f.client.newTransactor(context.Background(), f.ks, f.account, big.NewInt(0), 7999999)
-	if err != nil {
-		panic(err)
-	}
-	addr, tx, _, err := assets.DeployAssetHolderETH(auth, f.client, adjudicatorAddr)
-	if err != nil {
-		panic(err)
-	}
-	receipt, err := bind.WaitMined(context.Background(), f.client, tx)
-	_ = receipt
-	if err != nil {
-		panic(err)
-	}
-	return addr
-}
-
 func newSimulatedFunder() *Funder {
-	f := &Funder{}
 	// Set KeyStore
 	wall := new(wallet.Wallet)
 	wall.Connect(keyDir, password)
 	acc := wall.Accounts()[0].(*wallet.Account)
 	acc.Unlock(password)
 	ks := wall.Ks
-	f.ks = ks
-	f.account = acc.Account
 	simBackend := newSimulatedBackend()
-	simBackend.fundAddress(context.Background(), f.account.Address)
-	f.client = contractBackend{simBackend}
-	return f
+	simBackend.fundAddress(context.Background(), acc.Account.Address)
+	return &Funder{
+		ContractBackend: ContractBackend{simBackend, ks, acc.Account}}
 }
 
 func newValidAllocation(f *Funder, parts []perunwallet.Address, adjudicatorAddr common.Address) *channel.Allocation {
-	assetETH := deployETHAssetHolder(f, adjudicatorAddr)
+	// Deploy Assetholder
+	assetETH, err := DeployETHAssetholder(f.ContractBackend, adjudicatorAddr)
+	if err != nil {
+		panic(err)
+	}
 	f.ethAssetHolder = assetETH
+	// Create assets slice
 	assets := []channel.Asset{
 		&Asset{Address: assetETH},
 	}

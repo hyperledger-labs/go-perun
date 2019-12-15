@@ -128,11 +128,11 @@ func Test_calcFundingIDs(t *testing.T) {
 }
 
 func Test_NewTransactor(t *testing.T) {
-	f := &contractBackend{}
+	f := &ContractBackend{}
 	_, err := f.newTransactor(nil, nil, nil, big.NewInt(0), 1000)
 	assert.Error(t, err, "Funder has to have a context set")
 	sf := newSimulatedFunder()
-	f = &contractBackend{sf.client}
+	f = &ContractBackend{sf.ContractBackend, sf.ks, sf.account}
 	transactor, err := f.newTransactor(context.Background(), sf.ks, sf.account, big.NewInt(0), 1000)
 	assert.NoError(t, err, "Creating Transactor should succeed")
 	assert.Equal(t, sf.account.Address, transactor.From, "Transactor address not properly set")
@@ -148,12 +148,12 @@ func Test_NewTransactor(t *testing.T) {
 }
 
 func Test_NewWatchOpts(t *testing.T) {
-	f := &contractBackend{}
+	f := &ContractBackend{}
 	assert.Panics(t, func() { f.newWatchOpts(context.Background()) }, "Creating watchopts on invalid backend should panic")
 	sf := newSimulatedFunder()
-	f = &contractBackend{sf.client}
+	f = &ContractBackend{sf.ContractBackend, sf.ks, sf.account}
 	watchOpts, err := f.newWatchOpts(context.Background())
-	assert.NoError(t, err, "Creating watchopts on valid contractBackend should succeed")
+	assert.NoError(t, err, "Creating watchopts on valid ContractBackend should succeed")
 	assert.Equal(t, context.Background(), watchOpts.Context, "Creating watchopts with context should succeed")
 	assert.Equal(t, uint64(1), *watchOpts.Start, "Creating watchopts with no context should succeed")
 }
