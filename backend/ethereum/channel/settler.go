@@ -10,10 +10,8 @@ import (
 	"sync"
 
 	"github.com/ethereum/go-ethereum/accounts"
-	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/accounts/keystore"
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/pkg/errors"
 
@@ -25,9 +23,8 @@ import (
 
 // Settler implements the channel.Settler interface for Ethereum.
 type Settler struct {
-	client  contractBackend
-	ks      *keystore.KeyStore
-	account *accounts.Account
+	ContractBackend
+	// Address of the adjudicator contract.
 	adjAddr common.Address
 	mu      sync.Mutex
 }
@@ -38,10 +35,8 @@ var _ channel.Settler = (*Settler)(nil)
 // NewETHSettler creates a new ethereum funder.
 func NewETHSettler(client *ethclient.Client, keystore *keystore.KeyStore, account *accounts.Account, adjAddr common.Address) Settler {
 	return Settler{
-		client:  contractBackend{client},
-		ks:      keystore,
-		account: account,
-		adjAddr: adjAddr,
+		ContractBackend: ContractBackend{client, keystore, account},
+		adjAddr:         adjAddr,
 	}
 }
 
@@ -70,7 +65,7 @@ func (s *Settler) cooperativeSettle(ctx context.Context, req channel.SettleReq) 
 	ethParams := channelParamsToEthParams(req.Params)
 	ethState := channelStateToEthState(req.Tx.State)
 	s.mu.Lock()
-	trans, err := s.client.newTransactor(ctx, s.ks, s.account, big.NewInt(0), gasLimit)
+	trans, err := s.newTransactor(ctx, s.ks, s.account, big.NewInt(0), gasLimit)
 	if err != nil {
 		s.mu.Unlock()
 		return errors.WithMessage(err, "failed to create transactor")
@@ -81,14 +76,10 @@ func (s *Settler) cooperativeSettle(ctx context.Context, req channel.SettleReq) 
 		return errors.WithMessage(err, "failed to call concludeFinal")
 	}
 	log.Debugf("Sending transaction to the blockchain with txHash: ", tx.Hash().Hex())
-	receipt, err := bind.WaitMined(ctx, s.client, tx)
-	if err != nil {
-		return errors.WithMessage(err, "Failed to execute transaction")
+	if err := execSuccessful(s.ContractBackend, tx); err != nil {
+		return err
 	}
-	if receipt.Status == types.ReceiptStatusFailed {
-		return errors.New("Failed to execute transaction")
-	}
-	log.Debugf("Transaction mined with txHash: ", receipt.TxHash.Hex())
+	log.Debugf("Transaction mined successful")
 	return <-confirmation
 }
 
@@ -97,7 +88,7 @@ func (s *Settler) uncooperativeSettle(ctx context.Context, req channel.SettleReq
 }
 
 func (s *Settler) waitForSettlingConfirmation(ctx context.Context, adjInstance *adjudicator.Adjudicator, channelID [32]byte) error {
-	watchOpts, err := s.client.newWatchOpts(ctx)
+	watchOpts, err := s.newWatchOpts(ctx)
 	if err != nil {
 		return errors.Wrap(err, "could not create new watchOpts")
 	}
@@ -118,7 +109,7 @@ func (s *Settler) waitForSettlingConfirmation(ctx context.Context, adjInstance *
 }
 
 func (s *Settler) connectToContract(ctx context.Context) (*adjudicator.Adjudicator, error) {
-	adjInstance, err := adjudicator.NewAdjudicator(s.adjAddr, s.client)
+	adjInstance, err := adjudicator.NewAdjudicator(s.adjAddr, s)
 	if err != nil {
 		return nil, errors.WithMessage(err, "failed to connect to adjudicator")
 	}

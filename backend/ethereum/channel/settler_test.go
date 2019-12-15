@@ -10,11 +10,7 @@ import (
 	"math/rand"
 	"testing"
 
-	"github.com/ethereum/go-ethereum/accounts/abi/bind"
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/stretchr/testify/assert"
-	"perun.network/go-perun/backend/ethereum/bindings/adjudicator"
 	"perun.network/go-perun/backend/ethereum/wallet"
 	"perun.network/go-perun/channel"
 	"perun.network/go-perun/channel/test"
@@ -26,13 +22,13 @@ func TestSettler_Settle(t *testing.T) {
 	rng := rand.New(rand.NewSource(1337))
 	s := newSimulatedSettler()
 	f := &Funder{
-		client:  s.client,
-		ks:      s.ks,
-		account: s.account,
+		ContractBackend: s.ContractBackend,
 	}
-	adjudicator := deployAdjudicator(s)
+	adjudicator, err := DeployAdjudicator(s.ContractBackend)
+	assert.NoError(t, err, "Deploying the adjudicator should not error")
 	s.adjAddr = adjudicator
-	assetholder := deployETHAssetHolder(f, adjudicator)
+	assetholder, err := DeployETHAssetholder(s.ContractBackend, adjudicator)
+	assert.NoError(t, err, "Deploying the eth assetholder should not fail")
 	f.ethAssetHolder = assetholder
 	assert.Panics(t, func() { s.Settle(context.Background(), channel.SettleReq{}, &wallet.Account{}) },
 		"Funding with invalid settle request should fail")
@@ -88,36 +84,15 @@ func TestSettler_Settle(t *testing.T) {
 	assert.Error(t, err, "Settling twice should fail")
 }
 
-func deployAdjudicator(s *Settler) common.Address {
-	auth, err := s.client.newTransactor(context.Background(), s.ks, s.account, big.NewInt(0), 6600000)
-	if err != nil {
-		panic(err)
-	}
-	addr, tx, _, err := adjudicator.DeployAdjudicator(auth, s.client)
-	if err != nil {
-		panic(err)
-	}
-	receipt, err := bind.WaitMined(context.Background(), s.client, tx)
-	if err != nil {
-		panic(err)
-	}
-	if receipt.Status == types.ReceiptStatusFailed {
-		panic("could not deploy adjudicator")
-	}
-	return addr
-}
-
 func newSimulatedSettler() *Settler {
-	s := &Settler{}
 	wall := new(wallet.Wallet)
 	wall.Connect(keyDir, password)
 	acc := wall.Accounts()[0].(*wallet.Account)
 	acc.Unlock(password)
 	ks := wall.Ks
-	s.ks = ks
-	s.account = acc.Account
 	simBackend := newSimulatedBackend()
-	simBackend.fundAddress(context.Background(), s.account.Address)
-	s.client = contractBackend{simBackend}
-	return s
+	simBackend.fundAddress(context.Background(), acc.Account.Address)
+	return &Settler{
+		ContractBackend: ContractBackend{simBackend, ks, acc.Account},
+	}
 }
