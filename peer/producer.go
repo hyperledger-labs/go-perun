@@ -62,9 +62,10 @@ func (p *producer) Cache(ctx context.Context, predicate msg.Predicate) {
 	p.cache.Cache(ctx, predicate)
 }
 
-// add adds a receiver to the subscriptions.
-// If the receiver was already subscribed, panics.
-// If the peer is closed, returns an error.
+// Subscribe adds a receiver to the subscriptions.
+// If the receiver was already subscribed, Subscribe panics.
+// If the peer is closed, Subscribe returns an error.
+// Otherwise, Subscribe returns nil.
 func (p *producer) Subscribe(c Consumer, predicate msg.Predicate) error {
 	p.mutex.Lock()
 	defer p.mutex.Unlock()
