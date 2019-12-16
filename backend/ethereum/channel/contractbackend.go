@@ -6,6 +6,7 @@ package channel
 
 import (
 	"context"
+	"log"
 	"math/big"
 
 	"github.com/ethereum/go-ethereum/accounts"
@@ -24,16 +25,28 @@ import (
 // How many blocks we query into the past for events.
 const startBlockOffset = 100
 
-type contractInterface interface {
+// GasLimit is the max amount of gas we want to send per transaction.
+const GasLimit = 200000
+
+type ContractInterface interface {
 	bind.ContractBackend
 	BlockByNumber(context.Context, *big.Int) (*types.Block, error)
 	TransactionReceipt(ctx context.Context, txHash common.Hash) (*types.Receipt, error)
 }
 
 type ContractBackend struct {
-	contractInterface
+	ContractInterface
 	ks      *keystore.KeyStore
 	account *accounts.Account
+}
+
+// NewContractBackend creates a new ContractBackend with the given parameters.
+func NewContractBackend(cf ContractInterface, ks *keystore.KeyStore, acc *accounts.Account) ContractBackend {
+	return ContractBackend{
+		ContractInterface: cf,
+		ks:                ks,
+		account:           acc,
+	}
 }
 
 func (c *ContractBackend) newWatchOpts(ctx context.Context) (*bind.WatchOpts, error) {
@@ -55,11 +68,8 @@ func (c *ContractBackend) newWatchOpts(ctx context.Context) (*bind.WatchOpts, er
 	}, nil
 }
 
-func (c *ContractBackend) newTransactor(ctx context.Context, ks *keystore.KeyStore, acc *accounts.Account, value *big.Int, gasLimit uint64) (*bind.TransactOpts, error) {
-	if ks == nil {
-		return nil, errors.New("contract backend is not configured properly")
-	}
-	nonce, err := c.PendingNonceAt(ctx, acc.Address)
+func (c *ContractBackend) newTransactor(ctx context.Context, value *big.Int, gasLimit uint64) (*bind.TransactOpts, error) {
+	nonce, err := c.PendingNonceAt(ctx, c.account.Address)
 	if err != nil {
 		return nil, err
 	}
@@ -69,7 +79,7 @@ func (c *ContractBackend) newTransactor(ctx context.Context, ks *keystore.KeySto
 		return nil, err
 	}
 
-	auth, err := bind.NewKeyStoreTransactor(ks, *acc)
+	auth, err := bind.NewKeyStoreTransactor(c.ks, *c.account)
 	if err != nil {
 		return nil, err
 	}
@@ -82,16 +92,16 @@ func (c *ContractBackend) newTransactor(ctx context.Context, ks *keystore.KeySto
 	return auth, nil
 }
 
-func calcFundingIDs(participants []perunwallet.Address, channelID channel.ID) ([][32]byte, error) {
+func calcFundingIDs(participants []perunwallet.Address, channelID channel.ID) [][32]byte {
 	partIDs := make([][32]byte, len(participants))
 	args := abi.Arguments{{Type: abibytes32}, {Type: abiaddress}}
 	for idx, pID := range participants {
 		address := pID.(*wallet.Address)
 		bytes, err := args.Pack(channelID, address.Address)
 		if err != nil {
-			return nil, errors.Wrap(err, "Could not pack values")
+			log.Panicf("error packing values: %v", err)
 		}
 		partIDs[idx] = crypto.Keccak256Hash(bytes)
 	}
-	return partIDs, nil
+	return partIDs
 }

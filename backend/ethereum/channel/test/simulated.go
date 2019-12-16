@@ -23,7 +23,7 @@ const GasLimit = 200000
 
 type SimulatedBackend struct {
 	backends.SimulatedBackend
-	faucetSK   *ecdsa.PrivateKey
+	faucetKey  *ecdsa.PrivateKey
 	faucetAddr common.Address
 }
 
@@ -52,10 +52,11 @@ func (s *SimulatedBackend) BlockByNumber(_ context.Context, number *big.Int) (*t
 	if number == nil {
 		return s.Blockchain().CurrentBlock(), nil
 	}
-	if block := s.Blockchain().GetBlockByNumber(number.Uint64()); block != nil {
-		return block, nil
+	block := s.Blockchain().GetBlockByNumber(number.Uint64())
+	if block == nil {
+		return nil, errors.New("got nil block from blockchain")
 	}
-	return nil, errors.New("got nil block from blockchain")
+	return block, nil
 }
 
 func (s *SimulatedBackend) SendTransaction(ctx context.Context, tx *types.Transaction) error {
@@ -74,7 +75,7 @@ func (s *SimulatedBackend) FundAddress(ctx context.Context, addr common.Address)
 	value := new(big.Int).Lsh(big.NewInt(1), 64) // 10 eth in wei
 	tx := types.NewTransaction(nonce, addr, value, GasLimit, big.NewInt(1), nil)
 	signer := types.NewEIP155Signer(big.NewInt(1337))
-	signedTX, err := types.SignTx(tx, signer, s.faucetSK)
+	signedTX, err := types.SignTx(tx, signer, s.faucetKey)
 	if err != nil {
 		panic(err)
 	}

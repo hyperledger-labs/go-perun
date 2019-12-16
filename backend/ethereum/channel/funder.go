@@ -7,16 +7,13 @@ package channel // import "perun.network/go-perun/backend/ethereum/channel"
 import (
 	"bytes"
 	"context"
-	"fmt"
 	"math/big"
 	"sync"
 
-	"github.com/ethereum/go-ethereum/accounts"
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
-	"github.com/ethereum/go-ethereum/accounts/keystore"
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/ethclient"
+	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/event"
 	"github.com/pkg/errors"
 
@@ -29,9 +26,11 @@ var (
 	// Declaration for abi-encoding.
 	abibytes32, _ = abi.NewType("bytes32", nil)
 	abiaddress, _ = abi.NewType("address", nil)
+	// Error that is returned if an event was not found in the past.
+	errEventNotFound = errors.New("Event not found")
 )
 
-type contract struct {
+type assetHolder struct {
 	*assets.AssetHolder
 	*common.Address
 }
@@ -49,9 +48,9 @@ type Funder struct {
 var _ channel.Funder = (*Funder)(nil)
 
 // NewETHFunder creates a new ethereum funder.
-func NewETHFunder(client *ethclient.Client, keystore *keystore.KeyStore, account *accounts.Account, ethAssetHolder common.Address) Funder {
-	return Funder{
-		ContractBackend: ContractBackend{client, keystore, account},
+func NewETHFunder(backend ContractBackend, ethAssetHolder common.Address) *Funder {
+	return &Funder{
+		ContractBackend: backend,
 		ethAssetHolder:  ethAssetHolder,
 	}
 }
@@ -65,12 +64,9 @@ func (f *Funder) Fund(ctx context.Context, request channel.FundingReq) error {
 	var channelID = request.Params.ID()
 	log.Debugf("Funding Channel with ChannelID %d", channelID)
 
-	partIDs, err := calcFundingIDs(request.Params.Parts, channelID)
-	if err != nil {
-		return err
-	}
+	partIDs := calcFundingIDs(request.Params.Parts, channelID)
 
-	contracts, err := f.connectToContracts(request)
+	contracts, err := f.connectToContracts(request.Allocation.Assets)
 	if err != nil {
 		return errors.Wrap(err, "Connecting to contracts failed")
 	}
@@ -87,52 +83,77 @@ func (f *Funder) Fund(ctx context.Context, request channel.FundingReq) error {
 	return <-confirmation
 }
 
-func (f *Funder) connectToContracts(request channel.FundingReq) ([]contract, error) {
-	contracts := make([]contract, len(request.Allocation.Assets))
+func (f *Funder) connectToContracts(assetHolders []channel.Asset) ([]assetHolder, error) {
+	contracts := make([]assetHolder, len(assetHolders))
 	// Connect to all AssetHolder contracts.
-	for assetIndex, asset := range request.Allocation.Assets {
+	for assetIndex, asset := range assetHolders {
 		// Decode and set the asset address.
 		assetAddr := asset.(*Asset).Address
 		ctr, err := assets.NewAssetHolder(assetAddr, f)
 		if err != nil {
-			return nil, errors.Wrap(err, fmt.Sprintf("Could not connect to asset holder %d", assetIndex))
+			return nil, errors.Wrapf(err, "connecting to assetholder %d", assetIndex)
 		}
-		contracts[assetIndex] = contract{ctr, &assetAddr}
+		contracts[assetIndex] = assetHolder{ctr, &assetAddr}
 	}
 	return contracts, nil
 }
 
-func (f *Funder) fundAssets(ctx context.Context, request channel.FundingReq, contracts []contract, partIDs [][32]byte) (err error) {
+func (f *Funder) fundAssets(ctx context.Context, request channel.FundingReq, contracts []assetHolder, partIDs [][32]byte) (err error) {
 	// Connect to all AssetHolder contracts.
 	for assetIndex, asset := range contracts {
 		// Create a new transaction (needs to be cloned because of go-ethereum bug).
+		// See https://github.com/ethereum/go-ethereum/pull/20412
 		balance := new(big.Int).Set(request.Allocation.OfParts[request.Idx][assetIndex])
 		var auth *bind.TransactOpts
 		// If we want to fund the channel with ether, send eth in transaction.
-		f.mu.Lock()
-		if bytes.Equal(asset.Bytes(), f.ethAssetHolder.Bytes()) {
-			auth, err = f.newTransactor(ctx, f.ks, f.account, balance, GasLimit)
-		} else {
-			auth, err = f.newTransactor(ctx, f.ks, f.account, big.NewInt(0), GasLimit)
-		}
+		tx, err := func() (*types.Transaction, error) {
+			f.mu.Lock()
+			defer f.mu.Unlock()
+			if bytes.Equal(asset.Bytes(), f.ethAssetHolder.Bytes()) {
+				auth, err = f.newTransactor(ctx, balance, GasLimit)
+			} else {
+				auth, err = f.newTransactor(ctx, big.NewInt(0), GasLimit)
+			}
+			if err != nil {
+				return nil, errors.Wrapf(err, "creating transactor for asset %d", assetIndex)
+			}
+			// Call the asset holder contract.
+			tx, err := contracts[assetIndex].Deposit(auth, partIDs[request.Idx], balance)
+			return tx, errors.WithStack(err)
+		}()
+
 		if err != nil {
-			f.mu.Unlock()
-			return errors.Wrap(err, fmt.Sprintf("Could not create Transactor for asset %d", assetIndex))
+			return errors.WithMessagef(err, "depositing asset %d", assetIndex)
 		}
-		// Call the asset holder contract.
-		tx, err := contracts[assetIndex].Deposit(auth, partIDs[request.Idx], balance)
-		f.mu.Unlock()
-		if err != nil {
-			return errors.Wrap(err, fmt.Sprintf(("Deposit failed for asset %d"), assetIndex))
+		if err := execSuccessful(ctx, f.ContractBackend, tx); err != nil {
+			return errors.WithMessage(err, "mining transaction")
 		}
-		log.Debugf("Sending transaction to the blockchain with txHash: ", tx.Hash().Hex())
+		log.Debugf("Sending transaction to the blockchain with txHash: %v", tx.Hash().Hex())
 	}
+	return nil
+}
+
+func filterOldEvents(ctx context.Context, asset assetHolder, deposited chan *assets.AssetHolderDeposited, partIDs [][32]byte) error {
+	// Filter
+	filterOpts := bind.FilterOpts{
+		Start:   uint64(1),
+		End:     nil,
+		Context: ctx}
+	iter, err := asset.FilterDeposited(&filterOpts, partIDs)
+	if err != nil {
+		return errors.Wrap(err, "filtering deposited events")
+	}
+	if !iter.Next() {
+		// Event not found.
+		return errEventNotFound
+	}
+	deposited <- iter.Event
 	return nil
 }
 
 // waitForFundingConfirmations waits for the confirmations events on the blockchain that
 // both we and all peers sucessfully funded the channel.
-func (f *Funder) waitForFundingConfirmations(ctx context.Context, request channel.FundingReq, contracts []contract, partIDs [][32]byte) error {
+func (f *Funder) waitForFundingConfirmations(ctx context.Context, request channel.FundingReq, contracts []assetHolder, partIDs [][32]byte) error {
 	deposited := make(chan *assets.AssetHolderDeposited)
 	subs := make([]event.Subscription, len(contracts))
 	defer func() {
@@ -142,52 +163,66 @@ func (f *Funder) waitForFundingConfirmations(ctx context.Context, request channe
 	}()
 	// Wait for confirmation on each asset.
 	for assetIndex := range contracts {
+		// Watch new events
 		watchOpts, err := f.newWatchOpts(ctx)
 		if err != nil {
-			return errors.Wrap(err, "error creating watchopts")
+			return errors.WithMessage(err, "error creating watchopts")
 		}
-		subs[assetIndex], err = contracts[assetIndex].WatchDeposited(watchOpts, deposited, partIDs)
+		sub, err := contracts[assetIndex].WatchDeposited(watchOpts, deposited, partIDs)
 		if err != nil {
-			return errors.Wrap(err, fmt.Sprintf("WatchDeposit on asset %d failed", assetIndex))
+			return errors.Wrapf(err, "WatchDeposit on asset %d failed", assetIndex)
+		}
+		subs[assetIndex] = sub
+	}
+
+	// Query old events
+	go func() {
+		for assetIndex := range contracts {
+			if err := filterOldEvents(ctx, contracts[assetIndex], deposited, partIDs); err != nil && err != errEventNotFound {
+				log.Warnf("Error filtering old Deposited events for asset[%d]: %v", assetIndex, err)
+			}
+		}
+	}()
+
+	allocation := request.Allocation.Clone()
+	for i := 0; i < len(contracts); i++ {
+		for k := 0; k < len(request.Params.Parts); k++ {
+			select {
+			case event := <-deposited:
+				// Calculate the position in the participant array.
+				idx := -1
+				for h, id := range partIDs {
+					if id == event.FundingID {
+						idx = h
+						break
+					}
+				}
+				// Retrieve the position in the asset array.
+				assetIdx := -1
+				for h, ctr := range contracts {
+					if *ctr.Address == event.Raw.Address {
+						assetIdx = h
+						break
+					}
+				}
+				// Check if the participant sent the correct amounts of funds.
+				if allocation.OfParts[idx][assetIdx].Cmp(event.Amount) != 0 {
+					return errors.Errorf("deposit in asset %d from pariticipant %d does not match agreed upon asset", assetIdx, idx)
+				}
+				allocation.OfParts[idx][assetIdx] = big.NewInt(0)
+			case <-ctx.Done():
+				return errors.Wrap(ctx.Err(), "Waiting for events cancelled by context")
+			case err := <-subs[i].Err():
+				return errors.Wrap(err, "Error while waiting for events")
+			}
 		}
 	}
 
-	allocation := request.Allocation.Clone()
-	for i := 0; i < len(request.Params.Parts)*len(contracts); i++ {
-		select {
-		case event := <-deposited:
-			// Calculate the position in the participant array.
-			idx := -1
-			for k, ele := range partIDs {
-				if ele == event.FundingID {
-					idx = k
-				}
-			}
-			// Retrieve the position in the asset array.
-			assetIdx := -1
-			for k, ele := range contracts {
-				if *ele.Address == event.Raw.Address {
-					assetIdx = k
-				}
-			}
-			// Check if the participant send the correct amounts of funds.
-			if allocation.OfParts[idx][assetIdx].Cmp(event.Amount) != 0 {
-				return errors.New("deposit in asset %d from pariticipant %d does not match agreed upon asset")
-			}
-			allocation.OfParts[idx][assetIdx] = big.NewInt(0)
-		case <-ctx.Done():
-			return errors.Wrap(ctx.Err(), "Waiting for events cancelled by context")
-		case err := <-subs[i].Err():
-			return errors.Wrap(err, "Error while waiting for events")
-		}
-	}
 	// Check if everyone funded correctly.
 	for i := 0; i < len(allocation.OfParts); i++ {
 		for k := 0; k < len(allocation.OfParts[i]); k++ {
 			if allocation.OfParts[i][k].Cmp(big.NewInt(0)) != 0 {
-				var err channel.PeerTimedOutFundingError
-				err.TimedOutPeerIdx = uint16(i)
-				return err
+				return channel.NewPeerTimedOutFundingError(uint16(1))
 			}
 		}
 	}

@@ -17,9 +17,11 @@ import (
 	"perun.network/go-perun/log"
 )
 
+const deployGasLimit = 6600000
+
 // DeployETHAssetholder deploys a new ETHAssetHolder contract.
-func DeployETHAssetholder(backend ContractBackend, adjudicatorAddr common.Address) (common.Address, error) {
-	auth, err := backend.newTransactor(context.Background(), backend.ks, backend.account, big.NewInt(0), 6600000)
+func DeployETHAssetholder(ctx context.Context, backend ContractBackend, adjudicatorAddr common.Address) (common.Address, error) {
+	auth, err := backend.newTransactor(ctx, big.NewInt(0), deployGasLimit)
 	if err != nil {
 		return common.Address{}, errors.WithMessage(err, "could not create transactor")
 	}
@@ -27,16 +29,16 @@ func DeployETHAssetholder(backend ContractBackend, adjudicatorAddr common.Addres
 	if err != nil {
 		return common.Address{}, errors.WithMessage(err, "could not create transaction")
 	}
-	if err = execSuccessful(backend, tx); err != nil {
-		return common.Address{}, nil
+	if err := execSuccessful(ctx, backend, tx); err != nil {
+		return common.Address{}, errors.WithMessage(err, "deploying ethassetholder")
 	}
-	log.Warnf("Sucessfully deployed AssetHolderETH at %v.", addr.Hex())
+	log.Infof("Sucessfully deployed AssetHolderETH at %v.", addr.Hex())
 	return addr, nil
 }
 
 // DeployAdjudicator deploys a new Adjudicator contract.
-func DeployAdjudicator(backend ContractBackend) (common.Address, error) {
-	auth, err := backend.newTransactor(context.Background(), backend.ks, backend.account, big.NewInt(0), 6600000)
+func DeployAdjudicator(ctx context.Context, backend ContractBackend) (common.Address, error) {
+	auth, err := backend.newTransactor(ctx, big.NewInt(0), deployGasLimit)
 	if err != nil {
 		return common.Address{}, errors.WithMessage(err, "could not create transactor")
 	}
@@ -44,17 +46,17 @@ func DeployAdjudicator(backend ContractBackend) (common.Address, error) {
 	if err != nil {
 		return common.Address{}, errors.WithMessage(err, "could not create transaction")
 	}
-	if err = execSuccessful(backend, tx); err != nil {
-		return common.Address{}, nil
+	if err = execSuccessful(ctx, backend, tx); err != nil {
+		return common.Address{}, errors.WithMessage(err, "deploying adjudicator")
 	}
-	log.Warnf("Sucessfully deployed Adjudicator at %v.", addr.Hex())
+	log.Infof("Sucessfully deployed Adjudicator at %v.", addr.Hex())
 	return addr, nil
 }
 
-func execSuccessful(backend ContractBackend, tx *types.Transaction) error {
-	receipt, err := bind.WaitMined(context.Background(), backend, tx)
+func execSuccessful(ctx context.Context, backend ContractBackend, tx *types.Transaction) error {
+	receipt, err := bind.WaitMined(ctx, backend, tx)
 	if err != nil {
-		return errors.WithMessage(err, "could not execute transaction")
+		return errors.Wrap(err, "could not execute transaction")
 	}
 	if receipt.Status == types.ReceiptStatusFailed {
 		return errors.New("transaction failed")

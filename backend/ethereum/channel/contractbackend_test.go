@@ -8,7 +8,6 @@ import (
 	"context"
 	"io"
 	"math/big"
-	"reflect"
 	"testing"
 
 	"github.com/ethereum/go-ethereum/common"
@@ -38,6 +37,7 @@ func Test_calcFundingIDs(t *testing.T) {
 		{"Test nil array, empty channelID", nil, [32]byte{}, make([][32]byte, 0)},
 		{"Test nil array, non-empty channelID", nil, [32]byte{1}, make([][32]byte, 0)},
 		{"Test empty array, non-empty channelID", []perunwallet.Address{}, [32]byte{1}, make([][32]byte, 0)},
+		// Tests based on actual data from contracts.
 		{"Test non-empty array, empty channelID", []perunwallet.Address{&wallet.Address{}},
 			[32]byte{}, [][32]byte{[32]byte{173, 50, 40, 182, 118, 247, 211, 205, 66, 132, 165, 68, 63, 23, 241, 150, 43, 54, 228, 145, 179, 10, 64, 178, 64, 88, 73, 229, 151, 186, 95, 181}}},
 		{"Test non-empty array, non-empty channelID", []perunwallet.Address{&wallet.Address{}},
@@ -47,35 +47,40 @@ func Test_calcFundingIDs(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := calcFundingIDs(tt.participants, tt.channelID)
-			if err != nil {
-				t.Errorf("calculating PartIDs should not produce errors.")
-			}
-			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("calcFundingIDs() = %v, want %v", got, tt.want)
-			}
+			got := calcFundingIDs(tt.participants, tt.channelID)
+			assert.Equal(t, got, tt.want, "FundingIDs not as expected")
 		})
 	}
 }
 
 func Test_NewTransactor(t *testing.T) {
 	f := &ContractBackend{}
-	_, err := f.newTransactor(nil, nil, nil, big.NewInt(0), 1000)
-	assert.Error(t, err, "Funder has to have a context set")
+	assert.Panics(t,
+		func() { f.newTransactor(context.Background(), big.NewInt(0), uint64(0)) },
+		"Creating transactor on invalid backend should fail")
+	// Test on valid contract backend
 	sf := newSimulatedFunder()
-	f = &ContractBackend{sf.ContractBackend, sf.ks, sf.account}
-	transactor, err := f.newTransactor(context.Background(), sf.ks, sf.account, big.NewInt(0), 1000)
-	assert.NoError(t, err, "Creating Transactor should succeed")
-	assert.Equal(t, sf.account.Address, transactor.From, "Transactor address not properly set")
-	assert.Equal(t, uint64(1000), transactor.GasLimit, "Gas limit not set properly")
-	assert.Equal(t, big.NewInt(0), transactor.Value, "Transaction value not set properly")
-	assert.Equal(t, big.NewInt(1), transactor.GasPrice, "Invalid gas price")
-	transactor, err = f.newTransactor(context.Background(), sf.ks, sf.account, big.NewInt(12345), 12345)
-	assert.NoError(t, err, "Creating Transactor should succeed")
-	assert.Equal(t, sf.account.Address, transactor.From, "Transactor address not properly set")
-	assert.Equal(t, uint64(12345), transactor.GasLimit, "Gas limit not set properly")
-	assert.Equal(t, big.NewInt(12345), transactor.Value, "Transaction value not set properly")
-	assert.Equal(t, big.NewInt(1), transactor.GasPrice, "Invalid gas price")
+	f = &sf.ContractBackend
+	tests := []struct {
+		name     string
+		ctx      context.Context
+		value    *big.Int
+		gasLimit uint64
+	}{
+		{"Test without context", nil, big.NewInt(0), uint64(0)},
+		{"Test valid transactor", context.Background(), big.NewInt(0), uint64(0)},
+		{"Test valid transactor", context.Background(), big.NewInt(1220), uint64(12345)},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			transactor, err := f.newTransactor(tt.ctx, tt.value, tt.gasLimit)
+			assert.NoError(t, err, "Creating Transactor should succeed")
+			assert.Equal(t, sf.account.Address, transactor.From, "Transactor address not properly set")
+			assert.Equal(t, uint64(tt.gasLimit), transactor.GasLimit, "Gas limit not set properly")
+			assert.Equal(t, tt.value, transactor.Value, "Transaction value not set properly")
+			assert.Equal(t, big.NewInt(1), transactor.GasPrice, "Invalid gas price")
+		})
+	}
 }
 
 func Test_NewWatchOpts(t *testing.T) {
@@ -85,13 +90,11 @@ func Test_NewWatchOpts(t *testing.T) {
 	f = &ContractBackend{sf.ContractBackend, sf.ks, sf.account}
 	watchOpts, err := f.newWatchOpts(context.Background())
 	assert.NoError(t, err, "Creating watchopts on valid ContractBackend should succeed")
-	assert.Equal(t, context.Background(), watchOpts.Context, "Creating watchopts with context should succeed")
-	assert.Equal(t, uint64(1), *watchOpts.Start, "Creating watchopts with no context should succeed")
-}
-
-func BenchmarkFunder(b *testing.B) {
-	var t testing.T
-	for i := 0; i < b.N; i++ {
-		TestFunder_Fund(&t)
-	}
+	assert.Equal(t, context.Background(), watchOpts.Context, "context should be set")
+	assert.Equal(t, uint64(1), *watchOpts.Start, "startblock should be 1")
+	ctx := context.WithValue(context.Background(), "foo", "bar")
+	watchOpts, err = f.newWatchOpts(ctx)
+	assert.NoError(t, err, "Creating watchopts on valid ContractBackend should succeed")
+	assert.Equal(t, context.WithValue(context.Background(), "foo", "bar"), watchOpts.Context, "context should be set")
+	assert.Equal(t, uint64(1), *watchOpts.Start, "startblock should be 1")
 }
