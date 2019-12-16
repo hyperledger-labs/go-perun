@@ -7,6 +7,7 @@ package channel
 import (
 	"context"
 	"fmt"
+	"github.com/pkg/errors"
 )
 
 type (
@@ -26,14 +27,24 @@ type (
 	FundingReq struct {
 		Params     *Params
 		Allocation *Allocation
-		Idx        uint16 // our index
+		Idx        Index // our index
 	}
 
 	PeerTimedOutFundingError struct {
-		TimedOutPeerIdx uint16 // index of the peer who timed-out funding
+		TimedOutPeerIdx Index // index of the peer who timed-out funding
 	}
 )
 
 func (e PeerTimedOutFundingError) Error() string {
 	return fmt.Sprintf("peer[%d] did not fund channel in time", e.TimedOutPeerIdx)
+}
+
+func NewPeerTimedOutFundingError(idx Index) error {
+	return errors.WithStack(&PeerTimedOutFundingError{idx})
+}
+
+// IsPeerTimedOutFundingError checks whether an error is a PeerTimedOutFundingError.
+func IsPeerTimedOutFundingError(err error) bool {
+	_, ok := errors.Cause(err).(*PeerTimedOutFundingError)
+	return ok
 }

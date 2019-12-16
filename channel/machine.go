@@ -86,6 +86,26 @@ func newMachine(acc wallet.Account, params Params) (*machine, error) {
 
 }
 
+// ID returns the channel id
+func (m *machine) ID() ID {
+	return m.params.ID()
+}
+
+// Account returns the account this channel is using for signing state updates
+func (m *machine) Account() wallet.Account {
+	return m.acc
+}
+
+// Idx returns our index in the channel participants list.
+func (m *machine) Idx() Index {
+	return m.idx
+}
+
+// Params returns the channel parameters
+func (m *machine) Params() *Params {
+	return &m.params
+}
+
 // N returns the number of participants of the channel parameters of this machine.
 func (m *machine) N() Index {
 	return Index(len(m.params.Parts))
@@ -136,9 +156,26 @@ func (m *machine) Sig() (sig wallet.Sig, err error) {
 	return
 }
 
+// State returns the current state.
+// Clone the state first if you need to modify it.
+func (m *machine) State() *State {
+	return m.currentTX.State
+}
+
+// SettleReq returns the settlement request for the current channel transaction
+// (the current state together with all participants' signatures on it).
+func (m *machine) SettleReq() SettleReq {
+	return SettleReq{
+		Params: &m.params,
+		Idx:    m.idx,
+		Tx:     m.currentTX,
+	}
+}
+
 // StagingState returns the staging state. It should usually be called after
 // entering a signing phase to get the new staging state, which might have been
 // created during Init() or Update() (for ActionApps).
+// Clone the state first if you need to modify it.
 func (m *machine) StagingState() *State {
 	return m.stagingTX.State
 }
@@ -177,6 +214,19 @@ func (m *machine) setStaging(phase Phase, state *State) {
 	}
 
 	m.setPhase(phase)
+}
+
+// DiscardUpdate discards the current staging transaction and sets the machine's
+// phase back to Acting. This method is useful in the case where a valid update
+// request is rejected.
+func (m *machine) DiscardUpdate() error {
+	if err := m.expect(PhaseTransition{Signing, Acting}); err != nil {
+		return err
+	}
+
+	m.stagingTX = Transaction{} // clear staging tx
+	m.setPhase(Acting)
+	return nil
 }
 
 // EnableInit promotes the initial staging state to the current funding state.
