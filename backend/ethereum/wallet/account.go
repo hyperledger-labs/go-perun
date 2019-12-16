@@ -79,7 +79,8 @@ func (a *Account) SignDataWithPW(password string, data []byte) ([]byte, error) {
 	return a.wallet.Ks.SignHashWithPassphrase(*a.Account, password, hash)
 }
 
-func newAccountFromEth(wallet *Wallet, account *accounts.Account) *Account {
+// NewAccountFromEth creates a new perun account from a given ethereum account.
+func NewAccountFromEth(wallet *Wallet, account *accounts.Account) *Account {
 	return &Account{
 		address: Address{account.Address},
 		Account: account,

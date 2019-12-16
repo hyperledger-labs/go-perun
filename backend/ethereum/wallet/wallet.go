@@ -45,7 +45,7 @@ func (w *Wallet) refreshAccounts() {
 	accounts := w.Ks.Accounts()
 	for _, tmp := range accounts {
 		if _, exists := w.accounts[tmp.Address.String()]; !exists {
-			w.accounts[tmp.Address.String()] = newAccountFromEth(w, &tmp)
+			w.accounts[tmp.Address.String()] = NewAccountFromEth(w, &tmp)
 		}
 	}
 }

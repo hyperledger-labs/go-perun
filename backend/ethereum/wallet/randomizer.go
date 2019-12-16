@@ -58,7 +58,7 @@ func (r *randomizer) NewRandomAccount(rnd *rand.Rand) perunwallet.Account {
 	if err != nil {
 		log.Panicf("Could not store private key in keystore: %v", err)
 	}
-	acc := newAccountFromEth(&r.wallet, &ethAcc)
+	acc := NewAccountFromEth(&r.wallet, &ethAcc)
 	// Unlock the account before returning it.
 	acc.Unlock("secret")
 	return acc
