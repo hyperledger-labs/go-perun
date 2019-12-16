@@ -67,10 +67,12 @@ func DecodeSig(r io.Reader) (perun.Sig, error) {
 // VerifySignature verifies if a signature was made by this account.
 func VerifySignature(msg []byte, sig perun.Sig, a perun.Address) (bool, error) {
 	hash := prefixedHash(msg)
-	if len(sig) == SigLen && (sig[SigLen-1] == 27 || sig[SigLen-1] == 28) {
-		sig[SigLen-1] = sig[SigLen-1] - 27
+	sigCopy := make([]byte, SigLen)
+	copy(sigCopy, sig)
+	if len(sigCopy) == SigLen && (sigCopy[SigLen-1] >= 27) {
+		sigCopy[SigLen-1] -= 27
 	}
-	pk, err := crypto.SigToPub(hash, sig)
+	pk, err := crypto.SigToPub(hash, sigCopy)
 	if err != nil {
 		return false, err
 	}

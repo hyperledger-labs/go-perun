@@ -6,12 +6,15 @@ package channel
 
 import (
 	"context"
+	stderrors "errors"
 	"math/big"
 	"sync"
 
 	"github.com/ethereum/go-ethereum/accounts"
+	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/accounts/keystore"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/pkg/errors"
 
@@ -25,61 +28,72 @@ import (
 type Settler struct {
 	ContractBackend
 	// Address of the adjudicator contract.
-	adjAddr common.Address
-	mu      sync.Mutex
+	adjAddr     common.Address
+	adjInstance *adjudicator.Adjudicator
+	// Mutex prevents race on transaction nonces.
+	mu sync.Mutex
 }
 
 // compile time check that we implement the perun settler interface
 var _ channel.Settler = (*Settler)(nil)
 
+// Error that is returned if an event was not found in the past.
+var errConcludedNotFound = stderrors.New("Concluded event not found")
+
 // NewETHSettler creates a new ethereum funder.
-func NewETHSettler(client *ethclient.Client, keystore *keystore.KeyStore, account *accounts.Account, adjAddr common.Address) Settler {
-	return Settler{
+func NewETHSettler(client *ethclient.Client, keystore *keystore.KeyStore, account *accounts.Account, adjAddr common.Address) *Settler {
+	return &Settler{
 		ContractBackend: ContractBackend{client, keystore, account},
 		adjAddr:         adjAddr,
 	}
 }
 
-// Settle provides the settle functionality.
+// Settle calls pushOutcome on the Adjudicator to set the channel outcomes in the asset holders.
+// Withdrawal from the asset holders is not implemented yet.
+// The parameter acc is currently ignored, as it is only used to sign withdrawal authorizations.
 func (s *Settler) Settle(ctx context.Context, req channel.SettleReq, acc perunwallet.Account) error {
 	if req.Params == nil || req.Tx.State == nil {
 		panic("invalid settlement request")
 	}
-	if req.Tx.State.IsFinal == true {
+	if s.adjInstance == nil {
+		adjInstance, err := s.connectToContract()
+		if err != nil {
+			return errors.WithMessage(err, "connecting to contracts")
+		}
+		s.adjInstance = adjInstance
+	}
+	if req.Tx.State.IsFinal {
 		return s.cooperativeSettle(ctx, req)
 	}
 	return s.uncooperativeSettle(ctx, req)
 }
 
 func (s *Settler) cooperativeSettle(ctx context.Context, req channel.SettleReq) error {
-	adjInstance, err := s.connectToContract(ctx)
-	if err != nil {
-		return errors.Wrap(err, "cooperative settle")
-	}
 	// Listen for blockchain events.
 	confirmation := make(chan error)
+	pastEvents := make(chan error)
 	go func() {
-		confirmation <- s.waitForSettlingConfirmation(ctx, adjInstance, req.Params.ID())
+		confirmation <- s.waitForSettlingConfirmation(ctx, req.Params.ID())
 	}()
-	// Call concludeFinal on the adjudicator.
-	ethParams := channelParamsToEthParams(req.Params)
-	ethState := channelStateToEthState(req.Tx.State)
-	s.mu.Lock()
-	trans, err := s.newTransactor(ctx, s.ks, s.account, big.NewInt(0), GasLimit)
-	if err != nil {
-		s.mu.Unlock()
-		return errors.WithMessage(err, "failed to create transactor")
+
+	go func() {
+		pastEvents <- s.filterOldConfirmations(ctx, req.Params.ID())
+	}()
+
+	if err := <-pastEvents; err != errConcludedNotFound {
+		// err might be nil, which is fine
+		return errors.Wrap(err, "filtering old Concluded events")
 	}
-	tx, err := adjInstance.ConcludeFinal(trans, ethParams, ethState, req.Tx.Sigs)
-	s.mu.Unlock()
+	// No conclude event found in the past, send transaction.
+	tx, err := s.sendConcludeFinalTx(ctx, req)
 	if err != nil {
-		return errors.WithMessage(err, "failed to call concludeFinal")
-	}
-	log.Debugf("Sending transaction to the blockchain with txHash: ", tx.Hash().Hex())
-	if err := execSuccessful(s.ContractBackend, tx); err != nil {
 		return err
 	}
-	log.Debugf("Transaction mined successful")
+	if err := execSuccessful(ctx, s.ContractBackend, tx); err != nil {
+		log.Warnf("transaction failed: %v", err)
+	} else {
+		log.Debug("Transaction mined successful")
+	}
 	return <-confirmation
 }
 
@@ -87,17 +101,52 @@ func (s *Settler) uncooperativeSettle(ctx context.Context, req channel.SettleReq
 	panic("Settling with non-final state currently not implemented")
 }
 
-func (s *Settler) waitForSettlingConfirmation(ctx context.Context, adjInstance *adjudicator.Adjudicator, channelID [32]byte) error {
+func (s *Settler) sendConcludeFinalTx(ctx context.Context, req channel.SettleReq) (*types.Transaction, error) {
+	ethParams := channelParamsToEthParams(req.Params)
+	ethState := channelStateToEthState(req.Tx.State)
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	trans, err := s.newTransactor(ctx, big.NewInt(0), GasLimit)
+	if err != nil {
+		return nil, errors.WithMessage(err, "creating transactor")
+	}
+	tx, err := s.adjInstance.ConcludeFinal(trans, ethParams, ethState, req.Tx.Sigs)
+	if err != nil {
+		return nil, errors.Wrap(err, "calling concludeFinal")
+	}
+	log.Debugf("Sending transaction to the blockchain with txHash: %v", tx.Hash().Hex())
+	return tx, nil
+}
+
+func (s *Settler) filterOldConfirmations(ctx context.Context, channelID channel.ID) error {
+	// Filter
+	filterOpts := bind.FilterOpts{
+		Start:   uint64(1),
+		End:     nil,
+		Context: ctx}
+	iter, err := s.adjInstance.FilterFinalConcluded(&filterOpts, [][32]byte{channelID})
+	if err != nil {
+		return errors.WithStack(err)
+	}
+	if !iter.Next() {
+		return errConcludedNotFound
+	}
+	// Event found, return nil
+	return nil
+}
+
+func (s *Settler) waitForSettlingConfirmation(ctx context.Context, channelID channel.ID) error {
 	watchOpts, err := s.newWatchOpts(ctx)
 	if err != nil {
-		return errors.Wrap(err, "could not create new watchOpts")
+		return errors.WithMessage(err, "creating watchOpts")
 	}
 	concluded := make(chan *adjudicator.AdjudicatorFinalConcluded)
-	sub, err := adjInstance.WatchFinalConcluded(watchOpts, concluded, [][32]byte{channelID})
-	defer sub.Unsubscribe()
+	sub, err := s.adjInstance.WatchFinalConcluded(watchOpts, concluded, [][32]byte{channelID})
 	if err != nil {
-		return errors.WithMessage(err, "WatchFinalConcluded failed")
+		return errors.Wrap(err, "WatchFinalConcluded failed")
 	}
+	defer sub.Unsubscribe()
+
 	select {
 	case <-concluded:
 		return nil
@@ -108,7 +157,7 @@ func (s *Settler) waitForSettlingConfirmation(ctx context.Context, adjInstance *
 	}
 }
 
-func (s *Settler) connectToContract(ctx context.Context) (*adjudicator.Adjudicator, error) {
+func (s *Settler) connectToContract() (*adjudicator.Adjudicator, error) {
 	adjInstance, err := adjudicator.NewAdjudicator(s.adjAddr, s)
 	if err != nil {
 		return nil, errors.WithMessage(err, "failed to connect to adjudicator")

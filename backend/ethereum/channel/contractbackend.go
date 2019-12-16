@@ -69,7 +69,7 @@ func (c *ContractBackend) newWatchOpts(ctx context.Context) (*bind.WatchOpts, er
 	}, nil
 }
 
-func (c *ContractBackend) newTransactor(ctx context.Context, value *big.Int, gasLimit uint64) (*bind.TransactOpts, error) {
+func (c *ContractBackend) newTransactor(ctx context.Context, valueWei *big.Int, gasLimit uint64) (*bind.TransactOpts, error) {
 	nonce, err := c.PendingNonceAt(ctx, c.account.Address)
 	if err != nil {
 		return nil, err
@@ -86,7 +86,7 @@ func (c *ContractBackend) newTransactor(ctx context.Context, value *big.Int, gas
 	}
 
 	auth.Nonce = new(big.Int).SetUint64(nonce)
-	auth.Value = value       // in wei
+	auth.Value = valueWei    // in wei
 	auth.GasLimit = gasLimit // in units
 	auth.GasPrice = gasPrice
 
