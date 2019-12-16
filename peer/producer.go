@@ -51,6 +51,13 @@ func (p *producer) Close() error {
 // Cache enables caching of messages that don't match any consumer. They are
 // only cached if they match the given predicate, within the given context.
 func (p *producer) Cache(ctx context.Context, predicate msg.Predicate) {
+	p.mutex.Lock()
+	defer p.mutex.Unlock()
+
+	if p.IsClosed() {
+		return
+	}
+
 	p.cache.Cache(ctx, predicate)
 }
 
@@ -90,6 +97,10 @@ func (p *producer) delete(c Consumer) {
 	p.mutex.Lock()
 	defer p.mutex.Unlock()
 
+	if p.IsClosed() {
+		return
+	}
+
 	for i, sub := range p.consumers {
 		if sub.consumer == c {
 			p.consumers[i] = p.consumers[len(p.consumers)-1]
@@ -99,7 +110,7 @@ func (p *producer) delete(c Consumer) {
 			return
 		}
 	}
-	log.Panic("deleted receiver that was not subscribed")
+	log.Panic("deleted consumer that was not subscribed")
 }
 
 func (p *producer) isEmpty() bool {
@@ -112,6 +123,10 @@ func (p *producer) isEmpty() bool {
 func (p *producer) produce(m msg.Msg, peer *Peer) {
 	p.mutex.RLock()
 	defer p.mutex.RUnlock()
+
+	if p.IsClosed() {
+		return
+	}
 
 	any := false
 	for _, sub := range p.consumers {

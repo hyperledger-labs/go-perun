@@ -17,7 +17,7 @@ import (
 func TestRelay_Put(t *testing.T) {
 	t.Parallel()
 
-	relay := MakeRelay()
+	relay := NewRelay()
 	r := NewReceiver()
 	relay.Subscribe(r, func(wire.Msg) bool { return true })
 
@@ -39,11 +39,11 @@ func TestRelay_WithPeerAndReceiver(t *testing.T) {
 
 	send, recv := newPipeConnPair()
 	p := newPeer(nil, recv, nil)
-	relay := MakeRelay()
+	relay := NewRelay()
 	receiver := NewReceiver()
 
 	relay.Subscribe(receiver, acceptAll)
-	p.Subscribe(&relay, acceptAll)
+	p.Subscribe(relay, acceptAll)
 
 	go p.recvLoop()
 	msg := wire.NewPingMsg()

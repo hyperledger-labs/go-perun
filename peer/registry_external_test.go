@@ -15,6 +15,7 @@ import (
 
 	"perun.network/go-perun/peer"
 	peertest "perun.network/go-perun/peer/test"
+	"perun.network/go-perun/pkg/sync"
 	"perun.network/go-perun/pkg/test"
 	wallettest "perun.network/go-perun/wallet/test"
 )
@@ -54,7 +55,7 @@ func TestRegistry_Get_Pair(t *testing.T) {
 
 	assert.NoError(listenerReg.Close())
 	assert.NoError(dialerReg.Close())
-	assert.NoError(listener.Close())
+	assert.True(sync.IsAlreadyClosedError(listener.Close()))
 	test.AssertTerminates(t, timeout, func() {
 		<-done
 	})
@@ -117,6 +118,6 @@ func TestRegistry_Get_Multiple(t *testing.T) {
 
 	assert.NoError(listenerReg.Close())
 	assert.NoError(dialerReg.Close())
-	assert.NoError(listener.Close())
+	assert.True(sync.IsAlreadyClosedError(listener.Close()))
 	test.AssertTerminates(t, timeout, func() { <-done })
 }

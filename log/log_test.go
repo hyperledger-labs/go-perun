@@ -16,10 +16,10 @@ import (
 // testing.
 type none2 struct{ none }
 
-func TestSet(t *testing.T) {
+func TestSetGet(t *testing.T) {
 	l := new(none2)
 	Set(l)
-	assert.Same(t, l, logger, "Set(l) should set global logger to l")
+	assert.Same(t, l, Get(), "Set(l) should set global logger to l")
 
 	Set(nil)
 	assert.IsType(t, &none{}, logger, "Set(nil) should set global logger to none-logger")
