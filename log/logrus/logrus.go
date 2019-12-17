@@ -6,31 +6,32 @@
 package logrus
 
 import (
-	log "github.com/sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 
-	perunlog "perun.network/go-perun/log"
+	"perun.network/go-perun/log"
 )
 
-type logrus struct {
-	*log.Entry
+type logger struct {
+	*logrus.Entry
 }
 
-var _ perunlog.Logger = (*logrus)(nil)
+var _ log.Logger = (*logger)(nil)
 
-func FromLogrus(l *log.Logger) *logrus {
-	return &logrus{log.NewEntry(l)}
+func FromLogrus(l *logrus.Logger) *logger {
+	return &logger{logrus.NewEntry(l)}
 }
 
-func (l *logrus) WithField(key string, value interface{}) perunlog.Logger {
-	return &logrus{l.Entry.WithField(key, value)}
+func (l *logger) WithField(key string, value interface{}) log.Logger {
+	return &logger{l.Entry.WithField(key, value)}
 }
 
-func (l *logrus) WithFields(fields perunlog.Fields) perunlog.Logger {
+func (l *logger) WithFields(fields log.Fields) log.Logger {
 	var fs map[string]interface{}
 	fs = fields
-	return &logrus{l.Entry.WithFields(fs)}
+	return &logger{l.Entry.WithFields(fs)}
 }
 
-func (l *logrus) WithError(e error) perunlog.Logger {
-	return &logrus{l.Entry.WithError(e)}
+func (l *logger) WithError(e error) log.Logger {
+	return &logger{l.Entry.WithError(e)}
+}
 }
