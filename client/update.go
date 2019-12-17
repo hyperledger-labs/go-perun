@@ -30,36 +30,19 @@ type (
 	}
 
 	UpdateResponder struct {
-		accept chan context.Context
-		reject chan ctxUpdateRej
-		err    chan error // return error
-		called atomic.Bool
-	}
-
-	// The following type is only needed to bundle the ctx and channel update
-	// rejection of UpdateResponder.Reject() into a single struct so that they can
-	// be sent over a channel
-	ctxUpdateRej struct {
-		ctx    context.Context
-		reason string
+		channel *Channel
+		pidx    channel.Index
+		req     *msgChannelUpdate
+		called  atomic.Bool
 	}
 )
-
-func newUpdateResponder() *UpdateResponder {
-	return &UpdateResponder{
-		accept: make(chan context.Context),
-		reject: make(chan ctxUpdateRej),
-		err:    make(chan error, 1),
-	}
-}
 
 // Accept lets the user signal that they want to accept the channel update.
 func (r *UpdateResponder) Accept(ctx context.Context) error {
 	if !r.called.TrySet() {
 		log.Panic("multiple calls on channel update responder")
 	}
-	r.accept <- ctx
-	return <-r.err
+	return r.channel.handleUpdateAcc(ctx, r.pidx, r.req)
 }
 
 // Reject lets the user signal that they reject the channel update.
@@ -67,8 +50,7 @@ func (r *UpdateResponder) Reject(ctx context.Context, reason string) error {
 	if !r.called.TrySet() {
 		log.Panic("multiple calls on channel update responder")
 	}
-	r.reject <- ctxUpdateRej{ctx, reason}
-	return <-r.err
+	return r.channel.handleUpdateRej(ctx, r.pidx, r.req, reason)
 }
 
 func (c *Channel) Update(ctx context.Context, up ChannelUpdate) (err error) {
@@ -147,7 +129,7 @@ func (c *Channel) handleUpdateReq(
 	req *msgChannelUpdate,
 	uh UpdateHandler) {
 	if err := c.validTwoPartyUpdate(req.ChannelUpdate, pidx); err != nil {
-		// TODO: how to handle invalid updates? Just drop and ignore em?
+		// TODO: how to handle invalid updates? Just drop and ignore them?
 		c.logPeer(pidx).Warnf("invalid update received: %v", err)
 		return
 	}
@@ -156,75 +138,82 @@ func (c *Channel) handleUpdateReq(
 	defer c.machMtx.Unlock()
 
 	if err := c.machine.CheckUpdate(req.State, req.ActorIdx, req.Sig, pidx); err != nil {
-		// TODO: how to handle invalid updates? Just drop and ignore em?
+		// TODO: how to handle invalid updates? Just drop and ignore them?
 		c.logPeer(pidx).Warnf("invalid update received: %v", err)
 		return
 	}
 
-	res := newUpdateResponder()
-	go uh.Handle(req.ChannelUpdate, res)
+	responder := &UpdateResponder{channel: c, pidx: pidx, req: req}
+	uh.Handle(req.ChannelUpdate, responder)
+}
 
-	// wait for user response
-	select {
-	case accCtx := <-res.accept:
-		err := func(ctx context.Context) (err error) {
-			// machine.Update and AddSig should never fail after CheckUpdate...
-			if err = c.machine.Update(req.State, req.ActorIdx); err != nil {
-				return errors.WithMessage(err, "updating machine")
-			}
-			// if anything below goes wrong, we discard the update
-			defer func() {
-				if err != nil {
-					// we discard the update if anything went wrong
-					if derr := c.machine.DiscardUpdate(); derr != nil {
-						// discarding update should never fail at this point
-						err = errors.WithMessagef(derr,
-							"sending accept message failed: %v, then discarding update failed", err)
-					}
-				}
-			}()
-
-			if err = c.machine.AddSig(pidx, req.Sig); err != nil {
-				return errors.WithMessage(err, "adding peer signature")
-			}
-			var sig wallet.Sig
-			sig, err = c.machine.Sig()
-			if err != nil {
-				return errors.WithMessage(err, "signing updated state")
-			}
-
-			msgUpAcc := &msgChannelUpdateAcc{
-				ChannelID: c.ID(),
-				Version:   req.State.Version,
-				Sig:       sig,
-			}
-			if err := c.conn.Send(ctx, msgUpAcc); err != nil {
-				return errors.WithMessage(err, "sending accept message")
-			}
-
-			return c.enableNotifyUpdate()
-		}(accCtx)
-
+func (c *Channel) handleUpdateAcc(
+	ctx context.Context,
+	pidx channel.Index,
+	req *msgChannelUpdate,
+) (err error) {
+	defer func() {
 		if err != nil {
 			c.logPeer(pidx).Errorf("error accepting state: %v", err)
 		}
-		res.err <- err
+	}()
 
-	case rej := <-res.reject:
-		err := func(ctx context.Context) error {
-			msgUpRej := &msgChannelUpdateRej{
-				ChannelID: c.ID(),
-				Version:   req.State.Version,
-				Reason:    rej.reason,
+	// machine.Update and AddSig should never fail after CheckUpdate...
+	if err = c.machine.Update(req.State, req.ActorIdx); err != nil {
+		return errors.WithMessage(err, "updating machine")
+	}
+	// if anything goes wrong from now on, we discard the update.
+	// TODO: this is insecure after we sent our signature.
+	defer func() {
+		if err != nil {
+			// we discard the update if anything went wrong
+			if derr := c.machine.DiscardUpdate(); derr != nil {
+				// discarding update should never fail at this point
+				err = errors.WithMessagef(derr,
+					"sending accept message failed: %v, then discarding update failed", err)
 			}
-			return c.conn.Send(ctx, msgUpRej)
-		}(rej.ctx)
+		}
+	}()
 
+	if err = c.machine.AddSig(pidx, req.Sig); err != nil {
+		return errors.WithMessage(err, "adding peer signature")
+	}
+	var sig wallet.Sig
+	sig, err = c.machine.Sig()
+	if err != nil {
+		return errors.WithMessage(err, "signing updated state")
+	}
+
+	msgUpAcc := &msgChannelUpdateAcc{
+		ChannelID: c.ID(),
+		Version:   req.State.Version,
+		Sig:       sig,
+	}
+	if err := c.conn.Send(ctx, msgUpAcc); err != nil {
+		return errors.WithMessage(err, "sending accept message")
+	}
+
+	return c.enableNotifyUpdate()
+}
+
+func (c *Channel) handleUpdateRej(
+	ctx context.Context,
+	pidx channel.Index,
+	req *msgChannelUpdate,
+	reason string,
+) (err error) {
+	defer func() {
 		if err != nil {
 			c.logPeer(pidx).Errorf("error rejecting state: %v", err)
 		}
-		res.err <- err
+	}()
+
+	msgUpRej := &msgChannelUpdateRej{
+		ChannelID: c.ID(),
+		Version:   req.State.Version,
+		Reason:    reason,
 	}
+	return errors.WithMessage(c.conn.Send(ctx, msgUpRej), "sending reject message")
 }
 
 // enableNotifyUpdate enables the current staging state of the machine. If the
