@@ -82,10 +82,10 @@ func (c *Channel) Update(ctx context.Context, up ChannelUpdate) (err error) {
 	if err = c.machine.Update(up.State, up.ActorIdx); err != nil {
 		return errors.WithMessage(err, "updating machine")
 	}
-
-	discardUpdate := true
+	// if anything goes wrong from now on, we discard the update.
+	// TODO: this is insecure after we sent our signature.
 	defer func() {
-		if discardUpdate && err != nil {
+		if err != nil {
 			if derr := c.machine.DiscardUpdate(); derr != nil {
 				// discarding update should never fail
 				err = errors.WithMessagef(derr,
@@ -98,8 +98,6 @@ func (c *Channel) Update(ctx context.Context, up ChannelUpdate) (err error) {
 	if err != nil {
 		return errors.WithMessage(err, "signing update")
 	}
-	// from now on, we don't discard the update on errors
-	discardUpdate = false
 
 	resRecv, err := c.conn.NewUpdateResRecv(up.State.Version)
 	if err != nil {
@@ -122,8 +120,6 @@ func (c *Channel) Update(ctx context.Context, up ChannelUpdate) (err error) {
 	}
 
 	if rej, ok := res.(*msgChannelUpdateRej); ok {
-		// on reject, we discard the update again... TODO: alternative state
-		discardUpdate = true
 		return errors.Errorf("update rejected: %s", rej.Reason)
 	}
 
