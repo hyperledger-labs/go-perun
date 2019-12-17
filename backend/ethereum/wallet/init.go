@@ -6,11 +6,20 @@
 package wallet // import "perun.network/go-perun/backend/ethereum/wallet"
 
 import (
+	"github.com/ethereum/go-ethereum/accounts/keystore"
 	perunwallet "perun.network/go-perun/wallet"
 	"perun.network/go-perun/wallet/test"
 )
 
+var ks *keystore.KeyStore
+
 func init() {
 	perunwallet.SetBackend(new(Backend))
-	test.SetRandomizer(newRandomizer())
+	rnd := newRandomizer()
+	ks = rnd.wallet.Ks
+	test.SetRandomizer(rnd)
+}
+
+func GetKeystore() *keystore.KeyStore {
+	return ks
 }
