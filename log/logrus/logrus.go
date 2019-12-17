@@ -34,4 +34,12 @@ func (l *logger) WithFields(fields log.Fields) log.Logger {
 func (l *logger) WithError(e error) log.Logger {
 	return &logger{l.Entry.WithError(e)}
 }
+
+// Set sets a logrus logger as the current framework logger with the given level
+// and formatter.
+func Set(level logrus.Level, formatter logrus.Formatter) {
+	logger := logrus.New()
+	logger.SetLevel(level)
+	logger.SetFormatter(formatter)
+	log.Set(FromLogrus(logger))
 }
