@@ -11,8 +11,6 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	_ "perun.network/go-perun/backend/sim/channel" // backend init
-	_ "perun.network/go-perun/backend/sim/wallet"  // backend init
 	channeltest "perun.network/go-perun/channel/test"
 	"perun.network/go-perun/peer"
 	"perun.network/go-perun/wallet"

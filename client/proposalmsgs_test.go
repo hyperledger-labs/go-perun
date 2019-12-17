@@ -12,8 +12,6 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	_ "perun.network/go-perun/backend/sim/channel" // backend init
-	_ "perun.network/go-perun/backend/sim/wallet"  // backend init
 	"perun.network/go-perun/channel/test"
 	"perun.network/go-perun/client"
 	"perun.network/go-perun/wallet"
