@@ -44,61 +44,25 @@ type (
 	// Only a single function must be called and every further call causes a
 	// panic.
 	ProposalResponder struct {
-		accept    chan ctxProposalAcc
-		acceptRet chan acceptRet // Accept returns (*Channel, error)
-		reject    chan ctxProposalRej
-		rejectRet chan error // Reject returns error
-		called    atomic.Bool
+		client *Client
+		peer   *peer.Peer
+		req    *ChannelProposalReq
+		called atomic.Bool
 	}
 
 	ProposalAcc struct {
 		Participant wallet.Account
-		// TODO add UpdateHandler
-	}
-
-	// The following type is only needed to bundle the ctx and res of
-	// ProposalResponder.Accept() into a single struct so that they can be sent
-	// over a go channel
-	ctxProposalAcc struct {
-		ctx context.Context
-		ProposalAcc
-	}
-
-	// acceptRet is needed to bundle the return variable of
-	// ProposalResponder.Accept so they can be sent over a go channel
-	acceptRet struct {
-		ch  *Channel
-		err error
-	}
-
-	// The following type is only needed to bundle the ctx and reason of
-	// ProposalResponder.Reject() into a single struct so that they can be sent
-	// over a go channel
-	ctxProposalRej struct {
-		ctx    context.Context
-		reason string
 	}
 )
-
-func newProposalResponder() *ProposalResponder {
-	return &ProposalResponder{
-		accept:    make(chan ctxProposalAcc),
-		acceptRet: make(chan acceptRet, 1),
-		reject:    make(chan ctxProposalRej),
-		rejectRet: make(chan error, 1),
-	}
-}
 
 // Accept lets the user signal that they want to accept the channel proposal.
 // Returns whether the acceptance message was successfully sent. Panics if the
 // proposal was already accepted or rejected.
-func (r *ProposalResponder) Accept(ctx context.Context, res ProposalAcc) (*Channel, error) {
+func (r *ProposalResponder) Accept(ctx context.Context, acc ProposalAcc) (*Channel, error) {
 	if !r.called.TrySet() {
 		log.Panic("multiple calls on proposal responder")
 	}
-	r.accept <- ctxProposalAcc{ctx, res}
-	ret := <-r.acceptRet
-	return ret.ch, ret.err
+	return r.client.handleChannelProposalAcc(ctx, r.peer, r.req, acc)
 }
 
 // Reject lets the user signal that they reject the channel proposal.
@@ -108,8 +72,7 @@ func (r *ProposalResponder) Reject(ctx context.Context, reason string) error {
 	if !r.called.TrySet() {
 		log.Panic("multiple calls on proposal responder")
 	}
-	r.reject <- ctxProposalRej{ctx, reason}
-	return <-r.rejectRet
+	return r.client.handleChannelProposalRej(ctx, r.peer, r.req, reason)
 }
 
 // ProposeChannel attempts to open a channel witht the parameters and peers from
@@ -181,54 +144,51 @@ func (c *Client) handleChannelProposal(p *peer.Peer, req *ChannelProposalReq) {
 		return
 	}
 
-	responder := newProposalResponder()
-	go c.propHandler.Handle(req, responder)
+	c.logPeer(p).Trace("calling proposal handler")
+	responder := &ProposalResponder{client: c, peer: p, req: req}
+	c.propHandler.Handle(req, responder)
+}
 
-	// wait for user response
-	select {
-	case acc := <-responder.accept:
-		if acc.Participant == nil {
-			c.logPeer(p).Error("user returned nil Participant in ProposalAcc")
-			responder.acceptRet <- acceptRet{nil, errors.New("nil Participant in ProposalAcc")}
-			return
-		}
-
-		// enables caching of incoming version 0 signatures before sending any message
-		// that might trigger a fast peer to send those. We don't know the channel id
-		// yet so the cache predicate is coarser than the later subscription.
-		enableVer0Cache(acc.ctx, p)
-
-		msgAccept := &ChannelProposalAcc{
-			SessID:          req.SessID(),
-			ParticipantAddr: acc.Participant.Address(),
-		}
-		if err := p.Send(acc.ctx, msgAccept); err != nil {
-			c.logPeer(p).Errorf("error sending proposal acceptance: %v", err)
-			responder.acceptRet <- acceptRet{nil, errors.WithMessage(err, "sending proposal acceptance")}
-			return
-		}
-
-		parts := []wallet.Address{req.ParticipantAddr, acc.Participant.Address()}
-		ch, err := c.setupChannel(acc.ctx, req.AsProp(acc.Participant), parts)
-		if err != nil {
-			c.logPeer(p).Errorf("error setting up channel controller: %v", err)
-		}
-		responder.acceptRet <- acceptRet{ch, err}
-		return
-
-	case rej := <-responder.reject:
-		msgReject := &ChannelProposalRej{
-			SessID: req.SessID(),
-			Reason: rej.reason,
-		}
-		if err := p.Send(rej.ctx, msgReject); err != nil {
-			c.logPeer(p).Warn("error sending proposal rejection")
-			responder.rejectRet <- err
-			return
-		}
-		responder.rejectRet <- nil
-		return
+func (c *Client) handleChannelProposalAcc(
+	ctx context.Context, p *peer.Peer,
+	req *ChannelProposalReq, acc ProposalAcc,
+) (*Channel, error) {
+	if acc.Participant == nil {
+		c.logPeer(p).Error("user returned nil Participant in ProposalAcc")
+		return nil, errors.New("nil Participant in ProposalAcc")
 	}
+
+	// enables caching of incoming version 0 signatures before sending any message
+	// that might trigger a fast peer to send those. We don't know the channel id
+	// yet so the cache predicate is coarser than the later subscription.
+	enableVer0Cache(ctx, p)
+
+	msgAccept := &ChannelProposalAcc{
+		SessID:          req.SessID(),
+		ParticipantAddr: acc.Participant.Address(),
+	}
+	if err := p.Send(ctx, msgAccept); err != nil {
+		c.logPeer(p).Errorf("error sending proposal acceptance: %v", err)
+		return nil, errors.WithMessage(err, "sending proposal acceptance")
+	}
+
+	parts := []wallet.Address{req.ParticipantAddr, acc.Participant.Address()}
+	return c.setupChannel(ctx, req.AsProp(acc.Participant), parts)
+}
+
+func (c *Client) handleChannelProposalRej(
+	ctx context.Context, p *peer.Peer,
+	req *ChannelProposalReq, reason string,
+) error {
+	msgReject := &ChannelProposalRej{
+		SessID: req.SessID(),
+		Reason: reason,
+	}
+	if err := p.Send(ctx, msgReject); err != nil {
+		c.logPeer(p).Warn("error sending proposal rejection")
+		return err
+	}
+	return nil
 }
 
 func (c *Client) exchangeTwoPartyProposal(
