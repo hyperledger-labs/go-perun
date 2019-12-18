@@ -29,6 +29,14 @@ type Wallet struct {
 	mu        sync.RWMutex
 }
 
+// NewWallet creates a new Wallet from a keystore and directory.
+func NewWallet(ks *keystore.KeyStore, dir string) *Wallet {
+	return &Wallet{
+		Ks:        ks,
+		directory: dir,
+	}
+}
+
 // Path returns the path to this wallet.
 func (w *Wallet) Path() string {
 	return w.directory

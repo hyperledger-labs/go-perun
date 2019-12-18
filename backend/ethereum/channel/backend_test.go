@@ -17,6 +17,7 @@ import (
 
 	"perun.network/go-perun/backend/ethereum/wallet"
 	_ "perun.network/go-perun/backend/ethereum/wallet"
+	ethwallettest "perun.network/go-perun/backend/ethereum/wallet/test"
 	"perun.network/go-perun/channel"
 	"perun.network/go-perun/channel/test"
 	serializabletest "perun.network/go-perun/pkg/io/test"
@@ -133,7 +134,7 @@ func Test_transformPartBals(t *testing.T) {
 
 func TestAssetSerialization(t *testing.T) {
 	rng := rand.New(rand.NewSource(1337))
-	var asset Asset = wallet.NewRandomAddress(rng)
+	var asset Asset = ethwallettest.NewRandomAddress(rng)
 	reader, writer := io.Pipe()
 	t.Run("asset encoding", func(t *testing.T) {
 		t.Parallel()

@@ -1,9 +1,8 @@
-// Copyright (c) 2019 Chair of Applied Cryptography, Technische Universität
-// Darmstadt, Germany. All rights reserved. This file is part of go-perun. Use
-// of this source code is governed by a MIT-style license that can be found in
-// the LICENSE file.
+// Copyright (c) 2019 The Perun Authors. All rights reserved.
+// This file is part of go-perun. Use of this source code is governed by a
+// MIT-style license that can be found in the LICENSE file.
 
-package wallet // import "perun.network/go-perun/backend/ethereum/wallet"
+package test // import "perun.network/go-perun/backend/ethereum/wallet/test"
 
 import (
 	"crypto/ecdsa"
@@ -14,10 +13,13 @@ import (
 	"github.com/ethereum/go-ethereum/accounts/keystore"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto/secp256k1"
+	"perun.network/go-perun/backend/ethereum/wallet"
 	perunwallet "perun.network/go-perun/wallet"
-) // randomizer implements the channel.test.Backend interface.
+)
+
+// randomizer implements the channel.test.Backend interface.
 type randomizer struct {
-	wallet Wallet
+	wallet *wallet.Wallet
 }
 
 // NewRandomizer creates a new randomized keystore.
@@ -31,11 +33,7 @@ func newRandomizer() *randomizer {
 	const scryptN = 2
 	const scryptP = 1
 	return &randomizer{
-		wallet: Wallet{
-			Ks:        keystore.NewKeyStore(tmpDir, scryptN, scryptP),
-			directory: tmpDir,
-		},
-	}
+		wallet: wallet.NewWallet(keystore.NewKeyStore(tmpDir, scryptN, scryptP), tmpDir)}
 }
 
 // NewRandomAddress creates a new random address.
@@ -58,15 +56,15 @@ func (r *randomizer) NewRandomAccount(rnd *rand.Rand) perunwallet.Account {
 	if err != nil {
 		log.Panicf("Could not store private key in keystore: %v", err)
 	}
-	acc := NewAccountFromEth(&r.wallet, &ethAcc)
+	acc := wallet.NewAccountFromEth(r.wallet, &ethAcc)
 	// Unlock the account before returning it.
 	acc.Unlock("secret")
 	return acc
 }
 
 // NewRandomAddress creates a new random ethereum address.
-func NewRandomAddress(rnd *rand.Rand) Address {
+func NewRandomAddress(rnd *rand.Rand) wallet.Address {
 	var a common.Address
 	rnd.Read(a[:])
-	return Address{Address: a}
+	return wallet.Address{Address: a}
 }

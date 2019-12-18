@@ -21,6 +21,8 @@ import (
 	"perun.network/go-perun/backend/ethereum/channel/test"
 	channeltest "perun.network/go-perun/channel/test"
 	perunwallet "perun.network/go-perun/wallet"
+
+	ethwallettest "perun.network/go-perun/backend/ethereum/wallet/test"
 )
 
 const nodeURL = "ws://localhost:8545"
