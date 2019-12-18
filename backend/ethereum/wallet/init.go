@@ -7,10 +7,8 @@ package wallet // import "perun.network/go-perun/backend/ethereum/wallet"
 
 import (
 	perunwallet "perun.network/go-perun/wallet"
-	"perun.network/go-perun/wallet/test"
 )
 
 func init() {
 	perunwallet.SetBackend(new(Backend))
-	test.SetRandomizer(newRandomizer())
 }

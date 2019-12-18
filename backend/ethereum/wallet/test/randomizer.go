@@ -3,7 +3,7 @@
 // of this source code is governed by a MIT-style license that can be found in
 // the LICENSE file.
 
-package wallet // import "perun.network/go-perun/backend/ethereum/wallet"
+package test // import "perun.network/go-perun/backend/ethereum/wallet/test"
 
 import (
 	"crypto/ecdsa"
@@ -14,10 +14,13 @@ import (
 	"github.com/ethereum/go-ethereum/accounts/keystore"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto/secp256k1"
+	"perun.network/go-perun/backend/ethereum/wallet"
 	perunwallet "perun.network/go-perun/wallet"
-) // randomizer implements the channel.test.Backend interface.
+)
+
+// randomizer implements the channel.test.Backend interface.
 type randomizer struct {
-	wallet Wallet
+	wallet *wallet.Wallet
 }
 
 // NewRandomizer creates a new randomized keystore.
@@ -31,11 +34,7 @@ func newRandomizer() *randomizer {
 	const scryptN = 2
 	const scryptP = 1
 	return &randomizer{
-		wallet: Wallet{
-			ks:        keystore.NewKeyStore(tmpDir, scryptN, scryptP),
-			directory: tmpDir,
-		},
-	}
+		wallet: wallet.NewWallet(keystore.NewKeyStore(tmpDir, scryptN, scryptP), tmpDir)}
 }
 
 // NewRandomAddress creates a new random address.
@@ -53,20 +52,20 @@ func (r *randomizer) NewRandomAccount(rnd *rand.Rand) perunwallet.Account {
 	}
 
 	// Store the private key in the keystore.
-	keystore := r.wallet.ks
+	keystore := r.wallet.Ks
 	ethAcc, err := keystore.ImportECDSA(privateKey, "secret")
 	if err != nil {
 		log.Panicf("Could not store private key in keystore: %v", err)
 	}
-	acc := newAccountFromEth(&r.wallet, &ethAcc)
+	acc := wallet.NewAccountFromEth(r.wallet, &ethAcc)
 	// Unlock the account before returning it.
 	acc.Unlock("secret")
 	return acc
 }
 
 // NewRandomAddress creates a new random ethereum address.
-func NewRandomAddress(rnd *rand.Rand) Address {
+func NewRandomAddress(rnd *rand.Rand) wallet.Address {
 	var a common.Address
 	rnd.Read(a[:])
-	return Address{Address: a}
+	return wallet.Address{Address: a}
 }
