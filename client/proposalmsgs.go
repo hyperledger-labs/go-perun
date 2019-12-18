@@ -9,7 +9,6 @@ import (
 	"golang.org/x/crypto/sha3"
 	"io"
 	"log"
-	"math"
 	"math/big"
 
 	"github.com/pkg/errors"
@@ -97,10 +96,10 @@ func (c ChannelProposalReq) Encode(w io.Writer) error {
 		return err
 	}
 
-	if len(c.PeerAddrs) > math.MaxInt32 {
+	if len(c.PeerAddrs) > channel.MaxNumParts {
 		return errors.Errorf(
 			"expected maximum number of participants %d, got %d",
-			math.MaxInt32, len(c.PeerAddrs))
+			channel.MaxNumParts, len(c.PeerAddrs))
 	}
 
 	numParts := int32(len(c.PeerAddrs))
