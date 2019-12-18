@@ -122,7 +122,7 @@ func (c *channelConn) NextUpdateReq(ctx context.Context) (channel.Index, *msgCha
 }
 
 // newUpdateResRecv creates a new update response receiver for the given version.
-// The receiver should be closed after all exptected responses are received.
+// The receiver should be closed after all expected responses are received.
 // The receiver is also closed when the channel connection is closed.
 func (c *channelConn) NewUpdateResRecv(version uint64) (*channelMsgRecv, error) {
 	recv := peer.NewReceiver()
@@ -133,12 +133,11 @@ func (c *channelConn) NewUpdateResRecv(version uint64) (*channelMsgRecv, error) 
 		return nil, errors.WithMessagef(err, "subscribing update response receiver")
 	}
 
-	resRecv := &channelMsgRecv{
+	return &channelMsgRecv{
 		Receiver: recv,
 		peerIdx:  c.peerIdx,
 		log:      c.log.WithField("version", version),
-	}
-	return resRecv, nil
+	}, nil
 }
 
 type (

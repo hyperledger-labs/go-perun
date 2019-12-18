@@ -75,7 +75,7 @@ func (r *ProposalResponder) Reject(ctx context.Context, reason string) error {
 	return r.client.handleChannelProposalRej(ctx, r.peer, r.req, reason)
 }
 
-// ProposeChannel attempts to open a channel witht the parameters and peers from
+// ProposeChannel attempts to open a channel with the parameters and peers from
 // ChannelProposal prop:
 // - the proposal is sent to the peers and if all peers accept,
 // - the channel is funded. If successful,
@@ -109,7 +109,7 @@ func (c *Client) subChannelProposals(p *peer.Peer) {
 	if err := p.Subscribe(proposalReceiver,
 		func(m wire.Msg) bool { return m.Type() == wire.ChannelProposal },
 	); err != nil {
-		c.logPeer(p).Errorf("failed to subscribe to channel proposals on new peer")
+		c.logPeer(p).Errorf("failed to subscribe to channel proposals on new peer: %v", err)
 		proposalReceiver.Close()
 		return
 	}

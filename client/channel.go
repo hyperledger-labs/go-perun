@@ -48,7 +48,7 @@ func newChannel(
 		return nil, errors.WithMessagef(err, "setting up channel connection")
 	}
 
-	logger := log.WithFields(log.Fields{"channel": params.ID, "id": acc.Address()})
+	logger := log.WithFields(log.Fields{"channel": params.ID(), "id": acc.Address()})
 	conn.SetLogger(logger)
 	return &Channel{
 		log:     logger,
@@ -126,8 +126,8 @@ func (c *Channel) initExchangeSigsAndEnable(ctx context.Context) error {
 	acc, ok := cm.(*msgChannelUpdateAcc)
 	if !ok {
 		return errors.Errorf(
-			"received unexpected message of type (%T) from peer: %v",
-			cm, cm)
+			"received unexpected message of type (%T) from peer[%d]: %v",
+			cm, pidx, cm)
 	}
 
 	if err := c.machine.AddSig(pidx, acc.Sig); err != nil {
