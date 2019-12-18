@@ -215,16 +215,28 @@ func (a Allocation) Valid() error {
 		if len(pa) != n {
 			return errors.Errorf("dimension mismatch of participant %d's balance vector", i)
 		}
+
+		for j, bal := range pa {
+			if bal.Sign() == -1 {
+				return errors.Errorf("balance[%d][%d] is negative: %v", i, j, bal)
+			}
+		}
 	}
 
 	// Locked is allowed to have zero length, in which case there's nothing locked
 	// and the loop is empty.
-	for _, l := range a.Locked {
+	for i, l := range a.Locked {
 		if err := l.Valid(); err != nil {
 			return errors.WithMessage(err, "invalid sub-allocation")
 		}
 		if len(l.Bals) != n {
 			return errors.Errorf("dimension mismatch of app-channel balance vector (ID: %x)", l.ID)
+		}
+
+		for j, bal := range l.Bals {
+			if bal.Sign() == -1 {
+				return errors.Errorf("suballoc[%d][%d] is negative: %v", i, j, bal)
+			}
 		}
 	}
 
