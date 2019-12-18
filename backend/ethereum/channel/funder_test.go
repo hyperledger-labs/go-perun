@@ -39,14 +39,16 @@ const (
 const timeout = 300 * time.Millisecond
 
 func TestFunder_Fund(t *testing.T) {
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	defer cancel()
 	f := newSimulatedFunder()
-	assert.Panics(t, func() { f.Fund(context.Background(), channel.FundingReq{}) }, "Funding with invalid funding req should fail")
+	assert.Panics(t, func() { f.Fund(ctx, channel.FundingReq{}) }, "Funding with invalid funding req should fail")
 	req := channel.FundingReq{
 		Params:     &channel.Params{},
 		Allocation: &channel.Allocation{},
 		Idx:        0,
 	}
-	assert.NoError(t, f.Fund(context.Background(), req), "Funding with no assets should succeed")
+	assert.NoError(t, f.Fund(ctx, req), "Funding with no assets should succeed")
 	parts := []perunwallet.Address{
 		&wallet.Address{Address: f.account.Address},
 	}
@@ -60,7 +62,6 @@ func TestFunder_Fund(t *testing.T) {
 		Idx:        0,
 	}
 	// Test with valid context
-	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	assert.NoError(t, f.Fund(ctx, req), "funding with valid request should succeed")
 	assert.NoError(t, f.Fund(ctx, req), "multiple funding should succeed")
 	cancel()
@@ -75,16 +76,18 @@ func Test_Funder(t *testing.T) {
 }
 
 func testFunderFunding(t *testing.T, n int) {
+	ctx, cancel := context.WithTimeout(context.Background(), timeout*10)
+	defer cancel()
 	simBackend := test.NewSimulatedBackend()
 	// Need unique seed per run.
 	seed := int64(1337 + n)
 	rng := rand.New(rand.NewSource(seed))
 	ks := ethwallettest.GetKeystore()
 	deployAccount := wallettest.NewRandomAccount(rng).(*wallet.Account).Account
-	simBackend.FundAddress(context.Background(), deployAccount.Address)
+	simBackend.FundAddress(ctx, deployAccount.Address)
 	contractBackend := NewContractBackend(simBackend, ks, deployAccount)
 	// Deploy Assetholder
-	assetETH, err := DeployETHAssetholder(context.Background(), contractBackend, deployAccount.Address)
+	assetETH, err := DeployETHAssetholder(ctx, contractBackend, deployAccount.Address)
 	if err != nil {
 		panic(err)
 	}
@@ -93,7 +96,7 @@ func testFunderFunding(t *testing.T, n int) {
 	funders := make([]*Funder, n)
 	for i := 0; i < n; i++ {
 		acc := wallettest.NewRandomAccount(rng).(*wallet.Account)
-		simBackend.FundAddress(context.Background(), acc.Account.Address)
+		simBackend.FundAddress(ctx, acc.Account.Address)
 		parts[i] = acc.Address()
 		cb := NewContractBackend(simBackend, ks, acc.Account)
 		funders[i] = NewETHFunder(cb, assetETH)
@@ -101,9 +104,6 @@ func testFunderFunding(t *testing.T, n int) {
 	app := channeltest.NewRandomApp(rng)
 	params := channel.NewParamsUnsafe(uint64(0), parts, app.Def(), big.NewInt(rng.Int63()))
 	allocation := newValidAllocation(parts, assetETH)
-	// Test with valid context
-	ctx, cancel := context.WithTimeout(context.Background(), timeout*10)
-	defer cancel()
 	var wg sync.WaitGroup
 	wg.Add(n)
 	for i, funder := range funders {
