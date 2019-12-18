@@ -9,6 +9,7 @@ import (
 	"context"
 	"reflect"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -110,6 +111,19 @@ func TestProducer_Subscribe(t *testing.T) {
 		r := NewReceiver()
 		assert.NoError(t, p.Subscribe(r, fn))
 		assert.Panics(t, func() { p.Subscribe(r, fn) })
+	})
+
+	t.Run("closed consumer", func(t *testing.T) {
+		p := makeProducer()
+		r := NewReceiver()
+		r.Close()
+		test.AssertTerminates(t, timeout, func() {
+			assert.Error(t, p.Subscribe(r, fn))
+		})
+		time.Sleep(timeout)
+		assert.NotPanics(t, func() {
+			assert.Error(t, p.Subscribe(r, fn))
+		})
 	})
 }
 

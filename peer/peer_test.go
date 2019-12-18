@@ -205,9 +205,9 @@ func TestPeer_ClosedByRecvLoopOnConnClose(t *testing.T) {
 	addr := wallettest.NewRandomAddress(rng)
 	conn0, conn1 := newPipeConnPair()
 	peer := newPeer(addr, conn0, nil)
-	peer.OnClose(func() {
+	assert.True(t, peer.OnClose(func() {
 		close(onCloseCalled)
-	})
+	}))
 
 	go func() {
 		peer.recvLoop()

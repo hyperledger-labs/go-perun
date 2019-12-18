@@ -82,17 +82,13 @@ func (r *Registry) Close() (err error) {
 // This function does not start go routines but instead should be started by the
 // user as `go registry.Listen()`.
 func (r *Registry) Listen(listener Listener) {
-	if r.IsClosed() {
-		if err := listener.Close(); err != nil {
-			r.log.Debugf("Registry.Listen: closing listener on already closed registry: %v", err)
-		}
-		return
-	}
-	r.OnClose(func() {
+	if !r.OnCloseAlways(func() {
 		if err := listener.Close(); err != nil {
 			r.log.Debugf("Registry.Listen: closing listener OnClose: %v", err)
 		}
-	})
+	}) {
+		return
+	}
 
 	// Start listener and accept all incoming peer connections, writing them to
 	// the registry.
