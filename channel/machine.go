@@ -333,18 +333,24 @@ func (m *machine) validTransition(to *State) error {
 		return errors.New("new state's App dosen't match")
 	}
 
+	newError := func(s string) error { return NewStateTransitionError(m.params.id, s) }
+
 	if m.currentTX.IsFinal == true {
-		return NewStateTransitionError(m.params.id, "cannot advance final state")
+		return newError("cannot advance final state")
 	}
 
 	if m.currentTX.Version+1 != to.Version {
-		return NewStateTransitionError(m.params.id, "version must increase by one")
+		return newError("version must increase by one")
+	}
+
+	if err := to.Allocation.Valid(); err != nil {
+		return newError(fmt.Sprintf("invalid allocation: %v", err))
 	}
 
 	if eq, err := equalSum(m.currentTX.Allocation, to.Allocation); err != nil {
 		return err
 	} else if !eq {
-		return NewStateTransitionError(m.params.id, "allocations must be preserved")
+		return newError("allocations must be preserved")
 	}
 
 	return nil
