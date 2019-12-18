@@ -70,17 +70,22 @@ func (p *producer) Subscribe(c Consumer, predicate msg.Predicate) error {
 	defer p.mutex.Unlock()
 
 	if p.IsClosed() {
-		return errors.New("peer closed")
+		return errors.New("producer closed")
 	}
 
 	for _, rec := range p.consumers {
 		if rec.consumer == c {
-			log.Panic("duplicate peer subscription")
+			log.Panic("duplicate subscription")
 		}
 	}
 
+	// Execute the callback asynchronously to prevent deadlock if it executes
+	// immediately. This can only happen if the consumer is closed while
+	// subscribing.
+	if !c.OnClose(func() { go p.delete(c) }) {
+		return errors.New("consumer closed")
+	}
 	p.consumers = append(p.consumers, subscription{consumer: c, predicate: predicate})
-	c.OnClose(func() { p.delete(c) })
 
 	// Put cached messages into consumer in a go routine because receiving on it
 	// probably starts after subscription.

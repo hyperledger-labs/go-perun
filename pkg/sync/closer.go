@@ -25,9 +25,10 @@ type Closer struct {
 	onClosed    []func()   // Executed when Close() is called.
 }
 
-// OnCloser contains the OnClose function.
+// OnCloser contains the OnClose and OnCloseAlways function.
 type OnCloser interface {
-	OnClose(func())
+	OnClose(func()) bool
+	OnCloseAlways(func()) bool
 }
 
 func (c *Closer) initOnce() {
@@ -40,7 +41,7 @@ func (c *Closer) Closed() <-chan struct{} {
 	return c.closed
 }
 
-// Close starts all registered callbacks in goroutines.
+// Close executes all registered callbacks.
 // If Close was already called before, returns an AlreadyClosedError, otherwise,
 // returns nil.
 func (c *Closer) Close() error {
@@ -66,18 +67,37 @@ func (c *Closer) IsClosed() bool {
 	return c.isClosed.IsSet()
 }
 
-// OnClose registers the passed callback to be called when the Closer is closed.
-// If the Closer is already closed, immediately executes the callback in a
-// goroutine.
-func (c *Closer) OnClose(handler func()) {
+// OnClose registers the passed callback to be calle when the Closer is closed.
+// If the Closer is already closed, does nothing. Returns whether the Closer was
+// not yet closed.
+func (c *Closer) OnClose(handler func()) bool {
+	c.onClosedMtx.Lock()
+	defer c.onClosedMtx.Unlock()
+	// Check again, because Close might have been called before the lock was
+	// acquired.
+	if c.IsClosed() {
+		return false
+	} else {
+		c.onClosed = append(c.onClosed, handler)
+		return true
+	}
+}
+
+// OnCloseAlways registers the passed callback to be called when the Closer is
+// closed.
+// If the Closer is already closed, immediately executes the callback. Returns
+// whether the closer was not yet closed.
+func (c *Closer) OnCloseAlways(handler func()) bool {
 	c.onClosedMtx.Lock()
 	defer c.onClosedMtx.Unlock()
 	// Check again, because Close might have been called before the lock was
 	// acquired.
 	if c.IsClosed() {
 		handler()
+		return false
 	} else {
 		c.onClosed = append(c.onClosed, handler)
+		return true
 	}
 }
 
