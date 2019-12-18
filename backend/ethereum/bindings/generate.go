@@ -1,3 +1,8 @@
+// Copyright (c) 2019 Chair of Applied Cryptography, Technische Universität
+// Darmstadt, Germany. All rights reserved. This file is part of go-perun. Use
+// of this source code is governed by a MIT-style license that can be found in
+// the LICENSE file.
+
 package adjudicator
 
 //go:generate echo -e "\\e[01;31mEnsure that solc version is ^0.5.13\\e[0m"
