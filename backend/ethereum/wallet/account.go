@@ -9,7 +9,7 @@ import (
 	"sync"
 
 	"github.com/ethereum/go-ethereum/accounts"
-	"github.com/ethereum/go-ethereum/crypto"
+	"github.com/pkg/errors"
 	perun "perun.network/go-perun/wallet"
 )
 
@@ -66,8 +66,13 @@ func (a *Account) SignData(data []byte) ([]byte, error) {
 	a.mu.RLock()
 	defer a.mu.RUnlock()
 
-	hash := crypto.Keccak256(data)
-	return a.wallet.Ks.SignHash(*a.Account, hash)
+	hash := prefixedHash(data)
+	sig, err := a.wallet.Ks.SignHash(*a.Account, hash)
+	if err != nil {
+		return nil, errors.WithMessage(err, "could not sign data")
+	}
+	sig[64] += 27
+	return sig, nil
 }
 
 // SignDataWithPW is used to sign a hash with this account and a pw.
@@ -75,8 +80,13 @@ func (a *Account) SignDataWithPW(password string, data []byte) ([]byte, error) {
 	a.mu.RLock()
 	defer a.mu.RUnlock()
 
-	hash := crypto.Keccak256(data)
-	return a.wallet.Ks.SignHashWithPassphrase(*a.Account, password, hash)
+	hash := prefixedHash(data)
+	sig, err := a.wallet.Ks.SignHashWithPassphrase(*a.Account, password, hash)
+	if err != nil {
+		return nil, errors.WithMessage(err, "could not sign data")
+	}
+	sig[64] += 27
+	return sig, nil
 }
 
 // NewAccountFromEth creates a new perun account from a given ethereum account.
