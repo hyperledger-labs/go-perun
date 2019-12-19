@@ -56,12 +56,8 @@ func (s *Settler) Settle(ctx context.Context, req channel.SettleReq, acc perunwa
 	if req.Params == nil || req.Tx.State == nil {
 		panic("invalid settlement request")
 	}
-	if s.adjInstance == nil {
-		adjInstance, err := s.connectToContract()
-		if err != nil {
-			return errors.WithMessage(err, "connecting to contracts")
-		}
-		s.adjInstance = adjInstance
+	if err := s.checkAdjInstance(); err != nil {
+		return errors.WithMessage(err, "connecting to adjudicator")
 	}
 	if req.Tx.State.IsFinal {
 		return s.cooperativeSettle(ctx, req)
@@ -83,7 +79,7 @@ func (s *Settler) cooperativeSettle(ctx context.Context, req channel.SettleReq) 
 
 	if err := <-pastEvents; err != errConcludedNotFound {
 		// err might be nil, which is fine
-		return errors.Wrap(err, "filtering old Concluded events")
+		return errors.WithMessage(err, "filtering old Concluded events")
 	}
 	// No conclude event found in the past, send transaction.
 	tx, err := s.sendConcludeFinalTx(ctx, req)
@@ -158,10 +154,17 @@ func (s *Settler) waitForSettlingConfirmation(ctx context.Context, channelID cha
 	}
 }
 
-func (s *Settler) connectToContract() (*adjudicator.Adjudicator, error) {
-	adjInstance, err := adjudicator.NewAdjudicator(s.adjAddr, s)
-	if err != nil {
-		return nil, errors.WithMessage(err, "failed to connect to adjudicator")
+// checkAdjInstance checks if the adjudicator instance is set.
+// if not it connects to the adjudicator at s.adjAddr.
+func (s *Settler) checkAdjInstance() error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if s.adjInstance == nil {
+		adjInstance, err := adjudicator.NewAdjudicator(s.adjAddr, s)
+		if err != nil {
+			return errors.Wrap(err, "failed to connect to adjudicator")
+		}
+		s.adjInstance = adjInstance
 	}
-	return adjInstance, nil
+	return nil
 }
