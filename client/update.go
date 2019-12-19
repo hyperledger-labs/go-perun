@@ -43,6 +43,10 @@ func (r *UpdateResponder) Accept(ctx context.Context) error {
 	if !r.called.TrySet() {
 		log.Panic("multiple calls on channel update responder")
 	}
+	if ctx == nil {
+		log.Panic("nil context")
+	}
+
 	return r.channel.handleUpdateAcc(ctx, r.pidx, r.req)
 }
 
@@ -51,10 +55,17 @@ func (r *UpdateResponder) Reject(ctx context.Context, reason string) error {
 	if !r.called.TrySet() {
 		log.Panic("multiple calls on channel update responder")
 	}
+	if ctx == nil {
+		log.Panic("nil context")
+	}
+
 	return r.channel.handleUpdateRej(ctx, r.pidx, r.req, reason)
 }
 
 func (c *Channel) Update(ctx context.Context, up ChannelUpdate) (err error) {
+	if ctx == nil {
+		log.Panic("nil context")
+	}
 	if err := c.validTwoPartyUpdate(up, c.machine.Idx()); err != nil {
 		return err
 	}

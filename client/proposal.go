@@ -62,6 +62,10 @@ func (r *ProposalResponder) Accept(ctx context.Context, acc ProposalAcc) (*Chann
 	if !r.called.TrySet() {
 		log.Panic("multiple calls on proposal responder")
 	}
+	if ctx == nil {
+		log.Panic("nil context")
+	}
+
 	return r.client.handleChannelProposalAcc(ctx, r.peer, r.req, acc)
 }
 
@@ -72,6 +76,10 @@ func (r *ProposalResponder) Reject(ctx context.Context, reason string) error {
 	if !r.called.TrySet() {
 		log.Panic("multiple calls on proposal responder")
 	}
+	if ctx == nil {
+		log.Panic("nil context")
+	}
+
 	return r.client.handleChannelProposalRej(ctx, r.peer, r.req, reason)
 }
 
@@ -83,6 +91,10 @@ func (r *ProposalResponder) Reject(ctx context.Context, reason string) error {
 // The user is required to start the update handler with
 // Channel.ListenUpdates(UpdateHandler)
 func (c *Client) ProposeChannel(ctx context.Context, prop *ChannelProposal) (*Channel, error) {
+	if ctx == nil || prop == nil {
+		c.log.Panic("invalid nil argument")
+	}
+
 	// 1. check valid proposal
 	req := prop.AsReq()
 	if err := c.validTwoPartyProposal(req, 0, req.PeerAddrs[1]); err != nil {

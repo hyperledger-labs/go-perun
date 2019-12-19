@@ -36,6 +36,10 @@ func New(
 	funder channel.Funder,
 	settler channel.Settler,
 ) *Client {
+	if id == nil || dialer == nil || propHandler == nil || funder == nil || settler == nil {
+		log.Panic("invalid nil argument")
+	}
+
 	c := &Client{
 		id:          id,
 		propHandler: propHandler,
