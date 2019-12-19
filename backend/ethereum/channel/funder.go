@@ -129,7 +129,7 @@ func (f *Funder) fundAssets(ctx context.Context, request channel.FundingReq, con
 		if err := execSuccessful(ctx, f.ContractBackend, tx); err != nil {
 			return errors.WithMessage(err, "mining transaction")
 		}
-		log.Debugf("Sending transaction to the blockchain with txHash: %v", tx.Hash().Hex())
+		log.Debugf("peer[%d] Sending transaction to the blockchain with txHash: %v, amount %d", request.Idx, tx.Hash().Hex(), balance)
 	}
 	return nil
 }
@@ -188,47 +188,54 @@ func (f *Funder) waitForFundingConfirmations(ctx context.Context, request channe
 	allocation := request.Allocation.Clone()
 	for i := 0; i < len(contracts); i++ {
 		for k := 0; k < len(request.Params.Parts); k++ {
-			select {
-			case event := <-deposited:
-				// Calculate the position in the participant array.
-				idx := -1
-				for h, id := range partIDs {
-					if id == event.FundingID {
-						idx = h
-						break
+			for {
+				if allocation.OfParts[k][i].Cmp(big.NewInt(0)) == 0 {
+					break
+				}
+				select {
+				case event := <-deposited:
+					log.Debugf("peer[%d] Received event with fundingID %v amount %v", request.Idx, event.FundingID, event.Amount)
+					// Calculate the position in the participant array.
+					idx := -1
+					for h, id := range partIDs {
+						if id == event.FundingID {
+							idx = h
+							break
+						}
 					}
-				}
-				// Retrieve the position in the asset array.
-				assetIdx := -1
-				for h, ctr := range contracts {
-					if *ctr.Address == event.Raw.Address {
-						assetIdx = h
-						break
+					// Retrieve the position in the asset array.
+					assetIdx := -1
+					for h, ctr := range contracts {
+						if *ctr.Address == event.Raw.Address {
+							assetIdx = h
+							break
+						}
 					}
+					log.Debugf(
+						"Deposited event received for asset %d and participant %d, id: %v",
+						assetIdx, idx, event.FundingID)
+					// Check if the participant sent the correct amounts of funds.
+					if allocation.OfParts[idx][assetIdx].Cmp(event.Amount) > 0 {
+						return errors.Errorf("deposit in asset %d from pariticipant %d does not match agreed upon asset, want %v got %v",
+							assetIdx, idx, allocation.OfParts[idx][assetIdx].String(), event.Amount.String())
+					}
+					allocation.OfParts[idx][assetIdx] = big.NewInt(0)
+				case <-ctx.Done():
+					return errors.Wrap(ctx.Err(), "Waiting for events cancelled by context")
+				case err := <-subs[i].Err():
+					return errors.Wrap(err, "Error while waiting for events")
 				}
-				log.Debugf(
-					"Deposited event received for asset %d and participant %d, id: %v",
-					assetIdx, idx, event.FundingID)
-				// Check if the participant sent the correct amounts of funds.
-				if allocation.OfParts[idx][assetIdx].Cmp(event.Amount) != 0 {
-					return errors.Errorf("deposit in asset %d from pariticipant %d does not match agreed upon asset", assetIdx, idx)
-				}
-				allocation.OfParts[idx][assetIdx] = big.NewInt(0)
-			case <-ctx.Done():
-				return errors.Wrap(ctx.Err(), "Waiting for events cancelled by context")
-			case err := <-subs[i].Err():
-				return errors.Wrap(err, "Error while waiting for events")
 			}
 		}
 	}
-
 	// Check if everyone funded correctly.
 	for i := 0; i < len(allocation.OfParts); i++ {
 		for k := 0; k < len(allocation.OfParts[i]); k++ {
 			if allocation.OfParts[i][k].Cmp(big.NewInt(0)) != 0 {
-				return channel.NewPeerTimedOutFundingError(uint16(1))
+				return channel.NewPeerTimedOutFundingError(uint16(i))
 			}
 		}
 	}
+
 	return nil
 }
