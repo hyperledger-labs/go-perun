@@ -36,7 +36,7 @@ const (
 	keyStorePath = "UTC--2019-06-07T12-12-48.775026092Z--3c5a96ff258b1f4c288068b32474dedc3620233c"
 )
 
-const timeout = 300 * time.Millisecond
+const timeout = 5 * time.Second
 
 func TestFunder_Fund(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
@@ -69,14 +69,14 @@ func TestFunder_Fund(t *testing.T) {
 	assert.Error(t, f.Fund(ctx, req), "funding with already cancelled context should fail")
 }
 
-func Test_Funder(t *testing.T) {
+func TestFunder_Fund_multi(t *testing.T) {
 	t.Run("1 party funding", func(t *testing.T) { testFunderFunding(t, 1) })
 	t.Run("2 party funding", func(t *testing.T) { testFunderFunding(t, 2) })
 	t.Run("3 party funding", func(t *testing.T) { testFunderFunding(t, 3) })
 }
 
 func testFunderFunding(t *testing.T, n int) {
-	ctx, cancel := context.WithTimeout(context.Background(), timeout*10)
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 	simBackend := test.NewSimulatedBackend()
 	// Need unique seed per run.
