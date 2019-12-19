@@ -129,7 +129,7 @@ func (f *Funder) fundAssets(ctx context.Context, request channel.FundingReq, con
 		if err := execSuccessful(ctx, f.ContractBackend, tx); err != nil {
 			return errors.WithMessage(err, "mining transaction")
 		}
-		log.Debugf("Sending transaction to the blockchain with txHash: %v", tx.Hash().Hex())
+		log.Debugf("peer[%d] Sending transaction to the blockchain with txHash: %v, amount %d", request.Idx, tx.Hash().Hex(), balance)
 	}
 	return nil
 }
@@ -156,12 +156,13 @@ func filterOldEvents(ctx context.Context, asset assetHolder, deposited chan *ass
 // both we and all peers sucessfully funded the channel.
 func (f *Funder) waitForFundingConfirmations(ctx context.Context, request channel.FundingReq, contracts []assetHolder, partIDs [][32]byte) error {
 	deposited := make(chan *assets.AssetHolderDeposited)
-	subs := make([]event.Subscription, len(contracts))
+	subs := make([]event.Subscription, 0, len(contracts))
 	defer func() {
 		for _, sub := range subs {
 			sub.Unsubscribe()
 		}
 	}()
+
 	// Wait for confirmation on each asset.
 	for assetIndex := range contracts {
 		// Watch new events
@@ -173,62 +174,83 @@ func (f *Funder) waitForFundingConfirmations(ctx context.Context, request channe
 		if err != nil {
 			return errors.Wrapf(err, "WatchDeposit on asset %d failed", assetIndex)
 		}
-		subs[assetIndex] = sub
+		subs = append(subs, sub)
+	}
+
+	// we let the filter queries and all subscription errors write into this error
+	// channel.
+	errChan := make(chan error, len(contracts)+1)
+	for i := 0; i < len(contracts); i++ {
+		go func(i int) {
+			errChan <- errors.Wrapf(<-subs[i].Err(), "subscription for asset %d", i)
+		}(i)
 	}
 
 	// Query old events
 	go func() {
-		for assetIndex := range contracts {
-			if err := filterOldEvents(ctx, contracts[assetIndex], deposited, partIDs); err != nil && err != errEventNotFound {
-				log.Warnf("Error filtering old Deposited events for asset[%d]: %v", assetIndex, err)
+		for i, c := range contracts {
+			if err := filterOldEvents(ctx, c, deposited, partIDs); err != nil && err != errEventNotFound {
+				errChan <- errors.WithMessagef(err, "filtering old Deposited events for asset %d", i)
+				return
 			}
 		}
 	}()
 
 	allocation := request.Allocation.Clone()
-	for i := 0; i < len(contracts); i++ {
-		for k := 0; k < len(request.Params.Parts); k++ {
-			select {
-			case event := <-deposited:
-				// Calculate the position in the participant array.
-				idx := -1
-				for h, id := range partIDs {
-					if id == event.FundingID {
-						idx = h
-						break
-					}
+	N := len(contracts) * len(request.Params.Parts)
+	for N > 0 {
+		select {
+		case event := <-deposited:
+			log.Debugf("peer[%d] Received event with fundingID %v amount %v", request.Idx, event.FundingID, event.Amount)
+
+			// Calculate the position in the participant array.
+			idx := -1
+			for h, id := range partIDs {
+				if id == event.FundingID {
+					idx = h
+					break
 				}
-				// Retrieve the position in the asset array.
-				assetIdx := -1
-				for h, ctr := range contracts {
-					if *ctr.Address == event.Raw.Address {
-						assetIdx = h
-						break
-					}
-				}
-				log.Debugf(
-					"Deposited event received for asset %d and participant %d, id: %v",
-					assetIdx, idx, event.FundingID)
-				// Check if the participant sent the correct amounts of funds.
-				if allocation.OfParts[idx][assetIdx].Cmp(event.Amount) != 0 {
-					return errors.Errorf("deposit in asset %d from pariticipant %d does not match agreed upon asset", assetIdx, idx)
-				}
-				allocation.OfParts[idx][assetIdx] = big.NewInt(0)
-			case <-ctx.Done():
-				return errors.Wrap(ctx.Err(), "Waiting for events cancelled by context")
-			case err := <-subs[i].Err():
-				return errors.Wrap(err, "Error while waiting for events")
 			}
+
+			// Retrieve the position in the asset array.
+			assetIdx := -1
+			for h, ctr := range contracts {
+				if *ctr.Address == event.Raw.Address {
+					assetIdx = h
+					break
+				}
+			}
+
+			amount := allocation.OfParts[idx][assetIdx]
+			if amount.Cmp(big.NewInt(0)) == 0 {
+				continue // ignore double events
+			}
+
+			log.Debugf(
+				"Deposited event received for asset %d and participant %d, id: %v",
+				assetIdx, idx, event.FundingID)
+
+			amount.Sub(amount, event.Amount)
+			if amount.Sign() != 1 {
+				N--
+			}
+
+		case <-ctx.Done():
+			for i := 0; i < len(allocation.OfParts); i++ {
+				for k := 0; k < len(allocation.OfParts[i]); k++ {
+					if allocation.OfParts[i][k].Sign() == 1 {
+						// return first timed-out peer for now
+						return channel.NewPeerTimedOutFundingError(channel.Index(i))
+					}
+				}
+			}
+			// here should never be reached, there must be one positive allocation
+			// still or we would have returned already.
+
+		case err := <-errChan:
+			return err
 		}
 	}
 
-	// Check if everyone funded correctly.
-	for i := 0; i < len(allocation.OfParts); i++ {
-		for k := 0; k < len(allocation.OfParts[i]); k++ {
-			if allocation.OfParts[i][k].Cmp(big.NewInt(0)) != 0 {
-				return channel.NewPeerTimedOutFundingError(uint16(1))
-			}
-		}
-	}
 	return nil
 }
