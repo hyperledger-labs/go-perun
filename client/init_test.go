@@ -16,5 +16,5 @@ import (
 // This file initializes the blockchain and logging backend for both, whitebox
 // and blackbox tests (files *_test.go in packages client and client_test).
 func init() {
-	plogrus.Set(logrus.TraceLevel, &logrus.TextFormatter{ForceColors: true})
+	plogrus.Set(logrus.WarnLevel, &logrus.TextFormatter{ForceColors: true})
 }
