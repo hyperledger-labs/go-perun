@@ -125,7 +125,7 @@ func TestAllocation_Clone(t *testing.T) {
 	}{
 		{
 			"assets-1,parts-1,locks-nil",
-			channel.Allocation{assets(rng, 1), [][]channel.Bal{[]channel.Bal{big.NewInt(-1)}}, nil},
+			channel.Allocation{assets(rng, 1), [][]channel.Bal{[]channel.Bal{big.NewInt(1)}}, nil},
 		},
 
 		{
@@ -350,6 +350,34 @@ func TestAllocation_Valid(t *testing.T) {
 				},
 				Locked: []channel.SubAlloc{
 					channel.SubAlloc{channel.Zero, []channel.Bal{big.NewInt(4)}},
+				},
+			},
+			false,
+		},
+
+		{
+			"two participants/negative balance",
+			channel.Allocation{
+				Assets: assets(rng, 3),
+				OfParts: [][]channel.Bal{
+					[]channel.Bal{big.NewInt(1), big.NewInt(8), big.NewInt(64)},
+					[]channel.Bal{big.NewInt(2), big.NewInt(-1), big.NewInt(128)},
+				},
+				Locked: nil,
+			},
+			false,
+		},
+
+		{
+			"two participants/one locked negative balance",
+			channel.Allocation{
+				Assets: assets(rng, 2),
+				OfParts: [][]channel.Bal{
+					[]channel.Bal{big.NewInt(1), big.NewInt(8)},
+					[]channel.Bal{big.NewInt(2), big.NewInt(16)},
+				},
+				Locked: []channel.SubAlloc{
+					channel.SubAlloc{channel.Zero, []channel.Bal{big.NewInt(4), big.NewInt(-1)}},
 				},
 			},
 			false,

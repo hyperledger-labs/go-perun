@@ -12,8 +12,6 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	_ "perun.network/go-perun/backend/sim/channel" // backend init
-	_ "perun.network/go-perun/backend/sim/wallet"  // backend init
 	"perun.network/go-perun/channel/test"
 	"perun.network/go-perun/client"
 	"perun.network/go-perun/wallet"
@@ -21,17 +19,17 @@ import (
 	"perun.network/go-perun/wire/msg"
 )
 
-func TestChannelProposalSerialization(t *testing.T) {
+func TestChannelProposalReqSerialization(t *testing.T) {
 	rng := rand.New(rand.NewSource(0xdeadbeef))
 	for i := 0; i < 4; i++ {
-		m := &client.ChannelProposal{
+		m := &client.ChannelProposalReq{
 			ChallengeDuration: 0,
 			Nonce:             big.NewInt(rng.Int63()),
 			ParticipantAddr:   wallettest.NewRandomAddress(rng),
 			AppDef:            wallettest.NewRandomAddress(rng),
 			InitData:          test.NewRandomData(rng),
 			InitBals:          test.NewRandomAllocation(rng, 2),
-			Parts: []wallet.Address{
+			PeerAddrs: []wallet.Address{
 				wallettest.NewRandomAddress(rng),
 				wallettest.NewRandomAddress(rng),
 			},
@@ -40,10 +38,10 @@ func TestChannelProposalSerialization(t *testing.T) {
 	}
 }
 
-func TestChannelProposalSessID(t *testing.T) {
-	original := *newRandomChannelProposal(rand.New(rand.NewSource(0xc0ffee)))
+func TestChannelProposalReqSessID(t *testing.T) {
+	original := *newRandomChannelProposalReq(rand.New(rand.NewSource(0xc0ffee)))
 	s := original.SessID()
-	fake := newRandomChannelProposal(rand.New(rand.NewSource(0xeeff0c)))
+	fake := newRandomChannelProposalReq(rand.New(rand.NewSource(0xeeff0c)))
 
 	assert.NotEqual(t, original.ChallengeDuration, fake.ChallengeDuration)
 	assert.NotEqual(t, original.Nonce, fake.Nonce)
@@ -75,25 +73,34 @@ func TestChannelProposalSessID(t *testing.T) {
 	assert.NotEqual(t, s, c5.SessID())
 
 	c6 := original
-	c6.Parts = fake.Parts
+	c6.PeerAddrs = fake.PeerAddrs
 	assert.NotEqual(t, s, c6.SessID())
 }
 
-func newRandomChannelProposal(rng *rand.Rand) *client.ChannelProposal {
+func TestChannelProposal_AsReqAsProp(t *testing.T) {
+	rng := rand.New(rand.NewSource(7))
+	acc := wallettest.NewRandomAccount(rng)
+	prop := newRandomChannelProposalReq(rng).AsProp(acc)
+	req := prop.AsReq()
+	assert.True(t, req.ParticipantAddr.Equals(acc.Address()))
+	prop2 := req.AsProp(acc)
+	assert.Equal(t, prop2, prop)
+}
+
+func newRandomChannelProposalReq(rng *rand.Rand) *client.ChannelProposalReq {
 	app := test.NewRandomApp(rng)
 	params := test.NewRandomParams(rng, app.Def())
 	data := test.NewRandomData(rng)
-	numParts := 2 + rng.Intn(8)
-	alloc := test.NewRandomAllocation(rng, numParts)
+	alloc := test.NewRandomAllocation(rng, len(params.Parts))
 	participantAddr := wallettest.NewRandomAddress(rng)
-	return &client.ChannelProposal{
-		params.ChallengeDuration,
-		params.Nonce,
-		participantAddr,
-		params.App.Def(),
-		data,
-		alloc,
-		params.Parts,
+	return &client.ChannelProposalReq{
+		ChallengeDuration: params.ChallengeDuration,
+		Nonce:             params.Nonce,
+		ParticipantAddr:   participantAddr,
+		AppDef:            params.App.Def(),
+		InitData:          data,
+		InitBals:          alloc,
+		PeerAddrs:         params.Parts, // Note: usually, channel.Params participants are NOT Perun peers
 	}
 }
 
