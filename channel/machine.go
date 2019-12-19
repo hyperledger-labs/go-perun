@@ -63,8 +63,6 @@ type machine struct {
 	currentTX Transaction
 	prevTXs   []Transaction
 
-	// subs contains subscribers to each phase transition
-	subs map[Phase]map[string]chan<- PhaseTransition
 	// log is a fields logger for this machine
 	log log.Logger
 }
@@ -81,7 +79,6 @@ func newMachine(acc wallet.Account, params Params) (*machine, error) {
 		acc:    acc,
 		idx:    Index(idx),
 		params: params,
-		subs:   make(map[Phase]map[string]chan<- PhaseTransition),
 		log:    log.WithField("ID", params.id),
 	}, nil
 
@@ -117,13 +114,10 @@ func (m *machine) Phase() Phase {
 	return m.phase
 }
 
-// setPhase is internally used to set the phase and notify all subscribers of
-// the phase transition.
+// setPhase is internally used to set the phase.
 func (m *machine) setPhase(p Phase) {
 	m.log.Tracef("phase transition: %v", PhaseTransition{m.phase, p})
-	oldPhase := m.phase
 	m.phase = p
-	m.notifySubs(oldPhase)
 }
 
 // inPhase returns whether phase is in phases.
@@ -354,33 +348,6 @@ func (m *machine) validTransition(to *State) error {
 	}
 
 	return nil
-}
-
-// Subscribe subscribes go-channel `sub` to phase `phase` under the name `who`.
-// If the machine changes into phase `phase`, the phase transition is sent on
-// channel `sub`.
-// If a subscription for `who` to this phase already exists, it is overwritten.
-func (m *machine) Subscribe(phase Phase, who string, sub chan<- PhaseTransition) {
-	if m.subs[phase] == nil {
-		m.subs[phase] = make(map[string]chan<- PhaseTransition)
-	}
-
-	m.subs[phase][who] = sub
-}
-
-// notifySubs notifies all subscribers to the current phase that a phase
-// transition from the provided phase `from` has happened.
-func (m *machine) notifySubs(from Phase) {
-	if m.subs[m.phase] == nil {
-		// no subscribers
-		return
-	}
-
-	transition := PhaseTransition{from, m.phase}
-	for who, sub := range m.subs[m.phase] {
-		m.log.Tracef("phase transition: %v, notifying subscriber %s", transition, who)
-		sub <- transition
-	}
 }
 
 // error constructs a new PhaseTransitionError.
