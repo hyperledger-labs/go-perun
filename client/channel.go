@@ -20,6 +20,8 @@ import (
 
 // Channel is the channel controller, progressing the channel state machine and
 // executing the channel update and dispute protocols.
+//
+// Currently, only the two-party protocol is fully implemented.
 type Channel struct {
 	perunsync.Closer
 	log log.Logger
@@ -31,6 +33,8 @@ type Channel struct {
 	settler   channel.Settler
 }
 
+// newChannel is internally used by the Client to create a new channel
+// controller after the channel proposal protocol ran successfully.
 func newChannel(
 	acc wallet.Account,
 	peers []*peer.Peer,

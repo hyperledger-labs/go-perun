@@ -35,7 +35,11 @@ type (
 		PeerAddrs         []wallet.Address // Perun addresses of all peers, including the proposer's
 	}
 
+	// A ProposalHandler decides how to handle incoming channel proposals from
+	// other channel network peers.
 	ProposalHandler interface {
+		// Handle is the user callback called by the Client on an incoming channel
+		// proposal.
 		Handle(*ChannelProposalReq, *ProposalResponder)
 	}
 
@@ -50,6 +54,9 @@ type (
 		called atomic.Bool
 	}
 
+	// ProposalAcc is the proposal acceptance struct that the user passes to
+	// ProposalResponder.Accept() when they want to accept an incoming channel
+	// proposal.
 	ProposalAcc struct {
 		Participant wallet.Account
 	}
@@ -203,6 +210,8 @@ func (c *Client) handleChannelProposalRej(
 	return nil
 }
 
+// exchangeTwoPartyProposal implementes the multi-party channel proposal
+// protocol for the two-party case.
 func (c *Client) exchangeTwoPartyProposal(
 	ctx context.Context,
 	proposal *ChannelProposalReq,

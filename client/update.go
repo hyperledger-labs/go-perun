@@ -26,10 +26,19 @@ type (
 		ActorIdx uint16
 	}
 
+	// An UpdateHandler decides how to handle incoming channel update requests
+	// from other channel participants.
 	UpdateHandler interface {
+		// Handle is the user callback called by the channel controller on an
+		// incoming update request.
 		Handle(ChannelUpdate, *UpdateResponder)
 	}
 
+	// The UpdateResponder allows the user to react to the incoming channel update
+	// request. If the user wants to accept the update, Accept() should be called,
+	// otherwise Reject(), possibly giving a reason for the rejection.
+	// Only a single function must be called and every further call causes a
+	// panic.
 	UpdateResponder struct {
 		channel *Channel
 		pidx    channel.Index
@@ -62,6 +71,10 @@ func (r *UpdateResponder) Reject(ctx context.Context, reason string) error {
 	return r.channel.handleUpdateRej(ctx, r.pidx, r.req, reason)
 }
 
+// Update proposes the given channel update to all channel participants.
+//
+// It returns nil if all peers accept the update. If any runtime error occurs or
+// any peer rejects the update, an error is returned.
 func (c *Channel) Update(ctx context.Context, up ChannelUpdate) (err error) {
 	if ctx == nil {
 		log.Panic("nil context")
@@ -125,6 +138,9 @@ func (c *Channel) Update(ctx context.Context, up ChannelUpdate) (err error) {
 	return c.enableNotifyUpdate()
 }
 
+// ListenUpdates starts the handling of incoming channel update requests. It
+// should immediately be started by the user after they receive the channel
+// controller.
 func (c *Channel) ListenUpdates(uh UpdateHandler) {
 	for {
 		pidx, req := c.conn.NextUpdateReq(context.Background())
@@ -136,6 +152,8 @@ func (c *Channel) ListenUpdates(uh UpdateHandler) {
 	}
 }
 
+// handleUpdateReq is called by the controller on incoming channel update
+// requests.
 func (c *Channel) handleUpdateReq(
 	pidx channel.Index,
 	req *msgChannelUpdate,

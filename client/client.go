@@ -18,6 +18,11 @@ import (
 	wire "perun.network/go-perun/wire/msg"
 )
 
+// Client is a state channel client. It is the central controller to interact
+// with a state channel network. It can be used to propose channels to other
+// channel network peers.
+//
+// Currently, only the two-party protocol is fully implemented.
 type Client struct {
 	id          peer.Identity
 	peers       *peer.Registry
@@ -29,6 +34,21 @@ type Client struct {
 	sync.Closer
 }
 
+// New creates a new State Channel Client.
+//
+// id is the channel network identity. It is the persistend identifier in the
+// network and not necessarily related to any on-chain identity or channel
+// identity.
+//
+// dialer is used to dial new peers when a peer connection is not yet
+// established, e.g. when proposing a channel.
+//
+// proposalHandler is the user callback that is called by the Client when a peer
+// proposes a valid channel to this Client.
+//
+// funder and settler are used to fund and settle a ledger channel, respectively.
+//
+// If any argument is nil, New panics.
 func New(
 	id peer.Identity,
 	dialer peer.Dialer,
