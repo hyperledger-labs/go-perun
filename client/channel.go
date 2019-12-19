@@ -88,10 +88,20 @@ func (c *Channel) Idx() channel.Index {
 	return c.machine.Idx()
 }
 
+// Params returns the channel parameters.
+func (c *Channel) Params() *channel.Params {
+	return c.machine.Params()
+}
+
 // State returns the current state.
 // Clone it if you want to modify it.
 func (c *Channel) State() *channel.State {
 	return c.machine.State()
+}
+
+// Phase returns the current phase of the channel state machine.
+func (c *Channel) Phase() channel.Phase {
+	return c.machine.Phase()
 }
 
 // init brings the state machine into the InitSigning phase. It is not callable
