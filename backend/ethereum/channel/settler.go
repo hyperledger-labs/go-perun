@@ -11,12 +11,9 @@ import (
 	"math/big"
 	"sync"
 
-	"github.com/ethereum/go-ethereum/accounts"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
-	"github.com/ethereum/go-ethereum/accounts/keystore"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
-	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/pkg/errors"
 
 	"perun.network/go-perun/backend/ethereum/bindings/adjudicator"
@@ -42,9 +39,9 @@ var _ channel.Settler = (*Settler)(nil)
 var errConcludedNotFound = stderrors.New("Concluded event not found")
 
 // NewETHSettler creates a new ethereum funder.
-func NewETHSettler(client *ethclient.Client, keystore *keystore.KeyStore, account *accounts.Account, adjAddr common.Address) *Settler {
+func NewETHSettler(backend ContractBackend, adjAddr common.Address) *Settler {
 	return &Settler{
-		ContractBackend: ContractBackend{client, keystore, account},
+		ContractBackend: backend,
 		adjAddr:         adjAddr,
 	}
 }
