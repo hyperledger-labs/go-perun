@@ -1,3 +1,3 @@
 [submodule "backend/ethereum/contracts"]
 	path = backend/ethereum/contracts
-	url = git@git.cac.informatik.tu-darmstadt.de:perun/adjudicator.git
+	url = https://github.com/perun-network/contracts-eth.git
