@@ -33,8 +33,10 @@ func TestListener_Accept_Put(t *testing.T) {
 	t.Parallel()
 
 	l := NewListener()
-	t.Run("accept", func(t *testing.T) {
-		t.Parallel()
+	done := make(chan struct{})
+	go func() {
+		defer close(done)
+
 		test.AssertTerminates(t, timeout, func() {
 			conn, err := l.Accept()
 			assert.NoError(t, err, "Accept must not fail")
@@ -43,13 +45,14 @@ func TestListener_Accept_Put(t *testing.T) {
 			assert.Equal(t, 1, l.NumAccepted(),
 				"Accept must track accepted connections")
 		})
+	}()
+
+	test.AssertTerminates(t, timeout, func() {
+		assert.True(t, l.Put(context.Background(), connection))
 	})
-	t.Run("put", func(t *testing.T) {
-		t.Parallel()
-		test.AssertTerminates(t, timeout, func() {
-			assert.True(t, l.Put(context.Background(), connection))
-		})
-	})
+	// there is no select with `time.After()` branch here because the goroutine
+	// calls `test.AssertTerminates`
+	<-done
 }
 
 func TestListener_Accept_Close(t *testing.T) {
