@@ -14,6 +14,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
+	"perun.network/go-perun/apps/payment"
 	"perun.network/go-perun/channel"
 	"perun.network/go-perun/client"
 	wallettest "perun.network/go-perun/wallet/test"
@@ -53,8 +54,8 @@ func (r *Alice) Execute(cfg ExecConfig) {
 		ChallengeDuration: 10,           // 10 sec
 		Nonce:             new(big.Int), // nonce 0
 		Account:           wallettest.NewRandomAccount(r.rng),
-		AppDef:            cfg.AppDef,
-		InitData:          channel.NewMockOp(channel.OpValid),
+		AppDef:            payment.AppDef(),
+		InitData:          new(payment.NoData),
 		InitBals:          initBals,
 		PeerAddrs:         cfg.PeerAddrs,
 	}
