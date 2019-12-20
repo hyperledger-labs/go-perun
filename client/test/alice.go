@@ -29,7 +29,7 @@ func NewAlice(setup RoleSetup, t *testing.T) *Alice {
 	rng := rand.New(rand.NewSource(0x471CE))
 	propHandler := newAcceptAllPropHandler(rng, setup.Timeout)
 	role := &Alice{
-		Role: MakeRole(setup, propHandler, t),
+		Role: MakeRole(setup, propHandler, t, 4),
 		rng:  rng,
 	}
 
@@ -40,8 +40,6 @@ func NewAlice(setup RoleSetup, t *testing.T) *Alice {
 func (r *Alice) Execute(cfg ExecConfig) {
 	assert := assert.New(r.t)
 	// We don't start the proposal listener because Alice only receives proposals
-
-	r.addClose()
 
 	initBals := &channel.Allocation{
 		Assets: []channel.Asset{cfg.Asset},
@@ -86,16 +84,22 @@ func (r *Alice) Execute(cfg ExecConfig) {
 		r.log.Debug("Waiting for update listener to return...")
 		<-listenUpDone
 	}()
+	// 1st stage - channel controller set up
+	r.waitStage()
 
 	// 1st Alice receives some updates from Bob
 	for i := 0; i < cfg.NumUpdatesBob; i++ {
 		ch.recvTransfer(cfg.TxAmountBob, fmt.Sprintf("Bob#%d", i))
 	}
+	// 2nd stage
+	r.waitStage()
 
 	// 2nd Alice sends some updates to Bob
 	for i := 0; i < cfg.NumUpdatesAlice; i++ {
 		ch.sendTransfer(cfg.TxAmountAlice, fmt.Sprintf("Alice#%d", i))
 	}
+	// 3rd stage
+	r.waitStage()
 
 	// 3rd Alice receives final state from Bob
 	ch.recvFinal()
@@ -103,8 +107,9 @@ func (r *Alice) Execute(cfg ExecConfig) {
 	// 4th Settle channel
 	ch.settleChan()
 
-	// finally, close the channel and client
-	r.waitClose()
+	// 4th final stage
+	r.waitStage()
+
 	assert.NoError(ch.Close())
 	assert.NoError(r.Close())
 }

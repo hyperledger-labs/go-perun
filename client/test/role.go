@@ -27,10 +27,11 @@ type (
 		*client.Client
 		setup RoleSetup
 		// we use the Client as Closer
-		timeout      time.Duration
-		log          log.Logger
-		t            *testing.T
-		closeBarrier *sync.WaitGroup // synchronizes all participants before closing
+		timeout   time.Duration
+		log       log.Logger
+		t         *testing.T
+		numStages int
+		stages    Stages
 	}
 
 	// RoleSetup contains the injectables for setting up the client
@@ -53,37 +54,55 @@ type (
 		TxAmountBob     *big.Int       // amount that Bob sends per udpate
 		TxAmountAlice   *big.Int       // amount that Alice sends per udpate
 	}
+
+	Stages = []sync.WaitGroup
 )
 
 // NewRole creates a client for the given setup and wraps it into a Role.
-func MakeRole(setup RoleSetup, propHandler client.ProposalHandler, t *testing.T) Role {
+func MakeRole(setup RoleSetup, propHandler client.ProposalHandler, t *testing.T, numStages int) Role {
 	cl := client.New(setup.Identity, setup.Dialer, propHandler, setup.Funder, setup.Settler)
 	return Role{
-		Client:  cl,
-		setup:   setup,
-		timeout: setup.Timeout,
-		log:     cl.Log().WithField("role", setup.Name),
-		t:       t,
+		Client:    cl,
+		setup:     setup,
+		timeout:   setup.Timeout,
+		log:       cl.Log().WithField("role", setup.Name),
+		t:         t,
+		numStages: numStages,
 	}
 }
 
-// SetCloseBarrier optionally sets a WaitGroup barrier so that all roles can
-// synchronize before closing their channels and clients.
-// The WaitGroup should be in its initial state, without any Add() calls.
-func (r *Role) SetCloseBarrier(wg *sync.WaitGroup) {
-	r.closeBarrier = wg
+// EnableStages optionally enables the synchronization of this role at different
+// stages of the Execute protocol. EnableStages should be called on a single
+// role and the resulting slice set on all remaining roles by calling SetStages
+// on them.
+func (r *Role) EnableStages() Stages {
+	r.stages = make(Stages, r.numStages)
+	for i := range r.stages {
+		r.stages[i].Add(1)
+	}
+	return r.stages
 }
 
-func (r *Role) addClose() {
-	if r.closeBarrier != nil {
-		r.closeBarrier.Add(1)
+// SetStages optionally sets a slice of WaitGroup barriers to wait on at
+// different stages of the Execute protocol. It should be created by any role by
+// calling EnableStages().
+func (r *Role) SetStages(st Stages) {
+	if len(st) != r.numStages {
+		panic("number of stages don't match")
+	}
+
+	r.stages = st
+	for i := range r.stages {
+		r.stages[i].Add(1)
 	}
 }
 
-func (r *Role) waitClose() {
-	if r.closeBarrier != nil {
-		r.closeBarrier.Done()
-		r.closeBarrier.Wait()
+func (r *Role) waitStage() {
+	if r.stages != nil {
+		r.numStages--
+		stage := &r.stages[r.numStages]
+		stage.Done()
+		stage.Wait()
 	}
 }
 
