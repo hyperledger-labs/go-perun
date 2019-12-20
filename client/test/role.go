@@ -18,7 +18,6 @@ import (
 	"perun.network/go-perun/client"
 	"perun.network/go-perun/log"
 	"perun.network/go-perun/peer"
-	"perun.network/go-perun/wallet"
 	wallettest "perun.network/go-perun/wallet/test"
 )
 
@@ -49,7 +48,6 @@ type (
 		PeerAddrs       []peer.Address // must match RoleSetup.Identity of [Alice, Bob]
 		Asset           channel.Asset  // single Asset to use in this channel
 		InitBals        []*big.Int     // channel deposit of [Alice, Bob]
-		AppDef          wallet.Address // AppDef of channel
 		NumUpdatesBob   int            // 1st Bob sends updates
 		NumUpdatesAlice int            // then 2nd Alice sends updates
 		TxAmountBob     *big.Int       // amount that Bob sends per udpate

@@ -30,6 +30,7 @@ var defaultTimeout = 1 * time.Second
 func TestHappyAliceBob(t *testing.T) {
 	log.Info("Starting happy test")
 	rng := rand.New(rand.NewSource(0x1337))
+
 	var hub peertest.ConnHub
 
 	aliceAcc := wallettest.NewRandomAccount(rng)
@@ -59,7 +60,6 @@ func TestHappyAliceBob(t *testing.T) {
 		PeerAddrs:       []peer.Address{aliceAcc.Address(), bobAcc.Address()},
 		Asset:           channeltest.NewRandomAsset(rng),
 		InitBals:        []*big.Int{big.NewInt(100), big.NewInt(100)},
-		AppDef:          wallettest.NewRandomAddress(rng),
 		NumUpdatesBob:   2,
 		NumUpdatesAlice: 2,
 		TxAmountBob:     big.NewInt(5),
