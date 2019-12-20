@@ -72,7 +72,8 @@ func TestFunder_Fund_multi(t *testing.T) {
 	t.Run("1-party funding", func(t *testing.T) { testFunderFunding(t, 1) })
 	t.Run("2-party funding", func(t *testing.T) { testFunderFunding(t, 2) })
 	t.Run("3-party funding", func(t *testing.T) { testFunderFunding(t, 3) })
-	t.Run("10-party funding", func(t *testing.T) { testFunderFunding(t, 10) })
+	// TODO investigate unstable test #260
+	//t.Run("10-party funding", func(t *testing.T) { testFunderFunding(t, 10) })
 }
 
 func testFunderFunding(t *testing.T, n int) {
