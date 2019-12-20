@@ -136,15 +136,17 @@ func TestAssetSerialization(t *testing.T) {
 	rng := rand.New(rand.NewSource(1337))
 	var asset Asset = ethwallettest.NewRandomAddress(rng)
 	reader, writer := io.Pipe()
-	t.Run("asset encoding", func(t *testing.T) {
-		t.Parallel()
+	done := make(chan struct{})
+
+	go func() {
+		defer close(done)
 		assert.NoError(t, asset.Encode(writer))
-	})
-	t.Run("asset decoding", func(t *testing.T) {
-		t.Parallel()
-		asset2, err := DecodeAsset(reader)
-		assert.NoError(t, err, "Decode asset should not produce error")
-		assert.Equal(t, &asset, asset2, "Decode asset should return the initial asset")
-	})
+	}()
+
+	asset2, err := DecodeAsset(reader)
+	assert.NoError(t, err, "Decode asset should not produce error")
+	assert.Equal(t, &asset, asset2, "Decode asset should return the initial asset")
+	<-done
+
 	serializabletest.GenericSerializableTest(t, &asset)
 }
