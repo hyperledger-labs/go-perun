@@ -86,7 +86,6 @@ func TestHappyAliceBobETH(t *testing.T) {
 		PeerAddrs:       []peer.Address{aliceAcc.Address(), bobAcc.Address()},
 		InitBals:        []*big.Int{big.NewInt(100), big.NewInt(100)},
 		Asset:           &wallet.Address{Address: assetAddr},
-		AppDef:          &wallet.Address{Address: assetAddr},
 		NumUpdatesBob:   2,
 		NumUpdatesAlice: 2,
 		TxAmountBob:     big.NewInt(5),
