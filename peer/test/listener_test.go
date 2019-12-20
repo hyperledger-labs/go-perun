@@ -47,9 +47,10 @@ func TestListener_Accept_Put(t *testing.T) {
 		})
 	}()
 
-	test.AssertTerminates(t, timeout, func() {
-		assert.True(t, l.Put(context.Background(), connection))
-	})
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	defer cancel()
+
+	assert.True(t, l.Put(ctx, connection))
 	// there is no select with `time.After()` branch here because the goroutine
 	// calls `test.AssertTerminates`
 	<-done
