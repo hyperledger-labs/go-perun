@@ -61,7 +61,7 @@ func TestTerminates(t *testing.T) {
 
 func TestAssertTerminatesCtx(t *testing.T) {
 	t.Run("error case", func(t *testing.T) {
-		NewTester(t).AssertError(func(t T) {
+		AssertError(t, func(t T) {
 			ctx, cancel := context.WithCancel(context.Background())
 			cancel()
 			AssertTerminatesCtx(ctx, t, func() {})
@@ -81,7 +81,7 @@ func TestAssertNotTerminatesCtx(t *testing.T) {
 	})
 
 	t.Run("error case", func(t *testing.T) {
-		NewTester(t).AssertError(func(t T) {
+		AssertError(t, func(t T) {
 			AssertNotTerminatesCtx(context.Background(), t, func() {})
 		})
 	})
@@ -89,7 +89,7 @@ func TestAssertNotTerminatesCtx(t *testing.T) {
 
 func TestAssertTerminates(t *testing.T) {
 	t.Run("error case", func(t *testing.T) {
-		NewTester(t).AssertError(func(t T) {
+		AssertError(t, func(t T) {
 			AssertTerminates(t, -1, func() {})
 		})
 	})
@@ -105,7 +105,7 @@ func TestAssertNotTerminates(t *testing.T) {
 	})
 
 	t.Run("error case", func(t *testing.T) {
-		NewTester(t).AssertError(func(t T) {
+		AssertError(t, func(t T) {
 			AssertNotTerminates(t, timeout, func() {})
 		})
 	})
