@@ -37,9 +37,9 @@ func TestEncodeDecodeString(t *testing.T) {
 
 			var d string
 			assert.NoError(decodeString(r, &d))
+			r.Close()
 			assert.Equal(s, d)
 			<-done
-			r.Close()
 		}
 	})
 
