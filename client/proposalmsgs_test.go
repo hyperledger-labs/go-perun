@@ -14,6 +14,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"perun.network/go-perun/channel"
 	"perun.network/go-perun/channel/test"
 	"perun.network/go-perun/client"
 	"perun.network/go-perun/pkg/io"
@@ -56,19 +57,15 @@ func TestChannelProposalReqDecode_CheckMaxNumParts(t *testing.T) {
 	require.NoError(
 		io.Encode(buffer, c.ParticipantAddr, c.AppDef, c.InitData, c.InitBals))
 
-	numParts := int32((1 << 16) - 1)
+	numParts := int32(channel.MaxNumParts + 1)
 	require.NoError(wire.Encode(buffer, numParts))
 
 	for i := 0; i < int(numParts); i++ {
-		// the bytes encode two big integers with one byte each
-		bytes := []byte{0x1, 0x70, 0x1, 0xe}
-
-		_, err := buffer.Write(bytes)
-		require.NoError(err)
+		require.NoError(wallettest.NewRandomAddress(rng).Encode(buffer))
 	}
 	// end of ChannelProposalReq.Encode clone
 
-	d := newRandomChannelProposalReq(rng)
+	var d client.ChannelProposalReq
 	err := d.Decode(buffer)
 	require.Error(err)
 	assert.Contains(err.Error(), "participants")
