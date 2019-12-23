@@ -6,16 +6,20 @@
 package client_test
 
 import (
+	"bytes"
 	"math/big"
 	"math/rand"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	"perun.network/go-perun/channel/test"
 	"perun.network/go-perun/client"
+	"perun.network/go-perun/pkg/io"
 	"perun.network/go-perun/wallet"
 	wallettest "perun.network/go-perun/wallet/test"
+	"perun.network/go-perun/wire"
 	"perun.network/go-perun/wire/msg"
 )
 
@@ -36,6 +40,38 @@ func TestChannelProposalReqSerialization(t *testing.T) {
 		}
 		msg.TestMsg(t, m)
 	}
+}
+
+func TestChannelProposalReqDecode_CheckMaxNumParts(t *testing.T) {
+	require := require.New(t)
+	assert := assert.New(t)
+
+	rng := rand.New(rand.NewSource(20191223))
+	c := newRandomChannelProposalReq(rng)
+	buffer := new(bytes.Buffer)
+
+	// reimplementation of ChannelProposalReq.Encode modified to create the
+	// maximum number of participants possible with the encoding
+	require.NoError(wire.Encode(buffer, c.ChallengeDuration, c.Nonce))
+	require.NoError(
+		io.Encode(buffer, c.ParticipantAddr, c.AppDef, c.InitData, c.InitBals))
+
+	numParts := int32((1 << 16) - 1)
+	require.NoError(wire.Encode(buffer, numParts))
+
+	for i := 0; i < int(numParts); i++ {
+		// the bytes encode two big integers with one byte each
+		bytes := []byte{0x1, 0x70, 0x1, 0xe}
+
+		_, err := buffer.Write(bytes)
+		require.NoError(err)
+	}
+	// end of ChannelProposalReq.Encode clone
+
+	d := newRandomChannelProposalReq(rng)
+	err := d.Decode(buffer)
+	require.Error(err)
+	assert.Contains(err.Error(), "participants")
 }
 
 func TestChannelProposalReqSessID(t *testing.T) {
