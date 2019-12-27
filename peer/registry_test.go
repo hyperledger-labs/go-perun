@@ -342,6 +342,7 @@ func TestRegistry_Listen(t *testing.T) {
 // TestRegistry_addPeer tests that addPeer() calls the Registry's subscription
 // function. Other aspects of the function are already tested in other tests.
 func TestRegistry_addPeer_Subscribe(t *testing.T) {
+	t.Parallel()
 	rng := rand.New(rand.NewSource(0xDDDDDeDe))
 	called := false
 	r := NewRegistry(wallettest.NewRandomAccount(rng), func(*Peer) { called = true }, nil)
