@@ -72,8 +72,7 @@ func TestFunder_Fund_multi(t *testing.T) {
 	t.Run("1-party funding", func(t *testing.T) { testFunderFunding(t, 1) })
 	t.Run("2-party funding", func(t *testing.T) { testFunderFunding(t, 2) })
 	t.Run("3-party funding", func(t *testing.T) { testFunderFunding(t, 3) })
-	// TODO investigate unstable test #260
-	//t.Run("10-party funding", func(t *testing.T) { testFunderFunding(t, 10) })
+	t.Run("10-party funding", func(t *testing.T) { testFunderFunding(t, 10) })
 }
 
 func testFunderFunding(t *testing.T, n int) {
@@ -81,7 +80,8 @@ func testFunderFunding(t *testing.T, n int) {
 	defer cancel()
 	simBackend := test.NewSimulatedBackend()
 	// Need unique seed per run.
-	seed := int64(1337 + n)
+	seed := time.Now().UnixNano()
+	t.Logf("seed is %d", seed)
 	rng := rand.New(rand.NewSource(seed))
 	ks := ethwallettest.GetKeystore()
 	deployAccount := wallettest.NewRandomAccount(rng).(*wallet.Account).Account
@@ -92,7 +92,7 @@ func testFunderFunding(t *testing.T, n int) {
 	if err != nil {
 		panic(err)
 	}
-	t.Log(assetETH.String())
+	t.Logf("asset holder address is %v", assetETH)
 	parts := make([]perunwallet.Address, n)
 	funders := make([]*Funder, n)
 	for i := 0; i < n; i++ {
@@ -108,8 +108,10 @@ func testFunderFunding(t *testing.T, n int) {
 	var wg sync.WaitGroup
 	wg.Add(n)
 	for i, funder := range funders {
+		sleepTime := time.Duration(rng.Int63n(10) + 1)
 		go func(i int, funder *Funder) {
 			defer wg.Done()
+			time.Sleep(sleepTime * time.Millisecond)
 			req := channel.FundingReq{
 				Params:     params,
 				Allocation: allocation,
