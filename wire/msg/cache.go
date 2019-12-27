@@ -83,7 +83,7 @@ func (c *Cache) Get(p Predicate) []MsgAnnex {
 	return matches
 }
 
-// Flush empties the message cache. Predicates are retained.
+// Flush empties the message cache and removes all predicates.
 func (c *Cache) Flush() {
 	c.msgs = nil
 	c.preds = nil
