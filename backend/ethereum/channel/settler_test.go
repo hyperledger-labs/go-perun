@@ -11,6 +11,7 @@ import (
 	"math/rand"
 	"sync"
 	"testing"
+	"time"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/stretchr/testify/assert"
@@ -27,13 +28,15 @@ func TestSettler_MultipleSettles(t *testing.T) {
 	t.Run("Settle 1 party parallel", func(t *testing.T) { settleMultipleConcurrent(t, 1, true) })
 	t.Run("Settle 2 party parallel", func(t *testing.T) { settleMultipleConcurrent(t, 2, true) })
 	t.Run("Settle 5 party parallel", func(t *testing.T) { settleMultipleConcurrent(t, 5, true) })
+	t.Run("Settle 10 party parallel", func(t *testing.T) { settleMultipleConcurrent(t, 10, true) })
 	t.Run("Settle 1 party sequential", func(t *testing.T) { settleMultipleConcurrent(t, 1, false) })
 	t.Run("Settle 2 party sequential", func(t *testing.T) { settleMultipleConcurrent(t, 2, false) })
 	t.Run("Settle 5 party sequential", func(t *testing.T) { settleMultipleConcurrent(t, 5, false) })
 }
 
 func settleMultipleConcurrent(t *testing.T, numParts int, parallel bool) {
-	seed := 1337 * numParts
+	seed := time.Now().UnixNano()
+	t.Logf("seed is %v", seed)
 	if parallel {
 		seed++
 	}
@@ -43,15 +46,20 @@ func settleMultipleConcurrent(t *testing.T, numParts int, parallel bool) {
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 	if parallel {
+		startBarrier := make(chan struct{})
 		var wg sync.WaitGroup
 		wg.Add(numParts)
 		for i := 0; i < numParts; i++ {
+			sleepDuration := time.Duration(rng.Int63n(10)+1) * time.Millisecond
 			go func(i int) {
 				defer wg.Done()
+				<-startBarrier
+				time.Sleep(sleepDuration)
 				err := settler.Settle(ctx, req, accounts[i])
 				assert.NoError(t, err, "Settling should succeed")
 			}(i)
 		}
+		close(startBarrier)
 		wg.Wait()
 	} else {
 		for i := 0; i < numParts; i++ {
