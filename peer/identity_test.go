@@ -50,16 +50,14 @@ func TestExchangeAddrs_Success(t *testing.T) {
 	var wg sync.WaitGroup
 	wg.Add(1)
 
-	t.Run("remote part", func(t *testing.T) {
-		go func() {
-			defer wg.Done()
-			defer conn1.Close()
+	go func() {
+		defer wg.Done()
+		defer conn1.Close()
 
-			recvAddr0, err := ExchangeAddrs(context.Background(), account1, conn1)
-			assert.NoError(t, err)
-			assert.True(t, recvAddr0.Equals(account0.Address()))
-		}()
-	})
+		recvAddr0, err := ExchangeAddrs(context.Background(), account1, conn1)
+		assert.NoError(t, err)
+		assert.True(t, recvAddr0.Equals(account0.Address()))
+	}()
 
 	recvAddr1, err := ExchangeAddrs(context.Background(), account0, conn0)
 	assert.NoError(t, err)

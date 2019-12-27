@@ -25,6 +25,7 @@ var timeout = 100 * time.Millisecond
 
 // Two nodes (1 dialer, 1 listener node) .Get() each other.
 func TestRegistry_Get_Pair(t *testing.T) {
+	t.Parallel()
 	assert, require := assert.New(t), require.New(t)
 	rng := rand.New(rand.NewSource(3))
 	var hub peertest.ConnHub
@@ -64,6 +65,7 @@ func TestRegistry_Get_Pair(t *testing.T) {
 
 // Tests that calling .Get() concurrently on the same peer works properly.
 func TestRegistry_Get_Multiple(t *testing.T) {
+	t.Parallel()
 	assert, require := assert.New(t), require.New(t)
 	rng := rand.New(rand.NewSource(3))
 	var hub peertest.ConnHub

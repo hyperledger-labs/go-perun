@@ -133,6 +133,7 @@ func TestPeer_Send_ImmediateAbort(t *testing.T) {
 }
 
 func TestPeer_Send_Timeout(t *testing.T) {
+	t.Parallel()
 	conn, _ := newPipeConnPair()
 	p := newPeer(nil, conn, nil)
 
@@ -145,6 +146,7 @@ func TestPeer_Send_Timeout(t *testing.T) {
 }
 
 func TestPeer_Send_Timeout_Mutex_TryLockCtx(t *testing.T) {
+	t.Parallel()
 	conn, remote := newPipeConnPair()
 	p := newPeer(nil, conn, nil)
 
@@ -159,6 +161,7 @@ func TestPeer_Send_Timeout_Mutex_TryLockCtx(t *testing.T) {
 }
 
 func TestPeer_Send_Close(t *testing.T) {
+	t.Parallel()
 	conn, _ := newPipeConnPair()
 	p := newPeer(nil, conn, nil)
 
@@ -171,6 +174,7 @@ func TestPeer_Send_Close(t *testing.T) {
 }
 
 func TestPeer_IsClosed(t *testing.T) {
+	t.Parallel()
 	s := makeSetup(t)
 	assert.False(t, s.alice.peer.IsClosed(), "fresh peer must be open")
 	assert.NoError(t, s.alice.peer.Close(), "closing must succeed")
@@ -178,6 +182,7 @@ func TestPeer_IsClosed(t *testing.T) {
 }
 
 func TestPeer_create(t *testing.T) {
+	t.Parallel()
 	p := newPeer(nil, nil, nil)
 	assert.False(t, p.exists(), "peer must not yet exist")
 
@@ -198,6 +203,7 @@ func TestPeer_create(t *testing.T) {
 // TestPeer_ClosedByRecvLoopOnConnClose is a regression test for
 // #181 `peer.Peer` does not handle connection termination properly
 func TestPeer_ClosedByRecvLoopOnConnClose(t *testing.T) {
+	t.Parallel()
 	eofReceived := make(chan struct{})
 	onCloseCalled := make(chan struct{})
 
@@ -227,6 +233,7 @@ func TestPeer_ClosedByRecvLoopOnConnClose(t *testing.T) {
 }
 
 func TestPeer_WaitExists_Timeout(t *testing.T) {
+	t.Parallel()
 	p := newPeer(nil, nil, nil)
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
@@ -234,6 +241,7 @@ func TestPeer_WaitExists_Timeout(t *testing.T) {
 }
 
 func TestPeer_WaitExists_2nd_Close(t *testing.T) {
+	t.Parallel()
 	p := newPeer(nil, nil, nil)
 	go func() {
 		<-time.After(timeout)
