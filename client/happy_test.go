@@ -68,10 +68,9 @@ func TestHappyAliceBob(t *testing.T) {
 
 	alice := clienttest.NewAlice(setupAlice, t)
 	bob := clienttest.NewBob(setupBob, t)
-	// enable close barrier synchronization
-	var closeBarrier sync.WaitGroup
-	alice.SetCloseBarrier(&closeBarrier)
-	bob.SetCloseBarrier(&closeBarrier)
+	// enable stages synchronization
+	stages := alice.EnableStages()
+	bob.SetStages(stages)
 
 	var wg sync.WaitGroup
 	wg.Add(2)

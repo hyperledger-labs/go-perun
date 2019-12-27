@@ -24,7 +24,7 @@ func NewBob(setup RoleSetup, t *testing.T) *Bob {
 	rng := rand.New(rand.NewSource(0xB0B))
 	propHandler := newAcceptAllPropHandler(rng, setup.Timeout)
 	role := &Bob{
-		Role:        MakeRole(setup, propHandler, t),
+		Role:        MakeRole(setup, propHandler, t, 4),
 		propHandler: propHandler,
 	}
 
@@ -35,7 +35,6 @@ func NewBob(setup RoleSetup, t *testing.T) *Bob {
 func (r *Bob) Execute(cfg ExecConfig) {
 	assert := assert.New(r.t)
 
-	r.addClose()
 	var listenWg sync.WaitGroup
 	listenWg.Add(2)
 	go func() {
@@ -71,16 +70,22 @@ func (r *Bob) Execute(cfg ExecConfig) {
 		r.log.Debug("Waiting for listeners to return...")
 		listenWg.Wait()
 	}()
+	// 1st stage - channel controller set up
+	r.waitStage()
 
 	// 1st Bob sends some updates to Alice
 	for i := 0; i < cfg.NumUpdatesBob; i++ {
 		ch.sendTransfer(cfg.TxAmountBob, fmt.Sprintf("Bob#%d", i))
 	}
+	// 2nd stage
+	r.waitStage()
 
 	// 2nd Bob receives some updates from Alice
 	for i := 0; i < cfg.NumUpdatesAlice; i++ {
 		ch.recvTransfer(cfg.TxAmountAlice, fmt.Sprintf("Alice#%d", i))
 	}
+	// 3rd stage
+	r.waitStage()
 
 	// 3rd Bob sends a final state
 	ch.sendFinal()
@@ -88,8 +93,9 @@ func (r *Bob) Execute(cfg ExecConfig) {
 	// 4th Settle channel
 	ch.settleChan()
 
-	// finally, close the channel and client
-	r.waitClose()
+	// 4th final stage
+	r.waitStage()
+
 	assert.NoError(ch.Close())
 	assert.NoError(r.Close())
 }
