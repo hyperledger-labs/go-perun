@@ -96,11 +96,17 @@ func (c *Channel) Params() *channel.Params {
 // State returns the current state.
 // Clone it if you want to modify it.
 func (c *Channel) State() *channel.State {
+	c.machMtx.RLock()
+	defer c.machMtx.RUnlock()
+
 	return c.machine.State()
 }
 
 // Phase returns the current phase of the channel state machine.
 func (c *Channel) Phase() channel.Phase {
+	c.machMtx.RLock()
+	defer c.machMtx.RUnlock()
+
 	return c.machine.Phase()
 }
 
