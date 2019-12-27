@@ -150,6 +150,11 @@ func (c *ChannelProposalReq) Decode(r io.Reader) (err error) {
 		return errors.Errorf(
 			"expected at least 2 participants, got %d", numParts)
 	}
+	if numParts > channel.MaxNumParts {
+		return errors.Errorf(
+			"expected at most %d participants, got %d",
+			channel.MaxNumParts, numParts)
+	}
 
 	c.PeerAddrs = make([]wallet.Address, numParts)
 	for i := 0; i < len(c.PeerAddrs); i++ {
