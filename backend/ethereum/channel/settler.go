@@ -64,10 +64,16 @@ func (s *Settler) Settle(ctx context.Context, req channel.SettleReq, acc perunwa
 
 func (s *Settler) cooperativeSettle(ctx context.Context, req channel.SettleReq) error {
 	// Listen for blockchain events.
-	confirmation := make(chan error)
-	go func() {
-		confirmation <- s.waitForSettlingConfirmation(ctx, req.Params.ID())
-	}()
+	watchOpts, err := s.newWatchOpts(ctx)
+	if err != nil {
+		return errors.WithMessage(err, "creating watchOpts")
+	}
+	concluded := make(chan *adjudicator.AdjudicatorFinalConcluded)
+	sub, err := s.adjInstance.WatchFinalConcluded(watchOpts, concluded, [][32]byte{req.Params.ID()})
+	if err != nil {
+		return errors.Wrap(err, "WatchFinalConcluded failed")
+	}
+	defer sub.Unsubscribe()
 
 	if err := s.filterOldConfirmations(ctx, req.Params.ID()); err != errConcludedNotFound {
 		// err might be nil, which is fine
@@ -81,9 +87,17 @@ func (s *Settler) cooperativeSettle(ctx context.Context, req channel.SettleReq) 
 	if err := execSuccessful(ctx, s.ContractBackend, tx); err != nil {
 		log.Warnf("transaction failed: %v", err)
 	} else {
-		log.Debug("Transaction mined successful")
+		log.Debug("Transaction mined successfully")
 	}
-	return <-confirmation
+
+	select {
+	case <-concluded:
+		return nil
+	case <-ctx.Done():
+		return errors.Wrap(ctx.Err(), "Waiting for final concluded event cancelled by context")
+	case err = <-sub.Err():
+		return errors.Wrap(err, "Error while waiting for events")
+	}
 }
 
 func (s *Settler) uncooperativeSettle(ctx context.Context, req channel.SettleReq) error {
@@ -122,28 +136,6 @@ func (s *Settler) filterOldConfirmations(ctx context.Context, channelID channel.
 	}
 	// Event found, return nil
 	return nil
-}
-
-func (s *Settler) waitForSettlingConfirmation(ctx context.Context, channelID channel.ID) error {
-	watchOpts, err := s.newWatchOpts(ctx)
-	if err != nil {
-		return errors.WithMessage(err, "creating watchOpts")
-	}
-	concluded := make(chan *adjudicator.AdjudicatorFinalConcluded)
-	sub, err := s.adjInstance.WatchFinalConcluded(watchOpts, concluded, [][32]byte{channelID})
-	if err != nil {
-		return errors.Wrap(err, "WatchFinalConcluded failed")
-	}
-	defer sub.Unsubscribe()
-
-	select {
-	case <-concluded:
-		return nil
-	case <-ctx.Done():
-		return errors.Wrap(ctx.Err(), "Waiting for final concluded event cancelled by context")
-	case err = <-sub.Err():
-		return errors.Wrap(err, "Error while waiting for events")
-	}
 }
 
 // checkAdjInstance checks if the adjudicator instance is set.
