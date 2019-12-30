@@ -65,16 +65,11 @@ func (s *Settler) Settle(ctx context.Context, req channel.SettleReq, acc perunwa
 func (s *Settler) cooperativeSettle(ctx context.Context, req channel.SettleReq) error {
 	// Listen for blockchain events.
 	confirmation := make(chan error)
-	pastEvents := make(chan error)
 	go func() {
 		confirmation <- s.waitForSettlingConfirmation(ctx, req.Params.ID())
 	}()
 
-	go func() {
-		pastEvents <- s.filterOldConfirmations(ctx, req.Params.ID())
-	}()
-
-	if err := <-pastEvents; err != errConcludedNotFound {
+	if err := s.filterOldConfirmations(ctx, req.Params.ID()); err != errConcludedNotFound {
 		// err might be nil, which is fine
 		return errors.WithMessage(err, "filtering old Concluded events")
 	}
