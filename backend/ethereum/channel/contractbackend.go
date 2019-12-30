@@ -27,7 +27,7 @@ import (
 const startBlockOffset = 100
 
 // GasLimit is the max amount of gas we want to send per transaction.
-const GasLimit = 200000
+const GasLimit = 500000
 
 // ContractInterface provides all functions needed by an ethereum backend.
 // Both test.SimulatedBackend and ethclient.Client implement this interface.

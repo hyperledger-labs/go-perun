@@ -20,7 +20,7 @@ import (
 )
 
 // GasLimit is the max amount of gas we want to send per transaction.
-const GasLimit = 200000
+const GasLimit = 500000
 
 // SimulatedBackend provides a simulated ethereum blockchain for tests.
 type SimulatedBackend struct {
