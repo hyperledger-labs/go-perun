@@ -24,6 +24,21 @@ import (
 	wallettest "perun.network/go-perun/wallet/test"
 )
 
+// TestSettler_CheckGasLimit runs settling with a given number of participants
+// to ensure that the gas limit is sufficiently high for otherwise transactions
+// will fail. The Ethereum back-end does not return meaningful error messages
+// for failed transactions, making a diagnosis of the problem laborious.
+func TestSettler_CheckGasLimit(t *testing.T) {
+	numParts := 10
+	rng := rand.New(rand.NewSource(20191230))
+	settler, req, accounts := newSettlerAndRequest(t, rng, numParts, true)
+
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	defer cancel()
+	err := settler.Settle(ctx, req, accounts[0])
+	assert.NoError(t, err, "Settling should succeed")
+}
+
 func TestSettler_MultipleSettles(t *testing.T) {
 	t.Run("Settle 1 party parallel", func(t *testing.T) { settleMultipleConcurrent(t, 1, true) })
 	t.Run("Settle 2 party parallel", func(t *testing.T) { settleMultipleConcurrent(t, 2, true) })
