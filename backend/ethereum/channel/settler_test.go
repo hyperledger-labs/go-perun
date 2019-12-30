@@ -119,7 +119,7 @@ func newSettlerAndRequest(t *testing.T, rng *rand.Rand, numParts int, final bool
 		accounts[i] = acc
 		parts[i] = acc.Address()
 	}
-	params := channel.NewParamsUnsafe(uint64(0), parts, app.Def(), big.NewInt(rng.Int63()))
+	params := channel.NewParamsUnsafe(uint64(1), parts, app.Def(), big.NewInt(rng.Int63()))
 	state := newValidState(rng, params, assetholder)
 	state.IsFinal = final
 	// Sign valid state.
