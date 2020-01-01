@@ -27,8 +27,6 @@ var (
 	// Declaration for abi-encoding.
 	abibytes32, _ = abi.NewType("bytes32", nil)
 	abiaddress, _ = abi.NewType("address", nil)
-	// Error that is returned if an event was not found in the past.
-	errEventNotFound = errors.New("Event not found")
 )
 
 type assetHolder struct {
@@ -144,11 +142,9 @@ func filterOldEvents(ctx context.Context, asset assetHolder, deposited chan *ass
 	if err != nil {
 		return errors.Wrap(err, "filtering deposited events")
 	}
-	if !iter.Next() {
-		// Event not found.
-		return errEventNotFound
+	for iter.Next() {
+		deposited <- iter.Event
 	}
-	deposited <- iter.Event
 	return nil
 }
 
@@ -189,7 +185,7 @@ func (f *Funder) waitForFundingConfirmations(ctx context.Context, request channe
 	// Query old events
 	go func() {
 		for i, c := range contracts {
-			if err := filterOldEvents(ctx, c, deposited, partIDs); err != nil && err != errEventNotFound {
+			if err := filterOldEvents(ctx, c, deposited, partIDs); err != nil {
 				errChan <- errors.WithMessagef(err, "filtering old Deposited events for asset %d", i)
 				return
 			}
