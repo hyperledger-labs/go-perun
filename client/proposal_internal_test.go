@@ -30,10 +30,10 @@ func TestClient_validTwoPartyProposal(t *testing.T) {
 	peerAddr := validProp.PeerAddrs[1]      // peer at 1 as receiver
 	require.False(t, peerAddr.Equals(c.id.Address()))
 	require.Len(t, validProp.PeerAddrs, 2)
+
+	validProp3Peers := *newRandomValidChannelProposalReq(rng, 3)
 	invalidProp := validProp          // shallow copy
 	invalidProp.ChallengeDuration = 0 // invalidate
-	invalidPropLong := validProp      // shallow copy
-	invalidPropLong.PeerAddrs = append(validProp.PeerAddrs, wallettest.NewRandomAddress(rng))
 
 	tests := []struct {
 		prop     *ChannelProposalReq
@@ -45,6 +45,7 @@ func TestClient_validTwoPartyProposal(t *testing.T) {
 			&validProp,
 			0, peerAddr, true,
 		},
+		// test all three invalid combinations of peer address, index
 		{
 			&validProp,
 			1, peerAddr, false, // wrong ourIdx
@@ -54,7 +55,11 @@ func TestClient_validTwoPartyProposal(t *testing.T) {
 			0, c.id.Address(), false, // wrong peerAddr (ours)
 		},
 		{
-			&invalidPropLong, // proposal with too many peers, correct other params
+			&validProp,
+			1, c.id.Address(), false, // wrong index, wrong peer address
+		},
+		{
+			&validProp3Peers, // valid proposal but three peers
 			0, peerAddr, false,
 		},
 		{
