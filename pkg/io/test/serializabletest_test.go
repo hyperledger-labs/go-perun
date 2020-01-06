@@ -28,7 +28,7 @@ func (d *IncompleteRead) Decode(r io.Reader) error {
 	return err
 }
 
-func MaybeTestGenericDecodeEncodeTest_termination_ShouldFail(t *testing.T) {
+func MaybeTestGenericDecodeEncodeTestTerminationShouldFail(t *testing.T) {
 	d := IncompleteRead{[2]byte{1, 2}}
 	genericDecodeEncodeTest(t, &d)
 }

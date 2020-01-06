@@ -49,6 +49,7 @@ func NewRegistry(id Identity, subscribe func(*Peer), dialer Dialer) *Registry {
 	}
 }
 
+// SetExchangeAddrsTimeout atomically sets the timeout for the address exchange.
 func (r *Registry) SetExchangeAddrsTimeout(d time.Duration) {
 	atomic.StoreInt64(&r.exchangeAddrsTimeout, int64(d))
 }
@@ -176,12 +177,11 @@ func (r *Registry) Get(ctx context.Context, addr Address) (*Peer, error) {
 	if p, i := r.find(addr); i != -1 {
 		r.mutex.Unlock()
 		log.Trace("Registry.Get: peer found, waiting for conn...")
-		if p.waitExists(ctx) {
-			log.Trace("Registry.Get: peer connection established")
-			return p, nil
-		} else {
+		if !p.waitExists(ctx) {
 			return nil, errors.New("peer was not created in time")
 		}
+		log.Trace("Registry.Get: peer connection established")
+		return p, nil
 	}
 
 	log.Trace("Registry.Get: peer not found, dialing...")
@@ -216,9 +216,8 @@ func (r *Registry) authenticatedDial(ctx context.Context, peer *Peer, addr Addre
 			peer.Close()
 			if err != nil {
 				return errors.WithMessage(err, "ExchangeAddrs failed")
-			} else {
-				return errors.New("Dialed impersonator")
 			}
+			return errors.New("Dialed impersonator")
 		}
 		return nil
 	}

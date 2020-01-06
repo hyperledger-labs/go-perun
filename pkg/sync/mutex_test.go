@@ -76,17 +76,17 @@ func TestMutex_TryLockCtx_DoneContext(t *testing.T) {
 // properly adhered to.
 func TestMutex_TryLockCtx_WithTimeout(t *testing.T) {
 	t.Parallel()
-	testMutex_TryLockCtx(t, 1, 2, true)
+	testMutexTryLockCtx(t, 1, 2, true)
 }
 
 // TestMutex_TryLockCtx_WithTimeout_Fail tests that TryLockCtx fails if it
 // times out.
 func TestMutex_TryLockCtx_WithTimeout_Fail(t *testing.T) {
 	t.Parallel()
-	testMutex_TryLockCtx(t, 2, 1, false)
+	testMutexTryLockCtx(t, 2, 1, false)
 }
 
-func testMutex_TryLockCtx(
+func testMutexTryLockCtx(
 	t *testing.T,
 	unlockDelay time.Duration,
 	lockTimeout time.Duration,

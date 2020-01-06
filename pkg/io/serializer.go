@@ -19,14 +19,14 @@ type (
 		Decoder
 	}
 
-	// Encoders can encode itself to a stream.
+	// Encoder can encode themselves into a stream.
 	Encoder interface {
 		// Encode writes itself to a stream.
 		// If the stream fails, the underlying error is returned.
 		Encode(io.Writer) error
 	}
 
-	// Decoders can decode itself from a stream.
+	// Decoder can decode themselves from a stream.
 	Decoder interface {
 		// Decode reads an object from a stream.
 		// If the stream fails, the underlying error is returned.
