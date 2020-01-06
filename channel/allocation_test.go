@@ -32,16 +32,16 @@ func TestAllocationSerialization(t *testing.T) {
 	inputs := []perunio.Serializer{
 		&channel.Allocation{
 			Assets:  assets(rng, 1),
-			OfParts: [][]channel.Bal{[]channel.Bal{big.NewInt(123)}},
+			OfParts: [][]channel.Bal{{big.NewInt(123)}},
 			Locked:  []channel.SubAlloc{},
 		},
 		&channel.Allocation{
 			Assets: assets(rng, 1),
 			OfParts: [][]channel.Bal{
-				[]channel.Bal{big.NewInt(1)},
+				{big.NewInt(1)},
 			},
 			Locked: []channel.SubAlloc{
-				channel.SubAlloc{
+				{
 					ID:   channel.ID{0},
 					Bals: []channel.Bal{big.NewInt(2)}},
 			},
@@ -49,11 +49,11 @@ func TestAllocationSerialization(t *testing.T) {
 		&channel.Allocation{
 			Assets: assets(rng, 3),
 			OfParts: [][]channel.Bal{
-				[]channel.Bal{big.NewInt(1), big.NewInt(10), big.NewInt(100)},
-				[]channel.Bal{big.NewInt(7), big.NewInt(11), big.NewInt(13)},
+				{big.NewInt(1), big.NewInt(10), big.NewInt(100)},
+				{big.NewInt(7), big.NewInt(11), big.NewInt(13)},
 			},
 			Locked: []channel.SubAlloc{
-				channel.SubAlloc{
+				{
 					ID: channel.ID{0},
 					Bals: []channel.Bal{
 						big.NewInt(1), big.NewInt(3), big.NewInt(5),
@@ -125,15 +125,15 @@ func TestAllocation_Clone(t *testing.T) {
 	}{
 		{
 			"assets-1,parts-1,locks-nil",
-			channel.Allocation{assets(rng, 1), [][]channel.Bal{[]channel.Bal{big.NewInt(1)}}, nil},
+			channel.Allocation{assets(rng, 1), [][]channel.Bal{{big.NewInt(1)}}, nil},
 		},
 
 		{
 			"assets-1,parts-1,locks",
 			channel.Allocation{
 				assets(rng, 1),
-				[][]channel.Bal{[]channel.Bal{big.NewInt(0)}},
-				[]channel.SubAlloc{channel.SubAlloc{channel.ID{123}, []*big.Int{big.NewInt(0)}}},
+				[][]channel.Bal{{big.NewInt(0)}},
+				[]channel.SubAlloc{{channel.ID{123}, []*big.Int{big.NewInt(0)}}},
 			},
 		},
 
@@ -142,10 +142,10 @@ func TestAllocation_Clone(t *testing.T) {
 			channel.Allocation{
 				assets(rng, 2),
 				[][]channel.Bal{
-					[]channel.Bal{big.NewInt(1), big.NewInt(11)},
-					[]channel.Bal{big.NewInt(2), big.NewInt(2)},
-					[]channel.Bal{big.NewInt(3), big.NewInt(5)},
-					[]channel.Bal{big.NewInt(10), big.NewInt(2)},
+					{big.NewInt(1), big.NewInt(11)},
+					{big.NewInt(2), big.NewInt(2)},
+					{big.NewInt(3), big.NewInt(5)},
+					{big.NewInt(10), big.NewInt(2)},
 				},
 				nil,
 			},
@@ -156,13 +156,13 @@ func TestAllocation_Clone(t *testing.T) {
 			channel.Allocation{
 				assets(rng, 2),
 				[][]channel.Bal{
-					[]channel.Bal{big.NewInt(1), big.NewInt(11)},
-					[]channel.Bal{big.NewInt(2), big.NewInt(2)},
-					[]channel.Bal{big.NewInt(3), big.NewInt(5)},
-					[]channel.Bal{big.NewInt(10), big.NewInt(2)},
+					{big.NewInt(1), big.NewInt(11)},
+					{big.NewInt(2), big.NewInt(2)},
+					{big.NewInt(3), big.NewInt(5)},
+					{big.NewInt(10), big.NewInt(2)},
 				},
 				[]channel.SubAlloc{
-					channel.SubAlloc{channel.ID{1}, []channel.Bal{big.NewInt(1), big.NewInt(2)}},
+					{channel.ID{1}, []channel.Bal{big.NewInt(1), big.NewInt(2)}},
 				},
 			},
 		},
@@ -197,7 +197,7 @@ func TestAllocation_Sum(t *testing.T) {
 			"single asset/one participant",
 			channel.Allocation{
 				Assets:  assets(rng, 1),
-				OfParts: [][]channel.Bal{[]channel.Bal{big.NewInt(1)}},
+				OfParts: [][]channel.Bal{{big.NewInt(1)}},
 			},
 			[]channel.Bal{big.NewInt(1)},
 		},
@@ -206,7 +206,7 @@ func TestAllocation_Sum(t *testing.T) {
 			"single asset/one participant/empty locked slice",
 			channel.Allocation{
 				Assets:  assets(rng, 1),
-				OfParts: [][]channel.Bal{[]channel.Bal{big.NewInt(1)}},
+				OfParts: [][]channel.Bal{{big.NewInt(1)}},
 				Locked:  make([]channel.SubAlloc, 0),
 			},
 			[]channel.Bal{big.NewInt(1)},
@@ -217,9 +217,9 @@ func TestAllocation_Sum(t *testing.T) {
 			channel.Allocation{
 				Assets: assets(rng, 1),
 				OfParts: [][]channel.Bal{
-					[]channel.Bal{big.NewInt(1)},
-					[]channel.Bal{big.NewInt(2)},
-					[]channel.Bal{big.NewInt(4)},
+					{big.NewInt(1)},
+					{big.NewInt(2)},
+					{big.NewInt(4)},
 				},
 			},
 			[]channel.Bal{big.NewInt(7)},
@@ -230,9 +230,9 @@ func TestAllocation_Sum(t *testing.T) {
 			channel.Allocation{
 				Assets: assets(rng, 3),
 				OfParts: [][]channel.Bal{
-					[]channel.Bal{big.NewInt(1), big.NewInt(8), big.NewInt(64)},
-					[]channel.Bal{big.NewInt(2), big.NewInt(16), big.NewInt(128)},
-					[]channel.Bal{big.NewInt(4), big.NewInt(32), big.NewInt(256)},
+					{big.NewInt(1), big.NewInt(8), big.NewInt(64)},
+					{big.NewInt(2), big.NewInt(16), big.NewInt(128)},
+					{big.NewInt(4), big.NewInt(32), big.NewInt(256)},
 				},
 			},
 			[]channel.Bal{big.NewInt(7), big.NewInt(56), big.NewInt(448)},
@@ -243,10 +243,10 @@ func TestAllocation_Sum(t *testing.T) {
 			channel.Allocation{
 				Assets: assets(rng, 1),
 				OfParts: [][]channel.Bal{
-					[]channel.Bal{big.NewInt(1)},
+					{big.NewInt(1)},
 				},
 				Locked: []channel.SubAlloc{
-					channel.SubAlloc{channel.Zero, []channel.Bal{big.NewInt(2)}},
+					{channel.Zero, []channel.Bal{big.NewInt(2)}},
 				},
 			},
 			[]channel.Bal{big.NewInt(3)},
@@ -257,13 +257,13 @@ func TestAllocation_Sum(t *testing.T) {
 			channel.Allocation{
 				Assets: assets(rng, 3),
 				OfParts: [][]channel.Bal{
-					[]channel.Bal{big.NewInt(1), big.NewInt(0x20), big.NewInt(0x400)},
-					[]channel.Bal{big.NewInt(2), big.NewInt(0x40), big.NewInt(0x800)},
+					{big.NewInt(1), big.NewInt(0x20), big.NewInt(0x400)},
+					{big.NewInt(2), big.NewInt(0x40), big.NewInt(0x800)},
 				},
 				Locked: []channel.SubAlloc{
-					channel.SubAlloc{channel.Zero, []channel.Bal{big.NewInt(4), big.NewInt(0x80), big.NewInt(0x1000)}},
-					channel.SubAlloc{channel.Zero, []channel.Bal{big.NewInt(8), big.NewInt(0x100), big.NewInt(0x2000)}},
-					channel.SubAlloc{channel.Zero, []channel.Bal{big.NewInt(0x10), big.NewInt(0x200), big.NewInt(0x4000)}},
+					{channel.Zero, []channel.Bal{big.NewInt(4), big.NewInt(0x80), big.NewInt(0x1000)}},
+					{channel.Zero, []channel.Bal{big.NewInt(8), big.NewInt(0x100), big.NewInt(0x2000)}},
+					{channel.Zero, []channel.Bal{big.NewInt(0x10), big.NewInt(0x200), big.NewInt(0x4000)}},
 				},
 			},
 			[]channel.Bal{big.NewInt(0x1f), big.NewInt(0x3e0), big.NewInt(0x7c00)},
@@ -293,7 +293,7 @@ func TestAllocation_Valid(t *testing.T) {
 			"one participant/no locked valid",
 			channel.Allocation{
 				Assets:  assets(rng, 1),
-				OfParts: [][]channel.Bal{[]channel.Bal{big.NewInt(1)}},
+				OfParts: [][]channel.Bal{{big.NewInt(1)}},
 				Locked:  nil,
 			},
 			true,
@@ -333,8 +333,8 @@ func TestAllocation_Valid(t *testing.T) {
 			channel.Allocation{
 				Assets: assets(rng, 3),
 				OfParts: [][]channel.Bal{
-					[]channel.Bal{big.NewInt(1), big.NewInt(8), big.NewInt(64)},
-					[]channel.Bal{big.NewInt(2), big.NewInt(16)},
+					{big.NewInt(1), big.NewInt(8), big.NewInt(64)},
+					{big.NewInt(2), big.NewInt(16)},
 				},
 			},
 			false,
@@ -345,11 +345,11 @@ func TestAllocation_Valid(t *testing.T) {
 			channel.Allocation{
 				Assets: assets(rng, 3),
 				OfParts: [][]channel.Bal{
-					[]channel.Bal{big.NewInt(1), big.NewInt(8), big.NewInt(64)},
-					[]channel.Bal{big.NewInt(2), big.NewInt(16), big.NewInt(128)},
+					{big.NewInt(1), big.NewInt(8), big.NewInt(64)},
+					{big.NewInt(2), big.NewInt(16), big.NewInt(128)},
 				},
 				Locked: []channel.SubAlloc{
-					channel.SubAlloc{channel.Zero, []channel.Bal{big.NewInt(4)}},
+					{channel.Zero, []channel.Bal{big.NewInt(4)}},
 				},
 			},
 			false,
@@ -360,8 +360,8 @@ func TestAllocation_Valid(t *testing.T) {
 			channel.Allocation{
 				Assets: assets(rng, 3),
 				OfParts: [][]channel.Bal{
-					[]channel.Bal{big.NewInt(1), big.NewInt(8), big.NewInt(64)},
-					[]channel.Bal{big.NewInt(2), big.NewInt(-1), big.NewInt(128)},
+					{big.NewInt(1), big.NewInt(8), big.NewInt(64)},
+					{big.NewInt(2), big.NewInt(-1), big.NewInt(128)},
 				},
 				Locked: nil,
 			},
@@ -373,11 +373,11 @@ func TestAllocation_Valid(t *testing.T) {
 			channel.Allocation{
 				Assets: assets(rng, 2),
 				OfParts: [][]channel.Bal{
-					[]channel.Bal{big.NewInt(1), big.NewInt(8)},
-					[]channel.Bal{big.NewInt(2), big.NewInt(16)},
+					{big.NewInt(1), big.NewInt(8)},
+					{big.NewInt(2), big.NewInt(16)},
 				},
 				Locked: []channel.SubAlloc{
-					channel.SubAlloc{channel.Zero, []channel.Bal{big.NewInt(4), big.NewInt(-1)}},
+					{channel.Zero, []channel.Bal{big.NewInt(4), big.NewInt(-1)}},
 				},
 			},
 			false,
