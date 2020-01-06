@@ -60,7 +60,7 @@ func Test_NewTransactor(t *testing.T) {
 		func() { f.newTransactor(context.Background(), big.NewInt(0), uint64(0)) },
 		"Creating transactor on invalid backend should fail")
 	// Test on valid contract backend
-	sf := newSimulatedFunder()
+	sf := newSimulatedFunder(t)
 	f = &sf.ContractBackend
 	tests := []struct {
 		name     string
@@ -87,7 +87,7 @@ func Test_NewTransactor(t *testing.T) {
 func Test_NewWatchOpts(t *testing.T) {
 	f := &ContractBackend{}
 	assert.Panics(t, func() { f.newWatchOpts(context.Background()) }, "Creating watchopts on invalid backend should panic")
-	sf := newSimulatedFunder()
+	sf := newSimulatedFunder(t)
 	f = &ContractBackend{sf.ContractBackend, sf.ks, sf.account}
 	watchOpts, err := f.newWatchOpts(context.Background())
 	assert.NoError(t, err, "Creating watchopts on valid ContractBackend should succeed")
