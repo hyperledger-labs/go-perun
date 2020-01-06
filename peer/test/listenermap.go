@@ -65,9 +65,8 @@ func (m *listenerMap) erase(key peer.Address) error {
 		m.entries[i] = m.entries[len(m.entries)-1]
 		m.entries = m.entries[:len(m.entries)-1]
 		return nil
-	} else {
-		return errors.New("Tried to erase nonexistent entry.")
 	}
+	return errors.New("tried to erase nonexistent entry")
 }
 
 func (m *listenerMap) clear() []listenerMapEntry {

@@ -56,6 +56,7 @@ func (r *Receiver) Next(ctx context.Context) (*Peer, wire.Msg) {
 	}
 }
 
+// Put puts a new message into the queue.
 func (r *Receiver) Put(peer *Peer, msg wire.Msg) {
 	select {
 	case r.msgs <- msgTuple{peer, msg}:

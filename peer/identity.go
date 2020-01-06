@@ -75,14 +75,17 @@ type AuthResponseMsg struct {
 	Address Address
 }
 
+// Type returns msg.AuthResponse.
 func (m *AuthResponseMsg) Type() msg.Type {
 	return msg.AuthResponse
 }
 
+// Encode encodes this AuthResponseMsg into an io.Writer.
 func (m *AuthResponseMsg) Encode(w io.Writer) error {
 	return m.Address.Encode(w)
 }
 
+// Decode decodes an AuthResponseMsg from an io.Reader.
 func (m *AuthResponseMsg) Decode(r io.Reader) (err error) {
 	m.Address, err = wallet.DecodeAddress(r)
 	return

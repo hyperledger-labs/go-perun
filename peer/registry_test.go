@@ -48,9 +48,8 @@ func (d *mockDialer) Dial(ctx context.Context, addr Address) (Conn, error) {
 	case conn := <-d.dial:
 		if conn != nil {
 			return conn, nil
-		} else {
-			return nil, errors.New("dialer closed")
 		}
+		return nil, errors.New("dialer closed")
 	}
 }
 
@@ -101,8 +100,8 @@ func TestRegistry_Get(t *testing.T) {
 	t.Parallel()
 	rng := rand.New(rand.NewSource(0xDDDDDeDe))
 	id := wallettest.NewRandomAccount(rng)
-	peerId := wallettest.NewRandomAccount(rng)
-	peerAddr := peerId.Address()
+	peerID := wallettest.NewRandomAccount(rng)
+	peerAddr := peerID.Address()
 
 	t.Run("peer already in progress (nonexisting)", func(t *testing.T) {
 		t.Parallel()
@@ -160,7 +159,7 @@ func TestRegistry_Get(t *testing.T) {
 		a, b := newPipeConnPair()
 		go func() {
 			dialer.put(a)
-			ExchangeAddrs(context.Background(), peerId, b)
+			ExchangeAddrs(context.Background(), peerID, b)
 		}()
 		test.AssertTerminates(t, timeout, func() {
 			p, err := r.Get(context.Background(), peerAddr)
@@ -179,8 +178,8 @@ func TestRegistry_authenticatedDial(t *testing.T) {
 	d := &mockDialer{dial: make(chan Conn)}
 	r := NewRegistry(id, func(*Peer) {}, d)
 
-	remoteId := wallettest.NewRandomAccount(rng)
-	remoteAddr := remoteId.Address()
+	remoteID := wallettest.NewRandomAccount(rng)
+	remoteAddr := remoteID.Address()
 
 	t.Run("dial fail, existing peer", func(t *testing.T) {
 		p := newPeer(nil, nil, nil)
@@ -249,7 +248,7 @@ func TestRegistry_authenticatedDial(t *testing.T) {
 		p := newPeer(nil, nil, nil)
 		a, b := newPipeConnPair()
 		go d.put(a)
-		go ExchangeAddrs(context.Background(), remoteId, b)
+		go ExchangeAddrs(context.Background(), remoteID, b)
 		test.AssertTerminates(t, timeout, func() {
 			err := r.authenticatedDial(context.Background(), p, remoteAddr)
 			assert.NoError(t, err)
@@ -261,7 +260,7 @@ func TestRegistry_setupConn(t *testing.T) {
 	t.Parallel()
 	rng := rand.New(rand.NewSource(0xb0baFEDD))
 	id := wallettest.NewRandomAccount(rng)
-	remoteId := wallettest.NewRandomAccount(rng)
+	remoteID := wallettest.NewRandomAccount(rng)
 
 	t.Run("ExchangeAddrs fail", func(t *testing.T) {
 		d := &mockDialer{dial: make(chan Conn)}
@@ -277,9 +276,9 @@ func TestRegistry_setupConn(t *testing.T) {
 		d := &mockDialer{dial: make(chan Conn)}
 		r := NewRegistry(id, func(*Peer) {}, d)
 		a, b := newPipeConnPair()
-		go ExchangeAddrs(context.Background(), remoteId, b)
+		go ExchangeAddrs(context.Background(), remoteID, b)
 
-		r.addPeer(remoteId.Address(), nil)
+		r.addPeer(remoteID.Address(), nil)
 		test.AssertTerminates(t, timeout, func() {
 			assert.NoError(t, r.setupConn(a))
 		})
@@ -289,7 +288,7 @@ func TestRegistry_setupConn(t *testing.T) {
 		d := &mockDialer{dial: make(chan Conn)}
 		r := NewRegistry(id, func(*Peer) {}, d)
 		a, b := newPipeConnPair()
-		go ExchangeAddrs(context.Background(), remoteId, b)
+		go ExchangeAddrs(context.Background(), remoteID, b)
 
 		test.AssertTerminates(t, timeout, func() {
 			assert.NoError(t, r.setupConn(a))
@@ -305,8 +304,8 @@ func TestRegistry_Listen(t *testing.T) {
 
 	id := wallettest.NewRandomAccount(rng)
 	addr := id.Address()
-	remoteId := wallettest.NewRandomAccount(rng)
-	remoteAddr := remoteId.Address()
+	remoteID := wallettest.NewRandomAccount(rng)
+	remoteAddr := remoteID.Address()
 
 	d := newMockDialer()
 	l := newMockListener()
@@ -320,7 +319,7 @@ func TestRegistry_Listen(t *testing.T) {
 	a, b := newPipeConnPair()
 	l.put(a)
 	test.AssertTerminates(t, timeout, func() {
-		address, err := ExchangeAddrs(context.Background(), remoteId, b)
+		address, err := ExchangeAddrs(context.Background(), remoteID, b)
 		require.NoError(err)
 		assert.True(address.Equals(addr))
 	})
