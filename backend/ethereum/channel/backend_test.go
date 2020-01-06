@@ -115,13 +115,13 @@ func Test_transformPartBals(t *testing.T) {
 	}{
 		{"Test1",
 			[][]*big.Int{
-				[]*big.Int{big.NewInt(1), big.NewInt(4)},
-				[]*big.Int{big.NewInt(2), big.NewInt(3)},
-				[]*big.Int{big.NewInt(6), big.NewInt(5)},
-				[]*big.Int{big.NewInt(7), big.NewInt(9)}},
+				{big.NewInt(1), big.NewInt(4)},
+				{big.NewInt(2), big.NewInt(3)},
+				{big.NewInt(6), big.NewInt(5)},
+				{big.NewInt(7), big.NewInt(9)}},
 			[][]*big.Int{
-				[]*big.Int{big.NewInt(1), big.NewInt(2), big.NewInt(6), big.NewInt(7)},
-				[]*big.Int{big.NewInt(4), big.NewInt(3), big.NewInt(5), big.NewInt(9)},
+				{big.NewInt(1), big.NewInt(2), big.NewInt(6), big.NewInt(7)},
+				{big.NewInt(4), big.NewInt(3), big.NewInt(5), big.NewInt(9)},
 			},
 		},
 	}
