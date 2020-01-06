@@ -230,13 +230,13 @@ func TestClient_NewAndListen(t *testing.T) {
 }
 
 func TestClient_Multiplexing(t *testing.T) {
-	testClient_Multiplexing(t, 1, 1)
-	testClient_Multiplexing(t, 1, 1024)
-	testClient_Multiplexing(t, 1024, 1)
-	testClient_Multiplexing(t, 32, 32)
+	testClientMultiplexing(t, 1, 1)
+	testClientMultiplexing(t, 1, 1024)
+	testClientMultiplexing(t, 1024, 1)
+	testClientMultiplexing(t, 32, 32)
 }
 
-func testClient_Multiplexing(
+func testClientMultiplexing(
 	t *testing.T, numListeners, numDialers int) {
 	assert := assert.New(t)
 
