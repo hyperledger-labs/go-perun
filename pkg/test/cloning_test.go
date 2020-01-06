@@ -367,7 +367,7 @@ func Test_checkClone(t *testing.T) {
 // the code below tests `checkClone` with a more complex type.
 
 // This is a linked list node for a functional programming language meaning
-// only the preceeding nodes change. Below, y was modified to become y':
+// only the preceding nodes change. Below, y was modified to become y':
 //
 // x  -> y  -> z
 // x' -> y' ---^

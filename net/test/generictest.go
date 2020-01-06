@@ -46,8 +46,8 @@ func GenericListenerTest(t *testing.T, s *Setup) {
 	// Accepting a new connection
 	accept := make(chan net.Conn)
 	go func() {
-		conn, err := l.Accept()
-		assert.NoError(err, "Accepting a connection should not fail")
+		conn, aErr := l.Accept()
+		require.NoError(aErr, "Accepting a connection should not fail")
 		accept <- conn
 	}()
 

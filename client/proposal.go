@@ -210,7 +210,7 @@ func (c *Client) handleChannelProposalRej(
 	return nil
 }
 
-// exchangeTwoPartyProposal implementes the multi-party channel proposal
+// exchangeTwoPartyProposal implements the multi-party channel proposal
 // protocol for the two-party case.
 func (c *Client) exchangeTwoPartyProposal(
 	ctx context.Context,

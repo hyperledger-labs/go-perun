@@ -267,9 +267,9 @@ func clone(x interface{}) (interface{}, error) {
 	panic(fmt.Sprintf("Error when calling %T.Clone() with object %v", x, x))
 }
 
-// VerifyClone attemps to recognize improper cloning.
+// VerifyClone attempts to recognize improper cloning.
 // Initially, this function will clone its input `x` by calling `x.Clone()`,
-// where `x` is an instance of a struct (or a reference). Then it attemps to
+// where `x` is an instance of a struct (or a reference). Then it attempts to
 // detect improper clones by taking the following steps:
 // * Run `reflect.DeepEqual` and terminate with an error if it returns false.
 //

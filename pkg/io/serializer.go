@@ -22,7 +22,7 @@ type (
 	// Encoders can encode itself to a stream.
 	Encoder interface {
 		// Encode writes itself to a stream.
-		// If the stream fails, the underyling error is returned.
+		// If the stream fails, the underlying error is returned.
 		Encode(io.Writer) error
 	}
 
