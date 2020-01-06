@@ -15,11 +15,13 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+// Bob is a test client role. He accepts an incoming channel proposal.
 type Bob struct {
 	Role
 	propHandler *acceptAllPropHandler
 }
 
+// NewBob creates a new party that executes the Bob protocol.
 func NewBob(setup RoleSetup, t *testing.T) *Bob {
 	rng := rand.New(rand.NewSource(0xB0B))
 	propHandler := newAcceptAllPropHandler(rng, setup.Timeout)
@@ -32,6 +34,7 @@ func NewBob(setup RoleSetup, t *testing.T) *Bob {
 	return role
 }
 
+// Execute executes the Bob protocol.
 func (r *Bob) Execute(cfg ExecConfig) {
 	assert := assert.New(r.t)
 
