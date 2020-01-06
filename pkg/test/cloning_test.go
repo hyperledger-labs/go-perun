@@ -328,7 +328,7 @@ func Test_checkClone(t *testing.T) {
 		{BrokenCloneablePtr{new(int)}, false},
 		{BrokenCloneableNested{BrokenCloneableNestedInner{new(int)}}, false},
 		{BrokenCloneableNestedArray{
-			[1]BrokenCloneableNestedInner{BrokenCloneableNestedInner{new(int)}}},
+			[1]BrokenCloneableNestedInner{{new(int)}}},
 			false},
 		{RecursivelyCloneable{}, true},
 		{BrokenShallowClonePtr{&CloneableRef{1}}, false},
@@ -447,8 +447,8 @@ func Test_checkCloneManually(t *testing.T) {
 	p1.next = &p2
 
 	ss := SelfContained{[]SelfContained{
-		SelfContained{[]SelfContained{}, nil},
-		SelfContained{[]SelfContained{}, nil}}, nil}
+		{[]SelfContained{}, nil},
+		{[]SelfContained{}, nil}}, nil}
 
 	arr0 := HasArray{}
 	arr0.ys[0] = big.NewFloat(0)
