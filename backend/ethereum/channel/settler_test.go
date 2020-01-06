@@ -83,14 +83,6 @@ func settleMultipleConcurrent(t *testing.T, numParts int, parallel bool) {
 	}
 }
 
-func TestSettler_CancelledContext(t *testing.T) {
-	rng := rand.New(rand.NewSource(13))
-	settler, req, accounts := newSettlerAndRequest(t, rng, 2, true)
-	ctx, cancel := context.WithTimeout(context.Background(), timeout)
-	cancel()
-	assert.Error(t, settler.Settle(ctx, req, accounts[0]), "Settling on cancelled context should fail")
-}
-
 func TestSettler_nonfinalState(t *testing.T) {
 	rng := rand.New(rand.NewSource(1))
 	settler, req, accounts := newSettlerAndRequest(t, rng, 2, false)
