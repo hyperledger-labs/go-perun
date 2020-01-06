@@ -15,6 +15,7 @@ import (
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"perun.network/go-perun/backend/ethereum/wallet"
 	"perun.network/go-perun/channel"
 	wallettest "perun.network/go-perun/wallet/test"
@@ -40,7 +41,7 @@ const timeout = 20 * time.Second
 func TestFunder_Fund(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
-	f := newSimulatedFunder()
+	f := newSimulatedFunder(t)
 	assert.Panics(t, func() { f.Fund(ctx, channel.FundingReq{}) }, "Funding with invalid funding req should fail")
 	req := channel.FundingReq{
 		Params:     &channel.Params{},
@@ -124,10 +125,10 @@ func testFunderFunding(t *testing.T, n int) {
 	wg.Wait()
 }
 
-func newSimulatedFunder() *Funder {
+func newSimulatedFunder(t *testing.T) *Funder {
 	// Set KeyStore
 	wall := new(wallet.Wallet)
-	wall.Connect(keyDir, password)
+	require.NoError(t, wall.Connect(keyDir, password))
 	acc := wall.Accounts()[0].(*wallet.Account)
 	acc.Unlock(password)
 	ks := wall.Ks
