@@ -109,11 +109,11 @@ var typeNames = map[Type]string{
 // String returns the name of a message type if it is valid and name known
 // or otherwise its numerical representation.
 func (t Type) String() string {
-	if name, ok := typeNames[t]; !ok {
+	name, ok := typeNames[t]
+	if !ok {
 		return strconv.Itoa(int(t))
-	} else {
-		return name
 	}
+	return name
 }
 
 // Valid checks whether a decoder is known for the type.

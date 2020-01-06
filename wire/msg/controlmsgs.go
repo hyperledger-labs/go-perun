@@ -46,10 +46,12 @@ type PingMsg struct {
 	pingPongMsg
 }
 
+// Type returns Ping.
 func (m *PingMsg) Type() Type {
 	return Ping
 }
 
+// NewPingMsg creates a new Ping message.
 func NewPingMsg() *PingMsg {
 	return &PingMsg{newPingPongMsg()}
 }
@@ -62,10 +64,12 @@ type PongMsg struct {
 	pingPongMsg
 }
 
+// Type returns Pong.
 func (m *PongMsg) Type() Type {
 	return Pong
 }
 
+// NewPongMsg creates a new Pong message.
 func NewPongMsg() *PongMsg {
 	return &PongMsg{newPingPongMsg()}
 }
