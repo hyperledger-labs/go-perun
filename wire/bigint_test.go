@@ -17,13 +17,13 @@ import (
 )
 
 func TestBigInt_Generic(t *testing.T) {
-	vars := []io.Serializable{
+	vars := []io.Serializer{
 		&BigInt{big.NewInt(0)},
 		&BigInt{big.NewInt(1)},
 		&BigInt{big.NewInt(123456)},
 		&BigInt{new(big.Int).SetBytes([]byte{1, 2, 3, 4, 5, 6, 7, 8, 9, 10})}, // larger than uint64
 	}
-	test.GenericSerializableTest(t, vars...)
+	test.GenericSerializerTest(t, vars...)
 }
 
 func TestBigInt_DecodeZeroLength(t *testing.T) {

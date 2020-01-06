@@ -18,7 +18,7 @@ import (
 // 1024bit -> 128 bytes
 const maxBigIntLength = 128
 
-// BigInt is a serializable big integer.
+// BigInt is a serializer big integer.
 type BigInt struct {
 	*big.Int
 }

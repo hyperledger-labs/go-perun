@@ -13,8 +13,8 @@ import (
 )
 
 type (
-	// Serializable objects can be serialized into and from streams.
-	Serializable interface {
+	// Serializer objects can be serialized into and from streams.
+	Serializer interface {
 		Encoder
 		Decoder
 	}
@@ -34,7 +34,7 @@ type (
 	}
 )
 
-// Encode encodes multiple serializable objects at once.
+// Encode encodes multiple serializer objects at once.
 // If an error occurs, the index at which it occured is also reported.
 func Encode(writer io.Writer, values ...Encoder) error {
 	for i, v := range values {
@@ -46,7 +46,7 @@ func Encode(writer io.Writer, values ...Encoder) error {
 	return nil
 }
 
-// Decode decodes multiple serializable objects at once.
+// Decode decodes multiple serializer objects at once.
 // If an error occurs, the index at which it occurred is also reported.
 func Decode(reader io.Reader, values ...Decoder) error {
 	for i, v := range values {

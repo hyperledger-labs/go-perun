@@ -29,14 +29,14 @@ func (a *Address) Bytes() []byte {
 }
 
 // Encode encodes this address into a io.Writer. Part of the
-// go-perun/pkg/io.Serializable interface.
+// go-perun/pkg/io.Serializer interface.
 func (a *Address) Encode(w io.Writer) error {
 	_, err := w.Write(a.Address.Bytes())
 	return err
 }
 
 // Decode decodes an address from a io.Reader. Part of the
-// go-perun/pkg/io.Serializable interface.
+// go-perun/pkg/io.Serializer interface.
 func (a *Address) Decode(r io.Reader) error {
 	buf := make([]byte, common.AddressLength)
 	_, err := io.ReadFull(r, buf)

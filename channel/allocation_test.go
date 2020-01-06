@@ -29,7 +29,7 @@ func assets(rng *rand.Rand, n uint) []channel.Asset {
 
 func TestAllocationSerialization(t *testing.T) {
 	rng := rand.New(rand.NewSource(1))
-	inputs := []perunio.Serializable{
+	inputs := []perunio.Serializer{
 		&channel.Allocation{
 			Assets:  assets(rng, 1),
 			OfParts: [][]channel.Bal{[]channel.Bal{big.NewInt(123)}},
@@ -63,7 +63,7 @@ func TestAllocationSerialization(t *testing.T) {
 		},
 	}
 
-	iotest.GenericSerializableTest(t, inputs...)
+	iotest.GenericSerializerTest(t, inputs...)
 }
 
 func TestAllocationValidLimits(t *testing.T) {
@@ -395,11 +395,11 @@ func TestAllocation_Valid(t *testing.T) {
 
 // suballocation serialization
 func TestSuballocSerialization(t *testing.T) {
-	ss := []perunio.Serializable{
+	ss := []perunio.Serializer{
 		&channel.SubAlloc{channel.ID{2}, []channel.Bal{}},
 		&channel.SubAlloc{channel.ID{3}, []channel.Bal{big.NewInt(0)}},
 		&channel.SubAlloc{channel.ID{4}, []channel.Bal{big.NewInt(5), big.NewInt(1 << 62)}},
 	}
 
-	iotest.GenericSerializableTest(t, ss...)
+	iotest.GenericSerializerTest(t, ss...)
 }

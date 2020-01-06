@@ -12,20 +12,20 @@ import (
 	"perun.network/go-perun/pkg/io/test"
 )
 
-type serializableMsg struct {
+type serializerMsg struct {
 	Msg Msg
 }
 
-func (msg *serializableMsg) Encode(writer io.Writer) error {
+func (msg *serializerMsg) Encode(writer io.Writer) error {
 	return Encode(msg.Msg, writer)
 }
 
-func (msg *serializableMsg) Decode(reader io.Reader) (err error) {
+func (msg *serializerMsg) Decode(reader io.Reader) (err error) {
 	msg.Msg, err = Decode(reader)
 	return err
 }
 
 // TestMsg performs generic tests on a wire.Msg object
 func TestMsg(t *testing.T, msg Msg) {
-	test.GenericSerializableTest(t, &serializableMsg{msg})
+	test.GenericSerializerTest(t, &serializerMsg{msg})
 }

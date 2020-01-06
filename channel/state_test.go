@@ -23,5 +23,5 @@ func TestStateSerialization(t *testing.T) {
 	params := test.NewRandomParams(rng, app.Def())
 	state := test.NewRandomState(rng, params)
 
-	iotest.GenericSerializableTest(t, state)
+	iotest.GenericSerializerTest(t, state)
 }

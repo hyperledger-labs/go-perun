@@ -79,7 +79,7 @@ type (
 	Asset = perunio.Encoder
 )
 
-var _ perunio.Serializable = new(Allocation)
+var _ perunio.Serializer = new(Allocation)
 
 // Clone returns a deep copy of the Allocation object.
 // If it is nil, it returns nil.
@@ -294,7 +294,7 @@ func equalSum(b0, b1 summer) (bool, error) {
 	return true, nil
 }
 
-var _ perunio.Serializable = new(SubAlloc)
+var _ perunio.Serializer = new(SubAlloc)
 
 func (s SubAlloc) Valid() error {
 	if len(s.Bals) > MaxNumAssets {
