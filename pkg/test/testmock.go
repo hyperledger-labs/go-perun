@@ -49,12 +49,12 @@ func (t *Tester) err() {
 	t.numErrorCalls++
 }
 
-// Fatal sets fatalCalled to true and panics.
+// Fatal marks the test as failed and panics to stop execution of the go routine.
 func (t *Tester) Fatal(...interface{}) {
 	t.fatal()
 }
 
-// Fatalf sets fatalCalled to true and panics.
+// Fatalf marks the test as failed and panics to stop execution of the go routine.
 func (t *Tester) Fatalf(string, ...interface{}) {
 	t.fatal()
 }
