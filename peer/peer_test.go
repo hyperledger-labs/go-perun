@@ -16,7 +16,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 
-	_ "perun.network/go-perun/backend/sim/wallet" // backend init
+	_ "perun.network/go-perun/backend/sim" // backend init
 	wallettest "perun.network/go-perun/wallet/test"
 	wire "perun.network/go-perun/wire/msg"
 )

@@ -13,7 +13,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	_ "perun.network/go-perun/backend/sim/wallet"
+	_ "perun.network/go-perun/backend/sim" // backend init
 	"perun.network/go-perun/pkg/sync"
 	"perun.network/go-perun/pkg/test"
 	wallettest "perun.network/go-perun/wallet/test"
