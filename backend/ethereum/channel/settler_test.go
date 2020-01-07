@@ -77,7 +77,7 @@ func TestSettler_nonfinalState(t *testing.T) {
 }
 
 func newSettlerAndRequest(t *testing.T, rng *rand.Rand, numParts int, final bool) (*Settler, channel.SettleReq, []perunwallet.Account) {
-	s := newSimulatedSettler()
+	s := newSimulatedSettler(t)
 	f := &Funder{
 		ContractBackend: s.ContractBackend,
 	}
@@ -119,9 +119,9 @@ func newSettlerAndRequest(t *testing.T, rng *rand.Rand, numParts int, final bool
 	return s, req, accounts
 }
 
-func newSimulatedSettler() *Settler {
+func newSimulatedSettler(t *testing.T) *Settler {
 	wall := new(wallet.Wallet)
-	wall.Connect(keyDir, password)
+	require.NoError(t, wall.Connect(keyDir, password))
 	acc := wall.Accounts()[0].(*wallet.Account)
 	acc.Unlock(password)
 	ks := wall.Ks
