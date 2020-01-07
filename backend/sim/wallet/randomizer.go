@@ -12,14 +12,17 @@ import (
 	"perun.network/go-perun/wallet/test"
 )
 
+// Randomizer provides random addresses and accounts.
 type Randomizer struct{}
 
 var _ test.Randomizer = &Randomizer{}
 
+// NewRandomAddress creates a new random simulated address.
 func (Randomizer) NewRandomAddress(rng *rand.Rand) wallet.Address {
 	return NewRandomAddress(rng)
 }
 
+// NewRandomAccount creates a new random simulated account.
 func (Randomizer) NewRandomAccount(rng *rand.Rand) wallet.Account {
 	return NewRandomAccount(rng)
 }
