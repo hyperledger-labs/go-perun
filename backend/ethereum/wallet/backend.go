@@ -32,6 +32,7 @@ func (*Backend) NewAddressFromBytes(data []byte) (perun.Address, error) {
 	return NewAddressFromBytes(data)
 }
 
+// DecodeAddress decodes an address from an io.Reader.
 func (*Backend) DecodeAddress(r io.Reader) (perun.Address, error) {
 	return DecodeAddress(r)
 }
@@ -41,6 +42,7 @@ func (*Backend) DecodeSig(r io.Reader) (perun.Sig, error) {
 	return DecodeSig(r)
 }
 
+// VerifySignature verifies a signature.
 func (*Backend) VerifySignature(msg []byte, sig perun.Sig, a perun.Address) (bool, error) {
 	return VerifySignature(msg, sig, a)
 }
@@ -53,6 +55,7 @@ func NewAddressFromBytes(data []byte) (perun.Address, error) {
 	return &Address{common.BytesToAddress(data)}, nil
 }
 
+// DecodeAddress decodes an address from an io.Reader.
 func DecodeAddress(r io.Reader) (perun.Address, error) {
 	addr := new(Address)
 	return addr, addr.Decode(r)
