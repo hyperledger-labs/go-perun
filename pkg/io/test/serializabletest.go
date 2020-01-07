@@ -10,21 +10,10 @@ import (
 	"io"
 	"reflect"
 	"testing"
+	"testing/iotest"
 
 	perunio "perun.network/go-perun/pkg/io"
 )
-
-// bytewiseReader only reads a single byte at a time.
-type bytewiseReader struct {
-	reader io.Reader
-}
-
-func (r bytewiseReader) Read(data []byte) (n int, err error) {
-	if len(data) == 0 {
-		return r.reader.Read(data)
-	}
-	return r.reader.Read(data[:1])
-}
 
 // GenericSerializerTest runs multiple tests to check whether encoding
 // and decoding of serializer values works.
@@ -38,7 +27,7 @@ func GenericSerializerTest(t *testing.T, serializers ...perunio.Serializer) {
 func genericDecodeEncodeTest(t *testing.T, serializers ...perunio.Serializer) {
 	for i, v := range serializers {
 		r, w := io.Pipe()
-		br := bytewiseReader{r}
+		br := iotest.OneByteReader(r)
 		go func() {
 			if err := perunio.Encode(w, v); err != nil {
 				t.Errorf("failed to encode %dth element (%T): %+v", i, v, err)
