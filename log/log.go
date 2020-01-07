@@ -91,86 +91,89 @@ type Logger interface {
 	WithError(error) Logger
 }
 
-// Printf calls Printf on the global Logger object
+// Printf calls Printf on the global Logger object.
 func Printf(format string, args ...interface{}) { logger.Printf(format, args...) }
 
-// Print calls Print on the global Logger object
+// Print calls Print on the global Logger object.
 func Print(args ...interface{}) { logger.Print(args...) }
 
-// Println calls Println on the global Logger object
+// Println calls Println on the global Logger object.
 func Println(args ...interface{}) { logger.Println(args...) }
 
-// Fatalf calls Fatalf on the global Logger object
+// Fatalf calls Fatalf on the global Logger object.
 func Fatalf(format string, args ...interface{}) { logger.Fatalf(format, args...) }
 
-// Fatal calls Fatal on the global Logger object
+// Fatal calls Fatal on the global Logger object.
 func Fatal(args ...interface{}) { logger.Fatal(args...) }
 
-// Fatalln calls Fatalln on the global Logger object
+// Fatalln calls Fatalln on the global Logger object.
 func Fatalln(args ...interface{}) { logger.Fatalln(args...) }
 
-// Panicf calls Panicf on the global Logger object
+// Panicf calls Panicf on the global Logger object.
 func Panicf(format string, args ...interface{}) { logger.Panicf(format, args...) }
 
-// Panic calls Panic on the global Logger object
+// Panic calls Panic on the global Logger object.
 func Panic(args ...interface{}) { logger.Panic(args...) }
 
-// Panicln calls Panicln on the global Logger object
+// Panicln calls Panicln on the global Logger object.
 func Panicln(args ...interface{}) { logger.Panicln(args...) }
 
-// Tracef calls Tracef on the global Logger object
+// Tracef calls Tracef on the global Logger object.
 func Tracef(format string, args ...interface{}) { logger.Tracef(format, args...) }
 
-// Trace calls Trace on the global Logger object
+// Trace calls Trace on the global Logger object.
 func Trace(args ...interface{}) { logger.Trace(args...) }
 
-// Traceln calls Traceln on the global Logger object
+// Traceln calls Traceln on the global Logger object.
 func Traceln(args ...interface{}) { logger.Traceln(args...) }
 
-// Debugf calls Debugf on the global Logger object
+// Debugf calls Debugf on the global Logger object.
 func Debugf(format string, args ...interface{}) { logger.Debugf(format, args...) }
 
-// Debug calls Debug on the global Logger object
+// Debug calls Debug on the global Logger object.
 func Debug(args ...interface{}) { logger.Debug(args...) }
 
-// Debugln calls Debugln on the global Logger object
+// Debugln calls Debugln on the global Logger object.
 func Debugln(args ...interface{}) { logger.Debugln(args...) }
 
-// Infof calls Infof on the global Logger object
+// Infof calls Infof on the global Logger object.
 func Infof(format string, args ...interface{}) { logger.Infof(format, args...) }
 
-// Info calls Info on the global Logger object
+// Info calls Info on the global Logger object.
 func Info(args ...interface{}) { logger.Info(args...) }
 
-// Infoln calls Infoln on the global Logger object
+// Infoln calls Infoln on the global Logger object.
 func Infoln(args ...interface{}) { logger.Infoln(args...) }
 
-// Warnf calls Warnf on the global Logger object
+// Warnf calls Warnf on the global Logger object.
 func Warnf(format string, args ...interface{}) { logger.Warnf(format, args...) }
 
-// Warn calls Warn on the global Logger object
+// Warn calls Warn on the global Logger object.
 func Warn(args ...interface{}) { logger.Warn(args...) }
 
-// Warnln calls Warnln on the global Logger object
+// Warnln calls Warnln on the global Logger object.
 func Warnln(args ...interface{}) { logger.Warnln(args...) }
 
-// Errorf calls Errorf on the global Logger object
+// Errorf calls Errorf on the global Logger object.
 func Errorf(format string, args ...interface{}) { logger.Errorf(format, args...) }
 
-// Error calls Error on the global Logger object
+// Error calls Error on the global Logger object.
 func Error(args ...interface{}) { logger.Error(args...) }
 
-// Errorln calls Errorln on the global Logger object
+// Errorln calls Errorln on the global Logger object.
 func Errorln(args ...interface{}) { logger.Errorln(args...) }
 
+// WithField calls WithField on the global Logger object.
 func WithField(key string, value interface{}) Logger {
 	return logger.WithField(key, value)
 }
 
+// WithFields calls WithFields on the global Logger object.
 func WithFields(fs Fields) Logger {
 	return logger.WithFields(fs)
 }
 
+// WithError calls WithError on the global Logger object.
 func WithError(err error) Logger {
 	return logger.WithError(err)
 }

@@ -29,12 +29,16 @@ const startBlockOffset = 100
 // GasLimit is the max amount of gas we want to send per transaction.
 const GasLimit = 200000
 
+// ContractInterface provides all functions needed by an ethereum backend.
+// Both test.SimulatedBackend and ethclient.Client implement this interface.
 type ContractInterface interface {
 	bind.ContractBackend
 	BlockByNumber(context.Context, *big.Int) (*types.Block, error)
 	TransactionReceipt(ctx context.Context, txHash common.Hash) (*types.Receipt, error)
 }
 
+// ContractBackend adds a keystore and an on-chain account to the ContractInterface.
+// This is needed to send on-chain transaction to interact with the smart contracts.
 type ContractBackend struct {
 	ContractInterface
 	ks      *keystore.KeyStore

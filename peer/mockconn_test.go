@@ -40,10 +40,9 @@ func (c *mockConn) Send(m wire.Msg) error {
 	defer c.mutex.Unlock()
 	if c.closed.IsSet() {
 		return errors.New("closed")
-	} else {
-		c.sent(m)
-		return nil
 	}
+	c.sent(m)
+	return nil
 }
 
 func (c *mockConn) Recv() (wire.Msg, error) {

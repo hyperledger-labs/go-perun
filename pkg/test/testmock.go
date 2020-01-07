@@ -35,10 +35,12 @@ func NewTester(t T) *Tester {
 	return &Tester{T: t}
 }
 
+// Error counts one error.
 func (t *Tester) Error(...interface{}) {
 	t.err()
 }
 
+// Errorf counts one error.
 func (t *Tester) Errorf(string, ...interface{}) {
 	t.err()
 }
@@ -47,10 +49,12 @@ func (t *Tester) err() {
 	t.numErrorCalls++
 }
 
+// Fatal marks the test as failed and panics to stop execution of the go routine.
 func (t *Tester) Fatal(...interface{}) {
 	t.fatal()
 }
 
+// Fatalf marks the test as failed and panics to stop execution of the go routine.
 func (t *Tester) Fatalf(string, ...interface{}) {
 	t.fatal()
 }

@@ -53,7 +53,7 @@ func TestTester(_t *testing.T) {
 	})
 
 	_t.Run("failing assertions", func(_t *testing.T) {
-		// this is the tester whith which we test the tester.
+		// this is the tester with which we test the tester.
 		tt := NewTester(_t)
 		// we create a single tester and call all tests on it in a row.
 		tester := NewTester(tt)

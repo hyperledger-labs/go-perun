@@ -11,28 +11,33 @@ import (
 	"perun.network/go-perun/log"
 )
 
-type logger struct {
+// Logger wraps a logrus logger.
+type Logger struct {
 	*logrus.Entry
 }
 
-var _ log.Logger = (*logger)(nil)
+var _ log.Logger = (*Logger)(nil)
 
-func FromLogrus(l *logrus.Logger) *logger {
-	return &logger{logrus.NewEntry(l)}
+// FromLogrus creates a logger from a logrus.Logger.
+func FromLogrus(l *logrus.Logger) *Logger {
+	return &Logger{logrus.NewEntry(l)}
 }
 
-func (l *logger) WithField(key string, value interface{}) log.Logger {
-	return &logger{l.Entry.WithField(key, value)}
+// WithField calls WithField on the logrus.Logger.
+func (l *Logger) WithField(key string, value interface{}) log.Logger {
+	return &Logger{l.Entry.WithField(key, value)}
 }
 
-func (l *logger) WithFields(fields log.Fields) log.Logger {
+// WithFields calls WithFields on the logrus.Logger.
+func (l *Logger) WithFields(fields log.Fields) log.Logger {
 	var fs map[string]interface{}
 	fs = fields
-	return &logger{l.Entry.WithFields(fs)}
+	return &Logger{l.Entry.WithFields(fs)}
 }
 
-func (l *logger) WithError(e error) log.Logger {
-	return &logger{l.Entry.WithError(e)}
+// WithError calls WithError on the logrus.Logger.
+func (l *Logger) WithError(e error) log.Logger {
+	return &Logger{l.Entry.WithError(e)}
 }
 
 // Set sets a logrus logger as the current framework logger with the given level

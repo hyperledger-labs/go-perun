@@ -50,9 +50,8 @@ func (b *Broadcaster) Send(ctx context.Context, m wire.Msg) error {
 
 	if len(broadcastError.errors) == 0 {
 		return nil
-	} else {
-		return &broadcastError
 	}
+	return &broadcastError
 }
 
 type sendError struct {

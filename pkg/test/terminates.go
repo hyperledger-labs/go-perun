@@ -32,7 +32,7 @@ func TerminatesCtx(ctx context.Context, fn func()) bool {
 	}
 }
 
-// TerminatesCtx checks whether a function terminates within a certain timeout.
+// Terminates checks whether a function terminates within a certain timeout.
 func Terminates(deadline time.Duration, fn func()) bool {
 	ctx, cancel := context.WithTimeout(context.Background(), deadline)
 	defer cancel()
@@ -41,7 +41,7 @@ func Terminates(deadline time.Duration, fn func()) bool {
 
 // AssertTerminatesCtx asserts that a function terminates before a context is
 // done.
-func AssertTerminatesCtx(t T, ctx context.Context, fn func()) {
+func AssertTerminatesCtx(ctx context.Context, t T, fn func()) {
 	t.Helper()
 
 	if !TerminatesCtx(ctx, fn) {
@@ -51,7 +51,7 @@ func AssertTerminatesCtx(t T, ctx context.Context, fn func()) {
 
 // AssertNotTerminatesCtx asserts that a function does not terminate before a
 // context is done.
-func AssertNotTerminatesCtx(t T, ctx context.Context, fn func()) {
+func AssertNotTerminatesCtx(ctx context.Context, t T, fn func()) {
 	t.Helper()
 
 	if TerminatesCtx(ctx, fn) {

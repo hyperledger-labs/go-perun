@@ -24,6 +24,6 @@ func (b *Bool) TrySet() bool { return atomic.SwapInt32((*int32)(b), 1) == 0 }
 // Unset atomically sets the bool to false.
 func (b *Bool) Unset() { atomic.StoreInt32((*int32)(b), 0) }
 
-// TrySet atomically sets the bool to false and returns whether it was true
+// TryUnset atomically sets the bool to false and returns whether it was true
 // before.
 func (b *Bool) TryUnset() bool { return atomic.SwapInt32((*int32)(b), 0) == 1 }

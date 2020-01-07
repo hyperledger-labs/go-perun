@@ -22,7 +22,7 @@ import (
 )
 
 type (
-	// A Role is a client.Client together with a protocol execution path
+	// A Role is a client.Client together with a protocol execution path.
 	Role struct {
 		*client.Client
 		setup RoleSetup
@@ -34,7 +34,7 @@ type (
 		stages    Stages
 	}
 
-	// RoleSetup contains the injectables for setting up the client
+	// RoleSetup contains the injectables for setting up the client.
 	RoleSetup struct {
 		Name     string
 		Identity peer.Identity
@@ -45,6 +45,7 @@ type (
 		Timeout  time.Duration
 	}
 
+	// ExecConfig contains additional config parameters for the tests.
 	ExecConfig struct {
 		PeerAddrs       []peer.Address // must match RoleSetup.Identity of [Alice, Bob]
 		Asset           channel.Asset  // single Asset to use in this channel
@@ -55,10 +56,11 @@ type (
 		TxAmountAlice   *big.Int       // amount that Alice sends per udpate
 	}
 
+	// Stages are used to synchronize multiple roles.
 	Stages = []sync.WaitGroup
 )
 
-// NewRole creates a client for the given setup and wraps it into a Role.
+// MakeRole creates a client for the given setup and wraps it into a Role.
 func MakeRole(setup RoleSetup, propHandler client.ProposalHandler, t *testing.T, numStages int) Role {
 	cl := client.New(setup.Identity, setup.Dialer, propHandler, setup.Funder, setup.Settler)
 	return Role{

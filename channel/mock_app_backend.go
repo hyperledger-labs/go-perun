@@ -9,10 +9,12 @@ import (
 	"perun.network/go-perun/wallet"
 )
 
+// MockAppBackend is the backend for a mock app.
 type MockAppBackend struct{}
 
 var _ AppBackend = &MockAppBackend{}
 
+// AppFromDefinition creates a new MockApp with the provided address.
 func (MockAppBackend) AppFromDefinition(addr wallet.Address) (App, error) {
 	return NewMockApp(addr), nil
 }

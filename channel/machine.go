@@ -27,6 +27,7 @@ type (
 	}
 )
 
+// Phases known to the channel machine.
 const (
 	InitActing Phase = iota
 	InitSigning
@@ -292,13 +293,13 @@ func (m *machine) SetSettled() error {
 }
 
 var validPhaseTransitions = map[PhaseTransition]bool{
-	PhaseTransition{InitActing, InitSigning}: true,
-	PhaseTransition{InitSigning, Funding}:    true,
-	PhaseTransition{Funding, Acting}:         true,
-	PhaseTransition{Acting, Signing}:         true,
-	PhaseTransition{Signing, Acting}:         true,
-	PhaseTransition{Signing, Final}:          true,
-	PhaseTransition{Final, Settled}:          true,
+	{InitActing, InitSigning}: true,
+	{InitSigning, Funding}:    true,
+	{Funding, Acting}:         true,
+	{Acting, Signing}:         true,
+	{Signing, Acting}:         true,
+	{Signing, Final}:          true,
+	{Final, Settled}:          true,
 }
 
 func (m *machine) expect(tr PhaseTransition) error {

@@ -15,13 +15,15 @@ import (
 // backend.Set(Collection).
 var backend Backend
 
+// Backend is an interface that needs to be implemented for every blockchain.
+// It provides basic functionalities to the framework.
 type Backend interface {
-	// ChannelID infers the channel id of a channel from its parameters. Usually,
+	// CalcID infers the channel id of a channel from its parameters. Usually,
 	// this should be a hash digest of some or all fields of the parameters.
 	// In order to guarantee non-malleability of States, any parameters omitted
-	// from the ChannelID digest need to be signed together with the State in
+	// from the CalcID digest need to be signed together with the State in
 	// Sign().
-	ChannelID(*Params) ID
+	CalcID(*Params) ID
 
 	// Sign signs a channel's State with the given Account.
 	// Returns the signature or an error.
@@ -48,18 +50,22 @@ func SetBackend(b Backend) {
 	backend = b
 }
 
-func ChannelID(p *Params) ID {
-	return backend.ChannelID(p)
+// CalcID calculates the CalcID.
+func CalcID(p *Params) ID {
+	return backend.CalcID(p)
 }
 
+// Sign creates a signature from the account a on state s.
 func Sign(a wallet.Account, p *Params, s *State) (wallet.Sig, error) {
 	return backend.Sign(a, p, s)
 }
 
+// Verify verifies that a signature was a valid signature from addr on a state.
 func Verify(addr wallet.Address, params *Params, state *State, sig wallet.Sig) (bool, error) {
 	return backend.Verify(addr, params, state, sig)
 }
 
+// DecodeAsset decodes an Asset from an io.Reader.
 func DecodeAsset(r io.Reader) (Asset, error) {
 	return backend.DecodeAsset(r)
 }

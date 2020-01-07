@@ -26,6 +26,7 @@ type Dialer struct {
 	sync.Closer
 }
 
+// Dial tries to connect to a peer.
 func (d *Dialer) Dial(ctx context.Context, address peer.Address) (peer.Conn, error) {
 	if d.IsClosed() {
 		return nil, errors.New("dialer closed")
@@ -52,10 +53,12 @@ func (d *Dialer) Dial(ctx context.Context, address peer.Address) (peer.Conn, err
 	return peer.NewIoConn(local), nil
 }
 
+// Close closes a connection.
 func (d *Dialer) Close() error {
 	return errors.WithMessage(d.Closer.Close(), "dialer was already closed")
 }
 
+// NumDialed returns how many peers have been dialed.
 func (d *Dialer) NumDialed() int {
 	return int(atomic.LoadInt32(&d.dialed))
 }

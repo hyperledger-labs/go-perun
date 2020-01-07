@@ -34,7 +34,7 @@ type setup struct {
 func makeSetup(t *testing.T) *setup {
 	a, b := newPipeConnPair()
 	rng := rand.New(rand.NewSource(0xb0baFEDD))
-	// We need the setup adress when constructing the clients.
+	// We need the setup address when constructing the clients.
 	s := new(setup)
 	*s = setup{
 		alice: makeClient(t, a, rng, s),

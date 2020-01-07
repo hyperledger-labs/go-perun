@@ -190,7 +190,7 @@ func TestClient_NewAndListen(t *testing.T) {
 
 	// make a successful connection
 	dialerDone = make(chan struct{})
-	peerId := simwallet.NewRandomAccount(rng)
+	peerID := simwallet.NewRandomAccount(rng)
 
 	go func() {
 		defer close(dialerDone)
@@ -200,7 +200,7 @@ func TestClient_NewAndListen(t *testing.T) {
 		defer cancel()
 		conn, err := dialer.Dial(ctx, c.id.Address())
 		assert.NoError(err, "Dialing the Client instance failed")
-		assert.NoError(conn.Send(peer.NewAuthResponseMsg(peerId)))
+		assert.NoError(conn.Send(peer.NewAuthResponseMsg(peerID)))
 
 		msg, err := conn.Recv()
 		assert.NoError(err)
@@ -218,7 +218,7 @@ func TestClient_NewAndListen(t *testing.T) {
 
 	time.Sleep(timeout)
 	assert.Equal(1, c.peers.NumPeers())
-	assert.True(c.peers.Has(peerId.Address()))
+	assert.True(c.peers.Has(peerID.Address()))
 
 	assert.NoError(c.Close())
 
@@ -230,13 +230,13 @@ func TestClient_NewAndListen(t *testing.T) {
 }
 
 func TestClient_Multiplexing(t *testing.T) {
-	testClient_Multiplexing(t, 1, 1)
-	testClient_Multiplexing(t, 1, 1024)
-	testClient_Multiplexing(t, 1024, 1)
-	testClient_Multiplexing(t, 32, 32)
+	testClientMultiplexing(t, 1, 1)
+	testClientMultiplexing(t, 1, 1024)
+	testClientMultiplexing(t, 1024, 1)
+	testClientMultiplexing(t, 32, 32)
 }
 
-func testClient_Multiplexing(
+func testClientMultiplexing(
 	t *testing.T, numListeners, numDialers int) {
 	assert := assert.New(t)
 

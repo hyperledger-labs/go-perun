@@ -22,12 +22,14 @@ import (
 // GasLimit is the max amount of gas we want to send per transaction.
 const GasLimit = 200000
 
+// SimulatedBackend provides a simulated ethereum blockchain for tests.
 type SimulatedBackend struct {
 	backends.SimulatedBackend
 	faucetKey  *ecdsa.PrivateKey
 	faucetAddr common.Address
 }
 
+// NewSimulatedBackend creates a new Simulated Backend.
 func NewSimulatedBackend() *SimulatedBackend {
 	sk, err := crypto.GenerateKey()
 	if err != nil {
@@ -49,6 +51,7 @@ func NewSimulatedBackend() *SimulatedBackend {
 	return &SimulatedBackend{*backends.NewSimulatedBackend(alloc, 8000000), sk, faucetAddr}
 }
 
+// BlockByNumber queries a block by its number.
 func (s *SimulatedBackend) BlockByNumber(_ context.Context, number *big.Int) (*types.Block, error) {
 	if number == nil {
 		return s.Blockchain().CurrentBlock(), nil
@@ -60,6 +63,7 @@ func (s *SimulatedBackend) BlockByNumber(_ context.Context, number *big.Int) (*t
 	return block, nil
 }
 
+// SendTransaction executes a transaction.
 func (s *SimulatedBackend) SendTransaction(ctx context.Context, tx *types.Transaction) error {
 	if err := s.SimulatedBackend.SendTransaction(ctx, tx); err != nil {
 		return errors.WithStack(err)
@@ -68,6 +72,7 @@ func (s *SimulatedBackend) SendTransaction(ctx context.Context, tx *types.Transa
 	return nil
 }
 
+// FundAddress funds a given address with 10 eth from a faucet.
 func (s *SimulatedBackend) FundAddress(ctx context.Context, addr common.Address) {
 	nonce, err := s.PendingNonceAt(context.Background(), s.faucetAddr)
 	if err != nil {

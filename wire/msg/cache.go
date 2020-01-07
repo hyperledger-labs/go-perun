@@ -10,13 +10,13 @@ import "context"
 type (
 	// Cache is a message cache. The default value is a valid empty cache.
 	Cache struct {
-		msgs  []MsgAnnex
+		msgs  []WithAnnex
 		preds []ctxPredicate
 	}
 
-	// MsgAnnex is a tuple of a message together with some arbitrary additional
+	// WithAnnex is a tuple of a message together with some arbitrary additional
 	// data (Annex)
-	MsgAnnex struct {
+	WithAnnex struct {
 		Msg   Msg
 		Annex interface{}
 	}
@@ -59,7 +59,7 @@ func (c *Cache) Put(m Msg, a interface{}) bool {
 	}
 
 	if any {
-		c.msgs = append(c.msgs, MsgAnnex{m, a})
+		c.msgs = append(c.msgs, WithAnnex{m, a})
 	}
 
 	c.preds = preds
@@ -68,10 +68,10 @@ func (c *Cache) Put(m Msg, a interface{}) bool {
 
 // Get retrieves all messages from the cache that match the predicate. They are
 // removed from the Cache.
-func (c *Cache) Get(p Predicate) []MsgAnnex {
+func (c *Cache) Get(p Predicate) []WithAnnex {
 	msgs := c.msgs[:0]
 	// Usually, Get is called with the assumption to match at least one message
-	matches := make([]MsgAnnex, 0, 1)
+	matches := make([]WithAnnex, 0, 1)
 	for _, m := range c.msgs {
 		if p(m.Msg) {
 			matches = append(matches, m)

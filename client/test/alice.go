@@ -20,11 +20,13 @@ import (
 	wallettest "perun.network/go-perun/wallet/test"
 )
 
+// Alice is a test client role. She proposes the new channel.
 type Alice struct {
 	Role
 	rng *rand.Rand
 }
 
+// NewAlice creates a new party that executes the Alice protocol.
 func NewAlice(setup RoleSetup, t *testing.T) *Alice {
 	rng := rand.New(rand.NewSource(0x471CE))
 	propHandler := newAcceptAllPropHandler(rng, setup.Timeout)
@@ -37,9 +39,10 @@ func NewAlice(setup RoleSetup, t *testing.T) *Alice {
 	return role
 }
 
+// Execute executes the Alice protocol.
 func (r *Alice) Execute(cfg ExecConfig) {
 	assert := assert.New(r.t)
-	// We don't start the proposal listener because Alice only receives proposals
+	// We don't start the proposal listener because Alice only sends proposals
 
 	initBals := &channel.Allocation{
 		Assets: []channel.Asset{cfg.Asset},

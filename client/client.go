@@ -71,6 +71,8 @@ func New(
 	return c
 }
 
+// Close closes this state channel client.
+// It also closes the peer registry.
 func (c *Client) Close() error {
 	if err := c.Closer.Close(); err != nil {
 		return err

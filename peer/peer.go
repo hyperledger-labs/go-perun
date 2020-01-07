@@ -52,14 +52,14 @@ func (p *Peer) recvLoop() {
 	}
 
 	for {
-		if m, err := p.conn.Recv(); err != nil {
+		m, err := p.conn.Recv()
+		if err != nil {
 			log.Debugf("ending recvLoop on closed connection of peer %v", p.PerunAddress)
 			p.Close() // Ignore double close.
 			return
-		} else {
-			// Broadcast the received message to all interested subscribers.
-			p.produce(m, p)
 		}
+		// Broadcast the received message to all interested subscribers.
+		p.produce(m, p)
 	}
 }
 

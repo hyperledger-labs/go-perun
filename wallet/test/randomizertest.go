@@ -12,6 +12,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+// SetRandomizerTest is a generic test to test that the wallet randomizer is set correctly.
 func SetRandomizerTest(t *testing.T) {
 	assert.Panics(t, func() { SetRandomizer(nil) }, "nil backend set should panic")
 	require.NotNil(t, randomizer, "backend should be already set by init()")

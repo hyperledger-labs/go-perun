@@ -17,11 +17,12 @@ type Relay struct {
 	producer
 }
 
-// MakeRelay initialises a new relay.
+// NewRelay initialises a new relay.
 func NewRelay() *Relay {
 	return &Relay{makeProducer()}
 }
 
+// Put puts a message into the relay.
 func (r *Relay) Put(p *Peer, msg wire.Msg) {
 	r.produce(msg, p)
 }

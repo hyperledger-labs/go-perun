@@ -77,10 +77,9 @@ func (c *Closer) OnClose(handler func()) bool {
 	// acquired.
 	if c.IsClosed() {
 		return false
-	} else {
-		c.onClosed = append(c.onClosed, handler)
-		return true
 	}
+	c.onClosed = append(c.onClosed, handler)
+	return true
 }
 
 // OnCloseAlways registers the passed callback to be called when the Closer is
@@ -95,10 +94,9 @@ func (c *Closer) OnCloseAlways(handler func()) bool {
 	if c.IsClosed() {
 		handler()
 		return false
-	} else {
-		c.onClosed = append(c.onClosed, handler)
-		return true
 	}
+	c.onClosed = append(c.onClosed, handler)
+	return true
 }
 
 var _ error = alreadyClosedError{}

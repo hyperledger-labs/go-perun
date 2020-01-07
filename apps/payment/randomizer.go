@@ -12,6 +12,7 @@ import (
 	"perun.network/go-perun/channel/test"
 )
 
+// Randomizer implements channel.test.AppRandomizer.
 type Randomizer struct{}
 
 var _ test.AppRandomizer = (*Randomizer)(nil)
@@ -22,6 +23,7 @@ func (*Randomizer) NewRandomApp(*rand.Rand) channel.App {
 	return &App{AppDef()}
 }
 
+// NewRandomData returns NoData because a PaymentApp does not have data.
 func (*Randomizer) NewRandomData(*rand.Rand) channel.Data {
 	return new(NoData)
 }

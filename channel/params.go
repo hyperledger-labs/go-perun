@@ -14,10 +14,13 @@ import (
 	"perun.network/go-perun/wallet"
 )
 
+// IDLen the length of a channelID.
 const IDLen = 32
 
+// ID represents a channelID.
 type ID = [IDLen]byte
 
+// Zero is the default channelID.
 var Zero ID = ID{}
 
 // Params are a channel's immutable parameters.  A channel's id is the hash of
@@ -37,6 +40,7 @@ type Params struct {
 	Nonce *big.Int
 }
 
+// ID returns the channelID of this channel.
 func (p *Params) ID() ID {
 	return p.id
 }
@@ -94,6 +98,6 @@ func NewParamsUnsafe(challengeDuration uint64, parts []wallet.Address, appDef wa
 		Nonce:             nonce,
 	}
 	// probably an expensive hash operation, do it only once during creation.
-	p.id = ChannelID(p)
+	p.id = CalcID(p)
 	return p
 }

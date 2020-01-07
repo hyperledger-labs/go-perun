@@ -71,6 +71,7 @@ func (c *ChannelProposal) AsReq() *ChannelProposalReq {
 	}
 }
 
+// AsProp returns a shallow copy of the ChannelProposalReq as a ChannelProposal.
 func (c *ChannelProposalReq) AsProp(acc wallet.Account) *ChannelProposal {
 	return &ChannelProposal{
 		ChallengeDuration: c.ChallengeDuration,
@@ -83,10 +84,12 @@ func (c *ChannelProposalReq) AsProp(acc wallet.Account) *ChannelProposal {
 	}
 }
 
+// Type returns msg.ChannelProposal.
 func (ChannelProposalReq) Type() msg.Type {
 	return msg.ChannelProposal
 }
 
+// Encode encodes the ChannelProposalReq into an io.writer.
 func (c ChannelProposalReq) Encode(w io.Writer) error {
 	if err := wire.Encode(w, c.ChallengeDuration, c.Nonce); err != nil {
 		return err
@@ -115,6 +118,7 @@ func (c ChannelProposalReq) Encode(w io.Writer) error {
 	return nil
 }
 
+// Decode decodes a ChannelProposalRequest from an io.Reader.
 func (c *ChannelProposalReq) Decode(r io.Reader) (err error) {
 	if err := wire.Decode(r, &c.ChallengeDuration, &c.Nonce); err != nil {
 		return err
@@ -166,6 +170,7 @@ func (c *ChannelProposalReq) Decode(r io.Reader) (err error) {
 	return nil
 }
 
+// SessID calculates the SessionID of a ChannelProposalReq.
 func (c ChannelProposalReq) SessID() (sid SessionID) {
 	hasher := sha3.New256()
 	if err := wire.Encode(hasher, c.Nonce); err != nil {
@@ -227,10 +232,12 @@ type ChannelProposalAcc struct {
 	ParticipantAddr wallet.Address
 }
 
+// Type returns msg.ChannelProposalAcc.
 func (ChannelProposalAcc) Type() msg.Type {
 	return msg.ChannelProposalAcc
 }
 
+// Encode encodes the ChannelProposalAcc into an io.Writer.
 func (acc ChannelProposalAcc) Encode(w io.Writer) error {
 	if err := wire.Encode(w, acc.SessID); err != nil {
 		return errors.WithMessage(err, "SID encoding")
@@ -243,6 +250,7 @@ func (acc ChannelProposalAcc) Encode(w io.Writer) error {
 	return nil
 }
 
+// Decode decodes a ChannelProposalAcc from an io.Reader.
 func (acc *ChannelProposalAcc) Decode(r io.Reader) (err error) {
 	if err = wire.Decode(r, &acc.SessID); err != nil {
 		return errors.WithMessage(err, "SID decoding")
@@ -252,19 +260,27 @@ func (acc *ChannelProposalAcc) Decode(r io.Reader) (err error) {
 	return errors.WithMessage(err, "participant address decoding")
 }
 
+// ChannelProposalRej is used to reject a ChannelProposalReq.
+// An optional reason for the rejection can be set.
+//
+// The message is one of two possible responses in the
+// Multi-Party Channel Proposal Protocol (MPCPP).
 type ChannelProposalRej struct {
 	SessID SessionID
 	Reason string
 }
 
+// Type returns msg.ChannelProposalRej.
 func (ChannelProposalRej) Type() msg.Type {
 	return msg.ChannelProposalRej
 }
 
+// Encode encodes a ChannelProposalRej into an io.Writer.
 func (rej ChannelProposalRej) Encode(w io.Writer) error {
 	return wire.Encode(w, rej.SessID, rej.Reason)
 }
 
+// Decode decodes a ChannelProposalRej from an io.Reader.
 func (rej *ChannelProposalRej) Decode(r io.Reader) error {
 	return wire.Decode(r, &rej.SessID, &rej.Reason)
 }

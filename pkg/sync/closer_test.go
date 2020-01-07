@@ -66,7 +66,7 @@ func TestCloser_Close(t *testing.T) {
 	t.Run("handler execute check", func(t *testing.T) {
 		var c Closer
 		const N = 100
-		var called int32 = 0
+		var called int32
 		for i := 0; i < N; i++ {
 			require.True(t, c.OnCloseAlways(func() { atomic.AddInt32(&called, 1) }))
 		}
@@ -179,7 +179,7 @@ func TestCloser_Close_Hammer(t *testing.T) {
 	for i := 0; i < N; i++ {
 		var wg sync.WaitGroup
 		var c Closer
-		var errs int32 = 0
+		var errs int32
 		wg.Add(M)
 		for j := 0; j < M; j++ {
 			go func() {

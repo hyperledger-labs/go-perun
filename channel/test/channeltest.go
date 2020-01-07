@@ -39,7 +39,7 @@ type Setup struct {
 // GenericBackendTest tests the interface functions of the global channel.Backend with the passed test data.
 func GenericBackendTest(t *testing.T, s *Setup) {
 	require := require.New(t)
-	ID := channel.ChannelID(s.Params)
+	ID := channel.CalcID(s.Params)
 	require.Equal(ID, s.State.ID, "ChannelID(params) should match the States ID")
 	require.Equal(ID, s.Params.ID(), "ChannelID(params) should match the Params ID")
 	require.NotNil(s.State.Data, "State data can not be nil")
@@ -60,11 +60,11 @@ func GenericBackendTest(t *testing.T, s *Setup) {
 
 func genericChannelIDTest(t *testing.T, s *Setup) {
 	require.NotNil(t, s.Params.Parts, "params.Parts can not be nil")
-	assert.Panics(t, func() { channel.ChannelID(nil) }, "ChannelID(nil) should panic")
+	assert.Panics(t, func() { channel.CalcID(nil) }, "ChannelID(nil) should panic")
 
 	// Check that modifying the state changes the id
 	for _, modParams := range buildModifiedParams(s.Params, s.Params2, s) {
-		ID := channel.ChannelID(&modParams)
+		ID := channel.CalcID(&modParams)
 		assert.NotEqual(t, ID, s.State.ID, "Channel ids should differ")
 	}
 }
@@ -83,7 +83,7 @@ func genericSignTest(t *testing.T, s *Setup) {
 
 func genericVerifyTest(t *testing.T, s *Setup) {
 	addr := s.Account.Address()
-	require.Equal(t, channel.ChannelID(s.Params), s.Params.ID(), "Invalid test params")
+	require.Equal(t, channel.CalcID(s.Params), s.Params.ID(), "Invalid test params")
 	sig, err := channel.Sign(s.Account, s.Params, s.State)
 	require.NoError(t, err, "Sign should not return an error")
 

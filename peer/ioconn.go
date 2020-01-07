@@ -34,12 +34,12 @@ func (c *ioConn) Send(m wire.Msg) error {
 }
 
 func (c *ioConn) Recv() (wire.Msg, error) {
-	if m, err := wire.Decode(c.conn); err != nil {
+	m, err := wire.Decode(c.conn)
+	if err != nil {
 		c.conn.Close()
 		return nil, err
-	} else {
-		return m, nil
 	}
+	return m, nil
 }
 
 func (c *ioConn) Close() error {
