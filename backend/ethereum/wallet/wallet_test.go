@@ -29,18 +29,18 @@ const (
 )
 
 func TestGenericWalletTests(t *testing.T) {
-	setup := newSetup()
+	setup := newSetup(t)
 	test.GenericWalletTest(t, setup)
 }
 
 func TestGenericSignatureTests(t *testing.T) {
-	setup := newSetup()
+	setup := newSetup(t)
 	test.GenericSignatureTest(t, setup)
 	test.GenericSignatureSizeTest(t, setup)
 }
 
 func TestGenericAddressTests(t *testing.T) {
-	setup := newSetup()
+	setup := newSetup(t)
 	test.GenericAddressTest(t, setup)
 }
 
@@ -123,7 +123,7 @@ func TestSignatures(t *testing.T) {
 func TestBackend(t *testing.T) {
 	backend := new(Backend)
 
-	s := newSetup()
+	s := newSetup(t)
 
 	addr, err := backend.NewAddressFromBytes(s.AddressBytes)
 	assert.Nil(t, err, "NewAddress from Bytes should work")
@@ -133,9 +133,9 @@ func TestBackend(t *testing.T) {
 	assert.NotNil(t, err, "Conversion from wrong address should fail")
 }
 
-func newSetup() *test.Setup {
+func newSetup(t require.TestingT) *test.Setup {
 	wallet := new(Wallet)
-	wallet.Connect(keyDir, password)
+	require.NoError(t, wallet.Connect(keyDir, password))
 	acc := wallet.Accounts()[0].(*Account)
 	acc.Unlock(password)
 
@@ -167,22 +167,22 @@ func connectTmpKeystore(t *testing.T) *Wallet {
 // Benchmarking part starts here
 
 func BenchmarkGenericAccount(b *testing.B) {
-	setup := newSetup()
+	setup := newSetup(b)
 	test.GenericAccountBenchmark(b, setup)
 }
 
 func BenchmarkGenericWallet(b *testing.B) {
-	setup := newSetup()
+	setup := newSetup(b)
 	test.GenericWalletBenchmark(b, setup)
 }
 
 func BenchmarkGenericBackend(b *testing.B) {
-	setup := newSetup()
+	setup := newSetup(b)
 	test.GenericBackendBenchmark(b, setup)
 }
 
 func BenchmarkEthereumAccounts(b *testing.B) {
-	s := newSetup()
+	s := newSetup(b)
 	b.Run("Lock", func(b *testing.B) { benchAccountLock(b, s) })
 	b.Run("Unlock", func(b *testing.B) { benchAccountUnlock(b, s) })
 }
