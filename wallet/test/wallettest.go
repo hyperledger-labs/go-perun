@@ -169,7 +169,7 @@ func GenericAddressTest(t *testing.T, s *Setup) {
 	assert.False(t, addr.Equals(null), "Expected inequality of zero, nonzero address")
 	assert.True(t, null.Equals(null), "Expected equality of zero address to itself")
 
-	t.Run("Generic Serializable Test", func(t *testing.T) {
-		test.GenericSerializableTest(t, addr)
+	t.Run("Generic Serializer Test", func(t *testing.T) {
+		test.GenericSerializerTest(t, addr)
 	})
 }

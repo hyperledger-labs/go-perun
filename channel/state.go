@@ -61,7 +61,7 @@ type (
 	}
 )
 
-var _ perunio.Serializable = new(State)
+var _ perunio.Serializer = new(State)
 
 // newState creates a new state, checking that the parameters and allocation are
 // compatible. This function is not exported because a user of the channel

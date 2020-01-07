@@ -76,7 +76,7 @@ func (a Address) Equals(addr wallet.Address) bool {
 }
 
 // Encode encodes this address into an io.Writer. Part of the
-// go-perun/pkg/io.Serializable interface.
+// go-perun/pkg/io.Serializer interface.
 func (a *Address) Encode(w io.Writer) error {
 	if err := (wire.BigInt{Int: a.X}.Encode(w)); err != nil {
 		return errors.Wrap(err, "address encode error")
@@ -89,7 +89,7 @@ func (a *Address) Encode(w io.Writer) error {
 }
 
 // Decode decodes an address from an io.Reader. Part of the
-// go-perun/pkg/io.Serializable interface.
+// go-perun/pkg/io.Serializer interface.
 func (a *Address) Decode(r io.Reader) error {
 	var X, Y wire.BigInt
 

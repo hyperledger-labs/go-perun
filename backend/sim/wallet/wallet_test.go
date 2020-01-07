@@ -17,7 +17,7 @@ import (
 )
 
 // TestSignatureSerialize tests serializeSignature and deserializeSignature since
-// a signature is only a []byte, we cant use io.serializable here
+// a signature is only a []byte, we cant use io.serializer here
 func TestSignatureSerialize(t *testing.T) {
 	a := assert.New(t)
 	// Constant seed for determinism

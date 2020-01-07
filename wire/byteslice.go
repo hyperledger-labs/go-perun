@@ -12,10 +12,10 @@ import (
 	perunio "perun.network/go-perun/pkg/io"
 )
 
-// ByteSlice is a serializable byte slice.
+// ByteSlice is a serializer byte slice.
 type ByteSlice []byte
 
-var _ perunio.Serializable = (*ByteSlice)(nil)
+var _ perunio.Serializer = (*ByteSlice)(nil)
 
 // Encode writes len(b) bytes to the stream. Note that the length itself is not
 // written to the stream.
