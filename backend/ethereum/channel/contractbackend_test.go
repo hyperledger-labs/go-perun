@@ -93,9 +93,10 @@ func Test_NewWatchOpts(t *testing.T) {
 	assert.NoError(t, err, "Creating watchopts on valid ContractBackend should succeed")
 	assert.Equal(t, context.Background(), watchOpts.Context, "context should be set")
 	assert.Equal(t, uint64(1), *watchOpts.Start, "startblock should be 1")
-	ctx := context.WithValue(context.Background(), "foo", "bar")
+	key := "foo"
+	ctx := context.WithValue(context.Background(), &key, "bar")
 	watchOpts, err = f.newWatchOpts(ctx)
 	assert.NoError(t, err, "Creating watchopts on valid ContractBackend should succeed")
-	assert.Equal(t, context.WithValue(context.Background(), "foo", "bar"), watchOpts.Context, "context should be set")
+	assert.Equal(t, context.WithValue(context.Background(), &key, "bar"), watchOpts.Context, "context should be set")
 	assert.Equal(t, uint64(1), *watchOpts.Start, "startblock should be 1")
 }
