@@ -16,7 +16,6 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"perun.network/go-perun/backend/ethereum/wallet"
-	_ "perun.network/go-perun/backend/ethereum/wallet"
 	ethwallettest "perun.network/go-perun/backend/ethereum/wallet/test"
 	"perun.network/go-perun/channel"
 	"perun.network/go-perun/channel/test"

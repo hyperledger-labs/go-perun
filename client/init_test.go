@@ -11,8 +11,7 @@ import (
 	"github.com/sirupsen/logrus"
 
 	"perun.network/go-perun/apps/payment"
-	_ "perun.network/go-perun/backend/sim/channel" // backend init
-	_ "perun.network/go-perun/backend/sim/wallet"  // backend init
+	_ "perun.network/go-perun/backend/sim" // backend init
 	plogrus "perun.network/go-perun/log/logrus"
 	wallettest "perun.network/go-perun/wallet/test"
 )
