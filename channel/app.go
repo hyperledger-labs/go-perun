@@ -84,12 +84,14 @@ type (
 		DecodeAction(io.Reader) (Action, error)
 	}
 
-	// Actions are applied to channel states to result in new states.
+	// An Action is applied to a channel state to result in new state.
 	// Actions need to be Encoders so they can be sent over the wire.
 	// Decoding happens with ActionApp.DecodeAction() since the app context needs
 	// to be known at the point of decoding.
 	Action = perunio.Encoder
 
+	// AppBackend provides functionality to create an App from an Address.
+	// The AppBackend needs to be implemented for every state channel application.
 	AppBackend interface {
 		// AppFromDefinition creates an app from its defining address. It is
 		// possible that multiple apps are in use, which is why creation happens
@@ -100,11 +102,13 @@ type (
 	}
 )
 
+// IsStateApp returns true if the app is a StateApp.
 func IsStateApp(app App) bool {
 	_, ok := app.(StateApp)
 	return ok
 }
 
+// IsActionApp returns true if the app is an ActionApp.
 func IsActionApp(app App) bool {
 	_, ok := app.(ActionApp)
 	return ok

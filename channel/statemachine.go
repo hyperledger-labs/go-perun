@@ -19,6 +19,7 @@ type StateMachine struct {
 	app StateApp
 }
 
+// NewStateMachine creates a new StateMachine.
 func NewStateMachine(acc wallet.Account, params Params) (*StateMachine, error) {
 	app, ok := params.App.(StateApp)
 	if !ok {

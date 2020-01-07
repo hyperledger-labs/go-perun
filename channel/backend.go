@@ -55,14 +55,17 @@ func CalcID(p *Params) ID {
 	return backend.CalcID(p)
 }
 
+// Sign creates a signature from the account a on state s.
 func Sign(a wallet.Account, p *Params, s *State) (wallet.Sig, error) {
 	return backend.Sign(a, p, s)
 }
 
+// Verify verifies that a signature was a valid signature from addr on a state.
 func Verify(addr wallet.Address, params *Params, state *State, sig wallet.Sig) (bool, error) {
 	return backend.Verify(addr, params, state, sig)
 }
 
+// DecodeAsset decodes an Asset from an io.Reader.
 func DecodeAsset(r io.Reader) (Asset, error) {
 	return backend.DecodeAsset(r)
 }

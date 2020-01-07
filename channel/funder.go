@@ -12,6 +12,8 @@ import (
 )
 
 type (
+	// The Funder interface needs to be implemented by every
+	// blockchain backend. It provides functionality to fund a new channel on-chain.
 	Funder interface {
 		// Fund should fund the channel in FundingReq on the blockchain.
 		// It should return an error if own funding did not succeed, possibly
@@ -25,12 +27,15 @@ type (
 		Fund(context.Context, FundingReq) error
 	}
 
+	// A FundingReq bundles all data needed to fund a channel.
 	FundingReq struct {
 		Params     *Params
 		Allocation *Allocation
 		Idx        Index // our index
 	}
 
+	// A PeerTimedOutFundingError is a special error that is returned whenever
+	// a participant does not fund the channel in time.
 	PeerTimedOutFundingError struct {
 		TimedOutPeerIdx Index // index of the peer who timed-out funding
 	}
@@ -40,6 +45,7 @@ func (e PeerTimedOutFundingError) Error() string {
 	return fmt.Sprintf("peer[%d] did not fund channel in time", e.TimedOutPeerIdx)
 }
 
+// NewPeerTimedOutFundingError creates a new PeerTimedOutFundingError.
 func NewPeerTimedOutFundingError(idx Index) error {
 	return errors.WithStack(&PeerTimedOutFundingError{idx})
 }

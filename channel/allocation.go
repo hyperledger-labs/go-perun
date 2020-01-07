@@ -111,6 +111,7 @@ func (a Allocation) Clone() (clone Allocation) {
 	return clone
 }
 
+// Encode encodes this allocation into an io.Writer.
 func (a Allocation) Encode(w io.Writer) error {
 	if err := a.Valid(); err != nil {
 		return errors.WithMessagef(
@@ -146,6 +147,7 @@ func (a Allocation) Encode(w io.Writer) error {
 	return nil
 }
 
+// Decode decodes an allocation from an io.Reader.
 func (a *Allocation) Decode(r io.Reader) error {
 	// decode dimensions
 	var numAssets, numParts, numLocked Index
@@ -158,11 +160,11 @@ func (a *Allocation) Decode(r io.Reader) error {
 	// decode assets
 	a.Assets = make([]Asset, numAssets)
 	for i := 0; i < len(a.Assets); i++ {
-		if asset, err := DecodeAsset(r); err != nil {
+		asset, err := DecodeAsset(r)
+		if err != nil {
 			return errors.WithMessagef(err, "decoding error for asset %d", i)
-		} else {
-			a.Assets[i] = asset
 		}
+		a.Assets[i] = asset
 	}
 	// decode participant allocations
 	a.OfParts = make([][]Bal, numParts)
@@ -188,6 +190,7 @@ func (a *Allocation) Decode(r io.Reader) error {
 	return a.Valid()
 }
 
+// CloneBals creates a deep copy of a balance array.
 func CloneBals(orig []Bal) []Bal {
 	if orig == nil {
 		return nil
@@ -296,6 +299,7 @@ func equalSum(b0, b1 summer) (bool, error) {
 
 var _ perunio.Serializer = new(SubAlloc)
 
+// Valid checks if this suballocation is valid.
 func (s SubAlloc) Valid() error {
 	if len(s.Bals) > MaxNumAssets {
 		return errors.New("too many bals")

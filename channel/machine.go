@@ -27,6 +27,7 @@ type (
 	}
 )
 
+// Phases known to the channel machine.
 const (
 	InitActing Phase = iota
 	InitSigning

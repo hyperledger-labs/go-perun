@@ -21,6 +21,7 @@ type ActionMachine struct {
 	stagingActions []Action
 }
 
+// NewActionMachine creates a new ActionMachine.
 func NewActionMachine(acc wallet.Account, params Params) (*ActionMachine, error) {
 	app, ok := params.App.(ActionApp)
 	if !ok {

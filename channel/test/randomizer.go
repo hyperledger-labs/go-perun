@@ -16,12 +16,15 @@ import (
 	wallettest "perun.network/go-perun/wallet/test"
 )
 
+// The Randomizer interface provides the ability to create random assets.
+// This is useful for testing.
 type Randomizer interface {
 	NewRandomAsset(*rand.Rand) channel.Asset
 }
 
 var randomizer Randomizer
 
+// SetRandomizer sets the global Randomizer variable.
 func SetRandomizer(r Randomizer) {
 	if randomizer != nil || r == nil {
 		panic("channel/test randomizer already set or nil argument")
@@ -29,10 +32,12 @@ func SetRandomizer(r Randomizer) {
 	randomizer = r
 }
 
+// NewRandomAsset creates a new random channel.Asset.
 func NewRandomAsset(rng *rand.Rand) channel.Asset {
 	return randomizer.NewRandomAsset(rng)
 }
 
+// NewRandomAllocation creates a new random allocation.
 func NewRandomAllocation(rng *rand.Rand, numParts int) *channel.Allocation {
 	if numParts > channel.MaxNumParts {
 		panic(fmt.Sprintf(
@@ -58,10 +63,12 @@ func NewRandomAllocation(rng *rand.Rand, numParts int) *channel.Allocation {
 	return &channel.Allocation{Assets: assets, OfParts: ofparts, Locked: locked}
 }
 
+// NewRandomSubAlloc creates a new random suballocation.
 func NewRandomSubAlloc(rng *rand.Rand, size int) *channel.SubAlloc {
 	return &channel.SubAlloc{ID: NewRandomChannelID(rng), Bals: NewRandomBals(rng, size)}
 }
 
+// NewRandomParams creates new random channel.Params.
 func NewRandomParams(rng *rand.Rand, appDef wallet.Address) *channel.Params {
 	var challengeDuration = rng.Uint64()
 	parts := make([]wallet.Address, rng.Int31n(5)+2)
@@ -77,6 +84,7 @@ func NewRandomParams(rng *rand.Rand, appDef wallet.Address) *channel.Params {
 	return params
 }
 
+// NewRandomState creates a new random state.
 func NewRandomState(rng *rand.Rand, p *channel.Params) *channel.State {
 	return &channel.State{
 		ID:         p.ID(),
@@ -88,6 +96,7 @@ func NewRandomState(rng *rand.Rand, p *channel.Params) *channel.State {
 	}
 }
 
+// NewRandomChannelID creates a new random channel.ID.
 func NewRandomChannelID(rng *rand.Rand) (id channel.ID) {
 	if _, err := rng.Read(id[:]); err != nil {
 		log.Panic("could not read from rng")
@@ -95,10 +104,12 @@ func NewRandomChannelID(rng *rand.Rand) (id channel.ID) {
 	return
 }
 
+// NewRandomBal creates a new random balance.
 func NewRandomBal(rng *rand.Rand) channel.Bal {
 	return channel.Bal(big.NewInt(rng.Int63()))
 }
 
+// NewRandomBals creates new random balances.
 func NewRandomBals(rng *rand.Rand, size int) []channel.Bal {
 	bals := make([]channel.Bal, size)
 	for i := 0; i < size; i++ {

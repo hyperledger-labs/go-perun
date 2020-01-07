@@ -46,12 +46,14 @@ func (e *PhaseTransitionError) Error() string {
 	)
 }
 
+// NewStateTransitionError creates a new StateTransitionError.
 func NewStateTransitionError(id ID, msg string) error {
 	return errors.Wrap(&StateTransitionError{
 		ID: id,
 	}, msg)
 }
 
+// NewActionError creates a new ActionError.
 func NewActionError(id ID, msg string) error {
 	return errors.Wrap(&ActionError{
 		ID: id,
@@ -80,18 +82,21 @@ func newPhaseTransitionErrorf(
 	}, format, args...)
 }
 
+// IsStateTransitionError returns true if the error was a StateTransitionError.
 func IsStateTransitionError(err error) bool {
 	cause := errors.Cause(err)
 	_, ok := cause.(*StateTransitionError)
 	return ok
 }
 
+// IsActionError returns true if the error was an ActionError.
 func IsActionError(err error) bool {
 	cause := errors.Cause(err)
 	_, ok := cause.(*ActionError)
 	return ok
 }
 
+// IsPhaseTransitionError returns true if the error was a PhaseTransitionError.
 func IsPhaseTransitionError(err error) bool {
 	cause := errors.Cause(err)
 	_, ok := cause.(*PhaseTransitionError)
