@@ -24,8 +24,8 @@ type backend struct{}
 
 var _ channel.Backend = new(backend)
 
-// ChannelID calculates a channel's ID by hashing all fields of its parameters
-func (*backend) ChannelID(p *channel.Params) channel.ID {
+// CalcID calculates a channel's ID by hashing all fields of its parameters
+func (*backend) CalcID(p *channel.Params) channel.ID {
 	w := sha256.New()
 
 	// Write ChallengeDuration

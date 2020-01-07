@@ -99,7 +99,7 @@ func TestChannelID(t *testing.T) {
 				Parts:             []perunwallet.Address{alice, bob},
 				App:               channel.NewMockApp(app),
 			}
-			cID := channel.ChannelID(&params)
+			cID := channel.CalcID(&params)
 			preCalc, err := hex.DecodeString(tt.channelID)
 			assert.NoError(t, err, "Decoding the channelID should not error")
 			assert.Equal(t, preCalc, cID[:], "ChannelID should match the testcase")

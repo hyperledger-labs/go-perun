@@ -39,9 +39,9 @@ var (
 // Backend implements the interface defined in channel/Backend.go.
 type Backend struct{}
 
-// ChannelID calculates the channelID as needed by the ethereum smart contracts.
-func (*Backend) ChannelID(p *channel.Params) (id channel.ID) {
-	return ChannelID(p)
+// CalcID calculates the channelID as needed by the ethereum smart contracts.
+func (*Backend) CalcID(p *channel.Params) (id channel.ID) {
+	return CalcID(p)
 }
 
 // Sign signs the channel state as needed by the ethereum smart contracts.
@@ -59,8 +59,8 @@ func (*Backend) DecodeAsset(r io.Reader) (channel.Asset, error) {
 	return DecodeAsset(r)
 }
 
-// ChannelID calculates the channelID as needed by the ethereum smart contracts.
-func ChannelID(p *channel.Params) (id channel.ID) {
+// CalcID calculates the channelID as needed by the ethereum smart contracts.
+func CalcID(p *channel.Params) (id channel.ID) {
 	params := channelParamsToEthParams(p)
 	bytes, err := encodeParams(&params)
 	if err != nil {

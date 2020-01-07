@@ -94,6 +94,6 @@ func NewParamsUnsafe(challengeDuration uint64, parts []wallet.Address, appDef wa
 		Nonce:             nonce,
 	}
 	// probably an expensive hash operation, do it only once during creation.
-	p.id = ChannelID(p)
+	p.id = CalcID(p)
 	return p
 }
