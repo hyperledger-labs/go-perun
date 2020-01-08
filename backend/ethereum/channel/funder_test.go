@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 	"perun.network/go-perun/backend/ethereum/wallet"
 	"perun.network/go-perun/channel"
@@ -58,6 +59,51 @@ func TestFunder_Fund(t *testing.T) {
 	cancel()
 	// Test already closed context
 	assert.Error(t, funders[0].Fund(ctx, req), "funding with already cancelled context should fail")
+}
+
+func TestPeerTimedOutFundingError(t *testing.T) {
+	t.Run("peer 0 faulty out of 2", func(t *testing.T) { testFundingTimout(t, 0, 2) })
+	t.Run("peer 1 faulty out of 2", func(t *testing.T) { testFundingTimout(t, 1, 2) })
+	t.Run("peer 0 faulty out of 3", func(t *testing.T) { testFundingTimout(t, 0, 3) })
+	t.Run("peer 1 faulty out of 3", func(t *testing.T) { testFundingTimout(t, 1, 3) })
+	t.Run("peer 2 faulty out of 3", func(t *testing.T) { testFundingTimout(t, 2, 3) })
+}
+
+func testFundingTimout(t *testing.T, faultyPeer, peers int) {
+	t.Parallel()
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	defer cancel()
+	// Need unique seed per run.
+	seed := time.Now().UnixNano()
+	t.Logf("seed is %d", seed)
+	rng := rand.New(rand.NewSource(seed))
+
+	_, funders, _, params, allocation := newNFunders(ctx, t, rng, peers)
+	var wg sync.WaitGroup
+	wg.Add(peers)
+	for i, funder := range funders {
+		sleepTime := time.Duration(rng.Int63n(10) + 1)
+		go func(i int, funder *Funder) {
+			defer wg.Done()
+			if i == faultyPeer {
+				return
+			}
+			time.Sleep(sleepTime * time.Millisecond)
+			req := channel.FundingReq{
+				Params:     params,
+				Allocation: allocation,
+				Idx:        uint16(i),
+			}
+			ctx2, cancel := context.WithTimeout(context.Background(), 200*time.Millisecond)
+			defer cancel()
+			err := funder.Fund(ctx2, req)
+			assert.True(t, channel.IsPeerTimedOutFundingError(err), "funder should return PeerTimedOutFundingError")
+			wErr := errors.Cause(err) // unwrap error
+			pErr := wErr.(*channel.PeerTimedOutFundingError)
+			assert.Equal(t, uint16(faultyPeer), pErr.TimedOutPeerIdx, "Peer 1 should be detected as erroneous")
+		}(i, funder)
+	}
+	wg.Wait()
 }
 
 func TestFunder_Fund_multi(t *testing.T) {
