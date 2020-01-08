@@ -17,7 +17,7 @@ fmt:
   <<: *only-default
   image: golang
   stage: vetting
-  script: "! gofmt -l `ls -d */` | grep ."
+  script: "! gofmt -l -s `ls -d */` | grep ."
 
 lint:
   <<: *only-default
