@@ -49,6 +49,9 @@ type (
 
 // Accept lets the user signal that they want to accept the channel update.
 func (r *UpdateResponder) Accept(ctx context.Context) error {
+	if ctx == nil {
+		return errors.New("context must not be nil")
+	}
 	if !r.called.TrySet() {
 		log.Panic("multiple calls on channel update responder")
 	}
@@ -61,6 +64,9 @@ func (r *UpdateResponder) Accept(ctx context.Context) error {
 
 // Reject lets the user signal that they reject the channel update.
 func (r *UpdateResponder) Reject(ctx context.Context, reason string) error {
+	if ctx == nil {
+		return errors.New("context must not be nil")
+	}
 	if !r.called.TrySet() {
 		log.Panic("multiple calls on channel update responder")
 	}
@@ -77,7 +83,7 @@ func (r *UpdateResponder) Reject(ctx context.Context, reason string) error {
 // any peer rejects the update, an error is returned.
 func (c *Channel) Update(ctx context.Context, up ChannelUpdate) (err error) {
 	if ctx == nil {
-		log.Panic("nil context")
+		return errors.New("context must not be nil")
 	}
 	if err := c.validTwoPartyUpdate(up, c.machine.Idx()); err != nil {
 		return err
@@ -142,6 +148,10 @@ func (c *Channel) Update(ctx context.Context, up ChannelUpdate) (err error) {
 // should immediately be started by the user after they receive the channel
 // controller.
 func (c *Channel) ListenUpdates(uh UpdateHandler) {
+	if uh == nil {
+		c.log.Panicf("update handler must not be nil")
+	}
+
 	for {
 		pidx, req := c.conn.NextUpdateReq(context.Background())
 		if req == nil {
