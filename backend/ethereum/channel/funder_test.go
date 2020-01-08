@@ -15,7 +15,6 @@ import (
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 	"perun.network/go-perun/backend/ethereum/wallet"
 	"perun.network/go-perun/channel"
 	wallettest "perun.network/go-perun/wallet/test"
@@ -36,32 +35,29 @@ const timeout = 20 * time.Second
 func TestFunder_Fund(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
-	f := newSimulatedFunder(t)
-	assert.Panics(t, func() { f.Fund(ctx, channel.FundingReq{}) }, "Funding with invalid funding req should fail")
+	// Need unique seed per run.
+	seed := time.Now().UnixNano()
+	t.Logf("seed is %d", seed)
+	rng := rand.New(rand.NewSource(seed))
+	_, funders, _, params, allocation := newNFunders(ctx, t, rng, 1)
+	assert.Panics(t, func() { funders[0].Fund(ctx, channel.FundingReq{}) }, "Funding with invalid funding req should fail")
 	req := channel.FundingReq{
 		Params:     &channel.Params{},
 		Allocation: &channel.Allocation{},
 		Idx:        0,
 	}
-	assert.NoError(t, f.Fund(ctx, req), "Funding with no assets should succeed")
-	parts := []perunwallet.Address{
-		&wallet.Address{Address: f.account.Address},
-	}
-	rng := rand.New(rand.NewSource(1337))
-	app := channeltest.NewRandomApp(rng)
-	params := channel.NewParamsUnsafe(uint64(0), parts, app.Def(), big.NewInt(rng.Int63()))
-	allocation := newValidAllocation(parts, f.ethAssetHolder)
+	assert.NoError(t, funders[0].Fund(ctx, req), "Funding with no assets should succeed")
 	req = channel.FundingReq{
 		Params:     params,
 		Allocation: allocation,
 		Idx:        0,
 	}
 	// Test with valid context
-	assert.NoError(t, f.Fund(ctx, req), "funding with valid request should succeed")
-	assert.NoError(t, f.Fund(ctx, req), "multiple funding should succeed")
+	assert.NoError(t, funders[0].Fund(ctx, req), "funding with valid request should succeed")
+	assert.NoError(t, funders[0].Fund(ctx, req), "multiple funding should succeed")
 	cancel()
 	// Test already closed context
-	assert.Error(t, f.Fund(ctx, req), "funding with already cancelled context should fail")
+	assert.Error(t, funders[0].Fund(ctx, req), "funding with already cancelled context should fail")
 }
 
 func TestFunder_Fund_multi(t *testing.T) {
@@ -74,33 +70,12 @@ func TestFunder_Fund_multi(t *testing.T) {
 func testFunderFunding(t *testing.T, n int) {
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
-	simBackend := test.NewSimulatedBackend()
 	// Need unique seed per run.
 	seed := time.Now().UnixNano()
 	t.Logf("seed is %d", seed)
 	rng := rand.New(rand.NewSource(seed))
-	ks := ethwallettest.GetKeystore()
-	deployAccount := wallettest.NewRandomAccount(rng).(*wallet.Account).Account
-	simBackend.FundAddress(ctx, deployAccount.Address)
-	contractBackend := NewContractBackend(simBackend, ks, deployAccount)
-	// Deploy Assetholder
-	assetETH, err := DeployETHAssetholder(ctx, contractBackend, deployAccount.Address)
-	if err != nil {
-		panic(err)
-	}
-	t.Logf("asset holder address is %v", assetETH)
-	parts := make([]perunwallet.Address, n)
-	funders := make([]*Funder, n)
-	for i := 0; i < n; i++ {
-		acc := wallettest.NewRandomAccount(rng).(*wallet.Account)
-		simBackend.FundAddress(ctx, acc.Account.Address)
-		parts[i] = acc.Address()
-		cb := NewContractBackend(simBackend, ks, acc.Account)
-		funders[i] = NewETHFunder(cb, assetETH)
-	}
-	app := channeltest.NewRandomApp(rng)
-	params := channel.NewParamsUnsafe(uint64(0), parts, app.Def(), big.NewInt(rng.Int63()))
-	allocation := newValidAllocation(parts, assetETH)
+
+	_, funders, _, params, allocation := newNFunders(ctx, t, rng, n)
 	var wg sync.WaitGroup
 	wg.Add(n)
 	for i, funder := range funders {
@@ -120,22 +95,54 @@ func testFunderFunding(t *testing.T, n int) {
 	wg.Wait()
 }
 
-func newSimulatedFunder(t *testing.T) *Funder {
-	// Set KeyStore
-	wall := new(wallet.Wallet)
-	require.NoError(t, wall.Connect(keyDir, password))
-	acc := wall.Accounts()[0].(*wallet.Account)
-	acc.Unlock(password)
-	ks := wall.Ks
+func newNFunders(
+	ctx context.Context,
+	t *testing.T,
+	rng *rand.Rand,
+	n int,
+) (
+	parts []perunwallet.Address,
+	funders []*Funder,
+	app channel.App,
+	params *channel.Params,
+	allocation *channel.Allocation,
+) {
 	simBackend := test.NewSimulatedBackend()
-	simBackend.FundAddress(context.Background(), acc.Account.Address)
-	cb := ContractBackend{simBackend, ks, acc.Account}
+	ks := ethwallettest.GetKeystore()
+	deployAccount := wallettest.NewRandomAccount(rng).(*wallet.Account).Account
+	simBackend.FundAddress(ctx, deployAccount.Address)
+	contractBackend := NewContractBackend(simBackend, ks, deployAccount)
 	// Deploy Assetholder
-	assetETH, err := DeployETHAssetholder(context.Background(), cb, acc.Account.Address)
+	assetETH, err := DeployETHAssetholder(ctx, contractBackend, deployAccount.Address)
 	if err != nil {
 		panic(err)
 	}
-	return NewETHFunder(cb, assetETH)
+	t.Logf("asset holder address is %v", assetETH)
+	parts = make([]perunwallet.Address, n)
+	funders = make([]*Funder, n)
+	for i := 0; i < n; i++ {
+		acc := wallettest.NewRandomAccount(rng).(*wallet.Account)
+		simBackend.FundAddress(ctx, acc.Account.Address)
+		parts[i] = acc.Address()
+		cb := NewContractBackend(simBackend, ks, acc.Account)
+		funders[i] = NewETHFunder(cb, assetETH)
+	}
+	app = channeltest.NewRandomApp(rng)
+	params = channel.NewParamsUnsafe(uint64(0), parts, app.Def(), big.NewInt(rng.Int63()))
+	allocation = newValidAllocation(parts, assetETH)
+	return
+}
+
+// newSimulatedFunder creates a new funder
+func newSimulatedFunder(t *testing.T) *Funder {
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	defer cancel()
+	// Need unique seed per run.
+	seed := time.Now().UnixNano()
+	t.Logf("seed is %d", seed)
+	rng := rand.New(rand.NewSource(seed))
+	_, funder, _, _, _ := newNFunders(ctx, t, rng, 1)
+	return funder[0]
 }
 
 func newValidAllocation(parts []perunwallet.Address, assetETH common.Address) *channel.Allocation {
