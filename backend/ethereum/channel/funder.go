@@ -37,7 +37,8 @@ type assetHolder struct {
 // Funder implements the channel.Funder interface for Ethereum.
 type Funder struct {
 	ContractBackend
-	mu sync.Mutex
+	mu  sync.Mutex
+	log log.Logger // structured logger
 	// ETHAssetHolder is the on-chain address of the ETH asset holder.
 	// This is needed to distinguish between ETH and ERC-20 transactions.
 	ethAssetHolder common.Address
@@ -51,6 +52,7 @@ func NewETHFunder(backend ContractBackend, ethAssetHolder common.Address) *Funde
 	return &Funder{
 		ContractBackend: backend,
 		ethAssetHolder:  ethAssetHolder,
+		log:             log.WithField("account", backend.account.Address),
 	}
 }
 
@@ -61,7 +63,7 @@ func (f *Funder) Fund(ctx context.Context, request channel.FundingReq) error {
 		panic("invalid funding request")
 	}
 	var channelID = request.Params.ID()
-	log.Debugf("Funding Channel with ChannelID %d", channelID)
+	f.log.WithField("channel", channelID).Debug("Funding Channel.")
 
 	partIDs := calcFundingIDs(request.Params.Parts, channelID)
 
@@ -127,7 +129,7 @@ func (f *Funder) fundAssets(ctx context.Context, request channel.FundingReq, con
 		if err := execSuccessful(ctx, f.ContractBackend, tx); err != nil {
 			return errors.WithMessage(err, "mining transaction")
 		}
-		log.Debugf("peer[%d] Sending transaction to the blockchain with txHash: %v, amount %d", request.Idx, tx.Hash().Hex(), balance)
+		f.log.Debugf("peer[%d] Sending transaction to the blockchain with txHash: %v, amount %d", request.Idx, tx.Hash().Hex(), balance)
 	}
 	return nil
 }
@@ -197,7 +199,8 @@ func (f *Funder) waitForFundingConfirmations(ctx context.Context, request channe
 	for N > 0 {
 		select {
 		case event := <-deposited:
-			log.Debugf("peer[%d] Received event with fundingID %v amount %v", request.Idx, event.FundingID, event.Amount)
+			log := f.log.WithField("fundingID", event.FundingID)
+			log.Debugf("peer[%d] Received event with amount %v", request.Idx, event.Amount)
 
 			// Calculate the position in the participant array.
 			idx := -1
@@ -222,9 +225,7 @@ func (f *Funder) waitForFundingConfirmations(ctx context.Context, request channe
 				continue // ignore double events
 			}
 
-			log.Debugf(
-				"Deposited event received for asset %d and participant %d, id: %v",
-				assetIdx, idx, event.FundingID)
+			log.Debugf("Deposited event received for asset %d and participant %d", assetIdx, idx)
 
 			amount.Sub(amount, event.Amount)
 			if amount.Sign() != 1 {
