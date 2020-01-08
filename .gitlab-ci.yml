@@ -10,6 +10,7 @@ stages:
 
 before_script:
   - go get -u golang.org/x/lint/golint
+  - go get -u github.com/client9/misspell/cmd/misspell
   - export GOPATH=$HOME/go
   - export PATH=$PATH:$GOROOT/bin:$GOPATH/bin
 
@@ -37,6 +38,13 @@ copyright_notice:
   image: golang
   stage: vetting
   script: "scripts/check-copyright-notice.sh"
+
+spelling:
+  <<: *only-default
+  image: golang
+  stage: vetting
+  script: "misspell -error ."
+  allow_failure: true
 
 unit_tests:
   image: golang
