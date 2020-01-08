@@ -13,6 +13,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
@@ -136,6 +137,13 @@ func testFunderFunding(t *testing.T, n int) {
 			}
 			err := funder.Fund(ctx, req)
 			assert.NoError(t, err, "funding should succeed")
+			newAlloc, err := getFundingState(ctx, funder, req)
+			assert.NoError(t, err, "Get Post-Funding state should succeed")
+			for i := range newAlloc {
+				for k := range newAlloc[i] {
+					assert.Equal(t, req.Allocation.OfParts[i][k], newAlloc[i][k], "Post-Funding balances should equal expected balances")
+				}
+			}
 		}(i, funder)
 	}
 	wg.Wait()
@@ -209,4 +217,32 @@ func newValidAllocation(parts []perunwallet.Address, assetETH common.Address) *c
 		Assets:  assets,
 		OfParts: ofparts,
 	}
+}
+
+func getFundingState(ctx context.Context, f *Funder, request channel.FundingReq) ([][]*big.Int, error) {
+	var channelID = request.Params.ID()
+	partIDs := calcFundingIDs(request.Params.Parts, channelID)
+
+	contracts, err := f.connectToContracts(request.Allocation.Assets)
+	if err != nil {
+		return nil, err
+	}
+	alloc := make([][]*big.Int, len(request.Params.Parts))
+	for i := 0; i < len(request.Params.Parts); i++ {
+		alloc[i] = make([]*big.Int, len(contracts))
+	}
+	for k, asset := range contracts {
+		for i, id := range partIDs {
+			opts := bind.CallOpts{
+				Pending: false,
+				Context: ctx,
+			}
+			val, err := asset.Holdings(&opts, id)
+			if err != nil {
+				return nil, err
+			}
+			alloc[i][k] = val
+		}
+	}
+	return alloc, nil
 }
