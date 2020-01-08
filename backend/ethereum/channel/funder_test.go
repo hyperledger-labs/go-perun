@@ -42,13 +42,27 @@ func TestFunder_Fund(t *testing.T) {
 	t.Logf("seed is %d", seed)
 	rng := rand.New(rand.NewSource(seed))
 	_, funders, _, params, allocation := newNFunders(ctx, t, rng, 1)
+	// Test invalid funding request
 	assert.Panics(t, func() { funders[0].Fund(ctx, channel.FundingReq{}) }, "Funding with invalid funding req should fail")
+	// Test funding without assets
 	req := channel.FundingReq{
 		Params:     &channel.Params{},
 		Allocation: &channel.Allocation{},
 		Idx:        0,
 	}
 	assert.NoError(t, funders[0].Fund(ctx, req), "Funding with no assets should succeed")
+	// Test with invalid asset addresses
+	invalidAlloc := allocation.Clone()
+	invalidAlloc.Assets[0] = wallettest.NewRandomAddress(rng)
+	req = channel.FundingReq{
+		Params:     params,
+		Allocation: &invalidAlloc,
+		Idx:        0,
+	}
+	ctx2, cancel2 := context.WithTimeout(context.Background(), 10*time.Millisecond)
+	defer cancel2()
+	assert.Error(t, funders[0].Fund(ctx2, req), "Funding invalid asset should fail")
+	// Test with valid request
 	req = channel.FundingReq{
 		Params:     params,
 		Allocation: allocation,
@@ -57,8 +71,8 @@ func TestFunder_Fund(t *testing.T) {
 	// Test with valid context
 	assert.NoError(t, funders[0].Fund(ctx, req), "funding with valid request should succeed")
 	assert.NoError(t, funders[0].Fund(ctx, req), "multiple funding should succeed")
-	cancel()
 	// Test already closed context
+	cancel()
 	assert.Error(t, funders[0].Fund(ctx, req), "funding with already cancelled context should fail")
 }
 
