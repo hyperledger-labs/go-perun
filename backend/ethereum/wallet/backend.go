@@ -8,9 +8,6 @@ package wallet
 import (
 	"io"
 
-	"github.com/pkg/errors"
-
-	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
 	perun "perun.network/go-perun/wallet"
 	"perun.network/go-perun/wire"
@@ -27,11 +24,6 @@ const SigLen = 65
 // compile-time check that the ethereum backend implements the perun backend
 var _ perun.Backend = (*Backend)(nil)
 
-// NewAddressFromBytes creates a new address from a byte array.
-func (*Backend) NewAddressFromBytes(data []byte) (perun.Address, error) {
-	return NewAddressFromBytes(data)
-}
-
 // DecodeAddress decodes an address from an io.Reader.
 func (*Backend) DecodeAddress(r io.Reader) (perun.Address, error) {
 	return DecodeAddress(r)
@@ -45,14 +37,6 @@ func (*Backend) DecodeSig(r io.Reader) (perun.Sig, error) {
 // VerifySignature verifies a signature.
 func (*Backend) VerifySignature(msg []byte, sig perun.Sig, a perun.Address) (bool, error) {
 	return VerifySignature(msg, sig, a)
-}
-
-// NewAddressFromBytes creates a new address from a byte array.
-func NewAddressFromBytes(data []byte) (perun.Address, error) {
-	if len(data) != common.AddressLength {
-		return nil, errors.Errorf("could not create address from bytes of length: %d", len(data))
-	}
-	return &Address{common.BytesToAddress(data)}, nil
 }
 
 // DecodeAddress decodes an address from an io.Reader.

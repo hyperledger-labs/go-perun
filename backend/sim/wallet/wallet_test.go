@@ -51,10 +51,6 @@ func TestGenericTests(t *testing.T) {
 		t.Parallel()
 		test.GenericAddressTest(t, newWalletSetup())
 	})
-	t.Run("Generic Wallet Test", func(t *testing.T) {
-		t.Parallel()
-		test.GenericWalletTest(t, newWalletSetup())
-	})
 	t.Run("Generic Signature Test", func(t *testing.T) {
 		t.Parallel()
 		test.GenericSignatureTest(t, newWalletSetup())
@@ -86,14 +82,11 @@ func newWalletSetup() *test.Setup {
 
 	accountA := NewRandomAccount(rng)
 	accountB := NewRandomAccount(rng)
-	initWallet := func(w wallet.Wallet) error { return w.Connect("", "") }
 	unlockedAccount := func() (wallet.Account, error) { return &accountA, nil }
 
 	return &test.Setup{
-		Wallet:          &Wallet{directory: "", account: accountA},
 		Backend:         new(Backend),
 		UnlockedAccount: unlockedAccount,
-		InitWallet:      initWallet,
 		AddressBytes:    accountB.Address().Bytes(),
 	}
 }
