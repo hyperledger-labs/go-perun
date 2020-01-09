@@ -5,72 +5,77 @@
 
 package test
 
-// T is part of the interface that testing.T implements. Receive this type
-// instead of *testing.T if you want to test your tests with the Tester.
-type T interface {
-	Error(...interface{})
-	Errorf(string, ...interface{})
-	Fatal(...interface{})
-	Fatalf(string, ...interface{})
+type (
+	// T is part of the interface that testing.T implements. Receive this type
+	// instead of *testing.T if you want to test your tests with the Tester.
+	T interface {
+		Error(...interface{})
+		Errorf(string, ...interface{})
+		Fatal(...interface{})
+		Fatalf(string, ...interface{})
 
-	Helper()
-}
+		Helper()
+	}
 
-// Tester is a testing.T mock to test tests.
-// Create new instances of it with NewTester(t), passing it the actual
-// *testing.T that the mock should call if an assertion fails.
-// Then let the tests you want to test receive test.T instead of *testing.T and
-// call your tests inside Tester.AssertX() calls.
-type Tester struct {
-	// testing object that should be used to report failures of tests. Usually,
-	// this should be a *testing.T
-	T
-	fatalCalled   bool
-	numErrorCalls uint
-}
+	// Tester is a testing.T mock to test tests.
+	// Create new instances of it with NewTester(t), passing it the actual
+	// *testing.T that the mock should call if an assertion fails.
+	// Then let the tests you want to test receive test.T instead of *testing.T and
+	// call your tests inside Tester.AssertX() calls.
+	Tester struct {
+		// T is the testing object that should be used to report failures of tests.
+		// Usually, this is a *testing.T.
+		T
+	}
 
-// NewTester creates a new testing mock, wrapping the passed actual test and
+	// testerT is the T object that the test tester passes to the to be tested
+	// test to record calls to Error and Fatal.
+	testerT struct {
+		fatalCalled   bool
+		numErrorCalls uint
+	}
+)
+
+// NewTester creates a new test tester, wrapping the passed actual test and
 // calling t.Error() on it if a test test fails.
 func NewTester(t T) *Tester {
 	return &Tester{T: t}
 }
 
-// Error counts one error.
-func (t *Tester) Error(...interface{}) {
+func (t *testerT) Error(...interface{}) {
 	t.err()
 }
 
-// Errorf counts one error.
-func (t *Tester) Errorf(string, ...interface{}) {
+func (t *testerT) Errorf(string, ...interface{}) {
 	t.err()
 }
 
-func (t *Tester) err() {
+func (t *testerT) err() {
 	t.numErrorCalls++
 }
 
-// Fatal marks the test as failed and panics to stop execution of the go routine.
-func (t *Tester) Fatal(...interface{}) {
+func (t *testerT) Fatal(...interface{}) {
 	t.fatal()
 }
 
-// Fatalf marks the test as failed and panics to stop execution of the go routine.
-func (t *Tester) Fatalf(string, ...interface{}) {
+func (t *testerT) Fatalf(string, ...interface{}) {
 	t.fatal()
 }
 
-func (t *Tester) fatal() {
+func (t *testerT) fatal() {
 	t.fatalCalled = true
 	// panic() to stop execution in the test, as would be the case in a test where
 	// Fatal is called. The panic is recovered in the Assert... methods.
-	panic("Tester.fatal()")
+	panic("testerT.fatal()")
 }
+
+func (t *testerT) Helper() {}
 
 // AssertFatal checks that the passed function fn calls T.Fatal() on the T
 // object it calls fn with.
 func (t *Tester) AssertFatal(fn func(T)) {
-	t.assert(func(t *Tester) {
-		if !t.fatalCalled {
+	t.assert(func(tt *testerT) {
+		if !tt.fatalCalled {
 			t.T.Error("the test did not call Fatal()")
 		}
 	}, fn)
@@ -79,8 +84,8 @@ func (t *Tester) AssertFatal(fn func(T)) {
 // AssertError checks that the passed function fn calls T.Error() on the T
 // object it calls fn with.
 func (t *Tester) AssertError(fn func(T)) {
-	t.assert(func(t *Tester) {
-		if t.numErrorCalls == 0 {
+	t.assert(func(tt *testerT) {
+		if tt.numErrorCalls == 0 {
 			t.T.Error("the test did not call Error()")
 		}
 	}, fn)
@@ -89,9 +94,9 @@ func (t *Tester) AssertError(fn func(T)) {
 // AssertErrorN checks that the passed function fn calls T.Error() numCalls
 // times on the T object it calls fn with.
 func (t *Tester) AssertErrorN(fn func(T), numCalls uint) {
-	t.assert(func(t *Tester) {
-		if t.numErrorCalls != numCalls {
-			t.T.Errorf("the test called Error() %d times, expected %d", t.numErrorCalls, numCalls)
+	t.assert(func(tt *testerT) {
+		if tt.numErrorCalls != numCalls {
+			t.T.Errorf("the test called Error() %d times, expected %d", tt.numErrorCalls, numCalls)
 		}
 	}, fn)
 }
@@ -99,12 +104,12 @@ func (t *Tester) AssertErrorN(fn func(T), numCalls uint) {
 // AssertErrorFatal checks that the passed function fn calls T.Error() and
 // T.Fatal() on the T object it calls fn with.
 func (t *Tester) AssertErrorFatal(fn func(T)) {
-	t.assert(func(t *Tester) {
-		if t.numErrorCalls == 0 && !t.fatalCalled {
+	t.assert(func(tt *testerT) {
+		if tt.numErrorCalls == 0 && !tt.fatalCalled {
 			t.T.Error("the test did neither call Error() nor Fatal()")
-		} else if t.numErrorCalls == 0 {
+		} else if tt.numErrorCalls == 0 {
 			t.T.Error("the test did not call Error() but Fatal()")
-		} else if !t.fatalCalled {
+		} else if !tt.fatalCalled {
 			t.T.Error("the test did not call Fatal() but Error()")
 		}
 	}, fn)
@@ -113,36 +118,65 @@ func (t *Tester) AssertErrorFatal(fn func(T)) {
 // AssertErrorNFatal checks that the passed function fn calls T.Error() numCalls
 // times and T.Fatal() on the T object it calls fn with.
 func (t *Tester) AssertErrorNFatal(fn func(T), numCalls uint) {
-	t.assert(func(t *Tester) {
-		if t.numErrorCalls != numCalls && !t.fatalCalled {
+	t.assert(func(tt *testerT) {
+		if tt.numErrorCalls != numCalls && !tt.fatalCalled {
 			t.T.Errorf(
 				"the test called Error() %d times, expected %d, and didn't call Fatal()",
-				t.numErrorCalls,
+				tt.numErrorCalls,
 				numCalls)
-		} else if t.numErrorCalls != numCalls {
+		} else if tt.numErrorCalls != numCalls {
 			t.T.Errorf(
 				"the test called Error() %d times, expected %d, but did call Fatal()",
-				t.numErrorCalls,
+				tt.numErrorCalls,
 				numCalls)
-		} else if !t.fatalCalled {
+		} else if !tt.fatalCalled {
 			t.T.Error("the test did not call Fatal() but Error() the expected amount of times")
 		}
 	}, fn)
 }
 
-func (t *Tester) assert(checkState func(*Tester), fn func(T)) {
-	defer checkState(t)
+func (t *Tester) assert(check func(*testerT), fn func(T)) {
+	tt := new(testerT)
+	defer check(tt)
 
 	panicked := true
 	defer func() {
 		// only recover panic from Fatal()
-		if panicked && t.fatalCalled {
+		if panicked && tt.fatalCalled {
 			recover()
 		}
 	}()
 
-	t.numErrorCalls = 0   // reset error state
-	t.fatalCalled = false // reset fatal state
-	fn(t)                 // call the test with the tester
+	fn(tt) // call the test with the testerT to record calls
 	panicked = false
+}
+
+// AssertFatal checks that the passed function fn calls T.Fatal() on the T
+// object it calls fn with. Errors are reported on t.
+func AssertFatal(t T, fn func(T)) {
+	NewTester(t).AssertFatal(fn)
+}
+
+// AssertError checks that the passed function fn calls T.Error() on the T
+// object it calls fn with. Errors are reported on t.
+func AssertError(t T, fn func(T)) {
+	NewTester(t).AssertError(fn)
+}
+
+// AssertErrorN checks that the passed function fn calls T.Error() numCalls
+// times on the T object it calls fn with. Errors are reported on t.
+func AssertErrorN(t T, fn func(T), numCalls uint) {
+	NewTester(t).AssertErrorN(fn, numCalls)
+}
+
+// AssertErrorFatal checks that the passed function fn calls T.Error() and
+// T.Fatal() on the T object it calls fn with. Errors are reported on t.
+func AssertErrorFatal(t T, fn func(T)) {
+	NewTester(t).AssertErrorFatal(fn)
+}
+
+// AssertErrorNFatal checks that the passed function fn calls T.Error() numCalls
+// times and T.Fatal() on the T object it calls fn with. Errors are reported on t.
+func AssertErrorNFatal(t T, fn func(T), numCalls uint) {
+	NewTester(t).AssertErrorNFatal(fn, numCalls)
 }

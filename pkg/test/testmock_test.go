@@ -55,67 +55,65 @@ func TestTester(_t *testing.T) {
 	_t.Run("failing assertions", func(_t *testing.T) {
 		// this is the tester with which we test the tester.
 		tt := NewTester(_t)
-		// we create a single tester and call all tests on it in a row.
-		tester := NewTester(tt)
 
 		// not calling Error should produce an error
-		tt.AssertError(func(T) {
-			tester.AssertError(func(T) {})
+		tt.AssertError(func(t T) {
+			AssertError(t, func(T) {})
 		})
 
 		// calling Fatal instead of Error should produce an error
-		tt.AssertError(func(T) {
-			tester.AssertError(func(t T) { t.Fatal() })
+		tt.AssertError(func(t T) {
+			AssertError(t, func(t T) { t.Fatal() })
 		})
 
 		// calling Error 2 times while 3 expected should produce an error
-		tt.AssertError(func(T) {
-			tester.AssertErrorN(func(t T) { t.Error(); t.Errorf("") }, 3)
+		tt.AssertError(func(t T) {
+			AssertErrorN(t, func(t T) { t.Error(); t.Errorf("") }, 3)
 		})
 
 		// not calling Fatal should produce an error
-		tt.AssertError(func(T) {
-			tester.AssertFatal(func(T) {})
+		tt.AssertError(func(t T) {
+			AssertFatal(t, func(T) {})
 		})
 
 		// calling Error instead of Fatal should produce an error
-		tt.AssertError(func(T) {
-			tester.AssertFatal(func(t T) { t.Error() })
+		tt.AssertError(func(t T) {
+			AssertFatal(t, func(t T) { t.Error() })
 		})
 
 		// not calling Error or Fatal should produce an error
-		tt.AssertError(func(T) {
-			tester.AssertErrorFatal(func(t T) {})
+		tt.AssertError(func(t T) {
+			AssertErrorFatal(t, func(t T) {})
 		})
 
 		// calling only Error should produce an error
-		tt.AssertError(func(T) {
-			tester.AssertErrorFatal(func(t T) { t.Error() })
+		tt.AssertError(func(t T) {
+			AssertErrorFatal(t, func(t T) { t.Error() })
 		})
 
 		// calling only Fatal should produce an error
-		tt.AssertError(func(T) {
-			tester.AssertErrorFatal(func(t T) { t.Fatal() })
+		tt.AssertError(func(t T) {
+			AssertErrorFatal(t, func(t T) { t.Fatal() })
 		})
 
 		// not calling Error or Fatal should produce an error
-		tt.AssertError(func(T) {
-			tester.AssertErrorNFatal(func(t T) {}, 1)
+		tt.AssertError(func(t T) {
+			AssertErrorNFatal(t, func(t T) {}, 1)
 		})
 
 		// calling only Error should produce an error
-		tt.AssertError(func(T) {
-			tester.AssertErrorNFatal(func(t T) { t.Error(); t.Error() }, 2)
+		tt.AssertError(func(t T) {
+			AssertErrorNFatal(t, func(t T) { t.Error(); t.Error() }, 2)
 		})
 
 		// calling only Fatal should produce an error
-		tt.AssertError(func(T) {
-			tester.AssertErrorNFatal(func(t T) { t.Fatal() }, 2)
+		tt.AssertError(func(t T) {
+			AssertErrorNFatal(t, func(t T) { t.Fatal() }, 2)
 		})
 
 		// calling Error the wrong amount of times and Fatal should produce an error
-		tt.AssertError(func(T) {
-			tester.AssertErrorNFatal(func(t T) { t.Error(); t.Fatal() }, 2)
+		tt.AssertError(func(t T) {
+			AssertErrorNFatal(t, func(t T) { t.Error(); t.Fatal() }, 2)
 		})
 	})
 
@@ -126,13 +124,13 @@ func TestTester(_t *testing.T) {
 		assert.PanicsWithValue(
 			"boom",
 			func() {
-				tester.assert(func(*Tester) {}, func(T) { panic("boom") })
+				tester.assert(func(*testerT) {}, func(T) { panic("boom") })
 			},
 			"Tester.assert caught other panic",
 		)
 
 		// panic(nil)
-		panicked, pval := CheckPanic(func() { tester.assert(func(*Tester) {}, func(T) { panic(nil) }) })
+		panicked, pval := CheckPanic(func() { tester.assert(func(*testerT) {}, func(T) { panic(nil) }) })
 		assert.True(panicked, "Tester.assert caught panic(nil)")
 		assert.Nil(pval, "Tester.assert rethrew panic(nil) as non-nil")
 	})
