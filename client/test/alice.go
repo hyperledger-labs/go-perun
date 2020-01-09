@@ -47,8 +47,8 @@ func (r *Alice) Execute(cfg ExecConfig) {
 	initBals := &channel.Allocation{
 		Assets: []channel.Asset{cfg.Asset},
 		OfParts: [][]*big.Int{
-			[]*big.Int{cfg.InitBals[0]}, // Alice
-			[]*big.Int{cfg.InitBals[1]}, // Bob
+			{cfg.InitBals[0]}, // Alice
+			{cfg.InitBals[1]}, // Bob
 		},
 	}
 	prop := &client.ChannelProposal{
