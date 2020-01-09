@@ -10,6 +10,8 @@ stages:
 
 before_script:
   - go get -u golang.org/x/lint/golint
+  - go get -u github.com/client9/misspell/cmd/misspell
+  - go get github.com/fzipp/gocyclo
   - export GOPATH=$HOME/go
   - export PATH=$PATH:$GOROOT/bin:$GOPATH/bin
 
@@ -17,7 +19,7 @@ fmt:
   <<: *only-default
   image: golang
   stage: vetting
-  script: "! gofmt -l `ls -d */` | grep ."
+  script: "! gofmt -l -s `ls -d */` | grep ."
 
 lint:
   <<: *only-default
@@ -37,6 +39,20 @@ copyright_notice:
   image: golang
   stage: vetting
   script: "scripts/check-copyright-notice.sh"
+
+spelling:
+  <<: *only-default
+  image: golang
+  stage: vetting
+  script: "misspell -error ."
+  allow_failure: true
+
+cyclomatic:
+  <<: *only-default
+  image: golang
+  stage: vetting
+  script: "find -name '*.go' -not -name '*_test.go' -exec gocyclo -over 15 {} +"
+  allow_failure: true
 
 unit_tests:
   image: golang
