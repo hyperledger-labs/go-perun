@@ -15,7 +15,6 @@ import (
 // GenericAccountBenchmark runs a suite designed to benchmark the general speed of an implementation of an Account.
 // This function should be called by every implementation of the Account interface.
 func GenericAccountBenchmark(b *testing.B, s *Setup) {
-	require.Nil(b, s.InitWallet(s.Wallet))
 	b.Run("Sign", func(b *testing.B) { benchAccountSign(b, s) })
 }
 

@@ -18,57 +18,18 @@ import (
 )
 
 // InitWallet initializes a wallet.
-type InitWallet func(wallet.Wallet) error
 
 // UnlockedAccount provides an unlocked account.
 type UnlockedAccount func() (wallet.Account, error)
 
 // Setup provides all objects needed for the generic tests
 type Setup struct {
-	//Wallet tests
-	Wallet          wallet.Wallet   // wallet implementation, should be uninitialized
 	UnlockedAccount UnlockedAccount // provides an account that is ready to sign
-	InitWallet      InitWallet      // function that initializes a wallet.
 	//Address tests
 	AddressBytes []byte         // a valid nonzero address not in the wallet
 	Backend      wallet.Backend // backend implementation
 	// Signature tests
 	DataToSign []byte
-}
-
-// GenericWalletTest runs a test suite designed to test the general functionality of an implementation of wallet.
-// This function should be called by every implementation of the wallet interface.
-func GenericWalletTest(t *testing.T, s *Setup) {
-	testUninitializedWallet(t, s)
-	testInitializedWallet(t, s)
-	testUninitializedWallet(t, s)
-}
-
-func testUninitializedWallet(t *testing.T, s *Setup) {
-	assert.NotNil(t, s.Wallet, "Wallet should not be nil")
-	assert.Equal(t, "", s.Wallet.Path(), "Expected path not to be initialized")
-
-	_, err := s.Wallet.Status()
-	assert.NotNil(t, err, "Expected error on not connected wallet")
-	assert.NotNil(t, s.Wallet.Disconnect(), "Disconnect of not connected wallet should return an error")
-	assert.NotNil(t, s.Wallet.Accounts(), "Expected empty byteslice")
-	assert.Equal(t, 0, len(s.Wallet.Accounts()), "Expected empty byteslice")
-	assert.False(t, s.Wallet.Contains(*new(wallet.Account)), "Uninitialized wallet should not contain account")
-}
-
-func testInitializedWallet(t *testing.T, s *Setup) {
-	assert.NoError(t, s.InitWallet(s.Wallet), "Expected connect to succeed")
-
-	_, err := s.Wallet.Status()
-	assert.NoError(t, err, "Unlocked wallet should not produce errors")
-	assert.NotNil(t, s.Wallet.Accounts(), "Expected accounts")
-	assert.False(t, s.Wallet.Contains(*new(wallet.Account)), "Expected wallet not to contain an empty account")
-	assert.Equal(t, 1, len(s.Wallet.Accounts()), "Expected one account")
-
-	acc := s.Wallet.Accounts()[0]
-	assert.True(t, s.Wallet.Contains(acc), "Expected wallet to contain account")
-
-	assert.NoError(t, s.Wallet.Disconnect(), "Expected disconnect to succeed")
 }
 
 // GenericSignatureTest runs a test suite designed to test the general functionality of an account.
