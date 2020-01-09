@@ -11,6 +11,7 @@ import (
 	"math/rand"
 	"sync"
 	"testing"
+	"time"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/stretchr/testify/assert"
@@ -23,17 +24,34 @@ import (
 	wallettest "perun.network/go-perun/wallet/test"
 )
 
+// TestSettler_CheckGasLimit runs settling with a given number of participants
+// to ensure that the gas limit is sufficiently high for otherwise transactions
+// will fail. The Ethereum back-end does not return meaningful error messages
+// for failed transactions, making a diagnosis of the problem laborious.
+func TestSettler_CheckGasLimit(t *testing.T) {
+	numParts := 10
+	rng := rand.New(rand.NewSource(20191230))
+	settler, req, accounts := newSettlerAndRequest(t, rng, numParts, true)
+
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	defer cancel()
+	err := settler.Settle(ctx, req, accounts[0])
+	assert.NoError(t, err, "Settling should succeed")
+}
+
 func TestSettler_MultipleSettles(t *testing.T) {
 	t.Run("Settle 1 party parallel", func(t *testing.T) { settleMultipleConcurrent(t, 1, true) })
 	t.Run("Settle 2 party parallel", func(t *testing.T) { settleMultipleConcurrent(t, 2, true) })
 	t.Run("Settle 5 party parallel", func(t *testing.T) { settleMultipleConcurrent(t, 5, true) })
+	t.Run("Settle 10 party parallel", func(t *testing.T) { settleMultipleConcurrent(t, 10, true) })
 	t.Run("Settle 1 party sequential", func(t *testing.T) { settleMultipleConcurrent(t, 1, false) })
 	t.Run("Settle 2 party sequential", func(t *testing.T) { settleMultipleConcurrent(t, 2, false) })
 	t.Run("Settle 5 party sequential", func(t *testing.T) { settleMultipleConcurrent(t, 5, false) })
 }
 
 func settleMultipleConcurrent(t *testing.T, numParts int, parallel bool) {
-	seed := 1337 * numParts
+	seed := time.Now().UnixNano()
+	t.Logf("seed is %v", seed)
 	if parallel {
 		seed++
 	}
@@ -43,29 +61,26 @@ func settleMultipleConcurrent(t *testing.T, numParts int, parallel bool) {
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 	if parallel {
+		startBarrier := make(chan struct{})
 		var wg sync.WaitGroup
 		wg.Add(numParts)
 		for i := 0; i < numParts; i++ {
+			sleepDuration := time.Duration(rng.Int63n(10)+1) * time.Millisecond
 			go func(i int) {
 				defer wg.Done()
+				<-startBarrier
+				time.Sleep(sleepDuration)
 				err := settler.Settle(ctx, req, accounts[i])
 				assert.NoError(t, err, "Settling should succeed")
 			}(i)
 		}
+		close(startBarrier)
 		wg.Wait()
 	} else {
 		for i := 0; i < numParts; i++ {
 			assert.NoError(t, settler.Settle(ctx, req, accounts[i]), "Settling should succeed")
 		}
 	}
-}
-
-func TestSettler_CancelledContext(t *testing.T) {
-	rng := rand.New(rand.NewSource(13))
-	settler, req, accounts := newSettlerAndRequest(t, rng, 2, true)
-	ctx, cancel := context.WithTimeout(context.Background(), timeout)
-	cancel()
-	assert.Error(t, settler.Settle(ctx, req, accounts[0]), "Settling on cancelled context should fail")
 }
 
 func TestSettler_nonfinalState(t *testing.T) {
@@ -96,7 +111,7 @@ func newSettlerAndRequest(t *testing.T, rng *rand.Rand, numParts int, final bool
 		accounts[i] = acc
 		parts[i] = acc.Address()
 	}
-	params := channel.NewParamsUnsafe(uint64(0), parts, app.Def(), big.NewInt(rng.Int63()))
+	params := channel.NewParamsUnsafe(uint64(1), parts, app.Def(), big.NewInt(rng.Int63()))
 	state := newValidState(rng, params, assetholder)
 	state.IsFinal = final
 	// Sign valid state.
