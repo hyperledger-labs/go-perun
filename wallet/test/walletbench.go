@@ -6,6 +6,7 @@
 package test // import "perun.network/go-perun/wallet/test"
 
 import (
+	"bytes"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -95,7 +96,7 @@ func benchWalletAccounts(b *testing.B, s *Setup) {
 // This function should be called by every implementation of the Backend interface.
 func GenericBackendBenchmark(b *testing.B, s *Setup) {
 	b.Run("VerifySig", func(b *testing.B) { benchBackendVerifySig(b, s) })
-	b.Run("FromBytes", func(b *testing.B) { benchBackendNewAddressFromBytes(b, s) })
+	b.Run("DecodeAddress", func(b *testing.B) { benchBackendDecodeAddress(b, s) })
 }
 
 func benchBackendVerifySig(b *testing.B, s *Setup) {
@@ -116,9 +117,9 @@ func benchBackendVerifySig(b *testing.B, s *Setup) {
 	}
 }
 
-func benchBackendNewAddressFromBytes(b *testing.B, s *Setup) {
+func benchBackendDecodeAddress(b *testing.B, s *Setup) {
 	for n := 0; n < b.N; n++ {
-		_, err := s.Backend.NewAddressFromBytes(s.AddressBytes)
+		_, err := s.Backend.DecodeAddress(bytes.NewReader(s.AddressBytes))
 
 		if err != nil {
 			b.Fatal(err)

@@ -6,6 +6,7 @@
 package wallet
 
 import (
+	"bytes"
 	"encoding/hex"
 	"testing"
 
@@ -125,11 +126,14 @@ func TestBackend(t *testing.T) {
 
 	s := newSetup(t)
 
-	addr, err := backend.NewAddressFromBytes(s.AddressBytes)
+	buff := bytes.NewReader(s.AddressBytes)
+	addr, err := backend.DecodeAddress(buff)
+
 	assert.Nil(t, err, "NewAddress from Bytes should work")
 	assert.Equal(t, s.AddressBytes, addr.Bytes())
 
-	_, err = backend.NewAddressFromBytes([]byte(invalidAddr))
+	buff = bytes.NewReader([]byte(invalidAddr))
+	_, err = backend.DecodeAddress(buff)
 	assert.NotNil(t, err, "Conversion from wrong address should fail")
 }
 

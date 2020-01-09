@@ -16,9 +16,6 @@ var backend Backend
 
 // Backend provides useful methods for this blockchain.
 type Backend interface {
-	// NewAddressFromBytes creates a new address from a byte array.
-	NewAddressFromBytes(data []byte) (Address, error)
-
 	// DecodeAddress reads and decodes an address from an io.Writer
 	DecodeAddress(io.Reader) (Address, error)
 
@@ -39,11 +36,6 @@ func SetBackend(b Backend) {
 		panic("wallet backend already set or nil argument")
 	}
 	backend = b
-}
-
-// NewAddressFromBytes calls NewAddressFromBytes of the current backend
-func NewAddressFromBytes(data []byte) (Address, error) {
-	return backend.NewAddressFromBytes(data)
 }
 
 // DecodeAddress calls DecodeAddress of the current backend

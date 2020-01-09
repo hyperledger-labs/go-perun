@@ -83,7 +83,7 @@ func GenericSignatureTest(t *testing.T, s *Setup) {
 	assert.True(t, valid, "Verification should succeed")
 	assert.NoError(t, err, "Verification should not produce error")
 
-	addr, err := s.Backend.NewAddressFromBytes(s.AddressBytes)
+	addr, err := s.Backend.DecodeAddress(bytes.NewBuffer(s.AddressBytes))
 	assert.NoError(t, err, "Byte deserialization of address should work")
 	valid, err = s.Backend.VerifySignature(s.DataToSign, sign, addr)
 	assert.False(t, valid, "Verification with wrong address should fail")
@@ -154,9 +154,9 @@ func GenericSignatureSizeTest(t *testing.T, s *Setup) {
 // This function should be called by every implementation of the wallet interface.
 func GenericAddressTest(t *testing.T, s *Setup) {
 	addrLen := len(s.AddressBytes)
-	null, err := s.Backend.NewAddressFromBytes(make([]byte, addrLen))
+	null, err := s.Backend.DecodeAddress(bytes.NewReader(make([]byte, addrLen)))
 	assert.NoError(t, err, "Byte deserialization of zero address should work")
-	addr, err := s.Backend.NewAddressFromBytes(s.AddressBytes)
+	addr, err := s.Backend.DecodeAddress(bytes.NewReader(s.AddressBytes))
 	assert.NoError(t, err, "Byte deserialization of address should work")
 
 	nullString := null.String()

@@ -20,11 +20,6 @@ type mockBackend struct {
 
 // wallet.Backend interface
 
-func (m *mockBackend) NewAddressFromBytes([]byte) (Address, error) {
-	m.AssertWrapped()
-	return nil, nil
-}
-
 // DecodeAddress reads and decodes an address from an io.Writer
 func (m *mockBackend) DecodeAddress(io.Reader) (Address, error) {
 	m.AssertWrapped()
@@ -48,8 +43,6 @@ var _ Backend = (*mockBackend)(nil)
 func TestGlobalBackend(t *testing.T) {
 	b := &mockBackend{test.NewWrapMock(t)}
 	SetBackend(b)
-	NewAddressFromBytes(nil)
-	b.AssertCalled()
 	DecodeAddress(nil)
 	b.AssertCalled()
 	DecodeSig(nil)

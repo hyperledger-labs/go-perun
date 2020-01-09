@@ -6,7 +6,6 @@
 package wallet // import "perun.network/go-perun/backend/sim/wallet"
 
 import (
-	"bytes"
 	"crypto/ecdsa"
 	"crypto/elliptic"
 	"crypto/sha256"
@@ -25,12 +24,6 @@ var curve = elliptic.P256()
 type Backend struct{}
 
 var _ wallet.Backend = new(Backend)
-
-// NewAddressFromBytes creates a new address from a byte array.
-// DEPRECATED
-func (b *Backend) NewAddressFromBytes(data []byte) (wallet.Address, error) {
-	return b.DecodeAddress(bytes.NewReader(data))
-}
 
 // DecodeAddress decodes an address from the given Reader
 func (b *Backend) DecodeAddress(r io.Reader) (wallet.Address, error) {
