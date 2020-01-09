@@ -132,7 +132,7 @@ func inPhase(phase Phase, phases []Phase) bool {
 }
 
 // Sig returns the own signature on the currently staged state.
-// The signature is caclulated and saved to the staging TX's signature slice
+// The signature is calculated and saved to the staging TX's signature slice
 // if it was not calculated before.
 // A call to Sig only makes sense in a signing phase.
 func (m *machine) Sig() (sig wallet.Sig, err error) {

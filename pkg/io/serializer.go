@@ -35,7 +35,7 @@ type (
 )
 
 // Encode encodes multiple serializer objects at once.
-// If an error occurs, the index at which it occured is also reported.
+// If an error occurs, the index at which it occurred is also reported.
 func Encode(writer io.Writer, values ...Encoder) error {
 	for i, v := range values {
 		if err := v.Encode(writer); err != nil {

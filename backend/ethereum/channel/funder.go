@@ -151,7 +151,7 @@ func filterOldEvents(ctx context.Context, asset assetHolder, deposited chan *ass
 }
 
 // waitForFundingConfirmations waits for the confirmations events on the blockchain that
-// both we and all peers sucessfully funded the channel.
+// both we and all peers successfully funded the channel.
 func (f *Funder) waitForFundingConfirmations(ctx context.Context, request channel.FundingReq, contracts []assetHolder, partIDs [][32]byte) error {
 	deposited := make(chan *assets.AssetHolderDeposited)
 	subs := make([]event.Subscription, 0, len(contracts))

@@ -24,7 +24,7 @@ import (
 var (
 	// compile time check that we implement the channel backend interface.
 	_ channel.Backend = new(Backend)
-	// Definiton of ABI datatypes.
+	// Definition of ABI datatypes.
 	abiUint256, _       = abi.NewType("uint256", nil)
 	abiUint256Arr, _    = abi.NewType("uint256[]", nil)
 	abiUint256ArrArr, _ = abi.NewType("uint256[][]", nil)

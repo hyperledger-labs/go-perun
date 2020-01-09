@@ -27,7 +27,7 @@
 	When can the reviewer accept the PR? -->
 
 **Suggested implementer and reviewers**&emsp; <!--
-	Who sould undertake the refactoring?
+	Who should undertake the refactoring?
 	Who is reviewing the implementation? -->
 
 **Implementation hints**&emsp; <!--
