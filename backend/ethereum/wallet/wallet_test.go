@@ -255,6 +255,66 @@ func benchAccountUnlock(b *testing.B, s *test.Setup) {
 	}
 }
 
+func BenchmarkWallet(b *testing.B) {
+	s := newSetup(b)
+
+	b.Run("Conn&Disconn", func(b *testing.B) { benchWalletConnectAndDisconnect(b, s) })
+	b.Run("Connect", func(b *testing.B) { benchWalletConnect(b, s) })
+	b.Run("Accounts", func(b *testing.B) { benchWalletAccounts(b, s) })
+	b.Run("Contains", func(b *testing.B) { benchWalletContains(b, s) })
+}
+
+func benchWalletConnect(b *testing.B, s *Setup) {
+	for n := 0; n < b.N; n++ {
+		err := s.InitWallet(s.Wallet)
+
+		if err != nil {
+			b.Fatal(err)
+		}
+	}
+}
+
+func benchWalletConnectAndDisconnect(b *testing.B, s *Setup) {
+	for n := 0; n < b.N; n++ {
+		err := s.InitWallet(s.Wallet)
+
+		if err != nil {
+			b.Fatal(err)
+		}
+
+		err = s.Wallet.Disconnect()
+
+		if err != nil {
+			b.Fatal(err)
+		}
+	}
+}
+
+func benchWalletContains(b *testing.B, s *Setup) {
+	account, err := s.UnlockedAccount()
+	require.Nil(b, err)
+
+	for n := 0; n < b.N; n++ {
+		in := s.Wallet.Contains(account)
+
+		if !in {
+			b.Fatal("address not found")
+		}
+	}
+}
+
+func benchWalletAccounts(b *testing.B, s *Setup) {
+	require.Nil(b, s.InitWallet(s.Wallet))
+
+	for n := 0; n < b.N; n++ {
+		accounts := s.Wallet.Accounts()
+
+		if len(accounts) != 1 {
+			b.Fatal("there was not exactly one account in the wallet")
+		}
+	}
+}
+
 func Test_EthSignature(t *testing.T) {
 	msg, err := hex.DecodeString("f27b90711d11d10a155fc8ba0eed1ffbf449cf3730d88c0cb77b98f61750ab34000000000000000000000000000000000000000000000000000000000000000400000000000000000000000000000000000000000000000000000000000000a0000000000000000000000000000000000000000000000000000000000000022000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000160000000000000000000000000000000000000000000000000000000000000006000000000000000000000000000000000000000000000000000000000000000a0000000000000000000000000000000000000000000000000000000000000014000000000000000000000000000000000000000000000000000000000000000010000000000000000000000002c2b9c9a4a25e24b174f26114e8926a9f2128fe40000000000000000000000000000000000000000000000000000000000000001000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000de0b6b3a76400000000000000000000000000000000000000000000000000000de0b6b3a7640000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000000")
 	require.NoError(t, err, "decode msg should not error")

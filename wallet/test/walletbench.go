@@ -31,66 +31,6 @@ func benchAccountSign(b *testing.B, s *Setup) {
 	}
 }
 
-// GenericWalletBenchmark runs a suite designed to benchmark the general speed of an implementation of a Wallet.
-// This function should be called by every implementation of the Wallet interface.
-func GenericWalletBenchmark(b *testing.B, s *Setup) {
-	b.Run("Conn&Disconn", func(b *testing.B) { benchWalletConnectAndDisconnect(b, s) })
-	b.Run("Connect", func(b *testing.B) { benchWalletConnect(b, s) })
-	b.Run("Accounts", func(b *testing.B) { benchWalletAccounts(b, s) })
-	b.Run("Contains", func(b *testing.B) { benchWalletContains(b, s) })
-}
-
-func benchWalletConnect(b *testing.B, s *Setup) {
-	for n := 0; n < b.N; n++ {
-		err := s.InitWallet(s.Wallet)
-
-		if err != nil {
-			b.Fatal(err)
-		}
-	}
-}
-
-func benchWalletConnectAndDisconnect(b *testing.B, s *Setup) {
-	for n := 0; n < b.N; n++ {
-		err := s.InitWallet(s.Wallet)
-
-		if err != nil {
-			b.Fatal(err)
-		}
-
-		err = s.Wallet.Disconnect()
-
-		if err != nil {
-			b.Fatal(err)
-		}
-	}
-}
-
-func benchWalletContains(b *testing.B, s *Setup) {
-	account, err := s.UnlockedAccount()
-	require.Nil(b, err)
-
-	for n := 0; n < b.N; n++ {
-		in := s.Wallet.Contains(account)
-
-		if !in {
-			b.Fatal("address not found")
-		}
-	}
-}
-
-func benchWalletAccounts(b *testing.B, s *Setup) {
-	require.Nil(b, s.InitWallet(s.Wallet))
-
-	for n := 0; n < b.N; n++ {
-		accounts := s.Wallet.Accounts()
-
-		if len(accounts) != 1 {
-			b.Fatal("there was not exactly one account in the wallet")
-		}
-	}
-}
-
 // GenericBackendBenchmark runs a suite designed to benchmark the general speed of an implementation of a Backend.
 // This function should be called by every implementation of the Backend interface.
 func GenericBackendBenchmark(b *testing.B, s *Setup) {
