@@ -43,7 +43,7 @@ import "perun.network/go-perun/client"
 ```
 
 _go-perun_ implements the core state channel protocol in a blockchain-agnostic fashion by following the dependency inversion principle.
-For this reason, a blockchain backend has to be chosen and blockchain-specific initializations need to be exectued at program startup.
+For this reason, a blockchain backend has to be chosen and blockchain-specific initializations need to be executed at program startup.
 
 ### Backends
 
@@ -60,13 +60,13 @@ The Perun framework relies on `peer.Dialer` and `peer.Listener` implementations 
 _go-perun_ currently only supports a reduced set of features compared to the full protocols.
 The following table shows the list of features needed for the minimal, secure, production-ready software.
 
-| Feature | Ariel release |
-| --- | --- |
-| Two-party ledger state channels | :heavy_check_mark: |
+| Feature                                          | Ariel release      |
+| ------------------------------------------------ | ------------------ |
+| Two-party ledger state channels                  | :heavy_check_mark: |
 | Cooperatively settling two-party ledger channels | :heavy_check_mark: |
-| Ledger channel dispute | :x: |
-| Dispute watchtower | :x: |
-| Data persistence | :x: |
+| Ledger channel dispute                           | :x:                |
+| Dispute watchtower                               | :x:                |
+| Data persistence                                 | :x:                |
 
 The following features are planned after the above features have been implemented:
 * Generalized two-party ledger channels

@@ -33,7 +33,7 @@ func DeployETHAssetholder(ctx context.Context, backend ContractBackend, adjudica
 	if err := execSuccessful(ctx, backend, tx); err != nil {
 		return common.Address{}, errors.WithMessage(err, "deploying ethassetholder")
 	}
-	log.Infof("Sucessfully deployed AssetHolderETH at %v.", addr.Hex())
+	log.Infof("Successfully deployed AssetHolderETH at %v.", addr.Hex())
 	return addr, nil
 }
 
@@ -50,7 +50,7 @@ func DeployAdjudicator(ctx context.Context, backend ContractBackend) (common.Add
 	if err = execSuccessful(ctx, backend, tx); err != nil {
 		return common.Address{}, errors.WithMessage(err, "deploying adjudicator")
 	}
-	log.Infof("Sucessfully deployed Adjudicator at %v.", addr.Hex())
+	log.Infof("Successfully deployed Adjudicator at %v.", addr.Hex())
 	return addr, nil
 }
 

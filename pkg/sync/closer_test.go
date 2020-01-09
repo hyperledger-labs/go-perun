@@ -170,7 +170,7 @@ func TestCloser_OnClose_Hammer(t *testing.T) {
 	}
 }
 
-// TestCloser_Close_Hammer hammers teh Closer to expose any data races.
+// TestCloser_Close_Hammer hammers the Closer to expose any data races.
 func TestCloser_Close_Hammer(t *testing.T) {
 	t.Parallel()
 	const N = 128
