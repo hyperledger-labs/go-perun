@@ -157,7 +157,7 @@ func testUninitializedWallet(t *testing.T, s *Setup) {
 	assert.NotNil(t, s.Wallet.Disconnect(), "Disconnect of not connected wallet should return an error")
 	assert.NotNil(t, s.Wallet.Accounts(), "Expected empty byteslice")
 	assert.Equal(t, 0, len(s.Wallet.Accounts()), "Expected empty byteslice")
-	assert.False(t, s.Wallet.Contains(*new(wallet.Account)), "Uninitalized wallet should not contain account")
+	assert.False(t, s.Wallet.Contains(*new(wallet.Account)), "Uninitialized wallet should not contain account")
 }
 
 func testInitializedWallet(t *testing.T, s *Setup) {
