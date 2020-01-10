@@ -4,7 +4,7 @@ cn="$(dirname $(readlink -f $0))/copyright-notice"
 n=$(wc -l $cn | cut -d ' ' -f 1)
 
 function check_cr() {
-  diff $cn <(head -n${n} $1) -q > /dev/null
+  diff $cn <(head -n${n} $1 | sed -e 's/20\(19\|2[0-9]\)/20XX/') -q > /dev/null
   if [ $? -ne 0 ]; then
     echo $1
     diff $cn <(head -n${n} $1)
