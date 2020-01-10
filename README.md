@@ -137,7 +137,7 @@ We thank the German Federal Ministry of Education and Research (BMBF) for their 
 
 ## Copyright
 
-Copyright &copy; 2019 Chair of Applied Cryptography, Technische Universität Darmstadt, Germany.
+Copyright &copy; 2020 Chair of Applied Cryptography, Technische Universität Darmstadt, Germany.
 All rights reserved.
 Use of the source code is governed by a MIT-style license that can be found in the [LICENSE file](LICENSE).
 
