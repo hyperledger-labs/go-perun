@@ -330,7 +330,7 @@ func (m *machine) validTransition(to *State) error {
 
 	newError := func(s string) error { return NewStateTransitionError(m.params.id, s) }
 
-	if m.currentTX.IsFinal == true {
+	if m.currentTX.IsFinal {
 		return newError("cannot advance final state")
 	}
 
