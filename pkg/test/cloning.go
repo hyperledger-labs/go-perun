@@ -13,6 +13,39 @@ import (
 	"github.com/pkg/errors"
 )
 
+// VerifyClone attempts to recognize improper cloning.
+// Initially, this function will clone its input `x` by calling `x.Clone()`,
+// where `x` is an instance of a struct (or a reference). Then it attempts to
+// detect improper clones by taking the following steps:
+// * Run `reflect.DeepEqual` and terminate with an error if it returns false.
+//
+// Then, for every exported field of `x`:
+// * If the field of type `T` is itself is a cloneable, then this value is
+//   checked recursively.
+// * If the field has kind pointer or slice and if it has a
+//   `cloneable:"shallow"` tag, it is checked that the pointer or slice value
+//   are the same.
+// * If the field has kind array or slice and a `cloneable:"shallowElements"`
+//   tag, it is checked that the the array and slice values shallow copies.
+//
+// Tags attached to inappropriate fields as well as unknown `cloneable` tags
+// cause an error. The code was not tested with some possible kinds (e.g.,
+// channels, maps, and unsafe pointers) and will immediately panic when seeing
+// these types.
+func VerifyClone(t *testing.T, x interface{}) {
+	if !isCloneable(reflect.TypeOf(x)) {
+		t.Errorf("Expected cloneable input, got %v (type %T)", x, x)
+	}
+
+	c, err := clone(x)
+	if err != nil {
+		t.Errorf("Cloning failure: %v", err)
+	}
+	if err = checkClone(x, c); err != nil {
+		t.Error(err)
+	}
+}
+
 // isCloneable checks if the given type possesses a method `Clone`.  Receiver
 // and return value can be values or references, e.g., with a method `func (*T)
 // Clone() T`, the type `T` is considered cloneable.
@@ -51,6 +84,48 @@ func isCloneable(t reflect.Type) bool {
 	}
 
 	return true
+}
+
+// clone calls x.Clone() if possible, otherwise it returns an error.
+func clone(x interface{}) (interface{}, error) {
+	if x == nil {
+		return nil, errors.Errorf("Cannot clone nil reference")
+	}
+	if !isCloneable(reflect.TypeOf(x)) {
+		return nil, errors.Errorf("Input of type %T is not cloneable", x)
+	}
+
+	v := reflect.ValueOf(x)
+	if clone := v.MethodByName("Clone"); clone.IsValid() {
+		// num return values is checked by `isCloneable`
+		return clone.Call([]reflect.Value{})[0].Interface(), nil
+	}
+
+	panic(fmt.Sprintf("Error when calling %T.Clone() with object %v", x, x))
+}
+
+// checkClone checks if the two provided values could be clones. If they are
+// not, an error is returned.
+//
+// checkClone initially calls reflect.DeepEqual and then checkCloneImpl tests
+// recursively if the provided values could be clones.
+func checkClone(p, q interface{}) error {
+	if !reflect.DeepEqual(p, q) {
+		return errors.New("Proper clones must be deeply equal")
+	}
+	if p == nil || q == nil {
+		return errors.Errorf("Input must not be nil, got %v, %v", p, q)
+	}
+
+	tP := reflect.TypeOf(p)
+	tQ := reflect.TypeOf(q)
+	if tP != tQ || !isCloneable(tP) {
+		return errors.Errorf("Input must be cloneable, type %v is not", tP)
+	}
+
+	v := reflect.ValueOf(p)
+	w := reflect.ValueOf(q)
+	return checkCloneImpl(v, w)
 }
 
 // checkCloneImpl recursively checks if the provided values could be clones and
@@ -259,79 +334,4 @@ func checkPtrOrSliceElem(f reflect.StructField, kindJ reflect.Kind, tag string, 
 		return errors.WithMessagef(err, "Error in cloneable element %v.%s[%d]", t, f.Name, j)
 	}
 	return nil
-}
-
-// checkClone checks if the two provided values could be clones. If they are
-// not, an error is returned.
-//
-// checkClone initially calls reflect.DeepEqual and then checkCloneImpl tests
-// recursively if the provided values could be clones.
-func checkClone(p, q interface{}) error {
-	if !reflect.DeepEqual(p, q) {
-		return errors.New("Proper clones must be deeply equal")
-	}
-	if p == nil || q == nil {
-		return errors.Errorf("Input must not be nil, got %v, %v", p, q)
-	}
-
-	tP := reflect.TypeOf(p)
-	tQ := reflect.TypeOf(q)
-	if tP != tQ || !isCloneable(tP) {
-		return errors.Errorf("Input must be cloneable, type %v is not", tP)
-	}
-
-	v := reflect.ValueOf(p)
-	w := reflect.ValueOf(q)
-	return checkCloneImpl(v, w)
-}
-
-// clone calls x.Clone() if possible, otherwise it returns an error.
-func clone(x interface{}) (interface{}, error) {
-	if x == nil {
-		return nil, errors.Errorf("Cannot clone nil reference")
-	}
-	if !isCloneable(reflect.TypeOf(x)) {
-		return nil, errors.Errorf("Input of type %T is not cloneable", x)
-	}
-
-	v := reflect.ValueOf(x)
-	if clone := v.MethodByName("Clone"); clone.IsValid() {
-		// num return values is checked by `isCloneable`
-		return clone.Call([]reflect.Value{})[0].Interface(), nil
-	}
-
-	panic(fmt.Sprintf("Error when calling %T.Clone() with object %v", x, x))
-}
-
-// VerifyClone attempts to recognize improper cloning.
-// Initially, this function will clone its input `x` by calling `x.Clone()`,
-// where `x` is an instance of a struct (or a reference). Then it attempts to
-// detect improper clones by taking the following steps:
-// * Run `reflect.DeepEqual` and terminate with an error if it returns false.
-//
-// Then, for every exported field of `x`:
-// * If the field of type `T` is itself is a cloneable, then this value is
-//   checked recursively.
-// * If the field has kind pointer or slice and if it has a
-//   `cloneable:"shallow"` tag, it is checked that the pointer or slice value
-//   are the same.
-// * If the field has kind array or slice and a `cloneable:"shallowElements"`
-//   tag, it is checked that the the array and slice values shallow copies.
-//
-// Tags attached to inappropriate fields as well as unknown `cloneable` tags
-// cause an error. The code was not tested with some possible kinds (e.g.,
-// channels, maps, and unsafe pointers) and will immediately panic when seeing
-// these types.
-func VerifyClone(t *testing.T, x interface{}) {
-	if !isCloneable(reflect.TypeOf(x)) {
-		t.Errorf("Expected cloneable input, got %v (type %T)", x, x)
-	}
-
-	c, err := clone(x)
-	if err != nil {
-		t.Errorf("Cloning failure: %v", err)
-	}
-	if err = checkClone(x, c); err != nil {
-		t.Error(err)
-	}
 }
