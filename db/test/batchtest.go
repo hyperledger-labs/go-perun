@@ -40,8 +40,6 @@ func GenericBatchTest(t *testing.T, database db.Database) {
 
 	dbtest.MustNotHave("1234")
 	dbtest.MustGetEqual("5678", "ghjk")
-
-	return
 }
 
 // BatchTest tests a batch.
@@ -55,7 +53,6 @@ func (bt *BatchTest) MustPut(key, value string) {
 	if err := bt.Batch.Put(key, value); err != nil {
 		bt.Fatalf("Put(): Failed to put [%q] = %q: %v.\n", key, value, err)
 	}
-	return
 }
 
 // MustPutBytes tests the putBytes functionality.
@@ -63,7 +60,6 @@ func (bt *BatchTest) MustPutBytes(key string, value []byte) {
 	if err := bt.Batch.PutBytes(key, value); err != nil {
 		bt.Fatalf("PutBytes(): Failed to put [%q] = '%v': %v\n", key, value, err)
 	}
-	return
 }
 
 // MustDelete tests the delete functionality.
@@ -71,7 +67,6 @@ func (bt *BatchTest) MustDelete(key string) {
 	if err := bt.Batch.Delete(key); err != nil {
 		bt.Fatalf("Put(): Failed to delete [%q]: %v.\n", key, err)
 	}
-	return
 }
 
 // MustApply tests the apply functionality.

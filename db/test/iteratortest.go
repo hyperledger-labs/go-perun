@@ -69,8 +69,6 @@ func GenericIteratorTest(t *testing.T, database db.Database) {
 	it.NextMustEqual("1", "1v")
 	it.Close()
 	it.MustEnd()
-
-	return
 }
 
 // NextMustEqual tests the next method.
@@ -89,7 +87,6 @@ func (i *IteratorTest) NextMustEqual(key, value string) {
 	if actual := i.Iterator.Key(); actual != key {
 		i.Errorf("Key(): Expected %q, but got %q.\n", key, actual)
 	}
-	return
 }
 
 // MustEnd tests the next method.
@@ -102,7 +99,6 @@ func (i *IteratorTest) MustEnd() {
 	}
 
 	i.Close()
-	return
 }
 
 // Close tests the close method.
@@ -110,5 +106,4 @@ func (i *IteratorTest) Close() {
 	if err := i.Iterator.Close(); err != nil {
 		i.Errorf("Close(): failed with error: %v\n", err)
 	}
-	return
 }
