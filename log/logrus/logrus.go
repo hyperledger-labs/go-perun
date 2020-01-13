@@ -30,8 +30,7 @@ func (l *Logger) WithField(key string, value interface{}) log.Logger {
 
 // WithFields calls WithFields on the logrus.Logger.
 func (l *Logger) WithFields(fields log.Fields) log.Logger {
-	var fs map[string]interface{}
-	fs = fields
+	var fs map[string]interface{} = fields
 	return &Logger{l.Entry.WithFields(fs)}
 }
 
