@@ -62,17 +62,8 @@ func isCloneable(t reflect.Type) bool {
 // * v = reflect.Value(x),
 // * w = reflect.Value(y).
 func checkCloneImpl(v, w reflect.Value) error {
-	if v.Kind() == reflect.Ptr {
-		if v.Pointer() == 0 && w.Pointer() == 0 {
-			panic("BUG: checkCloneImpl got nil inputs")
-		}
-		if v.Pointer() == w.Pointer() {
-			return errors.New("Both arguments reference the same structure")
-		}
-	}
-
-	if v.Kind() == reflect.Ptr && v.Elem().Kind() != reflect.Struct {
-		panic("BUG: expected reference to struct, got reference to reference")
+	if err := validateInput(v, w); err != nil {
+		return err
 	}
 
 	// get struct type
@@ -103,125 +94,170 @@ func checkCloneImpl(v, w reflect.Value) error {
 
 		// check for field tags
 		tag, hasTag := f.Tag.Lookup("cloneable")
-		// find unknown and misplaced tags
 		if hasTag {
-			if tag == "shallow" {
-				if kind != reflect.Interface &&
-					kind != reflect.Ptr &&
-					kind != reflect.Slice {
-					return errors.Errorf(
-						"Expected field %v.%s with tag '%s' to be a "+
-							"pointer or a slice, got kind %v",
-						t, f.Name, tag, kind)
-				}
-			} else if tag == "shallowElements" {
-				if kind != reflect.Array && kind != reflect.Slice {
-					return errors.Errorf(
-						"Expected field %v.%s with tag '%s' to be an array or "+
-							"a slice, got kind %v",
-						t, f.Name, tag, kind)
-				}
-			} else {
-				return errors.Errorf(
-					`Unknown tag 'cloneable:"%s"' on field %v.%s`,
-					tag, t, f.Name)
+			if err := checkTags(f, t, tag, kind); err != nil {
+				return errors.WithMessage(err, "wrong or missing tags")
 			}
 		}
 
 		// check actual field contents
-		if kind == reflect.Interface {
-			if left.IsZero() && right.IsZero() {
-				continue
-			}
-
-			if left.IsZero() != right.IsZero() {
-				// reflect.DeepEqual() should detect this case
-				panic(fmt.Sprintf(
-					"Expected both interfaces to be zero or both non-zero, got %v, %v",
-					left.InterfaceData(), right.InterfaceData()))
-			}
-
-			left = left.Elem()
-			right = right.Elem()
-			kindL := left.Type().Kind()
-			kindR := right.Type().Kind()
-
-			if kindL != reflect.Ptr && kindL != reflect.Struct {
-				panic(
-					fmt.Sprintf("Expected left kind ptr or struct, got %v",
-						left.Type().Kind()))
-			}
-			if kindR != reflect.Ptr && kindR != reflect.Struct {
-				panic(
-					fmt.Sprintf("Expected right kind ptr or struct, got %v",
-						right.Type().Kind()))
-			}
-
-			kind = left.Type().Kind()
+		if valid, err := checkInterface(&kind, &left, &right); !valid {
+			continue
+		} else if err != nil {
+			return err
 		}
 
-		if kind == reflect.Ptr || kind == reflect.Slice {
-			p := left.Pointer()
-			q := right.Pointer()
-			if p != q && hasTag && tag == "shallow" {
-				return errors.Errorf(
-					"Expected fields %v.%s with tag '%s' to have same pointees",
-					t, f.Name, tag)
-			}
-			// the length check below is necessary because all slices created
-			// empty seem to reference the same address in memory
-			if p == q && p != 0 &&
-				(!hasTag || tag != "shallow") &&
-				(kind == reflect.Ptr || left.Len() > 0) {
-				return errors.Errorf(
-					"Expected fields %v.%s to have different pointees",
-					t, f.Name)
-			}
-			if p != q && kind == reflect.Ptr && isCloneable(f.Type) {
-				err := checkCloneImpl(left.Elem(), right.Elem())
-				if err != nil {
-					return errors.Errorf(
-						"Error in cloneable field %v.%s: %v",
-						t, f.Name, err)
-				}
-			}
+		if err := checkPtrOrSlice(f, tag, hasTag, kind, left, right, t); err != nil {
+			return err
 		}
 
-		if kind == reflect.Array || kind == reflect.Slice {
-			n := left.Len()
-			for j := 0; j < n; j++ {
-				kindJ := left.Index(j).Kind()
-				if kindJ == reflect.Ptr || kindJ == reflect.Slice {
-					p := left.Index(j).Pointer()
-					q := right.Index(j).Pointer()
-					if p != q && hasTag && tag == "shallowElements" {
-						return errors.Errorf(
-							"Expected elements %v.%s[%d] in slices with tag "+
-								"'%s' to have same pointees",
-							t, f.Name, j, tag)
-					}
-					if p == q && p != 0 && (!hasTag || tag != "shallowElements") {
-						return errors.Errorf(
-							"Expected elements %v.%s[%d] to have different pointees",
-							t, f.Name, j)
-					}
-				} else if kindJ == reflect.Struct && isCloneable(f.Type.Elem()) {
-					err := checkCloneImpl(left.Index(j), right.Index(j))
-					if err != nil {
-						return errors.Errorf(
-							"Error in cloneable element %v.%s[%d]: %v",
-							t, f.Name, j, err)
-					}
-				}
-			}
-		} else if kind == reflect.Struct && isCloneable(f.Type) {
-			err := checkCloneImpl(left, right)
-			if err != nil {
-				return err
-			}
+		if err := checkArrayOrSlice(f, tag, hasTag, kind, left, right, t); err != nil {
+			return err
 		}
 	}
 
+	return nil
+}
+
+func validateInput(v, w reflect.Value) error {
+	if v.Kind() == reflect.Ptr {
+		if v.Pointer() == 0 && w.Pointer() == 0 {
+			panic("BUG: checkCloneImpl got nil inputs")
+		}
+		if v.Pointer() == w.Pointer() {
+			return errors.New("Both arguments reference the same structure")
+		}
+	}
+
+	if v.Kind() == reflect.Ptr && v.Elem().Kind() != reflect.Struct {
+		panic("BUG: expected reference to struct, got reference to reference")
+	}
+	return nil
+}
+
+func checkTags(f reflect.StructField, t reflect.Type, tag string, kind reflect.Kind) error {
+	// find unknown and misplaced tags
+	if tag == "shallow" {
+		if kind != reflect.Interface &&
+			kind != reflect.Ptr &&
+			kind != reflect.Slice {
+			return errors.Errorf(
+				"Expected field %v.%s with tag '%s' to be a "+
+					"pointer or a slice, got kind %v",
+				t, f.Name, tag, kind)
+		}
+	} else if tag == "shallowElements" {
+		if kind != reflect.Array && kind != reflect.Slice {
+			return errors.Errorf(
+				"Expected field %v.%s with tag '%s' to be an array or "+
+					"a slice, got kind %v",
+				t, f.Name, tag, kind)
+		}
+	} else {
+		return errors.Errorf(
+			`Unknown tag 'cloneable:"%s"' on field %v.%s`,
+			tag, t, f.Name)
+	}
+	return nil
+}
+
+func checkInterface(kind *reflect.Kind, left, right *reflect.Value) (valid bool, err error) {
+	if *kind == reflect.Interface {
+		if left.IsZero() && right.IsZero() {
+			return false, nil
+		}
+
+		if left.IsZero() != right.IsZero() {
+			// reflect.DeepEqual() should detect this case
+			panic(fmt.Sprintf(
+				"Expected both interfaces to be zero or both non-zero, got %v, %v",
+				left.InterfaceData(), right.InterfaceData()))
+		}
+
+		*left = left.Elem()
+		*right = right.Elem()
+		kindL := left.Type().Kind()
+		kindR := right.Type().Kind()
+
+		if kindL != reflect.Ptr && kindL != reflect.Struct {
+			panic(
+				fmt.Sprintf("Expected left kind ptr or struct, got %v",
+					left.Type().Kind()))
+		}
+		if kindR != reflect.Ptr && kindR != reflect.Struct {
+			panic(
+				fmt.Sprintf("Expected right kind ptr or struct, got %v",
+					right.Type().Kind()))
+		}
+
+		*kind = left.Type().Kind()
+	}
+	return true, nil
+}
+
+func checkPtrOrSlice(f reflect.StructField, tag string, hasTag bool, kind reflect.Kind, left, right reflect.Value, t reflect.Type) error {
+	if kind == reflect.Ptr || kind == reflect.Slice {
+		p := left.Pointer()
+		q := right.Pointer()
+		if p != q && hasTag && tag == "shallow" {
+			return errors.Errorf(
+				"Expected fields %v.%s with tag '%s' to have same pointees",
+				t, f.Name, tag)
+		}
+		// the length check below is necessary because all slices created
+		// empty seem to reference the same address in memory
+		if p == q && p != 0 &&
+			(!hasTag || tag != "shallow") &&
+			(kind == reflect.Ptr || left.Len() > 0) {
+			return errors.Errorf(
+				"Expected fields %v.%s to have different pointees",
+				t, f.Name)
+		}
+		if p != q && kind == reflect.Ptr && isCloneable(f.Type) {
+			err := checkCloneImpl(left.Elem(), right.Elem())
+			return errors.WithMessagef(err, "Error in cloneable field %v.%s", t, f.Name)
+		}
+	}
+	return nil
+}
+
+func checkArrayOrSlice(f reflect.StructField, tag string, hasTag bool, kind reflect.Kind, left, right reflect.Value, t reflect.Type) error {
+	if kind == reflect.Array || kind == reflect.Slice {
+		n := left.Len()
+		for j := 0; j < n; j++ {
+			kindJ := left.Index(j).Kind()
+			if err := checkPtrOrSliceElem(f, kindJ, tag, hasTag, j, left, right, t); err != nil {
+				return err
+			}
+		}
+	} else if kind == reflect.Struct && isCloneable(f.Type) {
+		err := checkCloneImpl(left, right)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func checkPtrOrSliceElem(f reflect.StructField, kindJ reflect.Kind, tag string, hasTag bool, j int, left, right reflect.Value, t reflect.Type) error {
+	if kindJ == reflect.Ptr || kindJ == reflect.Slice {
+		p := left.Index(j).Pointer()
+		q := right.Index(j).Pointer()
+		if p != q && hasTag && tag == "shallowElements" {
+			return errors.Errorf(
+				"Expected elements %v.%s[%d] in slices with tag "+
+					"'%s' to have same pointees",
+				t, f.Name, j, tag)
+		}
+		if p == q && p != 0 && (!hasTag || tag != "shallowElements") {
+			return errors.Errorf(
+				"Expected elements %v.%s[%d] to have different pointees",
+				t, f.Name, j)
+		}
+	} else if kindJ == reflect.Struct && isCloneable(f.Type.Elem()) {
+		err := checkCloneImpl(left.Index(j), right.Index(j))
+		return errors.WithMessagef(err, "Error in cloneable element %v.%s[%d]", t, f.Name, j)
+	}
 	return nil
 }
 
