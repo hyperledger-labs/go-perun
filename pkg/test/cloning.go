@@ -143,12 +143,10 @@ func checkCloneImpl(v, w reflect.Value) error {
 
 	// get struct type
 	baseType := v.Type()
-	ptrType := reflect.PtrTo(baseType)
 	if baseType.Kind() == reflect.Ptr {
 		v = v.Elem()
 		w = w.Elem()
-		ptrType = baseType
-		baseType = ptrType.Elem()
+		baseType = baseType.Elem()
 	}
 
 	t := baseType
