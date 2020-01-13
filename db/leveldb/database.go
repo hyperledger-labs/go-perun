@@ -79,7 +79,7 @@ func (d *Database) Delete(key string) error {
 		return errors.Wrap(err, "Database.Delete(key) error")
 	}
 
-	if has != true {
+	if !has {
 		return errors.New("Database.Delete(key) error")
 	}
 
