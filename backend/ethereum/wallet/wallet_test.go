@@ -14,7 +14,6 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"perun.network/go-perun/wallet"
 	perun "perun.network/go-perun/wallet"
 	"perun.network/go-perun/wallet/test"
 )
@@ -25,9 +24,6 @@ const (
 	sampleAddr  = "1234560000000000000000000000000000000000"
 	invalidAddr = "123456"
 	dataToSign  = "SomeLongDataThatShouldBeSignedPlease"
-
-	keystoreAddr = "0x647ec26ae49b14060660504f4DA1c2059E1C5Ab6"
-	keyStorePath = "UTC--2019-12-11T17-00-07.156850888Z--647ec26ae49b14060660504f4da1c2059e1c5ab6"
 )
 
 type Setup struct {
@@ -157,7 +153,7 @@ func testUninitializedWallet(t *testing.T, s *Setup) {
 	assert.NotNil(t, s.Wallet.Disconnect(), "Disconnect of not connected wallet should return an error")
 	assert.NotNil(t, s.Wallet.Accounts(), "Expected empty byteslice")
 	assert.Equal(t, 0, len(s.Wallet.Accounts()), "Expected empty byteslice")
-	assert.False(t, s.Wallet.Contains(*new(wallet.Account)), "Uninitialized wallet should not contain account")
+	assert.False(t, s.Wallet.Contains(*new(perun.Account)), "Uninitialized wallet should not contain account")
 }
 
 func testInitializedWallet(t *testing.T, s *Setup) {
@@ -167,7 +163,7 @@ func testInitializedWallet(t *testing.T, s *Setup) {
 	assert.Equal(t, status, "OK", "Status was not 'OK'")
 	assert.NoError(t, err, "Unlocked wallet should not produce errors")
 	assert.NotNil(t, s.Wallet.Accounts(), "Expected accounts")
-	assert.False(t, s.Wallet.Contains(*new(wallet.Account)), "Expected wallet not to contain an empty account")
+	assert.False(t, s.Wallet.Contains(*new(perun.Account)), "Expected wallet not to contain an empty account")
 	assert.Equal(t, 1, len(s.Wallet.Accounts()), "Expected one account")
 
 	acc := s.Wallet.Accounts()[0]

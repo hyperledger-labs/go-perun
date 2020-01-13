@@ -7,26 +7,14 @@ package channel
 
 import (
 	"context"
-	"io"
 	"math/big"
 	"testing"
 
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 	"perun.network/go-perun/backend/ethereum/wallet"
 	perunwallet "perun.network/go-perun/wallet"
 )
-
-type testInvalidAsset [33]byte
-
-func (t *testInvalidAsset) Encode(w io.Writer) error {
-	return errors.New("Unimplemented")
-}
-
-func (t *testInvalidAsset) Decode(r io.Reader) error {
-	return errors.New("Unimplemented")
-}
 
 func Test_calcFundingIDs(t *testing.T) {
 	tests := []struct {
