@@ -148,7 +148,7 @@ func (c *Channel) ListenUpdates(uh UpdateHandler) {
 			c.log.Debug("update request receiver closed")
 			return
 		}
-		go c.handleUpdateReq(pidx, req, uh)
+		c.handleUpdateReq(pidx, req, uh)
 	}
 }
 
