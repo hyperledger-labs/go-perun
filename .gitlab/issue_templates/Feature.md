@@ -9,10 +9,13 @@
 	Package name and feature name.
 	I.e: [wire] Serialization code -->
 
+
 **Discussed in**&emsp; <!--
 	Only if there exists one.
-	The suggestion issue number that was used to discuss this feature.
+	The suggestion issue number that was used to discuss this feature or a link
+	to a discussion in another issue or merge request.
 	I.e: #66 -->
+
 
 **Description**&emsp; <!--
 	Describe the feature. Reminder:
@@ -25,14 +28,17 @@
 	length beforehand. To receive a slice, you need to allocate it to the right
 	size beforehand. -->
 
+
 **Context**&emsp; <!--
 	Why / where is the feature needed? This gives the issue more context.
 	I.e: We need byte slice serialization for big.Ints and for the channel.ID. -->
+
 
 **Thread safety**&emsp; <!--
 	Does the component need to be thread safe?
 	Yes: Which functions need to be thread safe?
 	No: Why not? -->
+
 
 **Testing**&emsp; <!--
 	What should be tested?
@@ -40,14 +46,17 @@
 	Are there existing Generic... tests that should be used?
 	How is the thread safety (if any) tested? -->
 
+
 **Acceptance criteria**&emsp; <!--
 	What does the reviewer need to check?
 	When can the reviewer accept the PR? -->
+
 
 **Suggested implementer and reviewers**&emsp; <!--
 	Who should implement this?
 	Who is reviewing the concept?
 	Who is reviewing the implementation? -->
+
 
 **Implementation hints**&emsp; <!--
 	Hints on how to realize the implementation (useful if someone else has to do it).
