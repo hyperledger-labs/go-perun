@@ -29,10 +29,16 @@
 	I.e.: CheckPanic() should return a (bool, interface{}), and return whether
 	panic was called, as well as the value passed to panic(). -->
 
+
 **Probable cause**&emsp; <!-- Optional.
 	What seemingly caused the bug or how to reproduce it.
 	I.e: recover() treats panic(nil) the same as no panic.
 	Or: I pressed the red button. -->
+
+
+**Reproduction**&emsp; <!-- Optional if obvious.
+	How can the bug be reproduced?
+	Either describe or provide a short code sample. -->
 
 
 **Fix**&emsp; <!-- Optional.
@@ -43,6 +49,11 @@
 		function();
 		didPanic = false; // Only executed if no panic occurred. -->
 
+
+**Testing**&emsp; <!--
+	Describe a test case that tests for just this bug, or, if another test case
+	already covers this, name it.
+	I.e: Create a sub test that tests panic(nil). -->
 
 <!-- End -->
 /label ~"🐛 bug"
