@@ -17,19 +17,27 @@ import (
 	"perun.network/go-perun/log"
 )
 
-// A paymentChannel is a wrapper around a client.Channel that implements payment
-// logic and testing capabilities. It also implements the UpdateHandler
-// interface so it can be its own update handler.
-type paymentChannel struct {
-	*client.Channel
-	r *Role // Reuse of timeout and testing obj
+type (
+	// A paymentChannel is a wrapper around a client.Channel that implements payment
+	// logic and testing capabilities. It also implements the UpdateHandler
+	// interface so it can be its own update handler.
+	paymentChannel struct {
+		*client.Channel
+		r *Role // Reuse of timeout and testing obj
 
-	log     log.Logger
-	handler chan bool
-	err     chan error
+		log     log.Logger
+		handler chan bool
+		res     chan handlerRes
 
-	bals []channel.Bal // independent tracking of channel balance for testing
-}
+		bals []channel.Bal // independent tracking of channel balance for testing
+	}
+
+	// A handlerRes encapsulates the result of a channel handling request
+	handlerRes struct {
+		up  client.ChannelUpdate
+		err error
+	}
+)
 
 func newPaymentChannel(ch *client.Channel, r *Role) *paymentChannel {
 	bals := make([]channel.Bal, 2)
@@ -42,7 +50,7 @@ func newPaymentChannel(ch *client.Channel, r *Role) *paymentChannel {
 		r:       r,
 		log:     r.log.WithField("channel", ch.ID()),
 		handler: make(chan bool, 1),
-		err:     make(chan error),
+		res:     make(chan handlerRes),
 		bals:    bals,
 	}
 }
@@ -71,31 +79,34 @@ func (ch *paymentChannel) sendTransfer(amount channel.Bal, desc string) {
 		}, desc)
 
 	transferBal(ch.bals, ch.Idx(), amount)
-	ch.assertBals()
+	ch.assertBals(ch.State())
 }
 
-func (ch *paymentChannel) recvUpdate(accept bool, desc string) {
+func (ch *paymentChannel) recvUpdate(accept bool, desc string) *channel.State {
 	ch.log.Debugf("Receiving update: %s, accept: %t", desc, accept)
 	ch.handler <- accept
 
-	var err error
 	select {
-	case err = <-ch.err:
-		ch.log.Infof("Received update: %s, err: %v", desc, err)
+	case res := <-ch.res:
+		ch.log.Infof("Received update: %s, err: %v", desc, res.err)
+		assert.NoError(ch.r.t, res.err)
+		return res.up.State
 	case <-time.After(ch.r.timeout):
 		ch.r.t.Error("timeout: expected incoming channel update")
+		return nil
 	}
-	assert.NoError(ch.r.t, err)
 }
 
 func (ch *paymentChannel) recvTransfer(amount channel.Bal, desc string) {
-	ch.recvUpdate(true, desc)
-	transferBal(ch.bals, ch.Idx()^1, amount)
-	ch.assertBals()
+	state := ch.recvUpdate(true, desc)
+	if state != nil {
+		transferBal(ch.bals, ch.Idx()^1, amount)
+		ch.assertBals(state)
+	} // else recvUpdate timed out
 }
 
-func (ch *paymentChannel) assertBals() {
-	bals := stateBals(ch.State())
+func (ch *paymentChannel) assertBals(state *channel.State) {
+	bals := stateBals(state)
 	ch.log.Infof(
 		"Tracked balance: [ %v %v ], channel: [ %v %v ]",
 		ch.bals[0], ch.bals[1],
@@ -122,7 +133,7 @@ func (ch *paymentChannel) settleChan() {
 	ctx, cancel := context.WithTimeout(context.Background(), ch.r.timeout)
 	defer cancel()
 	assert.NoError(ch.r.t, ch.Settle(ctx))
-	ch.assertBals()
+	ch.assertBals(ch.State())
 }
 
 func (ch *paymentChannel) ListenUpdates() {
@@ -138,10 +149,10 @@ func (ch *paymentChannel) Handle(up client.ChannelUpdate, res *client.UpdateResp
 	accept := <-ch.handler
 	if accept {
 		ch.log.Debug("Accepting...")
-		ch.err <- res.Accept(ctx)
+		ch.res <- handlerRes{up, res.Accept(ctx)}
 	} else {
 		ch.log.Debug("Rejecting...")
-		ch.err <- res.Reject(ctx, "Rejection")
+		ch.res <- handlerRes{up, res.Reject(ctx, "Rejection")}
 	}
 }
 
