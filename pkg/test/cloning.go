@@ -149,8 +149,6 @@ func checkCloneImpl(v, w reflect.Value) error {
 		baseType = baseType.Elem()
 	}
 
-	t := baseType
-
 	for i := 0; i < baseType.NumField(); i++ {
 		f := baseType.Field(i)
 		kind := f.Type.Kind()
@@ -168,23 +166,21 @@ func checkCloneImpl(v, w reflect.Value) error {
 		// check for field tags
 		tag, hasTag := f.Tag.Lookup("cloneable")
 		if hasTag {
-			if err := checkTags(f, t, tag, kind); err != nil {
+			if err := checkTags(f, baseType, tag, kind); err != nil {
 				return errors.WithMessage(err, "wrong or missing tags")
 			}
 		}
 
 		// check actual field contents
-		if valid, err := checkInterface(&kind, &left, &right); !valid {
+		if valid := checkInterface(&kind, &left, &right); !valid {
 			continue
-		} else if err != nil {
+		}
+
+		if err := checkPtrOrSlice(f, tag, hasTag, kind, left, right, baseType); err != nil {
 			return err
 		}
 
-		if err := checkPtrOrSlice(f, tag, hasTag, kind, left, right, t); err != nil {
-			return err
-		}
-
-		if err := checkArrayOrSlice(f, tag, hasTag, kind, left, right, t); err != nil {
+		if err := checkArrayOrSlice(f, tag, hasTag, kind, left, right, baseType); err != nil {
 			return err
 		}
 	}
@@ -200,11 +196,11 @@ func validateInput(v, w reflect.Value) error {
 		if v.Pointer() == w.Pointer() {
 			return errors.New("Both arguments reference the same structure")
 		}
+		if v.Elem().Kind() != reflect.Struct {
+			panic("BUG: expected reference to struct, got reference to reference")
+		}
 	}
 
-	if v.Kind() == reflect.Ptr && v.Elem().Kind() != reflect.Struct {
-		panic("BUG: expected reference to struct, got reference to reference")
-	}
 	return nil
 }
 
@@ -234,10 +230,10 @@ func checkTags(f reflect.StructField, t reflect.Type, tag string, kind reflect.K
 	return nil
 }
 
-func checkInterface(kind *reflect.Kind, left, right *reflect.Value) (valid bool, err error) {
+func checkInterface(kind *reflect.Kind, left, right *reflect.Value) bool {
 	if *kind == reflect.Interface {
 		if left.IsZero() && right.IsZero() {
-			return false, nil
+			return false
 		}
 
 		if left.IsZero() != right.IsZero() {
@@ -265,7 +261,7 @@ func checkInterface(kind *reflect.Kind, left, right *reflect.Value) (valid bool,
 
 		*kind = left.Type().Kind()
 	}
-	return true, nil
+	return true
 }
 
 func checkPtrOrSlice(f reflect.StructField, tag string, hasTag bool, kind reflect.Kind, left, right reflect.Value, t reflect.Type) error {
