@@ -298,6 +298,9 @@ func (c *Client) setupChannel(
 	parts []wallet.Address, // result of the MPCPP on prop
 ) (*Channel, error) {
 	params := channel.NewParamsUnsafe(prop.ChallengeDuration, parts, prop.AppDef, prop.Nonce)
+	if c.channels.Has(params.ID()) {
+		return nil, errors.New("channel already exists")
+	}
 
 	peers, err := c.getPeers(ctx, prop.PeerAddrs)
 	if err != nil {
@@ -309,6 +312,7 @@ func (c *Client) setupChannel(
 		return nil, err
 	}
 	ch.setLogger(c.logChan(params.ID()))
+
 	if err := ch.init(prop.InitBals, prop.InitData); err != nil {
 		return ch, errors.WithMessage(err, "setting initial bals and data")
 	}
@@ -330,7 +334,13 @@ func (c *Client) setupChannel(
 		return ch, errors.WithMessage(err, "error while funding channel")
 	}
 
-	return ch, ch.machine.SetFunded()
+	if err := ch.machine.SetFunded(); err != nil {
+		return ch, errors.WithMessage(err, "error in SetFunded()")
+	}
+	if !c.channels.Put(params.ID(), ch) {
+		return ch, errors.New("channel already exists")
+	}
+	return ch, nil
 }
 
 // enableVer0Cache enables caching of incoming version 0 signatures

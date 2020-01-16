@@ -26,6 +26,7 @@ import (
 type Client struct {
 	id          peer.Identity
 	peers       *peer.Registry
+	channels    chanRegistry
 	propHandler ProposalHandler
 	funder      channel.Funder
 	settler     channel.Settler
@@ -66,6 +67,7 @@ func New(
 		funder:      funder,
 		settler:     settler,
 		log:         log.WithField("id", id.Address()),
+		channels:    makeChanRegistry(),
 	}
 	c.peers = peer.NewRegistry(id, c.subscribePeer, dialer)
 	return c
@@ -78,7 +80,11 @@ func (c *Client) Close() error {
 		return err
 	}
 
-	return errors.WithMessage(c.peers.Close(), "closing registry")
+	err := errors.WithMessage(c.channels.CloseAll(), "closing channels")
+	if cerr := c.peers.Close(); err == nil {
+		err = errors.WithMessage(cerr, "closing registry")
+	}
+	return err
 }
 
 // Listen starts listening for incoming connections on the provided listener and

@@ -9,6 +9,7 @@ import (
 	"sync"
 
 	"perun.network/go-perun/channel"
+	psync "perun.network/go-perun/pkg/sync"
 )
 
 // ChanRegistry is a registry for channels.
@@ -70,4 +71,17 @@ func (r *chanRegistry) Delete(id channel.ID) (deleted bool) {
 		delete(r.values, id)
 	}
 	return
+}
+
+func (r *chanRegistry) CloseAll() (err error) {
+	r.mutex.Lock()
+	defer r.mutex.Unlock()
+
+	for _, c := range r.values {
+		if cerr := c.Close(); err == nil && !psync.IsAlreadyClosedError(cerr) {
+			err = cerr
+		}
+	}
+
+	return err
 }
