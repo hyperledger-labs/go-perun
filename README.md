@@ -7,6 +7,7 @@
 <p align="center">
   <a href="https://goreportcard.com/report/github.com/perun-network/go-perun"><img src="https://goreportcard.com/badge/github.com/perun-network/go-perun" alt="Go report: A+"></a>
   <a href="https://perun.mit-license.org/"><img src="https://img.shields.io/badge/License-MIT-blue.svg" alt="License: MIT"></a>
+  <a href="https://travis-ci.org/perun-network/go-perun"><img src="https://travis-ci.org/perun-network/go-perun.svg?branch=dev" alt="TravisCI build status"></a>
 </p>
 
 _go-perun_ is a Go implementation of the [Perun state channel protocols](https://perun.network/) ([introduction paper](https://drive.google.com/file/d/1phBzFXt2QDEemh0JIOAI80nibe3JTRu5/view)).
