@@ -51,7 +51,7 @@ var actionPhases = []Phase{InitActing, Acting}
 // the machine.
 func (m *ActionMachine) AddAction(idx Index, a Action) error {
 	if !inPhase(m.phase, actionPhases) {
-		return m.error(m.selfTransition(), "can only set action in an action phase")
+		return m.phaseErrorf(m.selfTransition(), "can only set action in an action phase")
 	}
 
 	if m.stagingActions[idx] != nil {
