@@ -14,7 +14,7 @@ import (
 
 func TestEventually(t *testing.T) {
 	// default parameters for this test
-	within, pause := 20*time.Millisecond, 5*time.Millisecond
+	within, pause := 40*time.Millisecond, 10*time.Millisecond
 	numTries := (int)(within/pause) + 1
 	et := NewEventually(within, pause) // bind parameters
 
@@ -33,7 +33,7 @@ func TestEventually(t *testing.T) {
 		for _, fn := range fails {
 			ftest := failUntil(time.Now().Add(within), fn)
 			et.Eventually(t, ftest.Fail)
-			assert.Equal(t, numTries, ftest.NumTries)
+			assert.GreaterOrEqual(t, numTries, ftest.NumTries)
 			assert.Equal(t, 1, ftest.NumNoPanic,
 				"all test calls should panic after first error call")
 		}
@@ -62,7 +62,7 @@ func TestEventually(t *testing.T) {
 		tt.AssertErrorN(func(t T) {
 			et.Eventually(t, ftest.Fail)
 		}, 1)
-		assert.Equal(t, numTries, ftest.NumTries)
+		assert.GreaterOrEqual(t, numTries, ftest.NumTries)
 		assert.Equal(t, 1, ftest.NumNoPanic,
 			"all test calls should panic after first error call")
 	})
