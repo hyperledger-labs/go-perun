@@ -15,6 +15,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	channeltest "perun.network/go-perun/channel/test"
 	"perun.network/go-perun/peer"
 	peertest "perun.network/go-perun/peer/test"
 	"perun.network/go-perun/wallet"
@@ -85,4 +86,33 @@ func TestClient_getPeers(t *testing.T) {
 
 	_, err = c.getPeers(ctx, []peer.Address{wallettest.NewRandomAddress(rng)})
 	assert.Error(err, "getPeers on unknown address should error")
+}
+
+func TestClient_Channel(t *testing.T) {
+	rng := rand.New(rand.NewSource(0xdeadbeef))
+	id := wallettest.NewRandomAccount(rng)
+	reg := peer.NewRegistry(id, func(*peer.Peer) {}, nil)
+	// dummy client that only has an id and a registry
+	c := &Client{
+		id:       id,
+		peers:    reg,
+		channels: makeChanRegistry(),
+	}
+
+	cID := channeltest.NewRandomChannelID(rng)
+
+	t.Run("unknown", func(t *testing.T) {
+		ch, err := c.Channel(cID)
+		assert.Nil(t, ch)
+		assert.Error(t, err)
+	})
+
+	t.Run("known", func(t *testing.T) {
+		ch1 := new(Channel)
+		c.channels.Put(cID, ch1)
+
+		ch2, err := c.Channel(cID)
+		assert.Same(t, ch2, ch1)
+		assert.NoError(t, err)
+	})
 }

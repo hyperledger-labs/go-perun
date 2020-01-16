@@ -99,3 +99,16 @@ func TestChanRegistry_Delete(t *testing.T) {
 		assert.False(t, r.Has(id))
 	})
 }
+
+func TestChanRegistry_CloseAll(t *testing.T) {
+	rng := rand.New(rand.NewSource(0xDDDDdede))
+	id := test.NewRandomChannelID(rng)
+
+	conn, err := newChannelConn(id, nil, 0)
+	require.NoError(t, err)
+	ch := &Channel{conn: conn}
+	reg := makeChanRegistry()
+	reg.Put(id, ch)
+	reg.CloseAll()
+	assert.True(t, ch.IsClosed())
+}
