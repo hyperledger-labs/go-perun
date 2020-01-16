@@ -137,7 +137,7 @@ func inPhase(phase Phase, phases []Phase) bool {
 // A call to Sig only makes sense in a signing phase.
 func (m *machine) Sig() (sig wallet.Sig, err error) {
 	if !inPhase(m.phase, signingPhases) {
-		return nil, m.error(m.selfTransition(), "can only create own signature in a signing phase")
+		return nil, m.phaseErrorf(m.selfTransition(), "can only create own signature in a signing phase")
 	}
 
 	if m.stagingTX.Sigs[m.idx] == nil {
@@ -185,7 +185,7 @@ func (m *machine) StagingState() *State {
 // the machine.
 func (m *machine) AddSig(idx Index, sig wallet.Sig) error {
 	if !inPhase(m.phase, signingPhases) {
-		return m.error(m.selfTransition(), "can only add signature in a signing phase")
+		return m.phaseErrorf(m.selfTransition(), "can only add signature in a signing phase")
 	}
 
 	if m.stagingTX.Sigs[idx] != nil {
@@ -253,12 +253,12 @@ func (m *machine) enableStaged(expected PhaseTransition) error {
 		return errors.WithMessage(err, "no staging phase")
 	}
 	if (expected.To == Final) != m.stagingTX.State.IsFinal {
-		return m.error(expected, "State.IsFinal and target phase don't match")
+		return m.phaseErrorf(expected, "State.IsFinal and target phase don't match")
 	}
 
 	for i, sig := range m.stagingTX.Sigs {
 		if sig == nil {
-			return m.errorf(expected, "signature %d missing from staging TX", i)
+			return m.phaseErrorf(expected, "signature %d missing from staging TX", i)
 		}
 	}
 
@@ -304,10 +304,10 @@ var validPhaseTransitions = map[PhaseTransition]bool{
 
 func (m *machine) expect(tr PhaseTransition) error {
 	if m.phase != tr.From {
-		return m.error(tr, "not in correct phase")
+		return m.phaseErrorf(tr, "not in correct phase")
 	}
 	if ok := validPhaseTransitions[PhaseTransition{m.phase, tr.To}]; !ok {
-		return m.error(tr, "forbidden phase transition")
+		return m.phaseErrorf(tr, "forbidden phase transition")
 	}
 	return nil
 }
@@ -351,13 +351,8 @@ func (m *machine) validTransition(to *State) error {
 	return nil
 }
 
-// error constructs a new PhaseTransitionError.
-func (m *machine) error(expected PhaseTransition, msg string) error {
-	return newPhaseTransitionError(m.params.ID(), m.phase, expected, msg)
-}
-
-// error constructs a new PhaseTransitionError.
-func (m *machine) errorf(expected PhaseTransition, format string, args ...interface{}) error {
+// phaseErrorf constructs a new PhaseTransitionError.
+func (m *machine) phaseErrorf(expected PhaseTransition, format string, args ...interface{}) error {
 	return newPhaseTransitionErrorf(m.params.ID(), m.phase, expected, format, args...)
 }
 
