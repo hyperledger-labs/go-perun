@@ -87,6 +87,14 @@ func (c *Client) Close() error {
 	return err
 }
 
+// Channel queries a channel by its ID.
+func (c *Client) Channel(id channel.ID) (*Channel, error) {
+	if ch, ok := c.channels.Get(id); ok {
+		return ch, nil
+	}
+	return nil, errors.New("unknown channel ID")
+}
+
 // Listen starts listening for incoming connections on the provided listener and
 // currently just automatically accepts them after successful authentication.
 // This function does not start go routines but instead should
