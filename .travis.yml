@@ -1,86 +1,31 @@
+os: linux
+dist: xenial
+git:
+  submodules: false
 language: go
+go: 1.13.x
 go_import_path: perun.network/go-perun
-sudo: false
+env:
+  - GO111MODULE=on
 cache: 
-  
+  directories:
+    - $HOME/.cache/go-build
+    - $HOME/gopath/pkg/mod
 jobs:
   include:
-    - stage: lint
-      os: linux
-      dist: xenial
-      go: 1.13.x
-      git:
-        submodules: false
+    - stage: lint_fmt_vet_misspell
       script:
         - go get -u golang.org/x/lint/golint
         - golint -set_exit_status ./...
-      cache:
-        directories:
-        - $HOME/.cache/go-build
-        - $HOME/gopath/pkg/mod
-
-    - stage: fmt
-      os: linux
-      dist: xenial
-      go: 1.13.x
-      git:
-        submodules: false
-      script:
         - "! gofmt -l -s `ls -d */` | grep ."
-      cache:
-        directories:
-        - $HOME/.cache/go-build
-        - $HOME/gopath/pkg/mod
-
-    - stage: vet
-      os: linux
-      dist: xenial
-      go: 1.13.x
-      git:
-        submodules: false
-      script:
         - "go vet ./..."
-      cache:
-        directories:
-        - $HOME/.cache/go-build
-        - $HOME/gopath/pkg/mod
-
-    - stage: misspell
-      os: linux
-      dist: xenial
-      go: 1.13.x
-      git:
-        submodules: false
-      script:
         - go get -u github.com/client9/misspell/cmd/misspell
         - misspell -error .
-      cache:
-        directories:
-        - $HOME/.cache/go-build
-        - $HOME/gopath/pkg/mod
 
     - stage: unit_tests
-      os: linux
-      dist: xenial
-      go: 1.13.x
-      git:
-        submodules: false
-      env:
-        - GO111MODULE=on
       script:
         - go test -timeout 60s -cover ./...
-      cache:
-        directories:
-        - $HOME/.cache/go-build
-        - $HOME/gopath/pkg/mod
 
     - stage: unit_race_tests
-      os: linux
-      dist: xenial
-      go: 1.13.x
-      git:
-        submodules: false
-      env:
-        - GO111MODULE=on
       script:
         - go test -timeout 120s -race ./...
