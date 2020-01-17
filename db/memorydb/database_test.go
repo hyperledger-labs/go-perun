@@ -37,6 +37,4 @@ func TestDatabase(t *testing.T) {
 	ittest.NextMustEqual("k2", "v2")
 	ittest.NextMustEqual("k3", "v3")
 	ittest.MustEnd()
-
-	return
 }

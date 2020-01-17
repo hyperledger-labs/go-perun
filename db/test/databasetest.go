@@ -34,7 +34,6 @@ func GenericDatabaseTest(t *testing.T, database db.Database) {
 		test.test()
 		GenericTableTest(t, test.Database)
 	})
-	return
 }
 
 // test Tests a generic database.
@@ -76,8 +75,6 @@ func (d *DatabaseTest) test() {
 	d.Put("asdf", "YXCV")
 	d.MustGetEqual("asdf", "YXCV")
 	d.Delete("asdf")
-
-	return
 }
 
 // DatabaseTest is a db testing struct.
@@ -100,7 +97,6 @@ func (d *DatabaseTest) MustHave(key string) {
 	if !d.Has(key) {
 		d.Errorf("Database does not have entry %q but it should.\n", key)
 	}
-	return
 }
 
 // MustNotHave tests the has functionality.
@@ -108,7 +104,6 @@ func (d *DatabaseTest) MustNotHave(key string) {
 	if d.Has(key) {
 		d.Errorf("Database has entry %q but it shouldn't.\n", key)
 	}
-	return
 }
 
 // Put tests the put functionality.
@@ -117,7 +112,6 @@ func (d *DatabaseTest) Put(key string, value string) {
 	if err != nil {
 		d.Fatalf("Failed to put [%q]=%q.\n", key, value)
 	}
-	return
 }
 
 // PutBytes tests the putBytes functionality.
@@ -125,7 +119,6 @@ func (d *DatabaseTest) PutBytes(key string, value []byte) {
 	if err := d.Database.PutBytes(key, value); err != nil {
 		d.Fatalf("PutBytes(): Failed to put [%q]=%q.\n", key, value)
 	}
-	return
 }
 
 // Get tests the get functionality.
@@ -152,7 +145,6 @@ func (d *DatabaseTest) MustFailGet(key string) {
 	if err == nil {
 		d.Errorf("Get() did not fail when expected to ([%q]).\n", key)
 	}
-	return
 }
 
 // MustGetEqual tests the get functionality.
@@ -164,7 +156,6 @@ func (d *DatabaseTest) MustGetEqual(key string, expected string) {
 			value,
 			expected)
 	}
-	return
 }
 
 // MustGetBytesEqual tests the getBytes functionality.
@@ -176,7 +167,6 @@ func (d *DatabaseTest) MustGetBytesEqual(key string, expected []byte) {
 			value,
 			expected)
 	}
-	return
 }
 
 // Delete tests the delete functionality.
@@ -184,7 +174,6 @@ func (d *DatabaseTest) Delete(key string) {
 	if err := d.Database.Delete(key); err != nil {
 		d.Errorf("Delete() [%q] failed: %v", key, err)
 	}
-	return
 }
 
 // MustFailDelete tests the delete functionality.
@@ -192,5 +181,4 @@ func (d *DatabaseTest) MustFailDelete(key string) {
 	if err := d.Database.Delete(key); err == nil {
 		d.Errorf("Delete() [%q] should have failed, but did not.\n", key)
 	}
-	return
 }

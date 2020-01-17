@@ -56,10 +56,6 @@ func (a Account) SignData(data []byte) ([]byte, error) {
 	return serializeSignature(r, s)
 }
 
-type ecdsaSignature struct {
-	R, S *big.Int
-}
-
 // serializeSignature serializes a signature into a []byte or returns an error.
 // The length of the []byte is dictated by the curves parameters and padded with 0 bytes if necessary.
 func serializeSignature(r, s *big.Int) ([]byte, error) {

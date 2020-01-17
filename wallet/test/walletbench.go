@@ -50,7 +50,7 @@ func benchBackendVerifySig(b *testing.B, s *Setup) {
 	for n := 0; n < b.N; n++ {
 		ok, err := s.Backend.VerifySignature(s.DataToSign, signature, perunAcc.Address())
 
-		if ok != true {
+		if !ok {
 			b.Fatal(err)
 		}
 	}

@@ -36,7 +36,7 @@ type Settler struct {
 var _ channel.Settler = (*Settler)(nil)
 
 // Error that is returned if an event was not found in the past.
-var errConcludedNotFound = stderrors.New("Concluded event not found")
+var errConcludedNotFound = stderrors.New("concluded event not found")
 
 // NewETHSettler creates a new ethereum funder.
 func NewETHSettler(backend ContractBackend, adjAddr common.Address) *Settler {

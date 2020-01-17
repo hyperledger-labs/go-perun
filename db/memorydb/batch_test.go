@@ -15,5 +15,4 @@ func TestBatch(t *testing.T) {
 	t.Run("Generic Batch test", func(t *testing.T) {
 		test.GenericBatchTest(t, NewDatabase())
 	})
-	return
 }

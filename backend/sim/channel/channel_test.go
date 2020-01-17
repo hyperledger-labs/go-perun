@@ -10,17 +10,16 @@ import (
 	"testing"
 
 	"perun.network/go-perun/backend/sim/wallet"
-	"perun.network/go-perun/channel/test"
 	chtest "perun.network/go-perun/channel/test"
 	perun "perun.network/go-perun/wallet"
 )
 
 func TestGenericTests(t *testing.T) {
 	setup := newChannelSetup()
-	test.GenericBackendTest(t, setup)
+	chtest.GenericBackendTest(t, setup)
 }
 
-func newChannelSetup() *test.Setup {
+func newChannelSetup() *chtest.Setup {
 	rng := rand.New(rand.NewSource(1337))
 
 	app := chtest.NewRandomApp(rng)
@@ -33,7 +32,7 @@ func newChannelSetup() *test.Setup {
 	state2 := chtest.NewRandomState(rng, params2)
 	state2.IsFinal = !state.IsFinal
 
-	return &test.Setup{
+	return &chtest.Setup{
 		Params:        params,
 		Params2:       params2,
 		State:         state,

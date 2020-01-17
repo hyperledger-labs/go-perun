@@ -26,14 +26,9 @@ import (
 	perunwallet "perun.network/go-perun/wallet"
 )
 
-const nodeURL = "ws://localhost:8545"
-
 const (
 	keyDir   = "../wallet/testdata"
 	password = "secret"
-
-	keystoreAddr = "0x3c5A96FF258B1F4C288068B32474dedC3620233c"
-	keyStorePath = "UTC--2019-06-07T12-12-48.775026092Z--3c5a96ff258b1f4c288068b32474dedc3620233c"
 )
 
 const timeout = 20 * time.Second
