@@ -8,6 +8,7 @@ package channel
 import (
 	"context"
 	"fmt"
+
 	"github.com/pkg/errors"
 )
 
@@ -34,24 +35,50 @@ type (
 		Idx        Index // our index
 	}
 
-	// A PeerTimedOutFundingError is a special error that is returned whenever
-	// a participant does not fund the channel in time.
-	PeerTimedOutFundingError struct {
-		TimedOutPeerIdx Index // index of the peer who timed-out funding
+	// A FundingTimeoutError indicates that some peers failed funding some assets in time.
+	FundingTimeoutError []AssetFundingError
+
+	// An AssetFundingError indicates the peers who timed-out funding a specific asset.
+	AssetFundingError struct {
+		Asset         int     // The asset for which the timeouts occurred
+		TimedOutPeers []Index // Indices of the peers who failed to fund in time
 	}
 )
 
-func (e PeerTimedOutFundingError) Error() string {
-	return fmt.Sprintf("peer[%d] did not fund channel in time", e.TimedOutPeerIdx)
+// NewFundingTimeoutError creates a new FundingTimeoutError.
+func NewFundingTimeoutError(fundingErrs []AssetFundingError) error {
+	return errors.WithStack(FundingTimeoutError(fundingErrs))
 }
 
-// NewPeerTimedOutFundingError creates a new PeerTimedOutFundingError.
-func NewPeerTimedOutFundingError(idx Index) error {
-	return errors.WithStack(&PeerTimedOutFundingError{idx})
+func (e FundingTimeoutError) Error() string {
+	msg := "Funding failed:"
+	for _, assetErr := range e {
+		msg += assetErr.Error()
+	}
+	return msg
 }
 
-// IsPeerTimedOutFundingError checks whether an error is a PeerTimedOutFundingError.
-func IsPeerTimedOutFundingError(err error) bool {
-	_, ok := errors.Cause(err).(*PeerTimedOutFundingError)
+// IsFundingTimeoutError checks whether an error is a FundingTimeoutError.
+func IsFundingTimeoutError(err error) bool {
+	_, ok := errors.Cause(err).(*FundingTimeoutError)
+	return ok
+}
+
+// NewAssetFundingError creates a new AssetFundingError.
+func NewAssetFundingError(asset int, idx []Index) error {
+	return errors.WithStack(&AssetFundingError{asset, idx})
+}
+
+func (e AssetFundingError) Error() string {
+	msg := fmt.Sprintf("Funding Error on asset [%d]", e.Asset)
+	for _, peerIdx := range e.TimedOutPeers {
+		msg += fmt.Sprintf("peer[%d] did not fund channel in time", peerIdx)
+	}
+	return msg
+}
+
+// IsAssetFundingError checks whether an error is a AssetFundingError.
+func IsAssetFundingError(err error) bool {
+	_, ok := errors.Cause(err).(*AssetFundingError)
 	return ok
 }
