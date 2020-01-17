@@ -233,17 +233,17 @@ func (f *Funder) waitForFundingConfirmations(ctx context.Context, request channe
 			}
 
 		case <-ctx.Done():
+			var errors []channel.AssetFundingError
 			for i := 0; i < len(allocation.OfParts); i++ {
+				var indices []channel.Index
 				for k := 0; k < len(allocation.OfParts[i]); k++ {
 					if allocation.OfParts[i][k].Sign() == 1 {
-						// return first timed-out peer for now
-						return channel.NewPeerTimedOutFundingError(channel.Index(i))
+						indices = append(indices, channel.Index(i))
 					}
 				}
+				errors = append(errors, channel.AssetFundingError{Asset: i, TimedOutPeers: indices})
 			}
-			// here should never be reached, there must be one positive allocation
-			// still or we would have returned already.
-
+			return channel.NewFundingTimeoutError(errors)
 		case err := <-errChan:
 			return err
 		}

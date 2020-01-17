@@ -325,7 +325,7 @@ func (c *Client) setupChannel(
 			Params:     params,
 			Allocation: prop.InitBals,
 			Idx:        ch.machine.Idx(),
-		}); channel.IsPeerTimedOutFundingError(err) {
+		}); channel.IsFundingTimeoutError(err) {
 		// TODO: initiate dispute and withdrawal
 		ch.log.Warnf("error while funding channel: %v", err)
 		return ch, errors.WithMessage(err, "error while funding channel")

@@ -36,7 +36,9 @@ type (
 	}
 
 	// A FundingTimeoutError indicates that some peers failed funding some assets in time.
-	FundingTimeoutError []AssetFundingError
+	FundingTimeoutError struct {
+		Errors []*AssetFundingError
+	}
 
 	// An AssetFundingError indicates the peers who timed-out funding a specific asset.
 	AssetFundingError struct {
@@ -46,14 +48,14 @@ type (
 )
 
 // NewFundingTimeoutError creates a new FundingTimeoutError.
-func NewFundingTimeoutError(fundingErrs []AssetFundingError) error {
-	return errors.WithStack(FundingTimeoutError(fundingErrs))
+func NewFundingTimeoutError(fundingErrs []*AssetFundingError) error {
+	return errors.WithStack(&FundingTimeoutError{fundingErrs})
 }
 
 func (e FundingTimeoutError) Error() string {
-	msg := "Funding failed:"
-	for _, assetErr := range e {
-		msg += assetErr.Error()
+	msg := "Funding failed: "
+	for _, assetErr := range e.Errors {
+		msg += assetErr.Error() + " "
 	}
 	return msg
 }
@@ -65,15 +67,16 @@ func IsFundingTimeoutError(err error) bool {
 }
 
 // NewAssetFundingError creates a new AssetFundingError.
-func NewAssetFundingError(asset int, idx []Index) error {
-	return errors.WithStack(&AssetFundingError{asset, idx})
+func NewAssetFundingError(asset int, peers []Index) error {
+	return errors.WithStack(&AssetFundingError{asset, peers})
 }
 
 func (e AssetFundingError) Error() string {
-	msg := fmt.Sprintf("Funding Error on asset [%d]", e.Asset)
+	msg := fmt.Sprintf("Funding Error on asset [%d]: ", e.Asset)
 	for _, peerIdx := range e.TimedOutPeers {
-		msg += fmt.Sprintf("peer[%d] did not fund channel in time", peerIdx)
+		msg += fmt.Sprintf("peer[%d] ", peerIdx)
 	}
+	msg += fmt.Sprintf("did not fund channel in time.")
 	return msg
 }
 
