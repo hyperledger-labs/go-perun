@@ -9,9 +9,13 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+
+	"perun.network/go-perun/pkg/test"
 )
 
 func TestAppRandomizerSet(t *testing.T) {
+	test.OnlyOnce(t)
+
 	assert.NotNil(t, appRandomizer, "appRandomizer should be default initialized")
 	assert.False(t, isAppRandomizerSet, "isAppRandomizerSet should be defaulted to false")
 
