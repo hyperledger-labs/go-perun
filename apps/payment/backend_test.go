@@ -13,10 +13,13 @@ import (
 	"github.com/stretchr/testify/require"
 
 	_ "perun.network/go-perun/backend/sim" // backend init
+	pkgtest "perun.network/go-perun/pkg/test"
 	"perun.network/go-perun/wallet/test"
 )
 
 func TestBackend(t *testing.T) {
+	pkgtest.OnlyOnce(t)
+
 	rng := rand.New(rand.NewSource(0))
 	assert, require := assert.New(t), require.New(t)
 
