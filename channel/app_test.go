@@ -9,9 +9,13 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+
+	"perun.network/go-perun/pkg/test"
 )
 
 func TestAppBackendSet(t *testing.T) {
+	test.OnlyOnce(t)
+
 	assert.NotNil(t, appBackend, "appBackend should be default initialized")
 	assert.False(t, isAppBackendSet, "isAppBackendSet should be defaulted to false")
 
