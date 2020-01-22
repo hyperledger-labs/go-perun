@@ -66,7 +66,7 @@ func TestRegistry_Get_Pair(t *testing.T) {
 // Tests that calling .Get() concurrently on the same peer works properly.
 func TestRegistry_Get_Multiple(t *testing.T) {
 	t.Parallel()
-	assert, require := assert.New(t), require.New(t)
+	assert := assert.New(t)
 	rng := rand.New(rand.NewSource(3))
 	var hub peertest.ConnHub
 	dialerId := wallettest.NewRandomAccount(rng)
@@ -99,15 +99,21 @@ func TestRegistry_Get_Multiple(t *testing.T) {
 		}()
 	}
 
+	ct := test.NewConcurrent(t)
 	test.AssertTerminates(t, timeout, func() {
-		p := <-peers
-		require.NotNil(p)
-		for i := 0; i < N-1; i++ {
-			p0 := <-peers
-			require.NotNil(p0)
-			assert.Same(p, p0)
-		}
+		ct.Stage("terminates", func(t require.TestingT) {
+			require := require.New(t)
+			p := <-peers
+			require.NotNil(p)
+			for i := 0; i < N-1; i++ {
+				p0 := <-peers
+				require.NotNil(p0)
+				assert.Same(p, p0)
+			}
+		})
 	})
+
+	ct.Wait("terminates")
 
 	assert.Equal(1, dialer.NumDialed())
 
