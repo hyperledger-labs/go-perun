@@ -11,8 +11,10 @@ import (
 	"log"
 	"math/rand"
 
+	"github.com/ethereum/go-ethereum/accounts"
 	"github.com/ethereum/go-ethereum/accounts/keystore"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/crypto/secp256k1"
 	"perun.network/go-perun/backend/ethereum/wallet"
 	perunwallet "perun.network/go-perun/wallet"
@@ -51,8 +53,13 @@ func (r *randomizer) NewRandomAccount(rnd *rand.Rand) perunwallet.Account {
 		log.Panicf("Creation of account failed with error: %v", err)
 	}
 
-	// Store the private key in the keystore.
 	keystore := r.wallet.Ks
+	// Check if the keystore already holds this key.
+	address := crypto.PubkeyToAddress(privateKey.PublicKey)
+	if acc, err := keystore.Find(accounts.Account{Address: address}); err == nil {
+		return wallet.NewAccountFromEth(r.wallet, &acc)
+	}
+	// Store the private key in the keystore.
 	ethAcc, err := keystore.ImportECDSA(privateKey, "secret")
 	if err != nil {
 		log.Panicf("Could not store private key in keystore: %v", err)
