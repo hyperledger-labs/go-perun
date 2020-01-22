@@ -238,13 +238,13 @@ func (f *Funder) waitForFundingConfirmation(ctx context.Context, request channel
 
 		case <-ctx.Done():
 			var indices []channel.Index
-			for k := 0; k < len(allocation.OfParts[asset.assetIndex]); k++ {
-				if allocation.OfParts[asset.assetIndex][k].Sign() == 1 {
+			for k, bals := range allocation.OfParts {
+				if bals[asset.assetIndex].Sign() == 1 {
 					indices = append(indices, channel.Index(k))
 				}
 			}
-			if indices != nil {
-				return channel.AssetFundingError{Asset: asset.assetIndex, TimedOutPeers: indices}
+			if len(indices) != 0 {
+				return &channel.AssetFundingError{Asset: asset.assetIndex, TimedOutPeers: indices}
 			}
 			return nil
 		case err := <-errChan:

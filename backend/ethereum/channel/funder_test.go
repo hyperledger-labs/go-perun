@@ -112,10 +112,11 @@ func testFundingTimout(t *testing.T, faultyPeer, peers int) {
 			ctx2, cancel := context.WithTimeout(context.Background(), 200*time.Millisecond)
 			defer cancel()
 			err := funder.Fund(ctx2, req)
-			assert.True(t, channel.IsPeerTimedOutFundingError(err), "funder should return PeerTimedOutFundingError")
-			wErr := errors.Cause(err) // unwrap error
-			pErr := wErr.(*channel.PeerTimedOutFundingError)
-			assert.Equal(t, uint16(faultyPeer), pErr.TimedOutPeerIdx, "Peer should be detected as erroneous")
+			assert.True(t, channel.IsFundingTimeoutError(err), "funder should return FundingTimeoutError")
+			pErr := errors.Cause(err).(*channel.FundingTimeoutError) // unwrap error
+			//assert.True(t, ok, "unwraping error should not fail")
+			assert.Equal(t, pErr.Errors[0].Asset, 0, "Wrong asset set")
+			assert.Equal(t, uint16(faultyPeer), pErr.Errors[0].TimedOutPeers[0], "Peer should be detected as erroneous")
 		}(i, funder)
 	}
 	wg.Wait()
@@ -237,15 +238,17 @@ func getFundingState(ctx context.Context, f *Funder, request channel.FundingReq)
 	var channelID = request.Params.ID()
 	partIDs := calcFundingIDs(request.Params.Parts, channelID)
 
-	contracts, err := f.connectToContracts(request.Allocation.Assets)
-	if err != nil {
-		return nil, err
-	}
 	alloc := make([][]channel.Bal, len(request.Params.Parts))
 	for i := 0; i < len(request.Params.Parts); i++ {
-		alloc[i] = make([]channel.Bal, len(contracts))
+		alloc[i] = make([]channel.Bal, len(request.Allocation.Assets))
 	}
-	for k, contract := range contracts {
+
+	for k, asset := range request.Allocation.Assets {
+		contract, err := f.connectToContract(asset, k)
+		if err != nil {
+			return nil, err
+		}
+
 		for i, id := range partIDs {
 			opts := bind.CallOpts{
 				Pending: false,
