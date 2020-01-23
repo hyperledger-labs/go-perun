@@ -18,7 +18,9 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
+	requirepkg "github.com/stretchr/testify/require"
+
+	"perun.network/go-perun/pkg/test"
 )
 
 // ListenerFactory should create a new listener.
@@ -37,7 +39,7 @@ type Setup struct {
 // GenericListenerTest tests generic functionality of connecting and disconnecting of client and server.
 func GenericListenerTest(t *testing.T, s *Setup) {
 	assert := assert.New(t)
-	require := require.New(t)
+	require := requirepkg.New(t)
 
 	// Starting a new listener
 	l, err := s.ListenerFactory()
@@ -45,16 +47,20 @@ func GenericListenerTest(t *testing.T, s *Setup) {
 
 	// Accepting a new connection
 	accept := make(chan net.Conn)
-	go func() {
+	ct := test.NewConcurrent(t)
+	go ct.Stage("accept", func(rt requirepkg.TestingT) {
 		conn, aErr := l.Accept()
-		require.NoError(aErr, "Accepting a connection should not fail")
+		requirepkg.NoError(rt, aErr, "Accepting a connection should not fail")
 		accept <- conn
-	}()
+	})
 
 	// Connecting to the listener
 	connClient, err := s.Dialer()
-	require.NoError(err)
+	ct.Stage("errcheck", func(rt requirepkg.TestingT) {
+		requirepkg.NoError(rt, err)
+	})
 	connListener := <-accept
+	ct.Wait("accept")
 	require.NotNil(connListener)
 
 	// Client sends data to Listener
