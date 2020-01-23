@@ -11,8 +11,8 @@ import (
 	"perun.network/go-perun/wallet"
 )
 
-// backend is set to the global channel backend. It must be set through
-// backend.Set(Collection).
+// backend is set to the global channel backend. Must not be set directly but
+// through importing the needed backend.
 var backend Backend
 
 // Backend is an interface that needs to be implemented for every blockchain.
@@ -42,7 +42,7 @@ type Backend interface {
 }
 
 // SetBackend sets the global channel backend. Must not be called directly but
-// through backend.Set().
+// through importing the needed backend.
 func SetBackend(b Backend) {
 	if backend != nil || b == nil {
 		panic("channel backend already set or nil argument")

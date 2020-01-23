@@ -10,8 +10,8 @@ import "io"
 // Sig is a single signature
 type Sig = []byte
 
-// backend is set to the global wallet backend. It must be set through
-// backend.Set(Collection).
+// backend is set to the global wallet backend. Must not be set directly but
+// through importing the needed backend.
 var backend Backend
 
 // Backend provides useful methods for this blockchain.
@@ -30,7 +30,7 @@ type Backend interface {
 }
 
 // SetBackend sets the global wallet backend. Must not be called directly but
-// through backend.Set().
+// through importing the needed backend.
 func SetBackend(b Backend) {
 	if backend != nil || b == nil {
 		panic("wallet backend already set or nil argument")
