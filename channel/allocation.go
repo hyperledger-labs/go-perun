@@ -9,7 +9,6 @@ import (
 	"io"
 	"math/big"
 
-	"perun.network/go-perun/log"
 	perunio "perun.network/go-perun/pkg/io"
 	"perun.network/go-perun/wire"
 
@@ -247,13 +246,8 @@ func (a Allocation) Valid() error {
 }
 
 // Sum returns the sum of each asset over all participants and locked
-// allocations.  It runs an internal check that the dimensions of all slices are
-// valid and panics if not.
+// allocations.
 func (a Allocation) Sum() []Bal {
-	if err := a.Valid(); err != nil {
-		log.Panic(err)
-	}
-
 	n := len(a.Assets)
 	totals := make([]*big.Int, n)
 	for i := 0; i < n; i++ {
