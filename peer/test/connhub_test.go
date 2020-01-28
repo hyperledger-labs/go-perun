@@ -23,7 +23,7 @@ import (
 func TestConnHub_Create(t *testing.T) {
 	rng := rand.New(rand.NewSource(0xDDDDDEDE))
 	t.Run("create and dial existing", func(t *testing.T) {
-		assert, require := assert.New(t), require.New(t)
+		assert := assert.New(t)
 
 		var c ConnHub
 		addr := wallettest.NewRandomAddress(rng)
@@ -31,23 +31,28 @@ func TestConnHub_Create(t *testing.T) {
 		assert.NotNil(d)
 		assert.NotNil(l)
 
-		t.Run("accept", func(t *testing.T) {
-			go test.AssertTerminates(t, timeout, func() {
+		ct := test.NewConcurrent(t)
+		go test.AssertTerminates(t, timeout, func() {
+			ct.Stage("accept", func(rt require.TestingT) {
 				conn, err := l.Accept()
 				assert.NoError(err)
-				require.NotNil(t, conn)
+				require.NotNil(rt, conn)
 				assert.NoError(conn.Send(msg.NewPingMsg()))
 			})
 		})
 
 		test.AssertTerminates(t, timeout, func() {
-			conn, err := d.Dial(context.Background(), addr)
-			assert.NoError(err)
-			require.NotNil(conn)
-			m, err := conn.Recv()
-			assert.NoError(err)
-			assert.IsType(msg.NewPingMsg(), m)
+			ct.Stage("dial", func(rt require.TestingT) {
+				conn, err := d.Dial(context.Background(), addr)
+				assert.NoError(err)
+				require.NotNil(rt, conn)
+				m, err := conn.Recv()
+				assert.NoError(err)
+				assert.IsType(msg.NewPingMsg(), m)
+			})
 		})
+
+		ct.Wait("accept", "dial")
 	})
 
 	t.Run("double create", func(t *testing.T) {
