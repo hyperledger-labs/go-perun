@@ -11,11 +11,15 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+
+	"perun.network/go-perun/pkg/test"
 )
 
 var nilDecoder = func(io.Reader) (Msg, error) { return nil, nil }
 
 func TestType_Valid_String(t *testing.T) {
+	test.OnlyOnce(t)
+
 	const testTypeVal, testTypeStr = 252, "testTypeA"
 	testType := Type(testTypeVal)
 	assert.False(t, testType.Valid(), "unregistered type should not be valid")
@@ -29,6 +33,8 @@ func TestType_Valid_String(t *testing.T) {
 }
 
 func TestRegisterExternalDecoder(t *testing.T) {
+	test.OnlyOnce(t)
+
 	const testTypeVal, testTypeStr = 251, "testTypeB"
 
 	RegisterExternalDecoder(testTypeVal, nilDecoder, testTypeStr)
