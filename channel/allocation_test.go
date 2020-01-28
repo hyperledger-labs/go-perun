@@ -181,9 +181,6 @@ func TestAllocation_Clone(t *testing.T) {
 
 func TestAllocation_Sum(t *testing.T) {
 	rng := rand.New(rand.NewSource(1337))
-	// invalid Allocation
-	invalidAllocation := channel.Allocation{}
-	assert.Panics(t, func() { invalidAllocation.Sum() })
 
 	// note: different invalid allocations are tested in TestAllocation_valid
 
