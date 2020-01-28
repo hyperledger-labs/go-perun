@@ -161,13 +161,18 @@ func TestRegistry_Get(t *testing.T) {
 			dialer.put(a)
 			ExchangeAddrs(context.Background(), peerID, b)
 		}()
+		ct := test.NewConcurrent(t)
 		test.AssertTerminates(t, timeout, func() {
-			p, err := r.Get(context.Background(), peerAddr)
-			require.NoError(t, err)
-			require.NotNil(t, p)
-			require.True(t, p.exists())
-			require.False(t, p.IsClosed())
+			ct.Stage("terminates", func(t require.TestingT) {
+				p, err := r.Get(context.Background(), peerAddr)
+				require.NoError(t, err)
+				require.NotNil(t, p)
+				require.True(t, p.exists())
+				require.False(t, p.IsClosed())
+			})
 		})
+
+		ct.Wait("terminates")
 	})
 }
 
@@ -298,7 +303,7 @@ func TestRegistry_setupConn(t *testing.T) {
 
 func TestRegistry_Listen(t *testing.T) {
 	t.Parallel()
-	assert, require := assert.New(t), require.New(t)
+	assert := assert.New(t)
 
 	rng := rand.New(rand.NewSource(0xDDDDDeDe))
 
@@ -318,11 +323,15 @@ func TestRegistry_Listen(t *testing.T) {
 
 	a, b := newPipeConnPair()
 	l.put(a)
+	ct := test.NewConcurrent(t)
 	test.AssertTerminates(t, timeout, func() {
-		address, err := ExchangeAddrs(context.Background(), remoteID, b)
-		require.NoError(err)
-		assert.True(address.Equals(addr))
+		ct.Stage("terminates", func(t require.TestingT) {
+			address, err := ExchangeAddrs(context.Background(), remoteID, b)
+			require.NoError(t, err)
+			assert.True(address.Equals(addr))
+		})
 	})
+	ct.Wait("terminates")
 
 	<-time.After(timeout)
 	assert.True(r.Has(remoteAddr))
