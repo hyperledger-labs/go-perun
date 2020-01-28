@@ -55,9 +55,33 @@ func NewContractBackend(cf ContractInterface, ks *keystore.KeyStore, acc *accoun
 }
 
 func (c *ContractBackend) newWatchOpts(ctx context.Context) (*bind.WatchOpts, error) {
+	blockNum, err := c.getBlockNum(ctx)
+	if err != nil {
+		return nil, errors.WithMessage(err, "new watch opts")
+	}
+
+	return &bind.WatchOpts{
+		Start:   &blockNum,
+		Context: ctx,
+	}, nil
+}
+
+func (c *ContractBackend) newFilterOpts(ctx context.Context) (*bind.FilterOpts, error) {
+	blockNum, err := c.getBlockNum(ctx)
+	if err != nil {
+		return nil, errors.WithMessage(err, "new filter opts")
+	}
+	return &bind.FilterOpts{
+		Start:   blockNum,
+		End:     nil,
+		Context: ctx,
+	}, nil
+}
+
+func (c *ContractBackend) getBlockNum(ctx context.Context) (uint64, error) {
 	latestBlock, err := c.BlockByNumber(ctx, nil)
 	if err != nil {
-		return nil, errors.Wrap(err, "Could not retrieve latest block")
+		return uint64(0), errors.Wrap(err, "Could not retrieve latest block")
 	}
 	// max(1, latestBlock - offset)
 	var blockNum uint64
@@ -66,11 +90,7 @@ func (c *ContractBackend) newWatchOpts(ctx context.Context) (*bind.WatchOpts, er
 	} else {
 		blockNum = 1
 	}
-
-	return &bind.WatchOpts{
-		Start:   &blockNum,
-		Context: ctx,
-	}, nil
+	return blockNum, nil
 }
 
 func (c *ContractBackend) newTransactor(ctx context.Context, valueWei *big.Int, gasLimit uint64) (*bind.TransactOpts, error) {
