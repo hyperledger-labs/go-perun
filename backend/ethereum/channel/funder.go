@@ -123,36 +123,39 @@ func (f *Funder) connectToContract(asset channel.Asset, assetIndex int) (assetHo
 }
 
 func (f *Funder) fundAsset(ctx context.Context, request channel.FundingReq, asset assetHolder, partIDs [][32]byte) error {
-	// Create a new transaction (needs to be cloned because of go-ethereum bug).
-	// See https://github.com/ethereum/go-ethereum/pull/20412
-	balance := new(big.Int).Set(request.Allocation.OfParts[request.Idx][asset.assetIndex])
-	// If we want to fund the channel with ether, send eth in transaction.
-	tx, err := func() (*types.Transaction, error) {
-		f.mu.Lock()
-		defer f.mu.Unlock()
-		var auth *bind.TransactOpts
-		var errI error
-		if bytes.Equal(asset.Bytes(), f.ethAssetHolder.Bytes()) {
-			auth, errI = f.newTransactor(ctx, balance, GasLimit)
-		} else {
-			auth, errI = f.newTransactor(ctx, big.NewInt(0), GasLimit)
-		}
-		if errI != nil {
-			return nil, errors.Wrapf(errI, "creating transactor for asset %d", asset.assetIndex)
-		}
-		// Call the asset holder contract.
-		tx, err := asset.Deposit(auth, partIDs[request.Idx], balance)
-		return tx, errors.WithStack(err)
-	}()
-
+	tx, err := f.createFundingTx(ctx, request, asset, partIDs)
 	if err != nil {
 		return errors.WithMessagef(err, "depositing asset %d", asset.assetIndex)
 	}
 	if err := execSuccessful(ctx, f.ContractBackend, tx); err != nil {
 		return errors.WithMessage(err, "mining transaction")
 	}
-	f.log.Debugf("peer[%d] Sending transaction to the blockchain with txHash: %v, amount %d", request.Idx, tx.Hash().Hex(), balance)
+	f.log.Debugf("peer[%d] Transaction with txHash: [%v] executed successful", request.Idx, tx.Hash().Hex())
 	return nil
+}
+
+func (f *Funder) createFundingTx(ctx context.Context, request channel.FundingReq, asset assetHolder, partIDs [][32]byte) (*types.Transaction, error) {
+	// Create a new transaction (needs to be cloned because of go-ethereum bug).
+	// See https://github.com/ethereum/go-ethereum/pull/20412
+	balance := new(big.Int).Set(request.Allocation.OfParts[request.Idx][asset.assetIndex])
+	// Lock the funder for correct nonce usage.
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	var auth *bind.TransactOpts
+	var errI error
+	if bytes.Equal(asset.Bytes(), f.ethAssetHolder.Bytes()) {
+		// If we want to fund the channel with ether, send eth in transaction.
+		auth, errI = f.newTransactor(ctx, balance, GasLimit)
+	} else {
+		auth, errI = f.newTransactor(ctx, big.NewInt(0), GasLimit)
+	}
+	if errI != nil {
+		return nil, errors.Wrapf(errI, "creating transactor for asset %d", asset.assetIndex)
+	}
+	// Call the asset holder contract.
+	tx, err := asset.Deposit(auth, partIDs[request.Idx], balance)
+	f.log.Debugf("peer[%d] Created funding transaction with txHash: %v, amount %d", request.Idx, tx.Hash().Hex(), balance)
+	return tx, errors.WithStack(err)
 }
 
 func filterOldEvents(ctx context.Context, asset assetHolder, deposited chan *assets.AssetHolderDeposited, partIDs [][32]byte) error {
