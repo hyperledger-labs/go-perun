@@ -109,10 +109,7 @@ func (f *Funder) Fund(ctx context.Context, request channel.FundingReq) error {
 			prunedErrs = append(prunedErrs, e)
 		}
 	}
-	if len(prunedErrs) != 0 {
-		return channel.NewFundingTimeoutError(errs)
-	}
-	return nil
+	return channel.NewFundingTimeoutError(prunedErrs)
 }
 
 func (f *Funder) connectToContract(asset channel.Asset, assetIndex int) (assetHolder, error) {
