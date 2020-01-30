@@ -74,26 +74,8 @@ func (f *Funder) Fund(ctx context.Context, request channel.FundingReq) error {
 	for index, asset := range request.Allocation.Assets {
 		go func(index int, asset channel.Asset) {
 			defer wg.Done()
-			contract, err := f.connectToContract(asset, index)
-			if err != nil {
-				errChan <- errors.Wrap(err, "Connecting to contracts failed")
-				return
-			}
-
-			confirmation := make(chan error)
-			go func() {
-				confirmation <- f.waitForFundingConfirmation(ctx, request, contract, partIDs)
-			}()
-
-			if err := f.fundAsset(ctx, request, contract, partIDs); err != nil {
-				errChan <- errors.Wrap(err, "Funding assets failed")
-				return
-			}
-			err = <-confirmation
-			if channel.IsAssetFundingError(err) {
-				errs[index] = err.(*channel.AssetFundingError)
-			} else if err != nil {
-				errChan <- err
+			if err := f.fundAsset(ctx, request, index, asset, partIDs, errs); err != nil {
+				errChan <- errors.Wrap(err, "fund asset")
 			}
 		}(index, asset)
 	}
@@ -112,6 +94,29 @@ func (f *Funder) Fund(ctx context.Context, request channel.FundingReq) error {
 	return channel.NewFundingTimeoutError(prunedErrs)
 }
 
+func (f *Funder) fundAsset(ctx context.Context, request channel.FundingReq, index int, asset channel.Asset, partIDs [][32]byte, errs []*channel.AssetFundingError) error {
+	contract, err := f.connectToContract(asset, index)
+	if err != nil {
+		return errors.Wrap(err, "Connecting to contracts failed")
+	}
+
+	confirmation := make(chan error)
+	go func() {
+		confirmation <- f.waitForFundingConfirmation(ctx, request, contract, partIDs)
+	}()
+
+	if err := f.sendFundingTransaction(ctx, request, contract, partIDs); err != nil {
+		return errors.Wrap(err, "Funding assets failed")
+	}
+	err = <-confirmation
+	if channel.IsAssetFundingError(err) {
+		errs[index] = err.(*channel.AssetFundingError)
+	} else if err != nil {
+		return err
+	}
+	return nil
+}
+
 func (f *Funder) connectToContract(asset channel.Asset, assetIndex int) (assetHolder, error) {
 	// Decode and set the asset address.
 	assetAddr := asset.(*Asset).Address
@@ -122,7 +127,7 @@ func (f *Funder) connectToContract(asset channel.Asset, assetIndex int) (assetHo
 	return assetHolder{ctr, &assetAddr, assetIndex}, nil
 }
 
-func (f *Funder) fundAsset(ctx context.Context, request channel.FundingReq, asset assetHolder, partIDs [][32]byte) error {
+func (f *Funder) sendFundingTransaction(ctx context.Context, request channel.FundingReq, asset assetHolder, partIDs [][32]byte) error {
 	tx, err := f.createFundingTx(ctx, request, asset, partIDs)
 	if err != nil {
 		return errors.WithMessagef(err, "depositing asset %d", asset.assetIndex)
