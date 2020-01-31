@@ -24,8 +24,8 @@ import (
 
 var (
 	// Declaration for abi-encoding.
-	abibytes32, _ = abi.NewType("bytes32", nil)
-	abiaddress, _ = abi.NewType("address", nil)
+	abibytes32, _ = abi.NewType("bytes32", "", nil)
+	abiaddress, _ = abi.NewType("address", "", nil)
 )
 
 type assetHolder struct {
