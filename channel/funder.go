@@ -49,7 +49,7 @@ type (
 
 // NewFundingTimeoutError creates a new FundingTimeoutError.
 func NewFundingTimeoutError(fundingErrs []*AssetFundingError) error {
-	if fundingErrs == nil {
+	if len(fundingErrs) == 0 {
 		return nil
 	}
 	return errors.WithStack(&FundingTimeoutError{fundingErrs})

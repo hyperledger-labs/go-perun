@@ -75,7 +75,7 @@ func (f *Funder) Fund(ctx context.Context, request channel.FundingReq) error {
 		go func(index int, asset channel.Asset) {
 			defer wg.Done()
 			if err := f.fundAsset(ctx, request, index, asset, partIDs, errs); err != nil {
-				errChan <- errors.Wrap(err, "fund asset")
+				errChan <- errors.WithMessage(err, "fund asset")
 			}
 		}(index, asset)
 	}
@@ -85,7 +85,7 @@ func (f *Funder) Fund(ctx context.Context, request channel.FundingReq) error {
 		return err
 	}
 
-	var prunedErrs []*channel.AssetFundingError
+	prunedErrs := errs[:0]
 	for _, e := range errs {
 		if e != nil {
 			prunedErrs = append(prunedErrs, e)
@@ -97,7 +97,7 @@ func (f *Funder) Fund(ctx context.Context, request channel.FundingReq) error {
 func (f *Funder) fundAsset(ctx context.Context, request channel.FundingReq, index int, asset channel.Asset, partIDs [][32]byte, errs []*channel.AssetFundingError) error {
 	contract, err := f.connectToContract(asset, index)
 	if err != nil {
-		return errors.Wrap(err, "Connecting to contracts failed")
+		return errors.Wrap(err, "connecting to contracts")
 	}
 
 	confirmation := make(chan error)
@@ -106,7 +106,7 @@ func (f *Funder) fundAsset(ctx context.Context, request channel.FundingReq, inde
 	}()
 
 	if err := f.sendFundingTransaction(ctx, request, contract, partIDs); err != nil {
-		return errors.Wrap(err, "Funding assets failed")
+		return errors.Wrap(err, "sending funding tx")
 	}
 	err = <-confirmation
 	if channel.IsAssetFundingError(err) {
