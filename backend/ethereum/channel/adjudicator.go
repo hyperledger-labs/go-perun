@@ -51,41 +51,44 @@ func NewETHAdjudicator(backend ContractBackend, contract common.Address, onchain
 // Register registers a state on-chain.
 // If the state is a final state, register becomes a no-op.
 func (a *Adjudicator) Register(ctx context.Context, request channel.AdjudicatorReq) (*channel.Registered, error) {
+	if request.Tx.State.IsFinal {
+		return &channel.Registered{
+			ID:      request.Params.ID(),
+			Idx:     request.Idx,
+			Version: request.Tx.Version,
+			Timeout: time.Time{},
+		}, nil
+	}
 	stored := make(chan *adjudicator.AdjudicatorStored)
 	sub, iter, err := a.waitForStoredEvent(ctx, stored, request.Params)
 	if err != nil {
 		return nil, errors.WithMessage(err, "waiting for stored event")
 	}
 	defer sub.Unsubscribe()
-	if iter.Next() {
-		ev := iter.Event
-		if request.Tx.Version > ev.Version.Uint64() {
-			if err := a.refute(ctx, request); err != nil {
-				return nil, errors.WithMessage(err, "refuting with higher version")
-			}
-		} else {
-			return storedToRegisteredEvent(ev), nil
-		}
-	}
 	go func() {
 		for iter.Next() {
 			stored <- iter.Event
 		}
+		iter.Close()
 	}()
-	if err := a.register(ctx, request); err != nil {
-		return nil, errors.WithMessage(err, "registering state")
-	}
-	select {
-	case ev := <-stored:
-		for request.Tx.Version > ev.Version.Uint64() {
-			if err := a.refute(ctx, request); err != nil {
-				return nil, errors.WithMessage(err, "refuting with higher version")
+	notSeen := true
+	for i := 0; i < 10; i++ {
+		select {
+		case ev := <-stored:
+			notSeen = false
+			if request.Tx.Version > ev.Version.Uint64() {
+				_ = a.refute(ctx, request)
 			}
+			return storedToRegisteredEvent(ev), nil
+		case <-ctx.Done():
+			return nil, errors.New("did not receive stored event in time")
+		default:
 		}
-		return storedToRegisteredEvent(ev), nil
-	case <-ctx.Done():
-		return nil, errors.New("did not receive stored event in time")
+		if notSeen {
+			_ = a.register(ctx, request)
+		}
 	}
+	return nil, errors.New("ten events seen, none were our state")
 }
 
 // Withdraw calls conclude and withdraw on a channel.
