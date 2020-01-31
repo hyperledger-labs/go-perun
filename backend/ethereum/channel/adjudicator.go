@@ -50,21 +50,21 @@ func NewETHAdjudicator(backend ContractBackend, contract common.Address, onchain
 
 // Register registers a state on-chain.
 // If the state is a final state, register becomes a no-op.
-func (a *Adjudicator) Register(ctx context.Context, request channel.AdjudicatorReq) error {
+func (a *Adjudicator) Register(ctx context.Context, request channel.AdjudicatorReq) (*channel.Registered, error) {
 	stored := make(chan *adjudicator.AdjudicatorStored)
 	sub, iter, err := a.waitForStoredEvent(ctx, stored, request.Params)
 	if err != nil {
-		return errors.WithMessage(err, "waiting for stored event")
+		return nil, errors.WithMessage(err, "waiting for stored event")
 	}
 	defer sub.Unsubscribe()
 	if iter.Next() {
 		ev := iter.Event
 		if request.Tx.Version > ev.Version.Uint64() {
 			if err := a.refute(ctx, request); err != nil {
-				return errors.WithMessage(err, "refuting with higher version")
+				return nil, errors.WithMessage(err, "refuting with higher version")
 			}
 		} else {
-			//return ev.Timeout, nil
+			return storedToRegisteredEvent(ev), nil
 		}
 	}
 	go func() {
@@ -73,18 +73,18 @@ func (a *Adjudicator) Register(ctx context.Context, request channel.AdjudicatorR
 		}
 	}()
 	if err := a.register(ctx, request); err != nil {
-		return errors.WithMessage(err, "registering state")
+		return nil, errors.WithMessage(err, "registering state")
 	}
 	select {
 	case ev := <-stored:
 		for request.Tx.Version > ev.Version.Uint64() {
 			if err := a.refute(ctx, request); err != nil {
-				return errors.WithMessage(err, "refuting with higher version")
+				return nil, errors.WithMessage(err, "refuting with higher version")
 			}
 		}
-		//return ev.Timeout, nil
+		return storedToRegisteredEvent(ev), nil
 	case <-ctx.Done():
-		return errors.New("did not receive stored event in time")
+		return nil, errors.New("did not receive stored event in time")
 	}
 }
 
@@ -174,12 +174,7 @@ func (r *RegisteredSub) Next() *channel.Registered {
 	if event == nil {
 		return nil
 	}
-	return &channel.Registered{
-		ID: event.ChannelID,
-		//Idx: event.Idx,
-		//Version: event.Version.Uint64(),
-		Timeout: time.Unix(event.Timeout.Int64(), 0),
-	}
+	return storedToRegisteredEvent(event)
 }
 
 // Err returns an error if the subscription to a blockchain failed.
