@@ -86,7 +86,6 @@ func (a *Adjudicator) Register(ctx context.Context, request channel.AdjudicatorR
 	case <-ctx.Done():
 		return errors.New("did not receive stored event in time")
 	}
-	panic("should never happen")
 }
 
 // Withdraw calls conclude and withdraw on a channel.
@@ -193,4 +192,13 @@ func (r *RegisteredSub) Close() error {
 	r.sub.Unsubscribe()
 	close(r.eventChan)
 	return <-r.sub.Err()
+}
+
+func storedToRegisteredEvent(event *adjudicator.AdjudicatorStored) *channel.Registered {
+	return &channel.Registered{
+		ID: event.ChannelID,
+		//Idx: event.Idx,
+		//Version: event.Version.Uint64(),
+		Timeout: time.Unix(event.Timeout.Int64(), 0),
+	}
 }
