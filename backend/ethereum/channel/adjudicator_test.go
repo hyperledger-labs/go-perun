@@ -7,8 +7,10 @@ package channel // import "perun.network/go-perun/backend/ethereum/channel"
 
 import (
 	"context"
+	"math/big"
 	"math/rand"
 	"testing"
+	"time"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/stretchr/testify/assert"
@@ -17,6 +19,7 @@ import (
 	"perun.network/go-perun/backend/ethereum/wallet"
 	ethwallettest "perun.network/go-perun/backend/ethereum/wallet/test"
 	"perun.network/go-perun/channel"
+	channeltest "perun.network/go-perun/channel/test"
 	perunwallet "perun.network/go-perun/wallet"
 	wallettest "perun.network/go-perun/wallet/test"
 )
@@ -67,4 +70,54 @@ func signState(t *testing.T, accounts []perunwallet.Account, params *channel.Par
 		State: state,
 		Sigs:  sigs,
 	}
+}
+
+func TestSubscribeRegistered(t *testing.T) {
+	seed := time.Now().UnixNano()
+	t.Logf("seed is %v", seed)
+	rng := rand.New(rand.NewSource(int64(seed)))
+	// create new Adjudicator
+	accs, parts, funders, adjs, asset := newAdjudicator(t, rng, 1)
+	// create valid state and params
+	app := channeltest.NewRandomApp(rng)
+	params := channel.NewParamsUnsafe(uint64(100*time.Second), parts, app.Def(), big.NewInt(rng.Int63()))
+	state := newValidState(rng, params, asset)
+	// Set up subscription
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	defer cancel()
+	registered, err := adjs[0].SubscribeRegistered(ctx, params)
+	assert.NoError(t, err, "Subscribing to valid params should not error")
+	// we need to properly fund the channel
+	fundingCtx, funCancel := context.WithTimeout(context.Background(), timeout)
+	defer funCancel()
+	// fund the contract
+	reqFund := channel.FundingReq{
+		Params:     params,
+		Allocation: &state.Allocation,
+		Idx:        channel.Index(0),
+	}
+	require.NoError(t, funders[0].Fund(fundingCtx, reqFund), "funding should succeed")
+	// Now test the register function
+	ctxReg, regCancel := context.WithTimeout(context.Background(), timeout)
+	defer regCancel()
+	tx := signState(t, accs, params, state)
+	req := channel.AdjudicatorReq{
+		Params: params,
+		Acc:    accs[0],
+		Idx:    channel.Index(0),
+		Tx:     tx,
+	}
+	event, err := adjs[0].Register(ctxReg, req)
+	assert.NoError(t, err, "Registering state should succeed")
+	assert.Equal(t, event, registered.Next(), "Events should be equal")
+	assert.NoError(t, registered.Close(), "Closing event channel should not error")
+	assert.Nil(t, registered.Next(), "Next on closed channel should produce nil")
+	assert.NoError(t, registered.Err(), "Closing should produce no error")
+	// Setup a new subscription
+	registered2, err := adjs[0].SubscribeRegistered(ctx, params)
+	assert.NoError(t, err, "registering two subscriptions should not fail")
+	assert.Equal(t, event, registered2.Next(), "Events should be equal")
+	assert.NoError(t, registered2.Close(), "Closing event channel should not error")
+	assert.Nil(t, registered2.Next(), "Next on closed channel should produce nil")
+	assert.NoError(t, registered2.Err(), "Closing should produce no error")
 }
