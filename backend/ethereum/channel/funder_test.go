@@ -17,6 +17,7 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"perun.network/go-perun/backend/ethereum/wallet"
 	"perun.network/go-perun/channel"
 	wallettest "perun.network/go-perun/wallet/test"
@@ -51,17 +52,6 @@ func TestFunder_Fund(t *testing.T) {
 		Idx:        0,
 	}
 	assert.NoError(t, funders[0].Fund(ctx, req), "Funding with no assets should succeed")
-	// Test with invalid asset addresses
-	invalidAlloc := allocation.Clone()
-	invalidAlloc.Assets[0] = wallettest.NewRandomAddress(rng)
-	req = channel.FundingReq{
-		Params:     params,
-		Allocation: &invalidAlloc,
-		Idx:        0,
-	}
-	ctx2, cancel2 := context.WithTimeout(context.Background(), 10*time.Millisecond)
-	defer cancel2()
-	assert.Error(t, funders[0].Fund(ctx2, req), "Funding invalid asset should fail")
 	// Test with valid request
 	req = channel.FundingReq{
 		Params:     params,
@@ -77,14 +67,14 @@ func TestFunder_Fund(t *testing.T) {
 }
 
 func TestPeerTimedOutFundingError(t *testing.T) {
-	t.Run("peer 0 faulty out of 2", func(t *testing.T) { testFundingTimout(t, 0, 2) })
-	t.Run("peer 1 faulty out of 2", func(t *testing.T) { testFundingTimout(t, 1, 2) })
-	t.Run("peer 0 faulty out of 3", func(t *testing.T) { testFundingTimout(t, 0, 3) })
-	t.Run("peer 1 faulty out of 3", func(t *testing.T) { testFundingTimout(t, 1, 3) })
-	t.Run("peer 2 faulty out of 3", func(t *testing.T) { testFundingTimout(t, 2, 3) })
+	t.Run("peer 0 faulty out of 2", func(t *testing.T) { testFundingTimeout(t, 0, 2) })
+	t.Run("peer 1 faulty out of 2", func(t *testing.T) { testFundingTimeout(t, 1, 2) })
+	t.Run("peer 0 faulty out of 3", func(t *testing.T) { testFundingTimeout(t, 0, 3) })
+	t.Run("peer 1 faulty out of 3", func(t *testing.T) { testFundingTimeout(t, 1, 3) })
+	t.Run("peer 2 faulty out of 3", func(t *testing.T) { testFundingTimeout(t, 2, 3) })
 }
 
-func testFundingTimout(t *testing.T, faultyPeer, peers int) {
+func testFundingTimeout(t *testing.T, faultyPeer, peers int) {
 	t.Parallel()
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
@@ -100,6 +90,7 @@ func testFundingTimout(t *testing.T, faultyPeer, peers int) {
 		sleepTime := time.Duration(rng.Int63n(10) + 1)
 		go func(i int, funder *Funder) {
 			defer wg.Done()
+			// Faulty peer does not fund the channel.
 			if i == faultyPeer {
 				return
 			}
@@ -112,9 +103,8 @@ func testFundingTimout(t *testing.T, faultyPeer, peers int) {
 			ctx2, cancel := context.WithTimeout(context.Background(), 200*time.Millisecond)
 			defer cancel()
 			err := funder.Fund(ctx2, req)
-			assert.True(t, channel.IsFundingTimeoutError(err), "funder should return FundingTimeoutError")
+			require.True(t, channel.IsFundingTimeoutError(err), "funder should return FundingTimeoutError")
 			pErr := errors.Cause(err).(*channel.FundingTimeoutError) // unwrap error
-			//assert.True(t, ok, "unwraping error should not fail")
 			assert.Equal(t, pErr.Errors[0].Asset, 0, "Wrong asset set")
 			assert.Equal(t, uint16(faultyPeer), pErr.Errors[0].TimedOutPeers[0], "Peer should be detected as erroneous")
 		}(i, funder)
@@ -151,9 +141,9 @@ func testFunderFunding(t *testing.T, n int) {
 				Idx:        uint16(i),
 			}
 			err := funder.Fund(ctx, req)
-			assert.NoError(t, err, "funding should succeed")
-			newAlloc, err := getFundingState(ctx, funder, req)
-			assert.NoError(t, err, "Get Post-Funding state should succeed")
+			require.NoError(t, err, "funding should succeed")
+			newAlloc, err := getOnChainAllocation(ctx, funder, req)
+			require.NoError(t, err, "Get Post-Funding state should succeed")
 			for i := range newAlloc {
 				for k := range newAlloc[i] {
 					assert.Equal(t, req.Allocation.OfParts[i][k], newAlloc[i][k], "Post-Funding balances should equal expected balances")
@@ -183,9 +173,7 @@ func newNFunders(
 	contractBackend := NewContractBackend(simBackend, ks, deployAccount)
 	// Deploy Assetholder
 	assetETH, err := DeployETHAssetholder(ctx, contractBackend, deployAccount.Address)
-	if err != nil {
-		panic(err)
-	}
+	require.NoError(t, err, "Deployment should succeed")
 	t.Logf("asset holder address is %v", assetETH)
 	parts = make([]perunwallet.Address, n)
 	funders = make([]*Funder, n)
@@ -234,7 +222,7 @@ func newValidAllocation(parts []perunwallet.Address, assetETH common.Address) *c
 	}
 }
 
-func getFundingState(ctx context.Context, f *Funder, request channel.FundingReq) ([][]channel.Bal, error) {
+func getOnChainAllocation(ctx context.Context, f *Funder, request channel.FundingReq) ([][]channel.Bal, error) {
 	var channelID = request.Params.ID()
 	partIDs := calcFundingIDs(request.Params.Parts, channelID)
 
