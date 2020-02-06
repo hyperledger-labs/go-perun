@@ -37,9 +37,7 @@ func newAdjudicator(t *testing.T, rng *rand.Rand, n int) ([]perunwallet.Account,
 	require.NoError(t, err, "Deploying the adjudicator should not error")
 	// Deploy Assetholder
 	assetETH, err := DeployETHAssetholder(ctx, contractBackend, adjudicator)
-	if err != nil {
-		panic(err)
-	}
+	require.NoError(t, err, "Deploying asset holder failed")
 	t.Logf("asset holder address is %v", assetETH)
 	t.Logf("adjudicator address is %v", adjudicator)
 	accs := make([]perunwallet.Account, n)
@@ -53,7 +51,7 @@ func newAdjudicator(t *testing.T, rng *rand.Rand, n int) ([]perunwallet.Account,
 		parts[i] = acc.Address()
 		cb := NewContractBackend(simBackend, ks, acc.Account)
 		funders[i] = NewETHFunder(cb, assetETH)
-		adjudicators[i] = NewETHAdjudicator(cb, adjudicator, deployAccount.Address)
+		adjudicators[i] = NewAdjudicator(cb, adjudicator, deployAccount.Address)
 	}
 	return accs, parts, funders, adjudicators, assetETH
 }
@@ -120,4 +118,32 @@ func TestSubscribeRegistered(t *testing.T) {
 	assert.NoError(t, registered2.Close(), "Closing event channel should not error")
 	assert.Nil(t, registered2.Next(), "Next on closed channel should produce nil")
 	assert.NoError(t, registered2.Err(), "Closing should produce no error")
+}
+
+func newValidState(rng *rand.Rand, params *channel.Params, assetholder common.Address) *channel.State {
+	// Create valid state.
+	assets := []channel.Asset{
+		&Asset{Address: assetholder},
+	}
+	ofparts := make([][]channel.Bal, len(params.Parts))
+	for i := 0; i < len(ofparts); i++ {
+		ofparts[i] = make([]channel.Bal, len(assets))
+		for k := 0; k < len(assets); k++ {
+			ofparts[i][k] = big.NewInt(rng.Int63n(999) + 1)
+		}
+	}
+	allocation := channel.Allocation{
+		Assets:  assets,
+		OfParts: ofparts,
+		Locked:  []channel.SubAlloc{},
+	}
+
+	return &channel.State{
+		ID:         params.ID(),
+		Version:    4,
+		App:        params.App,
+		Allocation: allocation,
+		Data:       channeltest.NewRandomData(rng),
+		IsFinal:    false,
+	}
 }

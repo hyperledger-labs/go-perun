@@ -71,7 +71,7 @@ func (a *Adjudicator) waitForWithdrawnEvent(ctx context.Context, request channel
 	}
 	sub, err := asset.WatchWithdrawn(watchOpts, withdrawn, []common.Address{participant})
 	if err != nil {
-		return errors.Wrapf(err, "WatchDeposit on asset %d failed", asset.assetIndex)
+		return errors.Wrapf(err, "WatchWithdrawn on asset %d failed", asset.assetIndex)
 	}
 	defer sub.Unsubscribe()
 
@@ -128,14 +128,14 @@ func (a *Adjudicator) withdrawAsset(ctx context.Context, request channel.Adjudic
 	if err != nil {
 		return errors.Wrapf(err, "depositing asset %d", asset.assetIndex)
 	}
-	return errors.WithMessage(execSuccessful(ctx, a.ContractBackend, ethTx), "mining transaction")
+	return errors.WithMessage(confirmTransaction(ctx, a.ContractBackend, ethTx), "mining transaction")
 }
 
 func (a *Adjudicator) newWithdrawalAuth(request channel.AdjudicatorReq, asset assetHolder) (assets.AssetHolderWithdrawalAuth, []byte, error) {
 	auth := assets.AssetHolderWithdrawalAuth{
 		ChannelID:   request.Params.ID(),
 		Participant: request.Acc.Address().(*wallet.Address).Address,
-		Receiver:    a.OnChainAddress,
+		Receiver:    a.Receiver,
 		Amount:      request.Tx.Allocation.OfParts[request.Idx][asset.assetIndex],
 	}
 	enc, err := encodeAssetHolderWithdrawalAuth(auth)

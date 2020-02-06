@@ -7,6 +7,7 @@ package channel // import "perun.network/go-perun/backend/ethereum/channel"
 
 import (
 	"context"
+	stderrors "errors"
 	"math/big"
 
 	"github.com/ethereum/go-ethereum/core/types"
@@ -16,6 +17,9 @@ import (
 
 	"perun.network/go-perun/channel"
 )
+
+// Error that is returned if an event was not found in the past.
+var errConcludedNotFound = stderrors.New("concluded event not found")
 
 // conclude calls the conclude(or ConcludeFinal) function on the adjudicator.
 // The call returns iff concluding was successful.
@@ -41,28 +45,26 @@ func (a *Adjudicator) conclude(ctx context.Context, params *channel.Params, tx c
 	// No conclude event found in the past, send transaction.
 	ethParams := channelParamsToEthParams(params)
 	ethState := channelStateToEthState(tx.State)
-	a.mu.Lock()
-	defer a.mu.Unlock()
-	trans, err := a.newTransactor(ctx, big.NewInt(0), GasLimit)
+	ethTX, err := func() (*types.Transaction, error) {
+		if !a.mu.TryLockCtx(ctx) {
+			return nil, errors.New("Could not acquire lock in time")
+		}
+		defer a.mu.Unlock()
+		trans, err := a.newTransactor(ctx, big.NewInt(0), GasLimit)
+		if err != nil {
+			return nil, errors.WithMessage(err, "creating transactor")
+		}
+		a.log.WithField("IsFinal", tx.State.IsFinal).Debug("calling conclude")
+		if tx.State.IsFinal {
+			return a.contract.ConcludeFinal(trans, ethParams, ethState, tx.Sigs)
+		}
+		return a.contract.Conclude(trans, ethParams, ethState)
+	}()
 	if err != nil {
-		return errors.WithMessage(err, "creating transactor")
-	}
-	var ethTX *types.Transaction
-	if tx.State.IsFinal {
-		ethTX, err = a.contract.ConcludeFinal(trans, ethParams, ethState, tx.Sigs)
-		a.log.Debug("calling concludefinal")
-		if err != nil {
-			return errors.Wrap(err, "calling concludeFinal")
-		}
-	} else {
-		ethTX, err = a.contract.Conclude(trans, ethParams, ethState)
-		a.log.Debug("calling conclude")
-		if err != nil {
-			return errors.Wrap(err, "calling concludeFinal")
-		}
+		return errors.WithMessage(err, "creating transaction")
 	}
 
-	if err := execSuccessful(ctx, a.ContractBackend, ethTX); err != nil {
+	if err := confirmTransaction(ctx, a.ContractBackend, ethTX); err != nil {
 		log.Warnf("transaction failed: %v", err)
 	} else {
 		log.Debug("Transaction mined successfully")

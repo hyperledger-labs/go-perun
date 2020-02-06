@@ -7,19 +7,23 @@ package channel // import "perun.network/go-perun/backend/ethereum/channel"
 
 import (
 	"context"
-	"sync"
 	"time"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/event"
 	"github.com/pkg/errors"
+
 	"perun.network/go-perun/backend/ethereum/bindings/adjudicator"
 	"perun.network/go-perun/channel"
 	"perun.network/go-perun/log"
+	psync "perun.network/go-perun/pkg/sync"
 )
 
 // compile time check that we implement the perun adjudicator interface
 var _ channel.Adjudicator = (*Adjudicator)(nil)
+
+// We only loop maxRegisteredEvents times in register, prevents endless loop
+var maxRegisteredEvents = 10
 
 // The Adjudicator struct implements the channel.Adjudicator interface
 // It provides all functionality to close a channel.
@@ -27,15 +31,15 @@ type Adjudicator struct {
 	ContractBackend
 	contract *adjudicator.Adjudicator
 	// The address to which we send all funds.
-	OnChainAddress common.Address
+	Receiver common.Address
 	// Structured logger
 	log log.Logger
-	// This mutex prevents us from executing parallel transactions
-	mu sync.Mutex
+	// Transaction mutex
+	mu psync.Mutex
 }
 
-// NewETHAdjudicator creates a new ethereum funder.
-func NewETHAdjudicator(backend ContractBackend, contract common.Address, onchainAddress common.Address) *Adjudicator {
+// NewAdjudicator creates a new ethereum adjudicator.
+func NewAdjudicator(backend ContractBackend, contract common.Address, onchainAddress common.Address) *Adjudicator {
 	contr, err := adjudicator.NewAdjudicator(contract, backend)
 	if err != nil {
 		panic("Could not create a new instance of adjudicator")
@@ -43,52 +47,9 @@ func NewETHAdjudicator(backend ContractBackend, contract common.Address, onchain
 	return &Adjudicator{
 		ContractBackend: backend,
 		contract:        contr,
-		OnChainAddress:  onchainAddress,
+		Receiver:        onchainAddress,
 		log:             log.WithField("account", backend.account.Address),
 	}
-}
-
-// Register registers a state on-chain.
-// If the state is a final state, register becomes a no-op.
-func (a *Adjudicator) Register(ctx context.Context, request channel.AdjudicatorReq) (*channel.Registered, error) {
-	if request.Tx.State.IsFinal {
-		return &channel.Registered{
-			ID:      request.Params.ID(),
-			Idx:     request.Idx,
-			Version: request.Tx.Version,
-			Timeout: time.Time{},
-		}, nil
-	}
-	stored := make(chan *adjudicator.AdjudicatorStored)
-	sub, iter, err := a.waitForStoredEvent(ctx, stored, request.Params)
-	if err != nil {
-		return nil, errors.WithMessage(err, "waiting for stored event")
-	}
-	defer sub.Unsubscribe()
-	go func() {
-		for iter.Next() {
-			stored <- iter.Event
-		}
-		iter.Close()
-	}()
-	notSeen := true
-	for i := 0; i < 10; i++ {
-		select {
-		case ev := <-stored:
-			notSeen = false
-			if request.Tx.Version > ev.Version.Uint64() {
-				_ = a.refute(ctx, request)
-			}
-			return storedToRegisteredEvent(ev), nil
-		case <-ctx.Done():
-			return nil, errors.New("did not receive stored event in time")
-		default:
-		}
-		if notSeen {
-			_ = a.register(ctx, request)
-		}
-	}
-	return nil, errors.New("ten events seen, none were our state")
 }
 
 // Withdraw calls conclude and withdraw on a channel.
@@ -100,7 +61,7 @@ func (a *Adjudicator) Register(ctx context.Context, request channel.AdjudicatorR
 //  - If not found -> call withdraw
 //  - Wait for withdrawn event
 func (a *Adjudicator) Withdraw(ctx context.Context, request channel.AdjudicatorReq) error {
-	// Filter old concluded events
+	// Filter old concluded events.
 	filterOpts, err := a.newFilterOpts(ctx)
 	if err != nil {
 		return errors.WithMessage(err, "creating filteropts")
@@ -196,7 +157,7 @@ func storedToRegisteredEvent(event *adjudicator.AdjudicatorStored) *channel.Regi
 	return &channel.Registered{
 		ID: event.ChannelID,
 		//Idx: event.Idx,
-		//Version: event.Version.Uint64(),
-		Timeout: time.Unix(event.Timeout.Int64(), 0),
+		Version: event.Version,
+		Timeout: time.Unix(int64(event.Timeout), 0),
 	}
 }
