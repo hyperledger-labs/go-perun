@@ -50,9 +50,6 @@ func NewETHSettler(backend ContractBackend, adjAddr common.Address) *Settler {
 // Withdrawal from the asset holders is not implemented yet.
 // The parameter acc is currently ignored, as it is only used to sign withdrawal authorizations.
 func (s *Settler) Settle(ctx context.Context, req channel.SettleReq, acc perunwallet.Account) error {
-	if req.Params == nil || req.Tx.State == nil {
-		panic("invalid settlement request")
-	}
 	if err := s.checkAdjInstance(); err != nil {
 		return errors.WithMessage(err, "connecting to adjudicator")
 	}

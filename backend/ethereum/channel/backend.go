@@ -72,9 +72,6 @@ func CalcID(p *channel.Params) (id channel.ID) {
 
 // Sign signs the channel state as needed by the ethereum smart contracts.
 func Sign(acc perunwallet.Account, p *channel.Params, s *channel.State) (perunwallet.Sig, error) {
-	if acc == nil || p == nil || s == nil {
-		return nil, errors.New("Sign called with invalid parameters")
-	}
 	state := channelStateToEthState(s)
 	enc, err := encodeState(&state)
 	if err != nil {
