@@ -11,7 +11,6 @@ import (
 
 	"github.com/pkg/errors"
 
-	"perun.network/go-perun/log"
 	"perun.network/go-perun/pkg/test"
 	"perun.network/go-perun/wallet"
 	"perun.network/go-perun/wire/msg"
@@ -39,10 +38,6 @@ type Identity = wallet.Account
 // authentication protocol. The protocol will then exchange Perun addresses and
 // establish authenticity.
 func ExchangeAddrs(ctx context.Context, id Identity, conn Conn) (Address, error) {
-	if ctx == nil || id == nil || conn == nil {
-		// Catch a nil id early to not cause a panic in the following goroutine.
-		log.Panic("ExchangeAddrs(): nil Context, Identity, or Conn")
-	}
 	var addr Address
 	var err error
 	ok := test.TerminatesCtx(ctx, func() {
