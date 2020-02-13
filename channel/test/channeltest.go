@@ -70,15 +70,8 @@ func genericChannelIDTest(t *testing.T, s *Setup) {
 }
 
 func genericSignTest(t *testing.T, s *Setup) {
-	_, err := channel.Sign(nil, s.Params, s.State)
-	assert.Error(t, err, "Sign should return an error")
-	_, err = channel.Sign(s.Account, nil, s.State)
-	assert.Error(t, err, "Sign should return an error")
-	_, err = channel.Sign(s.Account, s.Params, nil)
-	assert.Error(t, err, "Sign should return an error")
-
-	_, err1 := channel.Sign(s.Account, s.Params, s.State)
-	assert.NoError(t, err1, "Sign should not return an error")
+	_, err := channel.Sign(s.Account, s.Params, s.State)
+	assert.NoError(t, err, "Sign should not return an error")
 }
 
 func genericVerifyTest(t *testing.T, s *Setup) {

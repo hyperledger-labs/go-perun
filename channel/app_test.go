@@ -19,10 +19,6 @@ func TestAppBackendSet(t *testing.T) {
 	assert.NotNil(t, appBackend, "appBackend should be default initialized")
 	assert.False(t, isAppBackendSet, "isAppBackendSet should be defaulted to false")
 
-	assert.Panics(t, func() { SetAppBackend(nil) }, "nil backend set should panic")
-	assert.False(t, isAppBackendSet, "isAppBackendSet should be false")
-	assert.NotNil(t, appBackend, "appBackend should not be nil")
-
 	old := appBackend
 	assert.NotPanics(t, func() { SetAppBackend(&MockAppBackend{}) }, "first SetAppBackend() should work")
 	assert.True(t, isAppBackendSet, "isAppBackendSet should be true")
