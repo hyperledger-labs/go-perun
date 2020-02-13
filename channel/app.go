@@ -127,8 +127,8 @@ var isAppBackendSet bool
 // The app backend can be changed once by another app (by a SetAppBackend call
 // of the app package's init() function).
 func SetAppBackend(b AppBackend) {
-	if b == nil || isAppBackendSet {
-		panic("app backend already set or nil argument")
+	if isAppBackendSet {
+		panic("app backend already set")
 	}
 	isAppBackendSet = true
 	appBackend = b

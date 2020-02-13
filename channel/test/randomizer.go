@@ -26,8 +26,8 @@ var randomizer Randomizer
 
 // SetRandomizer sets the global Randomizer variable.
 func SetRandomizer(r Randomizer) {
-	if randomizer != nil || r == nil {
-		panic("channel/test randomizer already set or nil argument")
+	if randomizer != nil {
+		panic("channel/test randomizer already set")
 	}
 	randomizer = r
 }

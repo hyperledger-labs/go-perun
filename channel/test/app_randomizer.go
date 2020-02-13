@@ -25,8 +25,8 @@ var isAppRandomizerSet bool
 
 // SetAppRandomizer sets the global appRandomizer.
 func SetAppRandomizer(r AppRandomizer) {
-	if r == nil || isAppRandomizerSet {
-		panic("app randomizer already set or nil argument")
+	if isAppRandomizerSet {
+		panic("app randomizer already set")
 	}
 	isAppRandomizerSet = true
 	appRandomizer = r
