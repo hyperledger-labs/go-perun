@@ -32,8 +32,8 @@ type Backend interface {
 // SetBackend sets the global wallet backend. Must not be called directly but
 // through importing the needed backend.
 func SetBackend(b Backend) {
-	if backend != nil || b == nil {
-		panic("wallet backend already set or nil argument")
+	if backend != nil {
+		panic("wallet backend already set")
 	}
 	backend = b
 }
