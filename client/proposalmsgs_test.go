@@ -24,6 +24,30 @@ import (
 	"perun.network/go-perun/wire/msg"
 )
 
+func TestChannelProposalReq_NilArgs(t *testing.T) {
+	rng := rand.New(rand.NewSource(2020 - 01 - 0x8))
+	c := &client.ChannelProposalReq{
+		ChallengeDuration: 1,
+		Nonce:             big.NewInt(2),
+		ParticipantAddr:   wallettest.NewRandomAddress(rng),
+		AppDef:            test.NewRandomApp(rng).Def(),
+		InitData:          test.NewRandomData(rng),
+		InitBals:          test.NewRandomAllocation(rng, 2),
+		PeerAddrs: []wallet.Address{
+			wallettest.NewRandomAddress(rng),
+			wallettest.NewRandomAddress(rng),
+		},
+	}
+
+	err := c.Encode(nil)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "writer")
+
+	err = c.Decode(nil)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "reader")
+}
+
 func TestChannelProposalReqSerialization(t *testing.T) {
 	rng := rand.New(rand.NewSource(0xdeadbeef))
 	for i := 0; i < 4; i++ {

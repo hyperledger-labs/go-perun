@@ -66,6 +66,10 @@ type (
 // Returns whether the acceptance message was successfully sent. Panics if the
 // proposal was already accepted or rejected.
 func (r *ProposalResponder) Accept(ctx context.Context, acc ProposalAcc) (*Channel, error) {
+	if ctx == nil {
+		return nil, errors.New("context must not be nil")
+	}
+
 	if !r.called.TrySet() {
 		log.Panic("multiple calls on proposal responder")
 	}

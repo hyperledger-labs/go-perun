@@ -91,6 +91,10 @@ func (ChannelProposalReq) Type() msg.Type {
 
 // Encode encodes the ChannelProposalReq into an io.writer.
 func (c ChannelProposalReq) Encode(w io.Writer) error {
+	if w == nil {
+		return errors.New("writer must not be nil")
+	}
+
 	if err := wire.Encode(w, c.ChallengeDuration, c.Nonce); err != nil {
 		return err
 	}
@@ -120,6 +124,10 @@ func (c ChannelProposalReq) Encode(w io.Writer) error {
 
 // Decode decodes a ChannelProposalRequest from an io.Reader.
 func (c *ChannelProposalReq) Decode(r io.Reader) (err error) {
+	if r == nil {
+		return errors.New("reader must not be nil")
+	}
+
 	if err := wire.Decode(r, &c.ChallengeDuration, &c.Nonce); err != nil {
 		return err
 	}

@@ -23,16 +23,6 @@ func TestAuthResponseMsg(t *testing.T) {
 	msg.TestMsg(t, NewAuthResponseMsg(wallettest.NewRandomAccount(rng)))
 }
 
-func TestExchangeAddrs_NilParams(t *testing.T) {
-	rnd := rand.New(rand.NewSource(0xb0ba))
-	assert.Panics(t, func() { ExchangeAddrs(context.Background(), nil, nil) })
-	assert.Panics(t, func() { ExchangeAddrs(context.Background(), nil, newMockConn(nil)) })
-	assert.Panics(t, func() {
-		ExchangeAddrs(context.Background(), wallettest.NewRandomAccount(rnd), nil)
-	})
-	assert.Panics(t, func() { ExchangeAddrs(nil, wallettest.NewRandomAccount(rnd), newMockConn(nil)) })
-}
-
 func TestExchangeAddrs_ConnFail(t *testing.T) {
 	rng := rand.New(rand.NewSource(0xDDDDDEDE))
 	a, _ := newPipeConnPair()

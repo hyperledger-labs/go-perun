@@ -59,9 +59,6 @@ func NewETHFunder(backend ContractBackend, ethAssetHolder common.Address) *Funde
 // Fund implements the funder interface.
 // It can be used to fund state channels on the ethereum blockchain.
 func (f *Funder) Fund(ctx context.Context, request channel.FundingReq) error {
-	if request.Params == nil || request.Allocation == nil {
-		panic("invalid funding request")
-	}
 	var channelID = request.Params.ID()
 	f.log.WithField("channel", channelID).Debug("Funding Channel.")
 

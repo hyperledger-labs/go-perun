@@ -24,8 +24,8 @@ var randomizer Randomizer
 
 // SetRandomizer sets the wallet randomizer. It may be set multiple times.
 func SetRandomizer(b Randomizer) {
-	if randomizer != nil || b == nil {
-		panic("wallet/test randomizer already set or nil argument")
+	if randomizer != nil {
+		panic("wallet/test randomizer already set")
 	}
 	randomizer = b
 }

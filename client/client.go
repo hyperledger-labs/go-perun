@@ -57,8 +57,20 @@ func New(
 	funder channel.Funder,
 	settler channel.Settler,
 ) *Client {
-	if id == nil || dialer == nil || propHandler == nil || funder == nil || settler == nil {
-		log.Panic("invalid nil argument")
+	if id == nil {
+		log.Panic("identity must not be nil")
+	}
+	if dialer == nil {
+		log.Panic("dialer must not be nil")
+	}
+	if propHandler == nil {
+		log.Panic("proposal handler must not be nil")
+	}
+	if funder == nil {
+		log.Panic("funder must not be nil")
+	}
+	if settler == nil {
+		log.Panic("settler must not be nil")
 	}
 
 	c := &Client{
@@ -101,6 +113,10 @@ func (c *Client) Channel(id channel.ID) (*Channel, error) {
 // be started by the user as `go client.Listen()`. The client takes ownership of
 // the listener and will close it when the client is closed.
 func (c *Client) Listen(listener peer.Listener) {
+	if listener == nil {
+		c.log.Panic("listener must not be nil")
+	}
+
 	c.peers.Listen(listener)
 }
 

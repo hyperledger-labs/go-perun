@@ -44,8 +44,8 @@ type Backend interface {
 // SetBackend sets the global channel backend. Must not be called directly but
 // through importing the needed backend.
 func SetBackend(b Backend) {
-	if backend != nil || b == nil {
-		panic("channel backend already set or nil argument")
+	if backend != nil {
+		panic("channel backend already set")
 	}
 	backend = b
 }

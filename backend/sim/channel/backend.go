@@ -59,9 +59,6 @@ func (*backend) CalcID(p *channel.Params) channel.ID {
 
 // Sign signs `state`
 func (b *backend) Sign(addr wallet.Account, params *channel.Params, state *channel.State) ([]byte, error) {
-	if addr == nil || params == nil || state == nil {
-		return nil, errors.New("argument nil")
-	}
 	log.Tracef("Signing state %s version %d", string(state.ID[:]), state.Version)
 
 	buff := new(bytes.Buffer)
@@ -80,9 +77,6 @@ func (b *backend) Sign(addr wallet.Account, params *channel.Params, state *chann
 
 // Verify verifies the signature for `state`
 func (b *backend) Verify(addr wallet.Address, params *channel.Params, state *channel.State, sig []byte) (bool, error) {
-	if addr == nil || params == nil || state == nil {
-		return false, errors.New("argument nil")
-	}
 	if err := state.Valid(); err != nil {
 		return false, errors.Wrap(err, "Cannot verify invalid state")
 	}

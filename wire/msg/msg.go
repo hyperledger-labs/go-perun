@@ -50,10 +50,6 @@ var decoders = make(map[Type]func(io.Reader) (Msg, error))
 
 // RegisterDecoder sets the decoder of messages of Type `t`.
 func RegisterDecoder(t Type, decoder func(io.Reader) (Msg, error)) {
-	if decoder == nil {
-		// decoder registration happens during init(), so we don't use log.Panic
-		panic("wire: decoder nil")
-	}
 	if decoders[t] != nil {
 		panic(fmt.Sprintf("wire: decoder for Type %v already set", t))
 	}

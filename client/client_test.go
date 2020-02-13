@@ -88,6 +88,16 @@ func TestClient_New_NilHandlerPanic(t *testing.T) {
 	assert.Panics(t, func() { New(id, nil, nil, nil, nil) })
 }
 
+func TestClient_Listen_NilArgs(t *testing.T) {
+	rng := rand.New(rand.NewSource(0x20200108))
+	id := simwallet.NewRandomAccount(rng)
+	dialer := new(DummyDialer)
+	proposalHandler := new(DummyProposalHandler)
+	c := New(id, dialer, proposalHandler, &DummyFunder{t}, &DummySettler{t})
+
+	assert.Panics(t, func() { c.Listen(nil) })
+}
+
 func TestClient_New(t *testing.T) {
 	rng := rand.New(rand.NewSource(0x1a2b3c))
 	id := simwallet.NewRandomAccount(rng)
