@@ -88,9 +88,14 @@ func (a *Adjudicator) SubscribeRegistered(ctx context.Context, params *channel.P
 	}
 
 	go func() {
+		var ev *adjudicator.AdjudicatorStored
 		for iter.Next() {
-			stored <- iter.Event
+			ev = iter.Event
 		}
+		if ev != nil {
+			stored <- ev
+		}
+		iter.Close()
 	}()
 
 	return &RegisteredSub{
