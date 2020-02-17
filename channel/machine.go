@@ -160,9 +160,10 @@ func (m *machine) State() *State {
 
 // SettleReq returns the settlement request for the current channel transaction
 // (the current state together with all participants' signatures on it).
-func (m *machine) SettleReq() SettleReq {
-	return SettleReq{
+func (m *machine) AdjudicatorReq() AdjudicatorReq {
+	return AdjudicatorReq{
 		Params: &m.params,
+		Acc:    m.acc,
 		Idx:    m.idx,
 		Tx:     m.currentTX,
 	}
