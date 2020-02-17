@@ -29,7 +29,7 @@ type Client struct {
 	channels    chanRegistry
 	propHandler ProposalHandler
 	funder      channel.Funder
-	settler     channel.Settler
+	adjudicator channel.Adjudicator
 	log         log.Logger // structured logger for this client
 
 	sync.Closer
@@ -55,7 +55,7 @@ func New(
 	dialer peer.Dialer,
 	propHandler ProposalHandler,
 	funder channel.Funder,
-	settler channel.Settler,
+	adjudicator channel.Adjudicator,
 ) *Client {
 	if id == nil {
 		log.Panic("identity must not be nil")
@@ -69,15 +69,15 @@ func New(
 	if funder == nil {
 		log.Panic("funder must not be nil")
 	}
-	if settler == nil {
-		log.Panic("settler must not be nil")
+	if adjudicator == nil {
+		log.Panic("adjudicator must not be nil")
 	}
 
 	c := &Client{
 		id:          id,
 		propHandler: propHandler,
 		funder:      funder,
-		settler:     settler,
+		adjudicator: adjudicator,
 		log:         log.WithField("id", id.Address()),
 		channels:    makeChanRegistry(),
 	}

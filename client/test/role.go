@@ -36,13 +36,13 @@ type (
 
 	// RoleSetup contains the injectables for setting up the client.
 	RoleSetup struct {
-		Name     string
-		Identity peer.Identity
-		Dialer   peer.Dialer
-		Listener peer.Listener
-		Funder   channel.Funder
-		Settler  channel.Settler
-		Timeout  time.Duration
+		Name        string
+		Identity    peer.Identity
+		Dialer      peer.Dialer
+		Listener    peer.Listener
+		Funder      channel.Funder
+		Adjudicator channel.Adjudicator
+		Timeout     time.Duration
 	}
 
 	// ExecConfig contains additional config parameters for the tests.
@@ -62,7 +62,7 @@ type (
 
 // MakeRole creates a client for the given setup and wraps it into a Role.
 func MakeRole(setup RoleSetup, propHandler client.ProposalHandler, t *testing.T, numStages int) Role {
-	cl := client.New(setup.Identity, setup.Dialer, propHandler, setup.Funder, setup.Settler)
+	cl := client.New(setup.Identity, setup.Dialer, propHandler, setup.Funder, setup.Adjudicator)
 	return Role{
 		Client:    cl,
 		setup:     setup,

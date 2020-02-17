@@ -8,6 +8,7 @@ package client
 import (
 	"context"
 	"sync"
+	"time"
 
 	"github.com/pkg/errors"
 
@@ -26,11 +27,11 @@ type Channel struct {
 	perunsync.Closer
 	log log.Logger
 
-	conn      *channelConn
-	machine   channel.StateMachine
-	machMtx   sync.RWMutex
-	updateSub chan<- *channel.State
-	settler   channel.Settler
+	conn        *channelConn
+	machine     channel.StateMachine
+	machMtx     sync.RWMutex
+	updateSub   chan<- *channel.State
+	adjudicator channel.Adjudicator
 }
 
 // newChannel is internally used by the Client to create a new channel
@@ -39,7 +40,7 @@ func newChannel(
 	acc wallet.Account,
 	peers []*peer.Peer,
 	params channel.Params,
-	settler channel.Settler,
+	adjudicator channel.Adjudicator,
 ) (*Channel, error) {
 	machine, err := channel.NewStateMachine(acc, params)
 	if err != nil {
@@ -55,10 +56,10 @@ func newChannel(
 	logger := log.WithFields(log.Fields{"channel": params.ID(), "id": acc.Address()})
 	conn.SetLogger(logger)
 	return &Channel{
-		log:     logger,
-		conn:    conn,
-		machine: *machine,
-		settler: settler,
+		log:         logger,
+		conn:        conn,
+		machine:     *machine,
+		adjudicator: adjudicator,
 	}, nil
 }
 
@@ -171,8 +172,25 @@ func (c *Channel) Settle(ctx context.Context) error {
 		return errors.New("currently, only channels in a final state can be settled")
 	}
 
-	if err := c.settler.Settle(ctx, c.machine.SettleReq(), c.machine.Account()); err != nil {
-		return errors.WithMessage(err, "calling settler")
+	req := c.machine.AdjudicatorReq()
+
+	if reg, err := c.adjudicator.Register(ctx, req); err != nil {
+		return errors.WithMessage(err, "calling Register")
+	} else if reg.Version != req.Tx.Version {
+		return errors.Errorf(
+			"unexpected version %d registered, expected %d", reg.Version, req.Tx.Version)
+	} else if reg.Timeout.After(time.Now()) {
+		c.log.Warnf("Unexpected withdrawal timeout during Settle(). Waiting until %v.", reg.Timeout)
+		timeout := time.After(time.Until(reg.Timeout))
+		select {
+		case <-timeout: // proceed normally with withdrawal
+		case <-ctx.Done():
+			return errors.Wrap(ctx.Err(), "ctx done")
+		}
+	}
+
+	if err := c.adjudicator.Withdraw(ctx, req); err != nil {
+		return errors.WithMessage(err, "calling Withdraw")
 	}
 
 	return c.machine.SetSettled()
