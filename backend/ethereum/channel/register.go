@@ -19,7 +19,7 @@ import (
 
 // Register registers a state on-chain.
 // If the state is a final state, register becomes a no-op.
-func (a *Adjudicator) Register(ctx context.Context, req channel.AdjudicatorReq) (*channel.Registered, error) {
+func (a *Adjudicator) Register(ctx context.Context, req channel.AdjudicatorReq) (*channel.RegisteredEvent, error) {
 	if req.Tx.State.IsFinal {
 		return a.registerFinal(ctx, req)
 	}
@@ -28,21 +28,21 @@ func (a *Adjudicator) Register(ctx context.Context, req channel.AdjudicatorReq) 
 
 // registerFinal registers a final state. It ensures that the final state is
 // concluded on the adjudicator conctract.
-func (a *Adjudicator) registerFinal(ctx context.Context, req channel.AdjudicatorReq) (*channel.Registered, error) {
+func (a *Adjudicator) registerFinal(ctx context.Context, req channel.AdjudicatorReq) (*channel.RegisteredEvent, error) {
 	// In the case of final states, we already call concludeFinal on the
 	// adjudicator. Method ensureConcluded calls concludeFinal for final states.
 	if err := a.ensureConcluded(ctx, req); err != nil {
 		return nil, errors.WithMessage(err, "ensuring Concluded")
 	}
 
-	return &channel.Registered{
+	return &channel.RegisteredEvent{
 		ID:      req.Params.ID(),
 		Timeout: time.Time{}, // concludeFinal skips registration
 		Version: req.Tx.Version,
 	}, nil
 }
 
-func (a *Adjudicator) registerNonFinal(ctx context.Context, req channel.AdjudicatorReq) (*channel.Registered, error) {
+func (a *Adjudicator) registerNonFinal(ctx context.Context, req channel.AdjudicatorReq) (*channel.RegisteredEvent, error) {
 	_sub, err := a.SubscribeRegistered(ctx, req.Params)
 	if err != nil {
 		return nil, err
@@ -165,7 +165,7 @@ func (r *RegisteredSub) hasPast() bool {
 // is closed. If the subscription is closed, Next immediately returns nil.
 // If there was a past event when the subscription was set up, the first call to
 // Next will return it.
-func (r *RegisteredSub) Next() *channel.Registered {
+func (r *RegisteredSub) Next() *channel.RegisteredEvent {
 	if r.pastStored != nil {
 		s := r.pastStored
 		r.pastStored = nil
@@ -205,11 +205,11 @@ func (r *RegisteredSub) updateErr(err error) error {
 	return r.err
 }
 
-func storedToRegisteredEvent(event *adjudicator.AdjudicatorStored) *channel.Registered {
+func storedToRegisteredEvent(event *adjudicator.AdjudicatorStored) *channel.RegisteredEvent {
 	if event == nil {
 		return nil
 	}
-	return &channel.Registered{
+	return &channel.RegisteredEvent{
 		ID:      event.ChannelID,
 		Version: event.Version,
 		Timeout: time.Unix(int64(event.Timeout), 0),
