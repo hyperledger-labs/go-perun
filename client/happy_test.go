@@ -13,15 +13,12 @@ import (
 	"testing"
 	"time"
 
-	"github.com/stretchr/testify/assert"
-
 	"perun.network/go-perun/channel"
 	channeltest "perun.network/go-perun/channel/test"
 	clienttest "perun.network/go-perun/client/test"
 	"perun.network/go-perun/log"
 	"perun.network/go-perun/peer"
 	peertest "perun.network/go-perun/peer/test"
-	"perun.network/go-perun/wallet"
 	wallettest "perun.network/go-perun/wallet/test"
 )
 
@@ -37,23 +34,23 @@ func TestHappyAliceBob(t *testing.T) {
 	bobAcc := wallettest.NewRandomAccount(rng)
 
 	setupAlice := clienttest.RoleSetup{
-		Name:     "Alice",
-		Identity: aliceAcc,
-		Dialer:   hub.NewDialer(),
-		Listener: hub.NewListener(aliceAcc.Address()),
-		Funder:   &logFunder{log.WithField("role", "Alice")},
-		Settler:  &logSettler{t, log.WithField("role", "Alice")},
-		Timeout:  defaultTimeout,
+		Name:        "Alice",
+		Identity:    aliceAcc,
+		Dialer:      hub.NewDialer(),
+		Listener:    hub.NewListener(aliceAcc.Address()),
+		Funder:      &logFunder{log.WithField("role", "Alice")},
+		Adjudicator: &logAdjudicator{log.WithField("role", "Alice")},
+		Timeout:     defaultTimeout,
 	}
 
 	setupBob := clienttest.RoleSetup{
-		Name:     "Bob",
-		Identity: bobAcc,
-		Dialer:   hub.NewDialer(),
-		Listener: hub.NewListener(bobAcc.Address()),
-		Funder:   &logFunder{log.WithField("role", "Bob")},
-		Settler:  &logSettler{t, log.WithField("role", "Bob")},
-		Timeout:  defaultTimeout,
+		Name:        "Bob",
+		Identity:    bobAcc,
+		Dialer:      hub.NewDialer(),
+		Listener:    hub.NewListener(bobAcc.Address()),
+		Funder:      &logFunder{log.WithField("role", "Bob")},
+		Adjudicator: &logAdjudicator{log.WithField("role", "Bob")},
+		Timeout:     defaultTimeout,
 	}
 
 	execConfig := clienttest.ExecConfig{
@@ -95,8 +92,7 @@ type (
 		log log.Logger
 	}
 
-	logSettler struct {
-		t   *testing.T
+	logAdjudicator struct {
 		log log.Logger
 	}
 )
@@ -106,12 +102,22 @@ func (f *logFunder) Fund(_ context.Context, req channel.FundingReq) error {
 	return nil
 }
 
-func (s *logSettler) Settle(_ context.Context, req channel.SettleReq, _ wallet.Account) error {
-	s.log.Infof("Settling: %v", req)
-	for i, sig := range req.Tx.Sigs {
-		ok, err := channel.Verify(req.Params.Parts[i], req.Params, req.Tx.State, sig)
-		assert.True(s.t, ok)
-		assert.NoError(s.t, err)
-	}
+func (a *logAdjudicator) Register(ctx context.Context, req channel.AdjudicatorReq) (*channel.Registered, error) {
+	a.log.Infof("Register: %v", req)
+	return &channel.Registered{
+		ID:      req.Params.ID(),
+		Idx:     req.Idx,
+		Version: req.Tx.Version,
+		Timeout: time.Now(),
+	}, nil
+}
+
+func (a *logAdjudicator) Withdraw(ctx context.Context, req channel.AdjudicatorReq) error {
+	a.log.Infof("Withdraw: %v", req)
 	return nil
+}
+
+func (a *logAdjudicator) SubscribeRegistered(ctx context.Context, params *channel.Params) (channel.RegisteredSubscription, error) {
+	a.log.Infof("SubscribeRegistered: %v", params)
+	return nil, nil
 }

@@ -23,7 +23,6 @@ import (
 	peertest "perun.network/go-perun/peer/test"
 	perunsync "perun.network/go-perun/pkg/sync"
 	"perun.network/go-perun/pkg/test"
-	"perun.network/go-perun/wallet"
 	wire "perun.network/go-perun/wire/msg"
 )
 
@@ -73,13 +72,23 @@ func (d *DummyFunder) Fund(context.Context, channel.FundingReq) error {
 	return errors.New("DummyFunder.Fund called")
 }
 
-type DummySettler struct {
+type DummyAdjudicator struct {
 	t *testing.T
 }
 
-func (d *DummySettler) Settle(context.Context, channel.SettleReq, wallet.Account) error {
-	d.t.Error("DummySettler.Settle called")
-	return errors.New("DummySettler.Settle called")
+func (d *DummyAdjudicator) Register(context.Context, channel.AdjudicatorReq) (*channel.Registered, error) {
+	d.t.Error("DummyAdjudicator.Register called")
+	return nil, errors.New("DummyAdjudicator.Register called")
+}
+
+func (d *DummyAdjudicator) Withdraw(context.Context, channel.AdjudicatorReq) error {
+	d.t.Error("DummyAdjudicator.Withdraw called")
+	return errors.New("DummyAdjudicator.Withdraw called")
+}
+
+func (d *DummyAdjudicator) SubscribeRegistered(context.Context, *channel.Params) (channel.RegisteredSubscription, error) {
+	d.t.Error("DummyAdjudicator.SubscribeRegistered called")
+	return nil, errors.New("DummyAdjudicator.SubscribeRegistered called")
 }
 
 func TestClient_New_NilHandlerPanic(t *testing.T) {
@@ -93,7 +102,7 @@ func TestClient_Listen_NilArgs(t *testing.T) {
 	id := simwallet.NewRandomAccount(rng)
 	dialer := new(DummyDialer)
 	proposalHandler := new(DummyProposalHandler)
-	c := New(id, dialer, proposalHandler, &DummyFunder{t}, &DummySettler{t})
+	c := New(id, dialer, proposalHandler, &DummyFunder{t}, &DummyAdjudicator{t})
 
 	assert.Panics(t, func() { c.Listen(nil) })
 }
@@ -103,7 +112,7 @@ func TestClient_New(t *testing.T) {
 	id := simwallet.NewRandomAccount(rng)
 	dialer := new(DummyDialer)
 	proposalHandler := new(DummyProposalHandler)
-	c := New(id, dialer, proposalHandler, &DummyFunder{t}, &DummySettler{t})
+	c := New(id, dialer, proposalHandler, &DummyFunder{t}, &DummyAdjudicator{t})
 
 	require.NotNil(t, c)
 	assert.NotNil(t, c.peers)
@@ -118,7 +127,7 @@ func TestClient_NewAndListen_ListenerClose(t *testing.T) {
 	id := simwallet.NewRandomAccount(rng)
 	dialer := &DummyDialer{t}
 	proposalHandler := &DummyProposalHandler{t}
-	c := New(id, dialer, proposalHandler, &DummyFunder{t}, &DummySettler{t})
+	c := New(id, dialer, proposalHandler, &DummyFunder{t}, &DummyAdjudicator{t})
 
 	require.NotNil(c)
 
@@ -148,7 +157,7 @@ func TestClient_NewAndListen(t *testing.T) {
 
 	rng := rand.New(rand.NewSource(0x1))
 	connHub := new(peertest.ConnHub)
-	c := New(simwallet.NewRandomAccount(rng), &DummyDialer{t}, &DummyProposalHandler{t}, &DummyFunder{t}, &DummySettler{t})
+	c := New(simwallet.NewRandomAccount(rng), &DummyDialer{t}, &DummyProposalHandler{t}, &DummyFunder{t}, &DummyAdjudicator{t})
 	// initialize the listener instance in the main goroutine
 	// if it is initialized in a goroutine, the goroutine may be put to sleep
 	// and the dialer may complain about a nonexistent listener
@@ -269,12 +278,12 @@ func testClientMultiplexing(
 		i := i
 		id := simwallet.NewRandomAccount(rng)
 		listeners[i] = New(
-			id, connHub.NewDialer(), &DummyProposalHandler{t}, &DummyFunder{t}, &DummySettler{t})
+			id, connHub.NewDialer(), &DummyProposalHandler{t}, &DummyFunder{t}, &DummyAdjudicator{t})
 		go listeners[i].Listen(connHub.NewListener(listeners[i].id.Address()))
 	}
 	for i := range dialers {
 		id := simwallet.NewRandomAccount(rng)
-		dialers[i] = New(id, connHub.NewDialer(), &DummyProposalHandler{t}, &DummyFunder{t}, &DummySettler{t})
+		dialers[i] = New(id, connHub.NewDialer(), &DummyProposalHandler{t}, &DummyFunder{t}, &DummyAdjudicator{t})
 	}
 
 	hostBarrier := new(sync.WaitGroup)

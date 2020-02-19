@@ -59,27 +59,27 @@ func TestHappyAliceBobETH(t *testing.T) {
 	funderAlice := channel.NewETHFunder(cbAlice, assetAddr)
 	funderBob := channel.NewETHFunder(cbBob, assetAddr)
 	// Create the settlers
-	settlerAlice := channel.NewETHSettler(cbAlice, adjAddr)
-	settlerBob := channel.NewETHSettler(cbBob, adjAddr)
+	adjudicatorAlice := &DummyAdjudicator{t}
+	adjudicatorBob := &DummyAdjudicator{t}
 
 	setupAlice := clienttest.RoleSetup{
-		Name:     "Alice",
-		Identity: aliceAcc,
-		Dialer:   hub.NewDialer(),
-		Listener: hub.NewListener(aliceAcc.Address()),
-		Funder:   funderAlice,
-		Settler:  settlerAlice,
-		Timeout:  defaultTimeout,
+		Name:        "Alice",
+		Identity:    aliceAcc,
+		Dialer:      hub.NewDialer(),
+		Listener:    hub.NewListener(aliceAcc.Address()),
+		Funder:      funderAlice,
+		Adjudicator: adjudicatorAlice,
+		Timeout:     defaultTimeout,
 	}
 
 	setupBob := clienttest.RoleSetup{
-		Name:     "Bob",
-		Identity: bobAcc,
-		Dialer:   hub.NewDialer(),
-		Listener: hub.NewListener(bobAcc.Address()),
-		Funder:   funderBob,
-		Settler:  settlerBob,
-		Timeout:  defaultTimeout,
+		Name:        "Bob",
+		Identity:    bobAcc,
+		Dialer:      hub.NewDialer(),
+		Listener:    hub.NewListener(bobAcc.Address()),
+		Funder:      funderBob,
+		Adjudicator: adjudicatorBob,
+		Timeout:     defaultTimeout,
 	}
 
 	execConfig := clienttest.ExecConfig{
