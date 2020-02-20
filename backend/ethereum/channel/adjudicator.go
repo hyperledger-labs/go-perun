@@ -62,18 +62,14 @@ func NewAdjudicator(backend ContractBackend, contract common.Address, onchainAdd
 //  - Wait for withdrawn event
 func (a *Adjudicator) Withdraw(ctx context.Context, request channel.AdjudicatorReq) error {
 	// Filter old concluded events.
-	filterOpts, err := a.newFilterOpts(ctx)
+	err := a.filterConcludedConfirmations(ctx, request.Params.ID())
 	if err != nil {
-		return errors.WithMessage(err, "creating filteropts")
-	}
-	iter, err := a.contract.FilterConcluded(filterOpts, []channel.ID{request.Params.ID()})
-	if err != nil {
-		return errors.Wrap(err, "filtering concluded events")
-	}
-	if !iter.Next() {
-		// Call concluded
-		if err := a.conclude(ctx, request.Params, request.Tx); err != nil {
-			return errors.WithMessage(err, "calling conclude")
+		if err == errConcludedNotFound {
+			if err := a.conclude(ctx, request.Params, request.Tx); err != nil {
+				return errors.WithMessage(err, "calling conclude")
+			}
+		} else {
+			return errors.WithMessage(err, "filter concluded confirmations")
 		}
 	}
 	return a.withdraw(ctx, request)
@@ -161,7 +157,7 @@ func (r *RegisteredSub) Close() error {
 func storedToRegisteredEvent(event *adjudicator.AdjudicatorStored) *channel.Registered {
 	return &channel.Registered{
 		ID: event.ChannelID,
-		//Idx: event.Idx,
+		// Idx:     event.Idx,
 		Version: event.Version,
 		Timeout: time.Unix(int64(event.Timeout), 0),
 	}

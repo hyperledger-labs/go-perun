@@ -25,43 +25,62 @@ func (a *Adjudicator) Register(ctx context.Context, request channel.AdjudicatorR
 		return nil, errors.WithMessage(err, "waiting for stored event")
 	}
 	defer sub.Unsubscribe()
-	go func() {
-		var ev *adjudicator.AdjudicatorStored
-		for iter.Next() {
-			ev = iter.Event
+	defer iter.Close()
+	for i := 0; i < maxRegisteredEvents; i++ {
+		ev, err := a.newestStoredEvent(ctx, stored, iter)
+		if err != nil {
+			return nil, err
 		}
 		if ev != nil {
-			stored <- ev
-		}
-		iter.Close()
-	}()
-	for i := 0; i < maxRegisteredEvents; i++ {
-		select {
-		case ev := <-stored:
 			if request.Tx.Version > ev.Version {
-				_ = a.refute(ctx, request)
+				if err := a.refute(ctx, request); err != nil {
+					return nil, errors.WithMessage(err, "calling refute")
+				}
 			}
 			return storedToRegisteredEvent(ev), nil
-		case <-ctx.Done():
-			return nil, errors.New("did not receive stored event in time")
-		default:
 		}
 		if request.Tx.State.IsFinal {
 			// If a request is final and we have no event seen (we don't need to dispute a previous state)
-			// Register becomes a no-op.
+			// We call ConcludeFinal
+			if err := a.conclude(ctx, request.Params, request.Tx); err != nil {
+				return nil, errors.WithMessage(err, "calling conclude")
+			}
+			// We successfully concluded the channel
 			return &channel.Registered{
 				ID:      request.Params.ID(),
 				Idx:     request.Idx,
-				Version: request.Tx.Version,
 				Timeout: time.Time{},
+				Version: request.Tx.Version,
 			}, nil
 		}
 		if err = a.register(ctx, request); err != nil {
-			a.log.Warnf("Registering failed, trying again")
+			return nil, errors.WithMessage(err, "calling register")
 		}
-		// After a register, we wait if we receive an event.
+		// After a register, the next iteration waits for a Stored event.
 	}
 	return nil, errors.Errorf("%d events seen, none were our state", maxRegisteredEvents)
+}
+
+func (a *Adjudicator) newestStoredEvent(ctx context.Context, stored chan *adjudicator.AdjudicatorStored, iter *adjudicator.AdjudicatorStoredIterator) (*adjudicator.AdjudicatorStored, error) {
+	// newest event from filter
+	var ev *adjudicator.AdjudicatorStored
+	for iter.Next() {
+		ev = iter.Event
+	}
+
+	for {
+		select {
+		case ev2 := <-stored:
+			if ev == nil || ev.Version < ev2.Version {
+				ev = ev2
+			}
+			return ev, nil
+		case <-time.After(100 * time.Millisecond):
+			return ev, nil
+		case <-ctx.Done():
+			return nil, errors.New("did not receive stored event in time")
+		}
+	}
 }
 
 func (a *Adjudicator) register(ctx context.Context, req channel.AdjudicatorReq) error {
@@ -77,7 +96,7 @@ func (a *Adjudicator) register(ctx context.Context, req channel.AdjudicatorReq) 
 	}
 	tx, err := a.contract.Register(trans, ethParams, ethState, req.Tx.Sigs)
 	if err != nil {
-		return errors.Wrap(err, "calling concludeFinal")
+		return errors.Wrap(err, "calling register")
 	}
 	log.Debugf("Sending transaction to the blockchain with txHash: %v", tx.Hash().Hex())
 	return confirmTransaction(ctx, a.ContractBackend, tx)
@@ -96,7 +115,7 @@ func (a *Adjudicator) refute(ctx context.Context, req channel.AdjudicatorReq) er
 	}
 	tx, err := a.contract.Refute(trans, ethParams, ethState, req.Tx.Sigs)
 	if err != nil {
-		return errors.Wrap(err, "calling concludeFinal")
+		return errors.Wrap(err, "calling refute")
 	}
 	log.Debugf("Sending transaction to the blockchain with txHash: %v", tx.Hash().Hex())
 	return confirmTransaction(ctx, a.ContractBackend, tx)

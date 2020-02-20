@@ -22,8 +22,7 @@ import (
 var errConcludedNotFound = stderrors.New("concluded event not found")
 
 // conclude calls the conclude(or ConcludeFinal) function on the adjudicator.
-// The call returns iff concluding was successful.
-// Otherwise an error is returned.
+// The call returns whether concluding was successful.
 func (a *Adjudicator) conclude(ctx context.Context, params *channel.Params, tx channel.Transaction) error {
 	// Listen for blockchain events.
 	watchOpts, err := a.newWatchOpts(ctx)

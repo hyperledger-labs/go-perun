@@ -8,11 +8,11 @@ package channel // import "perun.network/go-perun/backend/ethereum/channel"
 import (
 	"context"
 	"math/big"
-	"sync"
 
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/pkg/errors"
+	"golang.org/x/sync/errgroup"
 	"perun.network/go-perun/backend/ethereum/bindings/assets"
 	"perun.network/go-perun/backend/ethereum/wallet"
 	"perun.network/go-perun/channel"
@@ -22,33 +22,21 @@ import (
 func (a *Adjudicator) withdraw(ctx context.Context, request channel.AdjudicatorReq) error {
 	assets := request.Tx.Allocation.Assets
 
-	errChan := make(chan error, len(assets))
-	var wg sync.WaitGroup
-	wg.Add(len(assets))
+	g, ctx := errgroup.WithContext(ctx)
 	for index, asset := range assets {
-		go func(index int, asset channel.Asset) {
-			defer wg.Done()
+		g.Go(func() error {
 			contract, err := connectToAssetHolder(a.ContractBackend, asset, index)
 			if err != nil {
-				errChan <- errors.Wrap(err, "Connecting to contracts failed")
-				return
+				return errors.Wrap(err, "Connecting to contracts failed")
 			}
-
-			confirmation := make(chan error)
-			go func() {
-				confirmation <- a.waitForWithdrawnEvent(ctx, request, contract)
-			}()
 
 			if err := a.withdrawAsset(ctx, request, contract); err != nil {
-				errChan <- errors.Wrap(err, "Funding assets failed")
-				return
+				return errors.Wrap(err, "Funding assets failed")
 			}
-			errChan <- <-confirmation
-		}(index, asset)
+			return a.waitForWithdrawnEvent(ctx, request, contract)
+		})
 	}
-	wg.Wait()
-	close(errChan)
-	return <-errChan
+	return g.Wait()
 }
 
 func connectToAssetHolder(backend ContractBackend, asset channel.Asset, assetIndex int) (assetHolder, error) {
