@@ -7,6 +7,7 @@ package channel
 
 import (
 	"context"
+	stderrors "errors"
 	"math/big"
 
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
@@ -65,7 +66,15 @@ func confirmTransaction(ctx context.Context, backend ContractBackend, tx *types.
 		return errors.Wrap(err, "could not execute transaction")
 	}
 	if receipt.Status == types.ReceiptStatusFailed {
-		return errors.New("transaction failed")
+		return errors.WithStack(ErrorTxFailed)
 	}
 	return nil
+}
+
+// ErrorTxFailed signals a failed, i.e., reverted, transaction.
+var ErrorTxFailed = stderrors.New("transaction failed")
+
+// IsTxFailedError returns whether the cause of the error was a failed transaction.
+func IsTxFailedError(err error) bool {
+	return errors.Cause(err) == ErrorTxFailed
 }

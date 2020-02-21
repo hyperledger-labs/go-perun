@@ -7,10 +7,11 @@ package channel // import "perun.network/go-perun/backend/ethereum/channel"
 
 import (
 	"context"
-	"time"
+	"math/big"
 
+	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/event"
+	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/pkg/errors"
 
 	"perun.network/go-perun/backend/ethereum/bindings/adjudicator"
@@ -21,9 +22,6 @@ import (
 
 // compile time check that we implement the perun adjudicator interface
 var _ channel.Adjudicator = (*Adjudicator)(nil)
-
-// We only loop maxRegisteredEvents times in register, prevents endless loop
-var maxRegisteredEvents = 10
 
 // The Adjudicator struct implements the channel.Adjudicator interface
 // It provides all functionality to close a channel.
@@ -60,105 +58,64 @@ func NewAdjudicator(backend ContractBackend, contract common.Address, onchainAdd
 //  - Search for withdrawn event on my partID
 //  - If not found -> call withdraw
 //  - Wait for withdrawn event
-func (a *Adjudicator) Withdraw(ctx context.Context, request channel.AdjudicatorReq) error {
-	// Filter old concluded events.
-	err := a.filterConcludedConfirmations(ctx, request.Params.ID())
+func (a *Adjudicator) Withdraw(ctx context.Context, req channel.AdjudicatorReq) error {
+	if err := a.ensureConcluded(ctx, req); err != nil {
+		return errors.WithMessage(err, "ensure Concluded")
+	}
+
+	return errors.WithMessage(a.ensureWithdrawn(ctx, req), "ensure Withdrawn")
+}
+
+func (a *Adjudicator) callRegister(ctx context.Context, req channel.AdjudicatorReq) error {
+	return a.call(ctx, req, a.contract.Register)
+}
+
+func (a *Adjudicator) callRefute(ctx context.Context, req channel.AdjudicatorReq) error {
+	return a.call(ctx, req, a.contract.Refute)
+}
+
+func (a *Adjudicator) callConclude(ctx context.Context, req channel.AdjudicatorReq) error {
+	// Wrapped call to Conclude, ignoring sig
+	conclude := func(
+		opts *bind.TransactOpts,
+		params adjudicator.ChannelParams,
+		state adjudicator.ChannelState,
+		_ [][]byte,
+	) (*types.Transaction, error) {
+		return a.contract.Conclude(opts, params, state)
+	}
+	return a.call(ctx, req, conclude)
+}
+
+func (a *Adjudicator) callConcludeFinal(ctx context.Context, req channel.AdjudicatorReq) error {
+	return a.call(ctx, req, a.contract.ConcludeFinal)
+}
+
+type adjFunc = func(
+	opts *bind.TransactOpts,
+	params adjudicator.ChannelParams,
+	state adjudicator.ChannelState,
+	sigs [][]byte,
+) (*types.Transaction, error)
+
+// call calls the given contract function `fn` with the data from `req`.
+// `fn` should be a method of `a.contract`, like `a.contract.Register`.
+func (a *Adjudicator) call(ctx context.Context, req channel.AdjudicatorReq, fn adjFunc) error {
+	ethParams := channelParamsToEthParams(req.Params)
+	ethState := channelStateToEthState(req.Tx.State)
+	if !a.mu.TryLockCtx(ctx) {
+		return errors.New("could not acquire tx lock in time")
+	}
+	defer a.mu.Unlock()
+
+	trans, err := a.newTransactor(ctx, big.NewInt(0), GasLimit)
 	if err != nil {
-		if err == errConcludedNotFound {
-			if err := a.conclude(ctx, request.Params, request.Tx); err != nil {
-				return errors.WithMessage(err, "calling conclude")
-			}
-		} else {
-			return errors.WithMessage(err, "filter concluded confirmations")
-		}
+		return errors.WithMessage(err, "creating transactor")
 	}
-	return a.withdraw(ctx, request)
-}
-
-// SubscribeRegistered returns a new subscription to registered events.
-func (a *Adjudicator) SubscribeRegistered(ctx context.Context, params *channel.Params) (channel.RegisteredSubscription, error) {
-	stored := make(chan *adjudicator.AdjudicatorStored)
-	sub, iter, err := a.waitForStoredEvent(ctx, stored, params)
+	tx, err := fn(trans, ethParams, ethState, req.Tx.Sigs)
 	if err != nil {
-		return nil, errors.WithMessage(err, "waiting for stored event")
+		return errors.Wrap(err, "calling register-like function")
 	}
-
-	go func() {
-		var ev *adjudicator.AdjudicatorStored
-		for iter.Next() {
-			ev = iter.Event
-		}
-		if ev != nil {
-			stored <- ev
-		}
-		iter.Close()
-	}()
-
-	return &RegisteredSub{
-		sub:       sub,
-		eventChan: stored,
-	}, nil
-}
-
-func (a *Adjudicator) waitForStoredEvent(ctx context.Context, stored chan *adjudicator.AdjudicatorStored, params *channel.Params) (event.Subscription, *adjudicator.AdjudicatorStoredIterator, error) {
-	// Watch new events
-	watchOpts, err := a.newWatchOpts(ctx)
-	if err != nil {
-		return nil, nil, errors.WithMessage(err, "creating watchopts")
-	}
-	sub, err := a.contract.WatchStored(watchOpts, stored, []channel.ID{params.ID()})
-	if err != nil {
-		return nil, nil, errors.Wrapf(err, "watching stored events")
-	}
-
-	// Filter old Events
-	filterOpts, err := a.newFilterOpts(ctx)
-	if err != nil {
-		sub.Unsubscribe()
-		return nil, nil, errors.WithMessage(err, "creating filter opts")
-	}
-	iter, err := a.contract.FilterStored(filterOpts, []channel.ID{params.ID()})
-	if err != nil {
-		sub.Unsubscribe()
-		return nil, nil, errors.Wrap(err, "filtering stored events")
-	}
-
-	return sub, iter, nil
-}
-
-// RegisteredSub implements the channel.RegisteredSub interface.
-type RegisteredSub struct {
-	sub       event.Subscription
-	eventChan chan *adjudicator.AdjudicatorStored
-}
-
-// Next returns the next blockchain event.
-// Next blocks until a event is returned from the blockchain.
-func (r *RegisteredSub) Next() *channel.Registered {
-	event := <-r.eventChan
-	if event == nil {
-		return nil
-	}
-	return storedToRegisteredEvent(event)
-}
-
-// Err returns an error if the subscription to a blockchain failed.
-func (r *RegisteredSub) Err() error {
-	return <-r.sub.Err()
-}
-
-// Close closes this subscription.
-func (r *RegisteredSub) Close() error {
-	r.sub.Unsubscribe()
-	close(r.eventChan)
-	return <-r.sub.Err()
-}
-
-func storedToRegisteredEvent(event *adjudicator.AdjudicatorStored) *channel.Registered {
-	return &channel.Registered{
-		ID: event.ChannelID,
-		// Idx:     event.Idx,
-		Version: event.Version,
-		Timeout: time.Unix(int64(event.Timeout), 0),
-	}
+	log.Debugf("Sending transaction to the blockchain with txHash: %v", tx.Hash().Hex())
+	return confirmTransaction(ctx, a.ContractBackend, tx)
 }

@@ -19,7 +19,7 @@ import (
 	"perun.network/go-perun/log"
 )
 
-func (a *Adjudicator) withdraw(ctx context.Context, request channel.AdjudicatorReq) error {
+func (a *Adjudicator) ensureWithdrawn(ctx context.Context, request channel.AdjudicatorReq) error {
 	assets := request.Tx.Allocation.Assets
 
 	g, ctx := errgroup.WithContext(ctx)
