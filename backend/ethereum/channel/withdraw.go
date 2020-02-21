@@ -109,7 +109,7 @@ func (a *Adjudicator) withdrawAsset(ctx context.Context, request channel.Adjudic
 	// Create a new Withdrawal authorization.
 	auth, sig, err := a.newWithdrawalAuth(request, asset)
 	if err != nil {
-		return errors.Wrap(err, "creating withdrawal auth")
+		return errors.WithMessage(err, "creating withdrawal auth")
 	}
 	// Call the asset holder contract.
 	ethTx, err := asset.Withdraw(trans, auth, sig)

@@ -96,17 +96,17 @@ func (c *ContractBackend) getBlockNum(ctx context.Context) (uint64, error) {
 func (c *ContractBackend) newTransactor(ctx context.Context, valueWei *big.Int, gasLimit uint64) (*bind.TransactOpts, error) {
 	nonce, err := c.PendingNonceAt(ctx, c.account.Address)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "querying pending nonce")
 	}
 
 	gasPrice, err := c.SuggestGasPrice(ctx)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "querying suggested gas price")
 	}
 
 	auth, err := bind.NewKeyStoreTransactor(c.ks, *c.account)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "creating transactor")
 	}
 
 	auth.Nonce = new(big.Int).SetUint64(nonce)
