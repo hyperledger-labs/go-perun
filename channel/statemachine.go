@@ -16,7 +16,7 @@ import (
 type StateMachine struct {
 	*machine
 
-	app StateApp
+	app StateApp `cloneable:"shallow"`
 }
 
 // NewStateMachine creates a new StateMachine.
@@ -109,4 +109,12 @@ func (m *StateMachine) validTransition(to *State, actor Index) (err error) {
 		return err
 	}
 	return errors.WithMessagef(err, "runtime error in application's ValidTransition()")
+}
+
+// Clone returns a deep copy of StateMachine
+func (m *StateMachine) Clone() *StateMachine {
+	return &StateMachine{
+		machine: m.machine.Clone(),
+		app:     m.app,
+	}
 }
