@@ -44,7 +44,7 @@ spelling:
   <<: *only-default
   image: golang
   stage: vetting
-  script: "misspell -error ."
+  script: "ls -d */ | xargs misspell -error"
   allow_failure: true
 
 cyclomatic:
