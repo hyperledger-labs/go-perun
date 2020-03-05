@@ -20,7 +20,7 @@ jobs:
         - "! gofmt -l -s `ls -d */` | grep ."
         - "go vet ./..."
         - golint -set_exit_status ./...
-        - misspell -error .
+        - "ls -d */ | xargs misspell -error"
 
     - stage: unit_tests
       before_script:
