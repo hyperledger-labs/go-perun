@@ -18,8 +18,8 @@ type DummyAdjudicator struct {
 	t *testing.T
 }
 
-func (d *DummyAdjudicator) Register(ctx context.Context, req perunchannel.AdjudicatorReq) (*perunchannel.Registered, error) {
-	return &perunchannel.Registered{
+func (d *DummyAdjudicator) Register(ctx context.Context, req perunchannel.AdjudicatorReq) (*perunchannel.RegisteredEvent, error) {
+	return &perunchannel.RegisteredEvent{
 		ID:      req.Params.ID(),
 		Idx:     req.Idx,
 		Version: req.Tx.Version,

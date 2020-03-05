@@ -35,11 +35,25 @@ const (
 	Acting
 	Signing
 	Final
-	Settled
+	Registering
+	Registered
+	Withdrawing
+	Withdrawn
 )
 
 func (p Phase) String() string {
-	return [...]string{"InitActing", "InitSigning", "Funding", "Acting", "Signing", "Final", "Settled"}[p]
+	return [...]string{
+		"InitActing",
+		"InitSigning",
+		"Funding",
+		"Acting",
+		"Signing",
+		"Final",
+		"Registering",
+		"Registered",
+		"Withdrawing",
+		"Withdrawn",
+	}[p]
 }
 
 func (t PhaseTransition) String() string {
@@ -47,6 +61,8 @@ func (t PhaseTransition) String() string {
 }
 
 var signingPhases = []Phase{InitSigning, Signing}
+
+var postInitPhases = []Phase{Funding, Acting, Signing, Final}
 
 // A machine is the channel pushdown automaton that handles phase transitions.
 // It checks for correct signatures and valid state transitions.
@@ -274,40 +290,82 @@ func (m *machine) enableStaged(expected PhaseTransition) error {
 // SetFunded tells the state machine that the channel got funded and progresses
 // to the Acting phase.
 func (m *machine) SetFunded() error {
-	if err := m.expect(PhaseTransition{Funding, Acting}); err != nil {
-		return err
+	return m.simplePhaseTransition(Funding, Acting)
+}
+
+// SetRegistering tells the state machine that the current channel state is
+// being registered on the adjudicator. This phase can be reached after the
+// initial phases are done, i.e., when there's at least one state with
+// signatures.
+func (m *machine) SetRegistering() error {
+	if !inPhase(m.phase, postInitPhases) {
+		return m.phaseErrorf(m.selfTransition(), "can only register after init phases")
 	}
 
-	m.setPhase(Acting)
+	m.setPhase(Registering)
 	return nil
 }
 
-// SetSettled tells the state machine that the final state was settled on the
-// blockchain or funding channel and progresses to the Settled state.
-func (m *machine) SetSettled() error {
-	if err := m.expect(PhaseTransition{Final, Settled}); err != nil {
-		return err
+// SetRegistered tells the state machine that a channel state got registered on
+// the adjudicator. This phase can be reached after the initial phases are done,
+// i.e., when there's at least one state with signatures.
+func (m *machine) SetRegistered() error {
+	if !inPhase(m.phase, append(postInitPhases, Registering)) {
+		return m.phaseErrorf(m.selfTransition(),
+			"state can only be registered after init phases or registering")
 	}
 
-	m.setPhase(Settled)
+	m.setPhase(Registered)
 	return nil
 }
 
-var validPhaseTransitions = map[PhaseTransition]bool{
-	{InitActing, InitSigning}: true,
-	{InitSigning, Funding}:    true,
-	{Funding, Acting}:         true,
-	{Acting, Signing}:         true,
-	{Signing, Acting}:         true,
-	{Signing, Final}:          true,
-	{Final, Settled}:          true,
+// SetWithdrawing sets the state machine to the Withdrawing phase. The current
+// state was registered on-chain and funds withdrawal is in progress.
+// This phase can only be reached from the Registered phase.
+func (m *machine) SetWithdrawing() error {
+	return m.simplePhaseTransition(Registered, Withdrawing)
+}
+
+// SetWithdrawn sets the state machine to the final phase Withdrawn. The current
+// state was registered on-chain and funds withdrawal was successful.
+func (m *machine) SetWithdrawn() error {
+	return m.simplePhaseTransition(Withdrawing, Withdrawn)
+}
+
+func (m *machine) simplePhaseTransition(from, to Phase) error {
+	if err := m.expect(PhaseTransition{from, to}); err != nil {
+		return err
+	}
+
+	m.setPhase(to)
+	return nil
+}
+
+var validPhaseTransitions = map[PhaseTransition]struct{}{
+	{InitActing, InitSigning}: {},
+	{InitSigning, Funding}:    {},
+	{Funding, Acting}:         {},
+	{Acting, Signing}:         {},
+	{Signing, Acting}:         {},
+	{Signing, Final}:          {},
+	{Funding, Registering}:    {},
+	{Acting, Registering}:     {},
+	{Signing, Registering}:    {},
+	{Final, Registering}:      {},
+	{Funding, Registered}:     {},
+	{Acting, Registered}:      {},
+	{Signing, Registered}:     {},
+	{Final, Registered}:       {},
+	{Registering, Registered}: {},
+	{Registered, Withdrawing}: {},
+	{Withdrawing, Withdrawn}:  {},
 }
 
 func (m *machine) expect(tr PhaseTransition) error {
 	if m.phase != tr.From {
 		return m.phaseErrorf(tr, "not in correct phase")
 	}
-	if ok := validPhaseTransitions[PhaseTransition{m.phase, tr.To}]; !ok {
+	if _, ok := validPhaseTransitions[PhaseTransition{m.phase, tr.To}]; !ok {
 		return m.phaseErrorf(tr, "forbidden phase transition")
 	}
 	return nil

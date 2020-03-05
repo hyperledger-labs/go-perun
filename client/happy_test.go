@@ -102,9 +102,9 @@ func (f *logFunder) Fund(_ context.Context, req channel.FundingReq) error {
 	return nil
 }
 
-func (a *logAdjudicator) Register(ctx context.Context, req channel.AdjudicatorReq) (*channel.Registered, error) {
+func (a *logAdjudicator) Register(ctx context.Context, req channel.AdjudicatorReq) (*channel.RegisteredEvent, error) {
 	a.log.Infof("Register: %v", req)
-	return &channel.Registered{
+	return &channel.RegisteredEvent{
 		ID:      req.Params.ID(),
 		Idx:     req.Idx,
 		Version: req.Tx.Version,

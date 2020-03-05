@@ -76,7 +76,7 @@ type DummyAdjudicator struct {
 	t *testing.T
 }
 
-func (d *DummyAdjudicator) Register(context.Context, channel.AdjudicatorReq) (*channel.Registered, error) {
+func (d *DummyAdjudicator) Register(context.Context, channel.AdjudicatorReq) (*channel.RegisteredEvent, error) {
 	d.t.Error("DummyAdjudicator.Register called")
 	return nil, errors.New("DummyAdjudicator.Register called")
 }

@@ -172,14 +172,26 @@ func (c *Channel) Settle(ctx context.Context) error {
 		return errors.New("currently, only channels in a final state can be settled")
 	}
 
+	if err := c.machine.SetRegistering(); err != nil {
+		return err // this should never happen
+	}
+
 	req := c.machine.AdjudicatorReq()
 
-	if reg, err := c.adjudicator.Register(ctx, req); err != nil {
+	reg, err := c.adjudicator.Register(ctx, req)
+	if err != nil {
 		return errors.WithMessage(err, "calling Register")
-	} else if reg.Version != req.Tx.Version {
+	}
+	if err := c.machine.SetRegistered(); err != nil {
+		return err // this should never happen
+	}
+
+	if reg.Version != req.Tx.Version {
 		return errors.Errorf(
 			"unexpected version %d registered, expected %d", reg.Version, req.Tx.Version)
-	} else if reg.Timeout.After(time.Now()) {
+	}
+
+	if reg.Timeout.After(time.Now()) {
 		c.log.Warnf("Unexpected withdrawal timeout during Settle(). Waiting until %v.", reg.Timeout)
 		timeout := time.After(time.Until(reg.Timeout))
 		select {
@@ -189,9 +201,11 @@ func (c *Channel) Settle(ctx context.Context) error {
 		}
 	}
 
+	if err := c.machine.SetWithdrawing(); err != nil {
+		return err // this should never happen
+	}
 	if err := c.adjudicator.Withdraw(ctx, req); err != nil {
 		return errors.WithMessage(err, "calling Withdraw")
 	}
-
-	return c.machine.SetSettled()
+	return c.machine.SetWithdrawn()
 }

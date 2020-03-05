@@ -18,7 +18,7 @@ type (
 	// A channel state needs to be registered before the concluded state can be
 	// withdrawn after a possible timeout.
 	//
-	// Furthermore, it has a method for subscribing to Registered events. Those
+	// Furthermore, it has a method for subscribing to RegisteredEvents. Those
 	// events might be triggered by a Register call on the adjudicator from any
 	// channel participant.
 	Adjudicator interface {
@@ -27,7 +27,7 @@ type (
 		// even an old state for the same channel. If registration was successful,
 		// it should return the timeout when withdrawal can be initiated with
 		// Withdraw.
-		Register(context.Context, AdjudicatorReq) (*Registered, error)
+		Register(context.Context, AdjudicatorReq) (*RegisteredEvent, error)
 
 		// Withdraw should conclude and withdraw the registered state, so that the
 		// final outcome is set on the asset holders and funds are withdrawn
@@ -35,7 +35,7 @@ type (
 		// account that a peer might already have concluded the same channel.
 		Withdraw(context.Context, AdjudicatorReq) error
 
-		// SubscribeRegistered returns a Registered event subscription. The
+		// SubscribeRegistered returns a RegisteredEvent subscription. The
 		// subscription should be a subscription of the newest past as well as
 		// future events. The subscription should only be valid within the given
 		// context: If the context is canceled, its Next method should return nil
@@ -52,18 +52,18 @@ type (
 		Idx    Index
 	}
 
-	// Registered is the abstract event that signals a successful state
+	// RegisteredEvent is the abstract event that signals a successful state
 	// registration on the blockchain.
-	Registered struct {
+	RegisteredEvent struct {
 		ID      ID        // Channel ID
 		Idx     Index     // Index of the participant who registered the event.
 		Version uint64    // Registered version.
 		Timeout time.Time // Timeout when the event can be concluded or progressed
 	}
 
-	// A RegisteredSubscription is a subscription to Registered events for a
+	// A RegisteredSubscription is a subscription to RegisteredEvents for a
 	// specific channel. The subscription should also return the newest past
-	// Registered event, if there is any.
+	// RegisteredEvent, if there is any.
 	//
 	// The usage of the subscription should be similar to that of an iterator.
 	// Next calls should block until a new event is generated (or the first past
@@ -72,7 +72,7 @@ type (
 	RegisteredSubscription interface {
 		// Next returns the newest past or next future event. If the subscription is
 		// closed or any other error occurs, it should return nil.
-		Next() *Registered
+		Next() *RegisteredEvent
 
 		// Err returns the error status of the subscription. After Next returns nil,
 		// Err should be checked for an error.
