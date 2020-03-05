@@ -10,6 +10,7 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestAssetFundingError(t *testing.T) {
@@ -38,7 +39,7 @@ func TestFundingTimeoutError(t *testing.T) {
 	}
 	err := NewFundingTimeoutError(errs)
 	perr, ok := errors.Cause(err).(*FundingTimeoutError)
-	assert.True(ok)
+	require.True(t, ok)
 	assert.True(IsFundingTimeoutError(err))
 	assert.True(IsFundingTimeoutError(perr))
 	assert.Equal(42, perr.Errors[0].Asset)

@@ -7,6 +7,7 @@ package channel
 
 import (
 	"context"
+	stderrors "errors"
 	"math/big"
 
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
@@ -30,7 +31,7 @@ func DeployETHAssetholder(ctx context.Context, backend ContractBackend, adjudica
 	if err != nil {
 		return common.Address{}, errors.WithMessage(err, "could not create transaction")
 	}
-	if err := deployedSuccessful(ctx, backend, tx); err != nil {
+	if err := confirmDeployment(ctx, backend, tx); err != nil {
 		return common.Address{}, errors.WithMessage(err, "deploying ethassetholder")
 	}
 	log.Infof("Successfully deployed AssetHolderETH at %v.", addr.Hex())
@@ -47,25 +48,33 @@ func DeployAdjudicator(ctx context.Context, backend ContractBackend) (common.Add
 	if err != nil {
 		return common.Address{}, errors.WithMessage(err, "could not create transaction")
 	}
-	if err = deployedSuccessful(ctx, backend, tx); err != nil {
+	if err = confirmDeployment(ctx, backend, tx); err != nil {
 		return common.Address{}, errors.WithMessage(err, "deploying adjudicator")
 	}
 	log.Infof("Successfully deployed Adjudicator at %v.", addr.Hex())
 	return addr, nil
 }
 
-func deployedSuccessful(ctx context.Context, backend ContractBackend, tx *types.Transaction) error {
+func confirmDeployment(ctx context.Context, backend ContractBackend, tx *types.Transaction) error {
 	_, err := bind.WaitDeployed(ctx, backend, tx)
 	return errors.Wrap(err, "could not execute transaction")
 }
 
-func execSuccessful(ctx context.Context, backend ContractBackend, tx *types.Transaction) error {
+func confirmTransaction(ctx context.Context, backend ContractBackend, tx *types.Transaction) error {
 	receipt, err := bind.WaitMined(ctx, backend, tx)
 	if err != nil {
 		return errors.Wrap(err, "could not execute transaction")
 	}
 	if receipt.Status == types.ReceiptStatusFailed {
-		return errors.New("transaction failed")
+		return errors.WithStack(ErrorTxFailed)
 	}
 	return nil
+}
+
+// ErrorTxFailed signals a failed, i.e., reverted, transaction.
+var ErrorTxFailed = stderrors.New("transaction failed")
+
+// IsTxFailedError returns whether the cause of the error was a failed transaction.
+func IsTxFailedError(err error) bool {
+	return errors.Cause(err) == ErrorTxFailed
 }
