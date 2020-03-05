@@ -50,22 +50,6 @@ func NewAdjudicator(backend ContractBackend, contract common.Address, onchainAdd
 	}
 }
 
-// Withdraw calls conclude and withdraw on a channel.
-// Withdraw implements the following logic:
-//  - Search for concluded event
-//  - If not found -> Call conclude
-//  - Wait for concluded event
-//  - Search for withdrawn event on my partID
-//  - If not found -> call withdraw
-//  - Wait for withdrawn event
-func (a *Adjudicator) Withdraw(ctx context.Context, req channel.AdjudicatorReq) error {
-	if err := a.ensureConcluded(ctx, req); err != nil {
-		return errors.WithMessage(err, "ensure Concluded")
-	}
-
-	return errors.WithMessage(a.ensureWithdrawn(ctx, req), "ensure Withdrawn")
-}
-
 func (a *Adjudicator) callRegister(ctx context.Context, req channel.AdjudicatorReq) error {
 	return a.call(ctx, req, a.contract.Register)
 }

@@ -3,7 +3,7 @@
 // of this source code is governed by a MIT-style license that can be found in
 // the LICENSE file.
 
-package channel // import "perun.network/go-perun/backend/ethereum/channel"
+package channel
 
 import (
 	"context"
@@ -18,6 +18,16 @@ import (
 	"perun.network/go-perun/channel"
 	"perun.network/go-perun/log"
 )
+
+// Withdraw ensures that a channel has been concluded and the final outcome
+// withdrawn from the asset holders.
+func (a *Adjudicator) Withdraw(ctx context.Context, req channel.AdjudicatorReq) error {
+	if err := a.ensureConcluded(ctx, req); err != nil {
+		return errors.WithMessage(err, "ensure Concluded")
+	}
+
+	return errors.WithMessage(a.ensureWithdrawn(ctx, req), "ensure Withdrawn")
+}
 
 func (a *Adjudicator) ensureWithdrawn(ctx context.Context, request channel.AdjudicatorReq) error {
 	assets := request.Tx.Allocation.Assets
