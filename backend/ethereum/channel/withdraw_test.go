@@ -17,6 +17,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"perun.network/go-perun/channel"
 	channeltest "perun.network/go-perun/channel/test"
+	pkgtest "perun.network/go-perun/pkg/test"
 )
 
 func TestAdjudicator_MultipleWithdraws_FinalState(t *testing.T) {
@@ -46,22 +47,21 @@ func withdrawMultipleConcurrentFinal(t *testing.T, numParts int, parallel bool) 
 	fundingCtx, funCancel := context.WithTimeout(context.Background(), timeout)
 	defer funCancel()
 	// fund the contract
-	var wg sync.WaitGroup
-	wg.Add(numParts)
+	ct := pkgtest.NewConcurrent(t)
 	for i, funder := range funders {
 		sleepTime := time.Duration(rng.Int63n(10) + 1)
-		go func(i int, funder *Funder) {
-			defer wg.Done()
+		i, funder := i, funder
+		go ct.StageN("funding loop", numParts, func(rt require.TestingT) {
 			time.Sleep(sleepTime * time.Millisecond)
 			req := channel.FundingReq{
 				Params:     params,
 				Allocation: &state.Allocation,
 				Idx:        channel.Index(i),
 			}
-			require.NoError(t, funders[i].Fund(fundingCtx, req), "funding should succeed")
-		}(i, funder)
+			require.NoError(rt, funder.Fund(fundingCtx, req), "funding should succeed")
+		})
 	}
-	wg.Wait()
+	ct.Wait("funding loop")
 	// manipulate the state
 	state.IsFinal = true
 	tx := signState(t, accs, params, state)

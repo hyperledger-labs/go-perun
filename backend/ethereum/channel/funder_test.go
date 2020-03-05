@@ -9,7 +9,6 @@ import (
 	"context"
 	"math/big"
 	"math/rand"
-	"sync"
 	"testing"
 	"time"
 
@@ -18,14 +17,15 @@ import (
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"perun.network/go-perun/backend/ethereum/wallet"
-	"perun.network/go-perun/channel"
-	wallettest "perun.network/go-perun/wallet/test"
 
 	"perun.network/go-perun/backend/ethereum/channel/test"
+	"perun.network/go-perun/backend/ethereum/wallet"
 	ethwallettest "perun.network/go-perun/backend/ethereum/wallet/test"
+	"perun.network/go-perun/channel"
 	channeltest "perun.network/go-perun/channel/test"
+	pkgtest "perun.network/go-perun/pkg/test"
 	perunwallet "perun.network/go-perun/wallet"
+	wallettest "perun.network/go-perun/wallet/test"
 )
 
 const (
@@ -83,13 +83,14 @@ func testFundingTimeout(t *testing.T, faultyPeer, peers int) {
 	t.Logf("seed is %d", seed)
 	rng := rand.New(rand.NewSource(seed))
 
+	ct := pkgtest.NewConcurrent(t)
+
 	_, funders, _, params, allocation := newNFunders(ctx, t, rng, peers)
-	var wg sync.WaitGroup
-	wg.Add(peers)
+
 	for i, funder := range funders {
 		sleepTime := time.Duration(rng.Int63n(10) + 1)
-		go func(i int, funder *Funder) {
-			defer wg.Done()
+		i, funder := i, funder
+		go ct.StageN("funding loop", peers, func(rt require.TestingT) {
 			// Faulty peer does not fund the channel.
 			if i == faultyPeer {
 				return
@@ -103,13 +104,13 @@ func testFundingTimeout(t *testing.T, faultyPeer, peers int) {
 			ctx2, cancel := context.WithTimeout(context.Background(), 200*time.Millisecond)
 			defer cancel()
 			err := funder.Fund(ctx2, req)
-			require.True(t, channel.IsFundingTimeoutError(err), "funder should return FundingTimeoutError")
+			require.True(rt, channel.IsFundingTimeoutError(err), "funder should return FundingTimeoutError")
 			pErr := errors.Cause(err).(*channel.FundingTimeoutError) // unwrap error
 			assert.Equal(t, pErr.Errors[0].Asset, 0, "Wrong asset set")
 			assert.Equal(t, uint16(faultyPeer), pErr.Errors[0].TimedOutPeers[0], "Peer should be detected as erroneous")
-		}(i, funder)
+		})
 	}
-	wg.Wait()
+	ct.Wait("funding loop")
 }
 
 func TestFunder_Fund_multi(t *testing.T) {
@@ -127,13 +128,14 @@ func testFunderFunding(t *testing.T, n int) {
 	t.Logf("seed is %d", seed)
 	rng := rand.New(rand.NewSource(seed))
 
+	ct := pkgtest.NewConcurrent(t)
+
 	_, funders, _, params, allocation := newNFunders(ctx, t, rng, n)
-	var wg sync.WaitGroup
-	wg.Add(n)
+
 	for i, funder := range funders {
 		sleepTime := time.Duration(rng.Int63n(10) + 1)
-		go func(i int, funder *Funder) {
-			defer wg.Done()
+		i, funder := i, funder
+		go ct.StageN("funding loop", n, func(rt require.TestingT) {
 			time.Sleep(sleepTime * time.Millisecond)
 			req := channel.FundingReq{
 				Params:     params,
@@ -141,17 +143,17 @@ func testFunderFunding(t *testing.T, n int) {
 				Idx:        uint16(i),
 			}
 			err := funder.Fund(ctx, req)
-			require.NoError(t, err, "funding should succeed")
+			require.NoError(rt, err, "funding should succeed")
 			newAlloc, err := getOnChainAllocation(ctx, funder, req)
-			require.NoError(t, err, "Get Post-Funding state should succeed")
+			require.NoError(rt, err, "Get Post-Funding state should succeed")
 			for i := range newAlloc {
 				for k := range newAlloc[i] {
 					assert.Equal(t, req.Allocation.OfParts[i][k], newAlloc[i][k], "Post-Funding balances should equal expected balances")
 				}
 			}
-		}(i, funder)
+		})
 	}
-	wg.Wait()
+	ct.Wait("funding loop")
 }
 
 func newNFunders(
