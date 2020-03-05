@@ -3,7 +3,7 @@ dist: xenial
 git:
   submodules: false
 language: go
-go: 1.13.x
+go: stable
 go_import_path: perun.network/go-perun
 env:
   - GO111MODULE=on
