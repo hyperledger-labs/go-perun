@@ -25,15 +25,15 @@ var (
 	// compile time check that we implement the channel backend interface.
 	_ channel.Backend = new(Backend)
 	// Definition of ABI datatypes.
-	abiUint256, _       = abi.NewType("uint256", nil)
-	abiUint256Arr, _    = abi.NewType("uint256[]", nil)
-	abiUint256ArrArr, _ = abi.NewType("uint256[][]", nil)
-	abiAddress, _       = abi.NewType("address", nil)
-	abiAddressArr, _    = abi.NewType("address[]", nil)
-	abiBytes, _         = abi.NewType("bytes", nil)
-	abiBytes32, _       = abi.NewType("bytes32", nil)
-	abiUint64, _        = abi.NewType("uint64", nil)
-	abiBool, _          = abi.NewType("bool", nil)
+	abiUint256, _       = abi.NewType("uint256", "", nil)
+	abiUint256Arr, _    = abi.NewType("uint256[]", "", nil)
+	abiUint256ArrArr, _ = abi.NewType("uint256[][]", "", nil)
+	abiAddress, _       = abi.NewType("address", "", nil)
+	abiAddressArr, _    = abi.NewType("address[]", "", nil)
+	abiBytes, _         = abi.NewType("bytes", "", nil)
+	abiBytes32, _       = abi.NewType("bytes32", "", nil)
+	abiUint64, _        = abi.NewType("uint64", "", nil)
+	abiBool, _          = abi.NewType("bool", "", nil)
 )
 
 // Backend implements the interface defined in channel/Backend.go.

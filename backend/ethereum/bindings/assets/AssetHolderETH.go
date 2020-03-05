@@ -36,7 +36,7 @@ type AssetHolderWithdrawalAuth struct {
 }
 
 // AssetHolderABI is the input ABI used to generate the binding from.
-const AssetHolderABI = "[{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"bytes32\",\"name\":\"fundingID\",\"type\":\"bytes32\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"amount\",\"type\":\"uint256\"}],\"name\":\"Deposited\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"bytes32\",\"name\":\"channelID\",\"type\":\"bytes32\"}],\"name\":\"OutcomeSet\",\"type\":\"event\"},{\"constant\":true,\"inputs\":[],\"name\":\"adjudicator\",\"outputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":false,\"inputs\":[{\"internalType\":\"bytes32\",\"name\":\"fundingID\",\"type\":\"bytes32\"},{\"internalType\":\"uint256\",\"name\":\"amount\",\"type\":\"uint256\"}],\"name\":\"deposit\",\"outputs\":[],\"payable\":true,\"stateMutability\":\"payable\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[{\"internalType\":\"bytes32\",\"name\":\"\",\"type\":\"bytes32\"}],\"name\":\"holdings\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":false,\"inputs\":[{\"internalType\":\"bytes32\",\"name\":\"channelID\",\"type\":\"bytes32\"},{\"internalType\":\"address[]\",\"name\":\"parts\",\"type\":\"address[]\"},{\"internalType\":\"uint256[]\",\"name\":\"newBals\",\"type\":\"uint256[]\"},{\"internalType\":\"bytes32[]\",\"name\":\"subAllocs\",\"type\":\"bytes32[]\"},{\"internalType\":\"uint256[]\",\"name\":\"subBalances\",\"type\":\"uint256[]\"}],\"name\":\"setOutcome\",\"outputs\":[],\"payable\":false,\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[{\"internalType\":\"bytes32\",\"name\":\"\",\"type\":\"bytes32\"}],\"name\":\"settled\",\"outputs\":[{\"internalType\":\"bool\",\"name\":\"\",\"type\":\"bool\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":false,\"inputs\":[{\"components\":[{\"internalType\":\"bytes32\",\"name\":\"channelID\",\"type\":\"bytes32\"},{\"internalType\":\"address\",\"name\":\"participant\",\"type\":\"address\"},{\"internalType\":\"addresspayable\",\"name\":\"receiver\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"amount\",\"type\":\"uint256\"}],\"internalType\":\"structAssetHolder.WithdrawalAuth\",\"name\":\"authorization\",\"type\":\"tuple\"},{\"internalType\":\"bytes\",\"name\":\"signature\",\"type\":\"bytes\"}],\"name\":\"withdraw\",\"outputs\":[],\"payable\":false,\"stateMutability\":\"nonpayable\",\"type\":\"function\"}]"
+const AssetHolderABI = "[{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"bytes32\",\"name\":\"fundingID\",\"type\":\"bytes32\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"amount\",\"type\":\"uint256\"}],\"name\":\"Deposited\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"bytes32\",\"name\":\"channelID\",\"type\":\"bytes32\"}],\"name\":\"OutcomeSet\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"participant\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"amount\",\"type\":\"uint256\"}],\"name\":\"Withdrawn\",\"type\":\"event\"},{\"constant\":true,\"inputs\":[],\"name\":\"adjudicator\",\"outputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":false,\"inputs\":[{\"internalType\":\"bytes32\",\"name\":\"fundingID\",\"type\":\"bytes32\"},{\"internalType\":\"uint256\",\"name\":\"amount\",\"type\":\"uint256\"}],\"name\":\"deposit\",\"outputs\":[],\"payable\":true,\"stateMutability\":\"payable\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[{\"internalType\":\"bytes32\",\"name\":\"\",\"type\":\"bytes32\"}],\"name\":\"holdings\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":false,\"inputs\":[{\"internalType\":\"bytes32\",\"name\":\"channelID\",\"type\":\"bytes32\"},{\"internalType\":\"address[]\",\"name\":\"parts\",\"type\":\"address[]\"},{\"internalType\":\"uint256[]\",\"name\":\"newBals\",\"type\":\"uint256[]\"},{\"internalType\":\"bytes32[]\",\"name\":\"subAllocs\",\"type\":\"bytes32[]\"},{\"internalType\":\"uint256[]\",\"name\":\"subBalances\",\"type\":\"uint256[]\"}],\"name\":\"setOutcome\",\"outputs\":[],\"payable\":false,\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[{\"internalType\":\"bytes32\",\"name\":\"\",\"type\":\"bytes32\"}],\"name\":\"settled\",\"outputs\":[{\"internalType\":\"bool\",\"name\":\"\",\"type\":\"bool\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":false,\"inputs\":[{\"components\":[{\"internalType\":\"bytes32\",\"name\":\"channelID\",\"type\":\"bytes32\"},{\"internalType\":\"address\",\"name\":\"participant\",\"type\":\"address\"},{\"internalType\":\"addresspayable\",\"name\":\"receiver\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"amount\",\"type\":\"uint256\"}],\"internalType\":\"structAssetHolder.WithdrawalAuth\",\"name\":\"authorization\",\"type\":\"tuple\"},{\"internalType\":\"bytes\",\"name\":\"signature\",\"type\":\"bytes\"}],\"name\":\"withdraw\",\"outputs\":[],\"payable\":false,\"stateMutability\":\"nonpayable\",\"type\":\"function\"}]"
 
 // AssetHolderFuncSigs maps the 4-byte function signature to its string representation.
 var AssetHolderFuncSigs = map[string]string{
@@ -618,8 +618,152 @@ func (_AssetHolder *AssetHolderFilterer) ParseOutcomeSet(log types.Log) (*AssetH
 	return event, nil
 }
 
+// AssetHolderWithdrawnIterator is returned from FilterWithdrawn and is used to iterate over the raw logs and unpacked data for Withdrawn events raised by the AssetHolder contract.
+type AssetHolderWithdrawnIterator struct {
+	Event *AssetHolderWithdrawn // Event containing the contract specifics and raw log
+
+	contract *bind.BoundContract // Generic contract to use for unpacking event data
+	event    string              // Event name to use for unpacking event data
+
+	logs chan types.Log        // Log channel receiving the found contract events
+	sub  ethereum.Subscription // Subscription for errors, completion and termination
+	done bool                  // Whether the subscription completed delivering logs
+	fail error                 // Occurred error to stop iteration
+}
+
+// Next advances the iterator to the subsequent event, returning whether there
+// are any more events found. In case of a retrieval or parsing error, false is
+// returned and Error() can be queried for the exact failure.
+func (it *AssetHolderWithdrawnIterator) Next() bool {
+	// If the iterator failed, stop iterating
+	if it.fail != nil {
+		return false
+	}
+	// If the iterator completed, deliver directly whatever's available
+	if it.done {
+		select {
+		case log := <-it.logs:
+			it.Event = new(AssetHolderWithdrawn)
+			if err := it.contract.UnpackLog(it.Event, it.event, log); err != nil {
+				it.fail = err
+				return false
+			}
+			it.Event.Raw = log
+			return true
+
+		default:
+			return false
+		}
+	}
+	// Iterator still in progress, wait for either a data or an error event
+	select {
+	case log := <-it.logs:
+		it.Event = new(AssetHolderWithdrawn)
+		if err := it.contract.UnpackLog(it.Event, it.event, log); err != nil {
+			it.fail = err
+			return false
+		}
+		it.Event.Raw = log
+		return true
+
+	case err := <-it.sub.Err():
+		it.done = true
+		it.fail = err
+		return it.Next()
+	}
+}
+
+// Error returns any retrieval or parsing error occurred during filtering.
+func (it *AssetHolderWithdrawnIterator) Error() error {
+	return it.fail
+}
+
+// Close terminates the iteration process, releasing any pending underlying
+// resources.
+func (it *AssetHolderWithdrawnIterator) Close() error {
+	it.sub.Unsubscribe()
+	return nil
+}
+
+// AssetHolderWithdrawn represents a Withdrawn event raised by the AssetHolder contract.
+type AssetHolderWithdrawn struct {
+	Participant common.Address
+	Amount      *big.Int
+	Raw         types.Log // Blockchain specific contextual infos
+}
+
+// FilterWithdrawn is a free log retrieval operation binding the contract event 0x7084f5476618d8e60b11ef0d7d3f06914655adb8793e28ff7f018d4c76d505d5.
+//
+// Solidity: event Withdrawn(address indexed participant, uint256 amount)
+func (_AssetHolder *AssetHolderFilterer) FilterWithdrawn(opts *bind.FilterOpts, participant []common.Address) (*AssetHolderWithdrawnIterator, error) {
+
+	var participantRule []interface{}
+	for _, participantItem := range participant {
+		participantRule = append(participantRule, participantItem)
+	}
+
+	logs, sub, err := _AssetHolder.contract.FilterLogs(opts, "Withdrawn", participantRule)
+	if err != nil {
+		return nil, err
+	}
+	return &AssetHolderWithdrawnIterator{contract: _AssetHolder.contract, event: "Withdrawn", logs: logs, sub: sub}, nil
+}
+
+// WatchWithdrawn is a free log subscription operation binding the contract event 0x7084f5476618d8e60b11ef0d7d3f06914655adb8793e28ff7f018d4c76d505d5.
+//
+// Solidity: event Withdrawn(address indexed participant, uint256 amount)
+func (_AssetHolder *AssetHolderFilterer) WatchWithdrawn(opts *bind.WatchOpts, sink chan<- *AssetHolderWithdrawn, participant []common.Address) (event.Subscription, error) {
+
+	var participantRule []interface{}
+	for _, participantItem := range participant {
+		participantRule = append(participantRule, participantItem)
+	}
+
+	logs, sub, err := _AssetHolder.contract.WatchLogs(opts, "Withdrawn", participantRule)
+	if err != nil {
+		return nil, err
+	}
+	return event.NewSubscription(func(quit <-chan struct{}) error {
+		defer sub.Unsubscribe()
+		for {
+			select {
+			case log := <-logs:
+				// New log arrived, parse the event and forward to the user
+				event := new(AssetHolderWithdrawn)
+				if err := _AssetHolder.contract.UnpackLog(event, "Withdrawn", log); err != nil {
+					return err
+				}
+				event.Raw = log
+
+				select {
+				case sink <- event:
+				case err := <-sub.Err():
+					return err
+				case <-quit:
+					return nil
+				}
+			case err := <-sub.Err():
+				return err
+			case <-quit:
+				return nil
+			}
+		}
+	}), nil
+}
+
+// ParseWithdrawn is a log parse operation binding the contract event 0x7084f5476618d8e60b11ef0d7d3f06914655adb8793e28ff7f018d4c76d505d5.
+//
+// Solidity: event Withdrawn(address indexed participant, uint256 amount)
+func (_AssetHolder *AssetHolderFilterer) ParseWithdrawn(log types.Log) (*AssetHolderWithdrawn, error) {
+	event := new(AssetHolderWithdrawn)
+	if err := _AssetHolder.contract.UnpackLog(event, "Withdrawn", log); err != nil {
+		return nil, err
+	}
+	return event, nil
+}
+
 // AssetHolderETHABI is the input ABI used to generate the binding from.
-const AssetHolderETHABI = "[{\"inputs\":[{\"internalType\":\"address\",\"name\":\"_adjudicator\",\"type\":\"address\"}],\"payable\":false,\"stateMutability\":\"nonpayable\",\"type\":\"constructor\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"bytes32\",\"name\":\"fundingID\",\"type\":\"bytes32\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"amount\",\"type\":\"uint256\"}],\"name\":\"Deposited\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"bytes32\",\"name\":\"channelID\",\"type\":\"bytes32\"}],\"name\":\"OutcomeSet\",\"type\":\"event\"},{\"constant\":true,\"inputs\":[],\"name\":\"adjudicator\",\"outputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":false,\"inputs\":[{\"internalType\":\"bytes32\",\"name\":\"fundingID\",\"type\":\"bytes32\"},{\"internalType\":\"uint256\",\"name\":\"amount\",\"type\":\"uint256\"}],\"name\":\"deposit\",\"outputs\":[],\"payable\":true,\"stateMutability\":\"payable\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[{\"internalType\":\"bytes32\",\"name\":\"\",\"type\":\"bytes32\"}],\"name\":\"holdings\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":false,\"inputs\":[{\"internalType\":\"bytes32\",\"name\":\"channelID\",\"type\":\"bytes32\"},{\"internalType\":\"address[]\",\"name\":\"parts\",\"type\":\"address[]\"},{\"internalType\":\"uint256[]\",\"name\":\"newBals\",\"type\":\"uint256[]\"},{\"internalType\":\"bytes32[]\",\"name\":\"subAllocs\",\"type\":\"bytes32[]\"},{\"internalType\":\"uint256[]\",\"name\":\"subBalances\",\"type\":\"uint256[]\"}],\"name\":\"setOutcome\",\"outputs\":[],\"payable\":false,\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[{\"internalType\":\"bytes32\",\"name\":\"\",\"type\":\"bytes32\"}],\"name\":\"settled\",\"outputs\":[{\"internalType\":\"bool\",\"name\":\"\",\"type\":\"bool\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":false,\"inputs\":[{\"components\":[{\"internalType\":\"bytes32\",\"name\":\"channelID\",\"type\":\"bytes32\"},{\"internalType\":\"address\",\"name\":\"participant\",\"type\":\"address\"},{\"internalType\":\"addresspayable\",\"name\":\"receiver\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"amount\",\"type\":\"uint256\"}],\"internalType\":\"structAssetHolder.WithdrawalAuth\",\"name\":\"authorization\",\"type\":\"tuple\"},{\"internalType\":\"bytes\",\"name\":\"signature\",\"type\":\"bytes\"}],\"name\":\"withdraw\",\"outputs\":[],\"payable\":false,\"stateMutability\":\"nonpayable\",\"type\":\"function\"}]"
+const AssetHolderETHABI = "[{\"inputs\":[{\"internalType\":\"address\",\"name\":\"_adjudicator\",\"type\":\"address\"}],\"payable\":false,\"stateMutability\":\"nonpayable\",\"type\":\"constructor\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"bytes32\",\"name\":\"fundingID\",\"type\":\"bytes32\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"amount\",\"type\":\"uint256\"}],\"name\":\"Deposited\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"bytes32\",\"name\":\"channelID\",\"type\":\"bytes32\"}],\"name\":\"OutcomeSet\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"participant\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"amount\",\"type\":\"uint256\"}],\"name\":\"Withdrawn\",\"type\":\"event\"},{\"constant\":true,\"inputs\":[],\"name\":\"adjudicator\",\"outputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":false,\"inputs\":[{\"internalType\":\"bytes32\",\"name\":\"fundingID\",\"type\":\"bytes32\"},{\"internalType\":\"uint256\",\"name\":\"amount\",\"type\":\"uint256\"}],\"name\":\"deposit\",\"outputs\":[],\"payable\":true,\"stateMutability\":\"payable\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[{\"internalType\":\"bytes32\",\"name\":\"\",\"type\":\"bytes32\"}],\"name\":\"holdings\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":false,\"inputs\":[{\"internalType\":\"bytes32\",\"name\":\"channelID\",\"type\":\"bytes32\"},{\"internalType\":\"address[]\",\"name\":\"parts\",\"type\":\"address[]\"},{\"internalType\":\"uint256[]\",\"name\":\"newBals\",\"type\":\"uint256[]\"},{\"internalType\":\"bytes32[]\",\"name\":\"subAllocs\",\"type\":\"bytes32[]\"},{\"internalType\":\"uint256[]\",\"name\":\"subBalances\",\"type\":\"uint256[]\"}],\"name\":\"setOutcome\",\"outputs\":[],\"payable\":false,\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[{\"internalType\":\"bytes32\",\"name\":\"\",\"type\":\"bytes32\"}],\"name\":\"settled\",\"outputs\":[{\"internalType\":\"bool\",\"name\":\"\",\"type\":\"bool\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":false,\"inputs\":[{\"components\":[{\"internalType\":\"bytes32\",\"name\":\"channelID\",\"type\":\"bytes32\"},{\"internalType\":\"address\",\"name\":\"participant\",\"type\":\"address\"},{\"internalType\":\"addresspayable\",\"name\":\"receiver\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"amount\",\"type\":\"uint256\"}],\"internalType\":\"structAssetHolder.WithdrawalAuth\",\"name\":\"authorization\",\"type\":\"tuple\"},{\"internalType\":\"bytes\",\"name\":\"signature\",\"type\":\"bytes\"}],\"name\":\"withdraw\",\"outputs\":[],\"payable\":false,\"stateMutability\":\"nonpayable\",\"type\":\"function\"}]"
 
 // AssetHolderETHFuncSigs maps the 4-byte function signature to its string representation.
 var AssetHolderETHFuncSigs = map[string]string{
@@ -632,7 +776,7 @@ var AssetHolderETHFuncSigs = map[string]string{
 }
 
 // AssetHolderETHBin is the compiled bytecode used for deploying new contracts.
-var AssetHolderETHBin = "0x6080604052600280546001600160a01b031916905534801561002057600080fd5b506040516111ad3803806111ad83398101604081905261003f91610075565b600280546001600160a01b0319166001600160a01b03929092169190911790556100c3565b805161006f816100ac565b92915050565b60006020828403121561008757600080fd5b60006100938484610064565b949350505050565b60006001600160a01b03821661006f565b6100b58161009b565b81146100c057600080fd5b50565b6110db806100d26000396000f3fe6080604052600436106100555760003560e01c80631de26e161461005a5780634ed4283c1461006f57806353c2ed8e1461008f57806379aad62e146100ba578063ae9ee18c146100da578063d945af1d14610107575b600080fd5b61006d610068366004610a05565b610134565b005b34801561007b57600080fd5b5061006d61008a366004610a3f565b6101cd565b34801561009b57600080fd5b506100a461030a565b6040516100b19190610e72565b60405180910390f35b3480156100c657600080fd5b5061006d6100d536600461091f565b610319565b3480156100e657600080fd5b506100fa6100f5366004610901565b610561565b6040516100b19190610f8b565b34801561011357600080fd5b50610127610122366004610901565b610573565b6040516100b19190610e80565b80341461015c5760405162461bcd60e51b815260040161015390610efd565b60405180910390fd5b60008281526020819052604090205461017b908263ffffffff61058816565b60008084815260200190815260200160002081905550817fcd2fe07293de5928c5df9505b65a8d6506f8668dfe81af09090920687edc48a9826040516101c19190610f8b565b60405180910390a25050565b815160009081526001602052604090205460ff166101fd5760405162461bcd60e51b815260040161015390610f6d565b61022b826040516020016102119190610f7d565b6040516020818303038152906040528284602001516105b6565b6102475760405162461bcd60e51b815260040161015390610f3d565b600061025b8360000151846020015161060c565b606084015160008281526020819052604090205491925011156102905760405162461bcd60e51b815260040161015390610f1d565b60608301516000828152602081905260409020546102b39163ffffffff61063f16565b6000828152602081905260408082209290925584820151606086015192516001600160a01b039091169280156108fc0292909190818181858888f19350505050158015610304573d6000803e3d6000fd5b50505050565b6002546001600160a01b031681565b6002546001600160a01b031633146103435760405162461bcd60e51b815260040161015390610f5d565b8685146103625760405162461bcd60e51b815260040161015390610f0d565b8281146103815760405162461bcd60e51b815260040161015390610eed565b821561039f5760405162461bcd60e51b815260040161015390610f4d565b60008981526001602052604090205460ff16156103ce5760405162461bcd60e51b815260040161015390610f2d565b6000898152602081815260408083205481518b81528b8402810190930190915291906060908a801561040a578160200160208202803883390190505b50905060005b8a8110156104b65760006104448e8e8e8581811061042a57fe5b905060200201602061043f91908101906108db565b61060c565b90508083838151811061045357fe5b602002602001018181525050610484600080838152602001908152602001600020548661058890919063ffffffff16565b94506104ab8b8b8481811061049557fe5b905060200201358561058890919063ffffffff16565b935050600101610410565b508183106105105760005b8a81101561050e578989828181106104d557fe5b905060200201356000808484815181106104eb57fe5b6020908102919091018101518252810191909152604001600020556001016104c1565b505b60008c8152600160208190526040808320805460ff1916909217909155518d917fef898d6cd3395b6dfe67a3c1923e5c726c1b154e979fb0a25a9c41d0093168b891a2505050505050505050505050565b60006020819052908152604090205481565b60016020526000908152604090205460ff1681565b6000828201838110156105ad5760405162461bcd60e51b815260040161015390610edd565b90505b92915050565b6000806105c98580519060200120610681565b905060006105d782866106b1565b90506001600160a01b0381166105ec57600080fd5b836001600160a01b0316816001600160a01b031614925050509392505050565b60008282604051602001610621929190610e2c565b60405160208183030381529060405280519060200120905092915050565b60006105ad83836040518060400160405280601e81526020017f536166654d6174683a207375627472616374696f6e206f766572666c6f77000081525061078d565b6000816040516020016106949190610e52565b604051602081830303815290604052805190602001209050919050565b600081516041146106c4575060006105b0565b60208201516040830151606084015160001a7f7fffffffffffffffffffffffffffffff5d576e7357a4501ddfe92f46681b20a082111561070a57600093505050506105b0565b8060ff16601b1415801561072257508060ff16601c14155b1561073357600093505050506105b0565b600186828585604051600081526020016040526040516107569493929190610e8e565b6020604051602081039080840390855afa158015610778573d6000803e3d6000fd5b5050604051601f190151979650505050505050565b600081848411156107b15760405162461bcd60e51b81526004016101539190610ecc565b505050900390565b80356105b081611078565b60008083601f8401126107d657600080fd5b50813567ffffffffffffffff8111156107ee57600080fd5b60208301915083602082028301111561080657600080fd5b9250929050565b80356105b08161108f565b600082601f83011261082957600080fd5b813561083c61083782610fc0565b610f99565b9150808252602083016020830185838301111561085857600080fd5b61086383828461101f565b50505092915050565b60006080828403121561087e57600080fd5b6108886080610f99565b90506000610896848461080d565b82525060206108a7848483016107b9565b60208301525060406108bb848285016107b9565b60408301525060606108cf8482850161080d565b60608301525092915050565b6000602082840312156108ed57600080fd5b60006108f984846107b9565b949350505050565b60006020828403121561091357600080fd5b60006108f9848461080d565b600080600080600080600080600060a08a8c03121561093d57600080fd5b60006109498c8c61080d565b99505060208a013567ffffffffffffffff81111561096657600080fd5b6109728c828d016107c4565b985098505060408a013567ffffffffffffffff81111561099157600080fd5b61099d8c828d016107c4565b965096505060608a013567ffffffffffffffff8111156109bc57600080fd5b6109c88c828d016107c4565b945094505060808a013567ffffffffffffffff8111156109e757600080fd5b6109f38c828d016107c4565b92509250509295985092959850929598565b60008060408385031215610a1857600080fd5b6000610a24858561080d565b9250506020610a358582860161080d565b9150509250929050565b60008060a08385031215610a5257600080fd5b6000610a5e858561086c565b925050608083013567ffffffffffffffff811115610a7b57600080fd5b610a3585828601610818565b610a9081610ffa565b82525050565b610a90610aa282610ffa565b611057565b610a9081611005565b610a908161100a565b610a90610ac58261100a565b61100a565b6000610ad582610fe8565b610adf8185610fec565b9350610aef81856020860161102b565b610af881611068565b9093019392505050565b6000610b0f601c83610ff5565b7f19457468657265756d205369676e6564204d6573736167653a0a3332000000008152601c0192915050565b6000610b48601b83610fec565b7f536166654d6174683a206164646974696f6e206f766572666c6f770000000000815260200192915050565b6000610b81603383610fec565b7f6c656e677468206f6620737562416c6c6f637320616e642073756242616c616e81527218d95cc81cda1bdd5b1908189948195c5d585b606a1b602082015260400192915050565b6000610bd6601f83610fec565b7f77726f6e6720616d6f756e74206f662045544820666f72206465706f73697400815260200192915050565b6000610c0f602983610fec565b7f7061727469636970616e7473206c656e6774682073686f756c6420657175616c8152682062616c616e63657360b81b602082015260400192915050565b6000610c5a601f83610fec565b7f696e73756666696369656e742045544820666f72207769746864726177616c00815260200192915050565b6000610c93602583610fec565b7f747279696e6720746f2073657420616c726561647920736574746c6564206368815264185b9b995b60da1b602082015260400192915050565b6000610cda601d83610fec565b7f7369676e617475726520766572696669636174696f6e206661696c6564000000815260200192915050565b6000610d13602383610fec565b7f737562416c6c6f63732063757272656e746c79206e6f7420696d706c656d656e8152621d195960ea1b602082015260400192915050565b6000610d58603a83610fec565b7f54686973206d6574686f642063616e206f6e6c792062652063616c6c6564206281527f79207468652061646a7564696361746f7220636f6e7472616374000000000000602082015260400192915050565b6000610db7601383610fec565b7218da185b9b995b081b9bdd081cd95d1d1b1959606a1b815260200192915050565b80516080830190610dea8482610ab0565b506020820151610dfd6020850182610a87565b506040820151610e106040850182610a87565b5060608201516103046060850182610ab0565b610a9081611019565b6000610e388285610ab9565b602082019150610e488284610a96565b5060140192915050565b6000610e5d82610b02565b9150610e698284610ab9565b50602001919050565b602081016105b08284610a87565b602081016105b08284610aa7565b60808101610e9c8287610ab0565b610ea96020830186610e23565b610eb66040830185610ab0565b610ec36060830184610ab0565b95945050505050565b602080825281016105ad8184610aca565b602080825281016105b081610b3b565b602080825281016105b081610b74565b602080825281016105b081610bc9565b602080825281016105b081610c02565b602080825281016105b081610c4d565b602080825281016105b081610c86565b602080825281016105b081610ccd565b602080825281016105b081610d06565b602080825281016105b081610d4b565b602080825281016105b081610daa565b608081016105b08284610dd9565b602081016105b08284610ab0565b60405181810167ffffffffffffffff81118282101715610fb857600080fd5b604052919050565b600067ffffffffffffffff821115610fd757600080fd5b506020601f91909101601f19160190565b5190565b90815260200190565b919050565b60006105b08261100d565b151590565b90565b6001600160a01b031690565b60ff1690565b82818337506000910152565b60005b8381101561104657818101518382015260200161102e565b838111156103045750506000910152565b60006105b08260006105b082611072565b601f01601f191690565b60601b90565b61108181610ffa565b811461108c57600080fd5b50565b6110818161100a56fea365627a7a723158200b3e09bea1fba893e9a4032c706923fbee00f3e1b24485ce940e295b26fb29c76c6578706572696d656e74616cf564736f6c634300050d0040"
+var AssetHolderETHBin = "0x6080604052600280546001600160a01b031916905534801561002057600080fd5b506040516111cf3803806111cf83398101604081905261003f91610075565b600280546001600160a01b0319166001600160a01b03929092169190911790556100c3565b805161006f816100ac565b92915050565b60006020828403121561008757600080fd5b60006100938484610064565b949350505050565b60006001600160a01b03821661006f565b6100b58161009b565b81146100c057600080fd5b50565b6110fd806100d26000396000f3fe6080604052600436106100555760003560e01c80631de26e161461005a5780634ed4283c1461006f57806353c2ed8e1461008f57806379aad62e146100ba578063ae9ee18c146100da578063d945af1d14610107575b600080fd5b61006d610068366004610a54565b610134565b005b34801561007b57600080fd5b5061006d61008a366004610a8e565b6101cd565b34801561009b57600080fd5b506100a4610353565b6040516100b19190610e90565b60405180910390f35b3480156100c657600080fd5b5061006d6100d536600461096e565b610362565b3480156100e657600080fd5b506100fa6100f5366004610950565b6105af565b6040516100b19190610fc4565b34801561011357600080fd5b50610127610122366004610950565b6105c1565b6040516100b19190610e9e565b80341461015c5760405162461bcd60e51b815260040161015390610f36565b60405180910390fd5b60008281526020819052604090205461017b908263ffffffff6105d616565b60008084815260200190815260200160002081905550817fcd2fe07293de5928c5df9505b65a8d6506f8668dfe81af09090920687edc48a9826040516101c19190610fc4565b60405180910390a25050565b815160009081526001602052604090205460ff166101fd5760405162461bcd60e51b815260040161015390610fa6565b61022b826040516020016102119190610fb6565b604051602081830303815290604052828460200151610604565b6102475760405162461bcd60e51b815260040161015390610f76565b600061025b8360000151846020015161065b565b606084015160008281526020819052604090205491925011156102905760405162461bcd60e51b815260040161015390610f56565b60608301516000828152602081905260409020546102b39163ffffffff61068e16565b6000828152602081905260408082209290925584820151606086015192516001600160a01b039091169280156108fc0292909190818181858888f19350505050158015610304573d6000803e3d6000fd5b5082602001516001600160a01b03167f7084f5476618d8e60b11ef0d7d3f06914655adb8793e28ff7f018d4c76d505d584606001516040516103469190610fc4565b60405180910390a2505050565b6002546001600160a01b031681565b6002546001600160a01b0316331461038c5760405162461bcd60e51b815260040161015390610f96565b8685146103ab5760405162461bcd60e51b815260040161015390610f46565b8281146103ca5760405162461bcd60e51b815260040161015390610f26565b82156103e85760405162461bcd60e51b815260040161015390610f86565b60008981526001602052604090205460ff16156104175760405162461bcd60e51b815260040161015390610f66565b60008981526020818152604080832080549084905581518b81528b8402810190930190915291906060908a8015610458578160200160208202803883390190505b50905060005b8a8110156105045760006104928e8e8e8581811061047857fe5b905060200201602061048d919081019061092a565b61065b565b9050808383815181106104a157fe5b6020026020010181815250506104d260008083815260200190815260200160002054866105d690919063ffffffff16565b94506104f98b8b848181106104e357fe5b90506020020135856105d690919063ffffffff16565b93505060010161045e565b5081831061055e5760005b8a81101561055c5789898281811061052357fe5b9050602002013560008084848151811061053957fe5b60209081029190910181015182528101919091526040016000205560010161050f565b505b60008c8152600160208190526040808320805460ff1916909217909155518d917fef898d6cd3395b6dfe67a3c1923e5c726c1b154e979fb0a25a9c41d0093168b891a2505050505050505050505050565b60006020819052908152604090205481565b60016020526000908152604090205460ff1681565b6000828201838110156105fb5760405162461bcd60e51b815260040161015390610f16565b90505b92915050565b60008061061785805190602001206106d0565b905060006106258286610700565b90506001600160a01b03811661063a57600080fd5b836001600160a01b0316816001600160a01b031614925050505b9392505050565b60008282604051602001610670929190610eac565b60405160208183030381529060405280519060200120905092915050565b60006105fb83836040518060400160405280601e81526020017f536166654d6174683a207375627472616374696f6e206f766572666c6f7700008152506107dc565b6000816040516020016106e39190610e70565b604051602081830303815290604052805190602001209050919050565b60008151604114610713575060006105fe565b60208201516040830151606084015160001a7f7fffffffffffffffffffffffffffffff5d576e7357a4501ddfe92f46681b20a082111561075957600093505050506105fe565b8060ff16601b1415801561077157508060ff16601c14155b1561078257600093505050506105fe565b600186828585604051600081526020016040526040516107a59493929190610ec7565b6020604051602081039080840390855afa1580156107c7573d6000803e3d6000fd5b5050604051601f190151979650505050505050565b600081848411156108005760405162461bcd60e51b81526004016101539190610f05565b505050900390565b80356105fe8161109a565b60008083601f84011261082557600080fd5b50813567ffffffffffffffff81111561083d57600080fd5b60208301915083602082028301111561085557600080fd5b9250929050565b80356105fe816110b1565b600082601f83011261087857600080fd5b813561088b61088682610ff9565b610fd2565b915080825260208301602083018583830111156108a757600080fd5b6108b2838284611058565b50505092915050565b6000608082840312156108cd57600080fd5b6108d76080610fd2565b905060006108e5848461085c565b82525060206108f684848301610808565b602083015250604061090a84828501610808565b604083015250606061091e8482850161085c565b60608301525092915050565b60006020828403121561093c57600080fd5b60006109488484610808565b949350505050565b60006020828403121561096257600080fd5b6000610948848461085c565b600080600080600080600080600060a08a8c03121561098c57600080fd5b60006109988c8c61085c565b99505060208a013567ffffffffffffffff8111156109b557600080fd5b6109c18c828d01610813565b985098505060408a013567ffffffffffffffff8111156109e057600080fd5b6109ec8c828d01610813565b965096505060608a013567ffffffffffffffff811115610a0b57600080fd5b610a178c828d01610813565b945094505060808a013567ffffffffffffffff811115610a3657600080fd5b610a428c828d01610813565b92509250509295985092959850929598565b60008060408385031215610a6757600080fd5b6000610a73858561085c565b9250506020610a848582860161085c565b9150509250929050565b60008060a08385031215610aa157600080fd5b6000610aad85856108bb565b925050608083013567ffffffffffffffff811115610aca57600080fd5b610a8485828601610867565b610adf81611033565b82525050565b610adf8161103e565b610adf81611043565b610adf610b0382611043565b611043565b6000610b1382611021565b610b1d8185611025565b9350610b2d818560208601611064565b610b3681611090565b9093019392505050565b6000610b4d601c8361102e565b7f19457468657265756d205369676e6564204d6573736167653a0a3332000000008152601c0192915050565b6000610b86601b83611025565b7f536166654d6174683a206164646974696f6e206f766572666c6f770000000000815260200192915050565b6000610bbf603383611025565b7f6c656e677468206f6620737562416c6c6f637320616e642073756242616c616e81527218d95cc81cda1bdd5b1908189948195c5d585b606a1b602082015260400192915050565b6000610c14601f83611025565b7f77726f6e6720616d6f756e74206f662045544820666f72206465706f73697400815260200192915050565b6000610c4d602983611025565b7f7061727469636970616e7473206c656e6774682073686f756c6420657175616c8152682062616c616e63657360b81b602082015260400192915050565b6000610c98601f83611025565b7f696e73756666696369656e742045544820666f72207769746864726177616c00815260200192915050565b6000610cd1602583611025565b7f747279696e6720746f2073657420616c726561647920736574746c6564206368815264185b9b995b60da1b602082015260400192915050565b6000610d18601d83611025565b7f7369676e617475726520766572696669636174696f6e206661696c6564000000815260200192915050565b6000610d51602383611025565b7f737562416c6c6f63732063757272656e746c79206e6f7420696d706c656d656e8152621d195960ea1b602082015260400192915050565b6000610d96603a83611025565b7f54686973206d6574686f642063616e206f6e6c792062652063616c6c6564206281527f79207468652061646a7564696361746f7220636f6e7472616374000000000000602082015260400192915050565b6000610df5601383611025565b7218da185b9b995b081b9bdd081cd95d1d1b1959606a1b815260200192915050565b80516080830190610e288482610aee565b506020820151610e3b6020850182610ad6565b506040820151610e4e6040850182610ad6565b506060820151610e616060850182610aee565b50505050565b610adf81611052565b6000610e7b82610b40565b9150610e878284610af7565b50602001919050565b602081016105fe8284610ad6565b602081016105fe8284610ae5565b60408101610eba8285610aee565b6106546020830184610ad6565b60808101610ed58287610aee565b610ee26020830186610e67565b610eef6040830185610aee565b610efc6060830184610aee565b95945050505050565b602080825281016105fb8184610b08565b602080825281016105fe81610b79565b602080825281016105fe81610bb2565b602080825281016105fe81610c07565b602080825281016105fe81610c40565b602080825281016105fe81610c8b565b602080825281016105fe81610cc4565b602080825281016105fe81610d0b565b602080825281016105fe81610d44565b602080825281016105fe81610d89565b602080825281016105fe81610de8565b608081016105fe8284610e17565b602081016105fe8284610aee565b60405181810167ffffffffffffffff81118282101715610ff157600080fd5b604052919050565b600067ffffffffffffffff82111561101057600080fd5b506020601f91909101601f19160190565b5190565b90815260200190565b919050565b60006105fe82611046565b151590565b90565b6001600160a01b031690565b60ff1690565b82818337506000910152565b60005b8381101561107f578181015183820152602001611067565b83811115610e615750506000910152565b601f01601f191690565b6110a381611033565b81146110ae57600080fd5b50565b6110a38161104356fea365627a7a7231582068115243497932e9980eba7d7e1d8a2a07d1c6731c66898200efa88f4f3ff3a26c6578706572696d656e74616cf564736f6c634300050d0040"
 
 // DeployAssetHolderETH deploys a new Ethereum contract, binding an instance of AssetHolderETH to it.
 func DeployAssetHolderETH(auth *bind.TransactOpts, backend bind.ContractBackend, _adjudicator common.Address) (common.Address, *types.Transaction, *AssetHolderETH, error) {
@@ -1213,6 +1357,150 @@ func (_AssetHolderETH *AssetHolderETHFilterer) WatchOutcomeSet(opts *bind.WatchO
 func (_AssetHolderETH *AssetHolderETHFilterer) ParseOutcomeSet(log types.Log) (*AssetHolderETHOutcomeSet, error) {
 	event := new(AssetHolderETHOutcomeSet)
 	if err := _AssetHolderETH.contract.UnpackLog(event, "OutcomeSet", log); err != nil {
+		return nil, err
+	}
+	return event, nil
+}
+
+// AssetHolderETHWithdrawnIterator is returned from FilterWithdrawn and is used to iterate over the raw logs and unpacked data for Withdrawn events raised by the AssetHolderETH contract.
+type AssetHolderETHWithdrawnIterator struct {
+	Event *AssetHolderETHWithdrawn // Event containing the contract specifics and raw log
+
+	contract *bind.BoundContract // Generic contract to use for unpacking event data
+	event    string              // Event name to use for unpacking event data
+
+	logs chan types.Log        // Log channel receiving the found contract events
+	sub  ethereum.Subscription // Subscription for errors, completion and termination
+	done bool                  // Whether the subscription completed delivering logs
+	fail error                 // Occurred error to stop iteration
+}
+
+// Next advances the iterator to the subsequent event, returning whether there
+// are any more events found. In case of a retrieval or parsing error, false is
+// returned and Error() can be queried for the exact failure.
+func (it *AssetHolderETHWithdrawnIterator) Next() bool {
+	// If the iterator failed, stop iterating
+	if it.fail != nil {
+		return false
+	}
+	// If the iterator completed, deliver directly whatever's available
+	if it.done {
+		select {
+		case log := <-it.logs:
+			it.Event = new(AssetHolderETHWithdrawn)
+			if err := it.contract.UnpackLog(it.Event, it.event, log); err != nil {
+				it.fail = err
+				return false
+			}
+			it.Event.Raw = log
+			return true
+
+		default:
+			return false
+		}
+	}
+	// Iterator still in progress, wait for either a data or an error event
+	select {
+	case log := <-it.logs:
+		it.Event = new(AssetHolderETHWithdrawn)
+		if err := it.contract.UnpackLog(it.Event, it.event, log); err != nil {
+			it.fail = err
+			return false
+		}
+		it.Event.Raw = log
+		return true
+
+	case err := <-it.sub.Err():
+		it.done = true
+		it.fail = err
+		return it.Next()
+	}
+}
+
+// Error returns any retrieval or parsing error occurred during filtering.
+func (it *AssetHolderETHWithdrawnIterator) Error() error {
+	return it.fail
+}
+
+// Close terminates the iteration process, releasing any pending underlying
+// resources.
+func (it *AssetHolderETHWithdrawnIterator) Close() error {
+	it.sub.Unsubscribe()
+	return nil
+}
+
+// AssetHolderETHWithdrawn represents a Withdrawn event raised by the AssetHolderETH contract.
+type AssetHolderETHWithdrawn struct {
+	Participant common.Address
+	Amount      *big.Int
+	Raw         types.Log // Blockchain specific contextual infos
+}
+
+// FilterWithdrawn is a free log retrieval operation binding the contract event 0x7084f5476618d8e60b11ef0d7d3f06914655adb8793e28ff7f018d4c76d505d5.
+//
+// Solidity: event Withdrawn(address indexed participant, uint256 amount)
+func (_AssetHolderETH *AssetHolderETHFilterer) FilterWithdrawn(opts *bind.FilterOpts, participant []common.Address) (*AssetHolderETHWithdrawnIterator, error) {
+
+	var participantRule []interface{}
+	for _, participantItem := range participant {
+		participantRule = append(participantRule, participantItem)
+	}
+
+	logs, sub, err := _AssetHolderETH.contract.FilterLogs(opts, "Withdrawn", participantRule)
+	if err != nil {
+		return nil, err
+	}
+	return &AssetHolderETHWithdrawnIterator{contract: _AssetHolderETH.contract, event: "Withdrawn", logs: logs, sub: sub}, nil
+}
+
+// WatchWithdrawn is a free log subscription operation binding the contract event 0x7084f5476618d8e60b11ef0d7d3f06914655adb8793e28ff7f018d4c76d505d5.
+//
+// Solidity: event Withdrawn(address indexed participant, uint256 amount)
+func (_AssetHolderETH *AssetHolderETHFilterer) WatchWithdrawn(opts *bind.WatchOpts, sink chan<- *AssetHolderETHWithdrawn, participant []common.Address) (event.Subscription, error) {
+
+	var participantRule []interface{}
+	for _, participantItem := range participant {
+		participantRule = append(participantRule, participantItem)
+	}
+
+	logs, sub, err := _AssetHolderETH.contract.WatchLogs(opts, "Withdrawn", participantRule)
+	if err != nil {
+		return nil, err
+	}
+	return event.NewSubscription(func(quit <-chan struct{}) error {
+		defer sub.Unsubscribe()
+		for {
+			select {
+			case log := <-logs:
+				// New log arrived, parse the event and forward to the user
+				event := new(AssetHolderETHWithdrawn)
+				if err := _AssetHolderETH.contract.UnpackLog(event, "Withdrawn", log); err != nil {
+					return err
+				}
+				event.Raw = log
+
+				select {
+				case sink <- event:
+				case err := <-sub.Err():
+					return err
+				case <-quit:
+					return nil
+				}
+			case err := <-sub.Err():
+				return err
+			case <-quit:
+				return nil
+			}
+		}
+	}), nil
+}
+
+// ParseWithdrawn is a log parse operation binding the contract event 0x7084f5476618d8e60b11ef0d7d3f06914655adb8793e28ff7f018d4c76d505d5.
+//
+// Solidity: event Withdrawn(address indexed participant, uint256 amount)
+func (_AssetHolderETH *AssetHolderETHFilterer) ParseWithdrawn(log types.Log) (*AssetHolderETHWithdrawn, error) {
+	event := new(AssetHolderETHWithdrawn)
+	if err := _AssetHolderETH.contract.UnpackLog(event, "Withdrawn", log); err != nil {
 		return nil, err
 	}
 	return event, nil

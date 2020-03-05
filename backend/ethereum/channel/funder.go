@@ -24,8 +24,8 @@ import (
 
 var (
 	// Declaration for abi-encoding.
-	abibytes32, _ = abi.NewType("bytes32", nil)
-	abiaddress, _ = abi.NewType("address", nil)
+	abibytes32, _ = abi.NewType("bytes32", "", nil)
+	abiaddress, _ = abi.NewType("address", "", nil)
 )
 
 type assetHolder struct {
@@ -129,7 +129,7 @@ func (f *Funder) sendFundingTransaction(ctx context.Context, request channel.Fun
 	if err != nil {
 		return errors.WithMessagef(err, "depositing asset %d", asset.assetIndex)
 	}
-	if err := execSuccessful(ctx, f.ContractBackend, tx); err != nil {
+	if err := confirmTransaction(ctx, f.ContractBackend, tx); err != nil {
 		return errors.WithMessage(err, "mining transaction")
 	}
 	f.log.Debugf("peer[%d] Transaction with txHash: [%v] executed successful", request.Idx, tx.Hash().Hex())

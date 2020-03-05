@@ -55,16 +55,9 @@ func NewContractBackend(cf ContractInterface, ks *keystore.KeyStore, acc *accoun
 }
 
 func (c *ContractBackend) newWatchOpts(ctx context.Context) (*bind.WatchOpts, error) {
-	latestBlock, err := c.BlockByNumber(ctx, nil)
+	blockNum, err := c.getBlockNum(ctx)
 	if err != nil {
-		return nil, errors.Wrap(err, "Could not retrieve latest block")
-	}
-	// max(1, latestBlock - offset)
-	var blockNum uint64
-	if latestBlock.NumberU64() > startBlockOffset {
-		blockNum = latestBlock.NumberU64() - startBlockOffset
-	} else {
-		blockNum = 1
+		return nil, errors.WithMessage(err, "new watch opts")
 	}
 
 	return &bind.WatchOpts{
@@ -73,20 +66,47 @@ func (c *ContractBackend) newWatchOpts(ctx context.Context) (*bind.WatchOpts, er
 	}, nil
 }
 
+func (c *ContractBackend) newFilterOpts(ctx context.Context) (*bind.FilterOpts, error) {
+	blockNum, err := c.getBlockNum(ctx)
+	if err != nil {
+		return nil, errors.WithMessage(err, "new filter opts")
+	}
+	return &bind.FilterOpts{
+		Start:   blockNum,
+		End:     nil,
+		Context: ctx,
+	}, nil
+}
+
+func (c *ContractBackend) getBlockNum(ctx context.Context) (uint64, error) {
+	latestBlock, err := c.BlockByNumber(ctx, nil)
+	if err != nil {
+		return uint64(0), errors.Wrap(err, "Could not retrieve latest block")
+	}
+	// max(1, latestBlock - offset)
+	var blockNum uint64
+	if latestBlock.NumberU64() > startBlockOffset {
+		blockNum = latestBlock.NumberU64() - startBlockOffset
+	} else {
+		blockNum = 1
+	}
+	return blockNum, nil
+}
+
 func (c *ContractBackend) newTransactor(ctx context.Context, valueWei *big.Int, gasLimit uint64) (*bind.TransactOpts, error) {
 	nonce, err := c.PendingNonceAt(ctx, c.account.Address)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "querying pending nonce")
 	}
 
 	gasPrice, err := c.SuggestGasPrice(ctx)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "querying suggested gas price")
 	}
 
 	auth, err := bind.NewKeyStoreTransactor(c.ks, *c.account)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "creating transactor")
 	}
 
 	auth.Nonce = new(big.Int).SetUint64(nonce)
