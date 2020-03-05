@@ -11,8 +11,10 @@ import (
 
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/pkg/errors"
 	"golang.org/x/sync/errgroup"
+
 	"perun.network/go-perun/backend/ethereum/bindings/assets"
 	"perun.network/go-perun/backend/ethereum/wallet"
 	"perun.network/go-perun/channel"
@@ -37,11 +39,11 @@ func (a *Adjudicator) ensureWithdrawn(ctx context.Context, request channel.Adjud
 		g.Go(func() error {
 			contract, err := connectToAssetHolder(a.ContractBackend, asset, index)
 			if err != nil {
-				return errors.Wrap(err, "Connecting to contracts failed")
+				return errors.WithMessage(err, "connecting asset holder")
 			}
 
-			if err := a.withdrawAsset(ctx, request, contract); err != nil {
-				return errors.Wrap(err, "Funding assets failed")
+			if err := a.callAssetWithdraw(ctx, request, contract); err != nil {
+				return errors.Wrap(err, "withdrawing assets failed")
 			}
 			return a.waitForWithdrawnEvent(ctx, request, contract)
 		})
@@ -54,7 +56,7 @@ func connectToAssetHolder(backend ContractBackend, asset channel.Asset, assetInd
 	assetAddr := asset.(*Asset).Address
 	ctr, err := assets.NewAssetHolder(assetAddr, backend)
 	if err != nil {
-		return assetHolder{}, errors.Wrapf(err, "connecting to assetholder")
+		return assetHolder{}, errors.Wrap(err, "connecting to assetholder")
 	}
 	return assetHolder{ctr, &assetAddr, assetIndex}, nil
 }
@@ -109,24 +111,33 @@ func (a *Adjudicator) waitForWithdrawnEvent(ctx context.Context, request channel
 	return nil
 }
 
-func (a *Adjudicator) withdrawAsset(ctx context.Context, request channel.AdjudicatorReq, asset assetHolder) error {
-	a.mu.Lock()
-	defer a.mu.Unlock()
-	trans, err := a.newTransactor(ctx, big.NewInt(0), GasLimit)
-	if err != nil {
-		return errors.Wrapf(err, "creating transactor for asset %d", asset.assetIndex)
-	}
-	// Create a new Withdrawal authorization.
+func (a *Adjudicator) callAssetWithdraw(ctx context.Context, request channel.AdjudicatorReq, asset assetHolder) error {
 	auth, sig, err := a.newWithdrawalAuth(request, asset)
 	if err != nil {
 		return errors.WithMessage(err, "creating withdrawal auth")
 	}
-	// Call the asset holder contract.
-	ethTx, err := asset.Withdraw(trans, auth, sig)
+	tx, err := func() (*types.Transaction, error) {
+		if !a.mu.TryLockCtx(ctx) {
+			return nil, errors.Wrap(ctx.Err(), "context canceled while acquiring tx lock")
+		}
+		defer a.mu.Unlock()
+		trans, err := a.newTransactor(ctx, big.NewInt(0), GasLimit)
+		if err != nil {
+			return nil, errors.WithMessagef(err, "creating transactor for asset %d", asset.assetIndex)
+		}
+
+		tx, err := asset.Withdraw(trans, auth, sig)
+		if err != nil {
+			return nil, errors.Wrapf(err, "withdrawing asset %d", asset.assetIndex)
+		}
+		log.Debugf("Sent transaction %v", tx.Hash().Hex())
+		return tx, nil
+	}()
 	if err != nil {
-		return errors.Wrapf(err, "depositing asset %d", asset.assetIndex)
+		return err
 	}
-	return errors.WithMessage(confirmTransaction(ctx, a.ContractBackend, ethTx), "mining transaction")
+
+	return errors.WithMessage(confirmTransaction(ctx, a.ContractBackend, tx), "mining transaction")
 }
 
 func (a *Adjudicator) newWithdrawalAuth(request channel.AdjudicatorReq, asset assetHolder) (assets.AssetHolderWithdrawalAuth, []byte, error) {

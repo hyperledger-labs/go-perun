@@ -87,19 +87,26 @@ type adjFunc = func(
 func (a *Adjudicator) call(ctx context.Context, req channel.AdjudicatorReq, fn adjFunc) error {
 	ethParams := channelParamsToEthParams(req.Params)
 	ethState := channelStateToEthState(req.Tx.State)
-	if !a.mu.TryLockCtx(ctx) {
-		return errors.New("could not acquire tx lock in time")
-	}
-	defer a.mu.Unlock()
+	tx, err := func() (*types.Transaction, error) {
+		if !a.mu.TryLockCtx(ctx) {
+			return nil, errors.Wrap(ctx.Err(), "context canceled while acquiring tx lock")
+		}
+		defer a.mu.Unlock()
 
-	trans, err := a.newTransactor(ctx, big.NewInt(0), GasLimit)
+		trans, err := a.newTransactor(ctx, big.NewInt(0), GasLimit)
+		if err != nil {
+			return nil, errors.WithMessage(err, "creating transactor")
+		}
+		tx, err := fn(trans, ethParams, ethState, req.Tx.Sigs)
+		if err != nil {
+			return nil, errors.Wrap(err, "calling adjudicator function")
+		}
+		log.Debugf("Sent transaction %v", tx.Hash().Hex())
+		return tx, nil
+	}()
 	if err != nil {
-		return errors.WithMessage(err, "creating transactor")
+		return err
 	}
-	tx, err := fn(trans, ethParams, ethState, req.Tx.Sigs)
-	if err != nil {
-		return errors.Wrap(err, "calling register-like function")
-	}
-	log.Debugf("Sending transaction to the blockchain with txHash: %v", tx.Hash().Hex())
-	return confirmTransaction(ctx, a.ContractBackend, tx)
+
+	return errors.WithMessage(confirmTransaction(ctx, a.ContractBackend, tx), "mining transaction")
 }

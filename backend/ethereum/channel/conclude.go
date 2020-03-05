@@ -70,11 +70,11 @@ func (a *Adjudicator) filterConcluded(ctx context.Context, channelID channel.ID)
 	}
 	iter, err := a.contract.FilterConcluded(filterOpts, [][32]byte{channelID})
 	if err != nil {
-		return false, errors.WithStack(err)
+		return false, errors.Wrap(err, "creating iterator")
 	}
 
 	if !iter.Next() {
-		return false, nil
+		return false, errors.Wrap(iter.Error(), "iterating")
 	}
 	// Event found
 	return true, nil
