@@ -152,7 +152,7 @@ func testFunderFunding(t *testing.T, n int) {
 	require.NoError(t, err, "Get Post-Funding state should succeed")
 	for i := range newAlloc {
 		for k := range newAlloc[i] {
-			assert.Zero(t, allocation.OfParts[i][k].Cmp(newAlloc[i][k]), "Post-Funding balances should equal expected balances")
+			assert.Zero(t, allocation.Balances[i][k].Cmp(newAlloc[i][k]), "Post-Funding balances should equal expected balances")
 		}
 	}
 }
@@ -211,17 +211,17 @@ func newValidAllocation(parts []wallet.Address, assetETH common.Address) *channe
 		&ethchannel.Asset{Address: assetETH},
 	}
 	rng := rand.New(rand.NewSource(1337))
-	ofparts := make([][]channel.Bal, len(parts))
+	ofparts := make([][]channel.Bal, len(assets))
 	for i := 0; i < len(ofparts); i++ {
-		ofparts[i] = make([]channel.Bal, len(assets))
-		for k := 0; k < len(assets); k++ {
+		ofparts[i] = make([]channel.Bal, len(parts))
+		for k := 0; k < len(parts); k++ {
 			// create new random balance in range [1,999]
 			ofparts[i][k] = big.NewInt(rng.Int63n(999) + 1)
 		}
 	}
 	return &channel.Allocation{
-		Assets:  assets,
-		OfParts: ofparts,
+		Assets:   assets,
+		Balances: ofparts,
 	}
 }
 

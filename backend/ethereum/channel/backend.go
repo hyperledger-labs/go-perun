@@ -119,11 +119,11 @@ func channelStateToEthState(s *channel.State) adjudicator.ChannelState {
 	}
 	outcome := adjudicator.ChannelAllocation{
 		Assets:   assetToCommonAddresses(s.Allocation.Assets),
-		Balances: transformPartBals(s.OfParts),
+		Balances: transformPartBals(s.Balances),
 		Locked:   locked,
 	}
 	// Check allocation dimensions
-	if len(outcome.Assets) != len(outcome.Balances) || len(s.OfParts) != len(outcome.Balances[0]) {
+	if len(outcome.Assets) != len(outcome.Balances) || len(s.Balances) != len(outcome.Balances[0]) {
 		log.Panic("invalid allocation dimensions")
 	}
 	appData := new(bytes.Buffer)
@@ -234,9 +234,9 @@ func pwToCommonAddresses(addr []perunwallet.Address) []common.Address {
 	return cAddrs
 }
 
-// transformPartBals turns valid channel.Allocation.OfParts into adjudicator.Allocation.balances.
-// Currently the channel.Allocation.OfParts are encoded as following:
-// OfParts[i][k] is the balance for the i-th participant on the k-th asset.
+// transformPartBals turns valid channel.Allocation.Balances into adjudicator.Allocation.balances.
+// Currently the channel.Allocation.Balances are encoded as following:
+// Balances[i][k] is the balance for the i-th participant on the k-th asset.
 // For ethereum it is cheaper to translate this to the following.
 // balances[i][k] is the balance for the i-th asset of participant k.
 func transformPartBals(ofBals [][]*big.Int) [][]*big.Int {

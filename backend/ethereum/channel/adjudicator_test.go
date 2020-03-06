@@ -100,9 +100,9 @@ func newValidState(rng *rand.Rand, params *channel.Params, assetholder common.Ad
 		}
 	}
 	allocation := channel.Allocation{
-		Assets:  assets,
-		OfParts: ofparts,
-		Locked:  []channel.SubAlloc{},
+		Assets:   assets,
+		Balances: ofparts,
+		Locked:   []channel.SubAlloc{},
 	}
 
 	return &channel.State{

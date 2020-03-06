@@ -132,8 +132,8 @@ func (b *backend) encodeAllocation(w io.Writer, a channel.Allocation) error {
 			return errors.WithMessage(err, "asset.Encode")
 		}
 	}
-	// Write OfParts
-	for _, ofpart := range a.OfParts {
+	// Write Balances
+	for _, ofpart := range a.Balances {
 		if err := b.encodeBals(w, ofpart); err != nil {
 			return errors.WithMessage(err, "bals encode")
 		}
