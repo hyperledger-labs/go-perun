@@ -44,8 +44,8 @@ type (
 	// deposit holder contract for this asset.
 	//
 	// Balances holds the balance allocations to the participants.
-	// Its outer dimension must match the size of the Params.parts slice.
-	// Its inner dimension must match the size of Assets.
+	// Its outer dimension must match the size of Assets.
+	// Its inner dimension must match the size of the Params.parts slice.
 	// All asset distributions could have been saved as a single []SubAlloc, but this
 	// would have saved the participants slice twice, wasting space.
 	//
