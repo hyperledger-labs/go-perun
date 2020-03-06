@@ -43,7 +43,7 @@ type (
 	// Assets identify the assets held in the channel, like an address to the
 	// deposit holder contract for this asset.
 	//
-	// OfParts holds the balance allocations to the participants.
+	// Balances holds the balance allocations to the participants.
 	// Its outer dimension must match the size of the Params.parts slice.
 	// Its inner dimension must match the size of Assets.
 	// All asset distributions could have been saved as a single []SubAlloc, but this
@@ -53,8 +53,8 @@ type (
 	Allocation struct {
 		// Assets are the asset types held in this channel
 		Assets []Asset
-		// OfParts is the allocation of assets to the Params.parts
-		OfParts [][]Bal
+		// Balances is the allocation of assets to the Params.parts
+		Balances [][]Bal
 		// Locked is the locked allocation to sub-app-channels. It is allowed to be
 		// nil, in which case there's nothing locked.
 		Locked []SubAlloc
@@ -90,10 +90,10 @@ func (a Allocation) Clone() (clone Allocation) {
 		}
 	}
 
-	if a.OfParts != nil {
-		clone.OfParts = make([][]Bal, len(a.OfParts))
-		for i, pa := range a.OfParts {
-			clone.OfParts[i] = CloneBals(pa)
+	if a.Balances != nil {
+		clone.Balances = make([][]Bal, len(a.Balances))
+		for i, pa := range a.Balances {
+			clone.Balances[i] = CloneBals(pa)
 		}
 	}
 
@@ -117,7 +117,7 @@ func (a Allocation) Encode(w io.Writer) error {
 			err, "invalid allocations cannot be encoded, got %v", a)
 	}
 	// encode dimensions
-	if err := wire.Encode(w, Index(len(a.Assets)), Index(len(a.OfParts)), Index(len(a.Locked))); err != nil {
+	if err := wire.Encode(w, Index(len(a.Assets)), Index(len(a.Balances)), Index(len(a.Locked))); err != nil {
 		return err
 	}
 	// encode assets
@@ -127,9 +127,9 @@ func (a Allocation) Encode(w io.Writer) error {
 		}
 	}
 	// encode participant allocations
-	for i := 0; i < len(a.OfParts); i++ {
-		for j := 0; j < len(a.OfParts[i]); j++ {
-			if err := wire.Encode(w, a.OfParts[i][j]); err != nil {
+	for i := 0; i < len(a.Balances); i++ {
+		for j := 0; j < len(a.Balances[i]); j++ {
+			if err := wire.Encode(w, a.Balances[i][j]); err != nil {
 				return errors.WithMessagef(
 					err, "encoding error for balance %d of participant %d", j, i)
 			}
@@ -166,12 +166,12 @@ func (a *Allocation) Decode(r io.Reader) error {
 		a.Assets[i] = asset
 	}
 	// decode participant allocations
-	a.OfParts = make([][]Bal, numParts)
-	for i := 0; i < len(a.OfParts); i++ {
-		a.OfParts[i] = make([]Bal, len(a.Assets))
-		for j := range a.OfParts[i] {
-			a.OfParts[i][j] = new(big.Int)
-			if err := wire.Decode(r, &a.OfParts[i][j]); err != nil {
+	a.Balances = make([][]Bal, numParts)
+	for i := 0; i < len(a.Balances); i++ {
+		a.Balances[i] = make([]Bal, len(a.Assets))
+		for j := range a.Balances[i] {
+			a.Balances[i][j] = new(big.Int)
+			if err := wire.Decode(r, &a.Balances[i][j]); err != nil {
 				return errors.WithMessagef(
 					err, "decoding error for balance %d of participant %d", j, i)
 			}
@@ -203,17 +203,17 @@ func CloneBals(orig []Bal) []Bal {
 }
 
 // Valid checks that the asset-dimensions match and slices are not nil.
-// Assets and OfParts cannot be of zero length.
+// Assets and Balances cannot be of zero length.
 func (a Allocation) Valid() error {
-	if len(a.Assets) == 0 || len(a.OfParts) == 0 {
+	if len(a.Assets) == 0 || len(a.Balances) == 0 {
 		return errors.New("assets and participant balances must not be of length zero")
 	}
-	if len(a.Assets) > MaxNumAssets || len(a.OfParts) > MaxNumParts || len(a.Locked) > MaxNumSubAllocations {
+	if len(a.Assets) > MaxNumAssets || len(a.Balances) > MaxNumParts || len(a.Locked) > MaxNumSubAllocations {
 		return errors.New("too many assets or participant balances or sub-allocations")
 	}
 
 	n := len(a.Assets)
-	for i, pa := range a.OfParts {
+	for i, pa := range a.Balances {
 		if len(pa) != n {
 			return errors.Errorf("dimension mismatch of participant %d's balance vector", i)
 		}
@@ -254,7 +254,7 @@ func (a Allocation) Sum() []Bal {
 		totals[i] = new(big.Int)
 	}
 
-	for _, bals := range a.OfParts {
+	for _, bals := range a.Balances {
 		for i, bal := range bals {
 			totals[i].Add(totals[i], bal)
 		}

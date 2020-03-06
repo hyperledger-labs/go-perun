@@ -70,7 +70,7 @@ var _ perunio.Serializer = new(State)
 func newState(params *Params, initBals Allocation, initData Data) (*State, error) {
 	// sanity checks
 	n := len(params.Parts)
-	if n != len(initBals.OfParts) {
+	if n != len(initBals.Balances) {
 		return nil, errors.New("number of participants in parameters and initial balances don't match")
 	}
 	if err := initBals.Valid(); err != nil {

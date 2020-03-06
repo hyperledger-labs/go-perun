@@ -41,7 +41,7 @@ type (
 
 func newPaymentChannel(ch *client.Channel, r *Role) *paymentChannel {
 	bals := make([]channel.Bal, 2)
-	for i, balv := range ch.State().OfParts {
+	for i, balv := range ch.State().Balances {
 		bals[i] = new(big.Int).Set(balv[0])
 	}
 
@@ -166,5 +166,5 @@ func transferBal(bals []channel.Bal, ourIdx channel.Index, amount *big.Int) {
 }
 
 func stateBals(state *channel.State) []channel.Bal {
-	return []channel.Bal{state.OfParts[0][0], state.OfParts[1][0]}
+	return []channel.Bal{state.Balances[0][0], state.Balances[1][0]}
 }

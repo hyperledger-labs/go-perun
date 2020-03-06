@@ -60,7 +60,7 @@ func NewRandomAllocation(rng *rand.Rand, numParts int) *channel.Allocation {
 		locked[i] = *NewRandomSubAlloc(rng, len(assets))
 	}
 
-	return &channel.Allocation{Assets: assets, OfParts: ofparts, Locked: locked}
+	return &channel.Allocation{Assets: assets, Balances: ofparts, Locked: locked}
 }
 
 // NewRandomSubAlloc creates a new random suballocation.

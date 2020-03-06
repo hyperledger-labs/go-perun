@@ -116,7 +116,7 @@ func newStateWithAlloc(balsv [][]int64) *channel.State {
 	}
 
 	return &channel.State{
-		Allocation: channel.Allocation{OfParts: bigBalsv},
+		Allocation: channel.Allocation{Balances: bigBalsv},
 		Data:       new(NoData),
 	}
 }

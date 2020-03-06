@@ -36,11 +36,11 @@ func (a *App) DecodeData(io.Reader) (channel.Data, error) {
 func (a *App) ValidTransition(_ *channel.Params, from, to *channel.State, actor channel.Index) error {
 	assertNoData(to)
 
-	for i, bals := range from.OfParts {
+	for i, bals := range from.Balances {
 		for j, bal := range bals {
-			if int(actor) == i && bal.Cmp(to.OfParts[i][j]) == -1 {
+			if int(actor) == i && bal.Cmp(to.Balances[i][j]) == -1 {
 				return errors.Errorf("payer[%d] steals asset %d", i, j)
-			} else if int(actor) != i && bal.Cmp(to.OfParts[i][j]) == 1 {
+			} else if int(actor) != i && bal.Cmp(to.Balances[i][j]) == 1 {
 				return errors.Errorf("payer[%d] reduces participant[%d]'s asset %d", actor, i, j)
 			}
 		}

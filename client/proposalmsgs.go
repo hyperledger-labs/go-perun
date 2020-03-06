@@ -222,7 +222,7 @@ func (c ChannelProposalReq) Valid() error {
 		return err
 	} else if len(c.InitBals.Locked) != 0 {
 		return errors.New("initial allocation cannot have locked funds")
-	} else if len(c.InitBals.OfParts) != len(c.PeerAddrs) {
+	} else if len(c.InitBals.Balances) != len(c.PeerAddrs) {
 		return errors.New("wrong dimension of initial balances")
 	}
 	return nil

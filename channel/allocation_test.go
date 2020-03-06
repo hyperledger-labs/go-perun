@@ -31,13 +31,13 @@ func TestAllocationSerialization(t *testing.T) {
 	rng := rand.New(rand.NewSource(1))
 	inputs := []perunio.Serializer{
 		&channel.Allocation{
-			Assets:  assets(rng, 1),
-			OfParts: [][]channel.Bal{{big.NewInt(123)}},
-			Locked:  []channel.SubAlloc{},
+			Assets:   assets(rng, 1),
+			Balances: [][]channel.Bal{{big.NewInt(123)}},
+			Locked:   []channel.SubAlloc{},
 		},
 		&channel.Allocation{
 			Assets: assets(rng, 1),
-			OfParts: [][]channel.Bal{
+			Balances: [][]channel.Bal{
 				{big.NewInt(1)},
 			},
 			Locked: []channel.SubAlloc{
@@ -48,7 +48,7 @@ func TestAllocationSerialization(t *testing.T) {
 		},
 		&channel.Allocation{
 			Assets: assets(rng, 3),
-			OfParts: [][]channel.Bal{
+			Balances: [][]channel.Bal{
 				{big.NewInt(1), big.NewInt(10), big.NewInt(100)},
 				{big.NewInt(7), big.NewInt(11), big.NewInt(13)},
 			},
@@ -84,21 +84,21 @@ func TestAllocationValidLimits(t *testing.T) {
 
 	for ti, x := range inputs {
 		allocation := &channel.Allocation{
-			Assets:  make([]channel.Asset, x.numAssets),
-			OfParts: make([][]channel.Bal, x.numParts),
-			Locked:  make([]channel.SubAlloc, x.numSuballocations),
+			Assets:   make([]channel.Asset, x.numAssets),
+			Balances: make([][]channel.Bal, x.numParts),
+			Locked:   make([]channel.SubAlloc, x.numSuballocations),
 		}
 
 		for i := range allocation.Assets {
 			allocation.Assets[i] = test.NewRandomAsset(rng)
 		}
 
-		for i := range allocation.OfParts {
-			allocation.OfParts[i] = make([]channel.Bal, x.numAssets)
+		for i := range allocation.Balances {
+			allocation.Balances[i] = make([]channel.Bal, x.numAssets)
 
-			for j := range allocation.OfParts[i] {
+			for j := range allocation.Balances[i] {
 				bal := big.NewInt(int64(x.numAssets)*int64(i) + int64(j))
-				allocation.OfParts[i][j] = bal
+				allocation.Balances[i][j] = bal
 			}
 		}
 
@@ -193,8 +193,8 @@ func TestAllocation_Sum(t *testing.T) {
 		{
 			"single asset/one participant",
 			channel.Allocation{
-				Assets:  assets(rng, 1),
-				OfParts: [][]channel.Bal{{big.NewInt(1)}},
+				Assets:   assets(rng, 1),
+				Balances: [][]channel.Bal{{big.NewInt(1)}},
 			},
 			[]channel.Bal{big.NewInt(1)},
 		},
@@ -202,9 +202,9 @@ func TestAllocation_Sum(t *testing.T) {
 		{
 			"single asset/one participant/empty locked slice",
 			channel.Allocation{
-				Assets:  assets(rng, 1),
-				OfParts: [][]channel.Bal{{big.NewInt(1)}},
-				Locked:  make([]channel.SubAlloc, 0),
+				Assets:   assets(rng, 1),
+				Balances: [][]channel.Bal{{big.NewInt(1)}},
+				Locked:   make([]channel.SubAlloc, 0),
 			},
 			[]channel.Bal{big.NewInt(1)},
 		},
@@ -213,7 +213,7 @@ func TestAllocation_Sum(t *testing.T) {
 			"single asset/three participants",
 			channel.Allocation{
 				Assets: assets(rng, 1),
-				OfParts: [][]channel.Bal{
+				Balances: [][]channel.Bal{
 					{big.NewInt(1)},
 					{big.NewInt(2)},
 					{big.NewInt(4)},
@@ -226,7 +226,7 @@ func TestAllocation_Sum(t *testing.T) {
 			"three assets/three participants",
 			channel.Allocation{
 				Assets: assets(rng, 3),
-				OfParts: [][]channel.Bal{
+				Balances: [][]channel.Bal{
 					{big.NewInt(1), big.NewInt(8), big.NewInt(64)},
 					{big.NewInt(2), big.NewInt(16), big.NewInt(128)},
 					{big.NewInt(4), big.NewInt(32), big.NewInt(256)},
@@ -239,7 +239,7 @@ func TestAllocation_Sum(t *testing.T) {
 			"single assets/one participants/one locked",
 			channel.Allocation{
 				Assets: assets(rng, 1),
-				OfParts: [][]channel.Bal{
+				Balances: [][]channel.Bal{
 					{big.NewInt(1)},
 				},
 				Locked: []channel.SubAlloc{
@@ -253,7 +253,7 @@ func TestAllocation_Sum(t *testing.T) {
 			"three assets/two participants/three locked",
 			channel.Allocation{
 				Assets: assets(rng, 3),
-				OfParts: [][]channel.Bal{
+				Balances: [][]channel.Bal{
 					{big.NewInt(1), big.NewInt(0x20), big.NewInt(0x400)},
 					{big.NewInt(2), big.NewInt(0x40), big.NewInt(0x800)},
 				},
@@ -289,9 +289,9 @@ func TestAllocation_Valid(t *testing.T) {
 		{
 			"one participant/no locked valid",
 			channel.Allocation{
-				Assets:  assets(rng, 1),
-				OfParts: [][]channel.Bal{{big.NewInt(1)}},
-				Locked:  nil,
+				Assets:   assets(rng, 1),
+				Balances: [][]channel.Bal{{big.NewInt(1)}},
+				Locked:   nil,
 			},
 			true,
 		},
@@ -299,9 +299,9 @@ func TestAllocation_Valid(t *testing.T) {
 		{
 			"nil asset/nil participant",
 			channel.Allocation{
-				Assets:  nil,
-				OfParts: nil,
-				Locked:  nil,
+				Assets:   nil,
+				Balances: nil,
+				Locked:   nil,
 			},
 			false,
 		},
@@ -309,9 +309,9 @@ func TestAllocation_Valid(t *testing.T) {
 		{
 			"nil participant/no locked",
 			channel.Allocation{
-				Assets:  assets(rng, 1),
-				OfParts: nil,
-				Locked:  nil,
+				Assets:   assets(rng, 1),
+				Balances: nil,
+				Locked:   nil,
 			},
 			false,
 		},
@@ -319,8 +319,8 @@ func TestAllocation_Valid(t *testing.T) {
 		{
 			"no participant/no locked",
 			channel.Allocation{
-				Assets:  assets(rng, 1),
-				OfParts: make([][]channel.Bal, 0),
+				Assets:   assets(rng, 1),
+				Balances: make([][]channel.Bal, 0),
 			},
 			false,
 		},
@@ -329,7 +329,7 @@ func TestAllocation_Valid(t *testing.T) {
 			"two participants wrong dimension",
 			channel.Allocation{
 				Assets: assets(rng, 3),
-				OfParts: [][]channel.Bal{
+				Balances: [][]channel.Bal{
 					{big.NewInt(1), big.NewInt(8), big.NewInt(64)},
 					{big.NewInt(2), big.NewInt(16)},
 				},
@@ -341,7 +341,7 @@ func TestAllocation_Valid(t *testing.T) {
 			"two participants/one locked wrong dimension",
 			channel.Allocation{
 				Assets: assets(rng, 3),
-				OfParts: [][]channel.Bal{
+				Balances: [][]channel.Bal{
 					{big.NewInt(1), big.NewInt(8), big.NewInt(64)},
 					{big.NewInt(2), big.NewInt(16), big.NewInt(128)},
 				},
@@ -356,7 +356,7 @@ func TestAllocation_Valid(t *testing.T) {
 			"two participants/negative balance",
 			channel.Allocation{
 				Assets: assets(rng, 3),
-				OfParts: [][]channel.Bal{
+				Balances: [][]channel.Bal{
 					{big.NewInt(1), big.NewInt(8), big.NewInt(64)},
 					{big.NewInt(2), big.NewInt(-1), big.NewInt(128)},
 				},
@@ -369,7 +369,7 @@ func TestAllocation_Valid(t *testing.T) {
 			"two participants/one locked negative balance",
 			channel.Allocation{
 				Assets: assets(rng, 2),
-				OfParts: [][]channel.Bal{
+				Balances: [][]channel.Bal{
 					{big.NewInt(1), big.NewInt(8)},
 					{big.NewInt(2), big.NewInt(16)},
 				},

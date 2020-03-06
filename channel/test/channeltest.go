@@ -212,24 +212,24 @@ func buildModifiedStates(s1, s2 *channel.State, modifyApp bool) (ret []channel.S
 					ret = append(ret, *modState)
 				}
 			}
-			// Modify OfParts
+			// Modify Balances
 			{
-				// Modify complete OfParts
+				// Modify complete Balances
 				{
 					modState := s1.Clone()
-					modState.Allocation.OfParts = s2.Allocation.OfParts
+					modState.Allocation.Balances = s2.Allocation.Balances
 					ret = append(ret, *modState)
 				}
-				// Modify OfParts[0]
+				// Modify Balances[0]
 				{
 					modState := s1.Clone()
-					copy(modState.Allocation.OfParts[0], s2.Allocation.OfParts[0])
+					copy(modState.Allocation.Balances[0], s2.Allocation.Balances[0])
 					ret = append(ret, *modState)
 				}
-				// Modify OfParts[0][0]
+				// Modify Balances[0][0]
 				{
 					modState := s1.Clone()
-					modState.Allocation.OfParts[0][0] = s2.Allocation.OfParts[0][0]
+					modState.Allocation.Balances[0][0] = s2.Allocation.Balances[0][0]
 					ret = append(ret, *modState)
 				}
 			}
