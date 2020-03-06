@@ -37,6 +37,15 @@ func NewRandomAsset(rng *rand.Rand) channel.Asset {
 	return randomizer.NewRandomAsset(rng)
 }
 
+// NewRandomAssets creates a new slice of n random channel.Asset
+func NewRandomAssets(rng *rand.Rand, n int) []channel.Asset {
+	as := make([]channel.Asset, n)
+	for i := 0; i < n; i++ {
+		as[i] = NewRandomAsset(rng)
+	}
+	return as
+}
+
 // NewRandomAllocation creates a new random allocation.
 func NewRandomAllocation(rng *rand.Rand, numParts int) *channel.Allocation {
 	if numParts > channel.MaxNumParts {
