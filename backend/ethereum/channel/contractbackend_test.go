@@ -36,7 +36,7 @@ func Test_calcFundingIDs(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := calcFundingIDs(tt.participants, tt.channelID)
+			got := calcFundingIDs(tt.channelID, tt.participants...)
 			assert.Equal(t, got, tt.want, "FundingIDs not as expected")
 		})
 	}
