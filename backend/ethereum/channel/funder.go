@@ -62,7 +62,7 @@ func (f *Funder) Fund(ctx context.Context, request channel.FundingReq) error {
 	var channelID = request.Params.ID()
 	f.log.WithField("channel", channelID).Debug("Funding Channel.")
 
-	partIDs := calcFundingIDs(request.Params.Parts, channelID)
+	partIDs := calcFundingIDs(channelID, request.Params.Parts...)
 
 	errChan := make(chan error, len(request.Allocation.Assets))
 	errs := make([]*channel.AssetFundingError, len(request.Allocation.Assets))

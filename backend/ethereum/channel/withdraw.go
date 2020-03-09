@@ -10,7 +10,6 @@ import (
 	"math/big"
 
 	"github.com/ethereum/go-ethereum/accounts/abi"
-	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/pkg/errors"
 	"golang.org/x/sync/errgroup"
@@ -63,13 +62,14 @@ func connectToAssetHolder(backend ContractBackend, asset channel.Asset, assetInd
 
 func (a *Adjudicator) waitForWithdrawnEvent(ctx context.Context, request channel.AdjudicatorReq, asset assetHolder) error {
 	withdrawn := make(chan *assets.AssetHolderWithdrawn)
-	participant := request.Params.Parts[request.Idx].(*wallet.Address).Address
+	participant := request.Params.Parts[request.Idx].(*wallet.Address)
 	// Watch new events
 	watchOpts, err := a.newWatchOpts(ctx)
 	if err != nil {
 		return errors.WithMessage(err, "error creating watchopts")
 	}
-	sub, err := asset.WatchWithdrawn(watchOpts, withdrawn, []common.Address{participant})
+	fundingIDs := calcFundingIDs(request.Params.ID(), participant)
+	sub, err := asset.WatchWithdrawn(watchOpts, withdrawn, fundingIDs)
 	if err != nil {
 		return errors.Wrapf(err, "WatchWithdrawn on asset %d failed", asset.assetIndex)
 	}
@@ -89,7 +89,7 @@ func (a *Adjudicator) waitForWithdrawnEvent(ctx context.Context, request channel
 		if err != nil {
 			errChan <- err
 		}
-		iter, err := asset.FilterWithdrawn(filterOpts, []common.Address{participant})
+		iter, err := asset.FilterWithdrawn(filterOpts, fundingIDs)
 		if err != nil {
 			errChan <- errors.WithStack(err)
 		}
