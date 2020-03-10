@@ -106,7 +106,6 @@ func (a *logAdjudicator) Register(ctx context.Context, req channel.AdjudicatorRe
 	a.log.Infof("Register: %v", req)
 	return &channel.RegisteredEvent{
 		ID:      req.Params.ID(),
-		Idx:     req.Idx,
 		Version: req.Tx.Version,
 		Timeout: time.Now(),
 	}, nil
