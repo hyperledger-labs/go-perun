@@ -35,6 +35,7 @@ type ContractInterface interface {
 	bind.ContractBackend
 	BlockByNumber(context.Context, *big.Int) (*types.Block, error)
 	TransactionReceipt(ctx context.Context, txHash common.Hash) (*types.Receipt, error)
+	BalanceAt(ctx context.Context, contract common.Address, blockNumber *big.Int) (*big.Int, error)
 }
 
 // ContractBackend adds a keystore and an on-chain account to the ContractInterface.
