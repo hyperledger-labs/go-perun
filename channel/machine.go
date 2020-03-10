@@ -65,10 +65,11 @@ var signingPhases = []Phase{InitSigning, Signing}
 var postInitPhases = []Phase{Funding, Acting, Signing, Final}
 
 // A machine is the channel pushdown automaton that handles phase transitions.
-// It checks for correct signatures and valid state transitions.
-// machine only contains implementations for the state transitions common to
+// It checks for correct signatures and valid phase transitions.
+// It only contains implementations for the phase transitions common to
 // both, ActionMachine and StateMachine, that is, AddSig, EnableInit, SetFunded,
-// EnableUpdate, EnableFinal and SetSettled.
+// EnableUpdate, EnableFinal and the external phase changes
+// Set(Funded|Register(ing|ed)|Withdraw(ing|n)).
 // The other transitions are specific to the type of machine and are implemented
 // individually.
 type machine struct {
@@ -79,6 +80,9 @@ type machine struct {
 	stagingTX Transaction
 	currentTX Transaction
 	prevTXs   []Transaction
+
+	// currently registered event, if any
+	registered *RegisteredEvent
 
 	// log is a fields logger for this machine
 	log log.Logger
@@ -298,7 +302,7 @@ func (m *machine) SetFunded() error {
 // initial phases are done, i.e., when there's at least one state with
 // signatures.
 func (m *machine) SetRegistering() error {
-	if !inPhase(m.phase, postInitPhases) {
+	if m.phase < Funding {
 		return m.phaseErrorf(m.selfTransition(), "can only register after init phases")
 	}
 
@@ -306,28 +310,42 @@ func (m *machine) SetRegistering() error {
 	return nil
 }
 
-// SetRegistered tells the state machine that a channel state got registered on
-// the adjudicator. This phase can be reached after the initial phases are done,
-// i.e., when there's at least one state with signatures.
-func (m *machine) SetRegistered() error {
-	if !inPhase(m.phase, append(postInitPhases, Registering)) {
-		return m.phaseErrorf(m.selfTransition(),
-			"state can only be registered after init phases or registering")
+// SetRegistered moves the machine into the Registered phase. The passed event
+// gets stored in the machine to record the timeout and registered version.
+// This phase can be reached after the initial phases are done, i.e., when
+// there's at least one state with signatures.
+func (m *machine) SetRegistered(reg *RegisteredEvent) error {
+	if m.phase < Funding {
+		return m.phaseErrorf(m.selfTransition(), "can only register after init phases")
 	}
 
+	if m.registered == nil || reg.Version > m.registered.Version {
+		m.registered = reg
+	}
 	m.setPhase(Registered)
 	return nil
 }
 
+// Registered returns the currently registered event (timeout and version), if
+// any, or nil.
+func (m *machine) Registered() *RegisteredEvent {
+	return m.registered
+}
+
 // SetWithdrawing sets the state machine to the Withdrawing phase. The current
 // state was registered on-chain and funds withdrawal is in progress.
-// This phase can only be reached from the Registered phase.
+// This phase can only be reached from the Registered or Withdrawing phase.
 func (m *machine) SetWithdrawing() error {
-	return m.simplePhaseTransition(Registered, Withdrawing)
+	if !inPhase(m.phase, []Phase{Registered, Withdrawing}) {
+		return m.phaseErrorf(m.selfTransition(), "can only withdraw after registering")
+	}
+	m.setPhase(Withdrawing)
+	return nil
 }
 
 // SetWithdrawn sets the state machine to the final phase Withdrawn. The current
 // state was registered on-chain and funds withdrawal was successful.
+// This phase can only be reached from the Withdrawing phase.
 func (m *machine) SetWithdrawn() error {
 	return m.simplePhaseTransition(Withdrawing, Withdrawn)
 }
