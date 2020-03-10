@@ -24,32 +24,25 @@ func TestAllocationSerialization(t *testing.T) {
 	inputs := []perunio.Serializer{
 		&channel.Allocation{
 			Assets:   test.NewRandomAssets(rng, 1),
-			Balances: [][]channel.Bal{{big.NewInt(123)}},
+			Balances: test.NewRandomBalances(rng, 1, 1),
 			Locked:   []channel.SubAlloc{},
 		},
 		&channel.Allocation{
-			Assets: test.NewRandomAssets(rng, 1),
-			Balances: [][]channel.Bal{
-				{big.NewInt(1)},
-			},
+			Assets:   test.NewRandomAssets(rng, 1),
+			Balances: test.NewRandomBalances(rng, 1, 1),
 			Locked: []channel.SubAlloc{
 				{
 					ID:   channel.ID{0},
-					Bals: []channel.Bal{big.NewInt(2)}},
+					Bals: test.NewRandomBals(rng, 1)},
 			},
 		},
 		&channel.Allocation{
-			Assets: test.NewRandomAssets(rng, 3),
-			Balances: [][]channel.Bal{
-				{big.NewInt(1), big.NewInt(10), big.NewInt(100)},
-				{big.NewInt(7), big.NewInt(11), big.NewInt(13)},
-			},
+			Assets:   test.NewRandomAssets(rng, 3),
+			Balances: test.NewRandomBalances(rng, 3, 2),
 			Locked: []channel.SubAlloc{
 				{
-					ID: channel.ID{0},
-					Bals: []channel.Bal{
-						big.NewInt(1), big.NewInt(3), big.NewInt(5),
-					},
+					ID:   channel.ID{0},
+					Bals: test.NewRandomBals(rng, 3),
 				},
 			},
 		},
@@ -77,17 +70,13 @@ func TestAllocationValidLimits(t *testing.T) {
 	for ti, x := range inputs {
 		allocation := &channel.Allocation{
 			Assets:   make([]channel.Asset, x.numAssets),
-			Balances: make([][]channel.Bal, x.numParts),
+			Balances: make([][]channel.Bal, x.numAssets),
 			Locked:   make([]channel.SubAlloc, x.numSuballocations),
 		}
 
-		for i := range allocation.Assets {
-			allocation.Assets[i] = test.NewRandomAsset(rng)
-		}
+		allocation.Assets = test.NewRandomAssets(rng, x.numAssets)
 
 		for i := range allocation.Balances {
-			allocation.Balances[i] = make([]channel.Bal, x.numAssets)
-
 			for j := range allocation.Balances[i] {
 				bal := big.NewInt(int64(x.numAssets)*int64(i) + int64(j))
 				allocation.Balances[i][j] = bal
@@ -117,15 +106,19 @@ func TestAllocation_Clone(t *testing.T) {
 	}{
 		{
 			"test.NewRandomAssets-1,parts-1,locks-nil",
-			channel.Allocation{test.NewRandomAssets(rng, 1), [][]channel.Bal{{big.NewInt(1)}}, nil},
+			channel.Allocation{
+				test.NewRandomAssets(rng, 1),
+				test.NewRandomBalances(rng, 1, 1),
+				nil,
+			},
 		},
 
 		{
 			"test.NewRandomAssets-1,parts-1,locks",
 			channel.Allocation{
 				test.NewRandomAssets(rng, 1),
-				[][]channel.Bal{{big.NewInt(0)}},
-				[]channel.SubAlloc{{channel.ID{123}, []*big.Int{big.NewInt(0)}}},
+				test.NewRandomBalances(rng, 1, 1),
+				[]channel.SubAlloc{{channel.ID{123}, test.NewRandomBals(rng, 1)}},
 			},
 		},
 
@@ -133,12 +126,7 @@ func TestAllocation_Clone(t *testing.T) {
 			"test.NewRandomAssets-2,parties-4,locks-nil",
 			channel.Allocation{
 				test.NewRandomAssets(rng, 2),
-				[][]channel.Bal{
-					{big.NewInt(1), big.NewInt(11)},
-					{big.NewInt(2), big.NewInt(2)},
-					{big.NewInt(3), big.NewInt(5)},
-					{big.NewInt(10), big.NewInt(2)},
-				},
+				test.NewRandomBalances(rng, 2, 4),
 				nil,
 			},
 		},
@@ -147,14 +135,9 @@ func TestAllocation_Clone(t *testing.T) {
 			"test.NewRandomAssets-2,parties-4,locks",
 			channel.Allocation{
 				test.NewRandomAssets(rng, 2),
-				[][]channel.Bal{
-					{big.NewInt(1), big.NewInt(11)},
-					{big.NewInt(2), big.NewInt(2)},
-					{big.NewInt(3), big.NewInt(5)},
-					{big.NewInt(10), big.NewInt(2)},
-				},
+				test.NewRandomBalances(rng, 2, 4),
 				[]channel.SubAlloc{
-					{channel.ID{1}, []channel.Bal{big.NewInt(1), big.NewInt(2)}},
+					{channel.ID{1}, test.NewRandomBals(rng, 2)},
 				},
 			},
 		},
@@ -165,7 +148,6 @@ func TestAllocation_Clone(t *testing.T) {
 			if err := tt.alloc.Valid(); err != nil {
 				t.Fatal(err.Error())
 			}
-
 			pkgtest.VerifyClone(t, tt.alloc)
 		})
 	}
@@ -206,9 +188,7 @@ func TestAllocation_Sum(t *testing.T) {
 			channel.Allocation{
 				Assets: test.NewRandomAssets(rng, 1),
 				Balances: [][]channel.Bal{
-					{big.NewInt(1)},
-					{big.NewInt(2)},
-					{big.NewInt(4)},
+					{big.NewInt(1), big.NewInt(2), big.NewInt(4)},
 				},
 			},
 			[]channel.Bal{big.NewInt(7)},
@@ -219,9 +199,9 @@ func TestAllocation_Sum(t *testing.T) {
 			channel.Allocation{
 				Assets: test.NewRandomAssets(rng, 3),
 				Balances: [][]channel.Bal{
-					{big.NewInt(1), big.NewInt(8), big.NewInt(64)},
-					{big.NewInt(2), big.NewInt(16), big.NewInt(128)},
-					{big.NewInt(4), big.NewInt(32), big.NewInt(256)},
+					{big.NewInt(1), big.NewInt(2), big.NewInt(4)},
+					{big.NewInt(8), big.NewInt(16), big.NewInt(32)},
+					{big.NewInt(64), big.NewInt(128), big.NewInt(256)},
 				},
 			},
 			[]channel.Bal{big.NewInt(7), big.NewInt(56), big.NewInt(448)},
@@ -246,8 +226,9 @@ func TestAllocation_Sum(t *testing.T) {
 			channel.Allocation{
 				Assets: test.NewRandomAssets(rng, 3),
 				Balances: [][]channel.Bal{
-					{big.NewInt(1), big.NewInt(0x20), big.NewInt(0x400)},
-					{big.NewInt(2), big.NewInt(0x40), big.NewInt(0x800)},
+					{big.NewInt(1), big.NewInt(2)},
+					{big.NewInt(0x20), big.NewInt(0x40)},
+					{big.NewInt(0x400), big.NewInt(0x800)},
 				},
 				Locked: []channel.SubAlloc{
 					{channel.Zero, []channel.Bal{big.NewInt(4), big.NewInt(0x80), big.NewInt(0x1000)}},
@@ -334,8 +315,9 @@ func TestAllocation_Valid(t *testing.T) {
 			channel.Allocation{
 				Assets: test.NewRandomAssets(rng, 3),
 				Balances: [][]channel.Bal{
-					{big.NewInt(1), big.NewInt(8), big.NewInt(64)},
-					{big.NewInt(2), big.NewInt(16), big.NewInt(128)},
+					{big.NewInt(1), big.NewInt(2)},
+					{big.NewInt(8), big.NewInt(16)},
+					{big.NewInt(64), big.NewInt(128)},
 				},
 				Locked: []channel.SubAlloc{
 					{channel.Zero, []channel.Bal{big.NewInt(4)}},
@@ -349,8 +331,9 @@ func TestAllocation_Valid(t *testing.T) {
 			channel.Allocation{
 				Assets: test.NewRandomAssets(rng, 3),
 				Balances: [][]channel.Bal{
-					{big.NewInt(1), big.NewInt(8), big.NewInt(64)},
-					{big.NewInt(2), big.NewInt(-1), big.NewInt(128)},
+					{big.NewInt(1), big.NewInt(2)},
+					{big.NewInt(8), big.NewInt(-1)},
+					{big.NewInt(64), big.NewInt(128)},
 				},
 				Locked: nil,
 			},

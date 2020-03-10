@@ -47,11 +47,8 @@ func (r *Mallory) Execute(cfg ExecConfig) {
 	// We don't start the proposal listener because Mallory only sends proposals
 
 	initBals := &channel.Allocation{
-		Assets: []channel.Asset{cfg.Asset},
-		OfParts: [][]*big.Int{
-			{cfg.InitBals[0]}, // Mallory
-			{cfg.InitBals[1]}, // Carol
-		},
+		Assets:   []channel.Asset{cfg.Asset},
+		Balances: [][]*big.Int{cfg.InitBals[:]},
 	}
 	prop := &client.ChannelProposal{
 		ChallengeDuration: 60,           // 1 min

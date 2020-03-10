@@ -54,22 +54,16 @@ func NewRandomAllocation(rng *rand.Rand, numParts int) *channel.Allocation {
 			channel.MaxNumParts, numParts))
 	}
 
-	assets := make([]channel.Asset, rng.Int31n(9)+2)
-	for i := 0; i < len(assets); i++ {
-		assets[i] = NewRandomAsset(rng)
-	}
+	assets := NewRandomAssets(rng, int(rng.Int31n(9))+2)
 
-	ofparts := make([][]channel.Bal, numParts)
-	for i := 0; i < len(ofparts); i++ {
-		ofparts[i] = NewRandomBals(rng, len(assets))
-	}
+	balances := NewRandomBalances(rng, len(assets), numParts)
 
 	locked := make([]channel.SubAlloc, rng.Int31n(9)+2)
 	for i := 0; i < len(locked); i++ {
 		locked[i] = *NewRandomSubAlloc(rng, len(assets))
 	}
 
-	return &channel.Allocation{Assets: assets, Balances: ofparts, Locked: locked}
+	return &channel.Allocation{Assets: assets, Balances: balances, Locked: locked}
 }
 
 // NewRandomSubAlloc creates a new random suballocation.
@@ -125,4 +119,13 @@ func NewRandomBals(rng *rand.Rand, size int) []channel.Bal {
 		bals[i] = NewRandomBal(rng)
 	}
 	return bals
+}
+
+//NewRandomBalances creates an slice containing *numAssets* random Balances slices, each one *numParties* long
+func NewRandomBalances(rng *rand.Rand, numAssets int, numParties int) [][]channel.Bal {
+	balances := make([][]channel.Bal, numAssets)
+	for i := range balances {
+		balances[i] = NewRandomBals(rng, numParties)
+	}
+	return balances
 }
