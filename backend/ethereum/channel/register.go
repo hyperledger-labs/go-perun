@@ -83,7 +83,7 @@ func (a *Adjudicator) registerNonFinal(ctx context.Context, req channel.Adjudica
 
 // SubscribeRegistered returns a new subscription to registered events.
 func (a *Adjudicator) SubscribeRegistered(ctx context.Context, params *channel.Params) (channel.RegisteredSubscription, error) {
-	stored := make(chan *adjudicator.AdjudicatorStored)
+	stored := make(chan *adjudicator.AdjudicatorStored, 32)
 	sub, iter, err := a.filterWatchStored(ctx, stored, params)
 	if err != nil {
 		return nil, errors.WithMessage(err, "filter/watch Stored event")
@@ -96,23 +96,32 @@ func (a *Adjudicator) SubscribeRegistered(ctx context.Context, params *channel.P
 	}
 	iter.Close()
 	if err := iter.Error(); err != nil {
-		return nil, errors.Wrap(err, "event iterator error")
+		return nil, errors.Wrap(err, "event iterator")
 	}
 
-	// if the subscription already caught an event, use it as a past event, if newer
-	select {
-	case ev2 := <-stored:
-		if ev2 != nil && (ev == nil || ev2.Version > ev.Version) {
-			ev = ev2
-		}
-	default:
-	}
-
-	return &RegisteredSub{
+	rsub := &RegisteredSub{
 		sub:        sub,
 		stored:     stored,
 		pastStored: ev,
-	}, nil
+	}
+
+	// if the subscription already caught events, use newest as past event
+	var ev2 *adjudicator.AdjudicatorStored
+loop:
+	for {
+		select {
+		case ev2 = <-stored:
+		case err := <-sub.Err():
+			return nil, errors.Wrap(err, "event subscription")
+		default:
+			break loop
+		}
+	}
+	if ev2 != nil && (ev == nil || ev2.Version > ev.Version) {
+		rsub.pastStored = ev2
+	}
+
+	return rsub, nil
 }
 
 // filterWatchStored sets up a filter and a subscription on Stored events.
@@ -172,15 +181,31 @@ func (r *RegisteredSub) Next() *channel.RegisteredEvent {
 		return storedToRegisteredEvent(s)
 	}
 
+	return storedToRegisteredEvent(r.nextSub())
+}
+
+func (r *RegisteredSub) nextSub() (latest *adjudicator.AdjudicatorStored) {
 	r.errMu.Lock()
 	defer r.errMu.Unlock()
 
+	// blocking wait for first event
 	select {
-	case stored := <-r.stored:
-		return storedToRegisteredEvent(stored)
+	case latest = <-r.stored:
 	case err := <-r.sub.Err():
 		r.updateErr(errors.Wrap(err, "event subscription"))
 		return nil
+	}
+
+	// fast-forward to newest event
+	for {
+		select {
+		case latest = <-r.stored:
+		case err := <-r.sub.Err():
+			r.updateErr(errors.Wrap(err, "event subscription"))
+			return nil
+		default: // no more events in channel, return
+			return
+		}
 	}
 }
 
