@@ -21,7 +21,6 @@ type DummyAdjudicator struct {
 func (d *DummyAdjudicator) Register(ctx context.Context, req perunchannel.AdjudicatorReq) (*perunchannel.RegisteredEvent, error) {
 	return &perunchannel.RegisteredEvent{
 		ID:      req.Params.ID(),
-		Idx:     req.Idx,
 		Version: req.Tx.Version,
 		Timeout: time.Now(),
 	}, nil
