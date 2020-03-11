@@ -32,6 +32,7 @@ var defaultTimeout = 5 * time.Second
 
 func TestHappyAliceBobETH(t *testing.T) {
 	log.Info("Starting happy test")
+	const A, B = 0, 1 // Indices of Alice and Bob
 	var hub peertest.ConnHub
 	rng := rand.New(rand.NewSource(0x1337))
 	ctx, cancel := context.WithTimeout(context.Background(), defaultTimeout)
@@ -88,13 +89,11 @@ func TestHappyAliceBobETH(t *testing.T) {
 	}
 
 	execConfig := clienttest.ExecConfig{
-		PeerAddrs:       []peer.Address{aliceAcc.Address(), bobAcc.Address()},
-		InitBals:        []*big.Int{big.NewInt(100), big.NewInt(100)},
-		Asset:           &wallet.Address{Address: assetAddr},
-		NumUpdatesBob:   2,
-		NumUpdatesAlice: 2,
-		TxAmountBob:     big.NewInt(5),
-		TxAmountAlice:   big.NewInt(3),
+		PeerAddrs:  [2]peer.Address{aliceAcc.Address(), bobAcc.Address()},
+		InitBals:   [2]*big.Int{big.NewInt(100), big.NewInt(100)},
+		Asset:      &wallet.Address{Address: assetAddr},
+		NumUpdates: [2]int{2, 2},
+		TxAmounts:  [2]*big.Int{big.NewInt(5), big.NewInt(3)},
 	}
 
 	alice := clienttest.NewAlice(setupAlice, t)
@@ -120,10 +119,10 @@ func TestHappyAliceBobETH(t *testing.T) {
 	wg.Wait()
 
 	// Assert correct final balances
-	aliceToBob := big.NewInt(int64(execConfig.NumUpdatesAlice)*execConfig.TxAmountAlice.Int64() -
-		int64(execConfig.NumUpdatesBob)*execConfig.TxAmountBob.Int64())
-	finalBalAlice := new(big.Int).Sub(execConfig.InitBals[0], aliceToBob)
-	finalBalBob := new(big.Int).Add(execConfig.InitBals[1], aliceToBob)
+	aliceToBob := big.NewInt(int64(execConfig.NumUpdates[A])*execConfig.TxAmounts[A].Int64() -
+		int64(execConfig.NumUpdates[B])*execConfig.TxAmounts[B].Int64())
+	finalBalAlice := new(big.Int).Sub(execConfig.InitBals[A], aliceToBob)
+	finalBalBob := new(big.Int).Add(execConfig.InitBals[B], aliceToBob)
 	// reset context timeout
 	ctx, cancel = context.WithTimeout(context.Background(), defaultTimeout)
 	defer cancel()
