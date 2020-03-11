@@ -54,6 +54,16 @@ type (
 		TxAmounts  [2]*big.Int     // amounts that are to be sent by each role
 	}
 
+	// An Executer is a Role that can execute a protocol.
+	Executer interface {
+		// Execute executes the protocol according to the given configuration.
+		Execute(cfg ExecConfig)
+		// EnableStages enables role synchronization.
+		EnableStages() Stages
+		// SetStages enables role synchronization using the given stages.
+		SetStages(Stages)
+	}
+
 	// Stages are used to synchronize multiple roles.
 	Stages = []sync.WaitGroup
 )
