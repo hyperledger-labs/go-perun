@@ -37,6 +37,7 @@ func NewBob(setup RoleSetup, t *testing.T) *Bob {
 // Execute executes the Bob protocol.
 func (r *Bob) Execute(cfg ExecConfig) {
 	assert := assert.New(r.t)
+	we, them := r.Idxs(cfg.PeerAddrs)
 
 	var listenWg sync.WaitGroup
 	listenWg.Add(2)
@@ -77,15 +78,15 @@ func (r *Bob) Execute(cfg ExecConfig) {
 	r.waitStage()
 
 	// 1st Bob sends some updates to Alice
-	for i := 0; i < cfg.NumUpdatesBob; i++ {
-		ch.sendTransfer(cfg.TxAmountBob, fmt.Sprintf("Bob#%d", i))
+	for i := 0; i < cfg.NumUpdates[we]; i++ {
+		ch.sendTransfer(cfg.TxAmounts[we], fmt.Sprintf("Bob#%d", i))
 	}
 	// 2nd stage
 	r.waitStage()
 
 	// 2nd Bob receives some updates from Alice
-	for i := 0; i < cfg.NumUpdatesAlice; i++ {
-		ch.recvTransfer(cfg.TxAmountAlice, fmt.Sprintf("Alice#%d", i))
+	for i := 0; i < cfg.NumUpdates[them]; i++ {
+		ch.recvTransfer(cfg.TxAmounts[them], fmt.Sprintf("Alice#%d", i))
 	}
 	// 3rd stage
 	r.waitStage()
