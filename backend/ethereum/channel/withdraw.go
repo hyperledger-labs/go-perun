@@ -142,7 +142,7 @@ func (a *Adjudicator) newWithdrawalAuth(request channel.AdjudicatorReq, asset as
 		ChannelID:   request.Params.ID(),
 		Participant: request.Acc.Address().(*wallet.Address).Address,
 		Receiver:    a.Receiver,
-		Amount:      request.Tx.Allocation.Balances[request.Idx][asset.assetIndex],
+		Amount:      request.Tx.Allocation.Balances[asset.assetIndex][request.Idx],
 	}
 	enc, err := encodeAssetHolderWithdrawalAuth(auth)
 	if err != nil {
