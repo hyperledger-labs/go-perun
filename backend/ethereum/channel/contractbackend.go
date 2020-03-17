@@ -124,7 +124,9 @@ func (c *ContractBackend) NewTransactor(ctx context.Context, valueWei *big.Int, 
 	return auth, nil
 }
 
-func calcFundingIDs(channelID channel.ID, participants ...perunwallet.Address) [][32]byte {
+// FundingIDs returns a slice the same size as the number of passed participants
+// where each entry contains the hash Keccak256(channel id || participant address).
+func FundingIDs(channelID channel.ID, participants ...perunwallet.Address) [][32]byte {
 	partIDs := make([][32]byte, len(participants))
 	args := abi.Arguments{{Type: abibytes32}, {Type: abiaddress}}
 	for idx, pID := range participants {

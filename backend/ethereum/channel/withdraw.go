@@ -40,7 +40,7 @@ func (a *Adjudicator) ensureWithdrawn(ctx context.Context, req channel.Adjudicat
 			if err != nil {
 				return errors.WithMessage(err, "creating watchOpts")
 			}
-			fundingID := calcFundingIDs(req.Params.ID(), req.Params.Parts[req.Idx])[0]
+			fundingID := FundingIDs(req.Params.ID(), req.Params.Parts[req.Idx])[0]
 			withdrawn := make(chan *assets.AssetHolderWithdrawn)
 			contract, err := bindAssetHolder(a.ContractBackend, asset, index)
 			if err != nil {
