@@ -3,7 +3,7 @@
 // of this source code is governed by a MIT-style license that can be found in
 // the LICENSE file.
 
-package channel
+package channel_test
 
 import (
 	"context"
@@ -15,7 +15,10 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"perun.network/go-perun/backend/ethereum/wallet"
+
+	ethchannel "perun.network/go-perun/backend/ethereum/channel"
+	"perun.network/go-perun/backend/ethereum/channel/test"
+	ethwallet "perun.network/go-perun/backend/ethereum/wallet"
 	"perun.network/go-perun/channel"
 	channeltest "perun.network/go-perun/channel/test"
 	pkgtest "perun.network/go-perun/pkg/test"
@@ -38,18 +41,18 @@ func withdrawMultipleConcurrentFinal(t *testing.T, numParts int, parallel bool) 
 		seed++
 	}
 	rng := rand.New(rand.NewSource(int64(seed)))
-	// create new Adjudicators
-	accs, parts, funders, adjs, asset := newAdjudicator(t, rng, numParts)
+	// create test setup
+	s := test.NewSetup(t, rng, numParts)
 	// create valid state and params
 	app := channeltest.NewRandomApp(rng)
-	params := channel.NewParamsUnsafe(uint64(0), parts, app.Def(), big.NewInt(rng.Int63()))
-	state := newValidState(rng, params, asset)
+	params := channel.NewParamsUnsafe(uint64(0), s.Parts, app.Def(), big.NewInt(rng.Int63()))
+	state := newValidState(rng, params, s.Asset)
 	// we need to properly fund the channel
-	fundingCtx, funCancel := context.WithTimeout(context.Background(), timeout)
+	fundingCtx, funCancel := context.WithTimeout(context.Background(), defaultTxTimeout)
 	defer funCancel()
 	// fund the contract
 	ct := pkgtest.NewConcurrent(t)
-	for i, funder := range funders {
+	for i, funder := range s.Funders {
 		sleepTime := time.Duration(rng.Int63n(10) + 1)
 		i, funder := i, funder
 		go ct.StageN("funding loop", numParts, func(rt require.TestingT) {
@@ -65,10 +68,10 @@ func withdrawMultipleConcurrentFinal(t *testing.T, numParts int, parallel bool) 
 	ct.Wait("funding loop")
 	// manipulate the state
 	state.IsFinal = true
-	tx := signState(t, accs, params, state)
+	tx := signState(t, s.Accs, params, state)
 
 	// Now test the withdraw function
-	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	ctx, cancel := context.WithTimeout(context.Background(), defaultTxTimeout)
 	defer cancel()
 	if parallel {
 		startBarrier := make(chan struct{})
@@ -82,11 +85,11 @@ func withdrawMultipleConcurrentFinal(t *testing.T, numParts int, parallel bool) 
 				time.Sleep(sleepDuration)
 				req := channel.AdjudicatorReq{
 					Params: params,
-					Acc:    accs[i],
+					Acc:    s.Accs[i],
 					Idx:    channel.Index(i),
 					Tx:     tx,
 				}
-				err := adjs[i].Withdraw(ctx, req)
+				err := s.Adjs[i].Withdraw(ctx, req)
 				assert.NoError(t, err, "Withdrawing should succeed")
 			}(i)
 		}
@@ -96,29 +99,29 @@ func withdrawMultipleConcurrentFinal(t *testing.T, numParts int, parallel bool) 
 		for i := 0; i < numParts; i++ {
 			req := channel.AdjudicatorReq{
 				Params: params,
-				Acc:    accs[i],
+				Acc:    s.Accs[i],
 				Idx:    channel.Index(i),
 				Tx:     tx,
 			}
-			err := adjs[i].Withdraw(ctx, req)
+			err := s.Adjs[i].Withdraw(ctx, req)
 			assert.NoError(t, err, "Withdrawing should succeed")
 		}
 	}
-	assertHoldingsZero(ctx, t, funders, params, state)
+	assertHoldingsZero(ctx, t, s.CB, params, state.Assets)
 }
 
 func TestWithdraw(t *testing.T) {
 	seed := time.Now().UnixNano()
 	t.Logf("seed is %v", seed)
 	rng := rand.New(rand.NewSource(int64(seed)))
-	// create new Adjudicators
-	accs, parts, funders, adjs, asset := newAdjudicator(t, rng, 1)
+	// create test setup
+	s := test.NewSetup(t, rng, 1)
 	// create valid state and params
 	app := channeltest.NewRandomApp(rng)
-	params := channel.NewParamsUnsafe(uint64(0), parts, app.Def(), big.NewInt(rng.Int63()))
-	state := newValidState(rng, params, asset)
+	params := channel.NewParamsUnsafe(uint64(0), s.Parts, app.Def(), big.NewInt(rng.Int63()))
+	state := newValidState(rng, params, s.Asset)
 	// we need to properly fund the channel
-	fundingCtx, funCancel := context.WithTimeout(context.Background(), timeout)
+	fundingCtx, funCancel := context.WithTimeout(context.Background(), defaultTxTimeout)
 	defer funCancel()
 	// fund the contract
 	fundingReq := channel.FundingReq{
@@ -126,18 +129,18 @@ func TestWithdraw(t *testing.T) {
 		Allocation: &state.Allocation,
 		Idx:        channel.Index(0),
 	}
-	require.NoError(t, funders[0].Fund(fundingCtx, fundingReq), "funding should succeed")
+	require.NoError(t, s.Funders[0].Fund(fundingCtx, fundingReq), "funding should succeed")
 	req := channel.AdjudicatorReq{
 		Params: params,
-		Acc:    accs[0],
+		Acc:    s.Accs[0],
 		Idx:    channel.Index(0),
 	}
 
 	testWithdraw := func(t *testing.T, shouldWork bool) {
 		ctx, cancel := context.WithTimeout(context.Background(), 100*time.Millisecond)
 		defer cancel()
-		req.Tx = signState(t, accs, params, state)
-		err := adjs[0].Withdraw(ctx, req)
+		req.Tx = signState(t, s.Accs, params, state)
+		err := s.Adjs[0].Withdraw(ctx, req)
 
 		if shouldWork {
 			assert.NoError(t, err, "Withdrawing should work")
@@ -149,40 +152,33 @@ func TestWithdraw(t *testing.T) {
 	t.Run("Withdraw non-final state", func(t *testing.T) {
 		testWithdraw(t, false)
 	})
+
 	t.Run("Withdraw final state", func(t *testing.T) {
 		state.IsFinal = true
 		testWithdraw(t, true)
 	})
+
 	t.Run("Withdrawal idempotence", func(t *testing.T) {
 		for i := 0; i < 10; i++ {
 			// get nonce
-			oldNonce, err := adjs[0].PendingNonceAt(context.Background(), accs[0].Address().(*wallet.Address).Address)
+			oldNonce, err := s.Adjs[0].PendingNonceAt(context.Background(), s.Accs[0].Address().(*ethwallet.Address).Address)
 			require.NoError(t, err)
 			// withdraw
 			testWithdraw(t, true)
 			// get nonce
-			nonce, err := adjs[0].PendingNonceAt(context.Background(), accs[0].Address().(*wallet.Address).Address)
+			nonce, err := s.Adjs[0].PendingNonceAt(context.Background(), s.Accs[0].Address().(*ethwallet.Address).Address)
 			require.NoError(t, err)
 			assert.Equal(t, oldNonce, nonce, "Nonce must not change in subsequent withdrawals")
 		}
 	})
 }
 
-func assertHoldingsZero(ctx context.Context, t *testing.T, funders []*Funder, params *channel.Params, state *channel.State) {
-	for i, funder := range funders {
-		req := channel.FundingReq{
-			Params:     params,
-			Allocation: &state.Allocation,
-			Idx:        channel.Index(i),
+func assertHoldingsZero(ctx context.Context, t *testing.T, cb *ethchannel.ContractBackend, params *channel.Params, _assets []channel.Asset) {
+	alloc, err := getOnChainAllocation(ctx, cb, params, _assets)
+	require.NoError(t, err, "Getting on-chain allocs should succeed")
+	for i, assetalloc := range alloc {
+		for j, a := range assetalloc {
+			assert.Zerof(t, a.Sign(), "Allocation of asset[%d] and part[%d] non-zero.", j, i)
 		}
-		alloc, err := getOnChainAllocation(ctx, funder, req)
-		assert.NoError(t, err, "Getting on-chain allocs should succeed")
-		sum := big.NewInt(0)
-		for x := range alloc {
-			for y := range alloc[x] {
-				sum = sum.Add(sum, alloc[x][y])
-			}
-		}
-		assert.Equal(t, big.NewInt(0), sum, "Holdings should be set to zero after withdraw")
 	}
 }
