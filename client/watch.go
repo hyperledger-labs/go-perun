@@ -15,8 +15,13 @@ import (
 )
 
 // Watch starts the channel watcher routine. It subscribes to RegisteredEvents
-// on the adjudicator. If an outside event
-func (c *Channel) Watch() {
+// on the adjudicator. If an event is registered, it is handled by making sure
+// the latest state is registered and then all funds withdrawn to the receiver
+// specified in the adjudicator that was passed to the channel.
+//
+// If handling failed, the watcher routine returns the respective error. It is
+// the user's job to restart the watcher after the cause of the error got fixed.
+func (c *Channel) Watch() error {
 	log := c.log.WithField("proc", "watcher")
 	defer log.Info("Watcher returned.")
 
@@ -25,25 +30,22 @@ func (c *Channel) Watch() {
 	c.OnClose(cancel)
 	sub, err := c.adjudicator.SubscribeRegistered(ctx, c.Params())
 	if err != nil {
-		log.Errorf("failed to setup subscription to RegisteredEvents: %v", err)
-		return
+		return errors.WithMessage(err, "subscribing to RegisteredEvents")
 	}
+	defer sub.Close()
 
 	// Wait for on-chain event
 	reg := sub.Next()
 	log.Infof("New RegisteredEvent: %v", reg)
 	if reg == nil {
-		if err := sub.Err(); err != nil {
-			log.Warnf("Subscription closed: %v", err)
-		} else {
-			log.Debug("Subscription closed without error.", err)
-		}
-		return
+		err := sub.Err() // err might be nil if subscription got orderly closed
+		log.Debugf("Subscription closed: %v", err)
+		return errors.WithMessage(err, "subscription closed")
 	}
 
-	if err := c.handleRegisteredEvent(ctx, reg); err != nil {
-		log.Errorf("Handling Registered failed: %v", err)
-	}
+	return errors.WithMessage(
+		c.handleRegisteredEvent(ctx, reg),
+		"handling RegisteredEvent")
 }
 
 // handleRegisteredEvent stores the passed RegisteredEvent to the machine and
