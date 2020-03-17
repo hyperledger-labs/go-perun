@@ -36,7 +36,7 @@ func (a *Adjudicator) ensureWithdrawn(ctx context.Context, req channel.Adjudicat
 	for index, asset := range req.Tx.Allocation.Assets {
 		g.Go(func() error {
 			// Create subscription
-			watchOpts, err := a.newWatchOpts(ctx)
+			watchOpts, err := a.NewWatchOpts(ctx)
 			if err != nil {
 				return errors.WithMessage(err, "creating watchOpts")
 			}
@@ -91,7 +91,7 @@ func bindAssetHolder(backend ContractBackend, asset channel.Asset, assetIndex in
 
 // filterWithdrawn returns whether there has been a Withdrawn event in the past.
 func (a *Adjudicator) filterWithdrawn(ctx context.Context, channelID channel.ID, fundingID [32]byte, asset assetHolder) (bool, error) {
-	filterOpts, err := a.newFilterOpts(ctx)
+	filterOpts, err := a.NewFilterOpts(ctx)
 	if err != nil {
 		return false, err
 	}
@@ -118,7 +118,7 @@ func (a *Adjudicator) callAssetWithdraw(ctx context.Context, request channel.Adj
 			return nil, errors.Wrap(ctx.Err(), "context canceled while acquiring tx lock")
 		}
 		defer a.mu.Unlock()
-		trans, err := a.newTransactor(ctx, big.NewInt(0), GasLimit)
+		trans, err := a.NewTransactor(ctx, big.NewInt(0), GasLimit)
 		if err != nil {
 			return nil, errors.WithMessagef(err, "creating transactor for asset %d", asset.assetIndex)
 		}

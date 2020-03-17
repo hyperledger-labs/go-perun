@@ -55,8 +55,10 @@ func NewContractBackend(cf ContractInterface, ks *keystore.KeyStore, acc *accoun
 	}
 }
 
-func (c *ContractBackend) newWatchOpts(ctx context.Context) (*bind.WatchOpts, error) {
-	blockNum, err := c.getBlockNum(ctx)
+// NewWatchOpts returns bind.WatchOpts with the field Start set to the current
+// block number and the ctx field set to the passed context.
+func (c *ContractBackend) NewWatchOpts(ctx context.Context) (*bind.WatchOpts, error) {
+	blockNum, err := c.pastOffsetBlockNum(ctx)
 	if err != nil {
 		return nil, errors.WithMessage(err, "new watch opts")
 	}
@@ -67,8 +69,11 @@ func (c *ContractBackend) newWatchOpts(ctx context.Context) (*bind.WatchOpts, er
 	}, nil
 }
 
-func (c *ContractBackend) newFilterOpts(ctx context.Context) (*bind.FilterOpts, error) {
-	blockNum, err := c.getBlockNum(ctx)
+// NewFilterOpts returns bind.FilterOpts with the field Start set to the block
+// number 100 blocks ago (or 1) and the field End set to nil and the ctx field
+// set to the passed context.
+func (c *ContractBackend) NewFilterOpts(ctx context.Context) (*bind.FilterOpts, error) {
+	blockNum, err := c.pastOffsetBlockNum(ctx)
 	if err != nil {
 		return nil, errors.WithMessage(err, "new filter opts")
 	}
@@ -79,22 +84,23 @@ func (c *ContractBackend) newFilterOpts(ctx context.Context) (*bind.FilterOpts, 
 	}, nil
 }
 
-func (c *ContractBackend) getBlockNum(ctx context.Context) (uint64, error) {
+func (c *ContractBackend) pastOffsetBlockNum(ctx context.Context) (uint64, error) {
 	latestBlock, err := c.BlockByNumber(ctx, nil)
 	if err != nil {
-		return uint64(0), errors.Wrap(err, "Could not retrieve latest block")
+		return uint64(0), errors.Wrap(err, "retrieving latest block")
 	}
+
 	// max(1, latestBlock - offset)
-	var blockNum uint64
-	if latestBlock.NumberU64() > startBlockOffset {
-		blockNum = latestBlock.NumberU64() - startBlockOffset
-	} else {
-		blockNum = 1
+	if latestBlock.NumberU64() <= startBlockOffset {
+		return 1, nil
 	}
-	return blockNum, nil
+	return latestBlock.NumberU64() - startBlockOffset, nil
 }
 
-func (c *ContractBackend) newTransactor(ctx context.Context, valueWei *big.Int, gasLimit uint64) (*bind.TransactOpts, error) {
+// NewTransactor returns bind.TransactOpts with the current nonce, suggested gas
+// price and account of the ContractBackend. The gasLimit and value in wei are
+// taken from the parameters.
+func (c *ContractBackend) NewTransactor(ctx context.Context, valueWei *big.Int, gasLimit uint64) (*bind.TransactOpts, error) {
 	nonce, err := c.PendingNonceAt(ctx, c.account.Address)
 	if err != nil {
 		return nil, errors.Wrap(err, "querying pending nonce")

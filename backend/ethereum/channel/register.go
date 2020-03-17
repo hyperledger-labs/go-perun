@@ -124,7 +124,7 @@ func (a *Adjudicator) filterWatchStored(ctx context.Context, stored chan *adjudi
 		}
 	}()
 	// Watch new events
-	watchOpts, err := a.newWatchOpts(ctx)
+	watchOpts, err := a.NewWatchOpts(ctx)
 	if err != nil {
 		return nil, nil, errors.WithMessage(err, "creating watchopts")
 	}
@@ -134,7 +134,7 @@ func (a *Adjudicator) filterWatchStored(ctx context.Context, stored chan *adjudi
 	}
 
 	// Filter old Events
-	filterOpts, err := a.newFilterOpts(ctx)
+	filterOpts, err := a.NewFilterOpts(ctx)
 	if err != nil {
 		return nil, nil, errors.WithMessage(err, "creating filter opts")
 	}
