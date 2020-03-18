@@ -15,6 +15,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"perun.network/go-perun/backend/ethereum/wallet"
 	"perun.network/go-perun/channel"
 	channeltest "perun.network/go-perun/channel/test"
 	pkgtest "perun.network/go-perun/pkg/test"
@@ -106,7 +107,7 @@ func withdrawMultipleConcurrentFinal(t *testing.T, numParts int, parallel bool) 
 	assertHoldingsZero(ctx, t, funders, params, state)
 }
 
-func TestWithdrawNonFinalState(t *testing.T) {
+func TestWithdraw(t *testing.T) {
 	seed := time.Now().UnixNano()
 	t.Logf("seed is %v", seed)
 	rng := rand.New(rand.NewSource(int64(seed)))
@@ -126,18 +127,45 @@ func TestWithdrawNonFinalState(t *testing.T) {
 		Idx:        channel.Index(0),
 	}
 	require.NoError(t, funders[0].Fund(fundingCtx, fundingReq), "funding should succeed")
-	// try to withdraw non-final state
-	tx := signState(t, accs, params, state)
-	ctx, cancel := context.WithTimeout(context.Background(), 100*time.Millisecond)
-	defer cancel()
 	req := channel.AdjudicatorReq{
 		Params: params,
 		Acc:    accs[0],
 		Idx:    channel.Index(0),
-		Tx:     tx,
 	}
-	err := adjs[0].Withdraw(ctx, req)
-	assert.Error(t, err, "Withdrawing non-final state should fail")
+
+	testWithdraw := func(t *testing.T, shouldWork bool) {
+		ctx, cancel := context.WithTimeout(context.Background(), 100*time.Millisecond)
+		defer cancel()
+		req.Tx = signState(t, accs, params, state)
+		err := adjs[0].Withdraw(ctx, req)
+
+		if shouldWork {
+			assert.NoError(t, err, "Withdrawing should work")
+		} else {
+			assert.Error(t, err, "Withdrawing should fail")
+		}
+	}
+
+	t.Run("Withdraw non-final state", func(t *testing.T) {
+		testWithdraw(t, false)
+	})
+	t.Run("Withdraw final state", func(t *testing.T) {
+		state.IsFinal = true
+		testWithdraw(t, true)
+	})
+	t.Run("Withdrawal idempotence", func(t *testing.T) {
+		for i := 0; i < 10; i++ {
+			// get nonce
+			oldNonce, err := adjs[0].PendingNonceAt(context.Background(), accs[0].Address().(*wallet.Address).Address)
+			require.NoError(t, err)
+			// withdraw
+			testWithdraw(t, true)
+			// get nonce
+			nonce, err := adjs[0].PendingNonceAt(context.Background(), accs[0].Address().(*wallet.Address).Address)
+			require.NoError(t, err)
+			assert.Equal(t, oldNonce, nonce, "Nonce must not change in subsequent withdrawals")
+		}
+	})
 }
 
 func assertHoldingsZero(ctx context.Context, t *testing.T, funders []*Funder, params *channel.Params, state *channel.State) {
