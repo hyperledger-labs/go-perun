@@ -23,7 +23,7 @@ import (
 // - it waits for a Concluded event from the blockchain
 func (a *Adjudicator) ensureConcluded(ctx context.Context, req channel.AdjudicatorReq) error {
 	// Listen for Concluded event.
-	watchOpts, err := a.newWatchOpts(ctx)
+	watchOpts, err := a.NewWatchOpts(ctx)
 	if err != nil {
 		return errors.WithMessage(err, "creating watchOpts")
 	}
@@ -64,7 +64,7 @@ func (a *Adjudicator) ensureConcluded(ctx context.Context, req channel.Adjudicat
 
 // filterConcluded returns whether there has been a Concluded event in the past.
 func (a *Adjudicator) filterConcluded(ctx context.Context, channelID channel.ID) (bool, error) {
-	filterOpts, err := a.newFilterOpts(ctx)
+	filterOpts, err := a.NewFilterOpts(ctx)
 	if err != nil {
 		return false, err
 	}

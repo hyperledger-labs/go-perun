@@ -56,7 +56,6 @@ type (
 	// registration on the blockchain.
 	RegisteredEvent struct {
 		ID      ID        // Channel ID
-		Idx     Index     // Index of the participant who registered the event.
 		Version uint64    // Registered version.
 		Timeout time.Time // Timeout when the event can be concluded or progressed
 	}

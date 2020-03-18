@@ -7,7 +7,6 @@ package channel // import "perun.network/go-perun/backend/ethereum/channel"
 
 import (
 	"context"
-	"sync"
 	"time"
 
 	"github.com/ethereum/go-ethereum/event"
@@ -89,6 +88,15 @@ func (a *Adjudicator) SubscribeRegistered(ctx context.Context, params *channel.P
 		return nil, errors.WithMessage(err, "filter/watch Stored event")
 	}
 
+	rsub := &RegisteredSub{
+		sub:  sub,
+		next: make(chan *channel.RegisteredEvent, 1),
+		err:  make(chan error, 1),
+	}
+
+	// Start event updater routine
+	go rsub.updateNext(stored)
+
 	// find past event, if any
 	var ev *adjudicator.AdjudicatorStored
 	for iter.Next() {
@@ -96,23 +104,16 @@ func (a *Adjudicator) SubscribeRegistered(ctx context.Context, params *channel.P
 	}
 	iter.Close()
 	if err := iter.Error(); err != nil {
-		return nil, errors.Wrap(err, "event iterator error")
+		sub.Unsubscribe()
+		return nil, errors.Wrap(err, "event iterator")
+	}
+	// Pass non-nil past event to updater
+	if ev != nil {
+		rsub.past = true
+		stored <- ev
 	}
 
-	// if the subscription already caught an event, use it as a past event, if newer
-	select {
-	case ev2 := <-stored:
-		if ev2 != nil && (ev == nil || ev2.Version > ev.Version) {
-			ev = ev2
-		}
-	default:
-	}
-
-	return &RegisteredSub{
-		sub:        sub,
-		stored:     stored,
-		pastStored: ev,
-	}, nil
+	return rsub, nil
 }
 
 // filterWatchStored sets up a filter and a subscription on Stored events.
@@ -123,7 +124,7 @@ func (a *Adjudicator) filterWatchStored(ctx context.Context, stored chan *adjudi
 		}
 	}()
 	// Watch new events
-	watchOpts, err := a.newWatchOpts(ctx)
+	watchOpts, err := a.NewWatchOpts(ctx)
 	if err != nil {
 		return nil, nil, errors.WithMessage(err, "creating watchopts")
 	}
@@ -133,7 +134,7 @@ func (a *Adjudicator) filterWatchStored(ctx context.Context, stored chan *adjudi
 	}
 
 	// Filter old Events
-	filterOpts, err := a.newFilterOpts(ctx)
+	filterOpts, err := a.NewFilterOpts(ctx)
 	if err != nil {
 		return nil, nil, errors.WithMessage(err, "creating filter opts")
 	}
@@ -147,17 +148,46 @@ func (a *Adjudicator) filterWatchStored(ctx context.Context, stored chan *adjudi
 
 // RegisteredSub implements the channel.RegisteredSubscription interface.
 type RegisteredSub struct {
-	sub        event.Subscription
-	stored     chan *adjudicator.AdjudicatorStored
-	pastStored *adjudicator.AdjudicatorStored // if there was any
-	err        error                          // error from subscription
-	errMu      sync.Mutex                     // guards err and sub.Err() access
+	sub  event.Subscription
+	next chan *channel.RegisteredEvent
+	err  chan error // error from subscription
+	past bool       // whether there was a past event when the subscription was created
 }
 
-// hasPast returns whether there was a past event when the subscription was set
-// up.
 func (r *RegisteredSub) hasPast() bool {
-	return r.pastStored != nil
+	return r.past
+}
+
+func (r *RegisteredSub) updateNext(events chan *adjudicator.AdjudicatorStored) {
+evloop:
+	for {
+		select {
+		case next := <-events:
+			select {
+			// drain next-channel on new event
+			case current := <-r.next:
+				// if newer version or same version and newer timeout, replace
+				if current.Version < next.Version ||
+					current.Version == next.Version && uint64(current.Timeout.Unix()) < next.Timeout {
+					r.next <- storedToRegisteredEvent(next)
+				} else { // otherwise, reuse old
+					r.next <- current
+				}
+			default: // next-channel is empty
+				r.next <- storedToRegisteredEvent(next)
+			}
+		case err := <-r.sub.Err():
+			r.err <- err
+			break evloop
+		}
+	}
+
+	// subscription got closed, close next channel and return
+	select {
+	case <-r.next:
+	default:
+	}
+	close(r.next)
 }
 
 // Next returns the newest past or next blockchain event.
@@ -166,43 +196,19 @@ func (r *RegisteredSub) hasPast() bool {
 // If there was a past event when the subscription was set up, the first call to
 // Next will return it.
 func (r *RegisteredSub) Next() *channel.RegisteredEvent {
-	if r.pastStored != nil {
-		s := r.pastStored
-		r.pastStored = nil
-		return storedToRegisteredEvent(s)
-	}
-
-	r.errMu.Lock()
-	defer r.errMu.Unlock()
-
-	select {
-	case stored := <-r.stored:
-		return storedToRegisteredEvent(stored)
-	case err := <-r.sub.Err():
-		r.updateErr(errors.Wrap(err, "event subscription"))
-		return nil
-	}
+	return <-r.next
 }
 
 // Close closes this subscription. Any pending calls to Next will return nil.
 func (r *RegisteredSub) Close() error {
 	r.sub.Unsubscribe()
-	close(r.stored)
-	return r.Err()
+	return nil
 }
 
 // Err returns the error of the event subscription.
+// Should only be called after Next returned nil.
 func (r *RegisteredSub) Err() error {
-	r.errMu.Lock()
-	defer r.errMu.Unlock()
-	return r.updateErr(errors.Wrap(<-r.sub.Err(), "event subscription"))
-}
-
-func (r *RegisteredSub) updateErr(err error) error {
-	if err != nil {
-		r.err = err
-	}
-	return r.err
+	return <-r.err
 }
 
 func storedToRegisteredEvent(event *adjudicator.AdjudicatorStored) *channel.RegisteredEvent {

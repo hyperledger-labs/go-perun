@@ -42,6 +42,7 @@ func NewAlice(setup RoleSetup, t *testing.T) *Alice {
 // Execute executes the Alice protocol.
 func (r *Alice) Execute(cfg ExecConfig) {
 	assert := assert.New(r.t)
+	we, them := r.Idxs(cfg.PeerAddrs)
 	// We don't start the proposal listener because Alice only sends proposals
 
 	initBals := &channel.Allocation{
@@ -58,7 +59,7 @@ func (r *Alice) Execute(cfg ExecConfig) {
 		AppDef:            payment.AppDef(),
 		InitData:          new(payment.NoData),
 		InitBals:          initBals,
-		PeerAddrs:         cfg.PeerAddrs,
+		PeerAddrs:         cfg.PeerAddrs[:],
 	}
 
 	// send channel proposal
@@ -91,15 +92,15 @@ func (r *Alice) Execute(cfg ExecConfig) {
 	r.waitStage()
 
 	// 1st Alice receives some updates from Bob
-	for i := 0; i < cfg.NumUpdatesBob; i++ {
-		ch.recvTransfer(cfg.TxAmountBob, fmt.Sprintf("Bob#%d", i))
+	for i := 0; i < cfg.NumUpdates[them]; i++ {
+		ch.recvTransfer(cfg.TxAmounts[them], fmt.Sprintf("Bob#%d", i))
 	}
 	// 2nd stage
 	r.waitStage()
 
 	// 2nd Alice sends some updates to Bob
-	for i := 0; i < cfg.NumUpdatesAlice; i++ {
-		ch.sendTransfer(cfg.TxAmountAlice, fmt.Sprintf("Alice#%d", i))
+	for i := 0; i < cfg.NumUpdates[we]; i++ {
+		ch.sendTransfer(cfg.TxAmounts[we], fmt.Sprintf("Alice#%d", i))
 	}
 	// 3rd stage
 	r.waitStage()

@@ -19,6 +19,7 @@ import (
 	"perun.network/go-perun/log"
 	"perun.network/go-perun/peer"
 	peertest "perun.network/go-perun/peer/test"
+	"perun.network/go-perun/wallet"
 	wallettest "perun.network/go-perun/wallet/test"
 )
 
@@ -28,60 +29,51 @@ func TestHappyAliceBob(t *testing.T) {
 	log.Info("Starting happy test")
 	rng := rand.New(rand.NewSource(0x1337))
 
-	var hub peertest.ConnHub
+	const A, B = 0, 1 // Indices of Alice and Bob
+	var (
+		name  = [2]string{"Alice", "Bob"}
+		hub   peertest.ConnHub
+		acc   [2]wallet.Account
+		setup [2]clienttest.RoleSetup
+		role  [2]clienttest.Executer
+	)
 
-	aliceAcc := wallettest.NewRandomAccount(rng)
-	bobAcc := wallettest.NewRandomAccount(rng)
-
-	setupAlice := clienttest.RoleSetup{
-		Name:        "Alice",
-		Identity:    aliceAcc,
-		Dialer:      hub.NewDialer(),
-		Listener:    hub.NewListener(aliceAcc.Address()),
-		Funder:      &logFunder{log.WithField("role", "Alice")},
-		Adjudicator: &logAdjudicator{log.WithField("role", "Alice")},
-		Timeout:     defaultTimeout,
+	for i := 0; i < 2; i++ {
+		acc[i] = wallettest.NewRandomAccount(rng)
+		setup[i] = clienttest.RoleSetup{
+			Name:        name[i],
+			Identity:    acc[i],
+			Dialer:      hub.NewDialer(),
+			Listener:    hub.NewListener(acc[i].Address()),
+			Funder:      &logFunder{log.WithField("role", name[i])},
+			Adjudicator: &logAdjudicator{log.WithField("role", name[i])},
+			Timeout:     defaultTimeout,
+		}
 	}
 
-	setupBob := clienttest.RoleSetup{
-		Name:        "Bob",
-		Identity:    bobAcc,
-		Dialer:      hub.NewDialer(),
-		Listener:    hub.NewListener(bobAcc.Address()),
-		Funder:      &logFunder{log.WithField("role", "Bob")},
-		Adjudicator: &logAdjudicator{log.WithField("role", "Bob")},
-		Timeout:     defaultTimeout,
-	}
+	role[A] = clienttest.NewAlice(setup[A], t)
+	role[B] = clienttest.NewBob(setup[B], t)
+	// enable stages synchronization
+	stages := role[A].EnableStages()
+	role[B].SetStages(stages)
 
 	execConfig := clienttest.ExecConfig{
-		PeerAddrs:       []peer.Address{aliceAcc.Address(), bobAcc.Address()},
-		Asset:           channeltest.NewRandomAsset(rng),
-		InitBals:        []*big.Int{big.NewInt(100), big.NewInt(100)},
-		NumUpdatesBob:   2,
-		NumUpdatesAlice: 2,
-		TxAmountBob:     big.NewInt(5),
-		TxAmountAlice:   big.NewInt(3),
+		PeerAddrs:  [2]peer.Address{acc[A].Address(), acc[B].Address()},
+		Asset:      channeltest.NewRandomAsset(rng),
+		InitBals:   [2]*big.Int{big.NewInt(100), big.NewInt(100)},
+		NumUpdates: [2]int{2, 2},
+		TxAmounts:  [2]*big.Int{big.NewInt(5), big.NewInt(3)},
 	}
-
-	alice := clienttest.NewAlice(setupAlice, t)
-	bob := clienttest.NewBob(setupBob, t)
-	// enable stages synchronization
-	stages := alice.EnableStages()
-	bob.SetStages(stages)
 
 	var wg sync.WaitGroup
 	wg.Add(2)
-	go func() {
-		defer wg.Done()
-		log.Info("Starting Alice.Execute")
-		alice.Execute(execConfig)
-	}()
-
-	go func() {
-		defer wg.Done()
-		log.Info("Starting Bob.Execute")
-		bob.Execute(execConfig)
-	}()
+	for i := 0; i < 2; i++ {
+		go func(i int) {
+			defer wg.Done()
+			log.Infof("Starting %s.Execute", name[i])
+			role[i].Execute(execConfig)
+		}(i)
+	}
 
 	wg.Wait()
 	log.Info("Happy test done")
@@ -106,7 +98,6 @@ func (a *logAdjudicator) Register(ctx context.Context, req channel.AdjudicatorRe
 	a.log.Infof("Register: %v", req)
 	return &channel.RegisteredEvent{
 		ID:      req.Params.ID(),
-		Idx:     req.Idx,
 		Version: req.Tx.Version,
 		Timeout: time.Now(),
 	}, nil

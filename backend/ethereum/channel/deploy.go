@@ -23,7 +23,7 @@ const deployGasLimit = 6600000
 
 // DeployETHAssetholder deploys a new ETHAssetHolder contract.
 func DeployETHAssetholder(ctx context.Context, backend ContractBackend, adjudicatorAddr common.Address) (common.Address, error) {
-	auth, err := backend.newTransactor(ctx, big.NewInt(0), deployGasLimit)
+	auth, err := backend.NewTransactor(ctx, big.NewInt(0), deployGasLimit)
 	if err != nil {
 		return common.Address{}, errors.WithMessage(err, "could not create transactor")
 	}
@@ -40,7 +40,7 @@ func DeployETHAssetholder(ctx context.Context, backend ContractBackend, adjudica
 
 // DeployAdjudicator deploys a new Adjudicator contract.
 func DeployAdjudicator(ctx context.Context, backend ContractBackend) (common.Address, error) {
-	auth, err := backend.newTransactor(ctx, big.NewInt(0), deployGasLimit)
+	auth, err := backend.NewTransactor(ctx, big.NewInt(0), deployGasLimit)
 	if err != nil {
 		return common.Address{}, errors.WithMessage(err, "could not create transactor")
 	}

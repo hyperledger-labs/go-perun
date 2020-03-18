@@ -47,13 +47,21 @@ type (
 
 	// ExecConfig contains additional config parameters for the tests.
 	ExecConfig struct {
-		PeerAddrs       []peer.Address // must match RoleSetup.Identity of [Alice, Bob]
-		Asset           channel.Asset  // single Asset to use in this channel
-		InitBals        []*big.Int     // channel deposit of [Alice, Bob]
-		NumUpdatesBob   int            // 1st Bob sends updates
-		NumUpdatesAlice int            // then 2nd Alice sends updates
-		TxAmountBob     *big.Int       // amount that Bob sends per udpate
-		TxAmountAlice   *big.Int       // amount that Alice sends per udpate
+		PeerAddrs  [2]peer.Address // must match the RoleSetup.Identity's
+		Asset      channel.Asset   // single Asset to use in this channel
+		InitBals   [2]*big.Int     // channel deposit of each role
+		NumUpdates [2]int          // how many updates each role sends
+		TxAmounts  [2]*big.Int     // amounts that are to be sent by each role
+	}
+
+	// An Executer is a Role that can execute a protocol.
+	Executer interface {
+		// Execute executes the protocol according to the given configuration.
+		Execute(cfg ExecConfig)
+		// EnableStages enables role synchronization.
+		EnableStages() Stages
+		// SetStages enables role synchronization using the given stages.
+		SetStages(Stages)
 	}
 
 	// Stages are used to synchronize multiple roles.
@@ -106,6 +114,17 @@ func (r *Role) waitStage() {
 		stage.Done()
 		stage.Wait()
 	}
+}
+
+// Idxs maps the passed addresses to the indices in the 2-party-channel. If the
+// setup's Identity is not found in peers, Idxs panics.
+func (r *Role) Idxs(peers [2]peer.Address) (our, their int) {
+	if r.setup.Identity.Address().Equals(peers[0]) {
+		return 0, 1
+	} else if r.setup.Identity.Address().Equals(peers[1]) {
+		return 1, 0
+	}
+	panic("identity not in peers")
 }
 
 type (

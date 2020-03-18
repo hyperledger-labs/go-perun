@@ -62,7 +62,7 @@ func (f *Funder) Fund(ctx context.Context, request channel.FundingReq) error {
 	var channelID = request.Params.ID()
 	f.log.WithField("channel", channelID).Debug("Funding Channel.")
 
-	partIDs := calcFundingIDs(channelID, request.Params.Parts...)
+	partIDs := FundingIDs(channelID, request.Params.Parts...)
 
 	errChan := make(chan error, len(request.Allocation.Assets))
 	errs := make([]*channel.AssetFundingError, len(request.Allocation.Assets))
@@ -147,9 +147,9 @@ func (f *Funder) createFundingTx(ctx context.Context, request channel.FundingReq
 	var errI error
 	if bytes.Equal(asset.Bytes(), f.ethAssetHolder.Bytes()) {
 		// If we want to fund the channel with ether, send eth in transaction.
-		auth, errI = f.newTransactor(ctx, balance, GasLimit)
+		auth, errI = f.NewTransactor(ctx, balance, GasLimit)
 	} else {
-		auth, errI = f.newTransactor(ctx, big.NewInt(0), GasLimit)
+		auth, errI = f.NewTransactor(ctx, big.NewInt(0), GasLimit)
 	}
 	if errI != nil {
 		return nil, errors.Wrapf(errI, "creating transactor for asset %d", asset.assetIndex)
@@ -181,7 +181,7 @@ func filterOldEvents(ctx context.Context, asset assetHolder, deposited chan *ass
 func (f *Funder) waitForFundingConfirmation(ctx context.Context, request channel.FundingReq, asset assetHolder, partIDs [][32]byte) error {
 	deposited := make(chan *assets.AssetHolderDeposited)
 	// Watch new events
-	watchOpts, err := f.newWatchOpts(ctx)
+	watchOpts, err := f.NewWatchOpts(ctx)
 	if err != nil {
 		return errors.WithMessage(err, "error creating watchopts")
 	}

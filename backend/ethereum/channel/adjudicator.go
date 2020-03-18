@@ -93,7 +93,7 @@ func (a *Adjudicator) call(ctx context.Context, req channel.AdjudicatorReq, fn a
 		}
 		defer a.mu.Unlock()
 
-		trans, err := a.newTransactor(ctx, big.NewInt(0), GasLimit)
+		trans, err := a.NewTransactor(ctx, big.NewInt(0), GasLimit)
 		if err != nil {
 			return nil, errors.WithMessage(err, "creating transactor")
 		}
