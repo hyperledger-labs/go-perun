@@ -5,11 +5,11 @@
 
 package adjudicator
 
-//go:generate echo -e "\\e[01;31mEnsure that solc version is ^0.5.13\\e[0m"
-//go:generate echo -e "\\e[01;31mMake sure you cloned the contracts submodule (git submodule update --init)\\e[0m"
-//go:generate solc --bin-runtime --optimize ../contracts/contracts/Adjudicator.sol --overwrite -o ./
-//go:generate solc --bin-runtime --optimize ../contracts/contracts/AssetHolderETH.sol --overwrite -o ./
-//go:generate abigen --pkg adjudicator --sol ../contracts/contracts/Adjudicator.sol --out adjudicator/Adjudicator.go
-//go:generate abigen --pkg assets --sol ../contracts/contracts/AssetHolderETH.sol --out assets/AssetHolderETH.go
-//go:generate abigen --version
-//go:generate echo -e "\\e[01;31mGenerated bindings\\e[0m"
+//go:generate wget -nc "https://github.com/ethereum/solidity/releases/download/v0.5.16/solc-static-linux"
+//go:generate chmod +x solc-static-linux
+//go:generate echo -e "Ensure that the newest version of abigen is installed"
+//go:generate echo -e "Make sure you cloned the contracts submodule (git submodule update --init)"
+//go:generate abigen --pkg adjudicator --sol ../contracts/contracts/Adjudicator.sol --out adjudicator/Adjudicator.go --solc ./solc-static-linux
+//go:generate abigen --pkg assets --sol ../contracts/contracts/AssetHolderETH.sol --out assets/AssetHolderETH.go --solc ./solc-static-linux
+//go:generate abigen --version --solc ./solc-static-linux
+//go:generate echo -e "Generated bindings"

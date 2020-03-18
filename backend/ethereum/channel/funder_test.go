@@ -226,7 +226,7 @@ func newValidAllocation(parts []perunwallet.Address, assetETH common.Address) *c
 
 func getOnChainAllocation(ctx context.Context, f *Funder, request channel.FundingReq) ([][]channel.Bal, error) {
 	var channelID = request.Params.ID()
-	partIDs := calcFundingIDs(request.Params.Parts, channelID)
+	partIDs := calcFundingIDs(channelID, request.Params.Parts...)
 
 	alloc := make([][]channel.Bal, len(request.Params.Parts))
 	for i := 0; i < len(request.Params.Parts); i++ {

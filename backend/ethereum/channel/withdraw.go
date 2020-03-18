@@ -10,7 +10,6 @@ import (
 	"math/big"
 
 	"github.com/ethereum/go-ethereum/accounts/abi"
-	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/pkg/errors"
 	"golang.org/x/sync/errgroup"
@@ -31,27 +30,56 @@ func (a *Adjudicator) Withdraw(ctx context.Context, req channel.AdjudicatorReq) 
 	return errors.WithMessage(a.ensureWithdrawn(ctx, req), "ensure Withdrawn")
 }
 
-func (a *Adjudicator) ensureWithdrawn(ctx context.Context, request channel.AdjudicatorReq) error {
-	assets := request.Tx.Allocation.Assets
-
+func (a *Adjudicator) ensureWithdrawn(ctx context.Context, req channel.AdjudicatorReq) error {
 	g, ctx := errgroup.WithContext(ctx)
-	for index, asset := range assets {
+
+	for index, asset := range req.Tx.Allocation.Assets {
 		g.Go(func() error {
-			contract, err := connectToAssetHolder(a.ContractBackend, asset, index)
+			// Create subscription
+			watchOpts, err := a.newWatchOpts(ctx)
+			if err != nil {
+				return errors.WithMessage(err, "creating watchOpts")
+			}
+			fundingID := calcFundingIDs(req.Params.ID(), req.Params.Parts[req.Idx])[0]
+			withdrawn := make(chan *assets.AssetHolderWithdrawn)
+			contract, err := bindAssetHolder(a.ContractBackend, asset, index)
 			if err != nil {
 				return errors.WithMessage(err, "connecting asset holder")
 			}
-
-			if err := a.callAssetWithdraw(ctx, request, contract); err != nil {
-				return errors.Wrap(err, "withdrawing assets failed")
+			sub, err := contract.WatchWithdrawn(watchOpts, withdrawn, [][32]byte{fundingID})
+			if err != nil {
+				return errors.Wrap(err, "WatchWithdrawn failed")
 			}
-			return a.waitForWithdrawnEvent(ctx, request, contract)
+			defer sub.Unsubscribe()
+
+			// Filter past events
+			if found, err := a.filterWithdrawn(ctx, req.Params.ID(), fundingID, contract); err != nil {
+				return errors.WithMessage(err, "filtering old Withdrawn events")
+			} else if found {
+				return nil
+			}
+
+			// No withdrawn event found in the past, send transaction.
+			if err := a.callAssetWithdraw(ctx, req, contract); err != nil {
+				return errors.WithMessage(err, "withdrawing assets failed")
+			}
+
+			// Wait for event
+			select {
+			case <-withdrawn:
+				return nil
+			case <-ctx.Done():
+				return errors.Wrap(ctx.Err(), "context cancelled")
+			case err = <-sub.Err():
+				return errors.Wrap(err, "subscription error")
+			}
 		})
 	}
+
 	return g.Wait()
 }
 
-func connectToAssetHolder(backend ContractBackend, asset channel.Asset, assetIndex int) (assetHolder, error) {
+func bindAssetHolder(backend ContractBackend, asset channel.Asset, assetIndex int) (assetHolder, error) {
 	// Decode and set the asset address.
 	assetAddr := asset.(*Asset).Address
 	ctr, err := assets.NewAssetHolder(assetAddr, backend)
@@ -61,54 +89,23 @@ func connectToAssetHolder(backend ContractBackend, asset channel.Asset, assetInd
 	return assetHolder{ctr, &assetAddr, assetIndex}, nil
 }
 
-func (a *Adjudicator) waitForWithdrawnEvent(ctx context.Context, request channel.AdjudicatorReq, asset assetHolder) error {
-	withdrawn := make(chan *assets.AssetHolderWithdrawn)
-	participant := request.Params.Parts[request.Idx].(*wallet.Address).Address
-	// Watch new events
-	watchOpts, err := a.newWatchOpts(ctx)
+// filterWithdrawn returns whether there has been a Withdrawn event in the past.
+func (a *Adjudicator) filterWithdrawn(ctx context.Context, channelID channel.ID, fundingID [32]byte, asset assetHolder) (bool, error) {
+	filterOpts, err := a.newFilterOpts(ctx)
 	if err != nil {
-		return errors.WithMessage(err, "error creating watchopts")
+		return false, err
 	}
-	sub, err := asset.WatchWithdrawn(watchOpts, withdrawn, []common.Address{participant})
+	iter, err := asset.FilterWithdrawn(filterOpts, [][32]byte{fundingID})
 	if err != nil {
-		return errors.Wrapf(err, "WatchWithdrawn on asset %d failed", asset.assetIndex)
+		return false, errors.Wrap(err, "creating iterator")
 	}
-	defer sub.Unsubscribe()
+	defer iter.Close()
 
-	// we let the filter queries and all subscription errors write into this error
-	// channel.
-	errChan := make(chan error, 1)
-	go func() {
-		errChan <- errors.Wrapf(<-sub.Err(), "subscription for asset %d", asset.assetIndex)
-	}()
-
-	// Query old events
-	go func() {
-		// Setup filter
-		filterOpts, err := a.newFilterOpts(ctx)
-		if err != nil {
-			errChan <- err
-		}
-		iter, err := asset.FilterWithdrawn(filterOpts, []common.Address{participant})
-		if err != nil {
-			errChan <- errors.WithStack(err)
-		}
-		if iter.Next() {
-			withdrawn <- iter.Event
-		}
-		// No event found, just return normally
-	}()
-
-	select {
-	case event := <-withdrawn:
-		log.Debugf("peer[%d] has successfully withdrawn %v", request.Idx, event.Amount)
-		return nil
-	case <-ctx.Done():
-		errors.New("Timed out while withdrawing")
-	case err := <-errChan:
-		return err
+	if !iter.Next() {
+		return false, errors.Wrap(iter.Error(), "iterating")
 	}
-	return nil
+	// Event found
+	return true, nil
 }
 
 func (a *Adjudicator) callAssetWithdraw(ctx context.Context, request channel.AdjudicatorReq, asset assetHolder) error {
