@@ -53,7 +53,8 @@ func (r *Bob) Execute(cfg ExecConfig) {
 	select {
 	case chErr = <-r.propHandler.chans:
 	case <-time.After(r.timeout):
-		r.t.Fatal("expected incoming channel proposal from Alice")
+		r.t.Error("expected incoming channel proposal from Alice")
+		return
 	}
 	assert.NoError(chErr.err)
 	assert.NotNil(chErr.channel)
