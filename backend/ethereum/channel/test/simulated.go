@@ -17,6 +17,8 @@ import (
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/pkg/errors"
+
+	sync "perun.network/go-perun/pkg/sync"
 )
 
 // GasLimit is the max amount of gas we want to send per transaction.
@@ -27,6 +29,7 @@ type SimulatedBackend struct {
 	backends.SimulatedBackend
 	faucetKey  *ecdsa.PrivateKey
 	faucetAddr common.Address
+	clockMu    sync.Mutex // Mutex for clock adjustments. Locked by SimTimeouts.
 }
 
 // NewSimulatedBackend creates a new Simulated Backend.
@@ -48,7 +51,11 @@ func NewSimulatedBackend() *SimulatedBackend {
 		faucetAddr:                       {Balance: new(big.Int).Sub(new(big.Int).Lsh(big.NewInt(1), 256), big.NewInt(9))},
 	}
 	alloc := core.GenesisAlloc(addr)
-	return &SimulatedBackend{*backends.NewSimulatedBackend(alloc, 8000000), sk, faucetAddr}
+	return &SimulatedBackend{
+		SimulatedBackend: *backends.NewSimulatedBackend(alloc, 8000000),
+		faucetKey:        sk,
+		faucetAddr:       faucetAddr,
+	}
 }
 
 // BlockByNumber queries a block by its number.

@@ -34,12 +34,12 @@ type (
 	// Setup holds a complete test setup for channel backend testing.
 	Setup struct {
 		SimSetup
-		Accs    []*ethwallet.Account      // on-chain funders and channel participant accounts
-		Parts   []wallet.Address          // channel participants
-		Recvs   []*ethwallet.Address      // on-chain receivers of withdrawn funds
-		Funders []*ethchannel.Funder      // funders, bound to respective account
-		Adjs    []*ethchannel.Adjudicator // adjudicator, withdrawal bound to respecive receivers
-		Asset   common.Address            // the asset
+		Accs    []*ethwallet.Account // on-chain funders and channel participant accounts
+		Parts   []wallet.Address     // channel participants
+		Recvs   []*ethwallet.Address // on-chain receivers of withdrawn funds
+		Funders []*ethchannel.Funder // funders, bound to respective account
+		Adjs    []*SimAdjudicator    // adjudicator, withdrawal bound to respecive receivers
+		Asset   common.Address       // the asset
 	}
 )
 
@@ -73,7 +73,7 @@ func NewSetup(t *testing.T, rng *rand.Rand, n int) *Setup {
 		Parts:    make([]wallet.Address, n),
 		Recvs:    make([]*ethwallet.Address, n),
 		Funders:  make([]*ethchannel.Funder, n),
-		Adjs:     make([]*ethchannel.Adjudicator, n),
+		Adjs:     make([]*SimAdjudicator, n),
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), defaultTxTimeout)
@@ -92,7 +92,7 @@ func NewSetup(t *testing.T, rng *rand.Rand, n int) *Setup {
 		s.Recvs[i] = wallettest.NewRandomAddress(rng).(*ethwallet.Address)
 		cb := ethchannel.NewContractBackend(s.SimBackend, ethwallettest.GetKeystore(), s.Accs[i].Account)
 		s.Funders[i] = ethchannel.NewETHFunder(cb, s.Asset)
-		s.Adjs[i] = ethchannel.NewAdjudicator(cb, adjudicator, s.Recvs[i].Address)
+		s.Adjs[i] = NewSimAdjudicator(cb, adjudicator, s.Recvs[i].Address)
 	}
 
 	return s
