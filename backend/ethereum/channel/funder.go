@@ -15,11 +15,14 @@ import (
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
+	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/pkg/errors"
 
 	"perun.network/go-perun/backend/ethereum/bindings/assets"
+	"perun.network/go-perun/backend/ethereum/wallet"
 	"perun.network/go-perun/channel"
 	"perun.network/go-perun/log"
+	perunwallet "perun.network/go-perun/wallet"
 )
 
 var (
@@ -252,4 +255,20 @@ func (f *Funder) waitForFundingConfirmation(ctx context.Context, request channel
 		}
 	}
 	return nil
+}
+
+// FundingIDs returns a slice the same size as the number of passed participants
+// where each entry contains the hash Keccak256(channel id || participant address).
+func FundingIDs(channelID channel.ID, participants ...perunwallet.Address) [][32]byte {
+	partIDs := make([][32]byte, len(participants))
+	args := abi.Arguments{{Type: abibytes32}, {Type: abiaddress}}
+	for idx, pID := range participants {
+		address := pID.(*wallet.Address)
+		bytes, err := args.Pack(channelID, address.Address)
+		if err != nil {
+			log.Panicf("error packing values: %v", err)
+		}
+		partIDs[idx] = crypto.Keccak256Hash(bytes)
+	}
+	return partIDs
 }
