@@ -7,7 +7,6 @@ package client
 
 import (
 	"context"
-	"time"
 
 	"github.com/pkg/errors"
 
@@ -102,8 +101,7 @@ func (c *Channel) settle(ctx context.Context) error {
 		c.log.Info("Channel state registered.")
 	}
 
-	reg = c.machine.Registered() // reload in case we called Register
-	if reg.Timeout.After(time.Now()) {
+	if reg = c.machine.Registered(); !reg.Timeout.IsElapsed() {
 		if c.machine.State().IsFinal {
 			c.log.Warnf(
 				"Unexpected withdrawal timeout while settling final state. Waiting until %v.",
@@ -112,11 +110,8 @@ func (c *Channel) settle(ctx context.Context) error {
 			c.log.Infof("Waiting until %v for withdrawal.", reg.Timeout)
 		}
 
-		timeout := time.After(time.Until(reg.Timeout))
-		select {
-		case <-timeout: // proceed normally with withdrawal
-		case <-ctx.Done():
-			return errors.Wrap(ctx.Err(), "ctx done")
+		if err := reg.Timeout.Wait(ctx); err != nil {
+			return errors.WithMessage(err, "waiting for timeout")
 		}
 	}
 

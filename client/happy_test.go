@@ -99,7 +99,7 @@ func (a *logAdjudicator) Register(ctx context.Context, req channel.AdjudicatorRe
 	return &channel.RegisteredEvent{
 		ID:      req.Params.ID(),
 		Version: req.Tx.Version,
-		Timeout: time.Now(),
+		Timeout: &channel.ElapsedTimeout{},
 	}, nil
 }
 
