@@ -36,7 +36,7 @@ func (a *Adjudicator) registerFinal(ctx context.Context, req channel.Adjudicator
 
 	return &channel.RegisteredEvent{
 		ID:      req.Params.ID(),
-		Timeout: time.Time{}, // concludeFinal skips registration
+		Timeout: new(channel.ElapsedTimeout), // concludeFinal skips registration
 		Version: req.Tx.Version,
 	}, nil
 }
@@ -166,9 +166,10 @@ evloop:
 			select {
 			// drain next-channel on new event
 			case current := <-r.next:
+				currentTimeout := current.Timeout.(*channel.TimeTimeout)
 				// if newer version or same version and newer timeout, replace
 				if current.Version < next.Version ||
-					current.Version == next.Version && uint64(current.Timeout.Unix()) < next.Timeout {
+					current.Version == next.Version && uint64(currentTimeout.Unix()) < next.Timeout {
 					r.next <- storedToRegisteredEvent(next)
 				} else { // otherwise, reuse old
 					r.next <- current
@@ -218,6 +219,6 @@ func storedToRegisteredEvent(event *adjudicator.AdjudicatorStored) *channel.Regi
 	return &channel.RegisteredEvent{
 		ID:      event.ChannelID,
 		Version: event.Version,
-		Timeout: time.Unix(int64(event.Timeout), 0),
+		Timeout: &channel.TimeTimeout{Time: time.Unix(int64(event.Timeout), 0)},
 	}
 }
