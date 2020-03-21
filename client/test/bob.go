@@ -62,7 +62,7 @@ func (r *Bob) Execute(cfg ExecConfig) {
 		return
 	}
 	ch := newPaymentChannel(chErr.channel, &r.Role)
-	r.log.Info("New Channel opened: %v", ch.Channel)
+	r.log.Infof("New Channel opened: %v", ch.Channel)
 
 	// start update handler
 	go func() {

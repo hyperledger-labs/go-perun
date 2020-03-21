@@ -74,7 +74,7 @@ func (r *Alice) Execute(cfg ExecConfig) {
 		return
 	}
 	ch := newPaymentChannel(_ch, &r.Role)
-	r.log.Info("New Channel opened: %v", ch.Channel)
+	r.log.Infof("New Channel opened: %v", ch.Channel)
 
 	// start update handler
 	listenUpDone := make(chan struct{})
