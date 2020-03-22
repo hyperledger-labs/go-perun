@@ -111,7 +111,7 @@ func withdrawMultipleConcurrentFinal(t *testing.T, numParts int, parallel bool) 
 }
 
 func TestWithdraw(t *testing.T) {
-	rng := rand.New(rand.NewSource(int64(0xc007)))
+	rng := rand.New(rand.NewSource(0xc007))
 	// create test setup
 	s := test.NewSetup(t, rng, 1)
 	// create valid state and params
@@ -169,6 +169,43 @@ func TestWithdraw(t *testing.T) {
 			assert.Equal(t, oldNonce, nonce, "Nonce must not change in subsequent withdrawals")
 		}
 	})
+}
+
+func TestWithdrawNonFinal(t *testing.T) {
+	assert := assert.New(t)
+	rng := rand.New(rand.NewSource(0x7070707))
+	// create test setup
+	s := test.NewSetup(t, rng, 1)
+	// create valid state and params
+	app := channeltest.NewRandomApp(rng)
+	params := channel.NewParamsUnsafe(60, s.Parts, app.Def(), big.NewInt(rng.Int63()))
+	state := newValidState(rng, params, s.Asset)
+	state.IsFinal = false // make sure the state is non-final
+
+	ctx, cancel := context.WithTimeout(context.Background(), defaultTxTimeout)
+	defer cancel()
+	fundingReq := channel.FundingReq{
+		Params:     params,
+		Allocation: &state.Allocation,
+		Idx:        channel.Index(0),
+	}
+	require.NoError(t, s.Funders[0].Fund(ctx, fundingReq), "funding should succeed")
+
+	req := channel.AdjudicatorReq{
+		Params: params,
+		Acc:    s.Accs[0],
+		Idx:    0,
+		Tx:     signState(t, s.Accs, params, state),
+	}
+	reg, err := s.Adjs[0].Register(ctx, req)
+	require.NoError(t, err)
+	t.Log("Registered ", reg)
+	assert.False(reg.Timeout.IsElapsed(),
+		"registering non-final state should have non-elapsed timeout")
+	assert.NoError(reg.Timeout.Wait(ctx))
+	assert.True(reg.Timeout.IsElapsed(), "timeout should have elapsed after Wait()")
+	assert.NoError(s.Adjs[0].Withdraw(ctx, req),
+		"withdrawing should succeed after waiting for timeout")
 }
 
 func assertHoldingsZero(ctx context.Context, t *testing.T, cb *ethchannel.ContractBackend, params *channel.Params, _assets []channel.Asset) {
