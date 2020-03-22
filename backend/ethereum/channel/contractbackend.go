@@ -6,16 +6,21 @@
 package channel
 
 import (
+	"bytes"
 	"context"
 	stderrors "errors"
 	"math/big"
 
+	"github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/accounts"
+	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/accounts/keystore"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/pkg/errors"
+
+	"perun.network/go-perun/log"
 )
 
 // How many blocks we query into the past for events.
@@ -122,9 +127,15 @@ func (c *ContractBackend) NewTransactor(ctx context.Context, valueWei *big.Int, 
 func confirmTransaction(ctx context.Context, backend ContractBackend, tx *types.Transaction) error {
 	receipt, err := bind.WaitMined(ctx, backend, tx)
 	if err != nil {
-		return errors.Wrap(err, "could not execute transaction")
+		return errors.Wrap(err, "sending transaction")
 	}
 	if receipt.Status == types.ReceiptStatusFailed {
+		reason, err := errorReason(ctx, &backend, tx, receipt.BlockNumber)
+		if err != nil {
+			log.Warn("TX failed; error determining reason: ", err)
+		} else {
+			log.Warn("TX failed with reason: ", reason)
+		}
 		return errors.WithStack(ErrorTxFailed)
 	}
 	return nil
@@ -136,4 +147,34 @@ var ErrorTxFailed = stderrors.New("transaction failed")
 // IsTxFailedError returns whether the cause of the error was a failed transaction.
 func IsTxFailedError(err error) bool {
 	return errors.Cause(err) == ErrorTxFailed
+}
+
+func errorReason(ctx context.Context, b *ContractBackend, tx *types.Transaction, blockNum *big.Int) (string, error) {
+	msg := ethereum.CallMsg{
+		From:     b.account.Address,
+		To:       tx.To(),
+		Gas:      tx.Gas(),
+		GasPrice: tx.GasPrice(),
+		Value:    tx.Value(),
+		Data:     tx.Data(),
+	}
+	res, err := b.CallContract(ctx, msg, blockNum)
+	if err != nil {
+		return "", errors.Wrap(err, "CallContract")
+	}
+	return unpackError(res)
+}
+
+// Keccak256("Error(string)")[:4]
+var errorSig = []byte{0x08, 0xc3, 0x79, 0xa0}
+
+func unpackError(result []byte) (string, error) {
+	if !bytes.Equal(result[:4], errorSig) {
+		return "<tx result not Error(string)>", errors.New("TX result not of type Error(string)")
+	}
+	vs, err := abi.Arguments{{Type: abiString}}.UnpackValues(result[4:])
+	if err != nil {
+		return "<invalid tx result>", errors.Wrap(err, "unpacking revert reason")
+	}
+	return vs[0].(string), nil
 }

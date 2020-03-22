@@ -34,6 +34,7 @@ var (
 	abiBytes32, _       = abi.NewType("bytes32", "", nil)
 	abiUint64, _        = abi.NewType("uint64", "", nil)
 	abiBool, _          = abi.NewType("bool", "", nil)
+	abiString, _        = abi.NewType("string", "", nil)
 )
 
 // Backend implements the interface defined in channel/Backend.go.
