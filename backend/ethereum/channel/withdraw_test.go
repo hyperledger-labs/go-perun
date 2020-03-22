@@ -111,9 +111,7 @@ func withdrawMultipleConcurrentFinal(t *testing.T, numParts int, parallel bool) 
 }
 
 func TestWithdraw(t *testing.T) {
-	seed := time.Now().UnixNano()
-	t.Logf("seed is %v", seed)
-	rng := rand.New(rand.NewSource(int64(seed)))
+	rng := rand.New(rand.NewSource(int64(0xc007)))
 	// create test setup
 	s := test.NewSetup(t, rng, 1)
 	// create valid state and params
