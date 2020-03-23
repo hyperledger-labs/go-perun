@@ -3,7 +3,7 @@
 // of this source code is governed by a MIT-style license that can be found in
 // the LICENSE file.
 
-package adjudicator
+package bindings
 
 //go:generate wget -nc "https://github.com/ethereum/solidity/releases/download/v0.5.16/solc-static-linux"
 //go:generate chmod +x solc-static-linux
