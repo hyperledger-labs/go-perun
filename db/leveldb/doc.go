@@ -3,6 +3,5 @@
 // of this source code is governed by a MIT-style license that can be found in
 // the LICENSE file.
 
-// Package net contains a Dialer and Listener implementation for connecting
-// peers over TCP and Unix sockets.
-package net // import "perun.network/go-perun/peer/net"
+// Package leveldb implements the key-value database interface using LevelDB.
+package leveldb // import "perun.network/go-perun/db/leveldb"

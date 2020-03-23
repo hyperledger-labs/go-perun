@@ -3,6 +3,7 @@
 // of this source code is governed by a MIT-style license that can be found in
 // the LICENSE file.
 
-// Package net contains a Dialer and Listener implementation for connecting
-// peers over TCP and Unix sockets.
-package net // import "perun.network/go-perun/peer/net"
+// Package apps contains Go implementations of apps that are distributed with
+// go-perun. Their Ethereum Solidity counterparts are found in repository
+// https://github.com/perun-network/contracts-eth.
+package apps // import "perun.network/go-perun/apps"

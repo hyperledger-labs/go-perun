@@ -3,6 +3,7 @@
 // of this source code is governed by a MIT-style license that can be found in
 // the LICENSE file.
 
-// Package net contains a Dialer and Listener implementation for connecting
-// peers over TCP and Unix sockets.
-package net // import "perun.network/go-perun/peer/net"
+// Package backend contains blockchain backend implementations. A blockchain
+// backend implements all blockchain-specific functionality needed
+// by the core Perun framework.
+package backend // import "perun.network/go-perun/backend"
