@@ -3,6 +3,5 @@
 // of this source code is governed by a MIT-style license that can be found in
 // the LICENSE file.
 
-// Package net contains a Dialer and Listener implementation for connecting
-// peers over TCP and Unix sockets.
-package net // import "perun.network/go-perun/peer/net"
+// Package channel contains the Ethereum channel backend implementation.
+package channel // import "perun.network/go-perun/backend/ethereum/channel"

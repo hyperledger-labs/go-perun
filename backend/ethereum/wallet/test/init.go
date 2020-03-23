@@ -3,7 +3,7 @@
 // of this source code is governed by a MIT-style license that can be found in
 // the LICENSE file.
 
-package test // import "perun.network/go-perun/backend/ethereum/wallet/test"
+package test
 
 import (
 	"github.com/ethereum/go-ethereum/accounts/keystore"

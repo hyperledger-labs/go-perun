@@ -3,6 +3,6 @@
 // of this source code is governed by a MIT-style license that can be found in
 // the LICENSE file.
 
-// Package net contains a Dialer and Listener implementation for connecting
-// peers over TCP and Unix sockets.
-package net // import "perun.network/go-perun/peer/net"
+// Package bindings contains all automatically generated code bindings to
+// interact with the smart contracts of the Perun Ethereum blockchain backend.
+package bindings // import "perun.network/go-perun/backend/ethereum/bindings"
