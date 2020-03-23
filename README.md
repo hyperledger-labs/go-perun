@@ -10,7 +10,7 @@
   <a href="https://travis-ci.org/perun-network/go-perun"><img src="https://travis-ci.org/perun-network/go-perun.svg?branch=dev" alt="TravisCI build status"></a>
 </p>
 
-_go-perun_ is a Go implementation of the [Perun state channel protocols](https://perun.network/) ([introduction paper](https://drive.google.com/file/d/1phBzFXt2QDEemh0JIOAI80nibe3JTRu5/view)).
+_go-perun_ is a Go implementation of the [Perun state channel protocols](https://perun.network/) ([introduction paper](https://perun.network/pdf/Perun2.0.pdf)).
 The perun protocols provide payment and general state channel functionality to all existing blockchains that feature smart contracts.
 As a blockchain scalability solution, payment and state channels reduce transaction costs and increase the system throughput by executing incremental transactions off-chain.
 The Perun protocols have been proven cryptographically secure in the UC-framework.
@@ -20,8 +20,8 @@ They are blockchain-agnostic and only rely on a blockchain's capability to execu
 
 _go-perun_ is still alpha software.
 It should not be used in production.
-The Ariel release is not intended to have any practical use, and should only give potential users a general impression and invite feedback.
-Some essential features, such as dispute resolution, are not yet implemented.
+The current release, _Belinda_, is not intended to have any practical use, and should only give potential users a general impression and invite feedback.
+Some essential features, such as data persistence, are not yet implemented.
 The authors take no responsibility for any loss of digital assets or other damage caused by the use of this software.
 **Do not use this software with real funds**.
 
@@ -46,28 +46,35 @@ import "perun.network/go-perun/client"
 _go-perun_ implements the core state channel protocol in a blockchain-agnostic fashion by following the dependency inversion principle.
 For this reason, a blockchain backend has to be chosen and blockchain-specific initializations need to be executed at program startup.
 
+### Documentation
+
+More in-depth documentation can be found in the [github wiki pages](https://github.com/perun-network/go-perun/wiki)
+and on [go-perun's pkg.go.dev site](https://pkg.go.dev/perun.network/go-perun).
+
 ### Backends
 
-There are multiple backends available as part of the Ariel release: Ethereum (`backend/ethereum`), and a simulated, ideal blockchain backend (`backend/sim`).
+There are multiple backends available as part of the current release: Ethereum (`backend/ethereum`), and a simulated, ideal blockchain backend (`backend/sim`).
 A backend is automatically initialized when its `wallet` and `channel` packages are imported.
 The Ethereum smart contracts can be found in our [contracts-eth](https://github.com/perun-network/contracts-eth) repository.
 
 Logging and networking capabilities can also be injected by the user.
-A default [logrus](https://github.com/sirupsen/logrus) implementation of the `log.Logger` interface can be set using [`log/logrus.Set`](log/logrus/logrus.go#L40).
+A default [logrus](https://github.com/sirupsen/logrus) implementation of the `log.Logger` interface can be set using [`log/logrus.Set`](log/logrus/logrus.go#L44).
 The Perun framework relies on `peer.Dialer` and `peer.Listener` implementations for networking.
+_go-perun_ is distributed with TCP and Unix socket implementations for testing
+purposes, which can be found in package `peer/net`.
 
 ## Features
 
 _go-perun_ currently only supports a reduced set of features compared to the full protocols.
 The following table shows the list of features needed for the minimal, secure, production-ready software.
 
-| Feature                                          | Ariel release      |
-| ------------------------------------------------ | ------------------ |
-| Two-party ledger state channels                  | :heavy_check_mark: |
-| Cooperatively settling two-party ledger channels | :heavy_check_mark: |
-| Ledger channel dispute                           | :x:                |
-| Dispute watchtower                               | :x:                |
-| Data persistence                                 | :x:                |
+| Feature                          | Ariel (v0.1.0)     | Belinda (v0.2.0)   |
+| -------------------------------- | ------------------ | ------------------ |
+| Two-party ledger state channels  | :heavy_check_mark: | :heavy_check_mark: |
+| Cooperatively settling           | :heavy_check_mark: | :heavy_check_mark: |
+| Ledger channel dispute           | :x:                | :heavy_check_mark: |
+| Dispute watchtower               | :x:                | :heavy_check_mark: |
+| Data persistence                 | :x:                | :x:                |
 
 The following features are planned after the above features have been implemented:
 * Generalized two-party ledger channels
@@ -83,11 +90,17 @@ In essence, _go-perun_ provides a state channel network client, akin to ethereum
 Once the client has been set up, it can be used to propose channels to other network peers, send updates on those channels and eventually settle them.
 A minimal, illustrative usage is as follows
 ```go
+package main
+
 import (
-	// other imports
-	"perun.network/go-perun/client"
+	"context"
+	"time"
+
 	"perun.network/go-perun/channel"
+	"perun.network/go-perun/client"
+	"perun.network/go-perun/log"
 	"perun.network/go-perun/peer"
+	// other imports
 )
 
 func main() {
@@ -96,14 +109,14 @@ func main() {
 	var listener peer.Listener
 	// 2. setup blockchain interaction:
 	var funder channel.Funder
-	var settler channel.Settler
+	var adjudicator channel.Adjudicator
 	// 3. setup off-chain identity:
 	var identity peer.Identity
 	// 4. choose how to react to incoming channel proposals:
 	var proposalHandler client.ProposalHandler
 
 	// 5. create state channel network client
-	c := client.New(identity, dialer, proposalHandler, funder, settler)
+	c := client.New(identity, dialer, proposalHandler, funder, adjudicator)
 	// 6. optionally start listening for incoming connections
 	go c.Listen(listener)
 
@@ -115,17 +128,23 @@ func main() {
 	})
 	if err != nil { /* handle error */ }
 
-	// 8. choose how to react to incoming channel update requests
+	// 8. start watchtower
+	go func() {
+		err := ch.Watch()
+		log.Info("Watcher returned with error ", err)
+	}()
+
+	// 9. choose how to react to incoming channel update requests
 	var updateHandler client.UpdateHandler
 	go ch.ListenUpdates(updateHandler)
 
-	// 9. send a channel update request to the other channel peer(s)
+	// 10. send a channel update request to the other channel peer(s)
 	err = ch.Update(ctx, client.ChannelUpdate{
 		// details of channel update
 	})
 	if err != nil { /* handle error */ }
 
-	// 10. send further updates and finally, settle/close the channel:
+	// 11. send further updates and finally, settle/close the channel:
 	err = ch.Settle(ctx)
 	if err != nil { /* handle error */ }
 }
