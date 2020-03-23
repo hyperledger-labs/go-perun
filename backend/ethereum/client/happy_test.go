@@ -13,17 +13,18 @@ import (
 	"testing"
 	"time"
 
-	"perun.network/go-perun/channel"
-	channeltest "perun.network/go-perun/channel/test"
+	"github.com/ethereum/go-ethereum/common"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+	"perun.network/go-perun/backend/ethereum/channel/test"
+	"perun.network/go-perun/backend/ethereum/wallet"
 	clienttest "perun.network/go-perun/client/test"
 	"perun.network/go-perun/log"
 	"perun.network/go-perun/peer"
 	peertest "perun.network/go-perun/peer/test"
-	"perun.network/go-perun/wallet"
-	wallettest "perun.network/go-perun/wallet/test"
 )
 
-var defaultTimeout = 1 * time.Second
+var defaultTimeout = 5 * time.Second
 
 func TestHappyAliceBob(t *testing.T) {
 	log.Info("Starting happy test")
@@ -33,20 +34,19 @@ func TestHappyAliceBob(t *testing.T) {
 	var (
 		name  = [2]string{"Alice", "Bob"}
 		hub   peertest.ConnHub
-		acc   [2]wallet.Account
 		setup [2]clienttest.RoleSetup
 		role  [2]clienttest.Executer
 	)
 
+	s := test.NewSetup(t, rng, 2)
 	for i := 0; i < 2; i++ {
-		acc[i] = wallettest.NewRandomAccount(rng)
 		setup[i] = clienttest.RoleSetup{
 			Name:        name[i],
-			Identity:    acc[i],
+			Identity:    s.Accs[i],
 			Dialer:      hub.NewDialer(),
-			Listener:    hub.NewListener(acc[i].Address()),
-			Funder:      &logFunder{log.WithField("role", name[i])},
-			Adjudicator: &logAdjudicator{log.WithField("role", name[i])},
+			Listener:    hub.NewListener(s.Accs[i].Address()),
+			Funder:      s.Funders[i],
+			Adjudicator: s.Adjs[i],
 			Timeout:     defaultTimeout,
 		}
 	}
@@ -58,9 +58,9 @@ func TestHappyAliceBob(t *testing.T) {
 	role[B].SetStages(stages)
 
 	execConfig := clienttest.ExecConfig{
-		PeerAddrs:  [2]peer.Address{acc[A].Address(), acc[B].Address()},
-		Asset:      channeltest.NewRandomAsset(rng),
+		PeerAddrs:  [2]peer.Address{s.Accs[A].Address(), s.Accs[B].Address()},
 		InitBals:   [2]*big.Int{big.NewInt(100), big.NewInt(100)},
+		Asset:      &wallet.Address{Address: s.Asset},
 		NumUpdates: [2]int{2, 2},
 		TxAmounts:  [2]*big.Int{big.NewInt(5), big.NewInt(3)},
 	}
@@ -76,39 +76,23 @@ func TestHappyAliceBob(t *testing.T) {
 	}
 
 	wg.Wait()
+
+	// Assert correct final balances
+	aliceToBob := big.NewInt(int64(execConfig.NumUpdates[A])*execConfig.TxAmounts[A].Int64() -
+		int64(execConfig.NumUpdates[B])*execConfig.TxAmounts[B].Int64())
+	finalBalAlice := new(big.Int).Sub(execConfig.InitBals[A], aliceToBob)
+	finalBalBob := new(big.Int).Add(execConfig.InitBals[B], aliceToBob)
+	// reset context timeout
+	ctx, cancel := context.WithTimeout(context.Background(), defaultTimeout)
+	defer cancel()
+	assertBal := func(addr common.Address, bal *big.Int) {
+		b, err := s.SimBackend.BalanceAt(ctx, addr, nil)
+		require.NoError(t, err)
+		assert.Zero(t, bal.Cmp(b), "ETH balance mismatch")
+	}
+
+	assertBal(s.Recvs[A].Address, finalBalAlice)
+	assertBal(s.Recvs[B].Address, finalBalBob)
+
 	log.Info("Happy test done")
-}
-
-type (
-	logFunder struct {
-		log log.Logger
-	}
-
-	logAdjudicator struct {
-		log log.Logger
-	}
-)
-
-func (f *logFunder) Fund(_ context.Context, req channel.FundingReq) error {
-	f.log.Infof("Funding: %v", req)
-	return nil
-}
-
-func (a *logAdjudicator) Register(ctx context.Context, req channel.AdjudicatorReq) (*channel.RegisteredEvent, error) {
-	a.log.Infof("Register: %v", req)
-	return &channel.RegisteredEvent{
-		ID:      req.Params.ID(),
-		Version: req.Tx.Version,
-		Timeout: &channel.ElapsedTimeout{},
-	}, nil
-}
-
-func (a *logAdjudicator) Withdraw(ctx context.Context, req channel.AdjudicatorReq) error {
-	a.log.Infof("Withdraw: %v", req)
-	return nil
-}
-
-func (a *logAdjudicator) SubscribeRegistered(ctx context.Context, params *channel.Params) (channel.RegisteredSubscription, error) {
-	a.log.Infof("SubscribeRegistered: %v", params)
-	return nil, nil
 }

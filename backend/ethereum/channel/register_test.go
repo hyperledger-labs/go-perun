@@ -93,6 +93,8 @@ func registerMultipleConcurrent(t *testing.T, numParts int, parallel bool) {
 			event, err := s.Adjs[i].Register(ctx, req)
 			assert.NoError(t, err, "Registering should succeed")
 			assert.NotEqual(t, event, &channel.RegisteredEvent{}, "registering should return valid event")
+			assert.False(t, event.Timeout.IsElapsed(),
+				"registering non-final state should return unelapsed timeout")
 			t.Logf("Peer[%d] registered successful", i)
 		}
 		if parallel {
@@ -141,7 +143,7 @@ func TestRegister_FinalState(t *testing.T) {
 	event, err := s.Adjs[0].Register(ctx, req)
 	assert.NoError(t, err, "Registering final state should succeed")
 	assert.NotEqual(t, event, &channel.RegisteredEvent{}, "registering should return valid event")
-	assert.Equal(t, time.Time{}, event.Timeout, "Registering final state should produce zero timeout")
+	assert.True(t, event.Timeout.IsElapsed(), "registering final state should return elapsed timeout")
 	t.Logf("Peer[%d] registered successful", 0)
 }
 

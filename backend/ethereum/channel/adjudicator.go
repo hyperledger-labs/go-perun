@@ -36,8 +36,9 @@ type Adjudicator struct {
 	mu psync.Mutex
 }
 
-// NewAdjudicator creates a new ethereum adjudicator.
-func NewAdjudicator(backend ContractBackend, contract common.Address, onchainAddress common.Address) *Adjudicator {
+// NewAdjudicator creates a new ethereum adjudicator. The receiver is the
+// on-chain address that receives withdrawals.
+func NewAdjudicator(backend ContractBackend, contract common.Address, receiver common.Address) *Adjudicator {
 	contr, err := adjudicator.NewAdjudicator(contract, backend)
 	if err != nil {
 		panic("Could not create a new instance of adjudicator")
@@ -45,7 +46,7 @@ func NewAdjudicator(backend ContractBackend, contract common.Address, onchainAdd
 	return &Adjudicator{
 		ContractBackend: backend,
 		contract:        contr,
-		Receiver:        onchainAddress,
+		Receiver:        receiver,
 		log:             log.WithField("account", backend.account.Address),
 	}
 }

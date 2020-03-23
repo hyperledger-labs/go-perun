@@ -7,7 +7,10 @@ package channel
 
 import (
 	"context"
+	"fmt"
 	"time"
+
+	"github.com/pkg/errors"
 
 	"perun.network/go-perun/wallet"
 )
@@ -55,9 +58,21 @@ type (
 	// RegisteredEvent is the abstract event that signals a successful state
 	// registration on the blockchain.
 	RegisteredEvent struct {
-		ID      ID        // Channel ID
-		Version uint64    // Registered version.
-		Timeout time.Time // Timeout when the event can be concluded or progressed
+		ID      ID      // Channel ID
+		Version uint64  // Registered version.
+		Timeout Timeout // Timeout when the event can be concluded or progressed
+	}
+
+	// A Timeout is an abstract timeout of a channel dispute. A timeout can be
+	// elapsed and it can be waited on it to elapse.
+	Timeout interface {
+		// IsElapsed should return whether the timeout has elapsed at the time of
+		// the call of this method.
+		IsElapsed() bool
+
+		// Wait waits for the timeout to elapse. If the context is canceled, Wait
+		// should return immediately with the context's error.
+		Wait(context.Context) error
 	}
 
 	// A RegisteredSubscription is a subscription to RegisteredEvents for a
@@ -82,3 +97,36 @@ type (
 		Close() error
 	}
 )
+
+// ElapsedTimeout is a Timeout that is always elapsed.
+type ElapsedTimeout struct{}
+
+// IsElapsed returns true.
+func (t *ElapsedTimeout) IsElapsed() bool { return true }
+
+// Wait immediately return nil.
+func (t *ElapsedTimeout) Wait(context.Context) error { return nil }
+
+// String says that this is an always elapsed timeout.
+func (t *ElapsedTimeout) String() string { return "<Always elapsed timeout>" }
+
+// TimeTimeout is a Timeout that elapses after a fixed time.Time.
+type TimeTimeout struct{ time.Time }
+
+// IsElapsed returns whether the current time is after the fixed timeout.
+func (t *TimeTimeout) IsElapsed() bool { return t.After(time.Now()) }
+
+// Wait waits until the timeout has elapsed or the context is cancelled.
+func (t *TimeTimeout) Wait(ctx context.Context) error {
+	select {
+	case <-time.After(time.Until(t.Time)):
+		return nil
+	case <-ctx.Done():
+		return errors.Wrap(ctx.Err(), "ctx done")
+	}
+}
+
+// String returns the timeout's date and time string.
+func (t *TimeTimeout) String() string {
+	return fmt.Sprintf("<Timeout: %v>", t.Time)
+}

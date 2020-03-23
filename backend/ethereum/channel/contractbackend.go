@@ -6,21 +6,21 @@
 package channel
 
 import (
+	"bytes"
 	"context"
-	"log"
+	stderrors "errors"
 	"math/big"
 
+	"github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/accounts"
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/accounts/keystore"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
-	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/pkg/errors"
-	"perun.network/go-perun/backend/ethereum/wallet"
-	"perun.network/go-perun/channel"
-	perunwallet "perun.network/go-perun/wallet"
+
+	"perun.network/go-perun/log"
 )
 
 // How many blocks we query into the past for events.
@@ -124,18 +124,57 @@ func (c *ContractBackend) NewTransactor(ctx context.Context, valueWei *big.Int, 
 	return auth, nil
 }
 
-// FundingIDs returns a slice the same size as the number of passed participants
-// where each entry contains the hash Keccak256(channel id || participant address).
-func FundingIDs(channelID channel.ID, participants ...perunwallet.Address) [][32]byte {
-	partIDs := make([][32]byte, len(participants))
-	args := abi.Arguments{{Type: abibytes32}, {Type: abiaddress}}
-	for idx, pID := range participants {
-		address := pID.(*wallet.Address)
-		bytes, err := args.Pack(channelID, address.Address)
-		if err != nil {
-			log.Panicf("error packing values: %v", err)
-		}
-		partIDs[idx] = crypto.Keccak256Hash(bytes)
+func confirmTransaction(ctx context.Context, backend ContractBackend, tx *types.Transaction) error {
+	receipt, err := bind.WaitMined(ctx, backend, tx)
+	if err != nil {
+		return errors.Wrap(err, "sending transaction")
 	}
-	return partIDs
+	if receipt.Status == types.ReceiptStatusFailed {
+		reason, err := errorReason(ctx, &backend, tx, receipt.BlockNumber)
+		if err != nil {
+			log.Warn("TX failed; error determining reason: ", err)
+		} else {
+			log.Warn("TX failed with reason: ", reason)
+		}
+		return errors.WithStack(ErrorTxFailed)
+	}
+	return nil
+}
+
+// ErrorTxFailed signals a failed, i.e., reverted, transaction.
+var ErrorTxFailed = stderrors.New("transaction failed")
+
+// IsTxFailedError returns whether the cause of the error was a failed transaction.
+func IsTxFailedError(err error) bool {
+	return errors.Cause(err) == ErrorTxFailed
+}
+
+func errorReason(ctx context.Context, b *ContractBackend, tx *types.Transaction, blockNum *big.Int) (string, error) {
+	msg := ethereum.CallMsg{
+		From:     b.account.Address,
+		To:       tx.To(),
+		Gas:      tx.Gas(),
+		GasPrice: tx.GasPrice(),
+		Value:    tx.Value(),
+		Data:     tx.Data(),
+	}
+	res, err := b.CallContract(ctx, msg, blockNum)
+	if err != nil {
+		return "", errors.Wrap(err, "CallContract")
+	}
+	return unpackError(res)
+}
+
+// Keccak256("Error(string)")[:4]
+var errorSig = []byte{0x08, 0xc3, 0x79, 0xa0}
+
+func unpackError(result []byte) (string, error) {
+	if !bytes.Equal(result[:4], errorSig) {
+		return "<tx result not Error(string)>", errors.New("TX result not of type Error(string)")
+	}
+	vs, err := abi.Arguments{{Type: abiString}}.UnpackValues(result[4:])
+	if err != nil {
+		return "<invalid tx result>", errors.Wrap(err, "unpacking revert reason")
+	}
+	return vs[0].(string), nil
 }
