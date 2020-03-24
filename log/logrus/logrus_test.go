@@ -7,49 +7,52 @@ package logrus
 
 import (
 	"bytes"
+	"encoding/hex"
 	"errors"
+	"math/rand"
 	"testing"
 
-	"github.com/stretchr/testify/assert"
+	_ "perun.network/go-perun/backend/sim" // backend init
+	"perun.network/go-perun/log"
+	wtest "perun.network/go-perun/wallet/test"
 
 	"github.com/sirupsen/logrus"
 	"github.com/sirupsen/logrus/hooks/test"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestLogrus(t *testing.T) {
-	a := assert.New(t)
+	t.Run("Info", testLogrusInfo)
+	t.Run("Stringer", testLogrusStringer)
+	t.Run("WithError", testLogrusWithError)
+	t.Run("WithField", testLogrusWithField)
+	t.Run("WithFields", testLogrusWithFields)
+}
+
+func testLogrusInfo(t *testing.T) {
 	logger, hook := test.NewNullLogger()
 	FromLogrus(logger).Println("Anton Ausdemhaus")
 
-	a.Equal(len(hook.Entries), 1)
-	a.Equal(hook.LastEntry().Level, logrus.InfoLevel)
-	a.Equal(hook.LastEntry().Message, "Anton Ausdemhaus")
+	assert.Equal(t, len(hook.Entries), 1)
+	assert.Equal(t, hook.LastEntry().Level, logrus.InfoLevel)
+	assert.Equal(t, hook.LastEntry().Message, "Anton Ausdemhaus")
+}
 
-	// test WithField
-	logger, hook = test.NewNullLogger()
-	logger.SetLevel(logrus.DebugLevel)
-	FromLogrus(logger).WithField("field", 123456).Debugln("Bertha Bremsweg")
-	a.Equal(len(hook.Entries), 1)
-	a.Equal(hook.LastEntry().Level, logrus.DebugLevel)
-	a.Equal(hook.LastEntry().Message, "Bertha Bremsweg")
-	a.Contains(hook.LastEntry().Data, "field")
-	a.Equal(hook.LastEntry().Data["field"], 123456)
+func testLogrusStringer(t *testing.T) {
+	rng := rand.New(rand.NewSource(0xDDDDD))
+	addr := wtest.NewRandomAddress(rng)
+	var data [32]byte
+	rng.Read(data[:])
+	logger, hook := test.NewNullLogger()
+	FromLogrus(logger).WithFields(log.Fields{"addr": addr, "data": data}).Infoln("")
 
-	// test WithFields
-	logger, hook = test.NewNullLogger()
-	logger.SetLevel(logrus.DebugLevel)
-	fields := map[string]interface{}{
-		"mars":    249,
-		"jupiter": 816,
-		"saturn":  1514,
-	}
-	FromLogrus(logger).WithFields(fields).Errorln("Christian Chaos")
-	a.Equal(len(hook.Entries), 1)
-	a.Equal(hook.LastEntry().Level, logrus.ErrorLevel)
-	a.Equal(hook.LastEntry().Message, "Christian Chaos")
-	a.EqualValues(hook.LastEntry().Data, fields)
+	assert.Contains(t, hook.LastEntry().Data, "addr")
+	assert.Equal(t, hook.LastEntry().Data["addr"], addr.String())
+	assert.Contains(t, hook.LastEntry().Data, "data")
+	assert.Equal(t, hook.LastEntry().Data["data"], hex.EncodeToString(data[:]))
+}
 
-	// test WithError
+func testLogrusWithError(t *testing.T) {
 	e := errors.New("error-message")
 	buf := new(bytes.Buffer)
 	FromLogrus(&logrus.Logger{
@@ -58,6 +61,35 @@ func TestLogrus(t *testing.T) {
 		Hooks:     nil,
 		Level:     logrus.DebugLevel,
 	}).WithError(e).Warnln("Doris Day")
-	a.Contains(buf.String(), "Doris Day")
-	a.Contains(buf.String(), "error-message")
+
+	assert.Contains(t, buf.String(), "Doris Day")
+	assert.Contains(t, buf.String(), "error-message")
+}
+
+func testLogrusWithField(t *testing.T) {
+	logger, hook := test.NewNullLogger()
+	logger.SetLevel(logrus.DebugLevel)
+	FromLogrus(logger).WithField("field", 123456).Debugln("Bertha Bremsweg")
+
+	assert.Equal(t, len(hook.Entries), 1)
+	assert.Equal(t, hook.LastEntry().Level, logrus.DebugLevel)
+	assert.Equal(t, hook.LastEntry().Message, "Bertha Bremsweg")
+	assert.Contains(t, hook.LastEntry().Data, "field")
+	assert.Equal(t, hook.LastEntry().Data["field"], 123456)
+}
+
+func testLogrusWithFields(t *testing.T) {
+	logger, hook := test.NewNullLogger()
+	logger.SetLevel(logrus.DebugLevel)
+	fields := map[string]interface{}{
+		"mars":    249,
+		"jupiter": 816,
+		"saturn":  1514,
+	}
+	FromLogrus(logger).WithFields(fields).Errorln("Christian Chaos")
+
+	assert.Equal(t, len(hook.Entries), 1)
+	assert.Equal(t, hook.LastEntry().Level, logrus.ErrorLevel)
+	assert.Equal(t, hook.LastEntry().Message, "Christian Chaos")
+	assert.EqualValues(t, hook.LastEntry().Data, fields)
 }
