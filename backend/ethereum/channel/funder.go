@@ -88,8 +88,8 @@ func (f *Funder) Fund(ctx context.Context, request channel.FundingReq) error {
 	return channel.NewFundingTimeoutError(prunedErrs)
 }
 
-func (f *Funder) fundAsset(ctx context.Context, request channel.FundingReq, index int, asset channel.Asset, partIDs [][32]byte, errs []*channel.AssetFundingError) error {
-	contract, err := f.connectToContract(asset, index)
+func (f *Funder) fundAsset(ctx context.Context, request channel.FundingReq, assetIndex int, asset channel.Asset, partIDs [][32]byte, errs []*channel.AssetFundingError) error {
+	contract, err := f.connectToContract(asset, assetIndex)
 	if err != nil {
 		return errors.Wrap(err, "connecting to contracts")
 	}
@@ -104,7 +104,7 @@ func (f *Funder) fundAsset(ctx context.Context, request channel.FundingReq, inde
 	}
 	err = <-confirmation
 	if channel.IsAssetFundingError(err) {
-		errs[index] = err.(*channel.AssetFundingError)
+		errs[assetIndex] = err.(*channel.AssetFundingError)
 	} else if err != nil {
 		return err
 	}
