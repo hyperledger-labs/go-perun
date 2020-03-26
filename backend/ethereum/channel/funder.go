@@ -98,10 +98,15 @@ func (f *Funder) fundAsset(ctx context.Context, request channel.FundingReq, asse
 	go func() {
 		confirmation <- f.waitForFundingConfirmation(ctx, request, contract, partIDs)
 	}()
-
-	if err := f.sendFundingTransaction(ctx, request, contract, partIDs); err != nil {
-		return errors.Wrap(err, "sending funding tx")
+	// Check for zero amount and only send TX if not zero
+	if request.Allocation.Balances[assetIndex][request.Idx].Sign() > 0 {
+		if err := f.sendFundingTransaction(ctx, request, contract, partIDs); err != nil {
+			return errors.Wrap(err, "sending funding tx")
+		}
+	} else {
+		f.log.WithFields(log.Fields{"channel": request.Params.ID(), "idx": request.Idx}).Debug("Skipped zero funding.")
 	}
+
 	err = <-confirmation
 	if channel.IsAssetFundingError(err) {
 		errs[assetIndex] = err.(*channel.AssetFundingError)
@@ -204,6 +209,13 @@ func (f *Funder) waitForFundingConfirmation(ctx context.Context, request channel
 
 	allocation := request.Allocation.Clone()
 	N := len(request.Params.Parts)
+	// Count how many zero balance funding requests are there
+	for _, part := range request.Allocation.OfParts {
+		if part[asset.assetIndex].Sign() == 0 {
+			N--
+		}
+	}
+	// Wait for all non-zero funding requests
 	for N > 0 {
 		select {
 		case event := <-deposited:
@@ -211,13 +223,7 @@ func (f *Funder) waitForFundingConfirmation(ctx context.Context, request channel
 			log.Debugf("peer[%d] Received event with amount %v", request.Idx, event.Amount)
 
 			// Calculate the position in the participant array.
-			idx := -1
-			for h, id := range partIDs {
-				if id == event.FundingID {
-					idx = h
-					break
-				}
-			}
+			idx := getPartIdx(event.FundingID, partIDs)
 
 			amount := allocation.Balances[asset.assetIndex][idx]
 			if amount.Sign() == 0 {
@@ -249,6 +255,15 @@ func (f *Funder) waitForFundingConfirmation(ctx context.Context, request channel
 		}
 	}
 	return nil
+}
+
+func getPartIdx(partID [32]byte, partIDs [][32]byte) int {
+	for i, id := range partIDs {
+		if id == partID {
+			return i
+		}
+	}
+	return -1
 }
 
 // FundingIDs returns a slice the same size as the number of passed participants
