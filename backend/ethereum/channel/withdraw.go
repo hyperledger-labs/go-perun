@@ -34,6 +34,11 @@ func (a *Adjudicator) ensureWithdrawn(ctx context.Context, req channel.Adjudicat
 	g, ctx := errgroup.WithContext(ctx)
 
 	for index, asset := range req.Tx.Allocation.Assets {
+		// Skip zero balance withdrawals
+		if req.Tx.Allocation.Balances[index][req.Idx].Sign() == 0 {
+			a.log.WithFields(log.Fields{"channel": req.Params.ID, "idx": req.Idx}).Debug("Skipped zero withdrawing.")
+			continue
+		}
 		g.Go(func() error {
 			// Create subscription
 			watchOpts, err := a.NewWatchOpts(ctx)
