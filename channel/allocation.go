@@ -151,7 +151,7 @@ func (a *Allocation) Decode(r io.Reader) error {
 	// decode dimensions
 	var numAssets, numParts, numLocked Index
 	if err := wire.Decode(r, &numAssets, &numParts, &numLocked); err != nil {
-		return errors.WithMessage(err, "decoding error for numAssets, numParts or numLocked")
+		return errors.WithMessage(err, "decoding numAssets, numParts or numLocked")
 	}
 	if numAssets > MaxNumAssets || numParts > MaxNumParts || numLocked > MaxNumSubAllocations {
 		return errors.New("numAssets, numParts or numLocked too big")
@@ -209,27 +209,27 @@ func (a Allocation) Valid() error {
 		return errors.New("assets and participant balances must not be of length zero (or nil)")
 	}
 	if len(a.Assets) > MaxNumAssets || len(a.Locked) > MaxNumSubAllocations {
-		return errors.New("too many assets or participant balances or sub-allocations")
+		return errors.New("too many assets or sub-allocations")
 	}
 
 	n := len(a.Assets)
 
 	if len(a.Balances) != n {
-		return errors.Errorf("dimension mismatch of number of Assets: %d \n and length of Balances slice : %d", n, a.Balances)
+		return errors.Errorf("dimension mismatch: number of Assets: %d vs Balances: %d", n, len(a.Balances))
 	}
 
-	partsno := len(a.Balances[0])
-	if partsno <= 0 || partsno > MaxNumParts {
-		return errors.Errorf("number of participants cannot be lower or equal to zero and cannot exceed MaxNumParts")
+	numParts := len(a.Balances[0])
+	if numParts <= 0 || numParts > MaxNumParts {
+		return errors.Errorf("number of participants is zero or too large")
 	}
 
 	for i, asset := range a.Balances {
-		if len(asset) != partsno {
-			return errors.Errorf("%d participants for asset %d, %d required", len(asset), i, partsno)
+		if len(asset) != numParts {
+			return errors.Errorf("%d participants for asset %d, expected %d", len(asset), i, numParts)
 		}
-		for j, pabal := range asset {
-			if pabal.Sign() == -1 {
-				return errors.Errorf("balance[%d][%d] is negative: %v", i, j, pabal)
+		for j, bal := range asset {
+			if bal.Sign() == -1 {
+				return errors.Errorf("balance[%d][%d] is negative: got %v", i, j, bal)
 			}
 		}
 	}
@@ -237,17 +237,16 @@ func (a Allocation) Valid() error {
 	// Locked is allowed to have zero length, in which case there's nothing locked
 	// and the loop is empty.
 	for i, l := range a.Locked {
-
 		if err := l.Valid(); err != nil {
 			return errors.WithMessage(err, "invalid sub-allocation")
 		}
 		if len(l.Bals) != n {
-			return errors.Errorf("dimension mismatch of app-channel balance vector (ID: %x) %d %d", l.ID, l.Bals, n)
+			return errors.Errorf("dimension mismatch of app-channel balance vector (ID: %x): got %d, expected %d", l.ID, l.Bals, n)
 		}
 
 		for j, bal := range l.Bals {
 			if bal.Sign() == -1 {
-				return errors.Errorf("suballoc[%d][%d] is negative: %v", i, j, bal)
+				return errors.Errorf("suballoc[%d][%d] is negative: got %v", i, j, bal)
 			}
 		}
 	}
@@ -265,8 +264,8 @@ func (a Allocation) Sum() []Bal {
 	}
 
 	for i, asset := range a.Balances {
-		for _, partybal := range asset {
-			totals[i].Add(totals[i], partybal)
+		for _, bal := range asset {
+			totals[i].Add(totals[i], bal)
 		}
 	}
 
@@ -339,7 +338,7 @@ func (s *SubAlloc) Decode(r io.Reader) error {
 	var numAssets Index
 	// decode ID and dimension
 	if err := wire.Decode(r, &s.ID, &numAssets); err != nil {
-		return errors.WithMessage(err, "decoding error for sub-allocation ID or dimension")
+		return errors.WithMessage(err, "decoding sub-allocation ID or dimension")
 	}
 	if numAssets > MaxNumAssets {
 		return errors.Errorf("numAssets too big, got: %d max: %d", numAssets, MaxNumAssets)

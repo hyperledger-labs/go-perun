@@ -303,7 +303,7 @@ func TestAllocation_Valid(t *testing.T) {
 			channel.Allocation{
 				Assets: test.NewRandomAssets(rng, 3),
 				Balances: [][]channel.Bal{
-					{big.NewInt(1), big.NewInt(8), big.NewInt(64)},
+					{big.NewInt(1), big.NewInt(8)},
 					{big.NewInt(2), big.NewInt(16)},
 				},
 			},
