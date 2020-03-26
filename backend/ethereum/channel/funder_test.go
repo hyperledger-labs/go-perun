@@ -9,6 +9,7 @@ import (
 	"context"
 	"math/big"
 	"math/rand"
+	"sync"
 	"testing"
 	"time"
 
@@ -34,6 +35,54 @@ const (
 	keyDir   = "../wallet/testdata"
 	password = "secret"
 )
+
+func TestFunderZeroBalance(t *testing.T) {
+	t.Run("1 Participant", func(t *testing.T) {
+		testFunderZeroBalance(t, 1)
+	})
+	t.Run("2 Participant", func(t *testing.T) {
+		testFunderZeroBalance(t, 2)
+	})
+}
+
+func testFunderZeroBalance(t *testing.T, n int) {
+	rng := rand.New(rand.NewSource(0xDDD))
+	parts, funders, _, params, allocation := newNFunders(context.Background(), t, rng, n)
+
+	for i := range parts {
+		if i%2 == 0 {
+			allocation.Balances[0][i].Set(big.NewInt(0))
+		} // is != 0 otherwise
+		t.Logf("Part: %d ShouldFund: %t Bal: %v", i, i%2 == 1, allocation.Balances[0][i])
+	}
+	// fund
+	var wg sync.WaitGroup
+	wg.Add(n)
+	for i := 0; i < n; i++ {
+		req := channel.FundingReq{
+			Params:     params,
+			Allocation: allocation,
+			Idx:        channel.Index(i),
+		}
+
+		// Check that the funding only changes the nonce when the balance is not zero
+		go func(i int) {
+			defer wg.Done()
+			diff, err := test.NonceDiff(parts[i], funders[i], func() error {
+				return funders[i].Fund(context.Background(), req)
+			})
+			require.NoError(t, err)
+			if i%2 == 0 {
+				assert.Zero(t, diff, "Nonce should stay the same")
+			} else {
+				assert.Equal(t, int(1), diff, "Nonce should increase by 1")
+			}
+		}(i)
+	}
+	wg.Wait()
+	// Check result balances
+	assert.NoError(t, compareOnChainAlloc(params, *allocation, &funders[0].ContractBackend))
+}
 
 func TestFunder_Fund(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), defaultTxTimeout)
@@ -207,11 +256,11 @@ func newValidAllocation(parts []wallet.Address, assetETH common.Address) *channe
 	}
 	rng := rand.New(rand.NewSource(1337))
 	balances := make([][]channel.Bal, len(assets))
-	for i := 0; i < len(assets); i++ {
-		balances[i] = make([]channel.Bal, len(parts))
-		for k := 0; k < len(parts); k++ {
+	for a := range assets {
+		balances[a] = make([]channel.Bal, len(parts))
+		for p := range parts {
 			// create new random balance in range [1,999]
-			balances[i][k] = big.NewInt(rng.Int63n(999) + 1)
+			balances[a][p] = big.NewInt(rng.Int63n(999) + 1)
 		}
 	}
 	return &channel.Allocation{
@@ -226,10 +275,10 @@ func compareOnChainAlloc(params *channel.Params, alloc channel.Allocation, cb *e
 	if err != nil {
 		return errors.WithMessage(err, "getting on-chain allocation")
 	}
-	for i := range onChain {
-		for k := range onChain[i] {
-			if alloc.OfParts[i][k].Cmp(onChain[i][k]) != 0 {
-				return errors.Errorf("Balances[%d][%d] differ. Expected: %v, on-chain: %v", i, k, alloc.OfParts[i][k], onChain[i][k])
+	for a := range onChain {
+		for p := range onChain[a] {
+			if alloc.Balances[a][p].Cmp(onChain[a][p]) != 0 {
+				return errors.Errorf("Balances[%d][%d] differ. Expected: %v, on-chain: %v", a, p, alloc.Balances[a][p], onChain[a][p])
 			}
 		}
 	}
@@ -238,13 +287,10 @@ func compareOnChainAlloc(params *channel.Params, alloc channel.Allocation, cb *e
 
 func getOnChainAllocation(ctx context.Context, cb *ethchannel.ContractBackend, params *channel.Params, _assets []channel.Asset) ([][]channel.Bal, error) {
 	partIDs := ethchannel.FundingIDs(params.ID(), params.Parts...)
-
 	alloc := make([][]channel.Bal, len(_assets))
-	for i := 0; i < len(_assets); i++ {
-		alloc[i] = make([]channel.Bal, len(params.Parts))
-	}
 
 	for k, asset := range _assets {
+		alloc[k] = make([]channel.Bal, len(params.Parts))
 		contract, err := assets.NewAssetHolder(asset.(*ethchannel.Asset).Address, cb)
 		if err != nil {
 			return nil, err

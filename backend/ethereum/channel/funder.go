@@ -210,8 +210,8 @@ func (f *Funder) waitForFundingConfirmation(ctx context.Context, request channel
 	allocation := request.Allocation.Clone()
 	N := len(request.Params.Parts)
 	// Count how many zero balance funding requests are there
-	for _, part := range request.Allocation.OfParts {
-		if part[asset.assetIndex].Sign() == 0 {
+	for _, part := range request.Allocation.Balances[asset.assetIndex] {
+		if part.Sign() == 0 {
 			N--
 		}
 	}
