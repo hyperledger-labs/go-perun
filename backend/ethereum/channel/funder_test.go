@@ -148,13 +148,8 @@ func testFunderFunding(t *testing.T, n int) {
 	}
 
 	ct.Wait("funding")
-	newAlloc, err := getOnChainAllocation(ctx, &funders[0].ContractBackend, params, allocation.Assets)
-	require.NoError(t, err, "Get Post-Funding state should succeed")
-	for i := range newAlloc {
-		for k := range newAlloc[i] {
-			assert.Zero(t, allocation.Balances[i][k].Cmp(newAlloc[i][k]), "Post-Funding balances should equal expected balances")
-		}
-	}
+	// Check result balances
+	assert.NoError(t, compareOnChainAlloc(params, *allocation, &funders[0].ContractBackend))
 }
 
 func newNFunders(
@@ -223,6 +218,22 @@ func newValidAllocation(parts []wallet.Address, assetETH common.Address) *channe
 		Assets:   assets,
 		Balances: balances,
 	}
+}
+
+// compareOnChainAlloc returns error if `alloc` differs from the on-chain allocation.
+func compareOnChainAlloc(params *channel.Params, alloc channel.Allocation, cb *ethchannel.ContractBackend) error {
+	onChain, err := getOnChainAllocation(context.Background(), cb, params, alloc.Assets)
+	if err != nil {
+		return errors.WithMessage(err, "getting on-chain allocation")
+	}
+	for i := range onChain {
+		for k := range onChain[i] {
+			if alloc.OfParts[i][k].Cmp(onChain[i][k]) != 0 {
+				return errors.Errorf("Balances[%d][%d] differ. Expected: %v, on-chain: %v", i, k, alloc.OfParts[i][k], onChain[i][k])
+			}
+		}
+	}
+	return nil
 }
 
 func getOnChainAllocation(ctx context.Context, cb *ethchannel.ContractBackend, params *channel.Params, _assets []channel.Asset) ([][]channel.Bal, error) {
