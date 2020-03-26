@@ -110,6 +110,76 @@ func withdrawMultipleConcurrentFinal(t *testing.T, numParts int, parallel bool) 
 	assertHoldingsZero(ctx, t, s.CB, params, state.Assets)
 }
 
+func TestWithdrawZeroBalance(t *testing.T) {
+	t.Run("1 Participant", func(t *testing.T) {
+		testWithdrawZeroBalance(t, 1)
+	})
+	t.Run("2 Participant", func(t *testing.T) {
+		testWithdrawZeroBalance(t, 2)
+	})
+}
+
+// shouldFunders decides who should fund. 1 indicates funding, 0 indicates skipping.
+func testWithdrawZeroBalance(t *testing.T, n int) {
+	rng := rand.New(rand.NewSource(int64(0xDDD)))
+	s := test.NewSetup(t, rng, n)
+	// create valid state and params
+	app := channeltest.NewRandomApp(rng)
+	params := channel.NewParamsUnsafe(0, s.Parts, app.Def(), big.NewInt(rng.Int63()))
+	state := newValidState(rng, params, s.Asset)
+	state.IsFinal = true
+
+	for i := range params.Parts {
+		if i%2 == 0 {
+			state.Allocation.Balances[0][i].Set(big.NewInt(0))
+		} // is != 0 otherwise
+		t.Logf("Part: %d ShouldFund: %t Bal: %v", i, i%2 == 1, state.Allocation.Balances[0][i])
+	}
+
+	// fund
+	ct := pkgtest.NewConcurrent(t)
+	for i, funder := range s.Funders {
+		i, funder := i, funder
+		go ct.StageN("funding loop", n, func(rt require.TestingT) {
+			req := channel.FundingReq{
+				Params:     params,
+				Allocation: &state.Allocation,
+				Idx:        channel.Index(i),
+			}
+			require.NoError(rt, funder.Fund(context.Background(), req), "funding should succeed")
+		})
+	}
+	ct.Wait("funding loop")
+
+	// register
+	req := channel.AdjudicatorReq{
+		Params: params,
+		Acc:    s.Accs[0],
+		Tx:     signState(t, s.Accs, params, state),
+		Idx:    0,
+	}
+	_, err := s.Adjs[0].Register(context.Background(), req)
+	require.NoError(t, err)
+	// we don't need to wait for a timeout since we registered a final state
+
+	// withdraw
+	for i, adj := range s.Adjs {
+		req.Acc = s.Accs[i]
+		req.Idx = channel.Index(i)
+		// check that the nonce stays the same for zero balance withdrawals
+		diff, err := test.NonceDiff(s.Accs[i].Address(), adj, func() error {
+			return adj.Withdraw(context.Background(), req)
+		})
+		require.NoError(t, err)
+		if i%2 == 0 {
+			assert.Zero(t, diff, "Nonce should stay the same")
+		} else {
+			assert.Equal(t, int(1), diff, "Nonce should increase by 1")
+		}
+	}
+	assertHoldingsZero(context.Background(), t, s.CB, params, state.Assets)
+}
+
 func TestWithdraw(t *testing.T) {
 	rng := rand.New(rand.NewSource(0xc007))
 	// create test setup
