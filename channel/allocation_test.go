@@ -299,12 +299,25 @@ func TestAllocation_Valid(t *testing.T) {
 		},
 
 		{
-			"two participants wrong dimension",
+			"two participants wrong number of asset",
 			channel.Allocation{
 				Assets: test.NewRandomAssets(rng, 3),
 				Balances: [][]channel.Bal{
 					{big.NewInt(1), big.NewInt(8)},
 					{big.NewInt(2), big.NewInt(16)},
+				},
+			},
+			false,
+		},
+
+		{
+			"two participants wrong number of participant",
+			channel.Allocation{
+				Assets: test.NewRandomAssets(rng, 3),
+				Balances: [][]channel.Bal{
+					{big.NewInt(1), big.NewInt(8)},
+					{big.NewInt(2), big.NewInt(16)},
+					{big.NewInt(64)},
 				},
 			},
 			false,
@@ -326,6 +339,21 @@ func TestAllocation_Valid(t *testing.T) {
 			false,
 		},
 
+		{
+			"two participants/one locked invalid dimension",
+			channel.Allocation{
+				Assets: test.NewRandomAssets(rng, 3),
+				Balances: [][]channel.Bal{
+					{big.NewInt(1), big.NewInt(2)},
+					{big.NewInt(8), big.NewInt(16)},
+					{big.NewInt(64), big.NewInt(128)},
+				},
+				Locked: []channel.SubAlloc{
+					{channel.Zero, test.NewRandomBals(rng, channel.MaxNumAssets+1)},
+				},
+			},
+			false,
+		},
 		{
 			"two participants/negative balance",
 			channel.Allocation{
