@@ -19,14 +19,16 @@ import (
 func TestMachineClone(t *testing.T) {
 	rng := rand.New(rand.NewSource(0xDDDDD))
 
-	for i := 0; i < 100; i++ {
-		app := test.NewRandomApp(rng)
-		params := *test.NewRandomParams(rng, app.Def())
-		acc := wtest.NewRandomAccount(rng)
-		params.Parts[0] = acc.Address()
+	app := test.NewRandomApp(rng)
+	params := *test.NewRandomParams(rng, app.Def())
+	acc := wtest.NewRandomAccount(rng)
+	params.Parts[0] = acc.Address()
 
-		sm, err := channel.NewStateMachine(acc, params)
-		require.NoError(t, err)
-		pkgtest.VerifyClone(t, sm)
-	}
+	sm, err := channel.NewStateMachine(acc, params)
+	require.NoError(t, err)
+	pkgtest.VerifyClone(t, sm)
+
+	am, err := channel.NewActionMachine(acc, params)
+	require.NoError(t, err)
+	pkgtest.VerifyClone(t, am)
 }
