@@ -260,14 +260,14 @@ func (c *Channel) handleUpdateRej(
 // state is final, machine.EnableFinal is called. Finally, if there is a
 // notification on channel updates, the enabled state is sent on it.
 func (c *Channel) enableNotifyUpdate() error {
-	var updater func() error
+	var err error
 	if c.machine.StagingState().IsFinal {
-		updater = c.machine.EnableFinal
+		err = c.machine.EnableFinal()
 	} else {
-		updater = c.machine.EnableUpdate
+		err = c.machine.EnableUpdate()
 	}
 
-	if err := updater(); err != nil {
+	if err != nil {
 		return errors.WithMessage(c.machine.EnableUpdate(), "enabling update")
 	}
 
