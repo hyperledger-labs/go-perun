@@ -162,7 +162,7 @@ func (f *Funder) createFundingTx(ctx context.Context, request channel.FundingReq
 	return tx, errors.WithStack(err)
 }
 
-func filterOldEvents(ctx context.Context, asset assetHolder, deposited chan *assets.AssetHolderDeposited, partIDs [][32]byte) error {
+func filterFunds(ctx context.Context, asset assetHolder, partIDs ...[32]byte) (*assets.AssetHolderDepositedIterator, error) {
 	// Filter
 	filterOpts := bind.FilterOpts{
 		Start:   uint64(1),
@@ -170,12 +170,10 @@ func filterOldEvents(ctx context.Context, asset assetHolder, deposited chan *ass
 		Context: ctx}
 	iter, err := asset.FilterDeposited(&filterOpts, partIDs)
 	if err != nil {
-		return errors.Wrap(err, "filtering deposited events")
+		return nil, errors.Wrap(err, "filtering deposited events")
 	}
-	for iter.Next() {
-		deposited <- iter.Event
-	}
-	return nil
+
+	return iter, nil
 }
 
 // waitForFundingConfirmation waits for the confirmation events on the blockchain that
@@ -200,10 +198,16 @@ func (f *Funder) waitForFundingConfirmation(ctx context.Context, request channel
 		errChan <- errors.Wrapf(<-sub.Err(), "subscription for asset %d", asset.assetIndex)
 	}()
 
-	// Query old events
+	// Query all old funding events
 	go func() {
-		if err := filterOldEvents(ctx, asset, deposited, partIDs); err != nil {
+		iter, err := filterFunds(ctx, asset, partIDs...)
+		if err != nil {
 			errChan <- errors.WithMessagef(err, "filtering old Deposited events for asset %d", asset.assetIndex)
+			return
+		}
+		defer iter.Close()
+		for iter.Next() {
+			deposited <- iter.Event
 		}
 	}()
 
