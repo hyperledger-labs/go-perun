@@ -74,7 +74,7 @@ var postInitPhases = []Phase{Funding, Acting, Signing, Final}
 // individually.
 type machine struct {
 	phase     Phase
-	acc       wallet.Account
+	acc       wallet.Account `cloneable:"shallow"`
 	idx       Index
 	params    Params
 	stagingTX Transaction
@@ -85,7 +85,7 @@ type machine struct {
 	registered *RegisteredEvent
 
 	// log is a fields logger for this machine
-	log log.Logger
+	log log.Logger `cloneable:"shallow"`
 }
 
 // newMachine returns a new uninitialized machine for the given parameters.
@@ -436,4 +436,22 @@ func (m *machine) phaseErrorf(expected PhaseTransition, format string, args ...i
 // selfTransition returns a PhaseTransition from current to current phase.
 func (m *machine) selfTransition() PhaseTransition {
 	return PhaseTransition{m.phase, m.phase}
+}
+
+func (m *machine) Clone() *machine {
+	var clonedPrevTx []Transaction
+	for _, tx := range m.prevTXs {
+		clonedPrevTx = append(clonedPrevTx, *tx.Clone())
+	}
+
+	return &machine{
+		phase:     m.phase,
+		acc:       m.acc,
+		idx:       m.idx,
+		params:    *m.params.Clone(),
+		stagingTX: *m.stagingTX.Clone(),
+		currentTX: *m.currentTX.Clone(),
+		prevTXs:   clonedPrevTx,
+		log:       m.log,
+	}
 }

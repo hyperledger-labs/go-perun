@@ -41,3 +41,15 @@ func NewRandomAddress(rng *rand.Rand) wallet.Address {
 func NewRandomAccount(rng *rand.Rand) wallet.Account {
 	return randomizer.NewRandomAccount(rng)
 }
+
+// NewRandomAccounts returns a slice of new random accounts
+// by calling NewRandomAccount.
+func NewRandomAccounts(rng *rand.Rand, n int) ([]wallet.Account, []wallet.Address) {
+	accs := make([]wallet.Account, n)
+	addrs := make([]wallet.Address, n)
+	for i := range accs {
+		accs[i] = randomizer.NewRandomAccount(rng)
+		addrs[i] = accs[i].Address()
+	}
+	return accs, addrs
+}

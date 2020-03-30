@@ -6,6 +6,7 @@
 package channel
 
 import (
+	"bytes"
 	"log"
 	"math/big"
 
@@ -35,7 +36,7 @@ type Params struct {
 	// Parts are the channel participants
 	Parts []wallet.Address
 	// App identifies the application that this channel is running.
-	App App
+	App App `cloneable:"shallow"`
 	// Nonce is a randomness to make the channel id unique
 	Nonce *big.Int
 }
@@ -100,4 +101,26 @@ func NewParamsUnsafe(challengeDuration uint64, parts []wallet.Address, appDef wa
 	// probably an expensive hash operation, do it only once during creation.
 	p.id = CalcID(p)
 	return p
+}
+
+// Clone returns a deep copy of Params
+func (p *Params) Clone() *Params {
+	clonedParts := make([]wallet.Address, len(p.Parts))
+	for i, v := range p.Parts {
+		var buff bytes.Buffer
+		v.Encode(&buff)
+
+		addr, err := wallet.DecodeAddress(&buff)
+		if err != nil {
+			panic("Could not clone params' addresses")
+		}
+		clonedParts[i] = addr
+	}
+
+	return &Params{
+		id:                p.ID(),
+		ChallengeDuration: p.ChallengeDuration,
+		Parts:             clonedParts,
+		App:               p.App,
+		Nonce:             new(big.Int).Set(p.Nonce)}
 }

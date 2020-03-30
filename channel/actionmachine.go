@@ -6,6 +6,8 @@
 package channel
 
 import (
+	"bytes"
+
 	"github.com/pkg/errors"
 
 	"perun.network/go-perun/wallet"
@@ -17,7 +19,7 @@ import (
 type ActionMachine struct {
 	*machine
 
-	app            ActionApp
+	app            ActionApp `cloneable:"shallow"`
 	stagingActions []Action
 }
 
@@ -108,4 +110,26 @@ func (m *ActionMachine) Update() error {
 func (m *ActionMachine) setStaging(phase Phase, state *State) {
 	m.stagingActions = make([]Action, m.N())
 	m.machine.setStaging(phase, state)
+}
+
+// Clone returns a deep copy of ActionMachine
+func (m *ActionMachine) Clone() *ActionMachine {
+	clonedActions := make([]Action, m.N())
+	for i, action := range m.stagingActions {
+		if action != nil {
+			var buff bytes.Buffer
+			action.Encode(&buff)
+			clonedAction, err := m.app.DecodeAction(&buff)
+			if err != nil {
+				panic("App could not decode Action")
+			}
+			clonedActions[i] = clonedAction
+		}
+	}
+
+	return &ActionMachine{
+		machine:        m.machine.Clone(),
+		app:            m.app,
+		stagingActions: clonedActions,
+	}
 }
