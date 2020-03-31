@@ -236,18 +236,12 @@ func (a Allocation) Valid() error {
 
 	// Locked is allowed to have zero length, in which case there's nothing locked
 	// and the loop is empty.
-	for i, l := range a.Locked {
+	for _, l := range a.Locked {
 		if err := l.Valid(); err != nil {
 			return errors.WithMessage(err, "invalid sub-allocation")
 		}
 		if len(l.Bals) != n {
 			return errors.Errorf("dimension mismatch of app-channel balance vector (ID: %x): got %d, expected %d", l.ID, l.Bals, n)
-		}
-
-		for j, bal := range l.Bals {
-			if bal.Sign() == -1 {
-				return errors.Errorf("suballoc[%d][%d] is negative: got %v", i, j, bal)
-			}
 		}
 	}
 
@@ -306,6 +300,11 @@ var _ perunio.Serializer = new(SubAlloc)
 func (s SubAlloc) Valid() error {
 	if len(s.Bals) > MaxNumAssets {
 		return errors.New("too many bals")
+	}
+	for j, bal := range s.Bals {
+		if bal.Sign() == -1 {
+			return errors.Errorf("suballoc[%d] of ID %d is negative: got %v", j, s.ID, bal)
+		}
 	}
 	return nil
 }

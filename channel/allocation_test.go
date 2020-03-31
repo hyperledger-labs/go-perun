@@ -105,7 +105,7 @@ func TestAllocation_Clone(t *testing.T) {
 		alloc channel.Allocation
 	}{
 		{
-			"test.NewRandomAssets-1,parts-1,locks-nil",
+			"assets-1,parts-1,locks-nil",
 			channel.Allocation{
 				test.NewRandomAssets(rng, 1),
 				test.NewRandomBalances(rng, 1, 1),
@@ -114,7 +114,7 @@ func TestAllocation_Clone(t *testing.T) {
 		},
 
 		{
-			"test.NewRandomAssets-1,parts-1,locks",
+			"assets-1,parts-1,locks",
 			channel.Allocation{
 				test.NewRandomAssets(rng, 1),
 				test.NewRandomBalances(rng, 1, 1),
@@ -123,7 +123,7 @@ func TestAllocation_Clone(t *testing.T) {
 		},
 
 		{
-			"test.NewRandomAssets-2,parties-4,locks-nil",
+			"assets-2,parties-4,locks-nil",
 			channel.Allocation{
 				test.NewRandomAssets(rng, 2),
 				test.NewRandomBalances(rng, 2, 4),
@@ -132,7 +132,7 @@ func TestAllocation_Clone(t *testing.T) {
 		},
 
 		{
-			"test.NewRandomAssets-2,parties-4,locks",
+			"assets-2,parties-4,locks",
 			channel.Allocation{
 				test.NewRandomAssets(rng, 2),
 				test.NewRandomBalances(rng, 2, 4),
@@ -195,7 +195,7 @@ func TestAllocation_Sum(t *testing.T) {
 		},
 
 		{
-			"three test.NewRandomAssets/three participants",
+			"three assets/three participants",
 			channel.Allocation{
 				Assets: test.NewRandomAssets(rng, 3),
 				Balances: [][]channel.Bal{
@@ -208,7 +208,7 @@ func TestAllocation_Sum(t *testing.T) {
 		},
 
 		{
-			"single test.NewRandomAssets/one participants/one locked",
+			"single asset/one participants/one locked",
 			channel.Allocation{
 				Assets: test.NewRandomAssets(rng, 1),
 				Balances: [][]channel.Bal{
@@ -222,7 +222,7 @@ func TestAllocation_Sum(t *testing.T) {
 		},
 
 		{
-			"three test.NewRandomAssets/two participants/three locked",
+			"three assets/two participants/three locked",
 			channel.Allocation{
 				Assets: test.NewRandomAssets(rng, 3),
 				Balances: [][]channel.Bal{
@@ -299,7 +299,7 @@ func TestAllocation_Valid(t *testing.T) {
 		},
 
 		{
-			"two participants wrong number of asset",
+			"two participants/wrong number of asset",
 			channel.Allocation{
 				Assets: test.NewRandomAssets(rng, 3),
 				Balances: [][]channel.Bal{
@@ -311,7 +311,7 @@ func TestAllocation_Valid(t *testing.T) {
 		},
 
 		{
-			"two participants wrong number of participant",
+			"three assets/wrong number of participants",
 			channel.Allocation{
 				Assets: test.NewRandomAssets(rng, 3),
 				Balances: [][]channel.Bal{
@@ -340,7 +340,7 @@ func TestAllocation_Valid(t *testing.T) {
 		},
 
 		{
-			"two participants/one locked invalid dimension",
+			"three assets/one locked invalid dimension",
 			channel.Allocation{
 				Assets: test.NewRandomAssets(rng, 3),
 				Balances: [][]channel.Bal{
@@ -349,7 +349,7 @@ func TestAllocation_Valid(t *testing.T) {
 					{big.NewInt(64), big.NewInt(128)},
 				},
 				Locked: []channel.SubAlloc{
-					{channel.Zero, test.NewRandomBals(rng, channel.MaxNumAssets+1)},
+					{channel.Zero, []channel.Bal{big.NewInt(-1)}},
 				},
 			},
 			false,
