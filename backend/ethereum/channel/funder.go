@@ -136,7 +136,7 @@ func (f *Funder) sendFundingTransaction(ctx context.Context, request channel.Fun
 func (f *Funder) createFundingTx(ctx context.Context, request channel.FundingReq, asset assetHolder, partIDs [][32]byte) (*types.Transaction, error) {
 	// Create a new transaction (needs to be cloned because of go-ethereum bug).
 	// See https://github.com/ethereum/go-ethereum/pull/20412
-	balance := new(big.Int).Set(request.Allocation.OfParts[request.Idx][asset.assetIndex])
+	balance := new(big.Int).Set(request.Allocation.Balances[asset.assetIndex][request.Idx])
 	// Lock the funder for correct nonce usage.
 	f.mu.Lock()
 	defer f.mu.Unlock()
@@ -219,7 +219,7 @@ func (f *Funder) waitForFundingConfirmation(ctx context.Context, request channel
 				}
 			}
 
-			amount := allocation.OfParts[idx][asset.assetIndex]
+			amount := allocation.Balances[asset.assetIndex][idx]
 			if amount.Sign() == 0 {
 				continue // ignore double events
 			}
@@ -230,13 +230,13 @@ func (f *Funder) waitForFundingConfirmation(ctx context.Context, request channel
 			if amount.Sign() != 1 {
 				// participant funded successfully
 				N--
-				allocation.OfParts[idx][asset.assetIndex] = big.NewInt(0)
+				allocation.Balances[asset.assetIndex][idx].SetUint64(0)
 			}
 
 		case <-ctx.Done():
 			var indices []channel.Index
-			for k, bals := range allocation.OfParts {
-				if bals[asset.assetIndex].Sign() == 1 {
+			for k, bals := range allocation.Balances[asset.assetIndex] {
+				if bals.Sign() == 1 {
 					indices = append(indices, channel.Index(k))
 				}
 			}

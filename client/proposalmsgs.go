@@ -6,12 +6,12 @@
 package client
 
 import (
-	"golang.org/x/crypto/sha3"
 	"io"
 	"log"
 	"math/big"
 
 	"github.com/pkg/errors"
+	"golang.org/x/crypto/sha3"
 
 	"perun.network/go-perun/channel"
 	perunio "perun.network/go-perun/pkg/io"
@@ -222,7 +222,7 @@ func (c ChannelProposalReq) Valid() error {
 		return err
 	} else if len(c.InitBals.Locked) != 0 {
 		return errors.New("initial allocation cannot have locked funds")
-	} else if len(c.InitBals.OfParts) != len(c.PeerAddrs) {
+	} else if len(c.InitBals.Balances[0]) != len(c.PeerAddrs) {
 		return errors.New("wrong dimension of initial balances")
 	}
 	return nil

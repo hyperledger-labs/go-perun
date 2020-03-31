@@ -152,7 +152,7 @@ func testFunderFunding(t *testing.T, n int) {
 	require.NoError(t, err, "Get Post-Funding state should succeed")
 	for i := range newAlloc {
 		for k := range newAlloc[i] {
-			assert.Zero(t, allocation.OfParts[i][k].Cmp(newAlloc[i][k]), "Post-Funding balances should equal expected balances")
+			assert.Zero(t, allocation.Balances[i][k].Cmp(newAlloc[i][k]), "Post-Funding balances should equal expected balances")
 		}
 	}
 }
@@ -211,26 +211,26 @@ func newValidAllocation(parts []wallet.Address, assetETH common.Address) *channe
 		&ethchannel.Asset{Address: assetETH},
 	}
 	rng := rand.New(rand.NewSource(1337))
-	ofparts := make([][]channel.Bal, len(parts))
-	for i := 0; i < len(ofparts); i++ {
-		ofparts[i] = make([]channel.Bal, len(assets))
-		for k := 0; k < len(assets); k++ {
+	balances := make([][]channel.Bal, len(assets))
+	for i := 0; i < len(assets); i++ {
+		balances[i] = make([]channel.Bal, len(parts))
+		for k := 0; k < len(parts); k++ {
 			// create new random balance in range [1,999]
-			ofparts[i][k] = big.NewInt(rng.Int63n(999) + 1)
+			balances[i][k] = big.NewInt(rng.Int63n(999) + 1)
 		}
 	}
 	return &channel.Allocation{
-		Assets:  assets,
-		OfParts: ofparts,
+		Assets:   assets,
+		Balances: balances,
 	}
 }
 
 func getOnChainAllocation(ctx context.Context, cb *ethchannel.ContractBackend, params *channel.Params, _assets []channel.Asset) ([][]channel.Bal, error) {
 	partIDs := ethchannel.FundingIDs(params.ID(), params.Parts...)
 
-	alloc := make([][]channel.Bal, len(params.Parts))
-	for i := 0; i < len(params.Parts); i++ {
-		alloc[i] = make([]channel.Bal, len(_assets))
+	alloc := make([][]channel.Bal, len(_assets))
+	for i := 0; i < len(_assets); i++ {
+		alloc[i] = make([]channel.Bal, len(params.Parts))
 	}
 
 	for k, asset := range _assets {
@@ -248,7 +248,7 @@ func getOnChainAllocation(ctx context.Context, cb *ethchannel.ContractBackend, p
 			if err != nil {
 				return nil, err
 			}
-			alloc[i][k] = val
+			alloc[k][i] = val
 		}
 	}
 	return alloc, nil

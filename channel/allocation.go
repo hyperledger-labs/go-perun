@@ -43,9 +43,9 @@ type (
 	// Assets identify the assets held in the channel, like an address to the
 	// deposit holder contract for this asset.
 	//
-	// OfParts holds the balance allocations to the participants.
-	// Its outer dimension must match the size of the Params.parts slice.
-	// Its inner dimension must match the size of Assets.
+	// Balances holds the balance allocations to the participants.
+	// Its outer dimension must match the size of Assets.
+	// Its inner dimension must match the size of the Params.parts slice.
 	// All asset distributions could have been saved as a single []SubAlloc, but this
 	// would have saved the participants slice twice, wasting space.
 	//
@@ -53,8 +53,8 @@ type (
 	Allocation struct {
 		// Assets are the asset types held in this channel
 		Assets []Asset
-		// OfParts is the allocation of assets to the Params.parts
-		OfParts [][]Bal
+		// Balances is the allocation of assets to the Params.Parts
+		Balances [][]Bal
 		// Locked is the locked allocation to sub-app-channels. It is allowed to be
 		// nil, in which case there's nothing locked.
 		Locked []SubAlloc
@@ -90,10 +90,10 @@ func (a Allocation) Clone() (clone Allocation) {
 		}
 	}
 
-	if a.OfParts != nil {
-		clone.OfParts = make([][]Bal, len(a.OfParts))
-		for i, pa := range a.OfParts {
-			clone.OfParts[i] = CloneBals(pa)
+	if a.Balances != nil {
+		clone.Balances = make([][]Bal, len(a.Balances))
+		for i, pa := range a.Balances {
+			clone.Balances[i] = CloneBals(pa)
 		}
 	}
 
@@ -117,21 +117,21 @@ func (a Allocation) Encode(w io.Writer) error {
 			err, "invalid allocations cannot be encoded, got %v", a)
 	}
 	// encode dimensions
-	if err := wire.Encode(w, Index(len(a.Assets)), Index(len(a.OfParts)), Index(len(a.Locked))); err != nil {
+	if err := wire.Encode(w, Index(len(a.Assets)), Index(len(a.Balances[0])), Index(len(a.Locked))); err != nil {
 		return err
 	}
 	// encode assets
 	for i, a := range a.Assets {
 		if err := a.Encode(w); err != nil {
-			return errors.WithMessagef(err, "encoding error for asset %d", i)
+			return errors.WithMessagef(err, "encoding asset %d", i)
 		}
 	}
 	// encode participant allocations
-	for i := 0; i < len(a.OfParts); i++ {
-		for j := 0; j < len(a.OfParts[i]); j++ {
-			if err := wire.Encode(w, a.OfParts[i][j]); err != nil {
+	for i := 0; i < len(a.Balances); i++ {
+		for j := 0; j < len(a.Balances[i]); j++ {
+			if err := wire.Encode(w, a.Balances[i][j]); err != nil {
 				return errors.WithMessagef(
-					err, "encoding error for balance %d of participant %d", j, i)
+					err, "encoding balance of asset %d of participant %d", i, j)
 			}
 		}
 	}
@@ -139,7 +139,7 @@ func (a Allocation) Encode(w io.Writer) error {
 	for i, s := range a.Locked {
 		if err := s.Encode(w); err != nil {
 			return errors.WithMessagef(
-				err, "encoding error for suballocation %d", i)
+				err, "encoding suballocation %d", i)
 		}
 	}
 
@@ -151,7 +151,7 @@ func (a *Allocation) Decode(r io.Reader) error {
 	// decode dimensions
 	var numAssets, numParts, numLocked Index
 	if err := wire.Decode(r, &numAssets, &numParts, &numLocked); err != nil {
-		return errors.WithMessage(err, "decoding error for numAssets, numParts or numLocked")
+		return errors.WithMessage(err, "decoding numAssets, numParts or numLocked")
 	}
 	if numAssets > MaxNumAssets || numParts > MaxNumParts || numLocked > MaxNumSubAllocations {
 		return errors.New("numAssets, numParts or numLocked too big")
@@ -161,19 +161,19 @@ func (a *Allocation) Decode(r io.Reader) error {
 	for i := 0; i < len(a.Assets); i++ {
 		asset, err := DecodeAsset(r)
 		if err != nil {
-			return errors.WithMessagef(err, "decoding error for asset %d", i)
+			return errors.WithMessagef(err, "decoding asset %d", i)
 		}
 		a.Assets[i] = asset
 	}
 	// decode participant allocations
-	a.OfParts = make([][]Bal, numParts)
-	for i := 0; i < len(a.OfParts); i++ {
-		a.OfParts[i] = make([]Bal, len(a.Assets))
-		for j := range a.OfParts[i] {
-			a.OfParts[i][j] = new(big.Int)
-			if err := wire.Decode(r, &a.OfParts[i][j]); err != nil {
+	a.Balances = make([][]Bal, numAssets)
+	for i := 0; i < len(a.Balances); i++ {
+		a.Balances[i] = make([]Bal, numParts)
+		for j := range a.Balances[i] {
+			a.Balances[i][j] = new(big.Int)
+			if err := wire.Decode(r, &a.Balances[i][j]); err != nil {
 				return errors.WithMessagef(
-					err, "decoding error for balance %d of participant %d", j, i)
+					err, "decoding balance of asset %d of participant %d", i, j)
 			}
 		}
 	}
@@ -182,7 +182,7 @@ func (a *Allocation) Decode(r io.Reader) error {
 	for i := 0; i < len(a.Locked); i++ {
 		if err := a.Locked[i].Decode(r); err != nil {
 			return errors.WithMessagef(
-				err, "decoding error for suballocation %d", i)
+				err, "decoding suballocation %d", i)
 		}
 	}
 
@@ -203,42 +203,45 @@ func CloneBals(orig []Bal) []Bal {
 }
 
 // Valid checks that the asset-dimensions match and slices are not nil.
-// Assets and OfParts cannot be of zero length.
+// Assets and Balances cannot be of zero length.
 func (a Allocation) Valid() error {
-	if len(a.Assets) == 0 || len(a.OfParts) == 0 {
-		return errors.New("assets and participant balances must not be of length zero")
+	if len(a.Assets) == 0 || len(a.Balances) == 0 {
+		return errors.New("assets and participant balances must not be of length zero (or nil)")
 	}
-	if len(a.Assets) > MaxNumAssets || len(a.OfParts) > MaxNumParts || len(a.Locked) > MaxNumSubAllocations {
-		return errors.New("too many assets or participant balances or sub-allocations")
+	if len(a.Assets) > MaxNumAssets || len(a.Locked) > MaxNumSubAllocations {
+		return errors.New("too many assets or sub-allocations")
 	}
 
 	n := len(a.Assets)
-	for i, pa := range a.OfParts {
-		if len(pa) != n {
-			return errors.Errorf("dimension mismatch of participant %d's balance vector", i)
-		}
 
-		for j, bal := range pa {
+	if len(a.Balances) != n {
+		return errors.Errorf("dimension mismatch: number of Assets: %d vs Balances: %d", n, len(a.Balances))
+	}
+
+	numParts := len(a.Balances[0])
+	if numParts <= 0 || numParts > MaxNumParts {
+		return errors.Errorf("number of participants is zero or too large")
+	}
+
+	for i, asset := range a.Balances {
+		if len(asset) != numParts {
+			return errors.Errorf("%d participants for asset %d, expected %d", len(asset), i, numParts)
+		}
+		for j, bal := range asset {
 			if bal.Sign() == -1 {
-				return errors.Errorf("balance[%d][%d] is negative: %v", i, j, bal)
+				return errors.Errorf("balance[%d][%d] is negative: got %v", i, j, bal)
 			}
 		}
 	}
 
 	// Locked is allowed to have zero length, in which case there's nothing locked
 	// and the loop is empty.
-	for i, l := range a.Locked {
+	for _, l := range a.Locked {
 		if err := l.Valid(); err != nil {
 			return errors.WithMessage(err, "invalid sub-allocation")
 		}
 		if len(l.Bals) != n {
-			return errors.Errorf("dimension mismatch of app-channel balance vector (ID: %x)", l.ID)
-		}
-
-		for j, bal := range l.Bals {
-			if bal.Sign() == -1 {
-				return errors.Errorf("suballoc[%d][%d] is negative: %v", i, j, bal)
-			}
+			return errors.Errorf("dimension mismatch of app-channel balance vector (ID: %x): got %d, expected %d", l.ID, l.Bals, n)
 		}
 	}
 
@@ -254,8 +257,8 @@ func (a Allocation) Sum() []Bal {
 		totals[i] = new(big.Int)
 	}
 
-	for _, bals := range a.OfParts {
-		for i, bal := range bals {
+	for i, asset := range a.Balances {
+		for _, bal := range asset {
 			totals[i].Add(totals[i], bal)
 		}
 	}
@@ -298,6 +301,11 @@ func (s SubAlloc) Valid() error {
 	if len(s.Bals) > MaxNumAssets {
 		return errors.New("too many bals")
 	}
+	for j, bal := range s.Bals {
+		if bal.Sign() == -1 {
+			return errors.Errorf("suballoc[%d] of ID %d is negative: got %v", j, s.ID, bal)
+		}
+	}
 	return nil
 }
 
@@ -316,7 +324,7 @@ func (s SubAlloc) Encode(w io.Writer) error {
 	for i, bal := range s.Bals {
 		if err := wire.Encode(w, bal); err != nil {
 			return errors.WithMessagef(
-				err, "encoding error for balance of participant %d", i)
+				err, "encoding balance of participant %d", i)
 		}
 	}
 
@@ -339,7 +347,7 @@ func (s *SubAlloc) Decode(r io.Reader) error {
 	for i := range s.Bals {
 		if err := wire.Decode(r, &s.Bals[i]); err != nil {
 			return errors.WithMessagef(
-				err, "encoding error for participant balance %d", i)
+				err, "encoding participant balance %d", i)
 		}
 	}
 

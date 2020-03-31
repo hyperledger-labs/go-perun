@@ -106,31 +106,6 @@ func TestChannelID(t *testing.T) {
 	}
 }
 
-func Test_transformPartBals(t *testing.T) {
-	tests := []struct {
-		name string
-		args [][]*big.Int
-		want [][]*big.Int
-	}{
-		{"Test1",
-			[][]*big.Int{
-				{big.NewInt(1), big.NewInt(4)},
-				{big.NewInt(2), big.NewInt(3)},
-				{big.NewInt(6), big.NewInt(5)},
-				{big.NewInt(7), big.NewInt(9)}},
-			[][]*big.Int{
-				{big.NewInt(1), big.NewInt(2), big.NewInt(6), big.NewInt(7)},
-				{big.NewInt(4), big.NewInt(3), big.NewInt(5), big.NewInt(9)},
-			},
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			assert.Equal(t, tt.want, transformPartBals(tt.args), tt.name)
-		})
-	}
-}
-
 func TestAssetSerialization(t *testing.T) {
 	rng := rand.New(rand.NewSource(1337))
 	var asset Asset = ethwallettest.NewRandomAddress(rng)

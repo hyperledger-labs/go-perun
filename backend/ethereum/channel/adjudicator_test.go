@@ -92,17 +92,19 @@ func newValidState(rng *rand.Rand, params *channel.Params, assetholder common.Ad
 	assets := []channel.Asset{
 		&ethchannel.Asset{Address: assetholder},
 	}
-	ofparts := make([][]channel.Bal, len(params.Parts))
-	for i := 0; i < len(ofparts); i++ {
-		ofparts[i] = make([]channel.Bal, len(assets))
-		for k := 0; k < len(assets); k++ {
-			ofparts[i][k] = big.NewInt(rng.Int63n(999) + 1)
+
+	balances := make([][]channel.Bal, len(assets))
+	for i := range balances {
+		balances[i] = make([]channel.Bal, len(params.Parts))
+		for k := range balances[i] {
+			balances[i][k] = big.NewInt(rng.Int63n(999) + 1)
 		}
 	}
+
 	allocation := channel.Allocation{
-		Assets:  assets,
-		OfParts: ofparts,
-		Locked:  []channel.SubAlloc{},
+		Assets:   assets,
+		Balances: balances,
+		Locked:   []channel.SubAlloc{},
 	}
 
 	return &channel.State{
