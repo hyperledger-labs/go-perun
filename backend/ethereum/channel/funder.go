@@ -231,13 +231,9 @@ func (f *Funder) waitForFundingConfirmation(ctx context.Context, request channel
 	}()
 
 	allocation := request.Allocation.Clone()
-	N := len(request.Params.Parts)
 	// Count how many zero balance funding requests are there
-	for _, part := range request.Allocation.Balances[asset.assetIndex] {
-		if part.Sign() == 0 {
-			N--
-		}
-	}
+	N := len(request.Params.Parts) - countZeroBalances(request.Allocation, asset.assetIndex)
+
 	// Wait for all non-zero funding requests
 	for N > 0 {
 		select {
@@ -287,6 +283,15 @@ func getPartIdx(partID [32]byte, partIDs [][32]byte) int {
 		}
 	}
 	return -1
+}
+
+func countZeroBalances(alloc *channel.Allocation, assetIndex int) (n int) {
+	for _, part := range alloc.Balances[assetIndex] {
+		if part.Sign() == 0 {
+			n++
+		}
+	}
+	return
 }
 
 // FundingIDs returns a slice the same size as the number of passed participants
