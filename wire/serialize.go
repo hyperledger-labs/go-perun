@@ -40,7 +40,7 @@ func Encode(writer io.Writer, values ...interface{}) (err error) {
 			if enc, ok := value.(pio.Encoder); ok {
 				err = enc.Encode(writer)
 			} else {
-				log.Panicf("wire.Decode(): Invalid type %T", v)
+				log.Panicf("wire.Encode(): Invalid type %T", v)
 			}
 		}
 
