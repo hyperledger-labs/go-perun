@@ -94,17 +94,21 @@ func (f *Funder) fundAsset(ctx context.Context, request channel.FundingReq, asse
 		return errors.Wrap(err, "connecting to contracts")
 	}
 
+	// start watching for deposit events, also including past ones
 	confirmation := make(chan error)
 	go func() {
 		confirmation <- f.waitForFundingConfirmation(ctx, request, contract, partIDs)
 	}()
-	// Check for zero amount and only send TX if not zero
-	if request.Allocation.Balances[assetIndex][request.Idx].Sign() > 0 {
-		if err := f.sendFundingTransaction(ctx, request, contract, partIDs); err != nil {
-			return errors.Wrap(err, "sending funding tx")
-		}
-	} else {
+
+	// check whether we already funded
+	if alreadyFunded, err := checkFunded(ctx, request, contract, partIDs[request.Idx]); err != nil {
+		return errors.WithMessage(err, "checking funded")
+	} else if alreadyFunded {
+		f.log.WithFields(log.Fields{"channel": request.Params.ID(), "idx": request.Idx}).Debug("Skipped second funding.")
+	} else if request.Allocation.Balances[assetIndex][request.Idx].Sign() <= 0 {
 		f.log.WithFields(log.Fields{"channel": request.Params.ID(), "idx": request.Idx}).Debug("Skipped zero funding.")
+	} else if err := f.sendFundingTransaction(ctx, request, contract, partIDs); err != nil {
+		return errors.Wrap(err, "sending funding tx")
 	}
 
 	err = <-confirmation
@@ -114,6 +118,21 @@ func (f *Funder) fundAsset(ctx context.Context, request channel.FundingReq, asse
 		return err
 	}
 	return nil
+}
+
+// checkFunded returns whether the funding for `request` was already complete.
+func checkFunded(ctx context.Context, request channel.FundingReq, asset assetHolder, partID [32]byte) (bool, error) {
+	iter, err := filterFunds(ctx, asset, partID)
+	if err != nil {
+		return false, errors.WithMessagef(err, "filtering old Funding events for asset %d", asset.assetIndex)
+	}
+	defer iter.Close()
+
+	amount := new(big.Int).Set(request.Allocation.Balances[asset.assetIndex][request.Idx])
+	for iter.Next() {
+		amount.Sub(amount, iter.Event.Amount)
+	}
+	return amount.Sign() != 1, iter.Error()
 }
 
 func (f *Funder) connectToContract(asset channel.Asset, assetIndex int) (assetHolder, error) {
@@ -162,7 +181,7 @@ func (f *Funder) createFundingTx(ctx context.Context, request channel.FundingReq
 	return tx, errors.WithStack(err)
 }
 
-func filterOldEvents(ctx context.Context, asset assetHolder, deposited chan *assets.AssetHolderDeposited, partIDs [][32]byte) error {
+func filterFunds(ctx context.Context, asset assetHolder, partIDs ...[32]byte) (*assets.AssetHolderDepositedIterator, error) {
 	// Filter
 	filterOpts := bind.FilterOpts{
 		Start:   uint64(1),
@@ -170,12 +189,10 @@ func filterOldEvents(ctx context.Context, asset assetHolder, deposited chan *ass
 		Context: ctx}
 	iter, err := asset.FilterDeposited(&filterOpts, partIDs)
 	if err != nil {
-		return errors.Wrap(err, "filtering deposited events")
+		return nil, errors.Wrap(err, "filtering deposited events")
 	}
-	for iter.Next() {
-		deposited <- iter.Event
-	}
-	return nil
+
+	return iter, nil
 }
 
 // waitForFundingConfirmation waits for the confirmation events on the blockchain that
@@ -200,21 +217,23 @@ func (f *Funder) waitForFundingConfirmation(ctx context.Context, request channel
 		errChan <- errors.Wrapf(<-sub.Err(), "subscription for asset %d", asset.assetIndex)
 	}()
 
-	// Query old events
+	// Query all old funding events
 	go func() {
-		if err := filterOldEvents(ctx, asset, deposited, partIDs); err != nil {
+		iter, err := filterFunds(ctx, asset, partIDs...)
+		if err != nil {
 			errChan <- errors.WithMessagef(err, "filtering old Deposited events for asset %d", asset.assetIndex)
+			return
+		}
+		defer iter.Close()
+		for iter.Next() {
+			deposited <- iter.Event
 		}
 	}()
 
 	allocation := request.Allocation.Clone()
-	N := len(request.Params.Parts)
 	// Count how many zero balance funding requests are there
-	for _, part := range request.Allocation.Balances[asset.assetIndex] {
-		if part.Sign() == 0 {
-			N--
-		}
-	}
+	N := len(request.Params.Parts) - countZeroBalances(request.Allocation, asset.assetIndex)
+
 	// Wait for all non-zero funding requests
 	for N > 0 {
 		select {
@@ -264,6 +283,15 @@ func getPartIdx(partID [32]byte, partIDs [][32]byte) int {
 		}
 	}
 	return -1
+}
+
+func countZeroBalances(alloc *channel.Allocation, assetIndex int) (n int) {
+	for _, part := range alloc.Balances[assetIndex] {
+		if part.Sign() == 0 {
+			n++
+		}
+	}
+	return
 }
 
 // FundingIDs returns a slice the same size as the number of passed participants

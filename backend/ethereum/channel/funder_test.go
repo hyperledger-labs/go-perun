@@ -85,13 +85,13 @@ func testFunderZeroBalance(t *testing.T, n int) {
 }
 
 func TestFunder_Fund(t *testing.T) {
-	ctx, cancel := context.WithTimeout(context.Background(), defaultTxTimeout)
-	defer cancel()
 	// Need unique seed per run.
 	seed := time.Now().UnixNano()
 	t.Logf("seed is %d", seed)
 	rng := rand.New(rand.NewSource(seed))
-	_, funders, _, params, allocation := newNFunders(ctx, t, rng, 1)
+	ctx, cancel := context.WithTimeout(context.Background(), defaultTxTimeout)
+	defer cancel()
+	parts, funders, _, params, allocation := newNFunders(ctx, t, rng, 1)
 	// Test invalid funding request
 	assert.Panics(t, func() { funders[0].Fund(ctx, channel.FundingReq{}) }, "Funding with invalid funding req should fail")
 	// Test funding without assets
@@ -107,12 +107,25 @@ func TestFunder_Fund(t *testing.T) {
 		Allocation: allocation,
 		Idx:        0,
 	}
-	// Test with valid context
-	assert.NoError(t, funders[0].Fund(ctx, req), "funding with valid request should succeed")
-	assert.NoError(t, funders[0].Fund(ctx, req), "multiple funding should succeed")
+
+	t.Run("Funding idempotence", func(t *testing.T) {
+		for i := 0; i < 10; i++ {
+			nonce := 0
+			if i == 0 {
+				nonce = 1
+			}
+			diff, err := test.NonceDiff(parts[0], funders[0], func() error {
+				return funders[0].Fund(context.Background(), req)
+			})
+			require.NoError(t, err, "Subsequent Fund calls should not modify the nonce")
+			assert.Equal(t, nonce, diff)
+		}
+	})
 	// Test already closed context
 	cancel()
 	assert.Error(t, funders[0].Fund(ctx, req), "funding with already cancelled context should fail")
+	// Check result balances
+	assert.NoError(t, compareOnChainAlloc(params, *allocation, &funders[0].ContractBackend))
 }
 
 func TestPeerTimedOutFundingError(t *testing.T) {
