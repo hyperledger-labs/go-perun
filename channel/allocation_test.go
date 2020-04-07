@@ -19,6 +19,45 @@ import (
 	pkgtest "perun.network/go-perun/pkg/test"
 )
 
+func TestAllocationNumParts(t *testing.T) {
+	rng := rand.New(rand.NewSource(1))
+	tests := []struct {
+		name  string
+		alloc *channel.Allocation
+		want  int
+	}{
+		{
+			"empty balances",
+			&channel.Allocation{
+				Balances: test.NewRandomBalances(rng, 0, 0),
+			},
+			-1,
+		},
+		{
+			"single asset/three participants",
+			&channel.Allocation{
+				Balances: test.NewRandomBalances(rng, 1, 3),
+			},
+			3,
+		},
+		{
+			"three assets/three participants",
+			&channel.Allocation{
+				Balances: test.NewRandomBalances(rng, 3, 3),
+			},
+			3,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := tt.alloc.NumParts(); got != tt.want {
+				t.Errorf("Allocation.NumParts() = %v, want valid = %v", got, tt.want)
+			}
+		})
+	}
+}
+
 func TestAllocationSerialization(t *testing.T) {
 	rng := rand.New(rand.NewSource(1))
 	inputs := []perunio.Serializer{
