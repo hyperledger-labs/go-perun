@@ -44,13 +44,6 @@ type (
 		IsFinal bool
 	}
 
-	// Transaction is a channel state together with valid signatures from the
-	// channel participants.
-	Transaction struct {
-		*State
-		Sigs []wallet.Sig
-	}
-
 	// Data is the data of the application running in this app channel.
 	// Decoding happens with App.DecodeData.
 	Data interface {
@@ -129,22 +122,4 @@ func (s *State) Decode(r io.Reader) error {
 	// Decode app data
 	s.Data, err = s.App.DecodeData(r)
 	return errors.WithMessage(err, "app decode data")
-}
-
-// Clone returns a deep copy of Transaction
-func (t *Transaction) Clone() *Transaction {
-	var clonedSigs []wallet.Sig
-	if t.Sigs != nil {
-		clonedSigs = make([]wallet.Sig, len(t.Sigs))
-		for i, sig := range t.Sigs {
-			if sig != nil {
-				clonedSigs[i] = make(wallet.Sig, len(sig))
-				copy(clonedSigs[i], sig)
-			}
-		}
-	}
-	return &Transaction{
-		State: t.State.Clone(),
-		Sigs:  clonedSigs,
-	}
 }
