@@ -9,14 +9,9 @@ import (
 	"math/rand"
 	"testing"
 
-	"perun.network/go-perun/channel"
+	_ "perun.network/go-perun/backend/sim" // backend init
 	"perun.network/go-perun/channel/test"
 	iotest "perun.network/go-perun/pkg/io/test"
-	pkgtest "perun.network/go-perun/pkg/test"
-	"perun.network/go-perun/wallet"
-	wtest "perun.network/go-perun/wallet/test"
-
-	_ "perun.network/go-perun/backend/sim" // backend init
 )
 
 func TestStateSerialization(t *testing.T) {
@@ -27,14 +22,4 @@ func TestStateSerialization(t *testing.T) {
 	state := test.NewRandomState(rng, params)
 
 	iotest.GenericSerializerTest(t, state)
-}
-
-		}
-	}
-	}
-}
-
-func TestTransactionClone(t *testing.T) {
-	rng := rand.New(rand.NewSource(0xDDD))
-	pkgtest.VerifyClone(t, tx)
 }
