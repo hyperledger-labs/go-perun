@@ -47,6 +47,7 @@ func TestHappyAliceBob(t *testing.T) {
 			Listener:    hub.NewListener(acc[i].Address()),
 			Funder:      &logFunder{log.WithField("role", name[i])},
 			Adjudicator: &logAdjudicator{log.WithField("role", name[i])},
+			Wallet:      wallettest.NewWallet(),
 			Timeout:     defaultTimeout,
 		}
 	}

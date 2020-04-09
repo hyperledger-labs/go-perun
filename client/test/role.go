@@ -18,6 +18,7 @@ import (
 	"perun.network/go-perun/client"
 	"perun.network/go-perun/log"
 	"perun.network/go-perun/peer"
+	"perun.network/go-perun/wallet"
 	wallettest "perun.network/go-perun/wallet/test"
 )
 
@@ -42,6 +43,7 @@ type (
 		Listener    peer.Listener
 		Funder      channel.Funder
 		Adjudicator channel.Adjudicator
+		Wallet      wallet.Wallet
 		Timeout     time.Duration
 	}
 
@@ -70,7 +72,7 @@ type (
 
 // MakeRole creates a client for the given setup and wraps it into a Role.
 func MakeRole(setup RoleSetup, t *testing.T, numStages int) Role {
-	cl := client.New(setup.Identity, setup.Dialer, setup.Funder, setup.Adjudicator)
+	cl := client.New(setup.Identity, setup.Dialer, setup.Funder, setup.Adjudicator, setup.Wallet)
 	return Role{
 		Client:    cl,
 		setup:     setup,
