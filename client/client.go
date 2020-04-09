@@ -31,6 +31,7 @@ type Client struct {
 	propRecv    *peer.Receiver
 	funder      channel.Funder
 	adjudicator channel.Adjudicator
+	wallet      wallet.Wallet
 	pr          persistence.Persister
 	log         log.Logger // structured logger for this client
 
@@ -43,13 +44,14 @@ type Client struct {
 // network and not necessarily related to any on-chain identity or channel
 // identity.
 //
-// dialer is used to dial new peers when a peer connection is not yet
+// The dialer is used to dial new peers when a peer connection is not yet
 // established, e.g. when proposing a channel.
 //
-// proposalHandler is the user callback that is called by the Client when a peer
-// proposes a valid channel to this Client.
+// The funder and adjudicator are used to fund and dispute or settle a ledger
+// channel, respectively.
 //
-// funder and settler are used to fund and settle a ledger channel, respectively.
+// The wallet is used to resolve addresses to accounts when creating or
+// restoring channels.
 //
 // If any argument is nil, New panics.
 func New(
@@ -57,18 +59,20 @@ func New(
 	dialer peer.Dialer,
 	funder channel.Funder,
 	adjudicator channel.Adjudicator,
+	wallet wallet.Wallet,
 ) *Client {
 	if id == nil {
 		log.Panic("identity must not be nil")
 	}
+	log := log.WithField("id", id.Address())
 	if dialer == nil {
 		log.Panic("dialer must not be nil")
-	}
-	if funder == nil {
+	} else if funder == nil {
 		log.Panic("funder must not be nil")
-	}
-	if adjudicator == nil {
+	} else if adjudicator == nil {
 		log.Panic("adjudicator must not be nil")
+	} else if wallet == nil {
+		log.Panic("wallet must not be nil")
 	}
 
 	c := &Client{
@@ -77,8 +81,9 @@ func New(
 		propRecv:    peer.NewReceiver(),
 		funder:      funder,
 		adjudicator: adjudicator,
+		wallet:      wallet,
 		pr:          persistence.NonPersister,
-		log:         log.WithField("id", id.Address()),
+		log:         log,
 	}
 	c.peers = peer.NewRegistry(id, c.subscribePeer, dialer)
 	return c
