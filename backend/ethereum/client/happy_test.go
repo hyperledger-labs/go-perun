@@ -16,8 +16,10 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
 	"perun.network/go-perun/backend/ethereum/channel/test"
 	"perun.network/go-perun/backend/ethereum/wallet"
+	ethwtest "perun.network/go-perun/backend/ethereum/wallet/test"
 	clienttest "perun.network/go-perun/client/test"
 	"perun.network/go-perun/log"
 	"perun.network/go-perun/peer"
@@ -47,6 +49,7 @@ func TestHappyAliceBob(t *testing.T) {
 			Listener:    hub.NewListener(s.Accs[i].Address()),
 			Funder:      s.Funders[i],
 			Adjudicator: s.Adjs[i],
+			Wallet:      ethwtest.NewTmpWallet(),
 			Timeout:     defaultTimeout,
 		}
 	}
