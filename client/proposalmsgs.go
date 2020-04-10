@@ -23,7 +23,7 @@ import (
 func init() {
 	msg.RegisterDecoder(msg.ChannelProposal,
 		func(r io.Reader) (msg.Msg, error) {
-			var m ChannelProposalReq
+			var m ChannelProposal
 			return &m, m.Decode(r)
 		})
 	msg.RegisterDecoder(msg.ChannelProposalAcc,
@@ -42,12 +42,12 @@ func init() {
 // a channel.
 type SessionID = [32]byte
 
-// ChannelProposalReq is the wire message that is derived from the
-// ChannelProposal.
+// ChannelProposal contains all data necessary to propose a new
+// channel to a given set of peers. It is also sent over the wire.
 //
-// ChannelProposalReq implements the channel proposal messages from the
+// ChannelProposal implements the channel proposal messages from the
 // Multi-Party Channel Proposal Protocol (MPCPP).
-type ChannelProposalReq struct {
+type ChannelProposal struct {
 	ChallengeDuration uint64
 	Nonce             *big.Int
 	ParticipantAddr   wallet.Address
@@ -57,40 +57,13 @@ type ChannelProposalReq struct {
 	PeerAddrs         []wallet.Address
 }
 
-// AsReq returns a shallow copy of the ChannelProposal as a ChannelProposalReq,
-// i.e., as a wire message.
-func (c *ChannelProposal) AsReq() *ChannelProposalReq {
-	return &ChannelProposalReq{
-		ChallengeDuration: c.ChallengeDuration,
-		Nonce:             c.Nonce,
-		ParticipantAddr:   c.Account.Address(),
-		AppDef:            c.AppDef,
-		InitData:          c.InitData,
-		InitBals:          c.InitBals,
-		PeerAddrs:         c.PeerAddrs,
-	}
-}
-
-// AsProp returns a shallow copy of the ChannelProposalReq as a ChannelProposal.
-func (c *ChannelProposalReq) AsProp(acc wallet.Account) *ChannelProposal {
-	return &ChannelProposal{
-		ChallengeDuration: c.ChallengeDuration,
-		Nonce:             c.Nonce,
-		Account:           acc,
-		AppDef:            c.AppDef,
-		InitData:          c.InitData,
-		InitBals:          c.InitBals,
-		PeerAddrs:         c.PeerAddrs,
-	}
-}
-
 // Type returns msg.ChannelProposal.
-func (ChannelProposalReq) Type() msg.Type {
+func (ChannelProposal) Type() msg.Type {
 	return msg.ChannelProposal
 }
 
 // Encode encodes the ChannelProposalReq into an io.writer.
-func (c ChannelProposalReq) Encode(w io.Writer) error {
+func (c ChannelProposal) Encode(w io.Writer) error {
 	if w == nil {
 		return errors.New("writer must not be nil")
 	}
@@ -123,7 +96,7 @@ func (c ChannelProposalReq) Encode(w io.Writer) error {
 }
 
 // Decode decodes a ChannelProposalRequest from an io.Reader.
-func (c *ChannelProposalReq) Decode(r io.Reader) (err error) {
+func (c *ChannelProposal) Decode(r io.Reader) (err error) {
 	if r == nil {
 		return errors.New("reader must not be nil")
 	}
@@ -179,7 +152,7 @@ func (c *ChannelProposalReq) Decode(r io.Reader) (err error) {
 }
 
 // SessID calculates the SessionID of a ChannelProposalReq.
-func (c ChannelProposalReq) SessID() (sid SessionID) {
+func (c ChannelProposal) SessID() (sid SessionID) {
 	hasher := sha3.New256()
 	if err := wire.Encode(hasher, c.Nonce); err != nil {
 		log.Panicf("session ID nonce encoding: %v", err)
@@ -212,7 +185,7 @@ func (c ChannelProposalReq) SessID() (sid SessionID) {
 // * No locked sub-allocations
 // * InitBals match the dimension of Parts
 // * non-zero ChallengeDuration
-func (c ChannelProposalReq) Valid() error {
+func (c ChannelProposal) Valid() error {
 	if c.InitBals == nil || c.ParticipantAddr == nil {
 		return errors.New("invalid nil fields")
 	} else if err := channel.ValidateParameters(

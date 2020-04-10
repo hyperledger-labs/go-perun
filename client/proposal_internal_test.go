@@ -34,7 +34,7 @@ func TestClient_validTwoPartyProposal(t *testing.T) {
 	invalidProp.ChallengeDuration = 0 // invalidate
 
 	tests := []struct {
-		prop     *ChannelProposalReq
+		prop     *ChannelProposal
 		ourIdx   int
 		peerAddr wallet.Address
 		valid    bool
@@ -76,16 +76,16 @@ func TestClient_validTwoPartyProposal(t *testing.T) {
 	}
 }
 
-func NewRandomChannelProposalReq(rng *rand.Rand) *ChannelProposalReq {
+func NewRandomChannelProposalReq(rng *rand.Rand) *ChannelProposal {
 	return NewRandomChannelProposalReqNumParts(rng, rng.Intn(10)+2)
 }
 
-func NewRandomChannelProposalReqNumParts(rng *rand.Rand, numPeers int) *ChannelProposalReq {
+func NewRandomChannelProposalReqNumParts(rng *rand.Rand, numPeers int) *ChannelProposal {
 	params := channeltest.NewRandomParams(rng, channeltest.WithNumParts(numPeers))
 	data := channeltest.NewRandomData(rng)
 	alloc := channeltest.NewRandomAllocation(rng, channeltest.WithNumParts(numPeers))
 	participantAddr := wallettest.NewRandomAddress(rng)
-	return &ChannelProposalReq{
+	return &ChannelProposal{
 		ChallengeDuration: rng.Uint64(),
 		Nonce:             params.Nonce,
 		ParticipantAddr:   participantAddr,

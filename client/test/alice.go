@@ -44,7 +44,7 @@ func (r *Alice) Execute(cfg ExecConfig) {
 	prop := &client.ChannelProposal{
 		ChallengeDuration: 10,           // 10 sec
 		Nonce:             new(big.Int), // nonce 0
-		Account:           wallettest.NewRandomAccount(rng),
+		ParticipantAddr:   wallettest.NewRandomAccount(rng).Address(),
 		AppDef:            payment.AppDef(),
 		InitData:          new(payment.NoData),
 		InitBals:          initBals,

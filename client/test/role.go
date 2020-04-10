@@ -157,7 +157,7 @@ func newAcceptAllPropHandler(rng *rand.Rand, timeout time.Duration) *acceptAllPr
 	}
 }
 
-func (h *acceptAllPropHandler) Handle(req *client.ChannelProposalReq, res *client.ProposalResponder) {
+func (h *acceptAllPropHandler) Handle(req *client.ChannelProposal, res *client.ProposalResponder) {
 	h.log.Infof("Accepting incoming channel request: %v", req)
 	ctx, cancel := context.WithTimeout(context.Background(), h.timeout)
 	defer cancel()

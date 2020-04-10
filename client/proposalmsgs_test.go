@@ -26,7 +26,7 @@ import (
 
 func TestChannelProposalReq_NilArgs(t *testing.T) {
 	rng := rand.New(rand.NewSource(2020 - 01 - 0x8))
-	c := &client.ChannelProposalReq{
+	c := &client.ChannelProposal{
 		ChallengeDuration: 1,
 		Nonce:             big.NewInt(2),
 		ParticipantAddr:   wallettest.NewRandomAddress(rng),
@@ -51,7 +51,7 @@ func TestChannelProposalReq_NilArgs(t *testing.T) {
 func TestChannelProposalReqSerialization(t *testing.T) {
 	rng := rand.New(rand.NewSource(0xdeadbeef))
 	for i := 0; i < 4; i++ {
-		m := &client.ChannelProposalReq{
+		m := &client.ChannelProposal{
 			ChallengeDuration: 0,
 			Nonce:             big.NewInt(rng.Int63()),
 			ParticipantAddr:   wallettest.NewRandomAddress(rng),
@@ -89,7 +89,7 @@ func TestChannelProposalReqDecode_CheckMaxNumParts(t *testing.T) {
 	}
 	// end of ChannelProposalReq.Encode clone
 
-	var d client.ChannelProposalReq
+	var d client.ChannelProposal
 	err := d.Decode(buffer)
 	require.Error(err)
 	assert.Contains(err.Error(), "participants")
@@ -135,16 +135,6 @@ func TestChannelProposalReqSessID(t *testing.T) {
 	c6 := original
 	c6.PeerAddrs = fake.PeerAddrs
 	assert.NotEqual(t, s, c6.SessID())
-}
-
-func TestChannelProposal_AsReqAsProp(t *testing.T) {
-	rng := rand.New(rand.NewSource(7))
-	acc := wallettest.NewRandomAccount(rng)
-	prop := client.NewRandomChannelProposalReq(rng).AsProp(acc)
-	req := prop.AsReq()
-	assert.True(t, req.ParticipantAddr.Equals(acc.Address()))
-	prop2 := req.AsProp(acc)
-	assert.Equal(t, prop2, prop)
 }
 
 func TestChannelProposalAccSerialization(t *testing.T) {
