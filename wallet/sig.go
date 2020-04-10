@@ -6,6 +6,7 @@
 package wallet
 
 import (
+	"bytes"
 	"io"
 	"math"
 
@@ -16,6 +17,20 @@ import (
 
 // Sig is a single signature
 type Sig = []byte
+
+// CloneSigs returns a deep copy of a slice of signatures
+func CloneSigs(sigs []Sig) []Sig {
+	if sigs == nil {
+		return nil
+	}
+	clonedSigs := make([]Sig, len(sigs))
+	for i, sig := range sigs {
+		if sig != nil {
+			clonedSigs[i] = bytes.Repeat(sig, 1)
+		}
+	}
+	return clonedSigs
+}
 
 // EncodeSparseSigs encodes a collection of signatures in the form ( mask, sig, sig, sig, ...)
 func EncodeSparseSigs(w io.Writer, sigs []Sig) error {
