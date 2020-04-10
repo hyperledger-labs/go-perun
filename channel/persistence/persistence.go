@@ -114,3 +114,15 @@ type (
 		Phase     channel.Phase       // Phase is the current channel phase.
 	}
 )
+
+// CloneSource creates a new Channel object whose fields are clones of the data
+// coming from Source s.
+func CloneSource(s Source) *Channel {
+	return &Channel{
+		Idx:       s.Idx(),
+		Params:    s.Params().Clone(),
+		StagingTX: s.StagingTX().Clone(),
+		CurrentTX: s.CurrentTX().Clone(),
+		Phase:     s.Phase(),
+	}
+}
