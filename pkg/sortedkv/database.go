@@ -3,13 +3,13 @@
 // of this source code is governed by a MIT-style license that can be found in
 // the LICENSE file.
 
-// Package db defines a key-value store abstraction.
-// It is used by other persistence packages (like channeldb) to continuously
-// save the state of the running program or load it upon startup.
-// It is based on go-ethereum's https://github.com/ethereum/go-ethereum/ethdb
-// and https://github.com/ethereum/go-ethereum/core/rawdb
-// and is also inspired by perkeep.org/pkg/sorted
-package db // import "perun.network/go-perun/db"
+// Package sortedkv defines a sorted key-value store abstraction. It is used by
+// other persistence packages (like channel/persistence) to continuously save
+// the state of the running program or load it upon startup. It is based on
+// go-ethereum's https://github.com/ethereum/go-ethereum/ethdb and
+// https://github.com/ethereum/go-ethereum/core/rawdb and is also inspired by
+// perkeep.org/pkg/sorted
+package sortedkv // import "perun.network/go-perun/pkg/sortedkv"
 
 // ErrNotFound is returned whenever a key is not in the db.
 type ErrNotFound struct {
@@ -18,7 +18,7 @@ type ErrNotFound struct {
 
 // Error returns the error string.
 func (e *ErrNotFound) Error() string {
-	return "db: key not found: " + e.Key
+	return "sortedkv: key not found: " + e.Key
 }
 
 // Reader wraps the Has, Get and GetBytes methods of a key-value store.

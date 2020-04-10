@@ -8,11 +8,11 @@ package test
 import (
 	"testing"
 
-	"perun.network/go-perun/db"
+	"perun.network/go-perun/pkg/sortedkv"
 )
 
 // GenericBatchTest is to be called from the batch implementation tests.
-func GenericBatchTest(t *testing.T, database db.Database) {
+func GenericBatchTest(t *testing.T, database sortedkv.Database) {
 	this := BatchTest{T: t, Batch: database.NewBatch()}
 
 	dbtest := DatabaseTest{T: t, Database: database}
@@ -45,7 +45,7 @@ func GenericBatchTest(t *testing.T, database db.Database) {
 // BatchTest tests a batch.
 type BatchTest struct {
 	*testing.T
-	Batch db.Batch
+	Batch sortedkv.Batch
 }
 
 // MustPut tests the put functionality.

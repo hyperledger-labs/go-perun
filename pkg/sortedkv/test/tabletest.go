@@ -8,12 +8,12 @@ package test
 import (
 	"testing"
 
-	"perun.network/go-perun/db"
-	"perun.network/go-perun/db/key"
+	"perun.network/go-perun/pkg/sortedkv"
+	"perun.network/go-perun/pkg/sortedkv/key"
 )
 
 // GenericTableTest provides generic tests for table implementations.
-func GenericTableTest(t *testing.T, database db.Database) {
+func GenericTableTest(t *testing.T, database sortedkv.Database) {
 	dbtest := DatabaseTest{
 		T:        t,
 		Database: database,
@@ -28,7 +28,7 @@ func GenericTableTest(t *testing.T, database db.Database) {
 
 	table := DatabaseTest{
 		T:        t,
-		Database: db.NewTable(dbtest.Database, "Table."),
+		Database: sortedkv.NewTable(dbtest.Database, "Table."),
 	}
 
 	t.Run(`All values`, func(t *testing.T) {

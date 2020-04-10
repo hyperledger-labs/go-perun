@@ -3,7 +3,7 @@
 // of this source code is governed by a MIT-style license that can be found in
 // the LICENSE file.
 
-// Package memorydb provides an implementation of the db interfaces. The main
+// Package memorydb provides an implementation of the sortedkv interfaces. The main
 // type, Database, is an in-memory key-value store. Since the database is not
 // persistent, the package is not suited for production use, and more suited
 // for simplifying tests and mockups. The database is thread-safe.
@@ -13,10 +13,10 @@
 // The NewDatabase() constructor creates a new empty database. The FromData()
 // constructor takes a key-value mapping and uses that as the database's
 // contents.
-package memorydb // import "perun.network/go-perun/db/memorydb"
+package memorydb // import "perun.network/go-perun/pkg/sortedkv/memorydb"
 
 import (
-	"perun.network/go-perun/db"
+	"perun.network/go-perun/pkg/sortedkv"
 
 	"sort"
 	"strings"
@@ -30,7 +30,7 @@ type Database struct {
 }
 
 // NewDatabase creates a new, empty Database.
-func NewDatabase() db.Database {
+func NewDatabase() sortedkv.Database {
 	return &Database{
 		data: make(map[string]string),
 	}
@@ -39,7 +39,7 @@ func NewDatabase() db.Database {
 // FromData creates a Database from a map of values.
 // The provided data will not be cloned. If data is nil, an empty database is
 // created.
-func FromData(data map[string]string) db.Database {
+func FromData(data map[string]string) sortedkv.Database {
 	if data == nil {
 		data = make(map[string]string)
 	}
@@ -67,7 +67,7 @@ func (d *Database) Get(key string) (string, error) {
 
 	value, exists := d.data[key]
 	if !exists {
-		return "", &db.ErrNotFound{Key: key}
+		return "", &sortedkv.ErrNotFound{Key: key}
 	}
 	return value, nil
 }
@@ -100,7 +100,7 @@ func (d *Database) Delete(key string) error {
 	defer d.mutex.Unlock()
 
 	if _, has := d.data[key]; !has {
-		return &db.ErrNotFound{Key: key}
+		return &sortedkv.ErrNotFound{Key: key}
 	}
 	delete(d.data, key)
 	return nil
@@ -109,7 +109,7 @@ func (d *Database) Delete(key string) error {
 // Batcher interface.
 
 // NewBatch creates a new batch.
-func (d *Database) NewBatch() db.Batch {
+func (d *Database) NewBatch() sortedkv.Batch {
 	batch := Batch{db: d}
 	batch.Reset()
 	return &batch
@@ -118,7 +118,7 @@ func (d *Database) NewBatch() db.Batch {
 // Iterateable interface.
 
 // NewIterator creates a new iterator.
-func (d *Database) NewIterator() db.Iterator {
+func (d *Database) NewIterator() sortedkv.Iterator {
 	d.mutex.RLock()
 	defer d.mutex.RUnlock()
 
@@ -136,7 +136,7 @@ func (d *Database) NewIterator() db.Iterator {
 }
 
 // NewIteratorWithRange creates a new iterator based on a given range.
-func (d *Database) NewIteratorWithRange(start string, end string) db.Iterator {
+func (d *Database) NewIteratorWithRange(start string, end string) sortedkv.Iterator {
 	d.mutex.RLock()
 	defer d.mutex.RUnlock()
 
@@ -164,7 +164,7 @@ func (d *Database) NewIteratorWithRange(start string, end string) db.Iterator {
 }
 
 // NewIteratorWithPrefix creates a new iterator for a given prefix.
-func (d *Database) NewIteratorWithPrefix(prefix string) db.Iterator {
+func (d *Database) NewIteratorWithPrefix(prefix string) sortedkv.Iterator {
 	d.mutex.RLock()
 	defer d.mutex.RUnlock()
 

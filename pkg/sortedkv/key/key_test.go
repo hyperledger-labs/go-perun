@@ -8,7 +8,7 @@ package key_test
 import (
 	"testing"
 
-	"perun.network/go-perun/db/key"
+	"perun.network/go-perun/pkg/sortedkv/key"
 
 	"github.com/stretchr/testify/assert"
 )

@@ -3,8 +3,8 @@
 // of this source code is governed by a MIT-style license that can be found in
 // the LICENSE file.
 
-// Package key of db provides helper functions to manipulate db keys
-package key // import "perun.network/go-perun/db/key"
+// Package key of sortedkv provides helper functions to manipulate db keys
+package key // import "perun.network/go-perun/pkg/sortedkv/key"
 
 // Next returns the key with a zero byte appended, which is the next key in the
 // lexicographical order of strings

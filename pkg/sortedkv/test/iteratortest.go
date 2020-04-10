@@ -8,17 +8,17 @@ package test
 import (
 	"testing"
 
-	"perun.network/go-perun/db"
+	"perun.network/go-perun/pkg/sortedkv"
 )
 
 // IteratorTest provides the values needed for the generic tests.
 type IteratorTest struct {
 	*testing.T
-	Iterator db.Iterator
+	Iterator sortedkv.Iterator
 }
 
 // GenericIteratorTest provides generic tests for iterator implementations.
-func GenericIteratorTest(t *testing.T, database db.Database) {
+func GenericIteratorTest(t *testing.T, database sortedkv.Database) {
 	dbtest := DatabaseTest{T: t, Database: database}
 	dbtest.Put("2b", "2bv")
 	dbtest.Put("3", "3v")

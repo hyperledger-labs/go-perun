@@ -3,7 +3,7 @@
 // of this source code is governed by a MIT-style license that can be found in
 // the LICENSE file.
 
-package db
+package sortedkv
 
 // tableIterator is a wrapper around the Iterator interface.
 type tableIterator struct {

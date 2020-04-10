@@ -4,4 +4,4 @@
 // the LICENSE file.
 
 // Package leveldb implements the key-value database interface using LevelDB.
-package leveldb // import "perun.network/go-perun/db/leveldb"
+package leveldb // import "perun.network/go-perun/pkg/sortedkv/leveldb"

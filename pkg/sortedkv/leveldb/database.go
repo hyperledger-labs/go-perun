@@ -12,7 +12,7 @@ import (
 	"github.com/syndtr/goleveldb/leveldb"
 	"github.com/syndtr/goleveldb/leveldb/util"
 
-	"perun.network/go-perun/db"
+	"perun.network/go-perun/pkg/sortedkv"
 )
 
 // Database implements the Database interface and stores the values in memory.
@@ -90,19 +90,19 @@ func (d *Database) Delete(key string) error {
 // Batcher interface.
 
 // NewBatch creates a new batch.
-func (d *Database) NewBatch() db.Batch {
+func (d *Database) NewBatch() sortedkv.Batch {
 	return &Batch{&leveldb.Batch{}, d.DB}
 }
 
 // Iterateable interface.
 
 // NewIterator creates a new iterator.
-func (d *Database) NewIterator() db.Iterator {
+func (d *Database) NewIterator() sortedkv.Iterator {
 	return &Iterator{d.DB.NewIterator(&util.Range{Start: nil, Limit: nil}, nil), sync.Mutex{}}
 }
 
 // NewIteratorWithRange creates a new iterator based on a given range.
-func (d *Database) NewIteratorWithRange(start string, end string) db.Iterator {
+func (d *Database) NewIteratorWithRange(start string, end string) sortedkv.Iterator {
 	var Start []byte
 	var End []byte
 
@@ -118,7 +118,7 @@ func (d *Database) NewIteratorWithRange(start string, end string) db.Iterator {
 }
 
 // NewIteratorWithPrefix creates a new iterator for a given prefix.
-func (d *Database) NewIteratorWithPrefix(prefix string) db.Iterator {
+func (d *Database) NewIteratorWithPrefix(prefix string) sortedkv.Iterator {
 	var slice *util.Range
 
 	if len(prefix) != 0 {
