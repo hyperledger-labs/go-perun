@@ -27,6 +27,11 @@ type (
 		// which should also be persisted.
 		ChannelCreated(ctx context.Context, source Source, peers []peer.Address) error
 
+		// ChannelRemoved is called by the client when a channel is removed because
+		// it has been successfully settled and its data is no longer needed. All
+		// data associated with this channel may be discarded.
+		ChannelRemoved(ctx context.Context, id channel.ID) error
+
 		// Staged is called when a new valid state got set as the new staging
 		// state. It may already contain one valid signature, either by a remote
 		// peer or us locally. Hence, this only needs to persist a channel's staged
@@ -38,7 +43,8 @@ type (
 		SigAdded(context.Context, Source, channel.Index) error
 
 		// Enabled is called when the current state is updated to the staging state.
-		// The old current state may be discarded.
+		// The old current state may be discarded. The current state and phase
+		// should be persisted.
 		Enabled(context.Context, Source) error
 
 		// PhaseChanged is called when a phase change occurred that did not change
