@@ -3,9 +3,9 @@
 // of this source code is governed by a MIT-style license that can be found in
 // the LICENSE file.
 
-package db
+package sortedkv
 
-import "perun.network/go-perun/db/key"
+import "perun.network/go-perun/pkg/sortedkv/key"
 
 // Table is a wrapper around a database with a key prefix. All key access is
 // automatically prefixed. Close() is a noop and properties are forwarded

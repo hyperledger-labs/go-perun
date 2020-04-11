@@ -3,21 +3,21 @@
 // of this source code is governed by a MIT-style license that can be found in
 // the LICENSE file.
 
-// Package test of the go-perun/db package implements a generic test for all
-// implementations of the Database interface
+// Package test of the go-perun/sortedkv package implements a generic test for all
+// implementations of the Database interface.
 // Test your implementation by passing an empty database to the
 // GenericDatabaseTest() function
-package test // import "perun.network/go-perun/db/test"
+package test // import "perun.network/go-perun/pkg/sortedkv/test"
 
 import (
 	"bytes"
 	"testing"
 
-	"perun.network/go-perun/db"
+	"perun.network/go-perun/pkg/sortedkv"
 )
 
-// GenericDatabaseTest provides generic db tests.
-func GenericDatabaseTest(t *testing.T, database db.Database) {
+// GenericDatabaseTest provides generic sortedkv tests.
+func GenericDatabaseTest(t *testing.T, database sortedkv.Database) {
 	test := DatabaseTest{T: t}
 	t.Run("Generic database test", func(t *testing.T) {
 		test.Database = database
@@ -25,12 +25,12 @@ func GenericDatabaseTest(t *testing.T, database db.Database) {
 		GenericTableTest(t, test.Database)
 	})
 	t.Run("Empty prefix table test", func(t *testing.T) {
-		test.Database = db.NewTable(database, "")
+		test.Database = sortedkv.NewTable(database, "")
 		test.test()
 		GenericTableTest(t, test.Database)
 	})
 	t.Run("Normal table test", func(t *testing.T) {
-		test.Database = db.NewTable(database, "Table.")
+		test.Database = sortedkv.NewTable(database, "Table.")
 		test.test()
 		GenericTableTest(t, test.Database)
 	})
@@ -77,10 +77,10 @@ func (d *DatabaseTest) test() {
 	d.Delete("asdf")
 }
 
-// DatabaseTest is a db testing struct.
+// DatabaseTest is a sortedkv testing struct.
 type DatabaseTest struct {
 	*testing.T
-	Database db.Database
+	Database sortedkv.Database
 }
 
 // Has tests the has functionality.

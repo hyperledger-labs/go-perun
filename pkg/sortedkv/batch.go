@@ -3,7 +3,7 @@
 // of this source code is governed by a MIT-style license that can be found in
 // the LICENSE file.
 
-package db
+package sortedkv
 
 // Batch is a write-only database that buffers changes to the underlying
 // database until Apply() is called.

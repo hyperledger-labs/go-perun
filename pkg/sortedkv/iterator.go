@@ -3,7 +3,7 @@
 // of this source code is governed by a MIT-style license that can be found in
 // the LICENSE file.
 
-package db
+package sortedkv
 
 // Iterator iterates over a data store's key/value pairs in ascending key order.
 //

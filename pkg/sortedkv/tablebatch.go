@@ -3,7 +3,7 @@
 // of this source code is governed by a MIT-style license that can be found in
 // the LICENSE file.
 
-package db
+package sortedkv
 
 // tableBatch is a wrapper around a Database Batch with a key prefix. All
 // Writer operations are automatically prefixed.

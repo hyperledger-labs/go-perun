@@ -8,7 +8,7 @@ package memorydb
 import (
 	"testing"
 
-	"perun.network/go-perun/db/test"
+	"perun.network/go-perun/pkg/sortedkv/test"
 )
 
 func TestBatch(t *testing.T) {
