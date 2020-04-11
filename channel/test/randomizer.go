@@ -13,6 +13,7 @@ import (
 
 	"perun.network/go-perun/channel"
 	"perun.network/go-perun/wallet"
+	"perun.network/go-perun/wallet/test"
 	wallettest "perun.network/go-perun/wallet/test"
 )
 
@@ -73,8 +74,13 @@ func NewRandomSubAlloc(rng *rand.Rand, size int) *channel.SubAlloc {
 
 // NewRandomParams creates new random channel.Params.
 func NewRandomParams(rng *rand.Rand, appDef wallet.Address) *channel.Params {
+	return NewRandomParamsNumParts(rng, appDef, int(rng.Int31n(5))+2)
+}
+
+// NewRandomParamsNumParts creates new random channel.Params with n Parts.
+func NewRandomParamsNumParts(rng *rand.Rand, appDef wallet.Address, n int) *channel.Params {
 	var challengeDuration = rng.Uint64()
-	parts := make([]wallet.Address, rng.Int31n(5)+2)
+	parts := make([]wallet.Address, n)
 	for i := 0; i < len(parts); i++ {
 		parts[i] = wallettest.NewRandomAddress(rng)
 	}
@@ -128,4 +134,32 @@ func NewRandomBalances(rng *rand.Rand, numAssets int, numParties int) [][]channe
 		balances[i] = NewRandomBals(rng, numParties)
 	}
 	return balances
+}
+
+// NewRandomTransaction generates a new random Transaction with numParts participants.
+// sigMask defines which signatures are generated. It must have size numParts.
+// If an entry is false, nil is set as signature for that index.
+func NewRandomTransaction(rng *rand.Rand, numParts int, sigMask []bool) *channel.Transaction {
+	app := NewRandomApp(rng)
+	params := NewRandomParamsNumParts(rng, app.Def(), numParts)
+	accs, addrs := test.NewRandomAccounts(rng, len(params.Parts))
+	params.Parts = addrs
+	state := NewRandomState(rng, params)
+
+	sigs := make([]wallet.Sig, len(params.Parts))
+	var err error
+	for i, choice := range sigMask {
+		if !choice {
+			sigs[i] = nil
+		} else {
+			sigs[i], err = channel.Sign(accs[i], params, state)
+		}
+		if err != nil {
+			panic(err)
+		}
+	}
+	return &channel.Transaction{
+		State: state,
+		Sigs:  sigs,
+	}
 }

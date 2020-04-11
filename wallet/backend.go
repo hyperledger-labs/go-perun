@@ -5,10 +5,9 @@
 
 package wallet
 
-import "io"
-
-// Sig is a single signature
-type Sig = []byte
+import (
+	"io"
+)
 
 // backend is set to the global wallet backend. Must not be set directly but
 // through importing the needed backend.

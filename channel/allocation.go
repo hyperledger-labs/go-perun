@@ -80,6 +80,15 @@ type (
 
 var _ perunio.Serializer = new(Allocation)
 
+// NumParts returns the number of participants of this Allocation. It returns -1 if
+// there are no Balances, i.e., if the Allocation is invalid.
+func (a *Allocation) NumParts() int {
+	if len(a.Balances) == 0 {
+		return -1
+	}
+	return len(a.Balances[0])
+}
+
 // Clone returns a deep copy of the Allocation object.
 // If it is nil, it returns nil.
 func (a Allocation) Clone() (clone Allocation) {
