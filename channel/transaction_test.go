@@ -74,6 +74,6 @@ func TestTransactionClone(t *testing.T) {
 	rng := rand.New(rand.NewSource(0xDDD))
 	size := int(rng.Int31n(5)) + 2
 	testmask := newUniformBoolSlice(size, true)
-	tx := test.NewRandomTransaction(rng, size, testmask)
+	tx := *test.NewRandomTransaction(rng, size, testmask)
 	pkgtest.VerifyClone(t, tx)
 }

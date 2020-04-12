@@ -25,8 +25,8 @@ type Transaction struct {
 var _ perunio.Serializer = (*Transaction)(nil)
 
 // Clone returns a deep copy of Transaction
-func (t *Transaction) Clone() *Transaction {
-	return &Transaction{
+func (t Transaction) Clone() Transaction {
+	return Transaction{
 		State: t.State.Clone(),
 		Sigs:  wallet.CloneSigs(t.Sigs),
 	}

@@ -449,9 +449,12 @@ func (m *machine) selfTransition() PhaseTransition {
 }
 
 func (m *machine) Clone() *machine {
-	var clonedPrevTx []Transaction
-	for _, tx := range m.prevTXs {
-		clonedPrevTx = append(clonedPrevTx, *tx.Clone())
+	var prevTXs []Transaction
+	if m.prevTXs != nil {
+		prevTXs = make([]Transaction, len(m.prevTXs))
+		for i, tx := range m.prevTXs {
+			prevTXs[i] = tx.Clone()
+		}
 	}
 
 	return &machine{
@@ -459,9 +462,9 @@ func (m *machine) Clone() *machine {
 		acc:       m.acc,
 		idx:       m.idx,
 		params:    *m.params.Clone(),
-		stagingTX: *m.stagingTX.Clone(),
-		currentTX: *m.currentTX.Clone(),
-		prevTXs:   clonedPrevTx,
+		stagingTX: m.stagingTX.Clone(),
+		currentTX: m.currentTX.Clone(),
+		prevTXs:   prevTXs,
 		log:       m.log,
 	}
 }
