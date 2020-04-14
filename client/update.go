@@ -268,7 +268,7 @@ func (c *Channel) enableNotifyUpdate(ctx context.Context) error {
 	}
 
 	if err != nil {
-		return errors.WithMessage(c.machine.EnableUpdate(), "enabling update")
+		return errors.WithMessage(err, "enabling update")
 	}
 
 	if c.updateSub != nil {
