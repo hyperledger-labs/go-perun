@@ -95,30 +95,19 @@ func (a *Address) Equals(addr wallet.Address) bool {
 // Encode encodes this address into an io.Writer. Part of the
 // go-perun/pkg/io.Serializer interface.
 func (a *Address) Encode(w io.Writer) error {
-	if err := (wire.BigInt{Int: a.X}.Encode(w)); err != nil {
-		return errors.Wrap(err, "address encode error")
-	}
-	if err := (wire.BigInt{Int: a.Y}.Encode(w)); err != nil {
-		return errors.Wrap(err, "address encode error")
-	}
-	// Do not serialize the curve because it is constant.
-	return nil
+	data := a.ByteArray()
+	return wire.Encode(w, data[:])
 }
 
 // Decode decodes an address from an io.Reader. Part of the
 // go-perun/pkg/io.Serializer interface.
 func (a *Address) Decode(r io.Reader) error {
-	var X, Y wire.BigInt
-
-	if err := X.Decode(r); err != nil {
-		return errors.Wrap(err, "address decode error")
+	data := make([]byte, 64)
+	if err := wire.Decode(r, &data); err != nil {
+		return errors.WithMessage(err, "decoding address")
 	}
-	if err := Y.Decode(r); err != nil {
-		return errors.Wrap(err, "address decode error")
-	}
-
-	a.X = new(big.Int).SetBytes(X.Bytes())
-	a.Y = new(big.Int).SetBytes(Y.Bytes())
+	a.X = new(big.Int).SetBytes(data[:32])
+	a.Y = new(big.Int).SetBytes(data[32:])
 	a.Curve = curve
 
 	return nil
