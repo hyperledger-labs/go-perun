@@ -311,13 +311,16 @@ func (c *Client) setupChannel(
 		return nil, errors.WithMessage(err, "getting peers from the registry")
 	}
 
-	ch, err := newChannel(prop.Account, peers, *params, c.adjudicator)
+	ch, err := newChannel(prop.Account, peers, *params, c.adjudicator, c.pr)
 	if err != nil {
 		return nil, err
 	}
 	ch.setLogger(c.logChan(params.ID()))
+	if err := c.pr.ChannelCreated(ctx, ch.machine, prop.PeerAddrs); err != nil {
+		return ch, errors.WithMessage(err, "persisting new channel")
+	}
 
-	if err := ch.init(prop.InitBals, prop.InitData); err != nil {
+	if err := ch.init(ctx, prop.InitBals, prop.InitData); err != nil {
 		return ch, errors.WithMessage(err, "setting initial bals and data")
 	}
 	if err := ch.initExchangeSigsAndEnable(ctx); err != nil {
@@ -338,7 +341,7 @@ func (c *Client) setupChannel(
 		return ch, errors.WithMessage(err, "error while funding channel")
 	}
 
-	if err := ch.machine.SetFunded(); err != nil {
+	if err := ch.machine.SetFunded(ctx); err != nil {
 		return ch, errors.WithMessage(err, "error in SetFunded()")
 	}
 	if !c.channels.Put(params.ID(), ch) {
