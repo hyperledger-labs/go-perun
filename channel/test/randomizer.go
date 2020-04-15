@@ -88,7 +88,7 @@ func NewRandomParamsNumParts(rng *rand.Rand, appDef wallet.Address, n int) *chan
 
 	params, err := channel.NewParams(challengeDuration, parts, appDef, nonce)
 	if err != nil {
-		log.Panic("NewParams failed ", err)
+		panic(err)
 	}
 	return params
 }

@@ -3,31 +3,31 @@
 // of this source code is governed by a MIT-style license that can be found in
 // the LICENSE file.
 
-package channel // import "perun.network/go-perun/channel"
+package channel
 
 import (
 	"io"
 
 	"github.com/pkg/errors"
 
-	perun "perun.network/go-perun/wallet"
+	"perun.network/go-perun/wallet"
 	"perun.network/go-perun/wire"
 )
 
 // MockApp a mocked App whose behaviour is determined by the MockOp passed to it either as State.Data or Action.
 // It is a StateApp and ActionApp at the same time.
 type MockApp struct {
-	definition perun.Address
+	definition wallet.Address
 }
 
-var _ ActionApp = new(MockApp)
-var _ StateApp = new(MockApp)
+var _ ActionApp = (*MockApp)(nil)
+var _ StateApp = (*MockApp)(nil)
 
 // MockOp serves as Action and State.Data for MockApp.
 type MockOp uint64
 
-var _ Action = new(MockOp)
-var _ Data = new(MockOp)
+var _ Action = (*MockOp)(nil)
+var _ Data = (*MockOp)(nil)
 
 const (
 	// OpValid function call should succeed.
@@ -58,18 +58,18 @@ func (o *MockOp) Decode(r io.Reader) error {
 	return wire.Decode(r, (*uint64)(o))
 }
 
-// Clone returns a deep copy of a
+// Clone returns a deep copy of a MockOp.
 func (o MockOp) Clone() Data {
 	return &o
 }
 
 // NewMockApp create an App with the given definition.
-func NewMockApp(definition perun.Address) *MockApp {
+func NewMockApp(definition wallet.Address) *MockApp {
 	return &MockApp{definition: definition}
 }
 
 // Def returns the definition on the MockApp.
-func (a MockApp) Def() perun.Address {
+func (a MockApp) Def() wallet.Address {
 	return a.definition
 }
 

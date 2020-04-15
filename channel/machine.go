@@ -178,6 +178,11 @@ func (m *machine) State() *State {
 	return m.currentTX.State
 }
 
+// CurrentTX returns the current current transaction.
+func (m *machine) CurrentTX() Transaction {
+	return m.currentTX
+}
+
 // SettleReq returns the settlement request for the current channel transaction
 // (the current state together with all participants' signatures on it).
 func (m *machine) AdjudicatorReq() AdjudicatorReq {
@@ -195,6 +200,11 @@ func (m *machine) AdjudicatorReq() AdjudicatorReq {
 // Clone the state first if you need to modify it.
 func (m *machine) StagingState() *State {
 	return m.stagingTX.State
+}
+
+// StagingTX returns the current staging transaction.
+func (m *machine) StagingTX() Transaction {
+	return m.stagingTX
 }
 
 // AddSig verifies the provided signature of another participant on the staging
@@ -439,9 +449,12 @@ func (m *machine) selfTransition() PhaseTransition {
 }
 
 func (m *machine) Clone() *machine {
-	var clonedPrevTx []Transaction
-	for _, tx := range m.prevTXs {
-		clonedPrevTx = append(clonedPrevTx, *tx.Clone())
+	var prevTXs []Transaction
+	if m.prevTXs != nil {
+		prevTXs = make([]Transaction, len(m.prevTXs))
+		for i, tx := range m.prevTXs {
+			prevTXs[i] = tx.Clone()
+		}
 	}
 
 	return &machine{
@@ -449,9 +462,9 @@ func (m *machine) Clone() *machine {
 		acc:       m.acc,
 		idx:       m.idx,
 		params:    *m.params.Clone(),
-		stagingTX: *m.stagingTX.Clone(),
-		currentTX: *m.currentTX.Clone(),
-		prevTXs:   clonedPrevTx,
+		stagingTX: m.stagingTX.Clone(),
+		currentTX: m.currentTX.Clone(),
+		prevTXs:   prevTXs,
 		log:       m.log,
 	}
 }
