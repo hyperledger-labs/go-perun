@@ -14,16 +14,20 @@ import (
 	"github.com/pkg/errors"
 
 	"perun.network/go-perun/log"
+	"perun.network/go-perun/pkg/sync/atomic"
 	"perun.network/go-perun/wallet"
 )
 
 // Account represents a mocked account.
 type Account struct {
 	privKey *ecdsa.PrivateKey
+
+	locked     atomic.Bool
+	references int32
 }
 
-// NewRandomAccount creates a new account using the randomness
-// provided by rng
+// NewRandomAccount creates a new account using the provided randomness. The
+// returned account is already unlocked.
 func NewRandomAccount(rng io.Reader) *Account {
 	privateKey, err := ecdsa.GenerateKey(curve, rng)
 
@@ -41,8 +45,13 @@ func (a *Account) Address() wallet.Address {
 	return wallet.Address((*Address)(&a.privKey.PublicKey))
 }
 
-// SignData is used to sign data with this account.
+// SignData is used to sign data with this account. If the account is locked,
+// returns an error instead of a signature.
 func (a *Account) SignData(data []byte) ([]byte, error) {
+	if a.locked.IsSet() {
+		return nil, errors.New("account locked")
+	}
+
 	// escda.Sign needs a digest as input
 	// ref https://golang.org/pkg/crypto/ecdsa/#Sign
 	r, s, err := ecdsa.Sign(rand.Reader, a.privKey, digest(data))
