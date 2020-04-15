@@ -1,92 +1,120 @@
-// Copyright (c) 2019 Chair of Applied Cryptography, Technische Universität
+// Copyright (c) 2020 Chair of Applied Cryptography, Technische Universität
 // Darmstadt, Germany. All rights reserved. This file is part of go-perun. Use
 // of this source code is governed by a MIT-style license that can be found in
 // the LICENSE file.
 
-package wallet // import "perun.network/go-perun/backend/sim/wallet"
+package wallet_test
 
 import (
-	"math/big"
 	"math/rand"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
-	"perun.network/go-perun/wallet"
-	"perun.network/go-perun/wallet/test"
+	"perun.network/go-perun/backend/sim/wallet"
 )
 
-// TestSignatureSerialize tests serializeSignature and deserializeSignature since
-// a signature is only a []byte, we cant use io.serializer here
-func TestSignatureSerialize(t *testing.T) {
-	a := assert.New(t)
-	// Constant seed for determinism
-	rng := rand.New(rand.NewSource(1337))
+func TestWallet_AddAccount(t *testing.T) {
+	rng := rand.New(rand.NewSource(0xC00F))
+	w := wallet.NewWallet()
+	acc := wallet.NewRandomAccount(rng)
 
-	// More iterations are better for catching value dependent bugs
-	for i := 0; i < 10; i++ {
-		rBytes := make([]byte, 32)
-		sBytes := make([]byte, 32)
-
-		// These always return nil error
-		rng.Read(rBytes)
-		rng.Read(sBytes)
-
-		r := new(big.Int).SetBytes(rBytes)
-		s := new(big.Int).SetBytes(sBytes)
-
-		sig, err1 := serializeSignature(r, s)
-		a.Nil(err1, "Serialization should not fail")
-		a.Equal(curve.Params().BitSize/4, len(sig), "Signature has wrong size")
-		R, S, err2 := deserializeSignature(sig)
-
-		a.Nil(err2, "Deserialization should not fail")
-		a.Equal(r, R, "Serialized and deserialized r values should be equal")
-		a.Equal(s, S, "Serialized and deserialized s values should be equal")
-	}
+	assert.False(t, w.HasAccount(acc))
+	assert.NoError(t, w.AddAccount(acc))
+	assert.True(t, w.HasAccount(acc))
+	assert.Error(t, w.AddAccount(acc))
 }
 
-func TestGenericTests(t *testing.T) {
-	t.Run("Generic Address Test", func(t *testing.T) {
-		t.Parallel()
-		test.GenericAddressTest(t, newWalletSetup())
-	})
-	t.Run("Generic Signature Test", func(t *testing.T) {
-		t.Parallel()
-		test.GenericSignatureTest(t, newWalletSetup())
-		test.GenericSignatureSizeTest(t, newWalletSetup())
+func TestWallet_Unlock(t *testing.T) {
+	rng := rand.New(rand.NewSource(0xC00F))
+
+	// Create a wallet from existing accounts, as if just restored. These
+	// accounts are initially locked.
+	acc := wallet.NewRandomAccount(rng)
+	w := wallet.NewRestoredWallet(acc)
+
+	t.Run("sign before unlock", func(t *testing.T) {
+		sig, err := acc.SignData([]byte("----"))
+		require.Error(t, err)
+		require.Nil(t, sig)
 	})
 
-	// NewRandomAddress is also tested in channel_test but since they are two packages,
-	// we also need to test it here
-	rng := rand.New(rand.NewSource(1337))
-	for i := 0; i < 10; i++ {
-		addr0 := NewRandomAddress(rng)
-		addr1 := NewRandomAddress(rng)
-		assert.NotEqual(
-			t, addr0, addr1, "Two random accounts should not be the same")
+	t.Run("unlock", func(t *testing.T) {
+		testAcc, err := w.Unlock(acc.Address())
+		require.NoError(t, err)
+		require.Same(t, acc, testAcc)
+	})
 
-		str0 := addr0.String()
-		str1 := addr1.String()
-		assert.Equal(
-			t, 10, len(str0), "First address '%v' has wrong length", str0)
-		assert.Equal(
-			t, 10, len(str1), "Second address '%v' has wrong length", str1)
-		assert.NotEqual(
-			t, str0, str1, "Printed addresses are unlikely to be identical")
-	}
+	t.Run("sign after unlock", func(t *testing.T) {
+		sig, err := acc.SignData([]byte("----"))
+		require.NoError(t, err)
+		require.NotNil(t, sig)
+	})
+
+	t.Run("redundant unlock", func(t *testing.T) {
+		testAcc, err := w.Unlock(acc.Address())
+		require.NoError(t, err)
+		require.Same(t, acc, testAcc)
+	})
+
+	w.LockAll()
+	t.Run("after LockAll", func(t *testing.T) {
+		sig, err := acc.SignData([]byte("----"))
+		require.Error(t, err)
+		require.Nil(t, sig)
+	})
+
+	t.Run("unknown unlock", func(t *testing.T) {
+		acc, err := w.Unlock(wallet.NewRandomAddress(rng))
+		assert.Error(t, err)
+		assert.Nil(t, acc)
+	})
 }
 
-func newWalletSetup() *test.Setup {
-	rng := rand.New(rand.NewSource(1337))
+func TestWallet_UsageCounting(t *testing.T) {
+	rng := rand.New(rand.NewSource(0xC00F))
 
-	accountA := NewRandomAccount(rng)
-	accountB := NewRandomAccount(rng)
-	unlockedAccount := func() (wallet.Account, error) { return &accountA, nil }
+	w := wallet.NewWallet()
+	const N = 10
 
-	return &test.Setup{
-		Backend:         new(Backend),
-		UnlockedAccount: unlockedAccount,
-		AddressBytes:    accountB.Address().Bytes(),
-	}
+	acc := w.NewRandomAccount(rng)
+	assert.Zero(t, w.UsageCount(acc.Address()))
+
+	t.Run("unmatched decrement", func(t *testing.T) {
+		acc := w.NewRandomAccount(rng)
+		assert.Panics(t, func() { w.DecrementUsage(acc.Address()) })
+		assert.Equal(t, w.UsageCount(acc.Address()), -1)
+		assert.True(t, w.HasAccount(acc))
+	})
+
+	t.Run("increment", func(t *testing.T) {
+		for i := 1; i <= N; i++ {
+			assert.NotPanics(t, func() { w.IncrementUsage(acc.Address()) })
+			assert.Equal(t, w.UsageCount(acc.Address()), i)
+			assert.True(t, w.HasAccount(acc))
+		}
+	})
+
+	t.Run("decrement", func(t *testing.T) {
+		for i := N - 1; i >= 0; i-- {
+			assert.True(t, w.HasAccount(acc))
+			assert.NotPanics(t, func() { w.DecrementUsage(acc.Address()) })
+			if i > 0 {
+				assert.Equal(t, w.UsageCount(acc.Address()), i)
+			} else {
+				assert.Panics(t, func() { w.UsageCount(acc.Address()) })
+				assert.False(t, w.HasAccount(acc))
+			}
+		}
+	})
+
+	t.Run("removed", func(t *testing.T) {
+		assert.False(t, w.HasAccount(acc))
+	})
+
+	t.Run("invalid address", func(t *testing.T) {
+		assert.Panics(t, func() { w.IncrementUsage(wallet.NewRandomAddress(rng)) })
+		assert.Panics(t, func() { w.DecrementUsage(wallet.NewRandomAddress(rng)) })
+	})
 }
