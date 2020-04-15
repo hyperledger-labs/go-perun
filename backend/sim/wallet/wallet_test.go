@@ -82,7 +82,7 @@ func newWalletSetup() *test.Setup {
 
 	accountA := NewRandomAccount(rng)
 	accountB := NewRandomAccount(rng)
-	unlockedAccount := func() (wallet.Account, error) { return &accountA, nil }
+	unlockedAccount := func() (wallet.Account, error) { return accountA, nil }
 
 	return &test.Setup{
 		Backend:         new(Backend),

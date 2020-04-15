@@ -35,11 +35,15 @@ func NewRandomAddress(rng io.Reader) *Address {
 		log.Panicf("Creation of account failed with error", err)
 	}
 
-	return &Address{Curve: privateKey.Curve, X: privateKey.X, Y: privateKey.Y}
+	return &Address{
+		Curve: privateKey.Curve,
+		X:     privateKey.X,
+		Y:     privateKey.Y,
+	}
 }
 
 // Bytes converts this address to bytes.
-func (a Address) Bytes() []byte {
+func (a *Address) Bytes() []byte {
 	// Serialize the Address into a buffer and return the buffers bytes
 	buff := new(bytes.Buffer)
 	w := bufio.NewWriter(buff)
@@ -53,8 +57,21 @@ func (a Address) Bytes() []byte {
 	return buff.Bytes()
 }
 
+// ByteArray converts an address into a 64-byte array. The returned array
+// consists of two 32-byte chunks representing the public key's X and Y values.
+func (a *Address) ByteArray() (bytes [64]byte) {
+	xb := a.X.Bytes()
+	yb := a.Y.Bytes()
+
+	// Left-pad with 0 bytes.
+	copy(bytes[32-len(xb):32], xb)
+	copy(bytes[64-len(yb):64], yb)
+
+	return bytes
+}
+
 // String converts this address to a human-readable string.
-func (a Address) String() string {
+func (a *Address) String() string {
 	// Encode the address directly instead of using Address.Bytes() because
 	// * some addresses may have a very short encoding, e.g., the null address,
 	// * the Address.Bytes() output may contain encoding information, e.g., the
@@ -66,7 +83,7 @@ func (a Address) String() string {
 }
 
 // Equals checks the equality of two addresses.
-func (a Address) Equals(addr wallet.Address) bool {
+func (a *Address) Equals(addr wallet.Address) bool {
 	b, ok := addr.(*Address)
 	if !ok {
 		log.Panic("Equals(): wrong address type")

@@ -19,32 +19,30 @@ import (
 
 // Account represents a mocked account.
 type Account struct {
-	address Address
 	privKey *ecdsa.PrivateKey
 }
 
 // NewRandomAccount creates a new account using the randomness
 // provided by rng
-func NewRandomAccount(rng io.Reader) Account {
+func NewRandomAccount(rng io.Reader) *Account {
 	privateKey, err := ecdsa.GenerateKey(curve, rng)
 
 	if err != nil {
 		log.Panicf("Creation of account failed with error", err)
 	}
 
-	return Account{
-		address: Address(privateKey.PublicKey),
+	return &Account{
 		privKey: privateKey,
 	}
 }
 
 // Address returns the address of this account.
-func (a Account) Address() wallet.Address {
-	return wallet.Address(&a.address)
+func (a *Account) Address() wallet.Address {
+	return wallet.Address((*Address)(&a.privKey.PublicKey))
 }
 
 // SignData is used to sign data with this account.
-func (a Account) SignData(data []byte) ([]byte, error) {
+func (a *Account) SignData(data []byte) ([]byte, error) {
 	// escda.Sign needs a digest as input
 	// ref https://golang.org/pkg/crypto/ecdsa/#Sign
 	r, s, err := ecdsa.Sign(rand.Reader, a.privKey, digest(data))
