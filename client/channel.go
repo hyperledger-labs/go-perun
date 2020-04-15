@@ -12,6 +12,7 @@ import (
 	"github.com/pkg/errors"
 
 	"perun.network/go-perun/channel"
+	"perun.network/go-perun/channel/persistence"
 	"perun.network/go-perun/log"
 	"perun.network/go-perun/peer"
 	perunsync "perun.network/go-perun/pkg/sync"
@@ -27,7 +28,7 @@ type Channel struct {
 	log log.Logger
 
 	conn        *channelConn
-	machine     channel.StateMachine
+	machine     persistence.StateMachine
 	machMtx     sync.RWMutex
 	updateSub   chan<- *channel.State
 	adjudicator channel.Adjudicator
@@ -40,11 +41,14 @@ func newChannel(
 	peers []*peer.Peer,
 	params channel.Params,
 	adjudicator channel.Adjudicator,
+	pr persistence.Persister,
 ) (*Channel, error) {
 	machine, err := channel.NewStateMachine(acc, params)
 	if err != nil {
 		return nil, errors.WithMessage(err, "creating state machine")
 	}
+
+	pmachine := persistence.FromStateMachine(machine, pr)
 
 	// bundle peers into channel connection
 	conn, err := newChannelConn(params.ID(), peers, machine.Idx())
@@ -57,7 +61,7 @@ func newChannel(
 	return &Channel{
 		log:         logger,
 		conn:        conn,
-		machine:     *machine,
+		machine:     pmachine,
 		adjudicator: adjudicator,
 	}, nil
 }
@@ -114,15 +118,15 @@ func (c *Channel) Phase() channel.Phase {
 // by the user since the Client initializes the channel controller.
 // The state machine is not locked as this function is expected to be called
 // during the initialization phase of the channel controller.
-func (c *Channel) init(initBals *channel.Allocation, initData channel.Data) error {
-	return c.machine.Init(*initBals, initData)
+func (c *Channel) init(ctx context.Context, initBals *channel.Allocation, initData channel.Data) error {
+	return c.machine.Init(ctx, *initBals, initData)
 }
 
 // initExchangeSigsAndEnable exchanges signatures on the initial state.
 // The state machine is not locked as this function is expected to be called
 // during the initialization phase of the channel controller.
 func (c *Channel) initExchangeSigsAndEnable(ctx context.Context) error {
-	sig, err := c.machine.Sig()
+	sig, err := c.machine.Sig(ctx)
 	if err != nil {
 		return err
 	}
@@ -150,10 +154,10 @@ func (c *Channel) initExchangeSigsAndEnable(ctx context.Context) error {
 			cm, pidx, cm)
 	}
 
-	if err := c.machine.AddSig(pidx, acc.Sig); err != nil {
+	if err := c.machine.AddSig(ctx, pidx, acc.Sig); err != nil {
 		return err
 	}
-	if err := c.machine.EnableInit(); err != nil {
+	if err := c.machine.EnableInit(ctx); err != nil {
 		return err
 	}
 

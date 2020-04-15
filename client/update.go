@@ -92,7 +92,7 @@ func (c *Channel) Update(ctx context.Context, up ChannelUpdate) (err error) {
 	c.machMtx.Lock() // lock machine while update is in progress
 	defer c.machMtx.Unlock()
 
-	if err = c.machine.Update(up.State, up.ActorIdx); err != nil {
+	if err = c.machine.Update(ctx, up.State, up.ActorIdx); err != nil {
 		return errors.WithMessage(err, "updating machine")
 	}
 	// if anything goes wrong from now on, we discard the update.
@@ -107,7 +107,7 @@ func (c *Channel) Update(ctx context.Context, up ChannelUpdate) (err error) {
 		}
 	}()
 
-	sig, err := c.machine.Sig()
+	sig, err := c.machine.Sig(ctx)
 	if err != nil {
 		return errors.WithMessage(err, "signing update")
 	}
@@ -137,11 +137,11 @@ func (c *Channel) Update(ctx context.Context, up ChannelUpdate) (err error) {
 	}
 
 	acc := res.(*msgChannelUpdateAcc) // safe by predicate of the updateResRecv
-	if err := c.machine.AddSig(pidx, acc.Sig); err != nil {
+	if err := c.machine.AddSig(ctx, pidx, acc.Sig); err != nil {
 		return errors.WithMessage(err, "adding peer signature")
 	}
 
-	return c.enableNotifyUpdate()
+	return c.enableNotifyUpdate(ctx)
 }
 
 // ListenUpdates starts the handling of incoming channel update requests. It
@@ -199,7 +199,7 @@ func (c *Channel) handleUpdateAcc(
 	}()
 
 	// machine.Update and AddSig should never fail after CheckUpdate...
-	if err = c.machine.Update(req.State, req.ActorIdx); err != nil {
+	if err = c.machine.Update(ctx, req.State, req.ActorIdx); err != nil {
 		return errors.WithMessage(err, "updating machine")
 	}
 	// if anything goes wrong from now on, we discard the update.
@@ -215,11 +215,11 @@ func (c *Channel) handleUpdateAcc(
 		}
 	}()
 
-	if err = c.machine.AddSig(pidx, req.Sig); err != nil {
+	if err = c.machine.AddSig(ctx, pidx, req.Sig); err != nil {
 		return errors.WithMessage(err, "adding peer signature")
 	}
 	var sig wallet.Sig
-	sig, err = c.machine.Sig()
+	sig, err = c.machine.Sig(ctx)
 	if err != nil {
 		return errors.WithMessage(err, "signing updated state")
 	}
@@ -233,7 +233,7 @@ func (c *Channel) handleUpdateAcc(
 		return errors.WithMessage(err, "sending accept message")
 	}
 
-	return c.enableNotifyUpdate()
+	return c.enableNotifyUpdate(ctx)
 }
 
 func (c *Channel) handleUpdateRej(
@@ -259,16 +259,16 @@ func (c *Channel) handleUpdateRej(
 // enableNotifyUpdate enables the current staging state of the machine. If the
 // state is final, machine.EnableFinal is called. Finally, if there is a
 // notification on channel updates, the enabled state is sent on it.
-func (c *Channel) enableNotifyUpdate() error {
+func (c *Channel) enableNotifyUpdate(ctx context.Context) error {
 	var err error
 	if c.machine.StagingState().IsFinal {
-		err = c.machine.EnableFinal()
+		err = c.machine.EnableFinal(ctx)
 	} else {
-		err = c.machine.EnableUpdate()
+		err = c.machine.EnableUpdate(ctx)
 	}
 
 	if err != nil {
-		return errors.WithMessage(c.machine.EnableUpdate(), "enabling update")
+		return errors.WithMessage(err, "enabling update")
 	}
 
 	if c.updateSub != nil {

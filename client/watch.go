@@ -61,7 +61,7 @@ func (c *Channel) handleRegisteredEvent(ctx context.Context, reg *channel.Regist
 		return nil
 	}
 
-	if err := c.machine.SetRegistered(reg); err != nil {
+	if err := c.machine.SetRegistered(ctx, reg); err != nil {
 		return errors.WithMessage(err, "setting machine to Registered phase")
 	}
 
@@ -128,7 +128,7 @@ func (c *Channel) settle(ctx context.Context) error {
 //
 // The caller is expected to have locked the channel mutex.
 func (c *Channel) register(ctx context.Context) error {
-	if err := c.machine.SetRegistering(); err != nil {
+	if err := c.machine.SetRegistering(ctx); err != nil {
 		return err
 	}
 
@@ -141,7 +141,7 @@ func (c *Channel) register(ctx context.Context) error {
 			"unexpected version %d registered, expected %d", reg.Version, ver)
 	}
 
-	return c.machine.SetRegistered(reg)
+	return c.machine.SetRegistered(ctx, reg)
 }
 
 // withdraw calls Withdraw on the adjudicator with the current channel state and
@@ -149,7 +149,7 @@ func (c *Channel) register(ctx context.Context) error {
 //
 // The caller is expected to have locked the channel mutex.
 func (c *Channel) withdraw(ctx context.Context) error {
-	if err := c.machine.SetWithdrawing(); err != nil {
+	if err := c.machine.SetWithdrawing(ctx); err != nil {
 		return err
 	}
 
@@ -158,5 +158,5 @@ func (c *Channel) withdraw(ctx context.Context) error {
 		return errors.WithMessage(err, "calling Withdraw")
 	}
 
-	return c.machine.SetWithdrawn()
+	return c.machine.SetWithdrawn(ctx)
 }

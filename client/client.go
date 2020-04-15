@@ -11,6 +11,7 @@ import (
 	"github.com/pkg/errors"
 
 	"perun.network/go-perun/channel"
+	"perun.network/go-perun/channel/persistence"
 	"perun.network/go-perun/log"
 	"perun.network/go-perun/peer"
 	"perun.network/go-perun/pkg/sync"
@@ -30,6 +31,7 @@ type Client struct {
 	propHandler ProposalHandler
 	funder      channel.Funder
 	adjudicator channel.Adjudicator
+	pr          persistence.Persister
 	log         log.Logger // structured logger for this client
 
 	sync.Closer
@@ -78,6 +80,7 @@ func New(
 		propHandler: propHandler,
 		funder:      funder,
 		adjudicator: adjudicator,
+		pr:          persistence.NonPersister,
 		log:         log.WithField("id", id.Address()),
 		channels:    makeChanRegistry(),
 	}
@@ -97,6 +100,13 @@ func (c *Client) Close() error {
 		err = errors.WithMessage(cerr, "closing registry")
 	}
 	return err
+}
+
+// SetPersister sets the persister that the client is going to use for channel
+// persistence. This methods is expected to be called once during the setup of
+// the client and is hence not thread-safe.
+func (c *Client) SetPersister(pr persistence.Persister) {
+	c.pr = pr
 }
 
 // Channel queries a channel by its ID.
