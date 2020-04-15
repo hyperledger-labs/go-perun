@@ -59,15 +59,15 @@ func (a *Address) Bytes() []byte {
 
 // ByteArray converts an address into a 64-byte array. The returned array
 // consists of two 32-byte chunks representing the public key's X and Y values.
-func (a *Address) ByteArray() (bytes [64]byte) {
+func (a *Address) ByteArray() (data [64]byte) {
 	xb := a.X.Bytes()
 	yb := a.Y.Bytes()
 
 	// Left-pad with 0 bytes.
-	copy(bytes[32-len(xb):32], xb)
-	copy(bytes[64-len(yb):64], yb)
+	copy(data[32-len(xb):32], xb)
+	copy(data[64-len(yb):64], yb)
 
-	return bytes
+	return data
 }
 
 // String converts this address to a human-readable string.
