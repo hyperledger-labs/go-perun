@@ -16,6 +16,12 @@ import (
 )
 
 var _ wallet.Wallet = (*Wallet)(nil)
+var testWallet *Wallet = nil
+
+// TestWallet retrieves the global test wallet.
+func TestWallet() *Wallet {
+	return testWallet
+}
 
 // NewWallet creates a new empty wallet.
 func NewWallet() *Wallet {
@@ -134,7 +140,7 @@ func (w *Wallet) UsageCount(a wallet.Address) int {
 // randomness stream. The account is automatically added to the wallet. Returns
 // the generated account. The returned account is already unlocked.
 func (w *Wallet) NewRandomAccount(rng io.Reader) *Account {
-	acc := NewRandomAccount(rng)
+	acc := newRandomAccount(rng)
 	w.AddAccount(acc)
 	return acc
 }

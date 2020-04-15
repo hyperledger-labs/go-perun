@@ -27,8 +27,12 @@ type Account struct {
 }
 
 // NewRandomAccount creates a new account using the provided randomness. The
-// returned account is already unlocked.
+// returned account is already unlocked and added to the global test wallet.
 func NewRandomAccount(rng io.Reader) *Account {
+	return testWallet.NewRandomAccount(rng)
+}
+
+func newRandomAccount(rng io.Reader) *Account {
 	privateKey, err := ecdsa.GenerateKey(curve, rng)
 
 	if err != nil {
