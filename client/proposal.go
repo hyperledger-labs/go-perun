@@ -128,40 +128,35 @@ func (c *Client) ProposeChannel(ctx context.Context, prop *ChannelProposal) (*Ch
 // passed peer is not yet receiving any messages, thus, subscription is
 // race-free. After the function returns, the peer starts receiving messages.
 func (c *Client) subChannelProposals(p *peer.Peer) {
-	proposalReceiver := peer.NewReceiver()
-	if err := p.Subscribe(proposalReceiver,
+	if err := p.Subscribe(c.propRecv,
 		func(m wire.Msg) bool { return m.Type() == wire.ChannelProposal },
 	); err != nil {
 		c.logPeer(p).Errorf("failed to subscribe to channel proposals on new peer: %v", err)
-		proposalReceiver.Close()
 		return
 	}
 
-	// Aborts the proposal handler loop when the Peer is closed.
-	p.OnCloseAlways(func() {
-		if err := proposalReceiver.Close(); err != nil {
-			c.logPeer(p).Errorf("failed to close proposal receiver: %v", err)
-		}
-	})
+}
 
-	// proposal handler loop.
-	go func() {
-		for {
-			_p, m := proposalReceiver.Next(context.Background())
-			if _p == nil {
-				c.logPeer(p).Debug("proposal subscription closed")
-				return
-			}
-			proposal := m.(*ChannelProposalReq) // safe because that's the predicate
-			go c.handleChannelProposal(p, proposal)
+// HandleChannelProposals is the incoming channel proposal handler routine. It
+// must only be started at most once by the user. Incoming channel proposals are
+// handled using the passed handler.
+func (c *Client) HandleChannelProposals(handler ProposalHandler) {
+	for {
+		p, m := c.propRecv.Next(context.Background())
+		if p == nil {
+			c.log.Debug("proposal receiver closed")
+			return
 		}
-	}()
+		req := m.(*ChannelProposalReq) // safe because that's the predicate
+		go c.handleChannelProposal(handler, p, req)
+	}
 }
 
 // handleChannelProposal implements the receiving side of the (currently)
 // two-party channel proposal protocol.
 // The proposer is expected to be the first peer in the participant list.
-func (c *Client) handleChannelProposal(p *peer.Peer, req *ChannelProposalReq) {
+func (c *Client) handleChannelProposal(
+	handler ProposalHandler, p *peer.Peer, req *ChannelProposalReq) {
 	if err := c.validTwoPartyProposal(req, 1, p.PerunAddress); err != nil {
 		c.logPeer(p).Debugf("received invalid channel proposal: %v", err)
 		return
@@ -169,7 +164,8 @@ func (c *Client) handleChannelProposal(p *peer.Peer, req *ChannelProposalReq) {
 
 	c.logPeer(p).Trace("calling proposal handler")
 	responder := &ProposalResponder{client: c, peer: p, req: req}
-	c.propHandler.Handle(req, responder)
+	handler.Handle(req, responder)
+	// control flow continues in responder.Accept/Reject
 }
 
 func (c *Client) handleChannelProposalAcc(
