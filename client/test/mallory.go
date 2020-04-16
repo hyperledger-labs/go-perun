@@ -24,24 +24,16 @@ import (
 // Mallory is a test client role. She proposes the new channel.
 type Mallory struct {
 	Role
-	rng *rand.Rand
 }
 
 // NewMallory creates a new party that executes the Mallory protocol.
 func NewMallory(setup RoleSetup, t *testing.T) *Mallory {
-	rng := rand.New(rand.NewSource(0x471CF))
-	propHandler := newAcceptAllPropHandler(rng, setup.Timeout)
-	role := &Mallory{
-		Role: MakeRole(setup, propHandler, t, 3),
-		rng:  rng,
-	}
-
-	propHandler.log = role.Role.log
-	return role
+	return &Mallory{Role: MakeRole(setup, t, 3)}
 }
 
 // Execute executes the Mallory protocol.
 func (r *Mallory) Execute(cfg ExecConfig) {
+	rng := rand.New(rand.NewSource(0x471CF))
 	assert := assert.New(r.t)
 	we, _ := r.Idxs(cfg.PeerAddrs)
 	// We don't start the proposal listener because Mallory only sends proposals
@@ -53,7 +45,7 @@ func (r *Mallory) Execute(cfg ExecConfig) {
 	prop := &client.ChannelProposal{
 		ChallengeDuration: 60,           // 1 min
 		Nonce:             new(big.Int), // nonce 0
-		Account:           wallettest.NewRandomAccount(r.rng),
+		Account:           wallettest.NewRandomAccount(rng),
 		AppDef:            payment.AppDef(),
 		InitData:          new(payment.NoData),
 		InitBals:          initBals,

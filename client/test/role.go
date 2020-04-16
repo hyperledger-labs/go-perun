@@ -69,8 +69,8 @@ type (
 )
 
 // MakeRole creates a client for the given setup and wraps it into a Role.
-func MakeRole(setup RoleSetup, propHandler client.ProposalHandler, t *testing.T, numStages int) Role {
-	cl := client.New(setup.Identity, setup.Dialer, propHandler, setup.Funder, setup.Adjudicator)
+func MakeRole(setup RoleSetup, t *testing.T, numStages int) Role {
+	cl := client.New(setup.Identity, setup.Dialer, setup.Funder, setup.Adjudicator)
 	return Role{
 		Client:    cl,
 		setup:     setup,
