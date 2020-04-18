@@ -18,40 +18,43 @@ import (
 // Bob is a test client role. He accepts an incoming channel proposal.
 type Bob struct {
 	Role
-	propHandler *acceptAllPropHandler
 }
 
 // NewBob creates a new party that executes the Bob protocol.
 func NewBob(setup RoleSetup, t *testing.T) *Bob {
-	rng := rand.New(rand.NewSource(0xB0B))
-	propHandler := newAcceptAllPropHandler(rng, setup.Timeout)
-	role := &Bob{
-		Role:        MakeRole(setup, propHandler, t, 4),
-		propHandler: propHandler,
-	}
-
-	propHandler.log = role.Role.log
-	return role
+	return &Bob{Role: MakeRole(setup, t, 4)}
 }
 
 // Execute executes the Bob protocol.
 func (r *Bob) Execute(cfg ExecConfig) {
+	rng := rand.New(rand.NewSource(0xB0B))
 	assert := assert.New(r.t)
 	we, them := r.Idxs(cfg.PeerAddrs)
+	propHandler := newAcceptAllPropHandler(rng, r.setup.Timeout)
 
 	var listenWg sync.WaitGroup
-	listenWg.Add(2)
+	listenWg.Add(3)
+	defer func() {
+		r.log.Debug("Waiting for listeners to return...")
+		listenWg.Wait()
+	}()
 	go func() {
 		defer listenWg.Done()
 		r.log.Info("Starting peer listener.")
 		r.Listen(r.setup.Listener)
 		r.log.Debug("Peer listener returned.")
 	}()
+	go func() {
+		defer listenWg.Done()
+		r.log.Info("Starting proposal handler.")
+		r.HandleChannelProposals(propHandler)
+		r.log.Debug("Proposal handler returned.")
+	}()
 
 	// receive one accepted proposal
 	var chErr channelAndError
 	select {
-	case chErr = <-r.propHandler.chans:
+	case chErr = <-propHandler.chans:
 	case <-time.After(r.timeout):
 		r.t.Error("expected incoming channel proposal from Alice")
 		return
@@ -71,10 +74,7 @@ func (r *Bob) Execute(cfg ExecConfig) {
 		ch.ListenUpdates()
 		r.log.Debug("Update listener returned.")
 	}()
-	defer func() {
-		r.log.Debug("Waiting for listeners to return...")
-		listenWg.Wait()
-	}()
+
 	// 1st stage - channel controller set up
 	r.waitStage()
 

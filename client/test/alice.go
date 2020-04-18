@@ -23,24 +23,16 @@ import (
 // Alice is a test client role. She proposes the new channel.
 type Alice struct {
 	Role
-	rng *rand.Rand
 }
 
 // NewAlice creates a new party that executes the Alice protocol.
 func NewAlice(setup RoleSetup, t *testing.T) *Alice {
-	rng := rand.New(rand.NewSource(0x471CE))
-	propHandler := newAcceptAllPropHandler(rng, setup.Timeout)
-	role := &Alice{
-		Role: MakeRole(setup, propHandler, t, 4),
-		rng:  rng,
-	}
-
-	propHandler.log = role.Role.log
-	return role
+	return &Alice{Role: MakeRole(setup, t, 4)}
 }
 
 // Execute executes the Alice protocol.
 func (r *Alice) Execute(cfg ExecConfig) {
+	rng := rand.New(rand.NewSource(0x471CE))
 	assert := assert.New(r.t)
 	we, them := r.Idxs(cfg.PeerAddrs)
 	// We don't start the proposal listener because Alice only sends proposals
@@ -52,7 +44,7 @@ func (r *Alice) Execute(cfg ExecConfig) {
 	prop := &client.ChannelProposal{
 		ChallengeDuration: 10,           // 10 sec
 		Nonce:             new(big.Int), // nonce 0
-		Account:           wallettest.NewRandomAccount(r.rng),
+		Account:           wallettest.NewRandomAccount(rng),
 		AppDef:            payment.AppDef(),
 		InitData:          new(payment.NoData),
 		InitBals:          initBals,

@@ -28,7 +28,7 @@ type Client struct {
 	id          peer.Identity
 	peers       *peer.Registry
 	channels    chanRegistry
-	propHandler ProposalHandler
+	propRecv    *peer.Receiver
 	funder      channel.Funder
 	adjudicator channel.Adjudicator
 	pr          persistence.Persister
@@ -55,7 +55,6 @@ type Client struct {
 func New(
 	id peer.Identity,
 	dialer peer.Dialer,
-	propHandler ProposalHandler,
 	funder channel.Funder,
 	adjudicator channel.Adjudicator,
 ) *Client {
@@ -64,9 +63,6 @@ func New(
 	}
 	if dialer == nil {
 		log.Panic("dialer must not be nil")
-	}
-	if propHandler == nil {
-		log.Panic("proposal handler must not be nil")
 	}
 	if funder == nil {
 		log.Panic("funder must not be nil")
@@ -77,12 +73,12 @@ func New(
 
 	c := &Client{
 		id:          id,
-		propHandler: propHandler,
+		channels:    makeChanRegistry(),
+		propRecv:    peer.NewReceiver(),
 		funder:      funder,
 		adjudicator: adjudicator,
 		pr:          persistence.NonPersister,
 		log:         log.WithField("id", id.Address()),
-		channels:    makeChanRegistry(),
 	}
 	c.peers = peer.NewRegistry(id, c.subscribePeer, dialer)
 	return c
@@ -98,6 +94,9 @@ func (c *Client) Close() error {
 	err := errors.WithMessage(c.channels.CloseAll(), "closing channels")
 	if cerr := c.peers.Close(); err == nil {
 		err = errors.WithMessage(cerr, "closing registry")
+	}
+	if rerr := c.propRecv.Close(); err == nil {
+		err = errors.WithMessage(rerr, "closing proposal receiver")
 	}
 	return err
 }

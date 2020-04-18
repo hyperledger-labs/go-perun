@@ -18,29 +18,22 @@ import (
 // Carol is a test client role. He accepts an incoming channel proposal.
 type Carol struct {
 	Role
-	propHandler *acceptAllPropHandler
 }
 
 // NewCarol creates a new party that executes the Carol protocol.
 func NewCarol(setup RoleSetup, t *testing.T) *Carol {
-	rng := rand.New(rand.NewSource(0xC407))
-	propHandler := newAcceptAllPropHandler(rng, setup.Timeout)
-	role := &Carol{
-		Role:        MakeRole(setup, propHandler, t, 3),
-		propHandler: propHandler,
-	}
-
-	propHandler.log = role.Role.log
-	return role
+	return &Carol{Role: MakeRole(setup, t, 3)}
 }
 
 // Execute executes the Carol protocol.
 func (r *Carol) Execute(cfg ExecConfig) {
+	rng := rand.New(rand.NewSource(0xC407))
 	assert := assert.New(r.t)
 	_, them := r.Idxs(cfg.PeerAddrs)
+	propHandler := newAcceptAllPropHandler(rng, r.setup.Timeout)
 
 	var listenWg sync.WaitGroup
-	listenWg.Add(2)
+	listenWg.Add(3)
 	defer func() {
 		r.log.Debug("Waiting for listeners to return...")
 		listenWg.Wait()
@@ -51,11 +44,17 @@ func (r *Carol) Execute(cfg ExecConfig) {
 		r.Listen(r.setup.Listener)
 		r.log.Debug("Peer listener returned.")
 	}()
+	go func() {
+		defer listenWg.Done()
+		r.log.Info("Starting proposal handler.")
+		r.HandleChannelProposals(propHandler)
+		r.log.Debug("Proposal handler returned.")
+	}()
 
 	// receive one accepted proposal
 	var chErr channelAndError
 	select {
-	case chErr = <-r.propHandler.chans:
+	case chErr = <-propHandler.chans:
 	case <-time.After(r.timeout):
 		r.t.Error("expected incoming channel proposal from Mallory")
 		return
