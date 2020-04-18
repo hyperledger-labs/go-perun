@@ -15,6 +15,7 @@ import (
 
 	ethwallet "perun.network/go-perun/backend/ethereum/wallet"
 	"perun.network/go-perun/wallet"
+	wtest "perun.network/go-perun/wallet/test"
 )
 
 // randomizer implements the channel.test.Backend interface.
@@ -47,8 +48,14 @@ func NewRandomAddress(rnd *rand.Rand) ethwallet.Address {
 
 // RandomWallet returns the randomizer's wallet that contains all the accounts
 // created using NewRandomAccount.
-func (r *randomizer) RandomWallet() *ethwallet.Wallet {
+func (r *randomizer) RandomWallet() wtest.Wallet {
 	return r.wallet
+}
+
+// NewWallet returns a new KeyStore Wallet for testing purposes which is saved
+// to a temporary directory.
+func (r *randomizer) NewWallet() wtest.Wallet {
+	return NewTmpWallet()
 }
 
 // NewTmpWallet creates a wallet that uses a unique temporary directory to
