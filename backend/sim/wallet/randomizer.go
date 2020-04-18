@@ -13,16 +13,24 @@ import (
 )
 
 // Randomizer provides random addresses and accounts.
-type Randomizer struct{}
+type Randomizer struct{ Wallet }
 
-var _ test.Randomizer = &Randomizer{}
+var _ test.Randomizer = (*Randomizer)(nil)
+
+func newRandomizer() *Randomizer { return &Randomizer{*NewWallet()} }
 
 // NewRandomAddress creates a new random simulated address.
-func (Randomizer) NewRandomAddress(rng *rand.Rand) wallet.Address {
+func (*Randomizer) NewRandomAddress(rng *rand.Rand) wallet.Address {
 	return NewRandomAddress(rng)
 }
 
-// NewRandomAccount creates a new random simulated account.
-func (Randomizer) NewRandomAccount(rng *rand.Rand) wallet.Account {
-	return NewRandomAccount(rng)
+// RandomWallet returns a fixed wallet that can be used to generate random
+// accounts.
+func (r *Randomizer) RandomWallet() test.Wallet {
+	return r
+}
+
+// NewWallet returns a new, empty Wallet.
+func (r *Randomizer) NewWallet() test.Wallet {
+	return NewWallet()
 }

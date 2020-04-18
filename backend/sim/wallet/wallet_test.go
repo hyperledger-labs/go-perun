@@ -78,11 +78,11 @@ func TestWallet_UsageCounting(t *testing.T) {
 	w := wallet.NewWallet()
 	const N = 10
 
-	acc := w.NewRandomAccount(rng)
+	acc := w.NewRandomAccount(rng).(*wallet.Account)
 	assert.Zero(t, w.UsageCount(acc.Address()))
 
 	t.Run("unmatched decrement", func(t *testing.T) {
-		acc := w.NewRandomAccount(rng)
+		acc := w.NewRandomAccount(rng).(*wallet.Account)
 		assert.Panics(t, func() { w.DecrementUsage(acc.Address()) })
 		assert.Equal(t, w.UsageCount(acc.Address()), -1)
 		assert.True(t, w.HasAccount(acc))
