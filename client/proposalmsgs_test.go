@@ -32,7 +32,7 @@ func TestChannelProposalReq_NilArgs(t *testing.T) {
 		ParticipantAddr:   wallettest.NewRandomAddress(rng),
 		AppDef:            test.NewRandomApp(rng).Def(),
 		InitData:          test.NewRandomData(rng),
-		InitBals:          test.NewRandomAllocation(rng, 2),
+		InitBals:          test.NewRandomAllocation(rng, test.WithNumParts(2)),
 		PeerAddrs: []wallet.Address{
 			wallettest.NewRandomAddress(rng),
 			wallettest.NewRandomAddress(rng),
@@ -57,7 +57,7 @@ func TestChannelProposalReqSerialization(t *testing.T) {
 			ParticipantAddr:   wallettest.NewRandomAddress(rng),
 			AppDef:            test.NewRandomApp(rng).Def(),
 			InitData:          test.NewRandomData(rng),
-			InitBals:          test.NewRandomAllocation(rng, 2),
+			InitBals:          test.NewRandomAllocation(rng, test.WithNumParts(2)),
 			PeerAddrs: []wallet.Address{
 				wallettest.NewRandomAddress(rng),
 				wallettest.NewRandomAddress(rng),
