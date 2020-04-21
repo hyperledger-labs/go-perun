@@ -45,6 +45,12 @@ func NewRandomAddress(rnd *rand.Rand) ethwallet.Address {
 	return ethwallet.Address(a)
 }
 
+// RandomWallet returns the randomizer's wallet that contains all the accounts
+// created using NewRandomAccount.
+func (r *randomizer) RandomWallet() *ethwallet.Wallet {
+	return r.wallet
+}
+
 // NewTmpWallet creates a wallet that uses a unique temporary directory to
 // store its keys.
 func NewTmpWallet() *ethwallet.Wallet {
