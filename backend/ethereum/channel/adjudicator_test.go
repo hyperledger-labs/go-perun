@@ -12,11 +12,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ethereum/go-ethereum/common"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	ethchannel "perun.network/go-perun/backend/ethereum/channel"
 	"perun.network/go-perun/backend/ethereum/channel/test"
 	ethwallet "perun.network/go-perun/backend/ethereum/wallet"
 	"perun.network/go-perun/channel"
@@ -85,32 +83,4 @@ func TestSubscribeRegistered(t *testing.T) {
 	assert.NoError(t, registered2.Close(), "Closing event channel should not error")
 	assert.Nil(t, registered2.Next(), "Next on closed channel should produce nil")
 	assert.NoError(t, registered2.Err(), "Closing should produce no error")
-}
-
-func newValidState(rng *rand.Rand, params *channel.Params, assetholder common.Address) *channel.State {
-	// Create valid state.
-	assets := []channel.Asset{(*ethchannel.Asset)(&assetholder)}
-
-	balances := make([][]channel.Bal, len(assets))
-	for i := range balances {
-		balances[i] = make([]channel.Bal, len(params.Parts))
-		for k := range balances[i] {
-			balances[i][k] = big.NewInt(rng.Int63n(999) + 1)
-		}
-	}
-
-	allocation := channel.Allocation{
-		Assets:   assets,
-		Balances: balances,
-		Locked:   []channel.SubAlloc{},
-	}
-
-	return &channel.State{
-		ID:         params.ID(),
-		Version:    4,
-		App:        params.App,
-		Allocation: allocation,
-		Data:       channeltest.NewRandomData(rng),
-		IsFinal:    false,
-	}
 }
