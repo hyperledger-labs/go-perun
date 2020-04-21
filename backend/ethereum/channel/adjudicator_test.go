@@ -7,7 +7,6 @@ package channel_test
 
 import (
 	"context"
-	"math/big"
 	"math/rand"
 	"testing"
 	"time"
@@ -15,6 +14,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	ethchannel "perun.network/go-perun/backend/ethereum/channel"
 	"perun.network/go-perun/backend/ethereum/channel/test"
 	ethwallet "perun.network/go-perun/backend/ethereum/wallet"
 	"perun.network/go-perun/channel"
@@ -44,9 +44,7 @@ func TestSubscribeRegistered(t *testing.T) {
 	// create test setup
 	s := test.NewSetup(t, rng, 1)
 	// create valid state and params
-	app := channeltest.NewRandomApp(rng)
-	params := channel.NewParamsUnsafe(uint64(100*time.Second), s.Parts, app.Def(), big.NewInt(rng.Int63()))
-	state := newValidState(rng, params, s.Asset)
+	params, state := channeltest.NewRandomParamsAndState(rng, channeltest.WithChallengeDuration(uint64(100*time.Second)), channeltest.WithParts(s.Parts...), channeltest.WithAssets((*ethchannel.Asset)(&s.Asset)), channeltest.WithIsFinal(false))
 	// Set up subscription
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()

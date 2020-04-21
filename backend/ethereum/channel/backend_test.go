@@ -32,15 +32,8 @@ func TestGenericTests(t *testing.T) {
 func newChannelSetup() *test.Setup {
 	rng := rand.New(rand.NewSource(1337))
 
-	app := wallettest.NewRandomAddress(rng)
-	app2 := wallettest.NewRandomAddress(rng)
-
-	params := test.NewRandomParams(rng, app)
-	params2 := test.NewRandomParams(rng, app2)
-
-	state := test.NewRandomState(rng, params)
-	state2 := test.NewRandomState(rng, params2)
-	state2.IsFinal = !state.IsFinal
+	params, state := test.NewRandomParamsAndState(rng, test.WithNumLocked(int(rng.Int31n(4)+1)))
+	params2, state2 := test.NewRandomParamsAndState(rng, test.WithIsFinal(!state.IsFinal), test.WithNumLocked(int(rng.Int31n(4)+1)))
 
 	createAddr := func() perunwallet.Address {
 		return wallettest.NewRandomAddress(rng)

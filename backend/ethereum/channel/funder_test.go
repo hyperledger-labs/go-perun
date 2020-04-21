@@ -244,9 +244,8 @@ func newNFunders(
 		cb := ethchannel.NewContractBackend(simBackend, ks, &acc.Account)
 		funders[i] = ethchannel.NewETHFunder(cb, assetETH)
 	}
-	app = channeltest.NewRandomApp(rng)
-	params = channel.NewParamsUnsafe(rng.Uint64(), parts, app.Def(), big.NewInt(rng.Int63()))
-	allocation = newValidAllocation(parts, assetETH)
+	params = channeltest.NewRandomParams(rng, channeltest.WithParts(parts...))
+	allocation = channeltest.NewRandomAllocation(rng, channeltest.WithNumParts(len(parts)), channeltest.WithAssets((*ethchannel.Asset)(&assetETH)))
 	return
 }
 

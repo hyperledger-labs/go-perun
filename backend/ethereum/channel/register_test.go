@@ -7,7 +7,6 @@ package channel_test
 
 import (
 	"context"
-	"math/big"
 	"math/rand"
 	"sync"
 	"testing"
@@ -16,6 +15,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	ethchannel "perun.network/go-perun/backend/ethereum/channel"
 	"perun.network/go-perun/backend/ethereum/channel/test"
 	"perun.network/go-perun/channel"
 	channeltest "perun.network/go-perun/channel/test"
@@ -42,9 +42,8 @@ func registerMultipleConcurrent(t *testing.T, numParts int, parallel bool) {
 	// create test setup
 	s := test.NewSetup(t, rng, numParts)
 	// create valid state and params
-	app := channeltest.NewRandomApp(rng)
-	params := channel.NewParamsUnsafe(uint64(100*time.Second), s.Parts, app.Def(), big.NewInt(rng.Int63()))
-	state := newValidState(rng, params, s.Asset)
+	params, state := channeltest.NewRandomParamsAndState(rng, channeltest.WithChallengeDuration(uint64(100*time.Second)), channeltest.WithParts(s.Parts...), channeltest.WithAssets((*ethchannel.Asset)(&s.Asset)), channeltest.WithIsFinal(false))
+
 	// we need to properly fund the channel
 	fundingCtx, funCancel := context.WithTimeout(context.Background(), defaultTxTimeout)
 	defer funCancel()
@@ -116,10 +115,7 @@ func TestRegister_FinalState(t *testing.T) {
 	// create new Adjudicator
 	s := test.NewSetup(t, rng, 1)
 	// create valid state and params
-	app := channeltest.NewRandomApp(rng)
-	params := channel.NewParamsUnsafe(uint64(100*time.Second), s.Parts, app.Def(), big.NewInt(rng.Int63()))
-	state := newValidState(rng, params, s.Asset)
-	state.IsFinal = true
+	params, state := channeltest.NewRandomParamsAndState(rng, channeltest.WithChallengeDuration(uint64(100*time.Second)), channeltest.WithParts(s.Parts...), channeltest.WithAssets((*ethchannel.Asset)(&s.Asset)), channeltest.WithIsFinal(true))
 	// we need to properly fund the channel
 	fundingCtx, funCancel := context.WithTimeout(context.Background(), defaultTxTimeout)
 	defer funCancel()
@@ -154,9 +150,7 @@ func TestRegister_CancelledContext(t *testing.T) {
 	// create test setup
 	s := test.NewSetup(t, rng, 1)
 	// create valid state and params
-	app := channeltest.NewRandomApp(rng)
-	params := channel.NewParamsUnsafe(uint64(100*time.Second), s.Parts, app.Def(), big.NewInt(rng.Int63()))
-	state := newValidState(rng, params, s.Asset)
+	params, state := channeltest.NewRandomParamsAndState(rng, channeltest.WithChallengeDuration(uint64(100*time.Second)), channeltest.WithParts(s.Parts...), channeltest.WithAssets((*ethchannel.Asset)(&s.Asset)), channeltest.WithIsFinal(false))
 	// we need to properly fund the channel
 	fundingCtx, funCancel := context.WithTimeout(context.Background(), defaultTxTimeout)
 	defer funCancel()
