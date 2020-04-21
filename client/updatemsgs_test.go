@@ -18,11 +18,11 @@ import (
 func TestChannelUpdateSerialization(t *testing.T) {
 	rng := rand.New(rand.NewSource(0xdeadbeef))
 	for i := 0; i < 4; i++ {
-		params := test.NewRandomParams(rng, test.NewRandomApp(rng).Def())
+		params, state := test.NewRandomParamsAndState(rng)
 		sig := newRandomSig(rng)
 		m := &msgChannelUpdate{
 			ChannelUpdate: ChannelUpdate{
-				State:    test.NewRandomState(rng, params),
+				State:    state,
 				ActorIdx: uint16(rng.Int31n(int32(len(params.Parts)))),
 			},
 			Sig: sig,
