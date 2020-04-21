@@ -9,7 +9,8 @@ import (
 	"io"
 
 	"github.com/ethereum/go-ethereum/crypto"
-	perun "perun.network/go-perun/wallet"
+
+	"perun.network/go-perun/wallet"
 	"perun.network/go-perun/wire"
 )
 
@@ -22,37 +23,37 @@ type Backend struct{}
 const SigLen = 65
 
 // compile-time check that the ethereum backend implements the perun backend
-var _ perun.Backend = (*Backend)(nil)
+var _ wallet.Backend = (*Backend)(nil)
 
 // DecodeAddress decodes an address from an io.Reader.
-func (*Backend) DecodeAddress(r io.Reader) (perun.Address, error) {
+func (*Backend) DecodeAddress(r io.Reader) (wallet.Address, error) {
 	return DecodeAddress(r)
 }
 
 // DecodeSig reads a []byte with length of an ethereum signature
-func (*Backend) DecodeSig(r io.Reader) (perun.Sig, error) {
+func (*Backend) DecodeSig(r io.Reader) (wallet.Sig, error) {
 	return DecodeSig(r)
 }
 
 // VerifySignature verifies a signature.
-func (*Backend) VerifySignature(msg []byte, sig perun.Sig, a perun.Address) (bool, error) {
+func (*Backend) VerifySignature(msg []byte, sig wallet.Sig, a wallet.Address) (bool, error) {
 	return VerifySignature(msg, sig, a)
 }
 
 // DecodeAddress decodes an address from an io.Reader.
-func DecodeAddress(r io.Reader) (perun.Address, error) {
+func DecodeAddress(r io.Reader) (wallet.Address, error) {
 	addr := new(Address)
 	return addr, addr.Decode(r)
 }
 
 // DecodeSig reads a []byte with length of an ethereum signature
-func DecodeSig(r io.Reader) (perun.Sig, error) {
-	buf := make(perun.Sig, SigLen)
+func DecodeSig(r io.Reader) (wallet.Sig, error) {
+	buf := make(wallet.Sig, SigLen)
 	return buf, wire.Decode(r, &buf)
 }
 
 // VerifySignature verifies if a signature was made by this account.
-func VerifySignature(msg []byte, sig perun.Sig, a perun.Address) (bool, error) {
+func VerifySignature(msg []byte, sig wallet.Sig, a wallet.Address) (bool, error) {
 	hash := prefixedHash(msg)
 	sigCopy := make([]byte, SigLen)
 	copy(sigCopy, sig)
@@ -64,7 +65,7 @@ func VerifySignature(msg []byte, sig perun.Sig, a perun.Address) (bool, error) {
 		return false, err
 	}
 	addr := crypto.PubkeyToAddress(*pk)
-	return a.Equals(&Address{addr}), nil
+	return a.Equals((*Address)(&addr)), nil
 }
 
 func prefixedHash(data []byte) []byte {

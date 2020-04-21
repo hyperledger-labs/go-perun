@@ -3,155 +3,131 @@
 // of this source code is governed by a MIT-style license that can be found in
 // the LICENSE file.
 
-// Package wallet defines an etherum wallet.
-// It can be used by the framework to interact with a file wallet.
-// It uses an ethereum keystore internally which can be found at
-// https://github.com/ethereum/go-ethereum/tree/master/accounts/keystore.
+// Package wallet implements go-perun's wallet interface for the ethereum
+// backend. It makes use of go-ethereum's keystore module for storing, reading,
+// and generating keys, as well as signing.
 package wallet // import "perun.network/go-perun/backend/ethereum/wallet"
 
 import (
-	"os"
-	"sync"
+	"crypto/ecdsa"
+	"math/rand"
 
+	"github.com/ethereum/go-ethereum/accounts"
+	"github.com/ethereum/go-ethereum/accounts/keystore"
+	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/crypto"
+	"github.com/ethereum/go-ethereum/crypto/secp256k1"
 	"github.com/pkg/errors"
 
-	"github.com/ethereum/go-ethereum/accounts/keystore"
-	perun "perun.network/go-perun/wallet"
+	"perun.network/go-perun/log"
+	"perun.network/go-perun/wallet"
 )
+
+var _ wallet.Wallet = (*Wallet)(nil)
 
 // Wallet represents an ethereum wallet.
 // It uses the go-ethereum keystore to store keys.
 // Accessing the wallet is threadsafe, however you should not create two wallets from the same key directory.
 type Wallet struct {
-	Ks        *keystore.KeyStore
-	directory string
-	accounts  map[string]*Account
-	mu        sync.RWMutex
+	Ks *keystore.KeyStore
+	pw string
 }
 
-// NewWallet creates a new Wallet from a keystore and directory.
-func NewWallet(ks *keystore.KeyStore, dir string) *Wallet {
-	return &Wallet{
-		Ks:        ks,
-		directory: dir,
-	}
-}
-
-// Path returns the path to this wallet.
-func (w *Wallet) Path() string {
-	return w.directory
-}
-
-// refreshAccounts refreshes which accounts are connected to this wallet.
-func (w *Wallet) refreshAccounts() {
-	if w.Ks == nil {
-		return
-	}
-	w.mu.Lock()
-	defer w.mu.Unlock()
-
-	accounts := w.Ks.Accounts()
-	for _, tmp := range accounts {
-		if _, exists := w.accounts[tmp.Address.String()]; !exists {
-			w.accounts[tmp.Address.String()] = NewAccountFromEth(w, &tmp)
+// NewWallet creates a new Wallet from a keystore and password.
+func NewWallet(ks *keystore.KeyStore, pw string) (*Wallet, error) {
+	if accs := ks.Accounts(); len(accs) != 0 {
+		// Check that the accounts in the wallet can be unlocked with the
+		// password (assuming that all accounts use the same password).
+		if err := ks.Update(accs[0], pw, pw); err != nil {
+			return nil, errors.Wrap(err, "invalid password")
 		}
 	}
-}
 
-// Connect connects to this wallet.
-func (w *Wallet) Connect(keyDir, password string) error {
-	if _, err := os.Stat(keyDir); os.IsNotExist(err) {
-		return errors.New("key directory does not exist")
-	}
-	w.Ks = keystore.NewKeyStore(keyDir, keystore.StandardScryptN, keystore.StandardScryptP)
-	w.accounts = make(map[string]*Account)
-	w.directory = keyDir
+	// Check that the password
 
-	w.refreshAccounts()
-
-	return nil
-}
-
-// Disconnect disconnects from this wallet.
-func (w *Wallet) Disconnect() error {
-	if w.Ks == nil {
-		return errors.New("keystore not initialized properly")
-	}
-
-	if err := w.Lock(); err != nil {
-		return errors.Wrap(err, "disconnect from keystore failed")
-	}
-
-	w.mu.Lock()
-	defer w.mu.Unlock()
-
-	w.Ks = nil
-	w.accounts = make(map[string]*Account)
-	w.directory = ""
-	return nil
-}
-
-// Status returns the state of this wallet.
-func (w *Wallet) Status() (string, error) {
-	if w.Ks == nil {
-		return "not initialized", errors.New("keystore not initialized properly")
-	}
-	return "OK", nil
-}
-
-// Accounts returns all accounts held by this wallet.
-func (w *Wallet) Accounts() []perun.Account {
-	w.refreshAccounts()
-
-	w.mu.RLock()
-	defer w.mu.RUnlock()
-
-	v := make([]perun.Account, 0, len(w.accounts))
-	for _, value := range w.accounts {
-		v = append(v, value)
-	}
-	return v
+	return &Wallet{
+		Ks: ks,
+		pw: pw,
+	}, nil
 }
 
 // Contains checks whether this wallet holds this account.
-func (w *Wallet) Contains(a perun.Account) bool {
-	w.mu.Lock()
-	defer w.mu.Unlock()
-
+func (w *Wallet) Contains(a wallet.Address) bool {
 	if a == nil {
 		return false
 	}
 
-	// check cache first
-	if _, exists := w.accounts[a.Address().String()]; exists {
-		return true
-	}
-
-	// if not found, query the keystore
-	if acc, ok := a.(*Account); ok {
-		found := w.Ks.HasAddress(acc.address.Address)
-		// add to the cache
-		if found {
-			w.accounts[a.Address().String()] = acc
-		}
-		return found
-	}
-	panic("account is not an ethereum account")
+	return w.Ks.HasAddress(AsEthAddr(a))
 }
 
-// Lock locks this wallet and all keys.
-func (w *Wallet) Lock() error {
-	w.mu.Lock()
-	defer w.mu.Unlock()
+// NewAccount creates a new random account which is already unlocked.
+func (w *Wallet) NewAccount() *Account {
+	acc, err := w.Ks.NewAccount(w.pw)
+	if err != nil || w.Ks.Unlock(acc, w.pw) != nil {
+		panic("failed to create random account")
+	}
+	return NewAccountFromEth(w, &acc)
+}
 
-	if w.Ks == nil {
-		return errors.New("keystore not initialized properly")
+// NewRandomAccount creates a new pseudorandom account using the provided
+// randomness. The returned account is already unlocked.
+func (w *Wallet) NewRandomAccount(rnd *rand.Rand) wallet.Account {
+	privateKey, err := ecdsa.GenerateKey(secp256k1.S256(), rnd)
+	if err != nil {
+		log.Panicf("Creating account: %v", err)
+	}
+	address := crypto.PubkeyToAddress(privateKey.PublicKey)
+
+	if acc, err := w.Ks.Find(accounts.Account{Address: address}); err == nil {
+		w.Unlock((*Address)(&address))
+		return NewAccountFromEth(w, &acc)
 	}
 
-	for _, acc := range w.accounts {
-		if err := acc.Lock(); err != nil {
-			return errors.Wrap(err, "lock all accounts failed")
+	ethAcc, err := w.Ks.ImportECDSA(privateKey, w.pw)
+	if err != nil {
+		log.Panicf("Storing private key: %v", err)
+	}
+	w.Unlock((*Address)(&address))
+	return NewAccountFromEth(w, &ethAcc)
+}
+
+// Unlock retrieves the account with the given address and unlocks it. If there
+// is no matching account or unlocking fails, returns an error.
+func (w *Wallet) Unlock(addr wallet.Address) (wallet.Account, error) {
+	// Hack: create ethereum account from ethereum address.
+	acc := accounts.Account{Address: common.Address(*addr.(*Address))}
+
+	if err := w.Ks.Unlock(acc, w.pw); err != nil {
+		return nil, errors.Wrapf(err, "unlocking %v", addr)
+	}
+	return &Account{
+		Account: acc,
+		wallet:  w,
+	}, nil
+}
+
+// LockAll locks all the wallet's keys and releases all its resources. It is no
+// longer usable after this call.
+func (w *Wallet) LockAll() {
+	if w.Ks == nil {
+		return
+	}
+
+	for _, acc := range w.Ks.Accounts() {
+		if err := w.Ks.Lock(acc.Address); err != nil {
+			log.Error("failed to lock account", acc.Address)
 		}
 	}
-	return nil
+
+	w.Ks = nil
+}
+
+// IncrementUsage currently does nothing. In the future, it will track the usage of keys.
+func (w *Wallet) IncrementUsage(a wallet.Address) {
+	log.Trace("IncrementUsage", a)
+}
+
+// DecrementUsage currently does nothing. In the future, it will track the usage of keys and release unused keys.
+func (w *Wallet) DecrementUsage(a wallet.Address) {
+	log.Trace("DecrementUsage", a)
 }

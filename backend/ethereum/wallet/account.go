@@ -6,84 +6,28 @@
 package wallet
 
 import (
-	"sync"
-
 	"github.com/ethereum/go-ethereum/accounts"
 	"github.com/pkg/errors"
-	perun "perun.network/go-perun/wallet"
+	"perun.network/go-perun/wallet"
 )
 
 // Account represents an ethereum account.
 type Account struct {
-	address Address
-	Account *accounts.Account
+	Account accounts.Account
 	wallet  *Wallet
-	locked  bool
-	mu      sync.RWMutex
 }
 
 // Address returns the ethereum address of this account.
-func (a *Account) Address() perun.Address {
-	return &a.address
-}
-
-// Unlock unlocks this account.
-func (a *Account) Unlock(password string) error {
-	a.mu.Lock()
-	defer a.mu.Unlock()
-
-	err := a.wallet.Ks.Unlock(*a.Account, password)
-	if err != nil {
-		return err
-	}
-	a.locked = false
-	return nil
-}
-
-// IsLocked checks if this account is locked.
-func (a *Account) IsLocked() bool {
-	a.mu.RLock()
-	defer a.mu.RUnlock()
-
-	return a.locked
-}
-
-// Lock locks this account.
-func (a *Account) Lock() error {
-	a.mu.Lock()
-	defer a.mu.Unlock()
-
-	err := a.wallet.Ks.Lock(a.address.Address)
-	if err != nil {
-		return err
-	}
-	a.locked = true
-	return nil
+func (a *Account) Address() wallet.Address {
+	return (*Address)(&a.Account.Address)
 }
 
 // SignData is used to sign data with this account.
 func (a *Account) SignData(data []byte) ([]byte, error) {
-	a.mu.RLock()
-	defer a.mu.RUnlock()
-
 	hash := prefixedHash(data)
-	sig, err := a.wallet.Ks.SignHash(*a.Account, hash)
+	sig, err := a.wallet.Ks.SignHash(a.Account, hash)
 	if err != nil {
-		return nil, errors.WithMessage(err, "could not sign data")
-	}
-	sig[64] += 27
-	return sig, nil
-}
-
-// SignDataWithPW is used to sign a hash with this account and a pw.
-func (a *Account) SignDataWithPW(password string, data []byte) ([]byte, error) {
-	a.mu.RLock()
-	defer a.mu.RUnlock()
-
-	hash := prefixedHash(data)
-	sig, err := a.wallet.Ks.SignHashWithPassphrase(*a.Account, password, hash)
-	if err != nil {
-		return nil, errors.WithMessage(err, "could not sign data")
+		return nil, errors.Wrap(err, "SignHash")
 	}
 	sig[64] += 27
 	return sig, nil
@@ -92,9 +36,7 @@ func (a *Account) SignDataWithPW(password string, data []byte) ([]byte, error) {
 // NewAccountFromEth creates a new perun account from a given ethereum account.
 func NewAccountFromEth(wallet *Wallet, account *accounts.Account) *Account {
 	return &Account{
-		address: Address{account.Address},
-		Account: account,
+		Account: *account,
 		wallet:  wallet,
-		locked:  true,
 	}
 }

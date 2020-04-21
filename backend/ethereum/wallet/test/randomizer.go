@@ -16,6 +16,7 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/crypto/secp256k1"
+
 	"perun.network/go-perun/backend/ethereum/wallet"
 	perunwallet "perun.network/go-perun/wallet"
 )
@@ -27,16 +28,7 @@ type randomizer struct {
 
 // NewRandomizer creates a new randomized keystore.
 func newRandomizer() *randomizer {
-	const prefix = "go-perun-test-eth-keystore-"
-	tmpDir, err := ioutil.TempDir("", prefix)
-	if err != nil {
-		log.Panicf("Could not create TempDir, error: %v", err)
-	}
-
-	const scryptN = 2
-	const scryptP = 1
-	return &randomizer{
-		wallet: wallet.NewWallet(keystore.NewKeyStore(tmpDir, scryptN, scryptP), tmpDir)}
+	return &randomizer{wallet: NewTmpWallet()}
 }
 
 // NewRandomAddress creates a new random address.
@@ -75,4 +67,21 @@ func NewRandomAddress(rnd *rand.Rand) wallet.Address {
 	var a common.Address
 	rnd.Read(a[:])
 	return wallet.Address{Address: a}
+}
+
+// NewTmpWallet creates a wallet that uses a unique temporary directory to
+// store its keys.
+func NewTmpWallet() *ethwallet.Wallet {
+	const prefix = "go-perun-test-eth-keystore-"
+	tmpDir, err := ioutil.TempDir("", prefix)
+	if err != nil {
+		log.Panicf("Could not create TempDir: %v", err)
+	}
+	const scryptN = 2
+	const scryptP = 1
+	w, err := ethwallet.NewWallet(keystore.NewKeyStore(tmpDir, scryptN, scryptP), tmpDir)
+	if err != nil {
+		log.Panic("Could not create wallet:", err)
+	}
+	return w
 }
