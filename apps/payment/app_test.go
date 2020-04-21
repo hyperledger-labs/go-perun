@@ -13,6 +13,7 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"perun.network/go-perun/channel"
+	"perun.network/go-perun/channel/test"
 	wallettest "perun.network/go-perun/wallet/test"
 )
 
@@ -72,11 +73,12 @@ func TestApp_ValidTransition(t *testing.T) {
 	}
 
 	app := new(App)
+	rng := rand.New(rand.NewSource(456))
 
 	for _, tt := range tests {
 		t.Run(tt.desc, func(t *testing.T) {
 			assert := assert.New(t)
-			from := newStateWithAlloc(tt.from)
+			from := test.NewRandomState(rng, test.WithApp(app), test.WithBalances(asBalances(tt.from...)...), test.WithNumAssets(len(tt.from)))
 			numParticipants := len(tt.from[0])
 			for i := 0; i < numParticipants; i++ {
 				// valid self-transition
@@ -84,7 +86,7 @@ func TestApp_ValidTransition(t *testing.T) {
 			}
 
 			for _, tto := range tt.tos {
-				to := newStateWithAlloc(tto.alloc)
+				to := test.NewRandomState(rng, test.WithApp(app), test.WithBalances(asBalances(tto.alloc...)...), test.WithNumAssets(len(tt.from)))
 				for i := 0; i < numParticipants; i++ {
 					err := app.ValidTransition(nil, from, to, channel.Index(i))
 					if i == tto.valid {
@@ -98,7 +100,7 @@ func TestApp_ValidTransition(t *testing.T) {
 	}
 
 	t.Run("panic", func(t *testing.T) {
-		from := newStateWithAlloc(tests[0].from)
+		from := test.NewRandomState(rng, test.WithApp(app), test.WithBalances(asBalances(tests[0].from...)...), test.WithNumAssets(len(tests[0].from)))
 		to := from.Clone()
 		to.Data = nil
 		assert.Panics(t, func() { app.ValidTransition(nil, from, to, 0) })
@@ -108,17 +110,13 @@ func TestApp_ValidTransition(t *testing.T) {
 	// to pass valid input.
 }
 
-func newStateWithAlloc(balsv [][]int64) *channel.State {
-	bigBalsv := make([][]channel.Bal, len(balsv))
-	for i, asset := range balsv {
-		bigBalsv[i] = make([]channel.Bal, len(asset))
-		for j, bal := range asset {
-			bigBalsv[i][j] = big.NewInt(bal)
+func asBalances(rawBals ...[]int64) [][]channel.Bal {
+	ret := make([][]channel.Bal, len(rawBals))
+	for i, rawBal := range rawBals {
+		ret[i] = make([]channel.Bal, len(rawBal))
+		for j, bal := range rawBal {
+			ret[i][j] = big.NewInt(bal)
 		}
 	}
-
-	return &channel.State{
-		Allocation: channel.Allocation{Balances: bigBalsv},
-		Data:       new(NoData),
-	}
+	return ret
 }
