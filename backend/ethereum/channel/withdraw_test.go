@@ -229,12 +229,12 @@ func TestWithdraw(t *testing.T) {
 	t.Run("Withdrawal idempotence", func(t *testing.T) {
 		for i := 0; i < 10; i++ {
 			// get nonce
-			oldNonce, err := s.Adjs[0].PendingNonceAt(context.Background(), s.Accs[0].Address().(*ethwallet.Address).Address)
+			oldNonce, err := s.Adjs[0].PendingNonceAt(context.Background(), ethwallet.AsEthAddr(s.Accs[0].Address()))
 			require.NoError(t, err)
 			// withdraw
 			testWithdraw(t, true)
 			// get nonce
-			nonce, err := s.Adjs[0].PendingNonceAt(context.Background(), s.Accs[0].Address().(*ethwallet.Address).Address)
+			nonce, err := s.Adjs[0].PendingNonceAt(context.Background(), ethwallet.AsEthAddr(s.Accs[0].Address()))
 			require.NoError(t, err)
 			assert.Equal(t, oldNonce, nonce, "Nonce must not change in subsequent withdrawals")
 		}

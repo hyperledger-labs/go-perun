@@ -12,6 +12,7 @@ import (
 	"sync"
 	"testing"
 
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -57,7 +58,7 @@ func TestDisputeMalloryCarol(t *testing.T) {
 	execConfig := clienttest.ExecConfig{
 		PeerAddrs:  [2]peer.Address{s.Accs[A].Address(), s.Accs[B].Address()},
 		InitBals:   [2]*big.Int{big.NewInt(100), big.NewInt(1)},
-		Asset:      &wallet.Address{Address: s.Asset},
+		Asset:      (*wallet.Address)(&s.Asset),
 		NumUpdates: [2]int{5, 0},
 		TxAmounts:  [2]*big.Int{big.NewInt(20), big.NewInt(0)},
 	}
@@ -84,7 +85,7 @@ func TestDisputeMalloryCarol(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), defaultTimeout)
 	defer cancel()
 	for i, bal := range finalBal {
-		b, err := s.SimBackend.BalanceAt(ctx, s.Recvs[i].Address, nil)
+		b, err := s.SimBackend.BalanceAt(ctx, common.Address(*s.Recvs[i]), nil)
 		require.NoError(t, err)
 		assert.Zero(t, b.Cmp(bal), "ETH balance mismatch")
 	}

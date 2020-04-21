@@ -15,10 +15,11 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/pkg/errors"
+
 	"perun.network/go-perun/backend/ethereum/bindings/adjudicator"
-	"perun.network/go-perun/backend/ethereum/wallet"
+	ethwallet "perun.network/go-perun/backend/ethereum/wallet"
 	"perun.network/go-perun/channel"
-	perunwallet "perun.network/go-perun/wallet"
+	"perun.network/go-perun/wallet"
 )
 
 var (
@@ -46,12 +47,12 @@ func (*Backend) CalcID(p *channel.Params) (id channel.ID) {
 }
 
 // Sign signs the channel state as needed by the ethereum smart contracts.
-func (*Backend) Sign(acc perunwallet.Account, p *channel.Params, s *channel.State) (perunwallet.Sig, error) {
+func (*Backend) Sign(acc wallet.Account, p *channel.Params, s *channel.State) (wallet.Sig, error) {
 	return Sign(acc, p, s)
 }
 
 // Verify verifies that a state was signed correctly.
-func (*Backend) Verify(addr perunwallet.Address, p *channel.Params, s *channel.State, sig perunwallet.Sig) (bool, error) {
+func (*Backend) Verify(addr wallet.Address, p *channel.Params, s *channel.State, sig wallet.Sig) (bool, error) {
 	return Verify(addr, p, s, sig)
 }
 
@@ -72,7 +73,7 @@ func CalcID(p *channel.Params) (id channel.ID) {
 }
 
 // Sign signs the channel state as needed by the ethereum smart contracts.
-func Sign(acc perunwallet.Account, p *channel.Params, s *channel.State) (perunwallet.Sig, error) {
+func Sign(acc wallet.Account, p *channel.Params, s *channel.State) (wallet.Sig, error) {
 	state := channelStateToEthState(s)
 	enc, err := encodeState(&state)
 	if err != nil {
@@ -82,7 +83,7 @@ func Sign(acc perunwallet.Account, p *channel.Params, s *channel.State) (perunwa
 }
 
 // Verify verifies that a state was signed correctly.
-func Verify(addr perunwallet.Address, p *channel.Params, s *channel.State, sig perunwallet.Sig) (bool, error) {
+func Verify(addr wallet.Address, p *channel.Params, s *channel.State, sig wallet.Sig) (bool, error) {
 	if err := s.Valid(); err != nil {
 		return false, errors.WithMessage(err, "invalid state")
 	}
@@ -91,7 +92,7 @@ func Verify(addr perunwallet.Address, p *channel.Params, s *channel.State, sig p
 	if err != nil {
 		return false, errors.WithMessage(err, "Failed to encode state")
 	}
-	return wallet.VerifySignature(enc, sig, addr)
+	return ethwallet.VerifySignature(enc, sig, addr)
 }
 
 // DecodeAsset decodes an asset from a stream.
@@ -102,11 +103,11 @@ func DecodeAsset(r io.Reader) (channel.Asset, error) {
 
 // channelParamsToEthParams converts a channel.Params to a ChannelParams struct.
 func channelParamsToEthParams(p *channel.Params) adjudicator.ChannelParams {
-	app := p.App.Def().(*wallet.Address)
+	app := p.App.Def().(*ethwallet.Address)
 	return adjudicator.ChannelParams{
 		ChallengeDuration: new(big.Int).SetUint64(p.ChallengeDuration),
 		Nonce:             p.Nonce,
-		App:               app.Address,
+		App:               common.Address(*app),
 		Participants:      pwToCommonAddresses(p.Parts),
 	}
 }
@@ -215,21 +216,21 @@ func encodeSubAlloc(sub *adjudicator.ChannelSubAlloc) ([]byte, error) {
 	return enc, errors.WithStack(err)
 }
 
-// assetToCommonAddresses converts an array of io.Encoder's to common.Address's.
+// assetToCommonAddresses converts an array of Assets to common.Addresses.
 func assetToCommonAddresses(addr []channel.Asset) []common.Address {
 	cAddrs := make([]common.Address, len(addr))
 	for i, part := range addr {
 		asset := part.(*Asset)
-		cAddrs[i] = asset.Address
+		cAddrs[i] = common.Address(*asset)
 	}
 	return cAddrs
 }
 
-// pwToCommonAddresses converts an array of perun/wallet.Address's to common.Address's.
-func pwToCommonAddresses(addr []perunwallet.Address) []common.Address {
+// pwToCommonAddresses converts an array of perun/ethwallet.Addresses to common.Addresses.
+func pwToCommonAddresses(addr []wallet.Address) []common.Address {
 	cAddrs := make([]common.Address, len(addr))
 	for i, part := range addr {
-		cAddrs[i] = part.(*wallet.Address).Address
+		cAddrs[i] = ethwallet.AsEthAddr(part)
 	}
 	return cAddrs
 }

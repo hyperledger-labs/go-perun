@@ -52,7 +52,7 @@ func NewSimSetup(rng *rand.Rand) *SimSetup {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 	simBackend.FundAddress(ctx, txAccount.Account.Address)
-	contractBackend := ethchannel.NewContractBackend(simBackend, ks, txAccount.Account)
+	contractBackend := ethchannel.NewContractBackend(simBackend, ks, &txAccount.Account)
 
 	return &SimSetup{
 		SimBackend: simBackend,
@@ -90,9 +90,9 @@ func NewSetup(t *testing.T, rng *rand.Rand, n int) *Setup {
 		s.Parts[i] = s.Accs[i].Address()
 		s.SimBackend.FundAddress(ctx, s.Accs[i].Account.Address)
 		s.Recvs[i] = wallettest.NewRandomAddress(rng).(*ethwallet.Address)
-		cb := ethchannel.NewContractBackend(s.SimBackend, ethwallettest.GetKeystore(), s.Accs[i].Account)
+		cb := ethchannel.NewContractBackend(s.SimBackend, ethwallettest.GetKeystore(), &s.Accs[i].Account)
 		s.Funders[i] = ethchannel.NewETHFunder(cb, s.Asset)
-		s.Adjs[i] = NewSimAdjudicator(cb, adjudicator, s.Recvs[i].Address)
+		s.Adjs[i] = NewSimAdjudicator(cb, adjudicator, common.Address(*s.Recvs[i]))
 	}
 
 	return s

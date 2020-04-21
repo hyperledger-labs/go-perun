@@ -89,9 +89,7 @@ func TestSubscribeRegistered(t *testing.T) {
 
 func newValidState(rng *rand.Rand, params *channel.Params, assetholder common.Address) *channel.State {
 	// Create valid state.
-	assets := []channel.Asset{
-		&ethchannel.Asset{Address: assetholder},
-	}
+	assets := []channel.Asset{(*ethchannel.Asset)(&assetholder)}
 
 	balances := make([][]channel.Bal, len(assets))
 	for i := range balances {
