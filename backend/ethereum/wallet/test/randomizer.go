@@ -6,24 +6,20 @@
 package test // import "perun.network/go-perun/backend/ethereum/wallet/test"
 
 import (
-	"crypto/ecdsa"
 	"io/ioutil"
 	"log"
 	"math/rand"
 
-	"github.com/ethereum/go-ethereum/accounts"
 	"github.com/ethereum/go-ethereum/accounts/keystore"
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/crypto"
-	"github.com/ethereum/go-ethereum/crypto/secp256k1"
 
-	"perun.network/go-perun/backend/ethereum/wallet"
-	perunwallet "perun.network/go-perun/wallet"
+	ethwallet "perun.network/go-perun/backend/ethereum/wallet"
+	"perun.network/go-perun/wallet"
 )
 
 // randomizer implements the channel.test.Backend interface.
 type randomizer struct {
-	wallet *wallet.Wallet
+	wallet *ethwallet.Wallet
 }
 
 // NewRandomizer creates a new randomized keystore.
@@ -32,41 +28,21 @@ func newRandomizer() *randomizer {
 }
 
 // NewRandomAddress creates a new random address.
-func (r *randomizer) NewRandomAddress(rnd *rand.Rand) perunwallet.Address {
+func (r *randomizer) NewRandomAddress(rnd *rand.Rand) wallet.Address {
 	addr := NewRandomAddress(rnd)
 	return &addr
 }
 
 // NewRandomAddress creates a new random account.
-func (r *randomizer) NewRandomAccount(rnd *rand.Rand) perunwallet.Account {
-	// Generate a new private key.
-	privateKey, err := ecdsa.GenerateKey(secp256k1.S256(), rnd)
-	if err != nil {
-		log.Panicf("Creation of account failed with error: %v", err)
-	}
-
-	keystore := r.wallet.Ks
-	// Check if the keystore already holds this key.
-	address := crypto.PubkeyToAddress(privateKey.PublicKey)
-	if acc, err := keystore.Find(accounts.Account{Address: address}); err == nil {
-		return wallet.NewAccountFromEth(r.wallet, &acc)
-	}
-	// Store the private key in the keystore.
-	ethAcc, err := keystore.ImportECDSA(privateKey, "secret")
-	if err != nil {
-		log.Panicf("Could not store private key in keystore: %v", err)
-	}
-	acc := wallet.NewAccountFromEth(r.wallet, &ethAcc)
-	// Unlock the account before returning it.
-	acc.Unlock("secret")
-	return acc
+func (r *randomizer) NewRandomAccount(rnd *rand.Rand) wallet.Account {
+	return r.wallet.NewRandomAccount(rnd)
 }
 
 // NewRandomAddress creates a new random ethereum address.
-func NewRandomAddress(rnd *rand.Rand) wallet.Address {
+func NewRandomAddress(rnd *rand.Rand) ethwallet.Address {
 	var a common.Address
 	rnd.Read(a[:])
-	return wallet.Address{Address: a}
+	return ethwallet.Address(a)
 }
 
 // NewTmpWallet creates a wallet that uses a unique temporary directory to
