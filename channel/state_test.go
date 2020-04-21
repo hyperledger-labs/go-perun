@@ -16,10 +16,6 @@ import (
 
 func TestStateSerialization(t *testing.T) {
 	rng := rand.New(rand.NewSource(1337))
-
-	app := test.NewRandomApp(rng)
-	params := test.NewRandomParams(rng, app.Def())
-	state := test.NewRandomState(rng, params)
-
+	state := test.NewRandomState(rng)
 	iotest.GenericSerializerTest(t, state)
 }
