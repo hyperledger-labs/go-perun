@@ -137,7 +137,7 @@ func checkFunded(ctx context.Context, request channel.FundingReq, asset assetHol
 
 func (f *Funder) connectToContract(asset channel.Asset, assetIndex int) (assetHolder, error) {
 	// Decode and set the asset address.
-	assetAddr := asset.(*Asset).Address
+	assetAddr := common.Address(*asset.(*Asset))
 	ctr, err := assets.NewAssetHolder(assetAddr, f)
 	if err != nil {
 		return assetHolder{}, errors.Wrapf(err, "connecting to assetholder")
@@ -301,7 +301,7 @@ func FundingIDs(channelID channel.ID, participants ...perunwallet.Address) [][32
 	args := abi.Arguments{{Type: abiBytes32}, {Type: abiAddress}}
 	for idx, pID := range participants {
 		address := pID.(*wallet.Address)
-		bytes, err := args.Pack(channelID, address.Address)
+		bytes, err := args.Pack(channelID, common.Address(*address))
 		if err != nil {
 			log.Panicf("error packing values: %v", err)
 		}

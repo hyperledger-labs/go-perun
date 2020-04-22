@@ -228,7 +228,7 @@ func newNFunders(
 ) {
 	simBackend := test.NewSimulatedBackend()
 	ks := ethwallettest.GetKeystore()
-	deployAccount := wallettest.NewRandomAccount(rng).(*ethwallet.Account).Account
+	deployAccount := &wallettest.NewRandomAccount(rng).(*ethwallet.Account).Account
 	simBackend.FundAddress(ctx, deployAccount.Address)
 	contractBackend := ethchannel.NewContractBackend(simBackend, ks, deployAccount)
 	// Deploy Assetholder
@@ -241,7 +241,7 @@ func newNFunders(
 		acc := wallettest.NewRandomAccount(rng).(*ethwallet.Account)
 		simBackend.FundAddress(ctx, acc.Account.Address)
 		parts[i] = acc.Address()
-		cb := ethchannel.NewContractBackend(simBackend, ks, acc.Account)
+		cb := ethchannel.NewContractBackend(simBackend, ks, &acc.Account)
 		funders[i] = ethchannel.NewETHFunder(cb, assetETH)
 	}
 	app = channeltest.NewRandomApp(rng)
@@ -265,7 +265,7 @@ func newSimulatedFunder(t *testing.T) *ethchannel.Funder {
 func newValidAllocation(parts []wallet.Address, assetETH common.Address) *channel.Allocation {
 	// Create assets slice
 	assets := []channel.Asset{
-		&ethchannel.Asset{Address: assetETH},
+		(*ethchannel.Asset)(&assetETH),
 	}
 	rng := rand.New(rand.NewSource(1337))
 	balances := make([][]channel.Bal, len(assets))
@@ -304,7 +304,7 @@ func getOnChainAllocation(ctx context.Context, cb *ethchannel.ContractBackend, p
 
 	for k, asset := range _assets {
 		alloc[k] = make([]channel.Bal, len(params.Parts))
-		contract, err := assets.NewAssetHolder(asset.(*ethchannel.Asset).Address, cb)
+		contract, err := assets.NewAssetHolder(common.Address(*asset.(*ethchannel.Asset)), cb)
 		if err != nil {
 			return nil, err
 		}

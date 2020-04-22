@@ -60,7 +60,7 @@ func TestHappyAliceBob(t *testing.T) {
 	execConfig := clienttest.ExecConfig{
 		PeerAddrs:  [2]peer.Address{s.Accs[A].Address(), s.Accs[B].Address()},
 		InitBals:   [2]*big.Int{big.NewInt(100), big.NewInt(100)},
-		Asset:      &wallet.Address{Address: s.Asset},
+		Asset:      (*wallet.Address)(&s.Asset),
 		NumUpdates: [2]int{2, 2},
 		TxAmounts:  [2]*big.Int{big.NewInt(5), big.NewInt(3)},
 	}
@@ -85,14 +85,14 @@ func TestHappyAliceBob(t *testing.T) {
 	// reset context timeout
 	ctx, cancel := context.WithTimeout(context.Background(), defaultTimeout)
 	defer cancel()
-	assertBal := func(addr common.Address, bal *big.Int) {
-		b, err := s.SimBackend.BalanceAt(ctx, addr, nil)
+	assertBal := func(addr *wallet.Address, bal *big.Int) {
+		b, err := s.SimBackend.BalanceAt(ctx, common.Address(*addr), nil)
 		require.NoError(t, err)
 		assert.Zero(t, bal.Cmp(b), "ETH balance mismatch")
 	}
 
-	assertBal(s.Recvs[A].Address, finalBalAlice)
-	assertBal(s.Recvs[B].Address, finalBalBob)
+	assertBal(s.Recvs[A], finalBalAlice)
+	assertBal(s.Recvs[B], finalBalBob)
 
 	log.Info("Happy test done")
 }

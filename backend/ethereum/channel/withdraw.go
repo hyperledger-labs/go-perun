@@ -10,6 +10,7 @@ import (
 	"math/big"
 
 	"github.com/ethereum/go-ethereum/accounts/abi"
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/pkg/errors"
 	"golang.org/x/sync/errgroup"
@@ -86,7 +87,7 @@ func (a *Adjudicator) ensureWithdrawn(ctx context.Context, req channel.Adjudicat
 
 func bindAssetHolder(backend ContractBackend, asset channel.Asset, assetIndex int) (assetHolder, error) {
 	// Decode and set the asset address.
-	assetAddr := asset.(*Asset).Address
+	assetAddr := common.Address(*asset.(*Asset))
 	ctr, err := assets.NewAssetHolder(assetAddr, backend)
 	if err != nil {
 		return assetHolder{}, errors.Wrap(err, "connecting to assetholder")
@@ -145,7 +146,7 @@ func (a *Adjudicator) callAssetWithdraw(ctx context.Context, request channel.Adj
 func (a *Adjudicator) newWithdrawalAuth(request channel.AdjudicatorReq, asset assetHolder) (assets.AssetHolderWithdrawalAuth, []byte, error) {
 	auth := assets.AssetHolderWithdrawalAuth{
 		ChannelID:   request.Params.ID(),
-		Participant: request.Acc.Address().(*wallet.Address).Address,
+		Participant: wallet.AsEthAddr(request.Acc.Address()),
 		Receiver:    a.Receiver,
 		Amount:      request.Tx.Allocation.Balances[asset.assetIndex][request.Idx],
 	}

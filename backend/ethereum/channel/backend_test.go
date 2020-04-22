@@ -57,7 +57,8 @@ func newChannelSetup() *test.Setup {
 }
 
 func newAddressFromString(s string) *wallet.Address {
-	return &wallet.Address{Address: common.HexToAddress(s)}
+	addr := wallet.Address(common.HexToAddress(s))
+	return &addr
 }
 
 func TestChannelID(t *testing.T) {

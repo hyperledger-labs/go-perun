@@ -21,6 +21,10 @@ import (
 	"perun.network/go-perun/wallet"
 )
 
+func fromEthAddr(a common.Address) wallet.Address {
+	return (*ethwallet.Address)(&a)
+}
+
 func Test_calcFundingIDs(t *testing.T) {
 	tests := []struct {
 		name         string
@@ -36,7 +40,7 @@ func Test_calcFundingIDs(t *testing.T) {
 			[32]byte{}, [][32]byte{{173, 50, 40, 182, 118, 247, 211, 205, 66, 132, 165, 68, 63, 23, 241, 150, 43, 54, 228, 145, 179, 10, 64, 178, 64, 88, 73, 229, 151, 186, 95, 181}}},
 		{"Test non-empty array, non-empty channelID", []wallet.Address{&ethwallet.Address{}},
 			[32]byte{1}, [][32]byte{{130, 172, 39, 157, 178, 106, 32, 109, 155, 165, 169, 76, 7, 255, 148, 10, 234, 75, 59, 253, 232, 130, 14, 201, 95, 78, 250, 10, 207, 208, 213, 188}}},
-		{"Test non-empty array, non-empty channelID", []wallet.Address{&ethwallet.Address{Address: common.BytesToAddress([]byte{})}},
+		{"Test non-empty array, non-empty channelID", []wallet.Address{fromEthAddr(common.BytesToAddress([]byte{}))},
 			[32]byte{1}, [][32]byte{{130, 172, 39, 157, 178, 106, 32, 109, 155, 165, 169, 76, 7, 255, 148, 10, 234, 75, 59, 253, 232, 130, 14, 201, 95, 78, 250, 10, 207, 208, 213, 188}}},
 	}
 	for _, tt := range tests {
