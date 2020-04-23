@@ -244,9 +244,8 @@ func newNFunders(
 		cb := ethchannel.NewContractBackend(simBackend, ks, &acc.Account)
 		funders[i] = ethchannel.NewETHFunder(cb, assetETH)
 	}
-	app = channeltest.NewRandomApp(rng)
-	params = channel.NewParamsUnsafe(rng.Uint64(), parts, app.Def(), big.NewInt(rng.Int63()))
-	allocation = newValidAllocation(parts, assetETH)
+	params = channeltest.NewRandomParams(rng, channeltest.WithParts(parts...))
+	allocation = channeltest.NewRandomAllocation(rng, channeltest.WithNumParts(len(parts)), channeltest.WithAssets((*ethchannel.Asset)(&assetETH)))
 	return
 }
 
@@ -260,26 +259,6 @@ func newSimulatedFunder(t *testing.T) *ethchannel.Funder {
 	rng := rand.New(rand.NewSource(seed))
 	_, funder, _, _, _ := newNFunders(ctx, t, rng, 1)
 	return funder[0]
-}
-
-func newValidAllocation(parts []wallet.Address, assetETH common.Address) *channel.Allocation {
-	// Create assets slice
-	assets := []channel.Asset{
-		(*ethchannel.Asset)(&assetETH),
-	}
-	rng := rand.New(rand.NewSource(1337))
-	balances := make([][]channel.Bal, len(assets))
-	for a := range assets {
-		balances[a] = make([]channel.Bal, len(parts))
-		for p := range parts {
-			// create new random balance in range [1,999]
-			balances[a][p] = big.NewInt(rng.Int63n(999) + 1)
-		}
-	}
-	return &channel.Allocation{
-		Assets:   assets,
-		Balances: balances,
-	}
 }
 
 // compareOnChainAlloc returns error if `alloc` differs from the on-chain allocation.

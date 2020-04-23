@@ -44,9 +44,7 @@ func withdrawMultipleConcurrentFinal(t *testing.T, numParts int, parallel bool) 
 	// create test setup
 	s := test.NewSetup(t, rng, numParts)
 	// create valid state and params
-	app := channeltest.NewRandomApp(rng)
-	params := channel.NewParamsUnsafe(uint64(0), s.Parts, app.Def(), big.NewInt(rng.Int63()))
-	state := newValidState(rng, params, s.Asset)
+	params, state := channeltest.NewRandomParamsAndState(rng, channeltest.WithParts(s.Parts...), channeltest.WithAssets((*ethchannel.Asset)(&s.Asset)), channeltest.WithIsFinal(false))
 	// we need to properly fund the channel
 	fundingCtx, funCancel := context.WithTimeout(context.Background(), defaultTxTimeout)
 	defer funCancel()
@@ -124,10 +122,7 @@ func testWithdrawZeroBalance(t *testing.T, n int) {
 	rng := rand.New(rand.NewSource(int64(0xDDD)))
 	s := test.NewSetup(t, rng, n)
 	// create valid state and params
-	app := channeltest.NewRandomApp(rng)
-	params := channel.NewParamsUnsafe(0, s.Parts, app.Def(), big.NewInt(rng.Int63()))
-	state := newValidState(rng, params, s.Asset)
-	state.IsFinal = true
+	params, state := channeltest.NewRandomParamsAndState(rng, channeltest.WithParts(s.Parts...), channeltest.WithAssets((*ethchannel.Asset)(&s.Asset)), channeltest.WithIsFinal(true))
 
 	for i := range params.Parts {
 		if i%2 == 0 {
@@ -185,9 +180,7 @@ func TestWithdraw(t *testing.T) {
 	// create test setup
 	s := test.NewSetup(t, rng, 1)
 	// create valid state and params
-	app := channeltest.NewRandomApp(rng)
-	params := channel.NewParamsUnsafe(uint64(0), s.Parts, app.Def(), big.NewInt(rng.Int63()))
-	state := newValidState(rng, params, s.Asset)
+	params, state := channeltest.NewRandomParamsAndState(rng, channeltest.WithParts(s.Parts...), channeltest.WithAssets((*ethchannel.Asset)(&s.Asset)), channeltest.WithIsFinal(false))
 	// we need to properly fund the channel
 	fundingCtx, funCancel := context.WithTimeout(context.Background(), defaultTxTimeout)
 	defer funCancel()
@@ -247,10 +240,7 @@ func TestWithdrawNonFinal(t *testing.T) {
 	// create test setup
 	s := test.NewSetup(t, rng, 1)
 	// create valid state and params
-	app := channeltest.NewRandomApp(rng)
-	params := channel.NewParamsUnsafe(60, s.Parts, app.Def(), big.NewInt(rng.Int63()))
-	state := newValidState(rng, params, s.Asset)
-	state.IsFinal = false // make sure the state is non-final
+	params, state := channeltest.NewRandomParamsAndState(rng, channeltest.WithChallengeDuration(60), channeltest.WithParts(s.Parts...), channeltest.WithAssets((*ethchannel.Asset)(&s.Asset)), channeltest.WithIsFinal(false))
 
 	ctx, cancel := context.WithTimeout(context.Background(), defaultTxTimeout)
 	defer cancel()

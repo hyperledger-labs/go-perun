@@ -7,12 +7,10 @@ package channel_test
 
 import (
 	"context"
-	"math/big"
 	"math/rand"
 	"testing"
 	"time"
 
-	"github.com/ethereum/go-ethereum/common"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -28,7 +26,7 @@ const defaultTxTimeout = 2 * time.Second
 func signState(t *testing.T, accounts []*ethwallet.Account, params *channel.Params, state *channel.State) channel.Transaction {
 	// Sign valid state.
 	sigs := make([][]byte, len(accounts))
-	for i := 0; i < len(accounts); i++ {
+	for i := range accounts {
 		sig, err := channel.Sign(accounts[i], params, state)
 		assert.NoError(t, err, "Sign should not return error")
 		sigs[i] = sig
@@ -46,9 +44,7 @@ func TestSubscribeRegistered(t *testing.T) {
 	// create test setup
 	s := test.NewSetup(t, rng, 1)
 	// create valid state and params
-	app := channeltest.NewRandomApp(rng)
-	params := channel.NewParamsUnsafe(uint64(100*time.Second), s.Parts, app.Def(), big.NewInt(rng.Int63()))
-	state := newValidState(rng, params, s.Asset)
+	params, state := channeltest.NewRandomParamsAndState(rng, channeltest.WithChallengeDuration(uint64(100*time.Second)), channeltest.WithParts(s.Parts...), channeltest.WithAssets((*ethchannel.Asset)(&s.Asset)), channeltest.WithIsFinal(false))
 	// Set up subscription
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
@@ -85,32 +81,4 @@ func TestSubscribeRegistered(t *testing.T) {
 	assert.NoError(t, registered2.Close(), "Closing event channel should not error")
 	assert.Nil(t, registered2.Next(), "Next on closed channel should produce nil")
 	assert.NoError(t, registered2.Err(), "Closing should produce no error")
-}
-
-func newValidState(rng *rand.Rand, params *channel.Params, assetholder common.Address) *channel.State {
-	// Create valid state.
-	assets := []channel.Asset{(*ethchannel.Asset)(&assetholder)}
-
-	balances := make([][]channel.Bal, len(assets))
-	for i := range balances {
-		balances[i] = make([]channel.Bal, len(params.Parts))
-		for k := range balances[i] {
-			balances[i][k] = big.NewInt(rng.Int63n(999) + 1)
-		}
-	}
-
-	allocation := channel.Allocation{
-		Assets:   assets,
-		Balances: balances,
-		Locked:   []channel.SubAlloc{},
-	}
-
-	return &channel.State{
-		ID:         params.ID(),
-		Version:    4,
-		App:        params.App,
-		Allocation: allocation,
-		Data:       channeltest.NewRandomData(rng),
-		IsFinal:    false,
-	}
 }

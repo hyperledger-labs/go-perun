@@ -136,8 +136,8 @@ func (a Allocation) Encode(w io.Writer) error {
 		}
 	}
 	// encode participant allocations
-	for i := 0; i < len(a.Balances); i++ {
-		for j := 0; j < len(a.Balances[i]); j++ {
+	for i := range a.Balances {
+		for j := range a.Balances[i] {
 			if err := wire.Encode(w, a.Balances[i][j]); err != nil {
 				return errors.WithMessagef(
 					err, "encoding balance of asset %d of participant %d", i, j)
@@ -167,7 +167,7 @@ func (a *Allocation) Decode(r io.Reader) error {
 	}
 	// decode assets
 	a.Assets = make([]Asset, numAssets)
-	for i := 0; i < len(a.Assets); i++ {
+	for i := range a.Assets {
 		asset, err := DecodeAsset(r)
 		if err != nil {
 			return errors.WithMessagef(err, "decoding asset %d", i)
@@ -176,7 +176,7 @@ func (a *Allocation) Decode(r io.Reader) error {
 	}
 	// decode participant allocations
 	a.Balances = make([][]Bal, numAssets)
-	for i := 0; i < len(a.Balances); i++ {
+	for i := range a.Balances {
 		a.Balances[i] = make([]Bal, numParts)
 		for j := range a.Balances[i] {
 			a.Balances[i][j] = new(big.Int)
@@ -188,7 +188,7 @@ func (a *Allocation) Decode(r io.Reader) error {
 	}
 	// decode locked allocations
 	a.Locked = make([]SubAlloc, numLocked)
-	for i := 0; i < len(a.Locked); i++ {
+	for i := range a.Locked {
 		if err := a.Locked[i].Decode(r); err != nil {
 			return errors.WithMessagef(
 				err, "decoding suballocation %d", i)

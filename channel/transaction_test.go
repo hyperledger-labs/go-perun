@@ -30,7 +30,7 @@ func TestTransactionSerialization(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		tx := test.NewRandomTransaction(rng, len(tt), tt)
+		tx := test.NewRandomTransaction(rng, tt)
 		iotest.GenericSerializerTest(t, tx)
 	}
 
@@ -74,6 +74,6 @@ func TestTransactionClone(t *testing.T) {
 	rng := rand.New(rand.NewSource(0xDDD))
 	size := int(rng.Int31n(5)) + 2
 	testmask := newUniformBoolSlice(size, true)
-	tx := *test.NewRandomTransaction(rng, size, testmask)
+	tx := *test.NewRandomTransaction(rng, testmask)
 	pkgtest.VerifyClone(t, tx)
 }

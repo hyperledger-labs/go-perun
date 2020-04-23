@@ -19,10 +19,8 @@ import (
 func TestMachineClone(t *testing.T) {
 	rng := rand.New(rand.NewSource(0xDDDDD))
 
-	app := test.NewRandomApp(rng)
-	params := *test.NewRandomParams(rng, app.Def())
 	acc := wtest.NewRandomAccount(rng)
-	params.Parts[0] = acc.Address()
+	params := *test.NewRandomParams(rng, test.WithFirstPart(acc.Address()))
 
 	sm, err := channel.NewStateMachine(acc, params)
 	require.NoError(t, err)

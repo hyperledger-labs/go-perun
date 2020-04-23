@@ -6,14 +6,12 @@
 package client
 
 import (
-	"math/big"
 	"math/rand"
 	"testing"
 
 	"github.com/stretchr/testify/require"
 
 	channeltest "perun.network/go-perun/channel/test"
-	"perun.network/go-perun/peer"
 	"perun.network/go-perun/wallet"
 	wallettest "perun.network/go-perun/wallet/test"
 )
@@ -25,13 +23,13 @@ func TestClient_validTwoPartyProposal(t *testing.T) {
 	c := &Client{
 		id: wallettest.NewRandomAccount(rng),
 	}
-	validProp := *newRandomValidChannelProposalReq(rng, 2)
+	validProp := *NewRandomChannelProposalReqNumParts(rng, 2)
 	validProp.PeerAddrs[0] = c.id.Address() // set us as the proposer
 	peerAddr := validProp.PeerAddrs[1]      // peer at 1 as receiver
 	require.False(t, peerAddr.Equals(c.id.Address()))
 	require.Len(t, validProp.PeerAddrs, 2)
 
-	validProp3Peers := *newRandomValidChannelProposalReq(rng, 3)
+	validProp3Peers := *NewRandomChannelProposalReqNumParts(rng, 3)
 	invalidProp := validProp          // shallow copy
 	invalidProp.ChallengeDuration = 0 // invalidate
 
@@ -78,22 +76,22 @@ func TestClient_validTwoPartyProposal(t *testing.T) {
 	}
 }
 
-func newRandomValidChannelProposalReq(rng *rand.Rand, numPeers int) *ChannelProposalReq {
-	peerAddrs := make([]peer.Address, numPeers)
-	for i := 0; i < numPeers; i++ {
-		peerAddrs[i] = wallettest.NewRandomAddress(rng)
-	}
+func NewRandomChannelProposalReq(rng *rand.Rand) *ChannelProposalReq {
+	return NewRandomChannelProposalReqNumParts(rng, rng.Intn(10)+2)
+}
+
+func NewRandomChannelProposalReqNumParts(rng *rand.Rand, numPeers int) *ChannelProposalReq {
+	params := channeltest.NewRandomParams(rng, channeltest.WithNumParts(numPeers))
 	data := channeltest.NewRandomData(rng)
-	alloc := channeltest.NewRandomAllocation(rng, numPeers)
-	alloc.Locked = nil // make valid InitBals
+	alloc := channeltest.NewRandomAllocation(rng, channeltest.WithNumParts(numPeers))
 	participantAddr := wallettest.NewRandomAddress(rng)
 	return &ChannelProposalReq{
 		ChallengeDuration: rng.Uint64(),
-		Nonce:             big.NewInt(rng.Int63()),
+		Nonce:             params.Nonce,
 		ParticipantAddr:   participantAddr,
-		AppDef:            channeltest.NewRandomApp(rng).Def(),
+		AppDef:            params.App.Def(),
 		InitData:          data,
 		InitBals:          alloc,
-		PeerAddrs:         peerAddrs,
+		PeerAddrs:         params.Parts,
 	}
 }

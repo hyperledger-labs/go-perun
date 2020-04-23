@@ -15,7 +15,6 @@ import (
 
 func TestParamsClone(t *testing.T) {
 	rng := rand.New(rand.NewSource(0xDDDDD))
-	app := test.NewRandomApp(rng)
-	params := test.NewRandomParams(rng, app.Def())
+	params := test.NewRandomParams(rng)
 	pkgtest.VerifyClone(t, params)
 }

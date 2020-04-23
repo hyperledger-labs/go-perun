@@ -32,7 +32,7 @@ func TestChannelProposalReq_NilArgs(t *testing.T) {
 		ParticipantAddr:   wallettest.NewRandomAddress(rng),
 		AppDef:            test.NewRandomApp(rng).Def(),
 		InitData:          test.NewRandomData(rng),
-		InitBals:          test.NewRandomAllocation(rng, 2),
+		InitBals:          test.NewRandomAllocation(rng, test.WithNumParts(2)),
 		PeerAddrs: []wallet.Address{
 			wallettest.NewRandomAddress(rng),
 			wallettest.NewRandomAddress(rng),
@@ -57,7 +57,7 @@ func TestChannelProposalReqSerialization(t *testing.T) {
 			ParticipantAddr:   wallettest.NewRandomAddress(rng),
 			AppDef:            test.NewRandomApp(rng).Def(),
 			InitData:          test.NewRandomData(rng),
-			InitBals:          test.NewRandomAllocation(rng, 2),
+			InitBals:          test.NewRandomAllocation(rng, test.WithNumParts(2)),
 			PeerAddrs: []wallet.Address{
 				wallettest.NewRandomAddress(rng),
 				wallettest.NewRandomAddress(rng),
@@ -72,7 +72,7 @@ func TestChannelProposalReqDecode_CheckMaxNumParts(t *testing.T) {
 	assert := assert.New(t)
 
 	rng := rand.New(rand.NewSource(20191223))
-	c := newRandomChannelProposalReq(rng)
+	c := client.NewRandomChannelProposalReq(rng)
 	buffer := new(bytes.Buffer)
 
 	// reimplementation of ChannelProposalReq.Encode modified to create the
@@ -96,9 +96,9 @@ func TestChannelProposalReqDecode_CheckMaxNumParts(t *testing.T) {
 }
 
 func TestChannelProposalReqSessID(t *testing.T) {
-	original := *newRandomChannelProposalReq(rand.New(rand.NewSource(0xc0ffee)))
+	original := *client.NewRandomChannelProposalReq(rand.New(rand.NewSource(0xc0ffee)))
 	s := original.SessID()
-	fake := newRandomChannelProposalReq(rand.New(rand.NewSource(0xeeff0c)))
+	fake := client.NewRandomChannelProposalReq(rand.New(rand.NewSource(0xeeff0c)))
 
 	assert.NotEqual(t, original.ChallengeDuration, fake.ChallengeDuration)
 	assert.NotEqual(t, original.Nonce, fake.Nonce)
@@ -140,28 +140,11 @@ func TestChannelProposalReqSessID(t *testing.T) {
 func TestChannelProposal_AsReqAsProp(t *testing.T) {
 	rng := rand.New(rand.NewSource(7))
 	acc := wallettest.NewRandomAccount(rng)
-	prop := newRandomChannelProposalReq(rng).AsProp(acc)
+	prop := client.NewRandomChannelProposalReq(rng).AsProp(acc)
 	req := prop.AsReq()
 	assert.True(t, req.ParticipantAddr.Equals(acc.Address()))
 	prop2 := req.AsProp(acc)
 	assert.Equal(t, prop2, prop)
-}
-
-func newRandomChannelProposalReq(rng *rand.Rand) *client.ChannelProposalReq {
-	app := test.NewRandomApp(rng)
-	params := test.NewRandomParams(rng, app.Def())
-	data := test.NewRandomData(rng)
-	alloc := test.NewRandomAllocation(rng, len(params.Parts))
-	participantAddr := wallettest.NewRandomAddress(rng)
-	return &client.ChannelProposalReq{
-		ChallengeDuration: params.ChallengeDuration,
-		Nonce:             params.Nonce,
-		ParticipantAddr:   participantAddr,
-		AppDef:            params.App.Def(),
-		InitData:          data,
-		InitBals:          alloc,
-		PeerAddrs:         params.Parts, // Note: usually, channel.Params participants are NOT Perun peers
-	}
 }
 
 func TestChannelProposalAccSerialization(t *testing.T) {

@@ -6,7 +6,6 @@
 package test
 
 import (
-	"fmt"
 	"log"
 	"math/big"
 	"math/rand"
@@ -33,120 +32,239 @@ func SetRandomizer(r Randomizer) {
 	randomizer = r
 }
 
-// NewRandomAsset creates a new random channel.Asset.
+// NewRandomAsset generates a new random `channel.Asset`.
 func NewRandomAsset(rng *rand.Rand) channel.Asset {
 	return randomizer.NewRandomAsset(rng)
 }
 
-// NewRandomAssets creates a new slice of n random channel.Asset
-func NewRandomAssets(rng *rand.Rand, n int) []channel.Asset {
-	as := make([]channel.Asset, n)
-	for i := 0; i < n; i++ {
+// NewRandomAssets generates new random `channel.Asset`s.
+// Options: `WithAssets` and `WithNumAssets`.
+func NewRandomAssets(rng *rand.Rand, opts ...RandomOpt) []channel.Asset {
+	opt := mergeRandomOpts(opts...)
+	if assets := opt.Assets(); assets != nil {
+		return assets
+	}
+	numAssets := opt.NumAssets(rng)
+	as := make([]channel.Asset, numAssets)
+	for i := range as {
 		as[i] = NewRandomAsset(rng)
 	}
+
+	updateOpts(opts, WithAssets(as...))
 	return as
 }
 
-// NewRandomAllocation creates a new random allocation.
-func NewRandomAllocation(rng *rand.Rand, numParts int) *channel.Allocation {
-	if numParts > channel.MaxNumParts {
-		panic(fmt.Sprintf(
-			"Expected at most %d participants, got %d",
-			channel.MaxNumParts, numParts))
+// NewRandomAllocation generates a new random `channel.Allocation`.
+// Options: all from `NewRandomAssets`, `NewRandomBalances` and `NewRandomLocked`.
+func NewRandomAllocation(rng *rand.Rand, opts ...RandomOpt) *channel.Allocation {
+	opt := mergeRandomOpts(opts...)
+
+	if alloc := opt.Allocation(); alloc != nil {
+		return alloc
 	}
 
-	assets := NewRandomAssets(rng, int(rng.Int31n(9))+2)
+	assets := NewRandomAssets(rng, opt)
+	bals := NewRandomBalances(rng, opt)
+	locked := NewRandomLocked(rng, opt)
 
-	balances := NewRandomBalances(rng, len(assets), numParts)
-
-	locked := make([]channel.SubAlloc, rng.Int31n(9)+2)
-	for i := 0; i < len(locked); i++ {
-		locked[i] = *NewRandomSubAlloc(rng, len(assets))
-	}
-
-	return &channel.Allocation{Assets: assets, Balances: balances, Locked: locked}
+	alloc := &channel.Allocation{Assets: assets, Balances: bals, Locked: locked}
+	updateOpts(opts, WithAllocation(alloc))
+	return alloc
 }
 
-// NewRandomSubAlloc creates a new random suballocation.
-func NewRandomSubAlloc(rng *rand.Rand, size int) *channel.SubAlloc {
-	return &channel.SubAlloc{ID: NewRandomChannelID(rng), Bals: NewRandomBals(rng, size)}
+// NewRandomLocked generates new random `channel.SubAlloc`s.
+// Options: `WithLocked`, `WithNumLocked` and all from `NewRandomLockedIDs`.
+func NewRandomLocked(rng *rand.Rand, opts ...RandomOpt) []channel.SubAlloc {
+	opt := mergeRandomOpts(opts...)
+
+	if locked, valid := opt.Locked(); valid {
+		return locked
+	}
+
+	ids := NewRandomLockedIDs(rng, opt)
+	locked := make([]channel.SubAlloc, opt.NumLocked(rng))
+	for i := range locked {
+		locked[i] = *NewRandomSubAlloc(rng, opt, WithLockedID(ids[i]))
+	}
+	updateOpts(opts, WithLocked(locked...))
+	return locked
 }
 
-// NewRandomParams creates new random channel.Params.
-func NewRandomParams(rng *rand.Rand, appDef wallet.Address) *channel.Params {
-	return NewRandomParamsNumParts(rng, appDef, int(rng.Int31n(5))+2)
+// NewRandomLockedIDs generates new random `channel.ID`s used in `channel.SubAlloc`.
+// Options: `WithLockedIDs` and `WithNumLocked`.
+func NewRandomLockedIDs(rng *rand.Rand, opts ...RandomOpt) []channel.ID {
+	opt := mergeRandomOpts(opts...)
+
+	if ids := opt.LockedIDs(rng); ids != nil {
+		return ids
+	}
+
+	numLockedIds := opt.NumLocked(rng)
+	ids := make([]channel.ID, numLockedIds)
+	for i := range ids {
+		rng.Read(ids[i][:])
+	}
+	return ids
 }
 
-// NewRandomParamsNumParts creates new random channel.Params with n Parts.
-func NewRandomParamsNumParts(rng *rand.Rand, appDef wallet.Address, n int) *channel.Params {
-	var challengeDuration = rng.Uint64()
-	parts := make([]wallet.Address, n)
-	for i := 0; i < len(parts); i++ {
-		parts[i] = wallettest.NewRandomAddress(rng)
-	}
-	nonce := big.NewInt(int64(rng.Uint32()))
+// NewRandomSubAlloc generates a new random `channel.SubAlloc`.
+// Options: `WithLockedID`, `WithLockedBals` and all from `NewRandomBals`.
+func NewRandomSubAlloc(rng *rand.Rand, opts ...RandomOpt) *channel.SubAlloc {
+	opt := mergeRandomOpts(opts...)
 
-	params, err := channel.NewParams(challengeDuration, parts, appDef, nonce)
-	if err != nil {
-		panic(err)
+	id := opt.LockedID(rng)
+	var bals []channel.Bal
+	if bals = opt.LockedBals(); bals == nil {
+		bals = NewRandomBals(rng, opt.NumAssets(rng), opt)
 	}
+
+	return &channel.SubAlloc{ID: id, Bals: bals}
+}
+
+// NewRandomParamsAndState generates a new random `channel.Params` and `channel.State`.
+// Options: all from `NewRandomParams` and `NewRandomState`.
+func NewRandomParamsAndState(rng *rand.Rand, opts ...RandomOpt) (params *channel.Params, state *channel.State) {
+	opt := mergeRandomOpts(opts...)
+
+	params = NewRandomParams(rng, opt)
+	state = NewRandomState(rng, WithParams(params), opt)
+
+	return
+}
+
+// NewRandomParams generates a new random `channel.Params`.
+// Options: `WithParams`, `WithNumParts`, `WithParts`, `WithFirstPart`, `WithNonce`, `WithChallengeDuration`
+// and all from `NewRandomApp`.
+func NewRandomParams(rng *rand.Rand, opts ...RandomOpt) *channel.Params {
+	opt := mergeRandomOpts(opts...)
+	if params := opt.Params(); params != nil {
+		return params
+	}
+	numParts := opt.NumParts(rng)
+	var parts []wallet.Address
+	if parts = opt.Parts(); parts == nil {
+		parts = make([]wallet.Address, numParts)
+		for i := range parts {
+			parts[i] = wallettest.NewRandomAddress(rng)
+		}
+	}
+	if firstPart := opt.FirstPart(); firstPart != nil {
+		parts[0] = firstPart
+	}
+
+	nonce := opt.Nonce(rng)
+	challengeDuration := opt.ChallengeDuration(rng)
+	app := NewRandomApp(rng, opt)
+
+	params := channel.NewParamsUnsafe(challengeDuration, parts, app.Def(), nonce)
+	updateOpts(opts, WithParams(params))
 	return params
 }
 
-// NewRandomState creates a new random state.
-func NewRandomState(rng *rand.Rand, p *channel.Params) *channel.State {
-	return &channel.State{
-		ID:         p.ID(),
-		Version:    rng.Uint64(),
-		App:        p.App,
-		Allocation: *NewRandomAllocation(rng, len(p.Parts)),
-		Data:       NewRandomData(rng),
-		IsFinal:    (rng.Int31n(2) == 0),
+// NewRandomState generates a new random `channel.State`.
+// Options: `WithState`, `WithVersion`, `WithIsFinal`
+// and all from `NewRandomChannelID`, `NewRandomApp`, `NewRandomAllocation` and `NewRandomData`.
+func NewRandomState(rng *rand.Rand, opts ...RandomOpt) (state *channel.State) {
+	opt := mergeRandomOpts(opts...)
+	if state := opt.State(); state != nil {
+		return state
 	}
+
+	id := NewRandomChannelID(rng, opt)
+	version := opt.Version(rng)
+	app := NewRandomApp(rng, opt)
+	alloc := NewRandomAllocation(rng, opt)
+	data := NewRandomData(rng, opt)
+	isFinal := opt.IsFinal(rng)
+
+	state = &channel.State{
+		ID:         id,
+		Version:    version,
+		App:        app,
+		Allocation: *alloc,
+		Data:       data,
+		IsFinal:    isFinal,
+	}
+	updateOpts(opts, WithState(state))
+	return
 }
 
-// NewRandomChannelID creates a new random channel.ID.
-func NewRandomChannelID(rng *rand.Rand) (id channel.ID) {
+// NewRandomChannelID generates a new random `channel.ID`.
+// Options: `WithID`.
+func NewRandomChannelID(rng *rand.Rand, opts ...RandomOpt) (id channel.ID) {
+	opt := mergeRandomOpts(opts...)
+
+	if id, valid := opt.ID(); valid {
+		return id
+	}
+
 	if _, err := rng.Read(id[:]); err != nil {
 		log.Panic("could not read from rng")
 	}
 	return
 }
 
-// NewRandomBal creates a new random balance.
-func NewRandomBal(rng *rand.Rand) channel.Bal {
-	return channel.Bal(big.NewInt(rng.Int63()))
+// NewRandomBal generates a new random `channel.Bal`.
+// Options: `WithBalancesRange`.
+func NewRandomBal(rng *rand.Rand, opts ...RandomOpt) channel.Bal {
+	opt := mergeRandomOpts(opts...)
+	min, max := opt.BalancesRange()
+	if min == nil {
+		min = new(int64)
+		*min = 0
+	}
+	if max == nil {
+		max = new(int64)
+		*max = (1 << 62)
+	}
+
+	return channel.Bal(big.NewInt(rng.Int63n(*max) + (*max - *min) + 1))
 }
 
-// NewRandomBals creates new random balances.
-func NewRandomBals(rng *rand.Rand, size int) []channel.Bal {
-	bals := make([]channel.Bal, size)
-	for i := 0; i < size; i++ {
-		bals[i] = NewRandomBal(rng)
+// NewRandomBals generates new random `channel.Bal`s.
+// Options: all from `NewRandomBal`.
+func NewRandomBals(rng *rand.Rand, numBals int, opts ...RandomOpt) []channel.Bal {
+	opt := mergeRandomOpts(opts...)
+
+	bals := make([]channel.Bal, numBals)
+	for i := range bals {
+		bals[i] = NewRandomBal(rng, opt)
 	}
 	return bals
 }
 
-//NewRandomBalances creates an slice containing *numAssets* random Balances slices, each one *numParties* long
-func NewRandomBalances(rng *rand.Rand, numAssets int, numParties int) [][]channel.Bal {
-	balances := make([][]channel.Bal, numAssets)
-	for i := range balances {
-		balances[i] = NewRandomBals(rng, numParties)
+// NewRandomBalances generates a new random `[][]channel.Bal`.
+// Options: `WithBalances`, `WithNumAssets`, `WithNumParts`
+// and all from `NewRandomBals`.
+func NewRandomBalances(rng *rand.Rand, opts ...RandomOpt) [][]channel.Bal {
+	opt := mergeRandomOpts(opts...)
+
+	if balances := opt.Balances(); balances != nil {
+		return balances
 	}
+
+	balances := make([][]channel.Bal, opt.NumAssets(rng))
+	for i := range balances {
+		balances[i] = NewRandomBals(rng, opt.NumParts(rng), opt)
+	}
+
+	updateOpts(opts, WithBalances(balances...))
 	return balances
 }
 
-// NewRandomTransaction generates a new random Transaction with numParts participants.
-// sigMask defines which signatures are generated. It must have size numParts.
+// NewRandomTransaction generates a new random `channel.Transaction`.
+// `sigMask` defines which signatures are generated. `len(sigmask)` is
+// assumed to be the number of participants.
 // If an entry is false, nil is set as signature for that index.
-func NewRandomTransaction(rng *rand.Rand, numParts int, sigMask []bool) *channel.Transaction {
-	app := NewRandomApp(rng)
-	params := NewRandomParamsNumParts(rng, app.Def(), numParts)
-	accs, addrs := test.NewRandomAccounts(rng, len(params.Parts))
-	params.Parts = addrs
-	state := NewRandomState(rng, params)
+// Options: all from `NewRandomParamsAndState`.
+func NewRandomTransaction(rng *rand.Rand, sigMask []bool, opts ...RandomOpt) *channel.Transaction {
+	opt := mergeRandomOpts(opts...)
+	numParts := len(sigMask)
+	accs, addrs := test.NewRandomAccounts(rng, numParts)
+	params := NewRandomParams(rng, WithParts(addrs...), opt)
+	state := NewRandomState(rng, WithID(params.ID()), WithNumParts(numParts), opt)
 
-	sigs := make([]wallet.Sig, len(params.Parts))
+	sigs := make([]wallet.Sig, numParts)
 	var err error
 	for i, choice := range sigMask {
 		if !choice {

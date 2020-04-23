@@ -6,7 +6,6 @@
 package persistence_test
 
 import (
-	"math/big"
 	"math/rand"
 	"testing"
 
@@ -28,11 +27,9 @@ func TestStateMachine(t *testing.T) {
 	require := require.New(t)
 	rng := rand.New(rand.NewSource(0x3a57))
 
-	const n = 5 // number of participants
-	app := ctest.NewRandomApp(rng)
-	accs, parts := wtest.NewRandomAccounts(rng, 5) // local participant idx 0
-	nonce := big.NewInt(int64(rng.Uint32()))
-	params := channel.NewParamsUnsafe(60, parts, app.Def(), nonce)
+	const n = 5                                    // number of participants
+	accs, parts := wtest.NewRandomAccounts(rng, n) // local participant idx 0
+	params := ctest.NewRandomParams(rng, ctest.WithParts(parts...))
 	csm, err := channel.NewStateMachine(accs[0], *params)
 	require.NoError(err)
 
@@ -44,9 +41,8 @@ func TestStateMachine(t *testing.T) {
 	tpr.AssertEqual(csm)
 
 	// Init state
-	initAlloc := *ctest.NewRandomAllocation(rng, 5)
+	initAlloc := *ctest.NewRandomAllocation(rng, ctest.WithNumParts(n))
 	initData := channel.NewMockOp(channel.OpValid)
-	initAlloc.Locked = nil
 	err = sm.Init(nil, initAlloc, initData)
 	require.NoError(err)
 	tpr.AssertEqual(csm)

@@ -169,7 +169,7 @@ func (c *ChannelProposalReq) Decode(r io.Reader) (err error) {
 	}
 
 	c.PeerAddrs = make([]wallet.Address, numParts)
-	for i := 0; i < len(c.PeerAddrs); i++ {
+	for i := range c.PeerAddrs {
 		if c.PeerAddrs[i], err = wallet.DecodeAddress(r); err != nil {
 			return err
 		}
