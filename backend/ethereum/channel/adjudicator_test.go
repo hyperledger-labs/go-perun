@@ -26,7 +26,7 @@ const defaultTxTimeout = 2 * time.Second
 func signState(t *testing.T, accounts []*ethwallet.Account, params *channel.Params, state *channel.State) channel.Transaction {
 	// Sign valid state.
 	sigs := make([][]byte, len(accounts))
-	for i := 0; i < len(accounts); i++ {
+	for i := range accounts {
 		sig, err := channel.Sign(accounts[i], params, state)
 		assert.NoError(t, err, "Sign should not return error")
 		sigs[i] = sig
