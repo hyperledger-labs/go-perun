@@ -18,7 +18,6 @@ import (
 	"perun.network/go-perun/client"
 	"perun.network/go-perun/log"
 	"perun.network/go-perun/peer"
-	"perun.network/go-perun/wallet"
 	wallettest "perun.network/go-perun/wallet/test"
 )
 
@@ -43,7 +42,7 @@ type (
 		Listener    peer.Listener
 		Funder      channel.Funder
 		Adjudicator channel.Adjudicator
-		Wallet      wallet.Wallet
+		Wallet      wallettest.Wallet
 		Timeout     time.Duration
 	}
 
