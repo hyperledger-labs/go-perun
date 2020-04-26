@@ -42,7 +42,7 @@ type (
 	// ProposalResponder.Accept() when they want to accept an incoming channel
 	// proposal.
 	ProposalAcc struct {
-		Participant wallet.Account
+		Participant wallet.Address
 	}
 )
 
@@ -167,14 +167,19 @@ func (c *Client) handleChannelProposalAcc(
 
 	msgAccept := &ChannelProposalAcc{
 		SessID:          req.SessID(),
-		ParticipantAddr: acc.Participant.Address(),
+		ParticipantAddr: acc.Participant,
 	}
 	if err := p.Send(ctx, msgAccept); err != nil {
 		c.logPeer(p).Errorf("error sending proposal acceptance: %v", err)
 		return nil, errors.WithMessage(err, "sending proposal acceptance")
 	}
 
-	parts := []wallet.Address{req.ParticipantAddr, acc.Participant.Address()}
+	// In the 2-party case, we hardcode the proposer to index 0 and responder to 1.
+	parts := []wallet.Address{req.ParticipantAddr, acc.Participant}
+	// Change ParticipantAddr to own address because setupChannel reads own
+	// address from this field. The ChannelProposal is consumed by setupChannel so
+	// there's no harm in changing it.
+	req.ParticipantAddr = acc.Participant
 	return c.setupChannel(ctx, req, parts)
 }
 
@@ -271,10 +276,16 @@ func (c *Client) validTwoPartyProposal(
 }
 
 // setupChannel sets up a new channel controller for the given proposal and
-// participant addresses, using the account for our participant. The parameters
-// are assembled and the channel controller is started. The channel will be
-// funded and if successful, the *Channel is returned. It does not perform a
-// validity check on the proposal, so make sure to only paste valid proposals.
+// participant addresses, using the wallet to unlock the account for our
+// participant. The own participant is chosen as prop.ParticipantAddr, so make
+// sure that this field has been set correctly and not to the initial proposer.
+//
+// The parameters are assembled and the initial state with signatures is
+// exchanged. The channel will be funded and if successful, the channel
+// controller is returned.
+//
+// It does not perform a validity check on the proposal, so make sure to only
+// pass valid proposals.
 func (c *Client) setupChannel(
 	ctx context.Context,
 	prop *ChannelProposal,

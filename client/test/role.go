@@ -137,6 +137,7 @@ type (
 		log     log.Logger
 		rng     *rand.Rand
 		timeout time.Duration
+		wallet  wallettest.Wallet
 	}
 
 	// channelAndError bundles the return parameters of ProposalResponder.Accept
@@ -147,12 +148,13 @@ type (
 	}
 )
 
-func newAcceptAllPropHandler(rng *rand.Rand, timeout time.Duration) *acceptAllPropHandler {
+func newAcceptAllPropHandler(rng *rand.Rand, timeout time.Duration, wallet wallettest.Wallet) *acceptAllPropHandler {
 	return &acceptAllPropHandler{
 		chans:   make(chan channelAndError),
 		rng:     rng,
 		timeout: timeout,
 		log:     log.Get(), // default logger without fields
+		wallet:  wallet,
 	}
 }
 
@@ -161,8 +163,10 @@ func (h *acceptAllPropHandler) Handle(req *client.ChannelProposal, res *client.P
 	ctx, cancel := context.WithTimeout(context.Background(), h.timeout)
 	defer cancel()
 
+	part := h.wallet.NewRandomAccount(h.rng).Address()
+	h.log.Debugf("Accepting with participant: %v", part)
 	ch, err := res.Accept(ctx, client.ProposalAcc{
-		Participant: wallettest.NewRandomAccount(h.rng),
+		Participant: part,
 	})
 	h.chans <- channelAndError{ch, err}
 }
