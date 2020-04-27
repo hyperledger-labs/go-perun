@@ -6,6 +6,7 @@
 package ethereum
 
 import (
-	_ "perun.network/go-perun/backend/ethereum/channel" // backend init
-	_ "perun.network/go-perun/backend/ethereum/wallet"  // backend init
+	_ "perun.network/go-perun/backend/ethereum/channel"     // backend init
+	_ "perun.network/go-perun/backend/ethereum/wallet"      // backend init
+	_ "perun.network/go-perun/backend/ethereum/wallet/test" // backend init
 )

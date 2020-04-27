@@ -3,34 +3,34 @@
 // of this source code is governed by a MIT-style license that can be found in
 // the LICENSE file.
 
-package channel // import "perun.network/go-perun/backend/sim/channel"
+package channel
 
 import (
 	"math/rand"
 	"testing"
 
-	"perun.network/go-perun/backend/sim/wallet"
-	"perun.network/go-perun/channel/test"
-	perun "perun.network/go-perun/wallet"
+	chtest "perun.network/go-perun/channel/test"
+	"perun.network/go-perun/wallet"
+	wtest "perun.network/go-perun/wallet/test"
 )
 
 func TestGenericTests(t *testing.T) {
 	setup := newChannelSetup()
-	test.GenericBackendTest(t, setup)
+	chtest.GenericBackendTest(t, setup)
 }
 
-func newChannelSetup() *test.Setup {
+func newChannelSetup() *chtest.Setup {
 	rng := rand.New(rand.NewSource(1337))
 
-	params, state := test.NewRandomParamsAndState(rng, test.WithNumLocked(int(rng.Int31n(4)+1)))
-	params2, state2 := test.NewRandomParamsAndState(rng, test.WithIsFinal(!state.IsFinal), test.WithNumLocked(int(rng.Int31n(4)+1)))
+	params, state := chtest.NewRandomParamsAndState(rng, chtest.WithNumLocked(int(rng.Int31n(4)+1)))
+	params2, state2 := chtest.NewRandomParamsAndState(rng, chtest.WithIsFinal(!state.IsFinal), chtest.WithNumLocked(int(rng.Int31n(4)+1)))
 
-	return &test.Setup{
+	return &chtest.Setup{
 		Params:        params,
 		Params2:       params2,
 		State:         state,
 		State2:        state2,
-		Account:       wallet.NewRandomAccount(rng),
-		RandomAddress: func() perun.Address { return wallet.NewRandomAddress(rng) },
+		Account:       wtest.NewRandomAccount(rng),
+		RandomAddress: func() wallet.Address { return wtest.NewRandomAddress(rng) },
 	}
 }

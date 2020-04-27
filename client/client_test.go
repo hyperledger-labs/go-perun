@@ -17,12 +17,12 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	simwallet "perun.network/go-perun/backend/sim/wallet"
 	"perun.network/go-perun/channel"
 	"perun.network/go-perun/peer"
 	peertest "perun.network/go-perun/peer/test"
 	perunsync "perun.network/go-perun/pkg/sync"
 	"perun.network/go-perun/pkg/test"
+	wtest "perun.network/go-perun/wallet/test"
 	wire "perun.network/go-perun/wire/msg"
 )
 
@@ -85,7 +85,7 @@ func (d *DummyAdjudicator) SubscribeRegistered(context.Context, *channel.Params)
 
 func TestClient_New_NilArgs(t *testing.T) {
 	rng := rand.New(rand.NewSource(0x1111))
-	id := simwallet.NewRandomAccount(rng)
+	id := wtest.NewRandomAccount(rng)
 	d, f, a := &DummyDialer{t}, &DummyFunder{t}, &DummyAdjudicator{t}
 	assert.Panics(t, func() { New(nil, d, f, a) })
 	assert.Panics(t, func() { New(id, nil, f, a) })
@@ -95,7 +95,7 @@ func TestClient_New_NilArgs(t *testing.T) {
 
 func TestClient_Listen_NilArgs(t *testing.T) {
 	rng := rand.New(rand.NewSource(0x20200108))
-	id := simwallet.NewRandomAccount(rng)
+	id := wtest.NewRandomAccount(rng)
 	c := New(id, &DummyDialer{t}, &DummyFunder{t}, &DummyAdjudicator{t})
 
 	assert.Panics(t, func() { c.Listen(nil) })
@@ -103,7 +103,7 @@ func TestClient_Listen_NilArgs(t *testing.T) {
 
 func TestClient_New(t *testing.T) {
 	rng := rand.New(rand.NewSource(0x1a2b3c))
-	id := simwallet.NewRandomAccount(rng)
+	id := wtest.NewRandomAccount(rng)
 	c := New(id, &DummyDialer{t}, &DummyFunder{t}, &DummyAdjudicator{t})
 
 	require.NotNil(t, c)
@@ -115,7 +115,7 @@ func TestClient_NewAndListen_ListenerClose(t *testing.T) {
 	ass := assert.New(t)
 
 	rng := rand.New(rand.NewSource(0x1a2b3c))
-	id := simwallet.NewRandomAccount(rng)
+	id := wtest.NewRandomAccount(rng)
 	c := New(id, &DummyDialer{t}, &DummyFunder{t}, &DummyAdjudicator{t})
 
 	require.NotNil(c)
@@ -146,7 +146,7 @@ func TestClient_NewAndListen(t *testing.T) {
 
 	rng := rand.New(rand.NewSource(0x1))
 	connHub := new(peertest.ConnHub)
-	c := New(simwallet.NewRandomAccount(rng), &DummyDialer{t}, &DummyFunder{t}, &DummyAdjudicator{t})
+	c := New(wtest.NewRandomAccount(rng), &DummyDialer{t}, &DummyFunder{t}, &DummyAdjudicator{t})
 	// initialize the listener instance in the main goroutine
 	// if it is initialized in a goroutine, the goroutine may be put to sleep
 	// and the dialer may complain about a nonexistent listener
@@ -188,7 +188,7 @@ func TestClient_NewAndListen(t *testing.T) {
 	ass.Zero(c.peers.NumPeers())
 
 	// make a successful connection
-	peerID := simwallet.NewRandomAccount(rng)
+	peerID := wtest.NewRandomAccount(rng)
 	dialer := connHub.NewDialer()
 
 	go func() {
@@ -265,13 +265,13 @@ func testClientMultiplexing(
 
 	for i := range listeners {
 		i := i
-		id := simwallet.NewRandomAccount(rng)
+		id := wtest.NewRandomAccount(rng)
 		listeners[i] = New(
 			id, connHub.NewDialer(), &DummyFunder{t}, &DummyAdjudicator{t})
 		go listeners[i].Listen(connHub.NewListener(listeners[i].id.Address()))
 	}
 	for i := range dialers {
-		id := simwallet.NewRandomAccount(rng)
+		id := wtest.NewRandomAccount(rng)
 		dialers[i] = New(id, connHub.NewDialer(), &DummyFunder{t}, &DummyAdjudicator{t})
 	}
 

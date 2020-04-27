@@ -6,7 +6,7 @@
 package wallet
 
 import (
-	"io"
+	"math/rand"
 	"sync"
 	"sync/atomic"
 
@@ -16,12 +16,6 @@ import (
 )
 
 var _ wallet.Wallet = (*Wallet)(nil)
-var testWallet *Wallet = nil
-
-// TestWallet retrieves the global test wallet.
-func TestWallet() *Wallet {
-	return testWallet
-}
 
 // NewWallet creates a new empty wallet.
 func NewWallet() *Wallet {
@@ -139,8 +133,8 @@ func (w *Wallet) UsageCount(a wallet.Address) int {
 // NewRandomAccount creates and a new random account from the provided
 // randomness stream. The account is automatically added to the wallet. Returns
 // the generated account. The returned account is already unlocked.
-func (w *Wallet) NewRandomAccount(rng io.Reader) *Account {
-	acc := newRandomAccount(rng)
+func (w *Wallet) NewRandomAccount(rng *rand.Rand) wallet.Account {
+	acc := NewRandomAccount(rng)
 	w.AddAccount(acc)
 	return acc
 }
