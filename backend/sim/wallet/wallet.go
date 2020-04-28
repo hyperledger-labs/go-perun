@@ -55,7 +55,7 @@ func (w *Wallet) Unlock(a wallet.Address) (wallet.Account, error) {
 
 	acc, ok := w.accs[a.(*Address).ByteArray()]
 	if !ok {
-		return nil, errors.New("unlock unknown address")
+		return nil, errors.Errorf("unlock unknown address: %v", a)
 	}
 
 	acc.locked.Unset()

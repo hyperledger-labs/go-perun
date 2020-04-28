@@ -86,17 +86,18 @@ func (d *DummyAdjudicator) SubscribeRegistered(context.Context, *channel.Params)
 func TestClient_New_NilArgs(t *testing.T) {
 	rng := rand.New(rand.NewSource(0x1111))
 	id := wtest.NewRandomAccount(rng)
-	d, f, a := &DummyDialer{t}, &DummyFunder{t}, &DummyAdjudicator{t}
-	assert.Panics(t, func() { New(nil, d, f, a) })
-	assert.Panics(t, func() { New(id, nil, f, a) })
-	assert.Panics(t, func() { New(id, d, nil, a) })
-	assert.Panics(t, func() { New(id, d, f, nil) })
+	d, f, a, w := &DummyDialer{t}, &DummyFunder{t}, &DummyAdjudicator{t}, wtest.RandomWallet()
+	assert.Panics(t, func() { New(nil, d, f, a, w) })
+	assert.Panics(t, func() { New(id, nil, f, a, w) })
+	assert.Panics(t, func() { New(id, d, nil, a, w) })
+	assert.Panics(t, func() { New(id, d, f, nil, w) })
+	assert.Panics(t, func() { New(id, d, f, a, nil) })
 }
 
 func TestClient_Listen_NilArgs(t *testing.T) {
 	rng := rand.New(rand.NewSource(0x20200108))
 	id := wtest.NewRandomAccount(rng)
-	c := New(id, &DummyDialer{t}, &DummyFunder{t}, &DummyAdjudicator{t})
+	c := New(id, &DummyDialer{t}, &DummyFunder{t}, &DummyAdjudicator{t}, wtest.RandomWallet())
 
 	assert.Panics(t, func() { c.Listen(nil) })
 }
@@ -104,7 +105,7 @@ func TestClient_Listen_NilArgs(t *testing.T) {
 func TestClient_New(t *testing.T) {
 	rng := rand.New(rand.NewSource(0x1a2b3c))
 	id := wtest.NewRandomAccount(rng)
-	c := New(id, &DummyDialer{t}, &DummyFunder{t}, &DummyAdjudicator{t})
+	c := New(id, &DummyDialer{t}, &DummyFunder{t}, &DummyAdjudicator{t}, wtest.RandomWallet())
 
 	require.NotNil(t, c)
 	assert.NotNil(t, c.peers)
@@ -116,7 +117,7 @@ func TestClient_NewAndListen_ListenerClose(t *testing.T) {
 
 	rng := rand.New(rand.NewSource(0x1a2b3c))
 	id := wtest.NewRandomAccount(rng)
-	c := New(id, &DummyDialer{t}, &DummyFunder{t}, &DummyAdjudicator{t})
+	c := New(id, &DummyDialer{t}, &DummyFunder{t}, &DummyAdjudicator{t}, wtest.RandomWallet())
 
 	require.NotNil(c)
 
@@ -146,7 +147,7 @@ func TestClient_NewAndListen(t *testing.T) {
 
 	rng := rand.New(rand.NewSource(0x1))
 	connHub := new(peertest.ConnHub)
-	c := New(wtest.NewRandomAccount(rng), &DummyDialer{t}, &DummyFunder{t}, &DummyAdjudicator{t})
+	c := New(wtest.NewRandomAccount(rng), &DummyDialer{t}, &DummyFunder{t}, &DummyAdjudicator{t}, wtest.RandomWallet())
 	// initialize the listener instance in the main goroutine
 	// if it is initialized in a goroutine, the goroutine may be put to sleep
 	// and the dialer may complain about a nonexistent listener
@@ -267,12 +268,12 @@ func testClientMultiplexing(
 		i := i
 		id := wtest.NewRandomAccount(rng)
 		listeners[i] = New(
-			id, connHub.NewDialer(), &DummyFunder{t}, &DummyAdjudicator{t})
+			id, connHub.NewDialer(), &DummyFunder{t}, &DummyAdjudicator{t}, wtest.RandomWallet())
 		go listeners[i].Listen(connHub.NewListener(listeners[i].id.Address()))
 	}
 	for i := range dialers {
 		id := wtest.NewRandomAccount(rng)
-		dialers[i] = New(id, connHub.NewDialer(), &DummyFunder{t}, &DummyAdjudicator{t})
+		dialers[i] = New(id, connHub.NewDialer(), &DummyFunder{t}, &DummyAdjudicator{t}, wtest.RandomWallet())
 	}
 
 	hostBarrier := new(sync.WaitGroup)

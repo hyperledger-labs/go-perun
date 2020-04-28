@@ -119,6 +119,7 @@ func (c *Channel) settle(ctx context.Context) error {
 		return errors.WithMessage(err, "withdrawing")
 	}
 	c.log.Info("Withdrawal successful.")
+	c.wallet.DecrementUsage(c.machine.Account().Address())
 	return nil
 }
 

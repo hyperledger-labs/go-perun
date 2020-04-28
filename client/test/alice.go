@@ -17,7 +17,6 @@ import (
 	"perun.network/go-perun/apps/payment"
 	"perun.network/go-perun/channel"
 	"perun.network/go-perun/client"
-	wallettest "perun.network/go-perun/wallet/test"
 )
 
 // Alice is a test client role. She proposes the new channel.
@@ -44,7 +43,7 @@ func (r *Alice) Execute(cfg ExecConfig) {
 	prop := &client.ChannelProposal{
 		ChallengeDuration: 10,           // 10 sec
 		Nonce:             new(big.Int), // nonce 0
-		Account:           wallettest.NewRandomAccount(rng),
+		ParticipantAddr:   r.setup.Wallet.NewRandomAccount(rng).Address(),
 		AppDef:            payment.AppDef(),
 		InitData:          new(payment.NoData),
 		InitBals:          initBals,

@@ -32,23 +32,22 @@ type Channel struct {
 	machMtx     sync.RWMutex
 	updateSub   chan<- *channel.State
 	adjudicator channel.Adjudicator
+	wallet      wallet.Wallet
 }
 
 // newChannel is internally used by the Client to create a new channel
 // controller after the channel proposal protocol ran successfully.
-func newChannel(
+func (c *Client) newChannel(
 	acc wallet.Account,
 	peers []*peer.Peer,
 	params channel.Params,
-	adjudicator channel.Adjudicator,
-	pr persistence.Persister,
 ) (*Channel, error) {
 	machine, err := channel.NewStateMachine(acc, params)
 	if err != nil {
 		return nil, errors.WithMessage(err, "creating state machine")
 	}
 
-	pmachine := persistence.FromStateMachine(machine, pr)
+	pmachine := persistence.FromStateMachine(machine, c.pr)
 
 	// bundle peers into channel connection
 	conn, err := newChannelConn(params.ID(), peers, machine.Idx())
@@ -56,13 +55,14 @@ func newChannel(
 		return nil, errors.WithMessagef(err, "setting up channel connection")
 	}
 
-	logger := log.WithFields(log.Fields{"channel": params.ID(), "id": acc.Address()})
+	logger := c.logChan(params.ID())
 	conn.SetLogger(logger)
 	return &Channel{
 		log:         logger,
 		conn:        conn,
 		machine:     pmachine,
-		adjudicator: adjudicator,
+		adjudicator: c.adjudicator,
+		wallet:      c.wallet,
 	}, nil
 }
 
@@ -75,6 +75,7 @@ func (c *Channel) Close() error {
 }
 
 func (c *Channel) setLogger(l log.Logger) {
+	c.conn.SetLogger(l)
 	c.log = l
 }
 

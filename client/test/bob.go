@@ -30,7 +30,7 @@ func (r *Bob) Execute(cfg ExecConfig) {
 	rng := rand.New(rand.NewSource(0xB0B))
 	assert := assert.New(r.t)
 	we, them := r.Idxs(cfg.PeerAddrs)
-	propHandler := newAcceptAllPropHandler(rng, r.setup.Timeout)
+	propHandler := newAcceptAllPropHandler(rng, r.setup.Timeout, r.setup.Wallet)
 
 	var listenWg sync.WaitGroup
 	listenWg.Add(3)
