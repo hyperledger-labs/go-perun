@@ -305,11 +305,11 @@ func (c *Client) setupChannel(
 		return nil, errors.WithMessage(err, "unlocking account")
 	}
 
-	ch, err := newChannel(acc, peers, *params, c.adjudicator, c.pr)
+	ch, err := c.newChannel(acc, peers, *params)
 	if err != nil {
 		return nil, err
 	}
-	ch.setLogger(c.logChan(params.ID()))
+
 	if err := c.pr.ChannelCreated(ctx, ch.machine, prop.PeerAddrs); err != nil {
 		return ch, errors.WithMessage(err, "persisting new channel")
 	}
