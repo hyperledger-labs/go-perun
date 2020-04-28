@@ -75,6 +75,7 @@ func (c *Channel) Close() error {
 }
 
 func (c *Channel) setLogger(l log.Logger) {
+	c.conn.SetLogger(l)
 	c.log = l
 }
 
