@@ -32,6 +32,7 @@ type Channel struct {
 	machMtx     sync.RWMutex
 	updateSub   chan<- *channel.State
 	adjudicator channel.Adjudicator
+	wallet      wallet.Wallet
 }
 
 // newChannel is internally used by the Client to create a new channel
@@ -61,6 +62,7 @@ func (c *Client) newChannel(
 		conn:        conn,
 		machine:     pmachine,
 		adjudicator: c.adjudicator,
+		wallet:      c.wallet,
 	}, nil
 }
 
