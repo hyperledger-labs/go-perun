@@ -16,7 +16,6 @@ import (
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/accounts/keystore"
-	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/pkg/errors"
 
@@ -33,9 +32,9 @@ const GasLimit = 500000
 // Both test.SimulatedBackend and ethclient.Client implement this interface.
 type ContractInterface interface {
 	bind.ContractBackend
-	BlockByNumber(context.Context, *big.Int) (*types.Block, error)
-	TransactionReceipt(ctx context.Context, txHash common.Hash) (*types.Receipt, error)
-	BalanceAt(ctx context.Context, contract common.Address, blockNumber *big.Int) (*big.Int, error)
+	ethereum.ChainReader
+	ethereum.ChainStateReader
+	ethereum.TransactionReader
 }
 
 // ContractBackend adds a keystore and an on-chain account to the ContractInterface.
