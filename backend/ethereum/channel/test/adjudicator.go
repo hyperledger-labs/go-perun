@@ -104,8 +104,10 @@ type SimTimeout struct {
 // IsElapsed returns whether the timeout is higher than the current block's
 // timestamp.
 // Access to the blockchain by different SimTimeouts is guarded by a shared mutex.
-func (t *SimTimeout) IsElapsed() bool {
-	t.sb.clockMu.Lock()
+func (t *SimTimeout) IsElapsed(ctx context.Context) bool {
+	if !t.sb.clockMu.TryLockCtx(ctx) {
+		return false // subsequent Wait call will expose error to caller
+	}
 	defer t.sb.clockMu.Unlock()
 
 	return t.timeLeft() <= 0

@@ -260,10 +260,10 @@ func TestWithdrawNonFinal(t *testing.T) {
 	reg, err := s.Adjs[0].Register(ctx, req)
 	require.NoError(t, err)
 	t.Log("Registered ", reg)
-	assert.False(reg.Timeout.IsElapsed(),
+	assert.False(reg.Timeout.IsElapsed(ctx),
 		"registering non-final state should have non-elapsed timeout")
 	assert.NoError(reg.Timeout.Wait(ctx))
-	assert.True(reg.Timeout.IsElapsed(), "timeout should have elapsed after Wait()")
+	assert.True(reg.Timeout.IsElapsed(ctx), "timeout should have elapsed after Wait()")
 	assert.NoError(s.Adjs[0].Withdraw(ctx, req),
 		"withdrawing should succeed after waiting for timeout")
 }
