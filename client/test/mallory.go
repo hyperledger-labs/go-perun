@@ -96,7 +96,7 @@ func (r *Mallory) Execute(cfg ExecConfig) {
 	// 3rd stage - wait until Carol has refuted
 	r.waitStage()
 
-	assert.True(reg0.Timeout.IsElapsed(),
+	assert.True(reg0.Timeout.IsElapsed(subCtx),
 		"Carol's refutation should already have progressed past the timeout.")
 	reg := sub.Next() // should be event caused by Carol's refutation.
 	assert.NoError(sub.Close())

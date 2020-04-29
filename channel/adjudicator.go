@@ -68,7 +68,7 @@ type (
 	Timeout interface {
 		// IsElapsed should return whether the timeout has elapsed at the time of
 		// the call of this method.
-		IsElapsed() bool
+		IsElapsed(context.Context) bool
 
 		// Wait waits for the timeout to elapse. If the context is canceled, Wait
 		// should return immediately with the context's error.
@@ -102,7 +102,7 @@ type (
 type ElapsedTimeout struct{}
 
 // IsElapsed returns true.
-func (t *ElapsedTimeout) IsElapsed() bool { return true }
+func (t *ElapsedTimeout) IsElapsed(context.Context) bool { return true }
 
 // Wait immediately return nil.
 func (t *ElapsedTimeout) Wait(context.Context) error { return nil }
@@ -114,7 +114,7 @@ func (t *ElapsedTimeout) String() string { return "<Always elapsed timeout>" }
 type TimeTimeout struct{ time.Time }
 
 // IsElapsed returns whether the current time is after the fixed timeout.
-func (t *TimeTimeout) IsElapsed() bool { return t.After(time.Now()) }
+func (t *TimeTimeout) IsElapsed(context.Context) bool { return t.After(time.Now()) }
 
 // Wait waits until the timeout has elapsed or the context is cancelled.
 func (t *TimeTimeout) Wait(ctx context.Context) error {
