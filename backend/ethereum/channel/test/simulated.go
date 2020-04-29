@@ -58,18 +58,6 @@ func NewSimulatedBackend() *SimulatedBackend {
 	}
 }
 
-// BlockByNumber queries a block by its number.
-func (s *SimulatedBackend) BlockByNumber(_ context.Context, number *big.Int) (*types.Block, error) {
-	if number == nil {
-		return s.Blockchain().CurrentBlock(), nil
-	}
-	block := s.Blockchain().GetBlockByNumber(number.Uint64())
-	if block == nil {
-		return nil, errors.New("got nil block from blockchain")
-	}
-	return block, nil
-}
-
 // SendTransaction executes a transaction.
 func (s *SimulatedBackend) SendTransaction(ctx context.Context, tx *types.Transaction) error {
 	if err := s.SimulatedBackend.SendTransaction(ctx, tx); err != nil {
