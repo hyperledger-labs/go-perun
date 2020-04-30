@@ -34,6 +34,17 @@ func NewBlockTimeout(cr ethereum.ChainReader, ts uint64) *BlockTimeout {
 	}
 }
 
+// NewBlockTimeoutDuration creates a new BlockTimeout that elapses duration
+// blockchain seconds added to the current block timestamp in the future.
+func NewBlockTimeoutDuration(
+	ctx context.Context, cr ethereum.ChainReader, duration uint64) (*BlockTimeout, error) {
+	h, err := cr.HeaderByNumber(ctx, nil)
+	if err != nil {
+		return nil, errors.Wrap(err, "getting latest header")
+	}
+	return NewBlockTimeout(cr, h.Time+duration), nil
+}
+
 // IsElapsed reads the timestamp from the current blockchain header to check
 // whether the timeout has passed yet.
 func (t *BlockTimeout) IsElapsed(ctx context.Context) bool {
