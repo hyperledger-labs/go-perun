@@ -327,9 +327,10 @@ func (c *Client) setupChannel(
 			Allocation: prop.InitBals,
 			Idx:        ch.machine.Idx(),
 		}); channel.IsFundingTimeoutError(err) {
-		// TODO: initiate dispute and withdrawal
-		ch.log.Warnf("error while funding channel: %v", err)
-		return ch, errors.WithMessage(err, "error while funding channel")
+		ch.log.Warnf("Peers timed out funding channel(%v); settling...", err)
+		serr := ch.Settle(ctx)
+		return ch, errors.WithMessagef(err,
+			"peers timed out funding (subsequent settlement error: %v)", serr)
 	} else if err != nil { // other runtime error
 		ch.log.Warnf("error while funding channel: %v", err)
 		return ch, errors.WithMessage(err, "error while funding channel")
