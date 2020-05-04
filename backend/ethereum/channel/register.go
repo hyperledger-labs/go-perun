@@ -7,8 +7,8 @@ package channel // import "perun.network/go-perun/backend/ethereum/channel"
 
 import (
 	"context"
-	"time"
 
+	"github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/event"
 	"github.com/pkg/errors"
 
@@ -89,6 +89,7 @@ func (a *Adjudicator) SubscribeRegistered(ctx context.Context, params *channel.P
 	}
 
 	rsub := &RegisteredSub{
+		cr:   a.ContractInterface,
 		sub:  sub,
 		next: make(chan *channel.RegisteredEvent, 1),
 		err:  make(chan error, 1),
@@ -148,10 +149,11 @@ func (a *Adjudicator) filterWatchStored(ctx context.Context, stored chan *adjudi
 
 // RegisteredSub implements the channel.RegisteredSubscription interface.
 type RegisteredSub struct {
-	sub  event.Subscription
-	next chan *channel.RegisteredEvent
-	err  chan error // error from subscription
-	past bool       // whether there was a past event when the subscription was created
+	cr   ethereum.ChainReader          // chain reader to read block time
+	sub  event.Subscription            // Stored event subscription
+	next chan *channel.RegisteredEvent // Registered event sink
+	err  chan error                    // error from subscription
+	past bool                          // whether there was a past event when the subscription was created
 }
 
 func (r *RegisteredSub) hasPast() bool {
@@ -166,16 +168,16 @@ evloop:
 			select {
 			// drain next-channel on new event
 			case current := <-r.next:
-				currentTimeout := current.Timeout.(*channel.TimeTimeout)
+				currentTimeout := current.Timeout.(*BlockTimeout)
 				// if newer version or same version and newer timeout, replace
 				if current.Version < next.Version ||
-					current.Version == next.Version && uint64(currentTimeout.Unix()) < next.Timeout {
-					r.next <- storedToRegisteredEvent(next)
+					current.Version == next.Version && currentTimeout.Time < next.Timeout {
+					r.next <- r.storedToRegisteredEvent(next)
 				} else { // otherwise, reuse old
 					r.next <- current
 				}
 			default: // next-channel is empty
-				r.next <- storedToRegisteredEvent(next)
+				r.next <- r.storedToRegisteredEvent(next)
 			}
 		case err := <-r.sub.Err():
 			r.err <- err
@@ -212,13 +214,13 @@ func (r *RegisteredSub) Err() error {
 	return <-r.err
 }
 
-func storedToRegisteredEvent(event *adjudicator.AdjudicatorStored) *channel.RegisteredEvent {
+func (r *RegisteredSub) storedToRegisteredEvent(event *adjudicator.AdjudicatorStored) *channel.RegisteredEvent {
 	if event == nil {
 		return nil
 	}
 	return &channel.RegisteredEvent{
 		ID:      event.ChannelID,
 		Version: event.Version,
-		Timeout: &channel.TimeTimeout{Time: time.Unix(int64(event.Timeout), 0)},
+		Timeout: NewBlockTimeout(r.cr, event.Timeout),
 	}
 }

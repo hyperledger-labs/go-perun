@@ -101,7 +101,7 @@ func (c *Channel) settle(ctx context.Context) error {
 		c.log.Info("Channel state registered.")
 	}
 
-	if reg = c.machine.Registered(); !reg.Timeout.IsElapsed() {
+	if reg = c.machine.Registered(); !reg.Timeout.IsElapsed(ctx) {
 		if c.machine.State().IsFinal {
 			c.log.Warnf(
 				"Unexpected withdrawal timeout while settling final state. Waiting until %v.",

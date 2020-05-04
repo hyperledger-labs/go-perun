@@ -163,15 +163,23 @@ func testFundingTimeout(t *testing.T, faultyPeer, peers int) {
 				Allocation: allocation,
 				Idx:        uint16(i),
 			}
-			ctx2, cancel := context.WithTimeout(context.Background(), 200*time.Millisecond)
 			defer cancel()
-			err := funder.Fund(ctx2, req)
+			err := funder.Fund(ctx, req)
 			require.True(rt, channel.IsFundingTimeoutError(err), "funder should return FundingTimeoutError")
 			pErr := errors.Cause(err).(*channel.FundingTimeoutError) // unwrap error
 			assert.Equal(t, pErr.Errors[0].Asset, 0, "Wrong asset set")
 			assert.Equal(t, uint16(faultyPeer), pErr.Errors[0].TimedOutPeers[0], "Peer should be detected as erroneous")
 		})
 	}
+
+	time.Sleep(100 * time.Millisecond) // give all funders enough time to fund
+	// Hackily extract SimulatedBackend from funder
+	sb, ok := funders[0].ContractInterface.(*test.SimulatedBackend)
+	require.True(t, ok)
+	// advance block time so that funding fails for non-funders
+	require.NoError(t, sb.AdjustTime(time.Duration(params.ChallengeDuration)*time.Second))
+	sb.Commit()
+
 	ct.Wait("funding loop")
 }
 
@@ -244,7 +252,9 @@ func newNFunders(
 		cb := ethchannel.NewContractBackend(simBackend, ks, &acc.Account)
 		funders[i] = ethchannel.NewETHFunder(cb, assetETH)
 	}
-	params = channeltest.NewRandomParams(rng, channeltest.WithParts(parts...))
+	// The SimBackend advances 10 sec per transaction/block, so generously add 20
+	// sec funding duration per participant
+	params = channeltest.NewRandomParams(rng, channeltest.WithParts(parts...), channeltest.WithChallengeDuration(uint64(n)*20))
 	allocation = channeltest.NewRandomAllocation(rng, channeltest.WithNumParts(len(parts)), channeltest.WithAssets((*ethchannel.Asset)(&assetETH)))
 	return
 }

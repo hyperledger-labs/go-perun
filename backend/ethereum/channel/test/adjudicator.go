@@ -48,8 +48,8 @@ func (a *SimAdjudicator) Register(ctx context.Context, req channel.AdjudicatorRe
 	}
 
 	switch t := reg.Timeout.(type) {
-	case *channel.TimeTimeout:
-		reg.Timeout = time2SimTimeout(a.sb, t)
+	case *ethchannel.BlockTimeout:
+		reg.Timeout = block2SimTimeout(a.sb, t)
 	case *channel.ElapsedTimeout: // leave as is
 	case nil: // leave as is
 	default:
@@ -85,27 +85,29 @@ func (r *SimRegisteredSub) Next() *channel.RegisteredEvent {
 	if reg == nil {
 		return nil
 	}
-	reg.Timeout = time2SimTimeout(r.sb, reg.Timeout.(*channel.TimeTimeout))
+	reg.Timeout = block2SimTimeout(r.sb, reg.Timeout.(*ethchannel.BlockTimeout))
 	return reg
 }
 
-func time2SimTimeout(sb *SimulatedBackend, t *channel.TimeTimeout) *SimTimeout {
-	return &SimTimeout{t.Time.Unix(), sb}
+func block2SimTimeout(sb *SimulatedBackend, t *ethchannel.BlockTimeout) *SimTimeout {
+	return &SimTimeout{t.Time, sb}
 }
 
 // A SimTimeout is a timeout on a simulated blockchain. The first call to Wait
 // advances the clock of the simulated blockchain past the timeout. Access to
 // the blockchain by different SimTimeouts is guarded by a shared mutex.
 type SimTimeout struct {
-	Time int64
+	Time uint64
 	sb   *SimulatedBackend
 }
 
 // IsElapsed returns whether the timeout is higher than the current block's
 // timestamp.
 // Access to the blockchain by different SimTimeouts is guarded by a shared mutex.
-func (t *SimTimeout) IsElapsed() bool {
-	t.sb.clockMu.Lock()
+func (t *SimTimeout) IsElapsed(ctx context.Context) bool {
+	if !t.sb.clockMu.TryLockCtx(ctx) {
+		return false // subsequent Wait call will expose error to caller
+	}
 	defer t.sb.clockMu.Unlock()
 
 	return t.timeLeft() <= 0
@@ -134,7 +136,7 @@ func (t *SimTimeout) timeLeft() int64 {
 	if err != nil { // should never happen with a sim blockchain
 		panic(fmt.Sprint("Error getting latest block: ", err))
 	}
-	return t.Time - int64(block.Time())
+	return int64(t.Time) - int64(block.Time())
 }
 
 // String returns the timeout in absolute seconds as a string.

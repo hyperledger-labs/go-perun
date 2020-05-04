@@ -49,6 +49,15 @@ type (
 // Accept lets the user signal that they want to accept the channel proposal.
 // Returns whether the acceptance message was successfully sent. Panics if the
 // proposal was already accepted or rejected.
+//
+// After the channel got successfully created, the user is required to start the
+// update handler with Channel.ListenUpdates(UpdateHandler) and to start the
+// channel watcher with Channel.Watch(context.Context) on the returned channel
+// controller.
+//
+// It is important that the passed context does not cancel before twice the
+// ChallengeDuration has passed (at least for real blockchain backends with wall
+// time), or the channel cannot be settled if a peer times out funding.
 func (r *ProposalResponder) Accept(ctx context.Context, acc ProposalAcc) (*Channel, error) {
 	if ctx == nil {
 		return nil, errors.New("context must not be nil")
@@ -83,8 +92,15 @@ func (r *ProposalResponder) Reject(ctx context.Context, reason string) error {
 // - the proposal is sent to the peers and if all peers accept,
 // - the channel is funded. If successful,
 // - the channel controller is returned.
-// The user is required to start the update handler with
-// Channel.ListenUpdates(UpdateHandler)
+//
+// After the channel got successfully created, the user is required to start the
+// update handler with Channel.ListenUpdates(UpdateHandler) and to start the
+// channel watcher with Channel.Watch(context.Context) on the returned channel
+// controller.
+//
+// It is important that the passed context does not cancel before twice the
+// ChallengeDuration has passed (at least for real blockchain backends with wall
+// time), or the channel cannot be settled if a peer times out funding.
 func (c *Client) ProposeChannel(ctx context.Context, req *ChannelProposal) (*Channel, error) {
 	if ctx == nil || req == nil {
 		c.log.Panic("invalid nil argument")
@@ -286,6 +302,10 @@ func (c *Client) validTwoPartyProposal(
 //
 // It does not perform a validity check on the proposal, so make sure to only
 // pass valid proposals.
+//
+// It is important that the passed context does not cancel before twice the
+// ChallengeDuration has passed (at least for real blockchain backends with wall
+// time), or the channel cannot be settled if a peer times out funding.
 func (c *Client) setupChannel(
 	ctx context.Context,
 	prop *ChannelProposal,
@@ -327,9 +347,10 @@ func (c *Client) setupChannel(
 			Allocation: prop.InitBals,
 			Idx:        ch.machine.Idx(),
 		}); channel.IsFundingTimeoutError(err) {
-		// TODO: initiate dispute and withdrawal
-		ch.log.Warnf("error while funding channel: %v", err)
-		return ch, errors.WithMessage(err, "error while funding channel")
+		ch.log.Warnf("Peers timed out funding channel(%v); settling...", err)
+		serr := ch.Settle(ctx)
+		return ch, errors.WithMessagef(err,
+			"peers timed out funding (subsequent settlement error: %v)", serr)
 	} else if err != nil { // other runtime error
 		ch.log.Warnf("error while funding channel: %v", err)
 		return ch, errors.WithMessage(err, "error while funding channel")

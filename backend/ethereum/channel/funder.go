@@ -22,6 +22,7 @@ import (
 	"perun.network/go-perun/backend/ethereum/wallet"
 	"perun.network/go-perun/channel"
 	"perun.network/go-perun/log"
+	pcontext "perun.network/go-perun/pkg/context"
 	perunwallet "perun.network/go-perun/wallet"
 )
 
@@ -53,11 +54,31 @@ func NewETHFunder(backend ContractBackend, ethAssetHolder common.Address) *Funde
 	}
 }
 
-// Fund implements the funder interface.
-// It can be used to fund state channels on the ethereum blockchain.
+// Fund implements the channel.Funder interface. It funds all assets in
+// parallel. If not all participants successfully fund within a timeframe of
+// ChallengeDuration seconds, Fund returns a FundingTimeoutError.
+//
+// If funding on a real blockchain, make sure that the passed context doesn't
+// cancel before the funding period of length ChallengeDuration elapses, or
+// funding will be canceled prematurely.
 func (f *Funder) Fund(ctx context.Context, request channel.FundingReq) error {
 	var channelID = request.Params.ID()
 	f.log.WithField("channel", channelID).Debug("Funding Channel.")
+
+	// We wait for the funding timeout in a go routine and cancel the funding
+	// context if the timeout elapses.
+	timeout, err := NewBlockTimeoutDuration(ctx, f.ContractInterface, request.Params.ChallengeDuration)
+	if err != nil {
+		return errors.WithMessage(err, "creating block timeout")
+	}
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel() // in case we return before block timeout
+	go func() {
+		if err := timeout.Wait(ctx); err != nil && !pcontext.IsContextError(err) {
+			f.log.Warn("Fund: BlockTimeout.Wait runtime error: ", err)
+		}
+		cancel() // cancel funding context on funding timeout
+	}()
 
 	partIDs := FundingIDs(channelID, request.Params.Parts...)
 
