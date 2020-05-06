@@ -3,7 +3,7 @@
 // of this source code is governed by a MIT-style license that can be found in
 // the LICENSE file.
 
-package test // import "perun.network/go-perun/pkg/test"
+package test
 
 import (
 	"math/rand"
