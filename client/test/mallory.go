@@ -8,65 +8,34 @@ package test
 import (
 	"context"
 	"fmt"
-	"math/big"
-	"math/rand"
 	"testing"
 	"time"
 
 	"github.com/stretchr/testify/assert"
 
-	"perun.network/go-perun/apps/payment"
-	"perun.network/go-perun/channel"
 	"perun.network/go-perun/client"
 )
 
 // Mallory is a test client role. She proposes the new channel.
 type Mallory struct {
-	Role
+	Proposer
 }
 
 // NewMallory creates a new party that executes the Mallory protocol.
 func NewMallory(setup RoleSetup, t *testing.T) *Mallory {
-	return &Mallory{Role: MakeRole(setup, t, 3)}
+	return &Mallory{Proposer: *NewProposer(setup, t, 3)}
 }
 
 // Execute executes the Mallory protocol.
 func (r *Mallory) Execute(cfg ExecConfig) {
-	rng := rand.New(rand.NewSource(0x471CF))
+	r.Proposer.Execute(cfg, r.exec)
+}
+
+func (r *Mallory) exec(cfg ExecConfig, ch *paymentChannel) {
 	assert := assert.New(r.t)
 	we, _ := r.Idxs(cfg.PeerAddrs)
-	// We don't start the proposal listener because Mallory only sends proposals
-
-	initBals := &channel.Allocation{
-		Assets:   []channel.Asset{cfg.Asset},
-		Balances: [][]*big.Int{cfg.InitBals[:]},
-	}
-	prop := &client.ChannelProposal{
-		ChallengeDuration: 60,           // 1 min
-		Nonce:             new(big.Int), // nonce 0
-		ParticipantAddr:   r.setup.Wallet.NewRandomAccount(rng).Address(),
-		AppDef:            payment.AppDef(),
-		InitData:          new(payment.NoData),
-		InitBals:          initBals,
-		PeerAddrs:         cfg.PeerAddrs[:],
-	}
-
-	// send channel proposal
-	_ch, err := func() (*client.Channel, error) {
-		ctx, cancel := context.WithTimeout(context.Background(), r.timeout)
-		defer cancel()
-		return r.ProposeChannel(ctx, prop)
-	}()
-	assert.NoError(err)
-	assert.NotNil(_ch)
-	if err != nil {
-		return
-	}
-	ch := newPaymentChannel(_ch, &r.Role)
-	r.log.Infof("New Channel opened: %v", ch.Channel)
-
 	// AdjudicatorReq for version 0
-	req0 := client.NewTestChannel(_ch).AdjudicatorReq()
+	req0 := client.NewTestChannel(ch.Channel).AdjudicatorReq()
 
 	// 1st stage - channel controller set up
 	r.waitStage()
@@ -79,7 +48,7 @@ func (r *Mallory) Execute(cfg ExecConfig) {
 	r.waitStage()
 
 	// Register version 0 AdjudicatorReq
-	challengeDuration := time.Duration(prop.ChallengeDuration) * time.Second
+	challengeDuration := time.Duration(ch.Channel.Params().ChallengeDuration) * time.Second
 	regCtx, regCancel := context.WithTimeout(context.Background(), r.timeout)
 	defer regCancel()
 	r.log.Debug("Registering version 0 state.")
@@ -118,7 +87,4 @@ func (r *Mallory) Execute(cfg ExecConfig) {
 
 	// settling current version should work
 	ch.settleChan()
-
-	assert.NoError(ch.Close())
-	assert.NoError(r.Close())
 }

@@ -7,73 +7,26 @@ package test // import "perun.network/go-perun/client/test"
 
 import (
 	"fmt"
-	"math/rand"
-	"sync"
 	"testing"
-	"time"
-
-	"github.com/stretchr/testify/assert"
 )
 
-// Bob is a test client role. He accepts an incoming channel proposal.
+// Bob is a Responder. He accepts an incoming channel proposal.
 type Bob struct {
-	Role
+	Responder
 }
 
-// NewBob creates a new party that executes the Bob protocol.
+// NewBob creates a new Responder that executes the Bob protocol.
 func NewBob(setup RoleSetup, t *testing.T) *Bob {
-	return &Bob{Role: MakeRole(setup, t, 4)}
+	return &Bob{Responder: *NewResponder(setup, t, 4)}
 }
 
 // Execute executes the Bob protocol.
 func (r *Bob) Execute(cfg ExecConfig) {
-	rng := rand.New(rand.NewSource(0xB0B))
-	assert := assert.New(r.t)
+	r.Responder.Execute(cfg, r.exec)
+}
+
+func (r *Bob) exec(cfg ExecConfig, ch *paymentChannel) {
 	we, them := r.Idxs(cfg.PeerAddrs)
-	propHandler := newAcceptAllPropHandler(rng, r.setup.Timeout, r.setup.Wallet)
-
-	var listenWg sync.WaitGroup
-	listenWg.Add(3)
-	defer func() {
-		r.log.Debug("Waiting for listeners to return...")
-		listenWg.Wait()
-	}()
-	go func() {
-		defer listenWg.Done()
-		r.log.Info("Starting peer listener.")
-		r.Listen(r.setup.Listener)
-		r.log.Debug("Peer listener returned.")
-	}()
-	go func() {
-		defer listenWg.Done()
-		r.log.Info("Starting proposal handler.")
-		r.HandleChannelProposals(propHandler)
-		r.log.Debug("Proposal handler returned.")
-	}()
-
-	// receive one accepted proposal
-	var chErr channelAndError
-	select {
-	case chErr = <-propHandler.chans:
-	case <-time.After(r.timeout):
-		r.t.Error("expected incoming channel proposal from Alice")
-		return
-	}
-	assert.NoError(chErr.err)
-	assert.NotNil(chErr.channel)
-	if chErr.err != nil {
-		return
-	}
-	ch := newPaymentChannel(chErr.channel, &r.Role)
-	r.log.Infof("New Channel opened: %v", ch.Channel)
-
-	// start update handler
-	go func() {
-		defer listenWg.Done()
-		r.log.Info("Starting update listener.")
-		ch.ListenUpdates()
-		r.log.Debug("Update listener returned.")
-	}()
 
 	// 1st stage - channel controller set up
 	r.waitStage()
@@ -100,7 +53,4 @@ func (r *Bob) Execute(cfg ExecConfig) {
 
 	// 4th final stage
 	r.waitStage()
-
-	assert.NoError(ch.Close())
-	assert.NoError(r.Close())
 }
