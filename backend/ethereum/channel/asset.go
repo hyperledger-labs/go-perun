@@ -6,10 +6,7 @@
 package channel
 
 import (
-	"math/rand"
-
 	"perun.network/go-perun/backend/ethereum/wallet"
-	"perun.network/go-perun/backend/ethereum/wallet/test"
 	"perun.network/go-perun/channel"
 )
 
@@ -17,9 +14,3 @@ import (
 type Asset = wallet.Address
 
 var _ channel.Asset = new(Asset)
-
-// NewRandomAsset returns a new random sim Asset
-func NewRandomAsset(rng *rand.Rand) *Asset {
-	asset := test.NewRandomAddress(rng)
-	return &asset
-}
