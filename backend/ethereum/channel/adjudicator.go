@@ -109,5 +109,5 @@ func (a *Adjudicator) call(ctx context.Context, req channel.AdjudicatorReq, fn a
 		return err
 	}
 
-	return errors.WithMessage(confirmTransaction(ctx, a.ContractBackend, tx), "mining transaction")
+	return errors.WithMessage(a.confirmTransaction(ctx, tx), "mining transaction")
 }

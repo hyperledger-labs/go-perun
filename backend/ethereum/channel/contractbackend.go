@@ -123,13 +123,13 @@ func (c *ContractBackend) NewTransactor(ctx context.Context, valueWei *big.Int, 
 	return auth, nil
 }
 
-func confirmTransaction(ctx context.Context, backend ContractBackend, tx *types.Transaction) error {
-	receipt, err := bind.WaitMined(ctx, backend, tx)
+func (c *ContractBackend) confirmTransaction(ctx context.Context, tx *types.Transaction) error {
+	receipt, err := bind.WaitMined(ctx, c, tx)
 	if err != nil {
 		return errors.Wrap(err, "sending transaction")
 	}
 	if receipt.Status == types.ReceiptStatusFailed {
-		reason, err := errorReason(ctx, &backend, tx, receipt.BlockNumber)
+		reason, err := errorReason(ctx, c, tx, receipt.BlockNumber)
 		if err != nil {
 			log.Warn("TX failed; error determining reason: ", err)
 		} else {
