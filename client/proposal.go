@@ -47,13 +47,12 @@ type (
 )
 
 // Accept lets the user signal that they want to accept the channel proposal.
-// Returns whether the acceptance message was successfully sent. Panics if the
-// proposal was already accepted or rejected.
+// Returns the newly created channel controller if the channel was successfully
+// created and funded. Panics if the proposal was already accepted or rejected.
 //
 // After the channel got successfully created, the user is required to start the
 // update handler with Channel.ListenUpdates(UpdateHandler) and to start the
-// channel watcher with Channel.Watch(context.Context) on the returned channel
-// controller.
+// channel watcher with Channel.Watch() on the returned channel controller.
 //
 // It is important that the passed context does not cancel before twice the
 // ChallengeDuration has passed (at least for real blockchain backends with wall
