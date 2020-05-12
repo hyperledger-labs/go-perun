@@ -168,7 +168,7 @@ func errorReason(ctx context.Context, b *ContractBackend, tx *types.Transaction,
 var errorSig = []byte{0x08, 0xc3, 0x79, 0xa0}
 
 func unpackError(result []byte) (string, error) {
-	if !bytes.Equal(result[:4], errorSig) {
+	if len(result) < 4 || !bytes.Equal(result[:4], errorSig) {
 		return "<tx result not Error(string)>", errors.New("TX result not of type Error(string)")
 	}
 	vs, err := abi.Arguments{{Type: abiString}}.UnpackValues(result[4:])
