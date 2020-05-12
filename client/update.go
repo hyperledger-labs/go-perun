@@ -144,6 +144,22 @@ func (c *Channel) Update(ctx context.Context, up ChannelUpdate) (err error) {
 	return c.enableNotifyUpdate(ctx)
 }
 
+// UpdateBy updates the channel state using the update function and proposes the new state
+// to all other channel participants.
+//
+// It returns nil if all peers accept the update. If any runtime error occurs or
+// any peer rejects the update, an error is returned.
+func (c *Channel) UpdateBy(ctx context.Context, update func(*channel.State)) (err error) {
+	state := c.State().Clone()
+	update(state)
+	state.Version++
+
+	return c.Update(ctx, ChannelUpdate{
+		State:    state,
+		ActorIdx: c.Idx(),
+	})
+}
+
 // ListenUpdates starts the handling of incoming channel update requests. It
 // should immediately be started by the user after they receive the channel
 // controller.

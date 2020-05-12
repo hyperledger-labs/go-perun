@@ -55,14 +55,7 @@ func (ch *paymentChannel) sendUpdate(update func(*channel.State), desc string) {
 	ctx, cancel := context.WithTimeout(context.Background(), ch.r.timeout)
 	defer cancel()
 
-	state := ch.State().Clone()
-	update(state)
-	state.Version++
-
-	err := ch.Update(ctx, client.ChannelUpdate{
-		State:    state,
-		ActorIdx: ch.Idx(),
-	})
+	err := ch.UpdateBy(ctx, update)
 	ch.log.Infof("Sent update: %s, err: %v", desc, err)
 	assert.NoError(ch.r.t, err)
 }
