@@ -16,3 +16,7 @@ func TestPingMsg(t *testing.T) {
 func TestPongMsg(t *testing.T) {
 	TestMsg(t, NewPongMsg())
 }
+
+func TestShutdownMsg(t *testing.T) {
+	TestMsg(t, &ShutdownMsg{"m2384ordkln fb30954390582"})
+}
