@@ -40,7 +40,7 @@ type (
 		ID() channel.ID
 	}
 
-	channelUpdateResMsg interface {
+	channelVerMsg interface {
 		ChannelMsg
 		Ver() uint64
 	}
@@ -80,9 +80,9 @@ type (
 )
 
 var (
-	_ ChannelMsg          = (*msgChannelUpdate)(nil)
-	_ channelUpdateResMsg = (*msgChannelUpdateAcc)(nil)
-	_ channelUpdateResMsg = (*msgChannelUpdateRej)(nil)
+	_ ChannelMsg    = (*msgChannelUpdate)(nil)
+	_ channelVerMsg = (*msgChannelUpdateAcc)(nil)
+	_ channelVerMsg = (*msgChannelUpdateRej)(nil)
 )
 
 // Type returns this message's type: ChannelUpdate

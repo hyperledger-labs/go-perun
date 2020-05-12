@@ -127,7 +127,7 @@ func (c *channelConn) NextUpdateReq(ctx context.Context) (channel.Index, *msgCha
 func (c *channelConn) NewUpdateResRecv(version uint64) (*channelMsgRecv, error) {
 	recv := peer.NewReceiver()
 	if err := c.r.Subscribe(recv, func(m wire.Msg) bool {
-		resMsg, ok := m.(channelUpdateResMsg)
+		resMsg, ok := m.(channelVerMsg)
 		return ok && resMsg.Ver() == version
 	}); err != nil {
 		return nil, errors.WithMessagef(err, "subscribing update response receiver")
