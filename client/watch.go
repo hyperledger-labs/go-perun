@@ -26,12 +26,13 @@ func (c *Channel) Watch() error {
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
-	c.OnClose(cancel)
+	c.OnCloseAlways(cancel)
 	sub, err := c.adjudicator.SubscribeRegistered(ctx, c.Params())
 	if err != nil {
 		return errors.WithMessage(err, "subscribing to RegisteredEvents")
 	}
 	defer sub.Close()
+	c.OnCloseAlways(func() { sub.Close() })
 
 	// Wait for on-chain event
 	reg := sub.Next()
