@@ -15,6 +15,7 @@ import (
 func init() {
 	RegisterDecoder(Ping, func(r io.Reader) (Msg, error) { var m PingMsg; return &m, m.Decode(r) })
 	RegisterDecoder(Pong, func(r io.Reader) (Msg, error) { var m PongMsg; return &m, m.Decode(r) })
+	RegisterDecoder(Shutdown, func(r io.Reader) (Msg, error) { var m ShutdownMsg; return &m, m.Decode(r) })
 }
 
 // Since ping and pong messages are essentially the same, this is a common
@@ -72,4 +73,24 @@ func (m *PongMsg) Type() Type {
 // NewPongMsg creates a new Pong message.
 func NewPongMsg() *PongMsg {
 	return &PongMsg{newPingPongMsg()}
+}
+
+// ShutdownMsg is sent when orderly shutting down a connection.
+type ShutdownMsg struct {
+	Reason string
+}
+
+// Encode implements msg.Encode.
+func (m *ShutdownMsg) Encode(w io.Writer) error {
+	return wire.Encode(w, m.Reason)
+}
+
+// Decode implements msg.Decode.
+func (m *ShutdownMsg) Decode(r io.Reader) error {
+	return wire.Decode(r, &m.Reason)
+}
+
+// Type implements msg.Type.
+func (m *ShutdownMsg) Type() Type {
+	return Shutdown
 }

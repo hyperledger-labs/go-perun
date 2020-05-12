@@ -80,6 +80,7 @@ type Type uint8
 const (
 	Ping Type = iota
 	Pong
+	Shutdown
 	AuthResponse
 	ChannelProposal
 	ChannelProposalAcc
@@ -95,6 +96,7 @@ const (
 var typeNames = map[Type]string{
 	Ping:               "Ping",
 	Pong:               "Pong",
+	Shutdown:           "Shutdown",
 	AuthResponse:       "AuthResponse",
 	ChannelProposal:    "ChannelProposal",
 	ChannelProposalAcc: "ChannelProposalAcc",
