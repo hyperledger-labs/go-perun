@@ -89,3 +89,12 @@ func NewRandomAccounts(rng *rand.Rand, n int) ([]wallet.Account, []wallet.Addres
 	}
 	return accs, addrs
 }
+
+// NewRandomAddresses returns a slice of new random addresses.
+func NewRandomAddresses(rng *rand.Rand, n int) []wallet.Address {
+	addrs := make([]wallet.Address, n)
+	for i := range addrs {
+		addrs[i] = NewRandomAddress(rng)
+	}
+	return addrs
+}
