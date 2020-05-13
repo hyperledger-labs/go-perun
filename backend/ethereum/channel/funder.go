@@ -171,7 +171,7 @@ func (f *Funder) sendFundingTransaction(ctx context.Context, request channel.Fun
 	if err != nil {
 		return errors.WithMessagef(err, "depositing asset %d", asset.assetIndex)
 	}
-	if err := confirmTransaction(ctx, f.ContractBackend, tx); err != nil {
+	if err := f.confirmTransaction(ctx, tx); err != nil {
 		return errors.WithMessage(err, "mining transaction")
 	}
 	f.log.Debugf("peer[%d] Transaction with txHash: [%v] executed successful", request.Idx, tx.Hash().Hex())
