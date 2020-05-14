@@ -7,12 +7,15 @@ package channel
 
 import (
 	"bytes"
+	stdio "io"
 	"log"
 	"math/big"
 
 	"github.com/pkg/errors"
 
+	"perun.network/go-perun/pkg/io"
 	"perun.network/go-perun/wallet"
+	"perun.network/go-perun/wire"
 )
 
 // IDLen the length of a channelID.
@@ -23,6 +26,8 @@ type ID = [IDLen]byte
 
 // Zero is the default channelID.
 var Zero ID = ID{}
+
+var _ io.Serializer = (*Params)(nil)
 
 // Params are a channel's immutable parameters.  A channel's id is the hash of
 // (some of) its parameter, as determined by the backend.  All fields should be
@@ -123,4 +128,31 @@ func (p *Params) Clone() *Params {
 		Parts:             clonedParts,
 		App:               p.App,
 		Nonce:             new(big.Int).Set(p.Nonce)}
+}
+
+// Encode uses the wire module to serialize a params instance.
+func (p *Params) Encode(w stdio.Writer) error {
+	return wire.Encode(w,
+		p.id,
+		p.ChallengeDuration,
+		wallet.AddressesWithLen(p.Parts),
+		p.App.Def(),
+		p.Nonce)
+}
+
+// Decode uses the wire module to deserialize a params instance.
+func (p *Params) Decode(r stdio.Reader) error {
+	var appDef wallet.Address
+	err := wire.Decode(r,
+		&p.id,
+		&p.ChallengeDuration,
+		(*wallet.AddressesWithLen)(&p.Parts),
+		wallet.AddressDec{Addr: &appDef},
+		&p.Nonce)
+	if err != nil {
+		return errors.WithMessage(err, "decode fields")
+	}
+
+	p.App, err = AppFromDefinition(appDef)
+	return errors.WithMessage(err, "resolve app")
 }
