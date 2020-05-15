@@ -24,9 +24,7 @@ func (c *Channel) Watch() error {
 	log := c.log.WithField("proc", "watcher")
 	defer log.Info("Watcher returned.")
 
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-	c.OnCloseAlways(cancel)
+	ctx := c.Ctx()
 	sub, err := c.adjudicator.SubscribeRegistered(ctx, c.Params())
 	if err != nil {
 		return errors.WithMessage(err, "subscribing to RegisteredEvents")
