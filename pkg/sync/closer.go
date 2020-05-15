@@ -6,7 +6,9 @@
 package sync
 
 import (
+	"context"
 	"sync"
+	"time"
 
 	"github.com/pkg/errors"
 
@@ -118,3 +120,28 @@ func IsAlreadyClosedError(err error) bool {
 	_, ok := errors.Cause(err).(alreadyClosedError)
 	return ok
 }
+
+// implementation of a Closer as a context.Context
+type closerCtx Closer
+
+// Ctx returns a context that is canceled when the Closer is closed.
+func (c *Closer) Ctx() context.Context { return (*closerCtx)(c) }
+
+// Deadline implements context.Deadline trivially - it returns 0, false.
+func (c *closerCtx) Deadline() (deadline time.Time, ok bool) { return }
+
+// Done is closed when the Closer is closed.
+func (c *closerCtx) Done() <-chan struct{} { return (*Closer)(c).Closed() }
+
+// If the Closer is not yet closed, Err returns nil.
+// If the Closer is closed, Err returns a context-canceled error.
+func (c *closerCtx) Err() error {
+	if (*Closer)(c).IsClosed() {
+		return context.Canceled
+	}
+	return nil
+}
+
+// Value always returns nil. It is just there to implement the context.Context
+// interface.
+func (c *closerCtx) Value(interface{}) interface{} { return nil }
