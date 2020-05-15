@@ -33,7 +33,6 @@ const GasLimit = 500000
 type ContractInterface interface {
 	bind.ContractBackend
 	ethereum.ChainReader
-	ethereum.ChainStateReader
 	ethereum.TransactionReader
 }
 
@@ -84,16 +83,16 @@ func (c *ContractBackend) NewFilterOpts(ctx context.Context) (*bind.FilterOpts, 
 }
 
 func (c *ContractBackend) pastOffsetBlockNum(ctx context.Context) (uint64, error) {
-	latestBlock, err := c.BlockByNumber(ctx, nil)
+	h, err := c.HeaderByNumber(ctx, nil)
 	if err != nil {
 		return uint64(0), errors.Wrap(err, "retrieving latest block")
 	}
 
 	// max(1, latestBlock - offset)
-	if latestBlock.NumberU64() <= startBlockOffset {
+	if h.Number.Uint64() <= startBlockOffset {
 		return 1, nil
 	}
-	return latestBlock.NumberU64() - startBlockOffset, nil
+	return h.Number.Uint64() - startBlockOffset, nil
 }
 
 // NewTransactor returns bind.TransactOpts with the current nonce, suggested gas
