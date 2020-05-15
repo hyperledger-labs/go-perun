@@ -33,7 +33,6 @@ const GasLimit = 500000
 type ContractInterface interface {
 	bind.ContractBackend
 	ethereum.ChainReader
-	ethereum.ChainStateReader
 	ethereum.TransactionReader
 }
 
