@@ -80,6 +80,13 @@ type (
 		RestorePeer(peer.Address) (ChannelIterator, error)
 	}
 
+	// PersistRestorer is a Persister and Restorer on the same data source and
+	// data sink.
+	PersistRestorer interface {
+		Persister
+		Restorer
+	}
+
 	// A ChannelIterator is an iterator over Channels, i.e., channel data that is
 	// necessary for restoring a channel machine. It needs to be implemented by a
 	// persistence backend to allow the framework to restore channels.
