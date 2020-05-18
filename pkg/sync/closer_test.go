@@ -6,6 +6,7 @@
 package sync_test
 
 import (
+	"context"
 	"testing"
 	"time"
 
@@ -35,4 +36,29 @@ func TestCloser_Closed(t *testing.T) {
 		_, ok := <-c.Closed()
 		assert.False(t, ok)
 	})
+}
+
+func TestCloser_Ctx(t *testing.T) {
+	t.Parallel()
+	var c sync.Closer
+	ctx := c.Ctx()
+	assert.NoError(t, ctx.Err())
+	assert.Nil(t, ctx.Value(nil))
+	_, ok := ctx.Deadline()
+	assert.False(t, ok)
+
+	select {
+	case <-ctx.Done():
+		t.Error("context should not be closed")
+	default: // expected
+	}
+
+	done := make(chan struct{})
+	go func() {
+		defer close(done)
+		<-ctx.Done()
+		assert.Same(t, ctx.Err(), context.Canceled)
+	}()
+	assert.NoError(t, c.Close())
+	<-done
 }
