@@ -99,7 +99,7 @@ func (c *Channel) Update(ctx context.Context, up ChannelUpdate) (err error) {
 	// TODO: this is insecure after we sent our signature.
 	defer func() {
 		if err != nil {
-			if derr := c.machine.DiscardUpdate(); derr != nil {
+			if derr := c.machine.DiscardUpdate(ctx); derr != nil {
 				// discarding update should never fail
 				err = errors.WithMessagef(derr,
 					"progressing update failed: %v, then discarding update failed", err)
@@ -223,7 +223,7 @@ func (c *Channel) handleUpdateAcc(
 	defer func() {
 		if err != nil {
 			// we discard the update if anything went wrong
-			if derr := c.machine.DiscardUpdate(); derr != nil {
+			if derr := c.machine.DiscardUpdate(ctx); derr != nil {
 				// discarding update should never fail at this point
 				err = errors.WithMessagef(derr,
 					"sending accept message failed: %v, then discarding update failed", err)

@@ -76,6 +76,14 @@ func TestStateMachine(t *testing.T) {
 	// Update state
 	state1 := sm.State().Clone()
 	state1.Version++
+	// Stage update.
+	err = sm.Update(nil, state1, sm.Idx())
+	require.NoError(err)
+	tpr.AssertEqual(csm)
+	// Discard update.
+	require.NoError(sm.DiscardUpdate(nil))
+	tpr.AssertEqual(csm)
+	// Re-stage update.
 	err = sm.Update(nil, state1, sm.Idx())
 	require.NoError(err)
 	tpr.AssertEqual(csm)

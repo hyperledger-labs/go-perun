@@ -142,3 +142,12 @@ func (m StateMachine) EnableFinal(ctx context.Context) error {
 	}
 	return errors.WithMessage(m.pr.Enabled(ctx, m.StateMachine), "Persister.Enabled")
 }
+
+// DiscardUpdate calls DiscardUpdate on the channel.StateMachine and then
+// removes the state machine's staged state from persistence.
+func (m StateMachine) DiscardUpdate(ctx context.Context) error {
+	if err := m.StateMachine.DiscardUpdate(); err != nil {
+		return err
+	}
+	return errors.WithMessage(m.pr.Staged(ctx, m.StateMachine), "Persister.Staged")
+}
