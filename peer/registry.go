@@ -8,7 +8,6 @@ package peer
 import (
 	"context"
 	"sync"
-	"sync/atomic"
 	"time"
 
 	"github.com/pkg/errors"
@@ -23,8 +22,6 @@ type Registry struct {
 	peers []*Peer  // The list of all of the registry's peers.
 	id    Identity // The identity of the node.
 
-	exchangeAddrsTimeout int64
-
 	dialer    Dialer      // Used for dialing peers (and later: repairing).
 	subscribe func(*Peer) // Sets up peer subscriptions.
 
@@ -32,7 +29,7 @@ type Registry struct {
 	perunsync.Closer
 }
 
-const defaultExchangeAddrsTimeout = 10 * time.Second
+const exchangeAddrsTimeout = 10 * time.Second
 
 // NewRegistry creates a new registry.
 // The provided callback is used to set up new peer's subscriptions and it is
@@ -43,15 +40,8 @@ func NewRegistry(id Identity, subscribe func(*Peer), dialer Dialer) *Registry {
 		subscribe: subscribe,
 		dialer:    dialer,
 
-		exchangeAddrsTimeout: int64(defaultExchangeAddrsTimeout),
-
 		log: log.WithField("id", id.Address()),
 	}
-}
-
-// SetExchangeAddrsTimeout atomically sets the timeout for the address exchange.
-func (r *Registry) SetExchangeAddrsTimeout(d time.Duration) {
-	atomic.StoreInt64(&r.exchangeAddrsTimeout, int64(d))
 }
 
 // Close closes the registry's dialer and all its peers.
@@ -110,7 +100,7 @@ func (r *Registry) Listen(listener Listener) {
 // setupConn authenticates a fresh connection, and if successful, adds it to the
 // registry.
 func (r *Registry) setupConn(conn Conn) error {
-	timeout := time.Duration(atomic.LoadInt64(&r.exchangeAddrsTimeout))
+	timeout := time.Duration(exchangeAddrsTimeout)
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 
