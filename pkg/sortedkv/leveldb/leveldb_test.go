@@ -12,12 +12,16 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"perun.network/go-perun/pkg/sortedkv"
 	"perun.network/go-perun/pkg/sortedkv/test"
 )
 
 func TestBatch(t *testing.T) {
 	runTestOnTempDatabase(t, func(db *Database) {
 		test.GenericBatchTest(t, db)
+	})
+	runTestOnTempDatabase(t, func(db *Database) {
+		test.GenericBatchTest(t, sortedkv.NewTable(db, "table"))
 	})
 }
 
