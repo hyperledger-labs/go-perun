@@ -168,13 +168,13 @@ func (d *Database) NewIteratorWithPrefix(prefix string) sortedkv.Iterator {
 	d.mutex.RLock()
 	defer d.mutex.RUnlock()
 
-	prefixString := string(prefix)
 	var keys []string
 	for key := range d.data {
-		if strings.HasPrefix(key, prefixString) {
+		if strings.HasPrefix(key, prefix) {
 			keys = append(keys, key)
 		}
 	}
+
 	sort.Strings(keys)
 	return &Iterator{
 		keys:   keys,

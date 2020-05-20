@@ -16,11 +16,8 @@ type Iterator struct {
 
 // Next returns true if the iterator has a next element.
 func (i *Iterator) Next() bool {
-	if i.next < len(i.keys) {
-		i.next++
-		return true
-	}
-	return false
+	i.next++
+	return i.next <= len(i.keys)
 }
 
 // Key returns the key of the current element.
