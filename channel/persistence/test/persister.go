@@ -52,7 +52,6 @@ func (p *Persister) ChannelCreated(
 	}
 
 	p.chans[id] = persistence.CloneSource(source)
-	p.chans[id].Peers = peers // Peers are constant so we don't clone.
 	return nil
 }
 
@@ -77,8 +76,8 @@ func (p *Persister) Staged(_ context.Context, s channel.Source) error {
 		return errors.Errorf("channel doesn't exist: %x", s.ID())
 	}
 
-	ch.StagingTX = s.StagingTX().Clone()
-	ch.Phase = s.Phase()
+	ch.StagingTXV = s.StagingTX().Clone()
+	ch.PhaseV = s.Phase()
 	return nil
 }
 
@@ -88,11 +87,11 @@ func (p *Persister) SigAdded(_ context.Context, s channel.Source, idx channel.In
 	ch, ok := p.chans[s.ID()]
 	if !ok {
 		return errors.Errorf("channel doesn't exist: %x", s.ID())
-	} else if ch.StagingTX.State == nil {
+	} else if ch.StagingTXV.State == nil {
 		return errors.Errorf("no staging transaction set")
 	}
 
-	ch.StagingTX.Sigs[idx] = bytes.Repeat(s.StagingTX().Sigs[idx], 1)
+	ch.StagingTXV.Sigs[idx] = bytes.Repeat(s.StagingTX().Sigs[idx], 1)
 	return nil
 }
 
@@ -104,9 +103,9 @@ func (p *Persister) Enabled(_ context.Context, s channel.Source) error {
 		return errors.Errorf("channel doesn't exist: %x", s.ID())
 	}
 
-	ch.StagingTX = s.StagingTX().Clone()
-	ch.CurrentTX = s.CurrentTX().Clone()
-	ch.Phase = s.Phase()
+	ch.StagingTXV = s.StagingTX().Clone()
+	ch.CurrentTXV = s.CurrentTX().Clone()
+	ch.PhaseV = s.Phase()
 	return nil
 }
 
@@ -118,7 +117,7 @@ func (p *Persister) PhaseChanged(_ context.Context, s channel.Source) error {
 		return errors.Errorf("channel doesn't exist: %x", s.ID())
 	}
 
-	ch.Phase = s.Phase()
+	ch.PhaseV = s.Phase()
 	return nil
 }
 
@@ -139,9 +138,9 @@ func (p *Persister) AssertEqual(s channel.Source) {
 	}
 
 	assert := assert.New(p.t)
-	assert.Equal(s.Idx(), ch.Idx, "Idx mismatch")
-	assert.Equal(s.Params(), ch.Params, "Params mismatch")
-	assert.Equal(s.StagingTX(), ch.StagingTX, "StagingTX mismatch")
-	assert.Equal(s.CurrentTX(), ch.CurrentTX, "CurrentTX mismatch")
-	assert.Equal(s.Phase(), ch.Phase, "Phase mismatch")
+	assert.Equal(s.Idx(), ch.IdxV, "Idx mismatch")
+	assert.Equal(s.Params(), ch.ParamsV, "Params mismatch")
+	assert.Equal(s.StagingTX(), ch.StagingTXV, "StagingTX mismatch")
+	assert.Equal(s.CurrentTX(), ch.CurrentTXV, "CurrentTX mismatch")
+	assert.Equal(s.Phase(), ch.PhaseV, "Phase mismatch")
 }

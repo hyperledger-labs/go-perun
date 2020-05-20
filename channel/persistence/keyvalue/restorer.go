@@ -99,17 +99,13 @@ func eatExpect(r io.Reader, tok string) error {
 
 // Next advances the iterator and returns whether there is another channel.
 func (i *ChannelIterator) Next(context.Context) bool {
-	i.ch = &persistence.Channel{Params: &channel.Params{}}
+	i.ch = &persistence.Channel{ParamsV: &channel.Params{}}
 
-	if !(i.decodeNext("current", &i.ch.CurrentTX, true) &&
-		i.decodeNext("index", &i.ch.Idx, false) &&
-		i.decodeNext("params", i.ch.Params, false)) {
-		return false
-	}
-	i.ch.Peers = make([]peer.Address, len(i.ch.Params.Parts))
-	return i.decodeNext("peers", (peer.Addresses)(i.ch.Peers), false) &&
-		i.decodeNext("phase", &i.ch.Phase, false) &&
-		i.decodeNext("staging", &i.ch.StagingTX, false)
+	return i.decodeNext("current", &i.ch.CurrentTXV, true) &&
+		i.decodeNext("index", &i.ch.IdxV, false) &&
+		i.decodeNext("params", i.ch.ParamsV, false) &&
+		i.decodeNext("phase", &i.ch.PhaseV, false) &&
+		i.decodeNext("staging", &i.ch.StagingTXV, false)
 }
 
 // decodeNext reduces code duplication for decoding a value from an iterator.

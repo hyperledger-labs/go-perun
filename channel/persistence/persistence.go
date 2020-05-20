@@ -99,25 +99,42 @@ type (
 	// A Channel holds all data that is necessary for restoring a channel
 	// controller.
 	Channel struct {
-		// Peers are the channel network peers of this channel. They must have the
-		// same ordering as the Params.Peers, omitting the own peer.
-		Peers     []peer.Address
-		Idx       channel.Index       // Idx is the own index in the channel.
-		Params    *channel.Params     // Params are the channel parameters.
-		StagingTX channel.Transaction // StagingTx is the staging transaction.
-		CurrentTX channel.Transaction // CurrentTX is the current transaction.
-		Phase     channel.Phase       // Phase is the current channel phase.
+		IdxV       channel.Index       // IdxV is the own index in the channel.
+		ParamsV    *channel.Params     // ParamsV are the channel parameters.
+		StagingTXV channel.Transaction // StagingTxV is the staging transaction.
+		CurrentTXV channel.Transaction // CurrentTXV is the current transaction.
+		PhaseV     channel.Phase       // PhaseV is the current channel phase.
 	}
 )
+
+var _ channel.Source = (*Channel)(nil)
 
 // CloneSource creates a new Channel object whose fields are clones of the data
 // coming from Source s.
 func CloneSource(s channel.Source) *Channel {
 	return &Channel{
-		Idx:       s.Idx(),
-		Params:    s.Params().Clone(),
-		StagingTX: s.StagingTX().Clone(),
-		CurrentTX: s.CurrentTX().Clone(),
-		Phase:     s.Phase(),
+		IdxV:       s.Idx(),
+		ParamsV:    s.Params().Clone(),
+		StagingTXV: s.StagingTX().Clone(),
+		CurrentTXV: s.CurrentTX().Clone(),
+		PhaseV:     s.Phase(),
 	}
 }
+
+// ID is the channel ID of this source. It is the same as Params().ID().
+func (c *Channel) ID() channel.ID { return c.ParamsV.ID() }
+
+// Idx is the own index in the channel.
+func (c *Channel) Idx() channel.Index { return c.IdxV }
+
+// Params are the channel parameters.
+func (c *Channel) Params() *channel.Params { return c.ParamsV }
+
+// StagingTX is the staged transaction (State+incomplete list of sigs).
+func (c *Channel) StagingTX() channel.Transaction { return c.StagingTXV }
+
+// CurrentTX is the current transaction (State+complete list of sigs).
+func (c *Channel) CurrentTX() channel.Transaction { return c.CurrentTXV }
+
+// Phase is the phase in which the channel is currently in.
+func (c *Channel) Phase() channel.Phase { return c.PhaseV }

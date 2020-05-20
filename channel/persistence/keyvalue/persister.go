@@ -29,9 +29,6 @@ func (p *PersistRestorer) ChannelCreated(_ context.Context, s channel.Source, pe
 		"staging"); err != nil {
 		return err
 	}
-	if err := dbPut(db, "peers", peer.Addresses(peers)); err != nil {
-		return err
-	}
 
 	// Register the channel in the "Peer" table.
 	peerdb := sortedkv.NewTable(p.db, "Peer:").NewBatch()
@@ -57,7 +54,7 @@ func (p *PersistRestorer) ChannelRemoved(_ context.Context, id channel.ID) error
 	db := p.channelDB(id).NewBatch()
 	peerdb := sortedkv.NewTable(p.db, "Peer:").NewBatch()
 	// All keys a channel has.
-	var keys = []string{"current", "index", "params", "peers", "phase", "staging"}
+	var keys = []string{"current", "index", "params", "phase", "staging"}
 
 	for _, key := range keys {
 		if err := db.Delete(key); err != nil {
