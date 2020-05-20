@@ -192,3 +192,13 @@ func (d *Database) readValues(keys []string) []string {
 
 	return data
 }
+
+// Closer interface
+
+// Close clears the database.
+func (d *Database) Close() error {
+	d.mutex.Lock()
+	defer d.mutex.Unlock()
+	d.data = nil
+	return nil
+}

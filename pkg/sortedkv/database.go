@@ -11,6 +11,8 @@
 // perkeep.org/pkg/sorted
 package sortedkv // import "perun.network/go-perun/pkg/sortedkv"
 
+import "io"
+
 // ErrNotFound is returned whenever a key is not in the db.
 type ErrNotFound struct {
 	Key string
@@ -54,4 +56,5 @@ type Database interface {
 	Writer
 	Batcher
 	Iterable
+	io.Closer
 }
