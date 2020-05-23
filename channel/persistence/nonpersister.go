@@ -12,16 +12,35 @@ import (
 	"perun.network/go-perun/peer"
 )
 
-// NonPersister is a Persister that doesn't to anything. All its methods return
-// nil.
-var NonPersister Persister = nonPersister{}
+// NonPersistRestorer is a PersistRestorer that doesn't do anything. All
+// Persistence methods return nil and all Restorer methods return an empty
+// iterator.
+var NonPersistRestorer PersistRestorer = nonPersistRestorer{}
 
-type nonPersister struct{}
+type nonPersistRestorer struct{}
 
-func (nonPersister) ChannelCreated(context.Context, Source, []peer.Address) error { return nil }
-func (nonPersister) ChannelRemoved(context.Context, channel.ID) error             { return nil }
-func (nonPersister) Staged(context.Context, Source) error                         { return nil }
-func (nonPersister) SigAdded(context.Context, Source, channel.Index) error        { return nil }
-func (nonPersister) Enabled(context.Context, Source) error                        { return nil }
-func (nonPersister) PhaseChanged(context.Context, Source) error                   { return nil }
-func (nonPersister) Close() error                                                 { return nil }
+// Persister implementation
+
+func (nonPersistRestorer) ChannelCreated(context.Context, Source, []peer.Address) error { return nil }
+func (nonPersistRestorer) ChannelRemoved(context.Context, channel.ID) error             { return nil }
+func (nonPersistRestorer) Staged(context.Context, Source) error                         { return nil }
+func (nonPersistRestorer) SigAdded(context.Context, Source, channel.Index) error        { return nil }
+func (nonPersistRestorer) Enabled(context.Context, Source) error                        { return nil }
+func (nonPersistRestorer) PhaseChanged(context.Context, Source) error                   { return nil }
+func (nonPersistRestorer) Close() error                                                 { return nil }
+
+// Restorer implementation
+
+func (nonPersistRestorer) RestoreAll() (ChannelIterator, error) {
+	return emptyChanIterator{}, nil
+}
+
+func (nonPersistRestorer) RestorePeer(peer.Address) (ChannelIterator, error) {
+	return emptyChanIterator{}, nil
+}
+
+type emptyChanIterator struct{}
+
+func (emptyChanIterator) Next(context.Context) bool { return false }
+func (emptyChanIterator) Channel() *Channel         { return nil }
+func (emptyChanIterator) Close() error              { return nil }
