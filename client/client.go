@@ -32,7 +32,7 @@ type Client struct {
 	funder      channel.Funder
 	adjudicator channel.Adjudicator
 	wallet      wallet.Wallet
-	pr          persistence.Persister
+	pr          persistence.PersistRestorer
 	log         log.Logger // structured logger for this client
 
 	sync.Closer
@@ -82,7 +82,7 @@ func New(
 		funder:      funder,
 		adjudicator: adjudicator,
 		wallet:      wallet,
-		pr:          persistence.NonPersister,
+		pr:          persistence.NonPersistRestorer,
 		log:         log,
 	}
 	c.peers = peer.NewRegistry(id, c.subscribePeer, dialer)
@@ -106,10 +106,10 @@ func (c *Client) Close() error {
 	return err
 }
 
-// SetPersister sets the persister that the client is going to use for channel
+// EnablePersistence sets the PersistRestorer that the client is going to use for channel
 // persistence. This methods is expected to be called once during the setup of
 // the client and is hence not thread-safe.
-func (c *Client) SetPersister(pr persistence.Persister) {
+func (c *Client) EnablePersistence(pr persistence.PersistRestorer) {
 	c.pr = pr
 }
 
