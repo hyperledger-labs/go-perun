@@ -14,6 +14,7 @@ import (
 	"golang.org/x/crypto/sha3"
 
 	"perun.network/go-perun/channel"
+	"perun.network/go-perun/peer"
 	perunio "perun.network/go-perun/pkg/io"
 	"perun.network/go-perun/wallet"
 	"perun.network/go-perun/wire"
@@ -54,7 +55,7 @@ type ChannelProposal struct {
 	AppDef            wallet.Address
 	InitData          channel.Data
 	InitBals          *channel.Allocation
-	PeerAddrs         []wallet.Address
+	PeerAddrs         []peer.Address
 }
 
 // Type returns msg.ChannelProposal.
