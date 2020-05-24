@@ -31,7 +31,3 @@ func TestChannel_Update_NilArgs(t *testing.T) {
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "context")
 }
-
-func TestChannel_ListenUpdates_NilArgs(t *testing.T) {
-	assert.Panics(t, func() { new(Channel).ListenUpdates(nil) })
-}
