@@ -27,6 +27,11 @@ type (
 		Handle(*ChannelProposal, *ProposalResponder)
 	}
 
+	// ProposalHandlerFunc is an adapter type to allow the use of functions as
+	// proposal handlers. ProposalHandlerFunc(f) is a ProposalHandler that calls
+	// f when Handle is called.
+	ProposalHandlerFunc func(*ChannelProposal, *ProposalResponder)
+
 	// ProposalResponder lets the user respond to a channel proposal. If the user
 	// wants to accept the proposal, they should call Accept(), otherwise Reject().
 	// Only a single function must be called and every further call causes a
@@ -45,6 +50,9 @@ type (
 		Participant wallet.Address
 	}
 )
+
+// Handle calls the proposal handler function.
+func (f ProposalHandlerFunc) Handle(p *ChannelProposal, r *ProposalResponder) { f(p, r) }
 
 // Accept lets the user signal that they want to accept the channel proposal.
 // Returns the newly created channel controller if the channel was successfully

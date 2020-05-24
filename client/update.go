@@ -34,6 +34,11 @@ type (
 		Handle(ChannelUpdate, *UpdateResponder)
 	}
 
+	// UpdateHandlerFunc is an adapter type to allow the use of functions as
+	// update handlers. UpdateHandlerFunc(f) is an UpdateHandler that calls
+	// f when Handle is called.
+	UpdateHandlerFunc func(ChannelUpdate, *UpdateResponder)
+
 	// The UpdateResponder allows the user to react to the incoming channel update
 	// request. If the user wants to accept the update, Accept() should be called,
 	// otherwise Reject(), possibly giving a reason for the rejection.
@@ -46,6 +51,9 @@ type (
 		called  atomic.Bool
 	}
 )
+
+// Handle calls the update handler function.
+func (f UpdateHandlerFunc) Handle(u ChannelUpdate, r *UpdateResponder) { f(u, r) }
 
 // Accept lets the user signal that they want to accept the channel update.
 func (r *UpdateResponder) Accept(ctx context.Context) error {
