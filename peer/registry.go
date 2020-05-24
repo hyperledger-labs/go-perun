@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
+
 	"perun.network/go-perun/log"
 	perunsync "perun.network/go-perun/pkg/sync"
 )
@@ -54,7 +55,8 @@ func (r *Registry) Close() (err error) {
 	defer r.mutex.Unlock()
 
 	for _, p := range r.peers {
-		// When peers are closed, they delete themselves from the registry.
+		// When peers are closed, they are lazily deleted from the registry during
+		// Get, Has or NumPeers calls.
 		if cerr := p.Close(); !perunsync.IsAlreadyClosedError(cerr) && cerr != nil && err == nil {
 			err = errors.WithMessage(cerr, "closing peer")
 		}
@@ -125,6 +127,7 @@ func (r *Registry) setupConn(conn Conn) error {
 // If found, returns the peer and its index, otherwise returns a nil peer.
 // find is not thread safe and is assumed to be called from a method which has
 // the r.mutex lock.
+// While iterating over the peers, find removes closed ones.
 func (r *Registry) find(addr Address) (*Peer, int) {
 	for i, peer := range r.peers {
 		if peer.PerunAddress.Equals(addr) {
