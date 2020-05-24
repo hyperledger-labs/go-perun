@@ -124,10 +124,6 @@ func (ch *paymentChannel) settleChan() {
 	ch.assertBals(ch.State())
 }
 
-func (ch *paymentChannel) ListenUpdates() {
-	ch.Channel.ListenUpdates(ch)
-}
-
 // The payment channel is its own update handler
 func (ch *paymentChannel) Handle(up client.ChannelUpdate, res *client.UpdateResponder) {
 	ch.log.Infof("Incoming channel update: %v", up)

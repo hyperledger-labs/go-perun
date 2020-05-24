@@ -9,7 +9,6 @@ import (
 	"math/rand"
 	"sync"
 	"testing"
-	"time"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -28,10 +27,10 @@ func NewResponder(setup RoleSetup, t *testing.T, numStages int) *Responder {
 func (r *Responder) Execute(cfg ExecConfig, exec func(ExecConfig, *paymentChannel)) {
 	rng := rand.New(rand.NewSource(0xB0B))
 	assert := assert.New(r.t)
-	propHandler := newAcceptAllPropHandler(rng, r.setup.Timeout, r.setup.Wallet)
+	propHandler := r.AcceptAllPropHandler(rng)
 
 	var listenWg sync.WaitGroup
-	listenWg.Add(3)
+	listenWg.Add(2)
 	defer func() {
 		r.log.Debug("Waiting for listeners to return...")
 		listenWg.Wait()
@@ -44,34 +43,20 @@ func (r *Responder) Execute(cfg ExecConfig, exec func(ExecConfig, *paymentChanne
 	}()
 	go func() {
 		defer listenWg.Done()
-		r.log.Info("Starting proposal handler.")
-		r.HandleChannelProposals(propHandler)
-		r.log.Debug("Proposal handler returned.")
+		r.log.Info("Starting request handler.")
+		r.Handle(propHandler, r.UpdateHandler())
+		r.log.Debug("Request handler returned.")
 	}()
 
 	// receive one accepted proposal
-	var chErr channelAndError
-	select {
-	case chErr = <-propHandler.chans:
-	case <-time.After(r.timeout):
-		r.t.Error("expected incoming channel proposal from Proposer")
-		return
-	}
-	assert.NoError(chErr.err)
-	assert.NotNil(chErr.channel)
-	if chErr.err != nil {
+	ch, err := propHandler.Next()
+	assert.NoError(err)
+	assert.NotNil(ch)
+	if err != nil {
 		return
 	}
 
-	ch := newPaymentChannel(chErr.channel, &r.Role)
 	r.log.Infof("New Channel opened: %v", ch.Channel)
-	// start update handler
-	go func() {
-		defer listenWg.Done()
-		r.log.Info("Starting update listener.")
-		ch.ListenUpdates()
-		r.log.Debug("Update listener returned.")
-	}()
 
 	exec(cfg, ch)
 

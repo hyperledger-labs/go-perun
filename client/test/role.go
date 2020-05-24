@@ -8,6 +8,7 @@ package test // import "perun.network/go-perun/client/test"
 
 import (
 	"context"
+	"errors"
 	"math/big"
 	"math/rand"
 	"sync"
@@ -25,6 +26,7 @@ type (
 	// A Role is a client.Client together with a protocol execution path.
 	Role struct {
 		*client.Client
+		chans map[channel.ID]*paymentChannel
 		setup RoleSetup
 		// we use the Client as Closer
 		timeout   time.Duration
@@ -74,6 +76,7 @@ func MakeRole(setup RoleSetup, t *testing.T, numStages int) Role {
 	cl := client.New(setup.Identity, setup.Dialer, setup.Funder, setup.Adjudicator, setup.Wallet)
 	return Role{
 		Client:    cl,
+		chans:     make(map[channel.ID]*paymentChannel),
 		setup:     setup,
 		timeout:   setup.Timeout,
 		log:       cl.Log().WithField("role", setup.Name),
@@ -128,16 +131,26 @@ func (r *Role) Idxs(peers [2]peer.Address) (our, their int) {
 	panic("identity not in peers")
 }
 
+func (r *Role) ProposeChannel(req *client.ChannelProposal) (*paymentChannel, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), r.timeout)
+	defer cancel()
+	_ch, err := r.Client.ProposeChannel(ctx, req)
+	if err != nil {
+		return nil, err
+	}
+	ch := newPaymentChannel(_ch, r)
+	r.chans[ch.ID()] = ch
+	return ch, nil
+}
+
 type (
 	// acceptAllPropHandler is a channel proposal handler that accepts all channel
 	// requests. It generates a random account for each channel.
 	// Each accepted channel is put on the chans go channel.
 	acceptAllPropHandler struct {
-		chans   chan channelAndError
-		log     log.Logger
-		rng     *rand.Rand
-		timeout time.Duration
-		wallet  wallettest.Wallet
+		r     *Role
+		chans chan channelAndError
+		rng   *rand.Rand
 	}
 
 	// channelAndError bundles the return parameters of ProposalResponder.Accept
@@ -148,25 +161,62 @@ type (
 	}
 )
 
-func newAcceptAllPropHandler(rng *rand.Rand, timeout time.Duration, wallet wallettest.Wallet) *acceptAllPropHandler {
+// acceptAllPropHandler returns a ProposalHandler that accepts all requests to
+// this Role. The paymentChannel is saved to the Role's state upon acceptal. The
+// rng is used to generate a new random account for accepting the proposal.
+// Next can be called on the handler to wait for the next incoming proposal.
+func (r *Role) AcceptAllPropHandler(rng *rand.Rand) *acceptAllPropHandler {
 	return &acceptAllPropHandler{
-		chans:   make(chan channelAndError),
-		rng:     rng,
-		timeout: timeout,
-		log:     log.Get(), // default logger without fields
-		wallet:  wallet,
+		r:     r,
+		chans: make(chan channelAndError),
+		rng:   rng,
 	}
 }
 
 func (h *acceptAllPropHandler) Handle(req *client.ChannelProposal, res *client.ProposalResponder) {
-	h.log.Infof("Accepting incoming channel request: %v", req)
-	ctx, cancel := context.WithTimeout(context.Background(), h.timeout)
+	h.r.log.Infof("Accepting incoming channel request: %v", req)
+	ctx, cancel := context.WithTimeout(context.Background(), h.r.setup.Timeout)
 	defer cancel()
 
-	part := h.wallet.NewRandomAccount(h.rng).Address()
-	h.log.Debugf("Accepting with participant: %v", part)
+	part := h.r.setup.Wallet.NewRandomAccount(h.rng).Address()
+	h.r.log.Debugf("Accepting with participant: %v", part)
 	ch, err := res.Accept(ctx, client.ProposalAcc{
 		Participant: part,
 	})
 	h.chans <- channelAndError{ch, err}
+}
+
+// Next waits for the next incoming proposal. If the next proposal does not come
+// in within one timeout period as specified in the Role's setup, it return nil
+// and an error.
+func (h *acceptAllPropHandler) Next() (*paymentChannel, error) {
+	select {
+	case ce := <-h.chans:
+		if ce.err != nil {
+			return nil, ce.err
+		}
+		ch := newPaymentChannel(ce.channel, h.r)
+		h.r.chans[ch.ID()] = ch
+		return ch, nil
+	case <-time.After(h.r.setup.Timeout):
+		return nil, errors.New("timeout passed")
+	}
+}
+
+type RoleUpdateHandler Role
+
+func (r *Role) UpdateHandler() *RoleUpdateHandler { return (*RoleUpdateHandler)(r) }
+
+// Handle implements the Role as its own UpdateHandler
+func (h *RoleUpdateHandler) Handle(up client.ChannelUpdate, res *client.UpdateResponder) {
+	ch, ok := h.chans[up.State.ID]
+	if !ok {
+		h.t.Errorf("unknown channel: %v", up.State.ID)
+		ctx, cancel := context.WithTimeout(context.Background(), h.setup.Timeout)
+		defer cancel()
+		res.Reject(ctx, "unknown channel")
+		return
+	}
+
+	ch.Handle(up, res)
 }
