@@ -19,12 +19,12 @@ import (
 
 // Proposer is a test client role. He proposes the new channel.
 type Proposer struct {
-	Role
+	role
 }
 
 // NewProposer creates a new party that executes the Proposer protocol.
 func NewProposer(setup RoleSetup, t *testing.T, numStages int) *Proposer {
-	return &Proposer{Role: MakeRole(setup, t, numStages)}
+	return &Proposer{role: makeRole(setup, t, numStages)}
 }
 
 // Execute executes the Proposer protocol.

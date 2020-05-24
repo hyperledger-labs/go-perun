@@ -15,12 +15,12 @@ import (
 
 // Responder is a test client role. He accepts an incoming channel proposal.
 type Responder struct {
-	Role
+	role
 }
 
 // NewResponder creates a new party that executes the Responder protocol.
 func NewResponder(setup RoleSetup, t *testing.T, numStages int) *Responder {
-	return &Responder{Role: MakeRole(setup, t, numStages)}
+	return &Responder{role: makeRole(setup, t, numStages)}
 }
 
 // Execute executes the Responder protocol.

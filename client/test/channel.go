@@ -23,7 +23,7 @@ type (
 	// interface so it can be its own update handler.
 	paymentChannel struct {
 		*client.Channel
-		r *Role // Reuse of timeout and testing obj
+		r *role // Reuse of timeout and testing obj
 
 		log     log.Logger
 		handler chan bool
@@ -39,7 +39,7 @@ type (
 	}
 )
 
-func newPaymentChannel(ch *client.Channel, r *Role) *paymentChannel {
+func newPaymentChannel(ch *client.Channel, r *role) *paymentChannel {
 	return &paymentChannel{
 		Channel: ch,
 		r:       r,
