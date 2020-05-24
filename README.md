@@ -100,53 +100,56 @@ import (
 	"perun.network/go-perun/client"
 	"perun.network/go-perun/log"
 	"perun.network/go-perun/peer"
+	"perun.network/go-perun/wallet"
 	// other imports
 )
 
 func main() {
-	// 1. setup networking:
+	// setup networking
 	var dialer peer.Dialer
 	var listener peer.Listener
-	// 2. setup blockchain interaction:
+	// setup blockchain interaction
 	var funder channel.Funder
 	var adjudicator channel.Adjudicator
-	// 3. setup off-chain identity:
+	// setup off-chain identity
 	var identity peer.Identity
-	// 4. choose how to react to incoming channel proposals:
-	var proposalHandler client.ProposalHandler
+	// setup wallet for channel accounts
+	var w wallet.Wallet
 
-	// 5. create state channel network client
-	c := client.New(identity, dialer, proposalHandler, funder, adjudicator)
-	// 6. optionally start listening for incoming connections
+	// create state channel network client
+	c := client.New(identity, dialer, funder, adjudicator, w)
+	// optionally start listening for incoming connections
 	go c.Listen(listener)
 
-	// 7. propose a new channel
+	// choose how to react to incoming channel proposals
+	var proposalHandler client.ProposalHandler
+	// choose how to react to incoming channel update requests
+	var updateHandler client.UpdateHandler
+	// start incoming request handler
+	go c.Handle(proposalHandler, updateHandler)
+
+	// propose a new channel
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Minute)
 	defer cancel()
 	ch, err := c.ProposeChannel(ctx, &client.ChannelProposal{
-		// details of channel proposal, like peers, app, initial balances, ...
+		// details of channel proposal, like peers, app, initial balances, challenge duration...
 	})
 	if err != nil { /* handle error */ }
 
-	// 8. start watchtower
+	// start watchtower
 	go func() {
 		err := ch.Watch()
 		log.Info("Watcher returned with error ", err)
 	}()
 
-	// 9. choose how to react to incoming channel update requests
-	var updateHandler client.UpdateHandler
-	go ch.ListenUpdates(updateHandler)
-
-	// 10. send a channel update request to the other channel peer(s)
+	// send a channel update request to the other channel peer(s)
 	err = ch.Update(ctx, client.ChannelUpdate{
-		// details of channel update
+		// details of channel update: new State, actor index, ...
 	})
 	if err != nil { /* handle error */ }
 
-	// 11. send further updates and finally, settle/close the channel:
-	err = ch.Settle(ctx)
-	if err != nil { /* handle error */ }
+	// send further updates and finally, settle/close the channel
+	if err := ch.Settle(ctx); err != nil { /* handle error */ }
 }
 ```
 
