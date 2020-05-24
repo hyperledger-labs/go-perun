@@ -6,6 +6,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- User now has to explicitly start a client-wide request handler routine for
+  incoming channel proposals and update requests (`Client.Handle`) after
+  `Client` got created.
+
 ## [0.2.0] Belinda - 2020-03-23 [:warning:]
 Added direct disputes and watcher for two-party ledger channels, much polishing
 (refactors, bug fixes, documentation).
