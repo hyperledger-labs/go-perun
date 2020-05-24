@@ -20,10 +20,9 @@ import (
 // channel. It is an abstraction over a set of peers. Peers are translated into
 // their index in the channel.
 type channelConn struct {
-	b         *peer.Broadcaster
-	r         *peer.Relay
-	upReqRecv *channelMsgRecv
-	peerIdx   map[*peer.Peer]channel.Index
+	b       *peer.Broadcaster
+	r       *peer.Relay // update response relay
+	peerIdx map[*peer.Peer]channel.Index
 
 	log log.Logger
 }
@@ -34,11 +33,9 @@ type channelConn struct {
 // participant slice, or one less if their index is above our index, since we
 // are not part of the peer slice.
 func newChannelConn(id channel.ID, peers []*peer.Peer, idx channel.Index) (_ *channelConn, err error) {
-	// setup receiving infrastructure:
-	// 1. one relay to combine all channel messages from all peers
-	// 2. two receivers for update requests and update responses
+	// relay to receive all update responses
 	relay := peer.NewRelay()
-	// we cache all channel messsages for the lifetime of the relay
+	// we cache all responses for the lifetime of the relay
 	relay.Cache(context.Background(), func(wire.Msg) bool { return true })
 	// Close the relay if anything goes wrong in the following.
 	// We could have a leaky subscription otherwise.
@@ -51,10 +48,11 @@ func newChannelConn(id channel.ID, peers []*peer.Peer, idx channel.Index) (_ *ch
 		}
 	}()
 
-	forThisChannel := func(m wire.Msg) bool {
-		cm, ok := m.(ChannelMsg)
-		return ok && cm.ID() == id
+	isUpdateRes := func(m wire.Msg) bool {
+		ok := m.Type() == wire.ChannelUpdateAcc || m.Type() == wire.ChannelUpdateRej
+		return ok && m.(ChannelMsg).ID() == id
 	}
+
 	peerIdx := make(map[*peer.Peer]channel.Index)
 	for i, peer := range peers {
 		i := channel.Index(i)
@@ -63,62 +61,34 @@ func newChannelConn(id channel.ID, peers []*peer.Peer, idx channel.Index) (_ *ch
 		if i >= idx {
 			peerIdx[peer]++
 		}
-		if err = peer.Subscribe(relay, forThisChannel); err != nil {
+		if err = peer.Subscribe(relay, isUpdateRes); err != nil {
 			return nil, errors.WithMessagef(err,
 				"subscribing relay to peer[%d] (%v)", i, peer)
 		}
 	}
 
-	logger := log.WithField("channel", id)
-	upReqRecv := &channelMsgRecv{
-		Receiver: peer.NewReceiver(),
-		peerIdx:  peerIdx,
-		log:      logger,
-	}
-	if err = relay.Subscribe(upReqRecv, func(m wire.Msg) bool {
-		return m.Type() == wire.ChannelUpdate
-	}); err != nil {
-		return nil, errors.WithMessagef(err, "subscribing update request receiver")
-	}
-
 	return &channelConn{
-		b:         peer.NewBroadcaster(peers),
-		r:         relay,
-		upReqRecv: upReqRecv,
-		peerIdx:   peerIdx,
-		log:       logger,
+		b:       peer.NewBroadcaster(peers),
+		r:       relay,
+		peerIdx: peerIdx,
+		log:     log.WithField("channel", id),
 	}, nil
 }
 
 // SetLogger sets the logger of the channel connection. It is assumed to be
 // called once before usage of the connection, so it isn't thread-safe.
 func (c *channelConn) SetLogger(l log.Logger) {
-	c.upReqRecv.log = l
 	c.log = l
 }
 
 // Close closes the broadcaster and update request receiver.
 func (c *channelConn) Close() error {
-	err := c.r.Close()
-	if rerr := c.upReqRecv.Close(); err == nil && rerr != nil {
-		err = rerr
-	}
-	return err
+	return c.r.Close()
 }
 
-// send broadcasts the message to all channel participants.
+// Send broadcasts the message to all channel participants.
 func (c *channelConn) Send(ctx context.Context, msg wire.Msg) error {
 	return c.b.Send(ctx, msg)
-}
-
-// NextUpdateReq returns the next channel update request that the channel
-// connection receives.
-func (c *channelConn) NextUpdateReq(ctx context.Context) (channel.Index, *msgChannelUpdate) {
-	idx, m := c.upReqRecv.Next(ctx)
-	if m == nil {
-		return idx, nil // nil conversion doesn't work...
-	}
-	return idx, m.(*msgChannelUpdate) // safe by the predicate
 }
 
 // newUpdateResRecv creates a new update response receiver for the given version.
