@@ -168,13 +168,13 @@ func (d *Database) NewIteratorWithPrefix(prefix string) sortedkv.Iterator {
 	d.mutex.RLock()
 	defer d.mutex.RUnlock()
 
-	prefixString := string(prefix)
 	var keys []string
 	for key := range d.data {
-		if strings.HasPrefix(key, prefixString) {
+		if strings.HasPrefix(key, prefix) {
 			keys = append(keys, key)
 		}
 	}
+
 	sort.Strings(keys)
 	return &Iterator{
 		keys:   keys,
@@ -191,4 +191,14 @@ func (d *Database) readValues(keys []string) []string {
 	}
 
 	return data
+}
+
+// Closer interface
+
+// Close clears the database.
+func (d *Database) Close() error {
+	d.mutex.Lock()
+	defer d.mutex.Unlock()
+	d.data = nil
+	return nil
 }

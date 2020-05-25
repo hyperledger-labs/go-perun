@@ -75,17 +75,17 @@ func (c *Channel) CheckPersistence(ctx context.Context, t require.TestingT) {
 	for it.Next(ctx) {
 		ch := it.Channel()
 
-		if ch.Params.ID() != c.ID() {
+		if ch.ID() != c.ID() {
 			continue
 		}
 
 		require.NoError(t, it.Close())
 
-		require.Equal(t, c.Idx(), ch.Idx, "Idx")
-		require.Equal(t, c.Params(), ch.Params, "Params")
-		require.Equal(t, c.StagingTX(), ch.StagingTX, "StagingTX")
-		require.Equal(t, c.CurrentTX(), ch.CurrentTX, "CurrentTX")
-		require.Equal(t, c.Phase(), ch.Phase, "Phase")
+		require.Equal(t, c.Idx(), ch.Idx(), "Idx")
+		require.Equal(t, c.Params(), ch.Params(), "Params")
+		require.Equal(t, c.StagingTX(), ch.StagingTX(), "StagingTX")
+		require.Equal(t, c.CurrentTX(), ch.CurrentTX(), "CurrentTX")
+		require.Equal(t, c.Phase(), ch.Phase(), "Phase")
 
 		return
 	}

@@ -28,8 +28,21 @@ type (
 	PhaseTransition struct {
 		From, To Phase
 	}
+
+	// Source is a source of channel data. It allows access to all information
+	// needed for persistence. The ID, Idx and Params only need to be persisted
+	// once per channel as they stay constant during a channel's lifetime.
+	Source interface {
+		ID() ID                 // ID is the channel ID of this source. It is the same as Params().ID().
+		Idx() Index             // Idx is the own index in the channel.
+		Params() *Params        // Params are the channel parameters.
+		StagingTX() Transaction // StagingTX is the staged transaction (State+incomplete list of sigs).
+		CurrentTX() Transaction // CurrentTX is the current transaction (State+complete list of sigs).
+		Phase() Phase           // Phase is the phase in which the channel is currently in.
+	}
 )
 
+var _ Source = (*machine)(nil)
 var _ io.Serializer = (*Phase)(nil)
 
 // Phases known to the channel machine.

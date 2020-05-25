@@ -8,11 +8,16 @@ package memorydb
 import (
 	"testing"
 
+	"perun.network/go-perun/pkg/sortedkv"
 	"perun.network/go-perun/pkg/sortedkv/test"
 )
 
 func TestIterator(t *testing.T) {
 	t.Run("Generic iterator test", func(t *testing.T) {
 		test.GenericIteratorTest(t, NewDatabase())
+	})
+
+	t.Run("Table iterator test", func(t *testing.T) {
+		test.GenericIteratorTest(t, sortedkv.NewTable(NewDatabase(), "table"))
 	})
 }

@@ -21,6 +21,11 @@ func (b *tableBatch) Put(key, value string) error {
 	return b.Batch.Put(b.pkey(key), value)
 }
 
+// Put puts a value into a table batch.
+func (b *tableBatch) PutBytes(key string, value []byte) error {
+	return b.Batch.PutBytes(b.pkey(key), value)
+}
+
 // Delete deletes a value from a table batch.
 func (b *tableBatch) Delete(key string) error {
 	return b.Batch.Delete(b.pkey(key))

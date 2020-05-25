@@ -44,7 +44,7 @@ func NewPersister(t *testing.T) *Persister {
 // state will be empty. The passed peers are the channel network peers,
 // which should also be persisted.
 func (p *Persister) ChannelCreated(
-	_ context.Context, source persistence.Source, peers []peer.Address) error {
+	_ context.Context, source channel.Source, peers []peer.Address) error {
 	id := source.ID()
 	_, ok := p.chans[id]
 	if ok {
@@ -52,7 +52,6 @@ func (p *Persister) ChannelCreated(
 	}
 
 	p.chans[id] = persistence.CloneSource(source)
-	p.chans[id].Peers = peers // Peers are constant so we don't clone.
 	return nil
 }
 
@@ -71,54 +70,54 @@ func (p *Persister) ChannelRemoved(_ context.Context, id channel.ID) error {
 // state. It may already contain one valid signature, either by a remote
 // peer or us locally. Hence, this only needs to persist a channel's staged
 // state, all its currently known signatures and the phase.
-func (p *Persister) Staged(_ context.Context, s persistence.Source) error {
+func (p *Persister) Staged(_ context.Context, s channel.Source) error {
 	ch, ok := p.chans[s.ID()]
 	if !ok {
 		return errors.Errorf("channel doesn't exist: %x", s.ID())
 	}
 
-	ch.StagingTX = s.StagingTX().Clone()
-	ch.Phase = s.Phase()
+	ch.StagingTXV = s.StagingTX().Clone()
+	ch.PhaseV = s.Phase()
 	return nil
 }
 
 // SigAdded is called when a new signature is added to the current staging
 // state. Only the signature for the given index needs to be persisted.
-func (p *Persister) SigAdded(_ context.Context, s persistence.Source, idx channel.Index) error {
+func (p *Persister) SigAdded(_ context.Context, s channel.Source, idx channel.Index) error {
 	ch, ok := p.chans[s.ID()]
 	if !ok {
 		return errors.Errorf("channel doesn't exist: %x", s.ID())
-	} else if ch.StagingTX.State == nil {
+	} else if ch.StagingTXV.State == nil {
 		return errors.Errorf("no staging transaction set")
 	}
 
-	ch.StagingTX.Sigs[idx] = bytes.Repeat(s.StagingTX().Sigs[idx], 1)
+	ch.StagingTXV.Sigs[idx] = bytes.Repeat(s.StagingTX().Sigs[idx], 1)
 	return nil
 }
 
 // Enabled is called when the current state is updated to the staging state.
 // The old current state may be discarded.
-func (p *Persister) Enabled(_ context.Context, s persistence.Source) error {
+func (p *Persister) Enabled(_ context.Context, s channel.Source) error {
 	ch, ok := p.chans[s.ID()]
 	if !ok {
 		return errors.Errorf("channel doesn't exist: %x", s.ID())
 	}
 
-	ch.StagingTX = s.StagingTX().Clone()
-	ch.CurrentTX = s.CurrentTX().Clone()
-	ch.Phase = s.Phase()
+	ch.StagingTXV = s.StagingTX().Clone()
+	ch.CurrentTXV = s.CurrentTX().Clone()
+	ch.PhaseV = s.Phase()
 	return nil
 }
 
 // PhaseChanged is called when a phase change occurred that did not change
 // the current or staging transaction. Only the phase needs to be persisted.
-func (p *Persister) PhaseChanged(_ context.Context, s persistence.Source) error {
+func (p *Persister) PhaseChanged(_ context.Context, s channel.Source) error {
 	ch, ok := p.chans[s.ID()]
 	if !ok {
 		return errors.Errorf("channel doesn't exist: %x", s.ID())
 	}
 
-	ch.Phase = s.Phase()
+	ch.PhaseV = s.Phase()
 	return nil
 }
 
@@ -131,7 +130,7 @@ func (p *Persister) Close() error {
 
 // AssertEqual asserts that a channel of the same ID got persisted and that all
 // its data fields match the data coming from Source s.
-func (p *Persister) AssertEqual(s persistence.Source) {
+func (p *Persister) AssertEqual(s channel.Source) {
 	ch, ok := p.chans[s.ID()]
 	if !ok {
 		p.t.Errorf("channel doesn't exist: %x", s.ID())
@@ -139,9 +138,9 @@ func (p *Persister) AssertEqual(s persistence.Source) {
 	}
 
 	assert := assert.New(p.t)
-	assert.Equal(s.Idx(), ch.Idx, "Idx mismatch")
-	assert.Equal(s.Params(), ch.Params, "Params mismatch")
-	assert.Equal(s.StagingTX(), ch.StagingTX, "StagingTX mismatch")
-	assert.Equal(s.CurrentTX(), ch.CurrentTX, "CurrentTX mismatch")
-	assert.Equal(s.Phase(), ch.Phase, "Phase mismatch")
+	assert.Equal(s.Idx(), ch.IdxV, "Idx mismatch")
+	assert.Equal(s.Params(), ch.ParamsV, "Params mismatch")
+	assert.Equal(s.StagingTX(), ch.StagingTXV, "StagingTX mismatch")
+	assert.Equal(s.CurrentTX(), ch.CurrentTXV, "CurrentTX mismatch")
+	assert.Equal(s.Phase(), ch.PhaseV, "Phase mismatch")
 }

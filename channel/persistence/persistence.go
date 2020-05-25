@@ -25,7 +25,7 @@ type (
 		// The current state will be the fully signed version 0 state. The staging
 		// state will be empty. The passed peers are the channel network peers,
 		// which should also be persisted.
-		ChannelCreated(ctx context.Context, source Source, peers []peer.Address) error
+		ChannelCreated(ctx context.Context, source channel.Source, peers []peer.Address) error
 
 		// ChannelRemoved is called by the client when a channel is removed because
 		// it has been successfully settled and its data is no longer needed. All
@@ -36,37 +36,25 @@ type (
 		// state. It may already contain one valid signature, either by a remote
 		// peer or us locally. Hence, this only needs to persist a channel's staged
 		// state, all its currently known signatures and the phase.
-		Staged(context.Context, Source) error
+		Staged(context.Context, channel.Source) error
 
 		// SigAdded is called when a new signature is added to the current staging
 		// state. Only the signature for the given index needs to be persisted.
-		SigAdded(context.Context, Source, channel.Index) error
+		SigAdded(context.Context, channel.Source, channel.Index) error
 
 		// Enabled is called when the current state is updated to the staging state.
 		// The old current state may be discarded. The current state and phase
 		// should be persisted.
-		Enabled(context.Context, Source) error
+		Enabled(context.Context, channel.Source) error
 
 		// PhaseChanged is called when a phase change occurred that did not change
 		// the current or staging transaction. Only the phase needs to be persisted.
-		PhaseChanged(context.Context, Source) error
+		PhaseChanged(context.Context, channel.Source) error
 
 		// Close is called by the client when it shuts down. No more persistence
 		// requests will be made after this call and the Persister should free up
 		// all possible resources.
 		io.Closer
-	}
-
-	// Source is a source of channel data. It allows access to all information
-	// needed for persistence. The ID, Idx and Params only need to be persisted
-	// once per channel as they stay constant during a channel's lifetime.
-	Source interface {
-		ID() channel.ID                 // ID is the channel ID of this source. It is the same as Params().ID().
-		Idx() channel.Index             // Idx is the own index in the channel.
-		Params() *channel.Params        // Params are the channel parameters.
-		StagingTX() channel.Transaction // StagingTX is the staged transaction (State+incomplete list of sigs).
-		CurrentTX() channel.Transaction // CurrentTX is the current transaction (State+complete list of sigs).
-		Phase() channel.Phase           // Phase is the phase in which the channel is currently in.
 	}
 
 	// A Restorer allows a Client to restore channel machines. It has methods that
@@ -111,25 +99,42 @@ type (
 	// A Channel holds all data that is necessary for restoring a channel
 	// controller.
 	Channel struct {
-		// Peers are the channel network peers of this channel. They must have the
-		// same ordering as the Params.Peers, omitting the own peer.
-		Peers     []peer.Address
-		Idx       channel.Index       // Idx is the own index in the channel.
-		Params    *channel.Params     // Params are the channel parameters.
-		StagingTX channel.Transaction // StagingTx is the staging transaction.
-		CurrentTX channel.Transaction // CurrentTX is the current transaction.
-		Phase     channel.Phase       // Phase is the current channel phase.
+		IdxV       channel.Index       // IdxV is the own index in the channel.
+		ParamsV    *channel.Params     // ParamsV are the channel parameters.
+		StagingTXV channel.Transaction // StagingTxV is the staging transaction.
+		CurrentTXV channel.Transaction // CurrentTXV is the current transaction.
+		PhaseV     channel.Phase       // PhaseV is the current channel phase.
 	}
 )
 
+var _ channel.Source = (*Channel)(nil)
+
 // CloneSource creates a new Channel object whose fields are clones of the data
 // coming from Source s.
-func CloneSource(s Source) *Channel {
+func CloneSource(s channel.Source) *Channel {
 	return &Channel{
-		Idx:       s.Idx(),
-		Params:    s.Params().Clone(),
-		StagingTX: s.StagingTX().Clone(),
-		CurrentTX: s.CurrentTX().Clone(),
-		Phase:     s.Phase(),
+		IdxV:       s.Idx(),
+		ParamsV:    s.Params().Clone(),
+		StagingTXV: s.StagingTX().Clone(),
+		CurrentTXV: s.CurrentTX().Clone(),
+		PhaseV:     s.Phase(),
 	}
 }
+
+// ID is the channel ID of this source. It is the same as Params().ID().
+func (c *Channel) ID() channel.ID { return c.ParamsV.ID() }
+
+// Idx is the own index in the channel.
+func (c *Channel) Idx() channel.Index { return c.IdxV }
+
+// Params are the channel parameters.
+func (c *Channel) Params() *channel.Params { return c.ParamsV }
+
+// StagingTX is the staged transaction (State+incomplete list of sigs).
+func (c *Channel) StagingTX() channel.Transaction { return c.StagingTXV }
+
+// CurrentTX is the current transaction (State+complete list of sigs).
+func (c *Channel) CurrentTX() channel.Transaction { return c.CurrentTXV }
+
+// Phase is the phase in which the channel is currently in.
+func (c *Channel) Phase() channel.Phase { return c.PhaseV }
