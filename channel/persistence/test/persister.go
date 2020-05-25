@@ -44,7 +44,7 @@ func NewPersister(t *testing.T) *Persister {
 // state will be empty. The passed peers are the channel network peers,
 // which should also be persisted.
 func (p *Persister) ChannelCreated(
-	_ context.Context, source persistence.Source, peers []peer.Address) error {
+	_ context.Context, source channel.Source, peers []peer.Address) error {
 	id := source.ID()
 	_, ok := p.chans[id]
 	if ok {
@@ -71,7 +71,7 @@ func (p *Persister) ChannelRemoved(_ context.Context, id channel.ID) error {
 // state. It may already contain one valid signature, either by a remote
 // peer or us locally. Hence, this only needs to persist a channel's staged
 // state, all its currently known signatures and the phase.
-func (p *Persister) Staged(_ context.Context, s persistence.Source) error {
+func (p *Persister) Staged(_ context.Context, s channel.Source) error {
 	ch, ok := p.chans[s.ID()]
 	if !ok {
 		return errors.Errorf("channel doesn't exist: %x", s.ID())
@@ -84,7 +84,7 @@ func (p *Persister) Staged(_ context.Context, s persistence.Source) error {
 
 // SigAdded is called when a new signature is added to the current staging
 // state. Only the signature for the given index needs to be persisted.
-func (p *Persister) SigAdded(_ context.Context, s persistence.Source, idx channel.Index) error {
+func (p *Persister) SigAdded(_ context.Context, s channel.Source, idx channel.Index) error {
 	ch, ok := p.chans[s.ID()]
 	if !ok {
 		return errors.Errorf("channel doesn't exist: %x", s.ID())
@@ -98,7 +98,7 @@ func (p *Persister) SigAdded(_ context.Context, s persistence.Source, idx channe
 
 // Enabled is called when the current state is updated to the staging state.
 // The old current state may be discarded.
-func (p *Persister) Enabled(_ context.Context, s persistence.Source) error {
+func (p *Persister) Enabled(_ context.Context, s channel.Source) error {
 	ch, ok := p.chans[s.ID()]
 	if !ok {
 		return errors.Errorf("channel doesn't exist: %x", s.ID())
@@ -112,7 +112,7 @@ func (p *Persister) Enabled(_ context.Context, s persistence.Source) error {
 
 // PhaseChanged is called when a phase change occurred that did not change
 // the current or staging transaction. Only the phase needs to be persisted.
-func (p *Persister) PhaseChanged(_ context.Context, s persistence.Source) error {
+func (p *Persister) PhaseChanged(_ context.Context, s channel.Source) error {
 	ch, ok := p.chans[s.ID()]
 	if !ok {
 		return errors.Errorf("channel doesn't exist: %x", s.ID())
@@ -131,7 +131,7 @@ func (p *Persister) Close() error {
 
 // AssertEqual asserts that a channel of the same ID got persisted and that all
 // its data fields match the data coming from Source s.
-func (p *Persister) AssertEqual(s persistence.Source) {
+func (p *Persister) AssertEqual(s channel.Source) {
 	ch, ok := p.chans[s.ID()]
 	if !ok {
 		p.t.Errorf("channel doesn't exist: %x", s.ID())

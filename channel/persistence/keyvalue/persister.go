@@ -18,7 +18,7 @@ import (
 )
 
 // ChannelCreated inserts a channel into the database.
-func (p *PersistRestorer) ChannelCreated(_ context.Context, s persistence.Source, peers []peer.Address) error {
+func (p *PersistRestorer) ChannelCreated(_ context.Context, s channel.Source, peers []peer.Address) error {
 	db := p.channelDB(s.ID()).NewBatch()
 	// Write the channel data in the "Channel" table.
 	if err := dbPutSource(db, s,
@@ -84,7 +84,7 @@ func (p *PersistRestorer) ChannelRemoved(_ context.Context, id channel.ID) error
 }
 
 // Staged persists the staging transaction as well as the channel's phase.
-func (p *PersistRestorer) Staged(_ context.Context, s persistence.Source) error {
+func (p *PersistRestorer) Staged(_ context.Context, s channel.Source) error {
 	db := p.channelDB(s.ID()).NewBatch()
 
 	if err := dbPutSource(db, s, "staging", "phase"); err != nil {
@@ -95,7 +95,7 @@ func (p *PersistRestorer) Staged(_ context.Context, s persistence.Source) error 
 }
 
 // SigAdded persists the channel's staging transaction.
-func (p *PersistRestorer) SigAdded(_ context.Context, s persistence.Source, _ channel.Index) error {
+func (p *PersistRestorer) SigAdded(_ context.Context, s channel.Source, _ channel.Index) error {
 	db := p.channelDB(s.ID()).NewBatch()
 
 	if err := dbPut(db, "staging", s.StagingTX()); err != nil {
@@ -106,7 +106,7 @@ func (p *PersistRestorer) SigAdded(_ context.Context, s persistence.Source, _ ch
 }
 
 // Enabled persists the channel's staging and current transaction, and phase.
-func (p *PersistRestorer) Enabled(_ context.Context, s persistence.Source) error {
+func (p *PersistRestorer) Enabled(_ context.Context, s channel.Source) error {
 	db := p.channelDB(s.ID()).NewBatch()
 
 	if err := dbPut(db, "staging", s.StagingTX()); err != nil {
@@ -125,11 +125,11 @@ func (p *PersistRestorer) Enabled(_ context.Context, s persistence.Source) error
 }
 
 // PhaseChanged persists the channel's phase.
-func (p *PersistRestorer) PhaseChanged(_ context.Context, s persistence.Source) error {
+func (p *PersistRestorer) PhaseChanged(_ context.Context, s channel.Source) error {
 	return dbPut(p.channelDB(s.ID()), "phase", s.Phase())
 }
 
-func dbPutSource(db sortedkv.Writer, s persistence.Source, keys ...string) error {
+func dbPutSource(db sortedkv.Writer, s channel.Source, keys ...string) error {
 	for _, key := range keys {
 		if err := dbPutSourceField(db, s, key); err != nil {
 			return err
@@ -138,7 +138,7 @@ func dbPutSource(db sortedkv.Writer, s persistence.Source, keys ...string) error
 	return nil
 }
 
-func dbPutSourceField(db sortedkv.Writer, s persistence.Source, key string) error {
+func dbPutSourceField(db sortedkv.Writer, s channel.Source, key string) error {
 	switch key {
 	case "current":
 		return dbPut(db, key, s.CurrentTX())

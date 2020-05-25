@@ -21,13 +21,15 @@ type nonPersistRestorer struct{}
 
 // Persister implementation
 
-func (nonPersistRestorer) ChannelCreated(context.Context, Source, []peer.Address) error { return nil }
-func (nonPersistRestorer) ChannelRemoved(context.Context, channel.ID) error             { return nil }
-func (nonPersistRestorer) Staged(context.Context, Source) error                         { return nil }
-func (nonPersistRestorer) SigAdded(context.Context, Source, channel.Index) error        { return nil }
-func (nonPersistRestorer) Enabled(context.Context, Source) error                        { return nil }
-func (nonPersistRestorer) PhaseChanged(context.Context, Source) error                   { return nil }
-func (nonPersistRestorer) Close() error                                                 { return nil }
+func (nonPersistRestorer) ChannelCreated(context.Context, channel.Source, []peer.Address) error {
+	return nil
+}
+func (nonPersistRestorer) ChannelRemoved(context.Context, channel.ID) error              { return nil }
+func (nonPersistRestorer) Staged(context.Context, channel.Source) error                  { return nil }
+func (nonPersistRestorer) SigAdded(context.Context, channel.Source, channel.Index) error { return nil }
+func (nonPersistRestorer) Enabled(context.Context, channel.Source) error                 { return nil }
+func (nonPersistRestorer) PhaseChanged(context.Context, channel.Source) error            { return nil }
+func (nonPersistRestorer) Close() error                                                  { return nil }
 
 // Restorer implementation
 
