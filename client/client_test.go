@@ -102,6 +102,17 @@ func TestClient_Listen_NilArgs(t *testing.T) {
 	assert.Panics(t, func() { c.Listen(nil) })
 }
 
+func TestClient_Handle_NilArgs(t *testing.T) {
+	rng := rand.New(rand.NewSource(20200524))
+	id := wtest.NewRandomAccount(rng)
+	c := New(id, &DummyDialer{t}, &DummyFunder{t}, &DummyAdjudicator{t}, wtest.RandomWallet())
+
+	dummyUH := UpdateHandlerFunc(func(ChannelUpdate, *UpdateResponder) {})
+	assert.Panics(t, func() { c.Handle(nil, dummyUH) })
+	dummyPH := ProposalHandlerFunc(func(*ChannelProposal, *ProposalResponder) {})
+	assert.Panics(t, func() { c.Handle(dummyPH, nil) })
+}
+
 func TestClient_New(t *testing.T) {
 	rng := rand.New(rand.NewSource(0x1a2b3c))
 	id := wtest.NewRandomAccount(rng)

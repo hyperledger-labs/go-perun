@@ -12,9 +12,25 @@ import (
 
 	"perun.network/go-perun/channel"
 	"perun.network/go-perun/log"
+	"perun.network/go-perun/peer"
 	"perun.network/go-perun/pkg/sync/atomic"
 	"perun.network/go-perun/wallet"
 )
+
+// handleChannelUpdate forwards incoming channel update requests to the
+// respective channel's update handler (Channel.handleUpdateReq). If the channel
+// is unknown, an error is logged.
+//
+// This handler is dispatched from the Client.Handle routine.
+func (c *Client) handleChannelUpdate(uh UpdateHandler, p *peer.Peer, m *msgChannelUpdate) {
+	ch, ok := c.channels.Get(m.ID())
+	if !ok {
+		c.logChan(m.ID()).WithField("peer", p.PerunAddress).Errorf("received update for unknown channel")
+		return
+	}
+	pidx := ch.Idx() ^ 1
+	ch.handleUpdateReq(pidx, m, uh)
+}
 
 type (
 	// ChannelUpdate is a channel update proposal.
@@ -34,6 +50,11 @@ type (
 		Handle(ChannelUpdate, *UpdateResponder)
 	}
 
+	// UpdateHandlerFunc is an adapter type to allow the use of functions as
+	// update handlers. UpdateHandlerFunc(f) is an UpdateHandler that calls
+	// f when Handle is called.
+	UpdateHandlerFunc func(ChannelUpdate, *UpdateResponder)
+
 	// The UpdateResponder allows the user to react to the incoming channel update
 	// request. If the user wants to accept the update, Accept() should be called,
 	// otherwise Reject(), possibly giving a reason for the rejection.
@@ -46,6 +67,9 @@ type (
 		called  atomic.Bool
 	}
 )
+
+// Handle calls the update handler function.
+func (f UpdateHandlerFunc) Handle(u ChannelUpdate, r *UpdateResponder) { f(u, r) }
 
 // Accept lets the user signal that they want to accept the channel update.
 func (r *UpdateResponder) Accept(ctx context.Context) error {
@@ -158,24 +182,6 @@ func (c *Channel) UpdateBy(ctx context.Context, update func(*channel.State)) (er
 		State:    state,
 		ActorIdx: c.Idx(),
 	})
-}
-
-// ListenUpdates starts the handling of incoming channel update requests. It
-// should immediately be started by the user after they receive the channel
-// controller.
-func (c *Channel) ListenUpdates(uh UpdateHandler) {
-	if uh == nil {
-		c.log.Panicf("update handler must not be nil")
-	}
-
-	for {
-		pidx, req := c.conn.NextUpdateReq(context.Background())
-		if req == nil {
-			c.log.Debug("update request receiver closed")
-			return
-		}
-		c.handleUpdateReq(pidx, req, uh)
-	}
 }
 
 // handleUpdateReq is called by the controller on incoming channel update

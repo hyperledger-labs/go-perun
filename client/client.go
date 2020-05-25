@@ -28,7 +28,7 @@ type Client struct {
 	id          peer.Identity
 	peers       *peer.Registry
 	channels    chanRegistry
-	propRecv    *peer.Receiver
+	reqRecv     *peer.Receiver
 	funder      channel.Funder
 	adjudicator channel.Adjudicator
 	wallet      wallet.Wallet
@@ -78,7 +78,7 @@ func New(
 	c := &Client{
 		id:          id,
 		channels:    makeChanRegistry(),
-		propRecv:    peer.NewReceiver(),
+		reqRecv:     peer.NewReceiver(),
 		funder:      funder,
 		adjudicator: adjudicator,
 		wallet:      wallet,
@@ -100,7 +100,7 @@ func (c *Client) Close() error {
 	if cerr := c.peers.Close(); err == nil {
 		err = errors.WithMessage(cerr, "closing registry")
 	}
-	if rerr := c.propRecv.Close(); err == nil {
+	if rerr := c.reqRecv.Close(); err == nil {
 		err = errors.WithMessage(rerr, "closing proposal receiver")
 	}
 	return err
@@ -135,15 +135,50 @@ func (c *Client) Listen(listener peer.Listener) {
 }
 
 func (c *Client) subscribePeer(p *peer.Peer) {
-	c.logPeer(p).Debugf("setting up default subscriptions")
-
-	// handle incoming channel proposals
-	c.subChannelProposals(p)
-
 	log := c.logPeer(p)
+	log.Debugf("setting up default subscriptions")
+
+	if err := p.Subscribe(c.reqRecv, isReqMsg); err != nil {
+		log.Errorf("failed to subscribe to request messages on new peer: %v", err)
+		if err := p.Close(); err != nil {
+			log.Errorf("failed to close peer after unsuccessful subscription: %v", err)
+		}
+		return
+	}
+
 	p.SetDefaultMsgHandler(func(m wire.Msg) {
 		log.Debugf("Received %T message without subscription: %v", m, m)
 	})
+}
+
+func isReqMsg(m wire.Msg) bool {
+	return m.Type() == wire.ChannelProposal ||
+		m.Type() == wire.ChannelUpdate
+}
+
+// Handle is the incoming request handler routine. It handles channel proposals
+// and channel update requests. It must be started exactly once by the user,
+// during the setup of the Client. Incoming requests are handled by the passed
+// respecive handlers.
+func (c *Client) Handle(ph ProposalHandler, uh UpdateHandler) {
+	if ph == nil || uh == nil {
+		c.log.Panic("handlers must not be nil")
+	}
+
+	for {
+		p, msg := c.reqRecv.Next(c.Ctx())
+		if p == nil {
+			c.log.Debug("request receiver closed")
+			return
+		}
+
+		switch msg.Type() {
+		case wire.ChannelProposal:
+			go c.handleChannelProposal(ph, p, msg.(*ChannelProposal))
+		case wire.ChannelUpdate:
+			go c.handleChannelUpdate(uh, p, msg.(*msgChannelUpdate))
+		}
+	}
 }
 
 // Log is the getter for the client's field logger.

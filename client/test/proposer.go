@@ -6,12 +6,12 @@
 package test
 
 import (
-	"context"
 	"math/big"
 	"math/rand"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+
 	"perun.network/go-perun/apps/payment"
 	"perun.network/go-perun/channel"
 	"perun.network/go-perun/client"
@@ -19,12 +19,12 @@ import (
 
 // Proposer is a test client role. He proposes the new channel.
 type Proposer struct {
-	Role
+	role
 }
 
 // NewProposer creates a new party that executes the Proposer protocol.
 func NewProposer(setup RoleSetup, t *testing.T, numStages int) *Proposer {
-	return &Proposer{Role: MakeRole(setup, t, numStages)}
+	return &Proposer{role: makeRole(setup, t, numStages)}
 }
 
 // Execute executes the Proposer protocol.
@@ -48,30 +48,27 @@ func (r *Proposer) Execute(cfg ExecConfig, exec func(ExecConfig, *paymentChannel
 	}
 
 	// send channel proposal
-	_ch, err := func() (*client.Channel, error) {
-		ctx, cancel := context.WithTimeout(context.Background(), r.timeout)
-		defer cancel()
-		return r.ProposeChannel(ctx, prop)
-	}()
+	ch, err := r.ProposeChannel(prop)
 	assert.NoError(err)
-	assert.NotNil(_ch)
+	assert.NotNil(ch)
 	if err != nil {
 		return
 	}
-	ch := newPaymentChannel(_ch, &r.Role)
 	r.log.Infof("New Channel opened: %v", ch.Channel)
 
 	// start update handler
-	listenUpDone := make(chan struct{})
+	handleDone := make(chan struct{})
 	go func() {
-		defer close(listenUpDone)
-		r.log.Info("Starting update listener")
-		ch.ListenUpdates()
-		r.log.Debug("Update listener returned.")
+		defer close(handleDone)
+		r.log.Info("Starting request handler")
+		// Note that we don't get any incoming proposal but still have to set a
+		// handler.
+		r.Handle(r.AcceptAllPropHandler(rng), r.UpdateHandler())
+		r.log.Debug("Request handler returned.")
 	}()
 	defer func() {
-		r.log.Debug("Waiting for update listener to return...")
-		<-listenUpDone
+		r.log.Debug("Waiting for request handler to return...")
+		<-handleDone
 	}()
 
 	exec(cfg, ch)

@@ -27,6 +27,11 @@ type (
 		Handle(*ChannelProposal, *ProposalResponder)
 	}
 
+	// ProposalHandlerFunc is an adapter type to allow the use of functions as
+	// proposal handlers. ProposalHandlerFunc(f) is a ProposalHandler that calls
+	// f when Handle is called.
+	ProposalHandlerFunc func(*ChannelProposal, *ProposalResponder)
+
 	// ProposalResponder lets the user respond to a channel proposal. If the user
 	// wants to accept the proposal, they should call Accept(), otherwise Reject().
 	// Only a single function must be called and every further call causes a
@@ -45,6 +50,9 @@ type (
 		Participant wallet.Address
 	}
 )
+
+// Handle calls the proposal handler function.
+func (f ProposalHandlerFunc) Handle(p *ChannelProposal, r *ProposalResponder) { f(p, r) }
 
 // Accept lets the user signal that they want to accept the channel proposal.
 // Returns the newly created channel controller if the channel was successfully
@@ -122,37 +130,11 @@ func (c *Client) ProposeChannel(ctx context.Context, req *ChannelProposal) (*Cha
 	return c.setupChannel(ctx, req, parts)
 }
 
-// This function is called during the setup of new peers by the registry. The
-// passed peer is not yet receiving any messages, thus, subscription is
-// race-free. After the function returns, the peer starts receiving messages.
-func (c *Client) subChannelProposals(p *peer.Peer) {
-	if err := p.Subscribe(c.propRecv,
-		func(m wire.Msg) bool { return m.Type() == wire.ChannelProposal },
-	); err != nil {
-		c.logPeer(p).Errorf("failed to subscribe to channel proposals on new peer: %v", err)
-		return
-	}
-
-}
-
-// HandleChannelProposals is the incoming channel proposal handler routine. It
-// must only be started at most once by the user. Incoming channel proposals are
-// handled using the passed handler.
-func (c *Client) HandleChannelProposals(handler ProposalHandler) {
-	for {
-		p, m := c.propRecv.Next(context.Background())
-		if p == nil {
-			c.log.Debug("proposal receiver closed")
-			return
-		}
-		req := m.(*ChannelProposal) // safe because that's the predicate
-		go c.handleChannelProposal(handler, p, req)
-	}
-}
-
 // handleChannelProposal implements the receiving side of the (currently)
 // two-party channel proposal protocol.
 // The proposer is expected to be the first peer in the participant list.
+//
+// This handler is dispatched from the Client.Handle routine.
 func (c *Client) handleChannelProposal(
 	handler ProposalHandler, p *peer.Peer, req *ChannelProposal) {
 	if err := c.validTwoPartyProposal(req, 1, p.PerunAddress); err != nil {
