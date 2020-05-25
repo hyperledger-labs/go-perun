@@ -33,7 +33,7 @@ func TestStateMachine(t *testing.T) {
 	csm, err := channel.NewStateMachine(accs[0], *params)
 	require.NoError(err)
 
-	tpr := test.NewPersister(t)
+	tpr := test.NewPersistRestorer(t)
 	sm := persistence.FromStateMachine(csm, tpr)
 
 	// Newly created channel
