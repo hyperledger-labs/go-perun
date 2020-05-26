@@ -14,60 +14,47 @@ import (
 )
 
 func init() {
-	msg.RegisterDecoder(msg.ChannelSyncReq,
+	msg.RegisterDecoder(msg.ChannelSync,
 		func(r io.Reader) (msg.Msg, error) {
-			var m msgChannelSyncReq
-			return &m, m.Decode(r)
-		})
-	msg.RegisterDecoder(msg.ChannelSyncRes,
-		func(r io.Reader) (msg.Msg, error) {
-			var m msgChannelSyncRes
+			var m msgChannelSync
 			return &m, m.Decode(r)
 		})
 }
 
 type msgChannelSync struct {
-	ChannelID channel.ID          // ChannelID is the channel ID.
 	Phase     channel.Phase       // Phase is the phase of the sender.
 	CurrentTX channel.Transaction // CurrentTX is the sender's current transaction.
-	StagingTX channel.Transaction // StagingTX is the sender's staging transaction.
 }
 
-var _ ChannelMsg = (*msgChannelSyncReq)(nil)
-var _ ChannelMsg = (*msgChannelSyncRes)(nil)
+var _ ChannelMsg = (*msgChannelSync)(nil)
+
+func newChannelSyncMsg(s channel.Source) *msgChannelSync {
+	return &msgChannelSync{
+		Phase:     s.Phase(),
+		CurrentTX: s.CurrentTX(),
+	}
+}
 
 // Encode implements msg.Encode.
 func (m *msgChannelSync) Encode(w io.Writer) error {
 	return wire.Encode(w,
-		m.ChannelID,
 		m.Phase,
-		m.CurrentTX,
-		m.StagingTX)
+		m.CurrentTX)
 }
 
 // Decode implements msg.Decode.
 func (m *msgChannelSync) Decode(r io.Reader) error {
 	return wire.Decode(r,
-		&m.ChannelID,
 		&m.Phase,
-		&m.CurrentTX,
-		&m.StagingTX)
+		&m.CurrentTX)
 }
 
 // ID returns the channel's ID.
 func (m *msgChannelSync) ID() channel.ID {
-	return m.ChannelID
-}
-
-type msgChannelSyncReq struct{ msgChannelSync }
-type msgChannelSyncRes struct{ msgChannelSync }
-
-// Type implements msg.Type.
-func (m *msgChannelSyncReq) Type() msg.Type {
-	return msg.ChannelSyncReq
+	return m.CurrentTX.ID
 }
 
 // Type implements msg.Type.
-func (m *msgChannelSyncRes) Type() msg.Type {
-	return msg.ChannelSyncRes
+func (m *msgChannelSync) Type() msg.Type {
+	return msg.ChannelSync
 }
