@@ -33,6 +33,8 @@ func (nonPersistRestorer) Close() error                                         
 
 // Restorer implementation
 
+func (nonPersistRestorer) ActivePeers(context.Context) ([]peer.Address, error) { return nil, nil }
+
 func (nonPersistRestorer) RestoreAll() (ChannelIterator, error) {
 	return emptyChanIterator{}, nil
 }
