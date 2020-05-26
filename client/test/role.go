@@ -16,6 +16,7 @@ import (
 	"time"
 
 	"perun.network/go-perun/channel"
+	"perun.network/go-perun/channel/persistence"
 	"perun.network/go-perun/client"
 	"perun.network/go-perun/log"
 	"perun.network/go-perun/peer"
@@ -45,7 +46,8 @@ type (
 		Funder      channel.Funder
 		Adjudicator channel.Adjudicator
 		Wallet      wallettest.Wallet
-		Timeout     time.Duration
+		PR          persistence.PersistRestorer // Optional PersistRestorer
+		Timeout     time.Duration               // Timeout waiting for other role, not challenge duration
 	}
 
 	// ExecConfig contains additional config parameters for the tests.
@@ -74,6 +76,9 @@ type (
 // makeRole creates a client for the given setup and wraps it into a Role.
 func makeRole(setup RoleSetup, t *testing.T, numStages int) role {
 	cl := client.New(setup.Identity, setup.Dialer, setup.Funder, setup.Adjudicator, setup.Wallet)
+	if setup.PR != nil {
+		cl.EnablePersistence(setup.PR)
+	}
 	return role{
 		Client:    cl,
 		chans:     make(map[channel.ID]*paymentChannel),
