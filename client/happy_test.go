@@ -6,110 +6,33 @@
 package client_test
 
 import (
-	"context"
 	"math/big"
 	"math/rand"
-	"sync"
 	"testing"
 	"time"
 
-	"perun.network/go-perun/channel"
-	channeltest "perun.network/go-perun/channel/test"
-	clienttest "perun.network/go-perun/client/test"
-	"perun.network/go-perun/log"
+	chtest "perun.network/go-perun/channel/test"
+	ctest "perun.network/go-perun/client/test"
 	"perun.network/go-perun/peer"
-	peertest "perun.network/go-perun/peer/test"
-	"perun.network/go-perun/wallet"
-	wallettest "perun.network/go-perun/wallet/test"
 )
 
 var defaultTimeout = 1 * time.Second
 
 func TestHappyAliceBob(t *testing.T) {
-	log.Info("Starting happy test")
 	rng := rand.New(rand.NewSource(0x1337))
-
-	const A, B = 0, 1 // Indices of Alice and Bob
-	var (
-		name  = [2]string{"Alice", "Bob"}
-		hub   peertest.ConnHub
-		acc   [2]wallet.Account
-		setup [2]clienttest.RoleSetup
-		role  [2]clienttest.Executer
-	)
-
-	for i := 0; i < 2; i++ {
-		acc[i] = wallettest.NewRandomAccount(rng)
-		setup[i] = clienttest.RoleSetup{
-			Name:        name[i],
-			Identity:    acc[i],
-			Dialer:      hub.NewDialer(),
-			Listener:    hub.NewListener(acc[i].Address()),
-			Funder:      &logFunder{log.WithField("role", name[i])},
-			Adjudicator: &logAdjudicator{log.WithField("role", name[i])},
-			Wallet:      wallettest.NewWallet(),
-			Timeout:     defaultTimeout,
-		}
+	setups, _ := NewSetups(rng, []string{"Alice", "Bob"})
+	roles := [2]ctest.Executer{
+		ctest.NewAlice(setups[0], t),
+		ctest.NewBob(setups[1], t),
 	}
 
-	role[A] = clienttest.NewAlice(setup[A], t)
-	role[B] = clienttest.NewBob(setup[B], t)
-	// enable stages synchronization
-	stages := role[A].EnableStages()
-	role[B].SetStages(stages)
-
-	execConfig := clienttest.ExecConfig{
-		PeerAddrs:  [2]peer.Address{acc[A].Address(), acc[B].Address()},
-		Asset:      channeltest.NewRandomAsset(rng),
+	cfg := ctest.ExecConfig{
+		PeerAddrs:  [2]peer.Address{setups[0].Identity.Address(), setups[1].Identity.Address()},
+		Asset:      chtest.NewRandomAsset(rng),
 		InitBals:   [2]*big.Int{big.NewInt(100), big.NewInt(100)},
 		NumUpdates: [2]int{2, 2},
 		TxAmounts:  [2]*big.Int{big.NewInt(5), big.NewInt(3)},
 	}
 
-	var wg sync.WaitGroup
-	wg.Add(2)
-	for i := 0; i < 2; i++ {
-		go func(i int) {
-			defer wg.Done()
-			log.Infof("Starting %s.Execute", name[i])
-			role[i].Execute(execConfig)
-		}(i)
-	}
-
-	wg.Wait()
-	log.Info("Happy test done")
-}
-
-type (
-	logFunder struct {
-		log log.Logger
-	}
-
-	logAdjudicator struct {
-		log log.Logger
-	}
-)
-
-func (f *logFunder) Fund(_ context.Context, req channel.FundingReq) error {
-	f.log.Infof("Funding: %v", req)
-	return nil
-}
-
-func (a *logAdjudicator) Register(ctx context.Context, req channel.AdjudicatorReq) (*channel.RegisteredEvent, error) {
-	a.log.Infof("Register: %v", req)
-	return &channel.RegisteredEvent{
-		ID:      req.Params.ID(),
-		Version: req.Tx.Version,
-		Timeout: &channel.ElapsedTimeout{},
-	}, nil
-}
-
-func (a *logAdjudicator) Withdraw(ctx context.Context, req channel.AdjudicatorReq) error {
-	a.log.Infof("Withdraw: %v", req)
-	return nil
-}
-
-func (a *logAdjudicator) SubscribeRegistered(ctx context.Context, params *channel.Params) (channel.RegisteredSubscription, error) {
-	a.log.Infof("SubscribeRegistered: %v", params)
-	return nil, nil
+	executeTwoPartyTest(t, roles, cfg)
 }
