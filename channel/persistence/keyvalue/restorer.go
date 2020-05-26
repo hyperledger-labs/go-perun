@@ -30,6 +30,19 @@ type ChannelIterator struct {
 	restorer *PersistRestorer
 }
 
+// ActivePeers returns a list of all peers with which a channel is persisted.
+func (r *PersistRestorer) ActivePeers(context.Context) ([]peer.Address, error) {
+	ps := make([]peer.Address, 0, len(r.cache.peerChannels))
+	for peerstr := range r.cache.peerChannels {
+		addr, err := peer.DecodeAddress(bytes.NewReader([]byte(peerstr)))
+		if err != nil {
+			return nil, errors.WithMessagef(err, "decoding peer address (%x)", []byte(peerstr))
+		}
+		ps = append(ps, addr)
+	}
+	return ps, nil
+}
+
 // RestoreAll should return an iterator over all persisted channels.
 func (r *PersistRestorer) RestoreAll() (persistence.ChannelIterator, error) {
 	return &ChannelIterator{
