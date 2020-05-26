@@ -60,8 +60,9 @@ type (
 	// A Restorer allows a Client to restore channel machines. It has methods that
 	// return iterators over channel data.
 	Restorer interface {
-		// RestoreAll should return an iterator over all persisted channels.
-		RestoreAll() (ChannelIterator, error)
+		// ActivePeers should return a list of all peers with which any channel is
+		// persisted.
+		ActivePeers(context.Context) ([]peer.Address, error)
 
 		// RestorePeer should return an iterator over all persisted channels which
 		// the given peer is a part of.

@@ -125,4 +125,18 @@ func GenericPersistRestorerTest(
 		}
 	}
 	ct.Wait("testing")
+
+	// Test ActivePeers
+	persistedPeers, err := pr.ActivePeers(ctx)
+	require.NoError(t, err)
+	require.Len(t, persistedPeers, numPeers+1) // + local client
+peerLoop:
+	for idx, addr := range peers {
+		for _, paddr := range persistedPeers {
+			if addr.Equals(paddr) {
+				continue peerLoop // found, next address
+			}
+		}
+		t.Errorf("Peer[%d] not found in persisted peers", idx)
+	}
 }
