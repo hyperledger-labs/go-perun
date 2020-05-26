@@ -73,6 +73,6 @@ func (r *Proposer) Execute(cfg ExecConfig, exec func(ExecConfig, *paymentChannel
 
 	exec(cfg, ch)
 
-	assert.NoError(ch.Close())
+	ch.Close() // May or may not already be closed due to channelConn closing.
 	assert.NoError(r.Close())
 }

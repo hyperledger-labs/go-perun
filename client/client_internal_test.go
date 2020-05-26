@@ -108,7 +108,7 @@ func TestClient_Channel(t *testing.T) {
 	})
 
 	t.Run("known", func(t *testing.T) {
-		ch1 := new(Channel)
+		ch1 := testCh()
 		c.channels.Put(cID, ch1)
 
 		ch2, err := c.Channel(cID)
