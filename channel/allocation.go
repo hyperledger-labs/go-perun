@@ -283,6 +283,48 @@ func (a Allocation) Sum() []Bal {
 	return totals
 }
 
+// Equal returns whether two `Allocation` objects are equal.
+func (a *Allocation) Equal(b *Allocation) error {
+	if a == b {
+		return nil
+	}
+	// Compare Assets
+	if len(a.Assets) != len(b.Assets) {
+		return errors.New("different number of assets")
+	}
+	for i, asset := range a.Assets {
+		if ok, err := perunio.EqualEncoding(asset, b.Assets[i]); err != nil {
+			return errors.WithMessagef(err, "comparing asset[%d] encoding", i)
+		} else if !ok {
+			return errors.Errorf("different asset[%d]", i)
+		}
+	}
+	// Compare Balances
+	if len(a.Balances) != len(b.Balances) {
+		return errors.New("different number of balances")
+	}
+	for i, bals := range a.Balances {
+		if len(bals) != len(b.Balances[i]) {
+			return errors.Errorf("different number of parts for %d'th balances", i)
+		}
+		for j, bal := range bals {
+			if bal.Cmp(b.Balances[i][j]) != 0 {
+				return errors.Errorf("different balance[%d][%d]", i, j)
+			}
+		}
+	}
+	// Compare Locked
+	if len(a.Locked) != len(b.Locked) {
+		return errors.New("different number of sub allocations")
+	}
+	for i, locked := range a.Locked {
+		if err := locked.Equal(&b.Locked[i]); err != nil {
+			return errors.WithMessagef(err, "different sub allocation[%d]", i)
+		}
+	}
+	return nil
+}
+
 // summer returns sums of balances
 type summer interface {
 	Sum() []Bal
@@ -361,4 +403,23 @@ func (s *SubAlloc) Decode(r io.Reader) error {
 	}
 
 	return s.Valid()
+}
+
+// Equal returns whether two `SubAlloc` objects are equal.
+func (s *SubAlloc) Equal(t *SubAlloc) error {
+	if s == t {
+		return nil
+	}
+	if s.ID != t.ID {
+		return errors.New("different ID")
+	}
+	if len(s.Bals) != len(t.Bals) {
+		return errors.New("different number of bals")
+	}
+	for i, bal := range s.Bals {
+		if bal.Cmp(t.Bals[i]) != 0 {
+			return errors.Errorf("different balance[%d]", i)
+		}
+	}
+	return nil
 }

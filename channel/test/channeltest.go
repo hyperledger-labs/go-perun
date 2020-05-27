@@ -277,3 +277,13 @@ func buildModifiedStates(s1, s2 *channel.State, modifyApp bool) (ret []channel.S
 
 	return
 }
+
+// GenericStateEqualTest tests the State.Equal function.
+func GenericStateEqualTest(t *testing.T, s1, s2 *channel.State) {
+	assert.NoError(t, s1.Equal(s1))
+	assert.NoError(t, s2.Equal(s2))
+
+	for _, differentState := range buildModifiedStates(s1, s2, true) {
+		assert.Error(t, differentState.Equal(s1))
+	}
+}

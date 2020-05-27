@@ -27,6 +27,7 @@ import (
 func TestGenericTests(t *testing.T) {
 	setup := newChannelSetup()
 	test.GenericBackendTest(t, setup)
+	test.GenericStateEqualTest(t, setup.State, setup.State2)
 }
 
 func newChannelSetup() *test.Setup {
