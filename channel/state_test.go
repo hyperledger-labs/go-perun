@@ -16,6 +16,9 @@ import (
 
 func TestStateSerialization(t *testing.T) {
 	rng := rand.New(rand.NewSource(1337))
-	state := test.NewRandomState(rng)
+	state := test.NewRandomState(rng, test.WithNumLocked(int(rng.Int31n(4)+1)))
+	state2 := test.NewRandomState(rng, test.WithIsFinal(!state.IsFinal), test.WithNumLocked(int(rng.Int31n(4)+1)))
+
 	iotest.GenericSerializerTest(t, state)
+	test.GenericStateEqualTest(t, state, state2)
 }
