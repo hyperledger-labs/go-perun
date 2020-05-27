@@ -16,8 +16,9 @@ import (
 // You can safely look up channels via their ID and concurrently modify the
 // registry. Always initialize instances of this type with MakeChanRegistry().
 type chanRegistry struct {
-	mutex  sync.RWMutex
-	values map[channel.ID]*Channel
+	mutex             sync.RWMutex
+	values            map[channel.ID]*Channel
+	newChannelHandler func(*Channel)
 }
 
 // makeChanRegistry creates a new empty channel registry.
@@ -31,13 +32,29 @@ func makeChanRegistry() chanRegistry {
 // returns true.
 func (r *chanRegistry) Put(id channel.ID, value *Channel) bool {
 	r.mutex.Lock()
-	defer r.mutex.Unlock()
 
 	if _, ok := r.values[id]; ok {
+		r.mutex.Unlock()
 		return false
 	}
 	r.values[id] = value
+	handler := r.newChannelHandler
+	r.mutex.Unlock()
+	if handler != nil {
+		handler(value)
+	}
 	return true
+}
+
+// OnNewChannel sets a callback to be called whenever a new channel is added to
+// the registry via Put. Only one such handler can be set at a time, and
+// repeated calls to this function will overwrite the currently existing
+// handler. This function may be safely called at any time.
+func (r *chanRegistry) OnNewChannel(handler func(*Channel)) {
+	r.mutex.Lock()
+	defer r.mutex.Unlock()
+
+	r.newChannelHandler = handler
 }
 
 // Has checks whether a channel with the requested ID is registered.

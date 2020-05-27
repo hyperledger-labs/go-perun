@@ -106,6 +106,14 @@ func (c *Client) Close() error {
 	return err
 }
 
+// OnNewChannel sets a callback to be called whenever a new channel is created
+// or restored. Only one such handler can be set at a time, and repeated calls
+// to this function will overwrite the currently existing handler. This function
+// may be safely called at any time.
+func (c *Client) OnNewChannel(handler func(*Channel)) {
+	c.channels.OnNewChannel(handler)
+}
+
 // EnablePersistence sets the PersistRestorer that the client is going to use for channel
 // persistence. This methods is expected to be called once during the setup of
 // the client and is hence not thread-safe.

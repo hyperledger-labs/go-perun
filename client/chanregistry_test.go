@@ -20,6 +20,17 @@ func TestChanRegistry_Put(t *testing.T) {
 	ch := &Channel{}
 	id := test.NewRandomChannelID(rng)
 
+	t.Run("callback", func(t *testing.T) {
+		called := false
+		r := makeChanRegistry()
+		r.OnNewChannel(func(c *Channel) {
+			called = true
+			require.Same(t, c, ch)
+		})
+		assert.True(t, r.Put(id, ch))
+		require.True(t, called)
+	})
+
 	t.Run("single insert", func(t *testing.T) {
 		r := makeChanRegistry()
 		assert.True(t, r.Put(id, ch))
