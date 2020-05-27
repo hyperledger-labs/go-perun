@@ -157,6 +157,8 @@ func (c *Client) subscribePeer(p *peer.Peer) {
 	p.SetDefaultMsgHandler(func(m wire.Msg) {
 		log.Debugf("Received %T message without subscription: %v", m, m)
 	})
+
+	go c.restorePeerChannels(p)
 }
 
 func isReqMsg(m wire.Msg) bool {

@@ -67,6 +67,16 @@ func (c *Client) newChannel(
 	}, nil
 }
 
+// channelFromSource is used to create a channel from restored data.
+func (c *Client) channelFromSource(s channel.Source, peers ...*peer.Peer) (*Channel, error) {
+	acc, err := c.wallet.Unlock(s.Params().Parts[s.Idx()])
+	if err != nil {
+		return nil, errors.WithMessage(err, "unlocking account for channel")
+	}
+
+	return c.newChannel(acc, peers, *s.Params())
+}
+
 // Close closes the channel and all associated peer subscriptions.
 func (c *Channel) Close() error {
 	return c.conn.Close()
