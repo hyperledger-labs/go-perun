@@ -56,20 +56,9 @@ func (r *Proposer) Execute(cfg ExecConfig, exec func(ExecConfig, *paymentChannel
 	}
 	r.log.Infof("New Channel opened: %v", ch.Channel)
 
-	// start update handler
-	handleDone := make(chan struct{})
-	go func() {
-		defer close(handleDone)
-		r.log.Info("Starting request handler")
-		// Note that we don't get any incoming proposal but still have to set a
-		// handler.
-		r.Handle(r.AcceptAllPropHandler(rng), r.UpdateHandler())
-		r.log.Debug("Request handler returned.")
-	}()
-	defer func() {
-		r.log.Debug("Waiting for request handler to return...")
-		<-handleDone
-	}()
+	// ignore proposal handler since Proposer doesn't accept any incoming channels
+	_, wait := r.GoHandle(rng)
+	defer wait()
 
 	exec(cfg, ch)
 

@@ -27,8 +27,9 @@ type (
 	// A Role is a client.Client together with a protocol execution path.
 	role struct {
 		*client.Client
-		chans map[channel.ID]*paymentChannel
-		setup RoleSetup
+		chans   map[channel.ID]*paymentChannel
+		newChan func(*paymentChannel) // new channel callback
+		setup   RoleSetup
 		// we use the Client as Closer
 		timeout   time.Duration
 		log       log.Logger
@@ -74,20 +75,36 @@ type (
 )
 
 // makeRole creates a client for the given setup and wraps it into a Role.
-func makeRole(setup RoleSetup, t *testing.T, numStages int) role {
-	cl := client.New(setup.Identity, setup.Dialer, setup.Funder, setup.Adjudicator, setup.Wallet)
-	if setup.PR != nil {
-		cl.EnablePersistence(setup.PR)
-	}
-	return role{
-		Client:    cl,
+func makeRole(setup RoleSetup, t *testing.T, numStages int) (r role) {
+	r = role{
 		chans:     make(map[channel.ID]*paymentChannel),
 		setup:     setup,
 		timeout:   setup.Timeout,
-		log:       cl.Log().WithField("role", setup.Name),
 		t:         t,
 		numStages: numStages,
 	}
+	cl := client.New(r.setup.Identity, r.setup.Dialer, r.setup.Funder, r.setup.Adjudicator, r.setup.Wallet)
+	r.setClient(cl) // init client
+	return r
+}
+
+func (r *role) setClient(cl *client.Client) {
+	if r.setup.PR != nil {
+		cl.EnablePersistence(r.setup.PR)
+	}
+	cl.OnNewChannel(func(_ch *client.Channel) {
+		ch := newPaymentChannel(_ch, r)
+		r.chans[ch.ID()] = ch
+		if r.newChan != nil {
+			r.newChan(ch) // forward callback
+		}
+	})
+	r.Client = cl
+	r.log = cl.Log().WithField("role", r.setup.Name)
+}
+
+func (r *role) OnNewChannel(callback func(ch *paymentChannel)) {
+	r.newChan = callback
 }
 
 // EnableStages optionally enables the synchronization of this role at different
@@ -145,9 +162,8 @@ func (r *role) ProposeChannel(req *client.ChannelProposal) (*paymentChannel, err
 	if err != nil {
 		return nil, err
 	}
-	ch := newPaymentChannel(_ch, r)
-	r.chans[ch.ID()] = ch
-	return ch, nil
+	// Client.OnNewChannel callback adds paymentChannel wrapper to the chans map
+	return r.chans[_ch.ID()], nil
 }
 
 type (
@@ -167,6 +183,41 @@ type (
 		err     error
 	}
 )
+
+// GoHandle starts the handler routine on the current client and returns a
+// wait() function with which it can be waited for the handler routine to stop.
+func (r *role) GoHandle(rng *rand.Rand) (h *acceptAllPropHandler, wait func()) {
+	done := make(chan struct{})
+	propHandler := r.AcceptAllPropHandler(rng)
+	go func() {
+		defer close(done)
+		r.log.Info("Starting request handler.")
+		r.Handle(propHandler, r.UpdateHandler())
+		r.log.Debug("Request handler returned.")
+	}()
+
+	return propHandler, func() {
+		r.log.Debug("Waiting for request handler to return...")
+		<-done
+	}
+}
+
+// GoListen starts the peer listener routine on the current client and returns a
+// wait() function with which it can be waited for the listener routine to stop.
+func (r *role) GoListen(l peer.Listener) (wait func()) {
+	done := make(chan struct{})
+	go func() {
+		defer close(done)
+		r.log.Info("Starting peer listener.")
+		r.Listen(l)
+		r.log.Debug("Peer listener returned.")
+	}()
+
+	return func() {
+		r.log.Debug("Waiting for peer listener to return...")
+		<-done
+	}
+}
 
 // AcceptAllPropHandler returns a ProposalHandler that accepts all requests to
 // this Role. The paymentChannel is saved to the Role's state upon acceptal. The
@@ -202,9 +253,8 @@ func (h *acceptAllPropHandler) Next() (*paymentChannel, error) {
 		if ce.err != nil {
 			return nil, ce.err
 		}
-		ch := newPaymentChannel(ce.channel, h.r)
-		h.r.chans[ch.ID()] = ch
-		return ch, nil
+		// Client.OnNewChannel callback adds paymentChannel wrapper to the chans map
+		return h.r.chans[ce.channel.ID()], nil
 	case <-time.After(h.r.setup.Timeout):
 		return nil, errors.New("timeout passed")
 	}
