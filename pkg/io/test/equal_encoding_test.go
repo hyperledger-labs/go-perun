@@ -3,7 +3,7 @@
 // of this source code is governed by a MIT-style license that can be found in
 // the LICENSE file.
 
-package test
+package test // import "perun.network/go-perun/pkg/io/test"
 
 import (
 	"math/rand"
@@ -54,7 +54,7 @@ func TestEqualEncoding(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		ok, err := EqualEncoding(tt.a, tt.b)
+		ok, err := io.EqualEncoding(tt.a, tt.b)
 
 		assert.Equalf(t, ok, tt.shouldOk, "EqualEncoding with %s should return %t as bool but got: %t", tt.name, tt.shouldOk, ok)
 		assert.Falsef(t, (err == nil) && tt.shouldErr, "EqualEncoding with %s should return an error but got nil", tt.name)

@@ -3,18 +3,17 @@
 // of this source code is governed by a MIT-style license that can be found in
 // the LICENSE file.
 
-package test // import "perun.network/go-perun/pkg/io/test"
+package io
 
 import (
 	"bytes"
 
 	"github.com/pkg/errors"
-	"perun.network/go-perun/pkg/io"
 )
 
 // EqualEncoding returns whether the two Encoders `a` and `b` encode to the same byteslice
 // or an error when the encoding failed.
-func EqualEncoding(a io.Encoder, b io.Encoder) (bool, error) {
+func EqualEncoding(a, b Encoder) (bool, error) {
 	buffA := new(bytes.Buffer)
 	buffB := new(bytes.Buffer)
 
