@@ -6,7 +6,7 @@
 package test
 
 import (
-	"bytes"
+	"strings"
 
 	"perun.network/go-perun/channel"
 	"perun.network/go-perun/peer"
@@ -67,7 +67,7 @@ func (pc peerChans) Delete(id channel.ID) {
 func peerKey(a peer.Address) string { return string(a.Bytes()) }
 
 func peerFromKey(s string) peer.Address {
-	p, err := peer.DecodeAddress(bytes.NewReader([]byte(s)))
+	p, err := peer.DecodeAddress(strings.NewReader(s))
 	if err != nil {
 		panic("error decoding peer key: " + err.Error())
 	}
