@@ -4,7 +4,7 @@
 // the LICENSE file.
 
 // Package test contains the generic serializer tests.
-package test
+package test // import "perun.network/go-perun/pkg/io/test"
 
 import (
 	"io"
