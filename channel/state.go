@@ -123,3 +123,32 @@ func (s *State) Decode(r io.Reader) error {
 	s.Data, err = s.App.DecodeData(r)
 	return errors.WithMessage(err, "app decode data")
 }
+
+// Equal returns whether two `State` objects are equal.
+// The App is compared by its definition, and the Apps Data by its encoding.
+func (s *State) Equal(t *State) error {
+	if s == t {
+		return nil
+	}
+	if s.ID != t.ID {
+		return errors.New("different IDs")
+	}
+	if s.Version != t.Version {
+		return errors.New("different Versions")
+	}
+	if !s.App.Def().Equals(t.App.Def()) {
+		return errors.New("different App definitions")
+	}
+	if err := s.Allocation.Equal(&t.Allocation); err != nil {
+		return errors.WithMessage(err, "different Allocations")
+	}
+	if ok, err := perunio.EqualEncoding(s.Data, t.Data); err != nil {
+		return errors.WithMessage(err, "comparing App data encoding")
+	} else if !ok {
+		return errors.Errorf("different App data")
+	}
+	if s.IsFinal != t.IsFinal {
+		return errors.New("different IsFinal flags")
+	}
+	return nil
+}
