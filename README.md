@@ -8,6 +8,7 @@
   <a href="https://goreportcard.com/report/github.com/perun-network/go-perun"><img src="https://goreportcard.com/badge/github.com/perun-network/go-perun" alt="Go report: A+"></a>
   <a href="https://www.apache.org/licenses/LICENSE-2.0.txt"><img src="https://img.shields.io/badge/license-Apache%202-blue" alt="License: Apache 2.0"></a>
   <a href="https://travis-ci.org/perun-network/go-perun"><img src="https://travis-ci.org/perun-network/go-perun.svg?branch=dev" alt="TravisCI build status"></a>
+  <a href="https://pkg.go.dev/perun.network/go-perun?status.svg"> <img src="https://img.shields.io/badge/go.dev-reference-007d9c?logo=go&logoColor=white" alt="pkg.go.dev docs"></a>
 </p>
 
 _go-perun_ is a Go implementation of the [Perun state channel protocols](https://perun.network/) ([introduction paper](https://perun.network/pdf/Perun2.0.pdf)).
@@ -20,14 +21,13 @@ They are blockchain-agnostic and only rely on a blockchain's capability to execu
 
 _go-perun_ is still alpha software.
 It should not be used in production.
-The current release, _Belinda_, is not intended to have any practical use, and should only give potential users a general impression and invite feedback.
-Some essential features, such as data persistence, are not yet implemented.
+The current release, _Charon (v0.3.0)_, is not intended to have any practical use, and should only give potential users a general impression and invite feedback.
 The authors take no responsibility for any loss of digital assets or other damage caused by the use of this software.
 **Do not use this software with real funds**.
 
 ## Getting Started
 
-Running _go-perun_ requires a working Go distribution (version 1.13 or higher).
+Running _go-perun_ requires a working Go distribution (version 1.14 or higher).
 ```sh
 # Clone the repository into a directory of your choice
 git clone https://github.com/perun-network/go-perun.git
@@ -51,43 +51,43 @@ For this reason, a blockchain backend has to be chosen and blockchain-specific i
 More in-depth documentation can be found in the [github wiki pages](https://github.com/perun-network/go-perun/wiki)
 and on [go-perun's pkg.go.dev site](https://pkg.go.dev/perun.network/go-perun).
 
-### Backends
-
-There are multiple backends available as part of the current release: Ethereum (`backend/ethereum`), and a simulated, ideal blockchain backend (`backend/sim`).
-A backend is automatically initialized when its `wallet` and `channel` packages are imported.
-The Ethereum smart contracts can be found in our [contracts-eth](https://github.com/perun-network/contracts-eth) repository.
-
-Logging and networking capabilities can also be injected by the user.
-A default [logrus](https://github.com/sirupsen/logrus) implementation of the `log.Logger` interface can be set using [`log/logrus.Set`](log/logrus/logrus.go#L44).
-The Perun framework relies on `peer.Dialer` and `peer.Listener` implementations for networking.
-_go-perun_ is distributed with TCP and Unix socket implementations for testing
-purposes, which can be found in package `peer/net`.
-
 ## Features
 
-_go-perun_ currently only supports a reduced set of features compared to the full protocols.
-The following table shows the list of features needed for the minimal, secure, production-ready software.
+_go-perun_ currently supports all features needed for two party payment channels.
+The following features are currently provided:
+* Two-party ledger state channels
+* Cooperatively settling
+* Ledger channel disputes
+* Dispute watchtower
+* Data persistence
 
-| Feature                          | Ariel (v0.1.0)     | Belinda (v0.2.0)   |
-| -------------------------------- | ------------------ | ------------------ |
-| Two-party ledger state channels  | :heavy_check_mark: | :heavy_check_mark: |
-| Cooperatively settling           | :heavy_check_mark: | :heavy_check_mark: |
-| Ledger channel dispute           | :x:                | :heavy_check_mark: |
-| Dispute watchtower               | :x:                | :heavy_check_mark: |
-| Data persistence                 | :x:                | :x:                |
-
-The following features are planned after the above features have been implemented:
-* Generalized two-party ledger channels
-* Virtual channels (direct dispute)
-* Multi-party ledger channels
+The following features are planned for future releases:
+* Generalized two-party ledger channels (sub-channels)
+* Virtual two-party channels (direct dispute)
 * Virtual two-party channels (indirect dispute)
+* Multi-party ledger channels
 * Virtual multi-party channels (direct dispute)
 * Cross-blockchain virtual channels (indirect dispute)
+
+### Backends
+
+There are multiple **blockchain backends** available as part of the current release: Ethereum (`backend/ethereum`), and a simulated, ideal blockchain backend (`backend/sim`).
+A backend is automatically initialized when its top-level package `backend/<name>` is imported.
+The Ethereum smart contracts can be found in our [contracts-eth](https://github.com/perun-network/contracts-eth) repository.
+
+**Logging and networking** capabilities can also be injected by the user.
+A default [logrus](https://github.com/sirupsen/logrus) implementation of the `log.Logger` interface can be set using `log/logrus.Set`.
+The Perun framework relies on user-injected `peer.Dialer` and `peer.Listener` implementations for networking.
+_go-perun_ is distributed with dialer and listener implementations for TCP and Unix sockets for testing purposes, which can be found in package `peer/net`.
+
+**Data persistence** can be enabled to continuously persist new states and signatures.
+There are currently three persistence backends provided, namely, a test backend for testing purposes, an in-memory key-value persister and a [LevelDB](https://github.com/syndtr/goleveldb) backend.
 
 ## API Primer
 
 In essence, _go-perun_ provides a state channel network client, akin to ethereum's `ethclient` package, to interact with a state channels network.
-Once the client has been set up, it can be used to propose channels to other network peers, send updates on those channels and eventually settle them.
+Once the client has been set up, it can be used to propose channels to other network peers, accept channel proposals, send updates on those channels and eventually settle them.
+
 A minimal, illustrative usage is as follows
 ```go
 package main
@@ -153,7 +153,10 @@ func main() {
 }
 ```
 
-## Acknowledgements
+For a full-fledged example, have a look at our CLI Demo [perun-eth-demo](https://github.com/perun-network/perun-eth-demo).
+Go mobile wrappers for <img src="https://developer.android.com/images/brand/Android_Robot.svg?hl=de" width="25" alt="Android"> and iOS App development can be found at [perun-eth-mobile](https://github.com/perun-network/perun-eth-mobile).
+
+## Funding
 
 This project is currently being developed by a group of dedicated hackers at the Applied Cryptography research group at Technische Universität Darmstadt, Germany.
 We thank the German Federal Ministry of Education and Research (BMBF) for their funding through the StartUpSecure grants program as well as the German Science Foundation (DFG), the Foundation for Polish Science (FNP) and the Ethereum Foundation for their support in the research that preceded this implementation.
