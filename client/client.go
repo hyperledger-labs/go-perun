@@ -204,6 +204,22 @@ func (c *Client) logChan(id channel.ID) log.Logger {
 	return c.log.WithField("channel", id)
 }
 
+// Reconnect attempts to reconnect to all known peers from persistence. This
+// will restore all channels for all peers to which a connection could
+// successfully be established. Newly restored channels should be acquired
+// through the OnNewChannel callback.
+//
+// Note that connections are currently established serially, so allow for enough
+// time in the passed context.
+func (c *Client) Reconnect(ctx context.Context) error {
+	ps, err := c.pr.ActivePeers(ctx)
+	if err != nil {
+		return errors.WithMessage(err, "restoring active peers")
+	}
+	_, err = c.getPeers(ctx, ps)
+	return err
+}
+
 // getPeers gets all peers from the registry for the provided addresses,
 // skipping the own peer, if present in the list.
 func (c *Client) getPeers(
