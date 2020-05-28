@@ -7,7 +7,6 @@ package test
 
 import (
 	"math/rand"
-	"sync"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -27,26 +26,11 @@ func NewResponder(setup RoleSetup, t *testing.T, numStages int) *Responder {
 func (r *Responder) Execute(cfg ExecConfig, exec func(ExecConfig, *paymentChannel)) {
 	rng := rand.New(rand.NewSource(0xB0B))
 	assert := assert.New(r.t)
-	propHandler := r.AcceptAllPropHandler(rng)
 
-	var listenWg sync.WaitGroup
-	listenWg.Add(2)
-	defer func() {
-		r.log.Debug("Waiting for listeners to return...")
-		listenWg.Wait()
-	}()
-	go func() {
-		defer listenWg.Done()
-		r.log.Info("Starting peer listener.")
-		r.Listen(r.setup.Listener)
-		r.log.Debug("Peer listener returned.")
-	}()
-	go func() {
-		defer listenWg.Done()
-		r.log.Info("Starting request handler.")
-		r.Handle(propHandler, r.UpdateHandler())
-		r.log.Debug("Request handler returned.")
-	}()
+	waitListen := r.GoListen(r.setup.Listener)
+	defer waitListen()
+	propHandler, waitHandler := r.GoHandle(rng)
+	defer waitHandler()
 
 	// receive one accepted proposal
 	ch, err := propHandler.Next()

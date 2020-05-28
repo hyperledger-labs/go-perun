@@ -37,6 +37,24 @@ func NewStateMachine(acc wallet.Account, params Params) (*StateMachine, error) {
 	}, nil
 }
 
+// RestoreStateMachine restores a state machine to the data given by Source.
+func RestoreStateMachine(acc wallet.Account, source Source) (*StateMachine, error) {
+	app, ok := source.Params().App.(StateApp)
+	if !ok {
+		return nil, errors.New("app must be StateApp")
+	}
+
+	m, err := restoreMachine(acc, source)
+	if err != nil {
+		return nil, err
+	}
+
+	return &StateMachine{
+		machine: m,
+		app:     app,
+	}, nil
+}
+
 // Init sets the initial staging state to the given balance and data.
 // It returns the initial state and own signature on it.
 func (m *StateMachine) Init(initBals Allocation, initData Data) error {

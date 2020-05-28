@@ -117,6 +117,8 @@ func (c *Client) OnNewChannel(handler func(*Channel)) {
 // EnablePersistence sets the PersistRestorer that the client is going to use for channel
 // persistence. This methods is expected to be called once during the setup of
 // the client and is hence not thread-safe.
+//
+// The PersistRestorer is not closed when the Client is closed.
 func (c *Client) EnablePersistence(pr persistence.PersistRestorer) {
 	c.pr = pr
 }

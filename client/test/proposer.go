@@ -6,15 +6,10 @@
 package test
 
 import (
-	"math/big"
 	"math/rand"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-
-	"perun.network/go-perun/apps/payment"
-	"perun.network/go-perun/channel"
-	"perun.network/go-perun/client"
 )
 
 // Proposer is a test client role. He proposes the new channel.
@@ -31,23 +26,8 @@ func NewProposer(setup RoleSetup, t *testing.T, numStages int) *Proposer {
 func (r *Proposer) Execute(cfg ExecConfig, exec func(ExecConfig, *paymentChannel)) {
 	rng := rand.New(rand.NewSource(0x471CE))
 	assert := assert.New(r.t)
-	// We don't start the proposal listener because Proposer only sends proposals
 
-	initBals := &channel.Allocation{
-		Assets:   []channel.Asset{cfg.Asset},
-		Balances: [][]channel.Bal{cfg.InitBals[:]},
-	}
-	prop := &client.ChannelProposal{
-		ChallengeDuration: 60,           // 60 sec
-		Nonce:             new(big.Int), // nonce 0
-		ParticipantAddr:   r.setup.Wallet.NewRandomAccount(rng).Address(),
-		AppDef:            payment.AppDef(),
-		InitData:          new(payment.NoData),
-		InitBals:          initBals,
-		PeerAddrs:         cfg.PeerAddrs[:],
-	}
-
-	// send channel proposal
+	prop := r.ChannelProposal(rng, &cfg)
 	ch, err := r.ProposeChannel(prop)
 	assert.NoError(err)
 	assert.NotNil(ch)
@@ -56,20 +36,9 @@ func (r *Proposer) Execute(cfg ExecConfig, exec func(ExecConfig, *paymentChannel
 	}
 	r.log.Infof("New Channel opened: %v", ch.Channel)
 
-	// start update handler
-	handleDone := make(chan struct{})
-	go func() {
-		defer close(handleDone)
-		r.log.Info("Starting request handler")
-		// Note that we don't get any incoming proposal but still have to set a
-		// handler.
-		r.Handle(r.AcceptAllPropHandler(rng), r.UpdateHandler())
-		r.log.Debug("Request handler returned.")
-	}()
-	defer func() {
-		r.log.Debug("Waiting for request handler to return...")
-		<-handleDone
-	}()
+	// ignore proposal handler since Proposer doesn't accept any incoming channels
+	_, wait := r.GoHandle(rng)
+	defer wait()
 
 	exec(cfg, ch)
 
