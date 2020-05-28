@@ -46,16 +46,35 @@ func (c *Client) newChannel(
 	if err != nil {
 		return nil, errors.WithMessage(err, "creating state machine")
 	}
+	return c.channelFromMachine(machine, peers...)
+}
 
+// channelFromSource is used to create a channel controller from restored data.
+func (c *Client) channelFromSource(s channel.Source, peers ...*peer.Peer) (*Channel, error) {
+	acc, err := c.wallet.Unlock(s.Params().Parts[s.Idx()])
+	if err != nil {
+		return nil, errors.WithMessage(err, "unlocking account for channel")
+	}
+
+	machine, err := channel.RestoreStateMachine(acc, s)
+	if err != nil {
+		return nil, errors.WithMessage(err, "restoring state machine")
+	}
+
+	return c.channelFromMachine(machine, peers...)
+}
+
+// channelFromMachine creates a channel controller around the passed state machine.
+func (c *Client) channelFromMachine(machine *channel.StateMachine, peers ...*peer.Peer) (*Channel, error) {
 	pmachine := persistence.FromStateMachine(machine, c.pr)
 
 	// bundle peers into channel connection
-	conn, err := newChannelConn(params.ID(), peers, machine.Idx())
+	conn, err := newChannelConn(machine.ID(), peers, machine.Idx())
 	if err != nil {
 		return nil, errors.WithMessagef(err, "setting up channel connection")
 	}
 
-	logger := c.logChan(params.ID())
+	logger := c.logChan(machine.ID())
 	conn.SetLogger(logger)
 	return &Channel{
 		OnCloser:    conn,
@@ -65,16 +84,6 @@ func (c *Client) newChannel(
 		adjudicator: c.adjudicator,
 		wallet:      c.wallet,
 	}, nil
-}
-
-// channelFromSource is used to create a channel from restored data.
-func (c *Client) channelFromSource(s channel.Source, peers ...*peer.Peer) (*Channel, error) {
-	acc, err := c.wallet.Unlock(s.Params().Parts[s.Idx()])
-	if err != nil {
-		return nil, errors.WithMessage(err, "unlocking account for channel")
-	}
-
-	return c.newChannel(acc, peers, *s.Params())
 }
 
 // Close closes the channel and all associated peer subscriptions.
