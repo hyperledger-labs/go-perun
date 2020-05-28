@@ -40,6 +40,7 @@ func (r *chanRegistry) Put(id channel.ID, value *Channel) bool {
 	r.values[id] = value
 	handler := r.newChannelHandler
 	r.mutex.Unlock()
+	value.OnCloseAlways(func() { go r.Delete(id) })
 	if handler != nil {
 		handler(value)
 	}

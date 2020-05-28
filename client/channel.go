@@ -24,7 +24,7 @@ import (
 //
 // Currently, only the two-party protocol is fully implemented.
 type Channel struct {
-	perunsync.Closer
+	perunsync.OnCloser
 	log log.Logger
 
 	conn        *channelConn
@@ -58,6 +58,7 @@ func (c *Client) newChannel(
 	logger := c.logChan(params.ID())
 	conn.SetLogger(logger)
 	return &Channel{
+		OnCloser:    conn,
 		log:         logger,
 		conn:        conn,
 		machine:     pmachine,
@@ -68,10 +69,17 @@ func (c *Client) newChannel(
 
 // Close closes the channel and all associated peer subscriptions.
 func (c *Channel) Close() error {
-	if err := c.Closer.Close(); err != nil {
-		return err
-	}
 	return c.conn.Close()
+}
+
+// IsClosed returns whether the channel is closed.
+func (c *Channel) IsClosed() bool {
+	return c.conn.r.IsClosed()
+}
+
+// Ctx returns a context that is active for the channel's lifetime.
+func (c *Channel) Ctx() context.Context {
+	return c.conn.r.Ctx()
 }
 
 func (c *Channel) setLogger(l log.Logger) {
