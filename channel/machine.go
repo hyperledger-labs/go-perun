@@ -133,6 +133,17 @@ func newMachine(acc wallet.Account, params Params) (*machine, error) {
 
 }
 
+func restoreMachine(acc wallet.Account, source Source) (*machine, error) {
+	m, err := newMachine(acc, *source.Params())
+	if err != nil {
+		return nil, err
+	}
+	m.phase = source.Phase()
+	m.stagingTX = source.StagingTX()
+	m.currentTX = source.CurrentTX()
+	return m, nil
+}
+
 // ID returns the channel id
 func (m *machine) ID() ID {
 	return m.params.ID()
