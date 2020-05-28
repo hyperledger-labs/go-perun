@@ -15,6 +15,7 @@ import (
 	"testing"
 	"time"
 
+	"perun.network/go-perun/apps/payment"
 	"perun.network/go-perun/channel"
 	"perun.network/go-perun/channel/persistence"
 	"perun.network/go-perun/client"
@@ -216,6 +217,22 @@ func (r *role) GoListen(l peer.Listener) (wait func()) {
 	return func() {
 		r.log.Debug("Waiting for peer listener to return...")
 		<-done
+	}
+}
+
+func (r *role) ChannelProposal(rng *rand.Rand, cfg *ExecConfig) *client.ChannelProposal {
+	initBals := &channel.Allocation{
+		Assets:   []channel.Asset{cfg.Asset},
+		Balances: [][]channel.Bal{cfg.InitBals[:]},
+	}
+	return &client.ChannelProposal{
+		ChallengeDuration: 60, // 60 sec
+		Nonce:             big.NewInt(rng.Int63()),
+		ParticipantAddr:   r.setup.Wallet.NewRandomAccount(rng).Address(),
+		AppDef:            payment.AppDef(),
+		InitData:          new(payment.NoData),
+		InitBals:          initBals,
+		PeerAddrs:         cfg.PeerAddrs[:],
 	}
 }
 
