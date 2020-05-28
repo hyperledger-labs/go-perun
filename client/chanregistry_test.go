@@ -13,11 +13,18 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"perun.network/go-perun/channel/test"
+	"perun.network/go-perun/peer"
 )
+
+func testCh() *Channel {
+	r := peer.NewRelay()
+	conn := &channelConn{OnCloser: r, r: r}
+	return &Channel{OnCloser: conn, conn: conn}
+}
 
 func TestChanRegistry_Put(t *testing.T) {
 	rng := rand.New(rand.NewSource(0xDDDDdede))
-	ch := &Channel{}
+	ch := testCh()
 	id := test.NewRandomChannelID(rng)
 
 	t.Run("callback", func(t *testing.T) {
@@ -48,7 +55,7 @@ func TestChanRegistry_Put(t *testing.T) {
 
 func TestChanRegistry_Has(t *testing.T) {
 	rng := rand.New(rand.NewSource(0xDDDDdede))
-	ch := &Channel{}
+	ch := testCh()
 	id := test.NewRandomChannelID(rng)
 
 	t.Run("nonexistent has", func(t *testing.T) {
@@ -65,7 +72,7 @@ func TestChanRegistry_Has(t *testing.T) {
 
 func TestChanRegistry_Get(t *testing.T) {
 	rng := rand.New(rand.NewSource(0xDDDDdede))
-	ch := &Channel{}
+	ch := testCh()
 	id := test.NewRandomChannelID(rng)
 
 	t.Run("nonexistent get", func(t *testing.T) {
@@ -86,7 +93,7 @@ func TestChanRegistry_Get(t *testing.T) {
 
 func TestChanRegistry_Delete(t *testing.T) {
 	rng := rand.New(rand.NewSource(0xDDDDdede))
-	ch := &Channel{}
+	ch := testCh()
 	id := test.NewRandomChannelID(rng)
 
 	t.Run("nonexistent delete", func(t *testing.T) {
@@ -115,9 +122,7 @@ func TestChanRegistry_CloseAll(t *testing.T) {
 	rng := rand.New(rand.NewSource(0xDDDDdede))
 	id := test.NewRandomChannelID(rng)
 
-	conn, err := newChannelConn(id, nil, 0)
-	require.NoError(t, err)
-	ch := &Channel{conn: conn}
+	ch := testCh()
 	reg := makeChanRegistry()
 	reg.Put(id, ch)
 	reg.CloseAll()

@@ -13,6 +13,7 @@ import (
 	"perun.network/go-perun/channel"
 	"perun.network/go-perun/log"
 	"perun.network/go-perun/peer"
+	"perun.network/go-perun/pkg/sync"
 	wire "perun.network/go-perun/wire/msg"
 )
 
@@ -20,6 +21,8 @@ import (
 // channel. It is an abstraction over a set of peers. Peers are translated into
 // their index in the channel.
 type channelConn struct {
+	sync.OnCloser
+
 	b       *peer.Broadcaster
 	r       *peer.Relay // update response relay
 	peerIdx map[*peer.Peer]channel.Index
@@ -67,12 +70,17 @@ func newChannelConn(id channel.ID, peers []*peer.Peer, idx channel.Index) (_ *ch
 		}
 	}
 
-	return &channelConn{
-		b:       peer.NewBroadcaster(peers),
-		r:       relay,
-		peerIdx: peerIdx,
-		log:     log.WithField("channel", id),
-	}, nil
+	ch := &channelConn{
+		OnCloser: relay,
+		b:        peer.NewBroadcaster(peers),
+		r:        relay,
+		peerIdx:  peerIdx,
+		log:      log.WithField("channel", id),
+	}
+	for _, peer := range peers {
+		peer.OnCloseAlways(func() { ch.Close() })
+	}
+	return ch, nil
 }
 
 // SetLogger sets the logger of the channel connection. It is assumed to be
