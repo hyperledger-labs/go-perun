@@ -20,7 +20,6 @@ var (
 	_ = big.NewInt
 	_ = strings.NewReader
 	_ = ethereum.NotFound
-	_ = abi.U256
 	_ = bind.Bind
 	_ = common.Big1
 	_ = types.BloomLookup
@@ -239,7 +238,7 @@ func (_Adjudicator *AdjudicatorTransactorRaw) Transact(opts *bind.TransactOpts, 
 
 // Disputes is a free data retrieval call binding the contract method 0x11be1997.
 //
-// Solidity: function disputes(bytes32 ) constant returns(uint64 timeout, uint64 version, uint8 disputePhase, bytes32 stateHash)
+// Solidity: function disputes(bytes32 ) view returns(uint64 timeout, uint64 version, uint8 disputePhase, bytes32 stateHash)
 func (_Adjudicator *AdjudicatorCaller) Disputes(opts *bind.CallOpts, arg0 [32]byte) (struct {
 	Timeout      uint64
 	Version      uint64
@@ -259,7 +258,7 @@ func (_Adjudicator *AdjudicatorCaller) Disputes(opts *bind.CallOpts, arg0 [32]by
 
 // Disputes is a free data retrieval call binding the contract method 0x11be1997.
 //
-// Solidity: function disputes(bytes32 ) constant returns(uint64 timeout, uint64 version, uint8 disputePhase, bytes32 stateHash)
+// Solidity: function disputes(bytes32 ) view returns(uint64 timeout, uint64 version, uint8 disputePhase, bytes32 stateHash)
 func (_Adjudicator *AdjudicatorSession) Disputes(arg0 [32]byte) (struct {
 	Timeout      uint64
 	Version      uint64
@@ -271,7 +270,7 @@ func (_Adjudicator *AdjudicatorSession) Disputes(arg0 [32]byte) (struct {
 
 // Disputes is a free data retrieval call binding the contract method 0x11be1997.
 //
-// Solidity: function disputes(bytes32 ) constant returns(uint64 timeout, uint64 version, uint8 disputePhase, bytes32 stateHash)
+// Solidity: function disputes(bytes32 ) view returns(uint64 timeout, uint64 version, uint8 disputePhase, bytes32 stateHash)
 func (_Adjudicator *AdjudicatorCallerSession) Disputes(arg0 [32]byte) (struct {
 	Timeout      uint64
 	Version      uint64
@@ -283,105 +282,105 @@ func (_Adjudicator *AdjudicatorCallerSession) Disputes(arg0 [32]byte) (struct {
 
 // Conclude is a paid mutator transaction binding the contract method 0x637a1e9d.
 //
-// Solidity: function conclude(ChannelParams params, ChannelState state) returns()
+// Solidity: function conclude((uint256,uint256,address,address[]) params, (bytes32,uint64,(address[],uint256[][],(bytes32,uint256[])[]),bytes,bool) state) returns()
 func (_Adjudicator *AdjudicatorTransactor) Conclude(opts *bind.TransactOpts, params ChannelParams, state ChannelState) (*types.Transaction, error) {
 	return _Adjudicator.contract.Transact(opts, "conclude", params, state)
 }
 
 // Conclude is a paid mutator transaction binding the contract method 0x637a1e9d.
 //
-// Solidity: function conclude(ChannelParams params, ChannelState state) returns()
+// Solidity: function conclude((uint256,uint256,address,address[]) params, (bytes32,uint64,(address[],uint256[][],(bytes32,uint256[])[]),bytes,bool) state) returns()
 func (_Adjudicator *AdjudicatorSession) Conclude(params ChannelParams, state ChannelState) (*types.Transaction, error) {
 	return _Adjudicator.Contract.Conclude(&_Adjudicator.TransactOpts, params, state)
 }
 
 // Conclude is a paid mutator transaction binding the contract method 0x637a1e9d.
 //
-// Solidity: function conclude(ChannelParams params, ChannelState state) returns()
+// Solidity: function conclude((uint256,uint256,address,address[]) params, (bytes32,uint64,(address[],uint256[][],(bytes32,uint256[])[]),bytes,bool) state) returns()
 func (_Adjudicator *AdjudicatorTransactorSession) Conclude(params ChannelParams, state ChannelState) (*types.Transaction, error) {
 	return _Adjudicator.Contract.Conclude(&_Adjudicator.TransactOpts, params, state)
 }
 
 // ConcludeFinal is a paid mutator transaction binding the contract method 0x6bbf706a.
 //
-// Solidity: function concludeFinal(ChannelParams params, ChannelState state, bytes[] sigs) returns()
+// Solidity: function concludeFinal((uint256,uint256,address,address[]) params, (bytes32,uint64,(address[],uint256[][],(bytes32,uint256[])[]),bytes,bool) state, bytes[] sigs) returns()
 func (_Adjudicator *AdjudicatorTransactor) ConcludeFinal(opts *bind.TransactOpts, params ChannelParams, state ChannelState, sigs [][]byte) (*types.Transaction, error) {
 	return _Adjudicator.contract.Transact(opts, "concludeFinal", params, state, sigs)
 }
 
 // ConcludeFinal is a paid mutator transaction binding the contract method 0x6bbf706a.
 //
-// Solidity: function concludeFinal(ChannelParams params, ChannelState state, bytes[] sigs) returns()
+// Solidity: function concludeFinal((uint256,uint256,address,address[]) params, (bytes32,uint64,(address[],uint256[][],(bytes32,uint256[])[]),bytes,bool) state, bytes[] sigs) returns()
 func (_Adjudicator *AdjudicatorSession) ConcludeFinal(params ChannelParams, state ChannelState, sigs [][]byte) (*types.Transaction, error) {
 	return _Adjudicator.Contract.ConcludeFinal(&_Adjudicator.TransactOpts, params, state, sigs)
 }
 
 // ConcludeFinal is a paid mutator transaction binding the contract method 0x6bbf706a.
 //
-// Solidity: function concludeFinal(ChannelParams params, ChannelState state, bytes[] sigs) returns()
+// Solidity: function concludeFinal((uint256,uint256,address,address[]) params, (bytes32,uint64,(address[],uint256[][],(bytes32,uint256[])[]),bytes,bool) state, bytes[] sigs) returns()
 func (_Adjudicator *AdjudicatorTransactorSession) ConcludeFinal(params ChannelParams, state ChannelState, sigs [][]byte) (*types.Transaction, error) {
 	return _Adjudicator.Contract.ConcludeFinal(&_Adjudicator.TransactOpts, params, state, sigs)
 }
 
 // Progress is a paid mutator transaction binding the contract method 0x36995831.
 //
-// Solidity: function progress(ChannelParams params, ChannelState stateOld, ChannelState state, uint256 actorIdx, bytes sig) returns()
+// Solidity: function progress((uint256,uint256,address,address[]) params, (bytes32,uint64,(address[],uint256[][],(bytes32,uint256[])[]),bytes,bool) stateOld, (bytes32,uint64,(address[],uint256[][],(bytes32,uint256[])[]),bytes,bool) state, uint256 actorIdx, bytes sig) returns()
 func (_Adjudicator *AdjudicatorTransactor) Progress(opts *bind.TransactOpts, params ChannelParams, stateOld ChannelState, state ChannelState, actorIdx *big.Int, sig []byte) (*types.Transaction, error) {
 	return _Adjudicator.contract.Transact(opts, "progress", params, stateOld, state, actorIdx, sig)
 }
 
 // Progress is a paid mutator transaction binding the contract method 0x36995831.
 //
-// Solidity: function progress(ChannelParams params, ChannelState stateOld, ChannelState state, uint256 actorIdx, bytes sig) returns()
+// Solidity: function progress((uint256,uint256,address,address[]) params, (bytes32,uint64,(address[],uint256[][],(bytes32,uint256[])[]),bytes,bool) stateOld, (bytes32,uint64,(address[],uint256[][],(bytes32,uint256[])[]),bytes,bool) state, uint256 actorIdx, bytes sig) returns()
 func (_Adjudicator *AdjudicatorSession) Progress(params ChannelParams, stateOld ChannelState, state ChannelState, actorIdx *big.Int, sig []byte) (*types.Transaction, error) {
 	return _Adjudicator.Contract.Progress(&_Adjudicator.TransactOpts, params, stateOld, state, actorIdx, sig)
 }
 
 // Progress is a paid mutator transaction binding the contract method 0x36995831.
 //
-// Solidity: function progress(ChannelParams params, ChannelState stateOld, ChannelState state, uint256 actorIdx, bytes sig) returns()
+// Solidity: function progress((uint256,uint256,address,address[]) params, (bytes32,uint64,(address[],uint256[][],(bytes32,uint256[])[]),bytes,bool) stateOld, (bytes32,uint64,(address[],uint256[][],(bytes32,uint256[])[]),bytes,bool) state, uint256 actorIdx, bytes sig) returns()
 func (_Adjudicator *AdjudicatorTransactorSession) Progress(params ChannelParams, stateOld ChannelState, state ChannelState, actorIdx *big.Int, sig []byte) (*types.Transaction, error) {
 	return _Adjudicator.Contract.Progress(&_Adjudicator.TransactOpts, params, stateOld, state, actorIdx, sig)
 }
 
 // Refute is a paid mutator transaction binding the contract method 0x9b24e091.
 //
-// Solidity: function refute(ChannelParams params, ChannelState state, bytes[] sigs) returns()
+// Solidity: function refute((uint256,uint256,address,address[]) params, (bytes32,uint64,(address[],uint256[][],(bytes32,uint256[])[]),bytes,bool) state, bytes[] sigs) returns()
 func (_Adjudicator *AdjudicatorTransactor) Refute(opts *bind.TransactOpts, params ChannelParams, state ChannelState, sigs [][]byte) (*types.Transaction, error) {
 	return _Adjudicator.contract.Transact(opts, "refute", params, state, sigs)
 }
 
 // Refute is a paid mutator transaction binding the contract method 0x9b24e091.
 //
-// Solidity: function refute(ChannelParams params, ChannelState state, bytes[] sigs) returns()
+// Solidity: function refute((uint256,uint256,address,address[]) params, (bytes32,uint64,(address[],uint256[][],(bytes32,uint256[])[]),bytes,bool) state, bytes[] sigs) returns()
 func (_Adjudicator *AdjudicatorSession) Refute(params ChannelParams, state ChannelState, sigs [][]byte) (*types.Transaction, error) {
 	return _Adjudicator.Contract.Refute(&_Adjudicator.TransactOpts, params, state, sigs)
 }
 
 // Refute is a paid mutator transaction binding the contract method 0x9b24e091.
 //
-// Solidity: function refute(ChannelParams params, ChannelState state, bytes[] sigs) returns()
+// Solidity: function refute((uint256,uint256,address,address[]) params, (bytes32,uint64,(address[],uint256[][],(bytes32,uint256[])[]),bytes,bool) state, bytes[] sigs) returns()
 func (_Adjudicator *AdjudicatorTransactorSession) Refute(params ChannelParams, state ChannelState, sigs [][]byte) (*types.Transaction, error) {
 	return _Adjudicator.Contract.Refute(&_Adjudicator.TransactOpts, params, state, sigs)
 }
 
 // Register is a paid mutator transaction binding the contract method 0x170e6715.
 //
-// Solidity: function register(ChannelParams params, ChannelState state, bytes[] sigs) returns()
+// Solidity: function register((uint256,uint256,address,address[]) params, (bytes32,uint64,(address[],uint256[][],(bytes32,uint256[])[]),bytes,bool) state, bytes[] sigs) returns()
 func (_Adjudicator *AdjudicatorTransactor) Register(opts *bind.TransactOpts, params ChannelParams, state ChannelState, sigs [][]byte) (*types.Transaction, error) {
 	return _Adjudicator.contract.Transact(opts, "register", params, state, sigs)
 }
 
 // Register is a paid mutator transaction binding the contract method 0x170e6715.
 //
-// Solidity: function register(ChannelParams params, ChannelState state, bytes[] sigs) returns()
+// Solidity: function register((uint256,uint256,address,address[]) params, (bytes32,uint64,(address[],uint256[][],(bytes32,uint256[])[]),bytes,bool) state, bytes[] sigs) returns()
 func (_Adjudicator *AdjudicatorSession) Register(params ChannelParams, state ChannelState, sigs [][]byte) (*types.Transaction, error) {
 	return _Adjudicator.Contract.Register(&_Adjudicator.TransactOpts, params, state, sigs)
 }
 
 // Register is a paid mutator transaction binding the contract method 0x170e6715.
 //
-// Solidity: function register(ChannelParams params, ChannelState state, bytes[] sigs) returns()
+// Solidity: function register((uint256,uint256,address,address[]) params, (bytes32,uint64,(address[],uint256[][],(bytes32,uint256[])[]),bytes,bool) state, bytes[] sigs) returns()
 func (_Adjudicator *AdjudicatorTransactorSession) Register(params ChannelParams, state ChannelState, sigs [][]byte) (*types.Transaction, error) {
 	return _Adjudicator.Contract.Register(&_Adjudicator.TransactOpts, params, state, sigs)
 }
@@ -1402,7 +1401,7 @@ func (_App *AppTransactorRaw) Transact(opts *bind.TransactOpts, method string, p
 
 // ValidTransition is a free data retrieval call binding the contract method 0xec29dd7e.
 //
-// Solidity: function validTransition(ChannelParams params, ChannelState from, ChannelState to, uint256 actorIdx) constant returns()
+// Solidity: function validTransition((uint256,uint256,address,address[]) params, (bytes32,uint64,(address[],uint256[][],(bytes32,uint256[])[]),bytes,bool) from, (bytes32,uint64,(address[],uint256[][],(bytes32,uint256[])[]),bytes,bool) to, uint256 actorIdx) pure returns()
 func (_App *AppCaller) ValidTransition(opts *bind.CallOpts, params ChannelParams, from ChannelState, to ChannelState, actorIdx *big.Int) error {
 	var ()
 	out := &[]interface{}{}
@@ -1412,14 +1411,14 @@ func (_App *AppCaller) ValidTransition(opts *bind.CallOpts, params ChannelParams
 
 // ValidTransition is a free data retrieval call binding the contract method 0xec29dd7e.
 //
-// Solidity: function validTransition(ChannelParams params, ChannelState from, ChannelState to, uint256 actorIdx) constant returns()
+// Solidity: function validTransition((uint256,uint256,address,address[]) params, (bytes32,uint64,(address[],uint256[][],(bytes32,uint256[])[]),bytes,bool) from, (bytes32,uint64,(address[],uint256[][],(bytes32,uint256[])[]),bytes,bool) to, uint256 actorIdx) pure returns()
 func (_App *AppSession) ValidTransition(params ChannelParams, from ChannelState, to ChannelState, actorIdx *big.Int) error {
 	return _App.Contract.ValidTransition(&_App.CallOpts, params, from, to, actorIdx)
 }
 
 // ValidTransition is a free data retrieval call binding the contract method 0xec29dd7e.
 //
-// Solidity: function validTransition(ChannelParams params, ChannelState from, ChannelState to, uint256 actorIdx) constant returns()
+// Solidity: function validTransition((uint256,uint256,address,address[]) params, (bytes32,uint64,(address[],uint256[][],(bytes32,uint256[])[]),bytes,bool) from, (bytes32,uint64,(address[],uint256[][],(bytes32,uint256[])[]),bytes,bool) to, uint256 actorIdx) pure returns()
 func (_App *AppCallerSession) ValidTransition(params ChannelParams, from ChannelState, to ChannelState, actorIdx *big.Int) error {
 	return _App.Contract.ValidTransition(&_App.CallOpts, params, from, to, actorIdx)
 }
@@ -1581,7 +1580,7 @@ func (_AssetHolder *AssetHolderTransactorRaw) Transact(opts *bind.TransactOpts, 
 
 // Adjudicator is a free data retrieval call binding the contract method 0x53c2ed8e.
 //
-// Solidity: function adjudicator() constant returns(address)
+// Solidity: function adjudicator() view returns(address)
 func (_AssetHolder *AssetHolderCaller) Adjudicator(opts *bind.CallOpts) (common.Address, error) {
 	var (
 		ret0 = new(common.Address)
@@ -1593,21 +1592,21 @@ func (_AssetHolder *AssetHolderCaller) Adjudicator(opts *bind.CallOpts) (common.
 
 // Adjudicator is a free data retrieval call binding the contract method 0x53c2ed8e.
 //
-// Solidity: function adjudicator() constant returns(address)
+// Solidity: function adjudicator() view returns(address)
 func (_AssetHolder *AssetHolderSession) Adjudicator() (common.Address, error) {
 	return _AssetHolder.Contract.Adjudicator(&_AssetHolder.CallOpts)
 }
 
 // Adjudicator is a free data retrieval call binding the contract method 0x53c2ed8e.
 //
-// Solidity: function adjudicator() constant returns(address)
+// Solidity: function adjudicator() view returns(address)
 func (_AssetHolder *AssetHolderCallerSession) Adjudicator() (common.Address, error) {
 	return _AssetHolder.Contract.Adjudicator(&_AssetHolder.CallOpts)
 }
 
 // Holdings is a free data retrieval call binding the contract method 0xae9ee18c.
 //
-// Solidity: function holdings(bytes32 ) constant returns(uint256)
+// Solidity: function holdings(bytes32 ) view returns(uint256)
 func (_AssetHolder *AssetHolderCaller) Holdings(opts *bind.CallOpts, arg0 [32]byte) (*big.Int, error) {
 	var (
 		ret0 = new(*big.Int)
@@ -1619,21 +1618,21 @@ func (_AssetHolder *AssetHolderCaller) Holdings(opts *bind.CallOpts, arg0 [32]by
 
 // Holdings is a free data retrieval call binding the contract method 0xae9ee18c.
 //
-// Solidity: function holdings(bytes32 ) constant returns(uint256)
+// Solidity: function holdings(bytes32 ) view returns(uint256)
 func (_AssetHolder *AssetHolderSession) Holdings(arg0 [32]byte) (*big.Int, error) {
 	return _AssetHolder.Contract.Holdings(&_AssetHolder.CallOpts, arg0)
 }
 
 // Holdings is a free data retrieval call binding the contract method 0xae9ee18c.
 //
-// Solidity: function holdings(bytes32 ) constant returns(uint256)
+// Solidity: function holdings(bytes32 ) view returns(uint256)
 func (_AssetHolder *AssetHolderCallerSession) Holdings(arg0 [32]byte) (*big.Int, error) {
 	return _AssetHolder.Contract.Holdings(&_AssetHolder.CallOpts, arg0)
 }
 
 // Settled is a free data retrieval call binding the contract method 0xd945af1d.
 //
-// Solidity: function settled(bytes32 ) constant returns(bool)
+// Solidity: function settled(bytes32 ) view returns(bool)
 func (_AssetHolder *AssetHolderCaller) Settled(opts *bind.CallOpts, arg0 [32]byte) (bool, error) {
 	var (
 		ret0 = new(bool)
@@ -1645,35 +1644,35 @@ func (_AssetHolder *AssetHolderCaller) Settled(opts *bind.CallOpts, arg0 [32]byt
 
 // Settled is a free data retrieval call binding the contract method 0xd945af1d.
 //
-// Solidity: function settled(bytes32 ) constant returns(bool)
+// Solidity: function settled(bytes32 ) view returns(bool)
 func (_AssetHolder *AssetHolderSession) Settled(arg0 [32]byte) (bool, error) {
 	return _AssetHolder.Contract.Settled(&_AssetHolder.CallOpts, arg0)
 }
 
 // Settled is a free data retrieval call binding the contract method 0xd945af1d.
 //
-// Solidity: function settled(bytes32 ) constant returns(bool)
+// Solidity: function settled(bytes32 ) view returns(bool)
 func (_AssetHolder *AssetHolderCallerSession) Settled(arg0 [32]byte) (bool, error) {
 	return _AssetHolder.Contract.Settled(&_AssetHolder.CallOpts, arg0)
 }
 
 // Deposit is a paid mutator transaction binding the contract method 0x1de26e16.
 //
-// Solidity: function deposit(bytes32 fundingID, uint256 amount) returns()
+// Solidity: function deposit(bytes32 fundingID, uint256 amount) payable returns()
 func (_AssetHolder *AssetHolderTransactor) Deposit(opts *bind.TransactOpts, fundingID [32]byte, amount *big.Int) (*types.Transaction, error) {
 	return _AssetHolder.contract.Transact(opts, "deposit", fundingID, amount)
 }
 
 // Deposit is a paid mutator transaction binding the contract method 0x1de26e16.
 //
-// Solidity: function deposit(bytes32 fundingID, uint256 amount) returns()
+// Solidity: function deposit(bytes32 fundingID, uint256 amount) payable returns()
 func (_AssetHolder *AssetHolderSession) Deposit(fundingID [32]byte, amount *big.Int) (*types.Transaction, error) {
 	return _AssetHolder.Contract.Deposit(&_AssetHolder.TransactOpts, fundingID, amount)
 }
 
 // Deposit is a paid mutator transaction binding the contract method 0x1de26e16.
 //
-// Solidity: function deposit(bytes32 fundingID, uint256 amount) returns()
+// Solidity: function deposit(bytes32 fundingID, uint256 amount) payable returns()
 func (_AssetHolder *AssetHolderTransactorSession) Deposit(fundingID [32]byte, amount *big.Int) (*types.Transaction, error) {
 	return _AssetHolder.Contract.Deposit(&_AssetHolder.TransactOpts, fundingID, amount)
 }
@@ -1701,21 +1700,21 @@ func (_AssetHolder *AssetHolderTransactorSession) SetOutcome(channelID [32]byte,
 
 // Withdraw is a paid mutator transaction binding the contract method 0x4ed4283c.
 //
-// Solidity: function withdraw(AssetHolderWithdrawalAuth authorization, bytes signature) returns()
+// Solidity: function withdraw((bytes32,address,address,uint256) authorization, bytes signature) returns()
 func (_AssetHolder *AssetHolderTransactor) Withdraw(opts *bind.TransactOpts, authorization AssetHolderWithdrawalAuth, signature []byte) (*types.Transaction, error) {
 	return _AssetHolder.contract.Transact(opts, "withdraw", authorization, signature)
 }
 
 // Withdraw is a paid mutator transaction binding the contract method 0x4ed4283c.
 //
-// Solidity: function withdraw(AssetHolderWithdrawalAuth authorization, bytes signature) returns()
+// Solidity: function withdraw((bytes32,address,address,uint256) authorization, bytes signature) returns()
 func (_AssetHolder *AssetHolderSession) Withdraw(authorization AssetHolderWithdrawalAuth, signature []byte) (*types.Transaction, error) {
 	return _AssetHolder.Contract.Withdraw(&_AssetHolder.TransactOpts, authorization, signature)
 }
 
 // Withdraw is a paid mutator transaction binding the contract method 0x4ed4283c.
 //
-// Solidity: function withdraw(AssetHolderWithdrawalAuth authorization, bytes signature) returns()
+// Solidity: function withdraw((bytes32,address,address,uint256) authorization, bytes signature) returns()
 func (_AssetHolder *AssetHolderTransactorSession) Withdraw(authorization AssetHolderWithdrawalAuth, signature []byte) (*types.Transaction, error) {
 	return _AssetHolder.Contract.Withdraw(&_AssetHolder.TransactOpts, authorization, signature)
 }
