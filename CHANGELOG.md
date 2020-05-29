@@ -6,10 +6,40 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.0] Charon - 2020-05-29 [:warning:]
+Added persistence module to persist channel state data and handle client
+shutdowns/restarts, as well as disconnects/reconnects.
+
+### Added
+- Persistence:
+  - Persister, Restorer, ChannelIterator interfaces to allow for multiple
+    persistence implementations.
+    - sortedkv implementation provided (in-memory and LevelDB).
+  - States and signatures are constantly persisted while channels progress.
+  - Clients restore all saved channels on startup. State is synchronized with peers.
+  - `Client.OnNewChannel` callback registration to deal with restored
+    channels.
+- Wallet interface for account unlocking abstraction.
+  - Used during persistence to restore secret keys for signing.
+  - Implemented for the Ethereum and simulated backend.
+- Peer disconnect/reconnect handling.
+- `Channel.UpdateBy` functional channel update method for better usability.
+
 ### Changed
-- User now has to explicitly start a client-wide request handler routine for
-  incoming channel proposals and update requests (`Client.Handle`) after
-  `Client` got created.
+- License changed to Apache 2.0.
+- Replaced `Channel.ListenUpdates` and `Client.HandleChannelProposals` with
+  `Client.Handle(ProposalHandler, UpdateHandler)` - a single common handler
+  routine per client.
+- Adapted client to new persistence layer and wallet.
+- Made Ethereum interactions idempotent (increased safety).
+- Moved subpackage `db` to `pkg/sortedkv`.
+- Swapped Balance dimensions of type `channel.Allocation`.
+- Random type generators in package `channel/test` now accept options to
+  customize random data generation.
+- Channels now get automatically closed when peers disconnect (and restored on reconnect).
+
+### Fixed
+- Ethereum backend: No funding transactions for zero own initial channel balances.
 
 ## [0.2.0] Belinda - 2020-03-23 [:warning:]
 Added direct disputes and watcher for two-party ledger channels, much polishing
@@ -71,6 +101,7 @@ Initial release.
 
 [:warning:]: #:warning:
 
-[Unreleased]: https://github.com/perun-network/go-perun/compare/v0.2.0...HEAD
+[Unreleased]: https://github.com/perun-network/go-perun/compare/v0.3.0...HEAD
+[0.3.0]: https://github.com/perun-network/go-perun/releases/tag/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/perun-network/go-perun/compare/tag/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/perun-network/go-perun/releases/tag/v0.1.0
