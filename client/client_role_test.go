@@ -10,6 +10,7 @@ import (
 	"math/rand"
 	"sync"
 	"testing"
+	"time"
 
 	"perun.network/go-perun/channel"
 	ctest "perun.network/go-perun/client/test"
@@ -38,6 +39,8 @@ func executeTwoPartyTest(t *testing.T, role [2]ctest.Executer, cfg ctest.ExecCon
 	wg.Wait()
 	log.Info("Two-party test done")
 }
+
+var defaultTimeout = 1 * time.Second
 
 func NewSetups(rng *rand.Rand, names []string) ([]ctest.RoleSetup, *peertest.ConnHub) {
 	var (
