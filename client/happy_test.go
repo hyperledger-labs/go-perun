@@ -9,14 +9,11 @@ import (
 	"math/big"
 	"math/rand"
 	"testing"
-	"time"
 
 	chtest "perun.network/go-perun/channel/test"
 	ctest "perun.network/go-perun/client/test"
 	"perun.network/go-perun/peer"
 )
-
-var defaultTimeout = 1 * time.Second
 
 func TestHappyAliceBob(t *testing.T) {
 	rng := rand.New(rand.NewSource(0x1337))
