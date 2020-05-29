@@ -8,6 +8,7 @@ package test // import "perun.network/go-perun/client/test"
 import (
 	"context"
 	"math/rand"
+	"runtime"
 	"testing"
 	"time"
 
@@ -59,12 +60,12 @@ func makeMultiClientRole(setup RoleSetup, hub ConnHub, t *testing.T, stages int)
 
 // NewPetra creates a new Proposer that executes the Petra protocol.
 func NewPetra(setup RoleSetup, hub ConnHub, t *testing.T) *Petra {
-	return &Petra{makeMultiClientRole(setup, hub, t, 5)}
+	return &Petra{makeMultiClientRole(setup, hub, t, 6)}
 }
 
 // NewRobert creates a new Responder that executes the Robert protocol.
 func NewRobert(setup RoleSetup, hub ConnHub, t *testing.T) *Robert {
-	return &Robert{makeMultiClientRole(setup, hub, t, 5)}
+	return &Robert{makeMultiClientRole(setup, hub, t, 6)}
 }
 
 // Execute executes the Petra protocol.
@@ -106,6 +107,11 @@ func (r *Petra) Execute(cfg ExecConfig) {
 	r.ReplaceClient()
 	newCh := make(chan *paymentChannel, 1)
 	r.OnNewChannel(func(_ch *paymentChannel) { newCh <- _ch })
+
+	// 6. Robert listens
+	r.waitStage()
+
+	// We connect to Robert
 	ctx, cancel := context.WithTimeout(context.Background(), r.timeout)
 	defer cancel()
 	r.Reconnect(ctx) // should connect to Robert
@@ -167,9 +173,15 @@ func (r *Robert) Execute(cfg ExecConfig) {
 	r.ReplaceClient()
 	newCh := make(chan *paymentChannel, 1)
 	r.OnNewChannel(func(_ch *paymentChannel) { newCh <- _ch })
-	// Petra connects to us
 	waitListen = r.GoListen(r.hub.NewListener(r.setup.Identity.Address()))
 	defer waitListen()
+	runtime.Gosched()
+	time.Sleep(10 * time.Millisecond)
+
+	// 6. Robert listens
+	r.waitStage()
+	// Petra connects to us
+
 	select {
 	case ch = <-newCh: // expected
 		assrt.NotNil(ch)
