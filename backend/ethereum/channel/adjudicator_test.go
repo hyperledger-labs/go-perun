@@ -11,12 +11,14 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	ethchannel "perun.network/go-perun/backend/ethereum/channel"
 	"perun.network/go-perun/backend/ethereum/channel/test"
 	ethwallet "perun.network/go-perun/backend/ethereum/wallet"
+	ethwallettest "perun.network/go-perun/backend/ethereum/wallet/test"
 	"perun.network/go-perun/channel"
 	channeltest "perun.network/go-perun/channel/test"
 )
@@ -81,4 +83,33 @@ func TestSubscribeRegistered(t *testing.T) {
 	assert.NoError(t, registered2.Close(), "Closing event channel should not error")
 	assert.Nil(t, registered2.Next(), "Next on closed channel should produce nil")
 	assert.NoError(t, registered2.Err(), "Closing should produce no error")
+}
+
+func TestValidateAdjudicator(t *testing.T) {
+	// Test setup
+	rng := rand.New(rand.NewSource(1929))
+	s := test.NewSimSetup(rng)
+
+	t.Run("no_adj_code", func(t *testing.T) {
+		randomAddr := (common.Address)(ethwallettest.NewRandomAddress(rng))
+		ctx, cancel := context.WithTimeout(context.Background(), defaultTxTimeout)
+		defer cancel()
+		require.True(t, ethchannel.IsContractBytecodeError(ethchannel.ValidateAdjudicator(ctx, *s.CB, randomAddr)))
+	})
+	t.Run("incorrect_adj_code", func(t *testing.T) {
+		randomAddr := (common.Address)(ethwallettest.NewRandomAddress(rng))
+		ctx, cancel := context.WithTimeout(context.Background(), defaultTxTimeout)
+		defer cancel()
+		incorrectCodeAddr, err := ethchannel.DeployETHAssetholder(ctx, *s.CB, randomAddr)
+		require.NoError(t, err)
+		require.True(t, ethchannel.IsContractBytecodeError(ethchannel.ValidateAdjudicator(ctx, *s.CB, incorrectCodeAddr)))
+	})
+	t.Run("correct_adj_code", func(t *testing.T) {
+		ctx, cancel := context.WithTimeout(context.Background(), defaultTxTimeout)
+		defer cancel()
+		adjudicatorAddr, err := ethchannel.DeployAdjudicator(ctx, *s.CB)
+		require.NoError(t, err)
+		t.Logf("adjudicator address is %v", adjudicatorAddr)
+		require.NoError(t, ethchannel.ValidateAdjudicator(ctx, *s.CB, adjudicatorAddr))
+	})
 }
