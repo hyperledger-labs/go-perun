@@ -16,6 +16,7 @@ import (
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/accounts/keystore"
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/pkg/errors"
 
@@ -175,4 +176,26 @@ func unpackError(result []byte) (string, error) {
 		return "<invalid tx result>", errors.Wrap(err, "unpacking revert reason")
 	}
 	return vs[0].(string), nil
+}
+
+// ContractBytecodeError signals invalid bytecode at given address, such as incorrect or no code.
+var ContractBytecodeError = stderrors.New("invalid bytecode at address")
+
+// IsContractBytecodeError returns whether the cause of the error was a invalid bytecode.
+func IsContractBytecodeError(err error) bool {
+	return errors.Cause(err) == ContractBytecodeError
+}
+
+// FetchCodeAtAddr reads the bytecode at given address.
+// Returns a ContractBytecodeError when there is no bytecode at given address.
+// This error can be checked with IsContractBytecodeError() function.
+func FetchCodeAtAddr(ctx context.Context, backend ContractBackend, contractAddr common.Address) ([]byte, error) {
+	code, err := backend.CodeAt(ctx, contractAddr, nil)
+	if err != nil {
+		return nil, err
+	}
+	if len(code) == 0 {
+		return nil, errors.WithMessage(ContractBytecodeError, "no code")
+	}
+	return code, nil
 }
