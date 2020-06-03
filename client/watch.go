@@ -50,7 +50,10 @@ func (c *Channel) Watch() error {
 // settles the channel.
 func (c *Channel) handleRegisteredEvent(ctx context.Context, reg *channel.RegisteredEvent) error {
 	log := c.log.WithField("proc", "watcher")
-	c.machMtx.Lock() // lock machine while registering is in progress
+	// Lock machine while registering is in progress.
+	if !c.machMtx.TryLockCtx(ctx) {
+		return errors.New("locking machine mutex in time")
+	}
 	defer c.machMtx.Unlock()
 
 	if c.machine.Phase() == channel.Withdrawn {
@@ -71,7 +74,9 @@ func (c *Channel) handleRegisteredEvent(ctx context.Context, reg *channel.Regist
 // registered and the final balance withdrawn. This call blocks until the
 // channel has been successfully withdrawn.
 func (c *Channel) Settle(ctx context.Context) error {
-	c.machMtx.Lock()
+	if !c.machMtx.TryLockCtx(ctx) {
+		return errors.New("locking machine mutex in time")
+	}
 	defer c.machMtx.Unlock()
 	// Wrap the context to make sure that the settle call stops as soon as the
 	// channel controller is closed.

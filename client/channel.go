@@ -7,7 +7,6 @@ package client
 
 import (
 	"context"
-	"sync"
 
 	"github.com/pkg/errors"
 
@@ -29,7 +28,7 @@ type Channel struct {
 
 	conn        *channelConn
 	machine     persistence.StateMachine
-	machMtx     sync.RWMutex
+	machMtx     perunsync.Mutex
 	updateSub   chan<- *channel.State
 	adjudicator channel.Adjudicator
 	wallet      wallet.Wallet
@@ -128,16 +127,16 @@ func (c *Channel) Params() *channel.Params {
 // State returns the current state.
 // Clone it if you want to modify it.
 func (c *Channel) State() *channel.State {
-	c.machMtx.RLock()
-	defer c.machMtx.RUnlock()
+	c.machMtx.Lock()
+	defer c.machMtx.Unlock()
 
 	return c.machine.State()
 }
 
 // Phase returns the current phase of the channel state machine.
 func (c *Channel) Phase() channel.Phase {
-	c.machMtx.RLock()
-	defer c.machMtx.RUnlock()
+	c.machMtx.Lock()
+	defer c.machMtx.Unlock()
 
 	return c.machine.Phase()
 }
