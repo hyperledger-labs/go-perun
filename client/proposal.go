@@ -22,14 +22,14 @@ type (
 	// A ProposalHandler decides how to handle incoming channel proposals from
 	// other channel network peers.
 	ProposalHandler interface {
-		// Handle is the user callback called by the Client on an incoming channel
+		// HandleProposal is the user callback called by the Client on an incoming channel
 		// proposal.
-		Handle(*ChannelProposal, *ProposalResponder)
+		HandleProposal(*ChannelProposal, *ProposalResponder)
 	}
 
 	// ProposalHandlerFunc is an adapter type to allow the use of functions as
 	// proposal handlers. ProposalHandlerFunc(f) is a ProposalHandler that calls
-	// f when Handle is called.
+	// f when HandleProposal is called.
 	ProposalHandlerFunc func(*ChannelProposal, *ProposalResponder)
 
 	// ProposalResponder lets the user respond to a channel proposal. If the user
@@ -51,8 +51,8 @@ type (
 	}
 )
 
-// Handle calls the proposal handler function.
-func (f ProposalHandlerFunc) Handle(p *ChannelProposal, r *ProposalResponder) { f(p, r) }
+// HandleProposal calls the proposal handler function.
+func (f ProposalHandlerFunc) HandleProposal(p *ChannelProposal, r *ProposalResponder) { f(p, r) }
 
 // Accept lets the user signal that they want to accept the channel proposal.
 // Returns the newly created channel controller if the channel was successfully
@@ -144,7 +144,7 @@ func (c *Client) handleChannelProposal(
 
 	c.logPeer(p).Trace("calling proposal handler")
 	responder := &ProposalResponder{client: c, peer: p, req: req}
-	handler.Handle(req, responder)
+	handler.HandleProposal(req, responder)
 	// control flow continues in responder.Accept/Reject
 }
 
