@@ -112,8 +112,10 @@ func (c *Channel) Update(ctx context.Context, up ChannelUpdate) (err error) {
 	if err := c.validTwoPartyUpdate(up, c.machine.Idx()); err != nil {
 		return err
 	}
-
-	c.machMtx.Lock() // lock machine while update is in progress
+	// Lock machine while update is in progress.
+	if !c.machMtx.TryLockCtx(ctx) {
+		return errors.New("locking machine mutex in time")
+	}
 	defer c.machMtx.Unlock()
 
 	if err = c.machine.Update(ctx, up.State, up.ActorIdx); err != nil {
@@ -196,7 +198,7 @@ func (c *Channel) handleUpdateReq(
 		return
 	}
 
-	c.machMtx.Lock() // lock machine while update is in progress
+	c.machMtx.Lock() // Lock machine while update is in progress.
 	defer c.machMtx.Unlock()
 
 	if err := c.machine.CheckUpdate(req.State, req.ActorIdx, req.Sig, pidx); err != nil {
