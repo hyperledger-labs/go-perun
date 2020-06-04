@@ -7,6 +7,7 @@ package channel // import "perun.network/go-perun/backend/ethereum/channel"
 
 import (
 	"context"
+	"fmt"
 	"math/big"
 
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
@@ -110,4 +111,18 @@ func (a *Adjudicator) call(ctx context.Context, req channel.AdjudicatorReq, fn a
 	}
 
 	return errors.WithMessage(a.confirmTransaction(ctx, tx), "mining transaction")
+}
+
+// ValidateAdjudicator checks if the bytecode at given address is correct.
+// Returns a ContractBytecodeError if the bytecode at given address is invalid.
+// This error can be checked with IsContractBytecodeError() function.
+func ValidateAdjudicator(ctx context.Context, backend ContractBackend, adjudicatorAddr common.Address) error {
+	code, err := FetchCodeAtAddr(ctx, backend, adjudicatorAddr)
+	if err != nil {
+		return errors.WithMessage(err, "fetching adjudicator contract")
+	}
+	if fmt.Sprintf("%x", code) != adjudicator.AdjudicatorBinRuntime {
+		return errors.WithMessage(ContractBytecodeError, "incorrect adjudicator contract")
+	}
+	return nil
 }
