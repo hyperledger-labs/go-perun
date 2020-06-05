@@ -45,14 +45,14 @@ type (
 	// An UpdateHandler decides how to handle incoming channel update requests
 	// from other channel participants.
 	UpdateHandler interface {
-		// Handle is the user callback called by the channel controller on an
+		// HandleUpdate is the user callback called by the channel controller on an
 		// incoming update request.
-		Handle(ChannelUpdate, *UpdateResponder)
+		HandleUpdate(ChannelUpdate, *UpdateResponder)
 	}
 
 	// UpdateHandlerFunc is an adapter type to allow the use of functions as
 	// update handlers. UpdateHandlerFunc(f) is an UpdateHandler that calls
-	// f when Handle is called.
+	// f when HandleUpdate is called.
 	UpdateHandlerFunc func(ChannelUpdate, *UpdateResponder)
 
 	// The UpdateResponder allows the user to react to the incoming channel update
@@ -68,8 +68,8 @@ type (
 	}
 )
 
-// Handle calls the update handler function.
-func (f UpdateHandlerFunc) Handle(u ChannelUpdate, r *UpdateResponder) { f(u, r) }
+// HandleUpdate calls the update handler function.
+func (f UpdateHandlerFunc) HandleUpdate(u ChannelUpdate, r *UpdateResponder) { f(u, r) }
 
 // Accept lets the user signal that they want to accept the channel update.
 func (r *UpdateResponder) Accept(ctx context.Context) error {
@@ -208,7 +208,7 @@ func (c *Channel) handleUpdateReq(
 	}
 
 	responder := &UpdateResponder{channel: c, pidx: pidx, req: req}
-	uh.Handle(req.ChannelUpdate, responder)
+	uh.HandleUpdate(req.ChannelUpdate, responder)
 }
 
 func (c *Channel) handleUpdateAcc(

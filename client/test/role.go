@@ -248,7 +248,7 @@ func (r *role) AcceptAllPropHandler(rng *rand.Rand) *acceptAllPropHandler {
 	}
 }
 
-func (h *acceptAllPropHandler) Handle(req *client.ChannelProposal, res *client.ProposalResponder) {
+func (h *acceptAllPropHandler) HandleProposal(req *client.ChannelProposal, res *client.ProposalResponder) {
 	h.r.log.Infof("Accepting incoming channel request: %v", req)
 	ctx, cancel := context.WithTimeout(context.Background(), h.r.setup.Timeout)
 	defer cancel()
@@ -281,8 +281,8 @@ type roleUpdateHandler role
 
 func (r *role) UpdateHandler() *roleUpdateHandler { return (*roleUpdateHandler)(r) }
 
-// Handle implements the Role as its own UpdateHandler
-func (h *roleUpdateHandler) Handle(up client.ChannelUpdate, res *client.UpdateResponder) {
+// HandleUpdate implements the Role as its own UpdateHandler
+func (h *roleUpdateHandler) HandleUpdate(up client.ChannelUpdate, res *client.UpdateResponder) {
 	ch, ok := h.chans[up.State.ID]
 	if !ok {
 		h.t.Errorf("unknown channel: %v", up.State.ID)
