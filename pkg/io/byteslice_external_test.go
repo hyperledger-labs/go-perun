@@ -3,7 +3,7 @@
 // of this source code is governed by the Apache 2.0 license that can be found
 // in the LICENSE file.
 
-package wire
+package io_test
 
 import (
 	"io"
@@ -12,11 +12,12 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
+	perunio "perun.network/go-perun/pkg/io"
 	iotest "perun.network/go-perun/pkg/io/test"
 )
 
 func TestByteSlice(t *testing.T) {
-	var v1, v2, v3, v4 ByteSlice = []byte{}, []byte{255}, []byte{1, 2, 3, 4, 5, 6}, make([]byte, 20000)
+	var v1, v2, v3, v4 perunio.ByteSlice = []byte{}, []byte{255}, []byte{1, 2, 3, 4, 5, 6}, make([]byte, 20000)
 	testByteSlices(t, v1, v2, v3, v4)
 	iotest.GenericBrokenPipeTest(t, &v1, &v2, &v3, &v4)
 }
@@ -32,7 +33,7 @@ func TestStutter(t *testing.T) {
 		}
 	}()
 
-	var decodedValue ByteSlice = make([]byte, len(values))
+	var decodedValue perunio.ByteSlice = make([]byte, len(values))
 	assert.Nil(t, decodedValue.Decode(r))
 	for i, v := range values {
 		assert.Equal(t, decodedValue[i], v)
@@ -40,7 +41,7 @@ func TestStutter(t *testing.T) {
 
 }
 
-func testByteSlices(t *testing.T, serial ...ByteSlice) {
+func testByteSlices(t *testing.T, serial ...perunio.ByteSlice) {
 	a := assert.New(t)
 	r, w := io.Pipe()
 	done := make(chan struct{})
@@ -55,7 +56,7 @@ func testByteSlices(t *testing.T, serial ...ByteSlice) {
 	for i, v := range serial {
 
 		d := make([]byte, len(v))
-		dest := ByteSlice(d)
+		dest := perunio.ByteSlice(d)
 
 		a.NoError(dest.Decode(r), "failed to decode element")
 

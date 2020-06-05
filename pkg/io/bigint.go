@@ -3,20 +3,18 @@
 // of this source code is governed by the Apache 2.0 license that can be found
 // in the LICENSE file.
 
-package wire
+package io
 
 import (
 	"io"
 	"math/big"
 
 	"github.com/pkg/errors"
-
-	"perun.network/go-perun/log"
 )
 
-// maxBigIntLength defines the maximum length of a big integer.
+// MaxBigIntLength defines the maximum length of a big integer.
 // 1024bit -> 128 bytes
-const maxBigIntLength = 128
+const MaxBigIntLength = 128
 
 // BigInt is a serializer big integer.
 type BigInt struct {
@@ -32,7 +30,7 @@ func (b *BigInt) Decode(reader io.Reader) error {
 	}
 
 	var length = uint8(lengthData[0])
-	if length > maxBigIntLength {
+	if length > MaxBigIntLength {
 		return errors.New("big.Int too big to decode")
 	}
 
@@ -51,16 +49,16 @@ func (b *BigInt) Decode(reader io.Reader) error {
 // Encode writes a big.Int to the stream.
 func (b BigInt) Encode(writer io.Writer) error {
 	if b.Int == nil {
-		log.Panic("logic error: tried to encode nil big.Int")
+		panic("logic error: tried to encode nil big.Int")
 	}
 	if b.Int.Sign() == -1 {
-		log.Panic("encoding of negative big.Int not implemented")
+		panic("encoding of negative big.Int not implemented")
 	}
 
 	bytes := b.Bytes()
 	length := len(bytes)
 	// we serialize the length as uint8
-	if length > maxBigIntLength {
+	if length > MaxBigIntLength {
 		return errors.New("big.Int too big to encode")
 	}
 
