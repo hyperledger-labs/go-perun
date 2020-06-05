@@ -3,13 +3,13 @@
 // of this source code is governed by the Apache 2.0 license that can be found
 // in the LICENSE file.
 
-package msg
+package wire
 
 import (
 	"io"
 	"time"
 
-	"perun.network/go-perun/wire"
+	perunio "perun.network/go-perun/pkg/io"
 )
 
 func init() {
@@ -25,11 +25,11 @@ type pingPongMsg struct {
 }
 
 func (m pingPongMsg) Encode(writer io.Writer) error {
-	return wire.Encode(writer, m.Created)
+	return perunio.Encode(writer, m.Created)
 }
 
 func (m *pingPongMsg) Decode(reader io.Reader) error {
-	return wire.Decode(reader, &m.Created)
+	return perunio.Decode(reader, &m.Created)
 }
 
 func newPingPongMsg() pingPongMsg {
@@ -82,12 +82,12 @@ type ShutdownMsg struct {
 
 // Encode implements msg.Encode.
 func (m *ShutdownMsg) Encode(w io.Writer) error {
-	return wire.Encode(w, m.Reason)
+	return perunio.Encode(w, m.Reason)
 }
 
 // Decode implements msg.Decode.
 func (m *ShutdownMsg) Decode(r io.Reader) error {
-	return wire.Decode(r, &m.Reason)
+	return perunio.Decode(r, &m.Reason)
 }
 
 // Type implements msg.Type.
