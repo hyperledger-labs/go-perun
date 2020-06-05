@@ -3,7 +3,7 @@
 // of this source code is governed by the Apache 2.0 license that can be found
 // in the LICENSE file.
 
-// Package wire contains the basic wire communication infrastructure like wire
-// message en- and decoding. The actual (de)serialization functions are found
-// in package pkg/io.
-package wire // import "perun.network/go-perun/wire"
+// Package io contains functionality for the serialization of standard Go types.
+// It is used in go-perun to (de)serialize wire messages and in some persistence
+// implementations.
+package io // import "perun.network/go-perun/pkg/io"
