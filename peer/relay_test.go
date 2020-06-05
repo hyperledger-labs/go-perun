@@ -12,7 +12,7 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"perun.network/go-perun/pkg/test"
-	wire "perun.network/go-perun/wire/msg"
+	"perun.network/go-perun/wire"
 )
 
 func TestRelay_Put(t *testing.T) {

@@ -23,7 +23,7 @@ import (
 	perunsync "perun.network/go-perun/pkg/sync"
 	"perun.network/go-perun/pkg/test"
 	wtest "perun.network/go-perun/wallet/test"
-	wire "perun.network/go-perun/wire/msg"
+	"perun.network/go-perun/wire"
 )
 
 const timeout = 5 * time.Second

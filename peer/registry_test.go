@@ -19,7 +19,7 @@ import (
 	"perun.network/go-perun/pkg/sync/atomic"
 	"perun.network/go-perun/pkg/test"
 	wallettest "perun.network/go-perun/wallet/test"
-	"perun.network/go-perun/wire/msg"
+	"perun.network/go-perun/wire"
 )
 
 var _ Dialer = (*mockDialer)(nil)
@@ -209,7 +209,7 @@ func TestRegistry_authenticatedDial(t *testing.T) {
 		p := newPeer(nil, nil, nil)
 		a, b := newPipeConnPair()
 		go d.put(a)
-		go b.Send(msg.NewPingMsg())
+		go b.Send(wire.NewPingMsg())
 		test.AssertTerminates(t, timeout, func() {
 			err := r.authenticatedDial(context.Background(), p, remoteAddr)
 			assert.Error(t, err)
@@ -220,7 +220,7 @@ func TestRegistry_authenticatedDial(t *testing.T) {
 		p := newPeer(nil, newMockConn(nil), nil)
 		a, b := newPipeConnPair()
 		go d.put(a)
-		go b.Send(msg.NewPingMsg())
+		go b.Send(wire.NewPingMsg())
 		test.AssertTerminates(t, timeout, func() {
 			err := r.authenticatedDial(context.Background(), p, remoteAddr)
 			assert.Nil(t, err)
@@ -271,7 +271,7 @@ func TestRegistry_setupConn(t *testing.T) {
 		d := &mockDialer{dial: make(chan Conn)}
 		r := NewRegistry(id, func(*Peer) {}, d)
 		a, b := newPipeConnPair()
-		go b.Send(msg.NewPingMsg())
+		go b.Send(wire.NewPingMsg())
 		test.AssertTerminates(t, timeout, func() {
 			assert.Error(t, r.setupConn(a))
 		})

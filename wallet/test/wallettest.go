@@ -12,9 +12,9 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"perun.network/go-perun/pkg/io"
 	"perun.network/go-perun/pkg/io/test"
 	"perun.network/go-perun/wallet"
-	"perun.network/go-perun/wire"
 )
 
 // InitWallet initializes a wallet.
@@ -76,13 +76,13 @@ func GenericSignatureTest(t *testing.T, s *Setup) {
 	require.NoError(t, err, "Sign with unlocked account should succeed")
 
 	buff := new(bytes.Buffer)
-	wire.Encode(buff, sign)
+	io.Encode(buff, sign)
 	sign2, err := s.Backend.DecodeSig(buff)
 	assert.NoError(t, err, "Decoded signature should work")
 	assert.Equal(t, sign, sign2, "Decoded signature should be equal to the original")
 
 	// Test DecodeSig on short stream
-	wire.Encode(buff, sign)
+	io.Encode(buff, sign)
 	shortBuff := bytes.NewBuffer(buff.Bytes()[:len(buff.Bytes())-1]) // remove one byte
 	_, err = s.Backend.DecodeSig(shortBuff)
 	assert.Error(t, err, "DecodeSig on short stream should error")

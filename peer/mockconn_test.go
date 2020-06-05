@@ -11,7 +11,7 @@ import (
 	"github.com/pkg/errors"
 
 	"perun.network/go-perun/pkg/sync/atomic"
-	wire "perun.network/go-perun/wire/msg"
+	"perun.network/go-perun/wire"
 )
 
 var _ Conn = (*mockConn)(nil)

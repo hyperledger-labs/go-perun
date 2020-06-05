@@ -15,12 +15,12 @@ import (
 
 	"perun.network/go-perun/pkg/test"
 	wallettest "perun.network/go-perun/wallet/test"
-	"perun.network/go-perun/wire/msg"
+	"perun.network/go-perun/wire"
 )
 
 func TestAuthResponseMsg(t *testing.T) {
 	rng := rand.New(rand.NewSource(1337))
-	msg.TestMsg(t, NewAuthResponseMsg(wallettest.NewRandomAccount(rng)))
+	wire.TestMsg(t, NewAuthResponseMsg(wallettest.NewRandomAccount(rng)))
 }
 
 func TestExchangeAddrs_ConnFail(t *testing.T) {
@@ -73,7 +73,7 @@ func TestExchangeAddrs_BogusMsg(t *testing.T) {
 	rng := rand.New(rand.NewSource(0xcafe))
 	acc := wallettest.NewRandomAccount(rng)
 	conn := newMockConn(nil)
-	conn.recvQueue <- msg.NewPingMsg()
+	conn.recvQueue <- wire.NewPingMsg()
 	addr, err := ExchangeAddrs(context.Background(), acc, conn)
 
 	assert.Error(t, err, "ExchangeAddrs should error when peer sends a non-AuthResponseMsg")

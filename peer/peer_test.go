@@ -18,7 +18,7 @@ import (
 
 	_ "perun.network/go-perun/backend/sim" // backend init
 	wallettest "perun.network/go-perun/wallet/test"
-	wire "perun.network/go-perun/wire/msg"
+	"perun.network/go-perun/wire"
 )
 
 // setup is a test setup consisting of two connected peers.

@@ -17,7 +17,7 @@ import (
 	"perun.network/go-perun/pkg/sync"
 	"perun.network/go-perun/pkg/test"
 	wallettest "perun.network/go-perun/wallet/test"
-	"perun.network/go-perun/wire/msg"
+	"perun.network/go-perun/wire"
 )
 
 func TestConnHub_Create(t *testing.T) {
@@ -37,7 +37,7 @@ func TestConnHub_Create(t *testing.T) {
 				conn, err := l.Accept()
 				assert.NoError(err)
 				require.NotNil(rt, conn)
-				assert.NoError(conn.Send(msg.NewPingMsg()))
+				assert.NoError(conn.Send(wire.NewPingMsg()))
 			})
 		})
 
@@ -48,7 +48,7 @@ func TestConnHub_Create(t *testing.T) {
 				require.NotNil(rt, conn)
 				m, err := conn.Recv()
 				assert.NoError(err)
-				assert.IsType(msg.NewPingMsg(), m)
+				assert.IsType(wire.NewPingMsg(), m)
 			})
 		})
 

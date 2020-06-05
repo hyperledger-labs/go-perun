@@ -16,7 +16,7 @@ import (
 
 	"perun.network/go-perun/pkg/sync"
 	"perun.network/go-perun/pkg/test"
-	wire "perun.network/go-perun/wire/msg"
+	"perun.network/go-perun/wire"
 )
 
 func TestProducer(t *testing.T) {

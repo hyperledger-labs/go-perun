@@ -16,7 +16,7 @@ import (
 
 	"perun.network/go-perun/backend/sim/wallet"
 	"perun.network/go-perun/pkg/test"
-	"perun.network/go-perun/wire/msg"
+	"perun.network/go-perun/wire"
 )
 
 func TestNewTCPDialer(t *testing.T) {
@@ -58,7 +58,7 @@ func TestDialer_Dial(t *testing.T) {
 	defer d.Close()
 
 	t.Run("happy", func(t *testing.T) {
-		m := msg.NewPingMsg()
+		m := wire.NewPingMsg()
 		ct := test.NewConcurrent(t)
 		go ct.Stage("accept", func(rt require.TestingT) {
 			conn, err := l.Accept()
