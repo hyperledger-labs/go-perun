@@ -56,9 +56,9 @@ func withdrawMultipleConcurrentFinal(t *testing.T, numParts int, parallel bool) 
 		go ct.StageN("funding loop", numParts, func(rt require.TestingT) {
 			time.Sleep(sleepTime * time.Millisecond)
 			req := channel.FundingReq{
-				Params:     params,
-				Allocation: &state.Allocation,
-				Idx:        channel.Index(i),
+				Params: params,
+				State:  state,
+				Idx:    channel.Index(i),
 			}
 			require.NoError(rt, funder.Fund(fundingCtx, req), "funding should succeed")
 		})
@@ -137,9 +137,9 @@ func testWithdrawZeroBalance(t *testing.T, n int) {
 		i, funder := i, funder
 		go ct.StageN("funding loop", n, func(rt require.TestingT) {
 			req := channel.FundingReq{
-				Params:     params,
-				Allocation: &state.Allocation,
-				Idx:        channel.Index(i),
+				Params: params,
+				State:  state,
+				Idx:    channel.Index(i),
 			}
 			require.NoError(rt, funder.Fund(context.Background(), req), "funding should succeed")
 		})
@@ -186,9 +186,9 @@ func TestWithdraw(t *testing.T) {
 	defer funCancel()
 	// fund the contract
 	fundingReq := channel.FundingReq{
-		Params:     params,
-		Allocation: &state.Allocation,
-		Idx:        channel.Index(0),
+		Params: params,
+		State:  state,
+		Idx:    channel.Index(0),
 	}
 	require.NoError(t, s.Funders[0].Fund(fundingCtx, fundingReq), "funding should succeed")
 	req := channel.AdjudicatorReq{
@@ -245,9 +245,9 @@ func TestWithdrawNonFinal(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), defaultTxTimeout)
 	defer cancel()
 	fundingReq := channel.FundingReq{
-		Params:     params,
-		Allocation: &state.Allocation,
-		Idx:        channel.Index(0),
+		Params: params,
+		State:  state,
+		Idx:    channel.Index(0),
 	}
 	require.NoError(t, s.Funders[0].Fund(ctx, fundingReq), "funding should succeed")
 

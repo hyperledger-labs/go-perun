@@ -55,9 +55,9 @@ func registerMultipleConcurrent(t *testing.T, numParts int, parallel bool) {
 		go ct.StageN("funding loop", numParts, func(rt require.TestingT) {
 			time.Sleep(sleepTime * time.Millisecond)
 			req := channel.FundingReq{
-				Params:     params,
-				Allocation: &state.Allocation,
-				Idx:        channel.Index(i),
+				Params: params,
+				State:  state,
+				Idx:    channel.Index(i),
 			}
 			require.NoError(rt, funder.Fund(fundingCtx, req), "funding should succeed")
 		})
@@ -121,9 +121,9 @@ func TestRegister_FinalState(t *testing.T) {
 	defer funCancel()
 	// fund the contract
 	reqFund := channel.FundingReq{
-		Params:     params,
-		Allocation: &state.Allocation,
-		Idx:        channel.Index(0),
+		Params: params,
+		State:  state,
+		Idx:    channel.Index(0),
 	}
 	require.NoError(t, s.Funders[0].Fund(fundingCtx, reqFund), "funding should succeed")
 	// Now test the register function
@@ -156,9 +156,9 @@ func TestRegister_CancelledContext(t *testing.T) {
 	defer funCancel()
 	// fund the contract
 	reqFund := channel.FundingReq{
-		Params:     params,
-		Allocation: &state.Allocation,
-		Idx:        channel.Index(0),
+		Params: params,
+		State:  state,
+		Idx:    channel.Index(0),
 	}
 	require.NoError(t, s.Funders[0].Fund(fundingCtx, reqFund), "funding should succeed")
 	// Now test the register function

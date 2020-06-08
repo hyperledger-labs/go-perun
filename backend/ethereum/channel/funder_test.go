@@ -60,9 +60,9 @@ func testFunderZeroBalance(t *testing.T, n int) {
 	wg.Add(n)
 	for i := 0; i < n; i++ {
 		req := channel.FundingReq{
-			Params:     params,
-			Allocation: allocation,
-			Idx:        channel.Index(i),
+			Params: params,
+			State:  &channel.State{Allocation: *allocation},
+			Idx:    channel.Index(i),
 		}
 
 		// Check that the funding only changes the nonce when the balance is not zero
@@ -96,16 +96,16 @@ func TestFunder_Fund(t *testing.T) {
 	assert.Panics(t, func() { funders[0].Fund(ctx, channel.FundingReq{}) }, "Funding with invalid funding req should fail")
 	// Test funding without assets
 	req := channel.FundingReq{
-		Params:     &channel.Params{},
-		Allocation: &channel.Allocation{},
-		Idx:        0,
+		Params: &channel.Params{},
+		State:  &channel.State{},
+		Idx:    0,
 	}
 	assert.NoError(t, funders[0].Fund(ctx, req), "Funding with no assets should succeed")
 	// Test with valid request
 	req = channel.FundingReq{
-		Params:     params,
-		Allocation: allocation,
-		Idx:        0,
+		Params: params,
+		State:  &channel.State{Allocation: *allocation},
+		Idx:    0,
 	}
 
 	t.Run("Funding idempotence", func(t *testing.T) {
@@ -159,9 +159,9 @@ func testFundingTimeout(t *testing.T, faultyPeer, peers int) {
 			}
 			time.Sleep(sleepTime * time.Millisecond)
 			req := channel.FundingReq{
-				Params:     params,
-				Allocation: allocation,
-				Idx:        uint16(i),
+				Params: params,
+				State:  &channel.State{Allocation: *allocation},
+				Idx:    uint16(i),
 			}
 			defer cancel()
 			err := funder.Fund(ctx, req)
@@ -208,9 +208,9 @@ func testFunderFunding(t *testing.T, n int) {
 		go ct.StageN("funding", n, func(rt require.TestingT) {
 			time.Sleep(sleepTime * time.Millisecond)
 			req := channel.FundingReq{
-				Params:     params,
-				Allocation: allocation,
-				Idx:        channel.Index(i),
+				Params: params,
+				State:  &channel.State{Allocation: *allocation},
+				Idx:    channel.Index(i),
 			}
 			err := funder.Fund(ctx, req)
 			require.NoError(rt, err, "funding should succeed")

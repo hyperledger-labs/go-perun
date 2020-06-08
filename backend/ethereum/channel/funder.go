@@ -82,11 +82,11 @@ func (f *Funder) Fund(ctx context.Context, request channel.FundingReq) error {
 
 	partIDs := FundingIDs(channelID, request.Params.Parts...)
 
-	errChan := make(chan error, len(request.Allocation.Assets))
-	errs := make([]*channel.AssetFundingError, len(request.Allocation.Assets))
+	errChan := make(chan error, len(request.State.Assets))
+	errs := make([]*channel.AssetFundingError, len(request.State.Assets))
 	var wg sync.WaitGroup
-	wg.Add(len(request.Allocation.Assets))
-	for index, asset := range request.Allocation.Assets {
+	wg.Add(len(request.State.Assets))
+	for index, asset := range request.State.Assets {
 		go func(index int, asset channel.Asset) {
 			defer wg.Done()
 			if err := f.fundAsset(ctx, request, index, asset, partIDs, errs); err != nil {
@@ -126,7 +126,7 @@ func (f *Funder) fundAsset(ctx context.Context, request channel.FundingReq, asse
 		return errors.WithMessage(err, "checking funded")
 	} else if alreadyFunded {
 		f.log.WithFields(log.Fields{"channel": request.Params.ID(), "idx": request.Idx}).Debug("Skipped second funding.")
-	} else if request.Allocation.Balances[assetIndex][request.Idx].Sign() <= 0 {
+	} else if request.State.Balances[assetIndex][request.Idx].Sign() <= 0 {
 		f.log.WithFields(log.Fields{"channel": request.Params.ID(), "idx": request.Idx}).Debug("Skipped zero funding.")
 	} else if err := f.sendFundingTransaction(ctx, request, contract, partIDs); err != nil {
 		return errors.Wrap(err, "sending funding tx")
@@ -149,7 +149,7 @@ func checkFunded(ctx context.Context, request channel.FundingReq, asset assetHol
 	}
 	defer iter.Close()
 
-	amount := new(big.Int).Set(request.Allocation.Balances[asset.assetIndex][request.Idx])
+	amount := new(big.Int).Set(request.State.Balances[asset.assetIndex][request.Idx])
 	for iter.Next() {
 		amount.Sub(amount, iter.Event.Amount)
 	}
@@ -181,7 +181,7 @@ func (f *Funder) sendFundingTransaction(ctx context.Context, request channel.Fun
 func (f *Funder) createFundingTx(ctx context.Context, request channel.FundingReq, asset assetHolder, partIDs [][32]byte) (*types.Transaction, error) {
 	// Create a new transaction (needs to be cloned because of go-ethereum bug).
 	// See https://github.com/ethereum/go-ethereum/pull/20412
-	balance := new(big.Int).Set(request.Allocation.Balances[asset.assetIndex][request.Idx])
+	balance := new(big.Int).Set(request.State.Balances[asset.assetIndex][request.Idx])
 	// Lock the funder for correct nonce usage.
 	f.mu.Lock()
 	defer f.mu.Unlock()
@@ -251,9 +251,9 @@ func (f *Funder) waitForFundingConfirmation(ctx context.Context, request channel
 		}
 	}()
 
-	allocation := request.Allocation.Clone()
+	allocation := request.State.Allocation.Clone()
 	// Count how many zero balance funding requests are there
-	N := len(request.Params.Parts) - countZeroBalances(request.Allocation, asset.assetIndex)
+	N := len(request.Params.Parts) - countZeroBalances(&allocation, asset.assetIndex)
 
 	// Wait for all non-zero funding requests
 	for N > 0 {
