@@ -30,9 +30,9 @@ type (
 
 	// A FundingReq bundles all data needed to fund a channel.
 	FundingReq struct {
-		Params     *Params
-		Allocation *Allocation
-		Idx        Index // our index
+		Params *Params
+		State  *State
+		Idx    Index // our index
 	}
 
 	// A FundingTimeoutError indicates that some peers failed funding some assets in time.

@@ -324,9 +324,9 @@ func (c *Client) setupChannel(
 
 	if err = c.funder.Fund(ctx,
 		channel.FundingReq{
-			Params:     params,
-			Allocation: prop.InitBals,
-			Idx:        ch.machine.Idx(),
+			Params: params,
+			State:  ch.machine.State(), // initial state
+			Idx:    ch.machine.Idx(),
 		}); channel.IsFundingTimeoutError(err) {
 		ch.log.Warnf("Peers timed out funding channel(%v); settling...", err)
 		serr := ch.Settle(ctx)
