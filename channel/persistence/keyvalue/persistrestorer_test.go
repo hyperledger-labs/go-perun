@@ -11,6 +11,7 @@ import (
 	"math/rand"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	_ "perun.network/go-perun/backend/sim"
@@ -45,4 +46,12 @@ func TestPersistRestorer_Generic(t *testing.T) {
 				16)
 		}()
 	}
+}
+
+func TestChannelIterator_Next_Empty(t *testing.T) {
+	var it ChannelIterator
+	var success bool
+	assert.NotPanics(t, func() { success = it.Next(context.Background()) })
+	assert.False(t, success)
+	assert.NoError(t, it.err)
 }
