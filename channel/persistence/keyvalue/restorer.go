@@ -112,6 +112,10 @@ func eatExpect(r io.Reader, tok string) error {
 
 // Next advances the iterator and returns whether there is another channel.
 func (i *ChannelIterator) Next(context.Context) bool {
+	if len(i.its) == 0 {
+		return false
+	}
+
 	i.ch = &persistence.Channel{ParamsV: &channel.Params{}}
 
 	return i.decodeNext("current", &i.ch.CurrentTXV, true) &&
@@ -121,19 +125,31 @@ func (i *ChannelIterator) Next(context.Context) bool {
 		i.decodeNext("staging", &i.ch.StagingTXV, false)
 }
 
-// decodeNext reduces code duplication for decoding a value from an iterator.
+// recoverFromEmptyIterator is called when there is no iterator or when the
+// current iterator just ended. allowEnd signifies whether this situation is
+// allowed. It returns whether it could recover a new iterator.
+func (i *ChannelIterator) recoverFromEmptyIterator(key string, allowEnd bool) bool {
+	err := i.its[0].Close()
+	i.its = i.its[1:]
+	if err != nil {
+		i.err = err
+		return false
+	}
+
+	if !allowEnd {
+		i.err = errors.New("iterator ended; expected key " + key)
+		return false
+	}
+
+	return len(i.its) != 0
+}
+
+// decodeNext reduces code duplication for decoding a value from an iterator. If
+// an iterator ends in the middle of decoding a channel, then the channel
+// iterator's error is set. Returns whether a value was decoded without error.
 func (i *ChannelIterator) decodeNext(key string, v interface{}, allowEnd bool) bool {
 	for !i.its[0].Next() {
-		if !allowEnd {
-			i.err = errors.WithMessage(i.its[0].Close(), "expected key "+key)
-			if i.err == nil {
-				i.err = errors.New("expected key " + key)
-			}
-			return false
-		}
-		// Move on to the next iterator.
-		i.its = i.its[1:]
-		if len(i.its) == 0 {
+		if !i.recoverFromEmptyIterator(key, allowEnd) {
 			return false
 		}
 	}
