@@ -198,8 +198,11 @@ func (f *Funder) createFundingTx(ctx context.Context, request channel.FundingReq
 	}
 	// Call the asset holder contract.
 	tx, err := asset.Deposit(auth, partIDs[request.Idx], balance)
+	if err != nil {
+		return nil, errors.WithStack(err)
+	}
 	f.log.Debugf("peer[%d] Created funding transaction with txHash: %v, amount %d", request.Idx, tx.Hash().Hex(), balance)
-	return tx, errors.WithStack(err)
+	return tx, nil
 }
 
 func filterFunds(ctx context.Context, asset assetHolder, partIDs ...[32]byte) (*assets.AssetHolderDepositedIterator, error) {
