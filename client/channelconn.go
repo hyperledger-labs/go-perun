@@ -99,6 +99,24 @@ func (c *channelConn) Send(ctx context.Context, msg wire.Msg) error {
 	return c.b.Send(ctx, msg)
 }
 
+// Peers returns the ordered list of peer addresses. Note that the length is
+// the number of channel participants minus one, since the own peer is excluded.
+func (c *channelConn) Peers() []peer.Address {
+	ps := make([]peer.Address, len(c.peerIdx)+1) // +1 for own nil entry
+	for p, i := range c.peerIdx {
+		ps[i] = p.PerunAddress
+	}
+
+	// clean possible nil entry for own peer
+	for i, a := range ps {
+		if a == nil {
+			ps = append(ps[:i], ps[i+1:]...)
+			return ps // there's only at most one nil entry
+		}
+	}
+	return ps
+}
+
 // newUpdateResRecv creates a new update response receiver for the given version.
 // The receiver should be closed after all expected responses are received.
 // The receiver is also closed when the channel connection is closed.

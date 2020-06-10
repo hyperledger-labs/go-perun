@@ -141,6 +141,12 @@ func (c *Channel) Phase() channel.Phase {
 	return c.machine.Phase()
 }
 
+// Peers returns the Perun network addresses of all remote peers, in the order
+// of the peers as channel participants. The own address is omitted.
+func (c *Channel) Peers() []peer.Address {
+	return c.conn.Peers()
+}
+
 // init brings the state machine into the InitSigning phase. It is not callable
 // by the user since the Client initializes the channel controller.
 // The state machine is not locked as this function is expected to be called
