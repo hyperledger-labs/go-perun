@@ -61,3 +61,9 @@ func (a *Address) Equals(addr wallet.Address) bool {
 func AsEthAddr(a wallet.Address) common.Address {
 	return common.Address(*a.(*Address))
 }
+
+// AsWalletAddr is a helper function to convert an ethereum address to an
+// address interface.
+func AsWalletAddr(addr common.Address) *Address {
+	return (*Address)(&addr)
+}
