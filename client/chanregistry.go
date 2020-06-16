@@ -40,7 +40,7 @@ func (r *chanRegistry) Put(id channel.ID, value *Channel) bool {
 	r.values[id] = value
 	handler := r.newChannelHandler
 	r.mutex.Unlock()
-	value.OnCloseAlways(func() { go r.Delete(id) })
+	value.OnCloseAlways(func() { r.Delete(id) })
 	if handler != nil {
 		handler(value)
 	}
@@ -93,9 +93,11 @@ func (r *chanRegistry) Delete(id channel.ID) (deleted bool) {
 
 func (r *chanRegistry) CloseAll() (err error) {
 	r.mutex.Lock()
-	defer r.mutex.Unlock()
+	values := r.values
+	r.values = make(map[channel.ID]*Channel)
+	r.mutex.Unlock()
 
-	for _, c := range r.values {
+	for _, c := range values {
 		if cerr := c.Close(); err == nil && !psync.IsAlreadyClosedError(cerr) {
 			err = cerr
 		}
