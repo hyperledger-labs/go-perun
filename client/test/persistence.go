@@ -8,7 +8,6 @@ package test
 import (
 	"context"
 	"math/rand"
-	"runtime"
 	"testing"
 	"time"
 
@@ -114,7 +113,7 @@ func (r *Petra) Execute(cfg ExecConfig) {
 	// We connect to Robert
 	ctx, cancel := context.WithTimeout(context.Background(), r.timeout)
 	defer cancel()
-	r.Reconnect(ctx) // should connect to Robert
+	assrt.NoError(r.Reconnect(ctx)) // should connect to Robert
 	select {
 	case ch = <-newCh: // expected
 		assrt.NotNil(ch)
@@ -175,8 +174,6 @@ func (r *Robert) Execute(cfg ExecConfig) {
 	r.OnNewChannel(func(_ch *paymentChannel) { newCh <- _ch })
 	waitListen = r.GoListen(r.hub.NewListener(r.setup.Identity.Address()))
 	defer waitListen()
-	runtime.Gosched()
-	time.Sleep(10 * time.Millisecond)
 
 	// 6. Robert listens
 	r.waitStage()
