@@ -54,8 +54,8 @@ func (p *Peer) recvLoop() {
 	for {
 		m, err := p.conn.Recv()
 		if err != nil {
-			log.Debugf("ending recvLoop on closed connection of peer %v", p.PerunAddress)
 			p.Close() // Ignore double close.
+			log.WithError(err).Errorf("Ending recvLoop on closed connection of peer %v", p.PerunAddress)
 			return
 		}
 		// Broadcast the received message to all interested subscribers.
