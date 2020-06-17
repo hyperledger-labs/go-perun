@@ -63,6 +63,7 @@ func (w *Wallet) NewAccount() *Account {
 	if err != nil || w.Ks.Unlock(acc, w.pw) != nil {
 		panic("failed to create random account")
 	}
+	log.Debugf("Created new account %v", acc.Address)
 	return NewAccountFromEth(w, &acc)
 }
 
@@ -85,12 +86,15 @@ func (w *Wallet) NewRandomAccount(rnd *rand.Rand) wallet.Account {
 		log.Panicf("Storing private key: %v", err)
 	}
 	w.Unlock((*Address)(&address))
+	log.Debugf("Created new random account %v", ethAcc.Address)
+
 	return NewAccountFromEth(w, &ethAcc)
 }
 
 // Unlock retrieves the account with the given address and unlocks it. If there
 // is no matching account or unlocking fails, returns an error.
 func (w *Wallet) Unlock(addr wallet.Address) (wallet.Account, error) {
+	log.Debugf("Unlocking account %v", addr)
 	// Hack: create ethereum account from ethereum address.
 	acc := accounts.Account{Address: common.Address(*addr.(*Address))}
 
@@ -106,13 +110,14 @@ func (w *Wallet) Unlock(addr wallet.Address) (wallet.Account, error) {
 // LockAll locks all the wallet's keys and releases all its resources. It is no
 // longer usable after this call.
 func (w *Wallet) LockAll() {
+	log.Debug("Locking wallet")
 	if w.Ks == nil {
 		return
 	}
 
 	for _, acc := range w.Ks.Accounts() {
 		if err := w.Ks.Lock(acc.Address); err != nil {
-			log.Error("failed to lock account", acc.Address)
+			log.WithError(err).Errorf("failed to lock account %v", acc.Address)
 		}
 	}
 
@@ -121,10 +126,10 @@ func (w *Wallet) LockAll() {
 
 // IncrementUsage currently does nothing. In the future, it will track the usage of keys.
 func (w *Wallet) IncrementUsage(a wallet.Address) {
-	log.Trace("IncrementUsage", a)
+	log.Trace("IncrementUsage ", a)
 }
 
 // DecrementUsage currently does nothing. In the future, it will track the usage of keys and release unused keys.
 func (w *Wallet) DecrementUsage(a wallet.Address) {
-	log.Trace("DecrementUsage", a)
+	log.Trace("DecrementUsage ", a)
 }
