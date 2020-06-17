@@ -18,10 +18,10 @@ import (
 	"perun.network/go-perun/channel/test"
 	"perun.network/go-perun/client"
 	"perun.network/go-perun/pkg/io"
+	perunio "perun.network/go-perun/pkg/io"
 	"perun.network/go-perun/wallet"
 	wallettest "perun.network/go-perun/wallet/test"
 	"perun.network/go-perun/wire"
-	"perun.network/go-perun/wire/msg"
 )
 
 func TestChannelProposalReq_NilArgs(t *testing.T) {
@@ -63,7 +63,7 @@ func TestChannelProposalReqSerialization(t *testing.T) {
 				wallettest.NewRandomAddress(rng),
 			},
 		}
-		msg.TestMsg(t, m)
+		wire.TestMsg(t, m)
 	}
 }
 
@@ -77,12 +77,12 @@ func TestChannelProposalReqDecode_CheckMaxNumParts(t *testing.T) {
 
 	// reimplementation of ChannelProposalReq.Encode modified to create the
 	// maximum number of participants possible with the encoding
-	require.NoError(wire.Encode(buffer, c.ChallengeDuration, c.Nonce))
+	require.NoError(perunio.Encode(buffer, c.ChallengeDuration, c.Nonce))
 	require.NoError(
 		io.Encode(buffer, c.ParticipantAddr, c.AppDef, c.InitData, c.InitBals))
 
 	numParts := int32(channel.MaxNumParts + 1)
-	require.NoError(wire.Encode(buffer, numParts))
+	require.NoError(perunio.Encode(buffer, numParts))
 
 	for i := 0; i < int(numParts); i++ {
 		require.NoError(wallettest.NewRandomAddress(rng).Encode(buffer))
@@ -144,7 +144,7 @@ func TestChannelProposalAccSerialization(t *testing.T) {
 			SessID:          newRandomSessID(rng),
 			ParticipantAddr: wallettest.NewRandomAddress(rng),
 		}
-		msg.TestMsg(t, m)
+		wire.TestMsg(t, m)
 	}
 }
 
@@ -155,7 +155,7 @@ func TestChannelProposalRejSerialization(t *testing.T) {
 			SessID: newRandomSessID(rng),
 			Reason: newRandomString(rng, 16, 16),
 		}
-		msg.TestMsg(t, m)
+		wire.TestMsg(t, m)
 	}
 }
 

@@ -9,13 +9,13 @@ import (
 	"io"
 
 	"perun.network/go-perun/channel"
+	perunio "perun.network/go-perun/pkg/io"
 	"perun.network/go-perun/wire"
-	"perun.network/go-perun/wire/msg"
 )
 
 func init() {
-	msg.RegisterDecoder(msg.ChannelSync,
-		func(r io.Reader) (msg.Msg, error) {
+	wire.RegisterDecoder(wire.ChannelSync,
+		func(r io.Reader) (wire.Msg, error) {
 			var m msgChannelSync
 			return &m, m.Decode(r)
 		})
@@ -35,16 +35,16 @@ func newChannelSyncMsg(s channel.Source) *msgChannelSync {
 	}
 }
 
-// Encode implements msg.Encode.
+// Encode implements perunio.Encode.
 func (m *msgChannelSync) Encode(w io.Writer) error {
-	return wire.Encode(w,
+	return perunio.Encode(w,
 		m.Phase,
 		m.CurrentTX)
 }
 
-// Decode implements msg.Decode.
+// Decode implements perunio.Decode.
 func (m *msgChannelSync) Decode(r io.Reader) error {
-	return wire.Decode(r,
+	return perunio.Decode(r,
 		&m.Phase,
 		&m.CurrentTX)
 }
@@ -54,7 +54,7 @@ func (m *msgChannelSync) ID() channel.ID {
 	return m.CurrentTX.ID
 }
 
-// Type implements msg.Type.
-func (m *msgChannelSync) Type() msg.Type {
-	return msg.ChannelSync
+// Type implements wire.Type.
+func (m *msgChannelSync) Type() wire.Type {
+	return wire.ChannelSync
 }

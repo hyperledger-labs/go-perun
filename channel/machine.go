@@ -14,7 +14,6 @@ import (
 	"perun.network/go-perun/log"
 	"perun.network/go-perun/pkg/io"
 	"perun.network/go-perun/wallet"
-	"perun.network/go-perun/wire"
 )
 
 // Index is the type for the number of participants, assets, sub-allocations, actions and alike.
@@ -76,12 +75,12 @@ func (p Phase) String() string {
 
 // Encode serializes a Phase.
 func (p Phase) Encode(w stdio.Writer) error {
-	return wire.Encode(w, uint8(p))
+	return io.Encode(w, uint8(p))
 }
 
 // Decode deserializes a Phase.
 func (p *Phase) Decode(r stdio.Reader) error {
-	return wire.Decode(r, (*uint8)(p))
+	return io.Decode(r, (*uint8)(p))
 }
 
 func (t PhaseTransition) String() string {

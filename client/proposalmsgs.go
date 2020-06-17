@@ -18,22 +18,21 @@ import (
 	perunio "perun.network/go-perun/pkg/io"
 	"perun.network/go-perun/wallet"
 	"perun.network/go-perun/wire"
-	"perun.network/go-perun/wire/msg"
 )
 
 func init() {
-	msg.RegisterDecoder(msg.ChannelProposal,
-		func(r io.Reader) (msg.Msg, error) {
+	wire.RegisterDecoder(wire.ChannelProposal,
+		func(r io.Reader) (wire.Msg, error) {
 			var m ChannelProposal
 			return &m, m.Decode(r)
 		})
-	msg.RegisterDecoder(msg.ChannelProposalAcc,
-		func(r io.Reader) (msg.Msg, error) {
+	wire.RegisterDecoder(wire.ChannelProposalAcc,
+		func(r io.Reader) (wire.Msg, error) {
 			var m ChannelProposalAcc
 			return &m, m.Decode(r)
 		})
-	msg.RegisterDecoder(msg.ChannelProposalRej,
-		func(r io.Reader) (msg.Msg, error) {
+	wire.RegisterDecoder(wire.ChannelProposalRej,
+		func(r io.Reader) (wire.Msg, error) {
 			var m ChannelProposalRej
 			return &m, m.Decode(r)
 		})
@@ -58,9 +57,9 @@ type ChannelProposal struct {
 	PeerAddrs         []peer.Address
 }
 
-// Type returns msg.ChannelProposal.
-func (ChannelProposal) Type() msg.Type {
-	return msg.ChannelProposal
+// Type returns wire.ChannelProposal.
+func (ChannelProposal) Type() wire.Type {
+	return wire.ChannelProposal
 }
 
 // Encode encodes the ChannelProposalReq into an io.writer.
@@ -69,7 +68,7 @@ func (c ChannelProposal) Encode(w io.Writer) error {
 		return errors.New("writer must not be nil")
 	}
 
-	if err := wire.Encode(w, c.ChallengeDuration, c.Nonce); err != nil {
+	if err := perunio.Encode(w, c.ChallengeDuration, c.Nonce); err != nil {
 		return err
 	}
 
@@ -84,7 +83,7 @@ func (c ChannelProposal) Encode(w io.Writer) error {
 	}
 
 	numParts := int32(len(c.PeerAddrs))
-	if err := wire.Encode(w, numParts); err != nil {
+	if err := perunio.Encode(w, numParts); err != nil {
 		return err
 	}
 	for i := range c.PeerAddrs {
@@ -102,7 +101,7 @@ func (c *ChannelProposal) Decode(r io.Reader) (err error) {
 		return errors.New("reader must not be nil")
 	}
 
-	if err := wire.Decode(r, &c.ChallengeDuration, &c.Nonce); err != nil {
+	if err := perunio.Decode(r, &c.ChallengeDuration, &c.Nonce); err != nil {
 		return err
 	}
 
@@ -129,7 +128,7 @@ func (c *ChannelProposal) Decode(r io.Reader) (err error) {
 	}
 
 	var numParts int32
-	if err := wire.Decode(r, &numParts); err != nil {
+	if err := perunio.Decode(r, &numParts); err != nil {
 		return err
 	}
 	if numParts < 2 {
@@ -155,17 +154,17 @@ func (c *ChannelProposal) Decode(r io.Reader) (err error) {
 // SessID calculates the SessionID of a ChannelProposalReq.
 func (c ChannelProposal) SessID() (sid SessionID) {
 	hasher := sha3.New256()
-	if err := wire.Encode(hasher, c.Nonce); err != nil {
+	if err := perunio.Encode(hasher, c.Nonce); err != nil {
 		log.Panicf("session ID nonce encoding: %v", err)
 	}
 
 	for _, p := range c.PeerAddrs {
-		if err := wire.Encode(hasher, p); err != nil {
+		if err := perunio.Encode(hasher, p); err != nil {
 			log.Panicf("session ID participant encoding: %v", err)
 		}
 	}
 
-	if err := wire.Encode(
+	if err := perunio.Encode(
 		hasher,
 		c.ChallengeDuration,
 		c.InitData,
@@ -214,14 +213,14 @@ type ChannelProposalAcc struct {
 	ParticipantAddr wallet.Address
 }
 
-// Type returns msg.ChannelProposalAcc.
-func (ChannelProposalAcc) Type() msg.Type {
-	return msg.ChannelProposalAcc
+// Type returns wire.ChannelProposalAcc.
+func (ChannelProposalAcc) Type() wire.Type {
+	return wire.ChannelProposalAcc
 }
 
 // Encode encodes the ChannelProposalAcc into an io.Writer.
 func (acc ChannelProposalAcc) Encode(w io.Writer) error {
-	if err := wire.Encode(w, acc.SessID); err != nil {
+	if err := perunio.Encode(w, acc.SessID); err != nil {
 		return errors.WithMessage(err, "SID encoding")
 	}
 
@@ -234,7 +233,7 @@ func (acc ChannelProposalAcc) Encode(w io.Writer) error {
 
 // Decode decodes a ChannelProposalAcc from an io.Reader.
 func (acc *ChannelProposalAcc) Decode(r io.Reader) (err error) {
-	if err = wire.Decode(r, &acc.SessID); err != nil {
+	if err = perunio.Decode(r, &acc.SessID); err != nil {
 		return errors.WithMessage(err, "SID decoding")
 	}
 
@@ -252,17 +251,17 @@ type ChannelProposalRej struct {
 	Reason string
 }
 
-// Type returns msg.ChannelProposalRej.
-func (ChannelProposalRej) Type() msg.Type {
-	return msg.ChannelProposalRej
+// Type returns wire.ChannelProposalRej.
+func (ChannelProposalRej) Type() wire.Type {
+	return wire.ChannelProposalRej
 }
 
 // Encode encodes a ChannelProposalRej into an io.Writer.
 func (rej ChannelProposalRej) Encode(w io.Writer) error {
-	return wire.Encode(w, rej.SessID, rej.Reason)
+	return perunio.Encode(w, rej.SessID, rej.Reason)
 }
 
 // Decode decodes a ChannelProposalRej from an io.Reader.
 func (rej *ChannelProposalRej) Decode(r io.Reader) error {
-	return wire.Decode(r, &rej.SessID, &rej.Reason)
+	return perunio.Decode(r, &rej.SessID, &rej.Reason)
 }

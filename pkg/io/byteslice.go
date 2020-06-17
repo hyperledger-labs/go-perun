@@ -3,19 +3,18 @@
 // of this source code is governed by the Apache 2.0 license that can be found
 // in the LICENSE file.
 
-package wire
+package io
 
 import (
 	"io"
 
 	"github.com/pkg/errors"
-	perunio "perun.network/go-perun/pkg/io"
 )
 
 // ByteSlice is a serializer byte slice.
 type ByteSlice []byte
 
-var _ perunio.Serializer = (*ByteSlice)(nil)
+var _ Serializer = (*ByteSlice)(nil)
 
 // Encode writes len(b) bytes to the stream. Note that the length itself is not
 // written to the stream.

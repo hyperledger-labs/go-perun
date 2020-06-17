@@ -13,7 +13,7 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"perun.network/go-perun/pkg/test"
-	wire "perun.network/go-perun/wire/msg"
+	"perun.network/go-perun/wire"
 )
 
 // timeout controls how long to wait until we decide that something will never

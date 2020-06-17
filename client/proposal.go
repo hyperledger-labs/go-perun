@@ -15,7 +15,7 @@ import (
 	"perun.network/go-perun/peer"
 	"perun.network/go-perun/pkg/sync/atomic"
 	"perun.network/go-perun/wallet"
-	wire "perun.network/go-perun/wire/msg"
+	"perun.network/go-perun/wire"
 )
 
 type (

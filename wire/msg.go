@@ -3,9 +3,7 @@
 // of this source code is governed by the Apache 2.0 license that can be found
 // in the LICENSE file.
 
-// Package msg contains all message types, as well as serialising and
-// deserialising logic used in peer communications.
-package msg // import "perun.network/go-perun/wire/msg"
+package wire
 
 import (
 	"fmt"
@@ -15,7 +13,6 @@ import (
 	"github.com/pkg/errors"
 
 	perunio "perun.network/go-perun/pkg/io"
-	"perun.network/go-perun/wire"
 )
 
 // Msg is the top-level abstraction for all messages sent between perun
@@ -30,13 +27,13 @@ type Msg interface {
 // Encode encodes a message into an io.Writer.
 func Encode(msg Msg, w io.Writer) (err error) {
 	// Encode the message type and payload
-	return wire.Encode(w, byte(msg.Type()), msg)
+	return perunio.Encode(w, byte(msg.Type()), msg)
 }
 
 // Decode decodes a message from an io.Reader.
 func Decode(r io.Reader) (Msg, error) {
 	var t Type
-	if err := wire.Decode(r, (*byte)(&t)); err != nil {
+	if err := perunio.Decode(r, (*byte)(&t)); err != nil {
 		return nil, errors.WithMessage(err, "failed to decode message Type")
 	}
 

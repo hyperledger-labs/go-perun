@@ -15,7 +15,6 @@ import (
 
 	"perun.network/go-perun/pkg/io"
 	"perun.network/go-perun/wallet"
-	"perun.network/go-perun/wire"
 )
 
 // IDLen the length of a channelID.
@@ -130,9 +129,9 @@ func (p *Params) Clone() *Params {
 		Nonce:             new(big.Int).Set(p.Nonce)}
 }
 
-// Encode uses the wire module to serialize a params instance.
+// Encode uses the pkg/io module to serialize a params instance.
 func (p *Params) Encode(w stdio.Writer) error {
-	return wire.Encode(w,
+	return io.Encode(w,
 		p.id,
 		p.ChallengeDuration,
 		wallet.AddressesWithLen(p.Parts),
@@ -140,10 +139,10 @@ func (p *Params) Encode(w stdio.Writer) error {
 		p.Nonce)
 }
 
-// Decode uses the wire module to deserialize a params instance.
+// Decode uses the pkg/io module to deserialize a params instance.
 func (p *Params) Decode(r stdio.Reader) error {
 	var appDef wallet.Address
-	err := wire.Decode(r,
+	err := io.Decode(r,
 		&p.id,
 		&p.ChallengeDuration,
 		(*wallet.AddressesWithLen)(&p.Parts),

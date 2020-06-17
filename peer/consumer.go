@@ -7,7 +7,7 @@ package peer
 
 import (
 	"perun.network/go-perun/pkg/sync"
-	"perun.network/go-perun/wire/msg"
+	"perun.network/go-perun/wire"
 )
 
 // Consumer consumes messages fed into it via Put().
@@ -16,5 +16,5 @@ type Consumer interface {
 	// closed.
 	sync.OnCloser
 	// Put is called by the emitter when relaying a message.
-	Put(*Peer, msg.Msg)
+	Put(*Peer, wire.Msg)
 }

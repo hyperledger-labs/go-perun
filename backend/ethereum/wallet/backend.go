@@ -10,8 +10,8 @@ import (
 
 	"github.com/ethereum/go-ethereum/crypto"
 
+	perunio "perun.network/go-perun/pkg/io"
 	"perun.network/go-perun/wallet"
-	"perun.network/go-perun/wire"
 )
 
 // Backend implements the utility interface defined in the wallet package.
@@ -49,7 +49,7 @@ func DecodeAddress(r io.Reader) (wallet.Address, error) {
 // DecodeSig reads a []byte with length of an ethereum signature
 func DecodeSig(r io.Reader) (wallet.Sig, error) {
 	buf := make(wallet.Sig, SigLen)
-	return buf, wire.Decode(r, &buf)
+	return buf, perunio.Decode(r, &buf)
 }
 
 // VerifySignature verifies if a signature was made by this account.

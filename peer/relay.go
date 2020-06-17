@@ -6,7 +6,7 @@
 package peer
 
 import (
-	wire "perun.network/go-perun/wire/msg"
+	"perun.network/go-perun/wire"
 )
 
 var _ Consumer = (*Relay)(nil)

@@ -13,7 +13,7 @@ import (
 
 	"perun.network/go-perun/log"
 	"perun.network/go-perun/pkg/sync"
-	"perun.network/go-perun/wire/msg"
+	"perun.network/go-perun/wire"
 )
 
 // producer handles (un)registering Consumers for a message producer's messages.
@@ -22,13 +22,13 @@ type producer struct {
 	mutex     stdsync.RWMutex
 	consumers []subscription
 
-	cache             msg.Cache
-	defaultMsgHandler func(msg.Msg) // Handles messages with no subscriber.
+	cache             wire.Cache
+	defaultMsgHandler func(wire.Msg) // Handles messages with no subscriber.
 }
 
 type subscription struct {
 	consumer  Consumer
-	predicate msg.Predicate
+	predicate wire.Predicate
 }
 
 func (p *producer) Close() error {
@@ -51,7 +51,7 @@ func (p *producer) Close() error {
 
 // Cache enables caching of messages that don't match any consumer. They are
 // only cached if they match the given predicate, within the given context.
-func (p *producer) Cache(ctx context.Context, predicate msg.Predicate) {
+func (p *producer) Cache(ctx context.Context, predicate wire.Predicate) {
 	p.mutex.Lock()
 	defer p.mutex.Unlock()
 
@@ -66,7 +66,7 @@ func (p *producer) Cache(ctx context.Context, predicate msg.Predicate) {
 // If the receiver was already subscribed, Subscribe panics.
 // If the peer is closed, Subscribe returns an error.
 // Otherwise, Subscribe returns nil.
-func (p *producer) Subscribe(c Consumer, predicate msg.Predicate) error {
+func (p *producer) Subscribe(c Consumer, predicate wire.Predicate) error {
 	p.mutex.Lock()
 	defer p.mutex.Unlock()
 
@@ -127,7 +127,7 @@ func (p *producer) isEmpty() bool {
 	return len(p.consumers) == 0
 }
 
-func (p *producer) produce(m msg.Msg, peer *Peer) {
+func (p *producer) produce(m wire.Msg, peer *Peer) {
 	p.mutex.RLock()
 	defer p.mutex.RUnlock()
 
@@ -150,11 +150,11 @@ func (p *producer) produce(m msg.Msg, peer *Peer) {
 	}
 }
 
-func logUnhandledMsg(m msg.Msg) {
+func logUnhandledMsg(m wire.Msg) {
 	log.Debugf("Received %T message without subscription: %v", m, m)
 }
 
-func (p *producer) SetDefaultMsgHandler(handler func(msg.Msg)) {
+func (p *producer) SetDefaultMsgHandler(handler func(wire.Msg)) {
 	if handler == nil {
 		handler = logUnhandledMsg
 	}

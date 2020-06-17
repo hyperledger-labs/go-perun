@@ -10,8 +10,8 @@ import (
 
 	"github.com/pkg/errors"
 
+	perunio "perun.network/go-perun/pkg/io"
 	"perun.network/go-perun/wallet"
-	"perun.network/go-perun/wire"
 )
 
 // MockApp a mocked App whose behaviour is determined by the MockOp passed to it either as State.Data or Action.
@@ -50,12 +50,12 @@ func NewMockOp(op MockOp) *MockOp {
 
 // Encode encodes a MockOp into an io.Writer.
 func (o MockOp) Encode(w io.Writer) error {
-	return wire.Encode(w, uint64(o))
+	return perunio.Encode(w, uint64(o))
 }
 
 // Decode decodes a MockOp from an io.Reader.
 func (o *MockOp) Decode(r io.Reader) error {
-	return wire.Decode(r, (*uint64)(o))
+	return perunio.Decode(r, (*uint64)(o))
 }
 
 // Clone returns a deep copy of a MockOp.

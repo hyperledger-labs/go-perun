@@ -15,8 +15,8 @@ import (
 	"perun.network/go-perun/channel"
 	"perun.network/go-perun/channel/persistence"
 	"perun.network/go-perun/peer"
+	perunio "perun.network/go-perun/pkg/io"
 	"perun.network/go-perun/pkg/sortedkv"
-	"perun.network/go-perun/wire"
 )
 
 var _ persistence.ChannelIterator = (*ChannelIterator)(nil)
@@ -87,7 +87,7 @@ func (r *PersistRestorer) readAllPeers() (err error) {
 		}
 
 		var id channel.ID
-		if err = wire.Decode(buf, &id); err != nil {
+		if err = perunio.Decode(buf, &id); err != nil {
 			return errors.WithMessage(err, "decode channel id")
 		}
 
@@ -155,7 +155,7 @@ func (i *ChannelIterator) decodeNext(key string, v interface{}, allowEnd bool) b
 	}
 
 	buf := bytes.NewBuffer(i.its[0].ValueBytes())
-	i.err = errors.WithMessage(wire.Decode(buf, v), "decoding "+key)
+	i.err = errors.WithMessage(perunio.Decode(buf, v), "decoding "+key)
 	if i.err != nil {
 		return false
 	}

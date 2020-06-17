@@ -8,7 +8,7 @@ package peer
 import (
 	"io"
 
-	wire "perun.network/go-perun/wire/msg"
+	"perun.network/go-perun/wire"
 )
 
 var _ Conn = (*ioConn)(nil)

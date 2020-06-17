@@ -12,7 +12,7 @@ import (
 	"perun.network/go-perun/channel/test"
 	"perun.network/go-perun/wallet"
 	wallettest "perun.network/go-perun/wallet/test"
-	"perun.network/go-perun/wire/msg"
+	"perun.network/go-perun/wire"
 )
 
 func TestChannelUpdateSerialization(t *testing.T) {
@@ -27,7 +27,7 @@ func TestChannelUpdateSerialization(t *testing.T) {
 			},
 			Sig: sig,
 		}
-		msg.TestMsg(t, m)
+		wire.TestMsg(t, m)
 	}
 }
 
@@ -40,7 +40,7 @@ func TestChannelUpdateAccSerialization(t *testing.T) {
 			Version:   uint64(rng.Int63()),
 			Sig:       sig,
 		}
-		msg.TestMsg(t, m)
+		wire.TestMsg(t, m)
 	}
 }
 
@@ -52,7 +52,7 @@ func TestChannelUpdateRejSerialization(t *testing.T) {
 			Version:   uint64(rng.Int63()),
 			Reason:    newRandomString(rng, 16, 16),
 		}
-		msg.TestMsg(t, m)
+		wire.TestMsg(t, m)
 	}
 }
 

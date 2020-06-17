@@ -3,29 +3,28 @@
 // of this source code is governed by the Apache 2.0 license that can be found
 // in the LICENSE file.
 
-package io_test // import "perun.network/go-perun/pkg/io_test"
+package io_test
 
 import (
 	"math/rand"
 	"testing"
 
-	"perun.network/go-perun/pkg/io"
-	"perun.network/go-perun/wire"
-
 	"github.com/stretchr/testify/assert"
+
+	"perun.network/go-perun/pkg/io"
 )
 
 // TestEqualEncoding tests EqualEncoding
 func TestEqualEncoding(t *testing.T) {
 	rng := rand.New(rand.NewSource(1337))
-	a := make(wire.ByteSlice, 10)
-	b := make(wire.ByteSlice, 10)
-	c := make(wire.ByteSlice, 12)
+	a := make(io.ByteSlice, 10)
+	b := make(io.ByteSlice, 10)
+	c := make(io.ByteSlice, 12)
 
 	rng.Read(a)
 	rng.Read(b)
 	rng.Read(c)
-	c2 := wire.ByteSlice(c)
+	c2 := io.ByteSlice(c)
 
 	tests := []struct {
 		a         io.Encoder

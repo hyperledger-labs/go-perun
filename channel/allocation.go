@@ -10,7 +10,6 @@ import (
 	"math/big"
 
 	perunio "perun.network/go-perun/pkg/io"
-	"perun.network/go-perun/wire"
 
 	"github.com/pkg/errors"
 )
@@ -126,7 +125,7 @@ func (a Allocation) Encode(w io.Writer) error {
 			err, "invalid allocations cannot be encoded, got %v", a)
 	}
 	// encode dimensions
-	if err := wire.Encode(w, Index(len(a.Assets)), Index(len(a.Balances[0])), Index(len(a.Locked))); err != nil {
+	if err := perunio.Encode(w, Index(len(a.Assets)), Index(len(a.Balances[0])), Index(len(a.Locked))); err != nil {
 		return err
 	}
 	// encode assets
@@ -138,7 +137,7 @@ func (a Allocation) Encode(w io.Writer) error {
 	// encode participant allocations
 	for i := range a.Balances {
 		for j := range a.Balances[i] {
-			if err := wire.Encode(w, a.Balances[i][j]); err != nil {
+			if err := perunio.Encode(w, a.Balances[i][j]); err != nil {
 				return errors.WithMessagef(
 					err, "encoding balance of asset %d of participant %d", i, j)
 			}
@@ -159,7 +158,7 @@ func (a Allocation) Encode(w io.Writer) error {
 func (a *Allocation) Decode(r io.Reader) error {
 	// decode dimensions
 	var numAssets, numParts, numLocked Index
-	if err := wire.Decode(r, &numAssets, &numParts, &numLocked); err != nil {
+	if err := perunio.Decode(r, &numAssets, &numParts, &numLocked); err != nil {
 		return errors.WithMessage(err, "decoding numAssets, numParts or numLocked")
 	}
 	if numAssets > MaxNumAssets || numParts > MaxNumParts || numLocked > MaxNumSubAllocations {
@@ -180,7 +179,7 @@ func (a *Allocation) Decode(r io.Reader) error {
 		a.Balances[i] = make([]Bal, numParts)
 		for j := range a.Balances[i] {
 			a.Balances[i][j] = new(big.Int)
-			if err := wire.Decode(r, &a.Balances[i][j]); err != nil {
+			if err := perunio.Decode(r, &a.Balances[i][j]); err != nil {
 				return errors.WithMessagef(
 					err, "decoding balance of asset %d of participant %d", i, j)
 			}
@@ -367,13 +366,13 @@ func (s SubAlloc) Encode(w io.Writer) error {
 			err, "invalid sub-allocations cannot be encoded, got %v", s)
 	}
 	// encode ID and dimension
-	if err := wire.Encode(w, s.ID, Index(len(s.Bals))); err != nil {
+	if err := perunio.Encode(w, s.ID, Index(len(s.Bals))); err != nil {
 		return errors.WithMessagef(
 			err, "encoding sub-allocation ID or dimension, id %v", s.ID)
 	}
 	// encode bals
 	for i, bal := range s.Bals {
-		if err := wire.Encode(w, bal); err != nil {
+		if err := perunio.Encode(w, bal); err != nil {
 			return errors.WithMessagef(
 				err, "encoding balance of participant %d", i)
 		}
@@ -387,7 +386,7 @@ func (s SubAlloc) Encode(w io.Writer) error {
 func (s *SubAlloc) Decode(r io.Reader) error {
 	var numAssets Index
 	// decode ID and dimension
-	if err := wire.Decode(r, &s.ID, &numAssets); err != nil {
+	if err := perunio.Decode(r, &s.ID, &numAssets); err != nil {
 		return errors.WithMessage(err, "decoding sub-allocation ID or dimension")
 	}
 	if numAssets > MaxNumAssets {
@@ -396,7 +395,7 @@ func (s *SubAlloc) Decode(r io.Reader) error {
 	// decode bals
 	s.Bals = make([]Bal, numAssets)
 	for i := range s.Bals {
-		if err := wire.Decode(r, &s.Bals[i]); err != nil {
+		if err := perunio.Decode(r, &s.Bals[i]); err != nil {
 			return errors.WithMessagef(
 				err, "encoding participant balance %d", i)
 		}

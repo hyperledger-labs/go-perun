@@ -3,18 +3,16 @@
 // of this source code is governed by the Apache 2.0 license that can be found
 // in the LICENSE file.
 
-package wire
+package io
 
 import (
 	"encoding/binary"
+	"fmt"
 	"io"
 	"math/big"
 	"time"
 
 	"github.com/pkg/errors"
-
-	"perun.network/go-perun/log"
-	pio "perun.network/go-perun/pkg/io"
 )
 
 var byteOrder = binary.LittleEndian
@@ -37,10 +35,10 @@ func Encode(writer io.Writer, values ...interface{}) (err error) {
 		case string:
 			err = encodeString(writer, v)
 		default:
-			if enc, ok := value.(pio.Encoder); ok {
+			if enc, ok := value.(Encoder); ok {
 				err = enc.Encode(writer)
 			} else {
-				log.Panicf("wire.Encode(): Invalid type %T", v)
+				panic(fmt.Sprintf("perunio.Encode(): Invalid type %T", v))
 			}
 		}
 
@@ -75,10 +73,10 @@ func Decode(reader io.Reader, values ...interface{}) (err error) {
 		case *string:
 			err = decodeString(reader, v)
 		default:
-			if dec, ok := value.(pio.Decoder); ok {
+			if dec, ok := value.(Decoder); ok {
 				err = dec.Decode(reader)
 			} else {
-				log.Panicf("wire.Decode(): Invalid type %T", v)
+				panic(fmt.Sprintf("perunio.Decode(): Invalid type %T", v))
 			}
 		}
 

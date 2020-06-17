@@ -14,14 +14,14 @@ import (
 
 	"perun.network/go-perun/peer"
 	"perun.network/go-perun/pkg/test"
-	"perun.network/go-perun/wire/msg"
+	"perun.network/go-perun/wire"
 )
 
 type fakeConn struct{}
 
-func (fakeConn) Send(msg.Msg) error     { panic("") }
-func (fakeConn) Recv() (msg.Msg, error) { panic("") }
-func (fakeConn) Close() error           { panic("") }
+func (fakeConn) Send(wire.Msg) error     { panic("") }
+func (fakeConn) Recv() (wire.Msg, error) { panic("") }
+func (fakeConn) Close() error            { panic("") }
 
 // A valid connection needed to check that accept will pass along values
 // properly.

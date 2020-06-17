@@ -8,8 +8,6 @@ package io // import "perun.network/go-perun/pkg/io"
 
 import (
 	"io"
-
-	"github.com/pkg/errors"
 )
 
 type (
@@ -33,27 +31,3 @@ type (
 		Decode(io.Reader) error
 	}
 )
-
-// Encode encodes multiple serializer objects at once.
-// If an error occurs, the index at which it occurred is also reported.
-func Encode(writer io.Writer, values ...Encoder) error {
-	for i, v := range values {
-		if err := v.Encode(writer); err != nil {
-			return errors.WithMessagef(err, "failed to encode %dth object (%T)", i, v)
-		}
-	}
-
-	return nil
-}
-
-// Decode decodes multiple serializer objects at once.
-// If an error occurs, the index at which it occurred is also reported.
-func Decode(reader io.Reader, values ...Decoder) error {
-	for i, v := range values {
-		if err := v.Decode(reader); err != nil {
-			return errors.WithMessagef(err, "failed to decode %dth object (%T)", i, v)
-		}
-	}
-
-	return nil
-}

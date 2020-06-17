@@ -12,7 +12,6 @@ import (
 
 	perunio "perun.network/go-perun/pkg/io"
 	"perun.network/go-perun/wallet"
-	"perun.network/go-perun/wire"
 )
 
 // Transaction is a channel state together with valid signatures from the
@@ -36,11 +35,11 @@ func (t Transaction) Clone() Transaction {
 func (t Transaction) Encode(w io.Writer) error {
 	// Encode stateSet == 0
 	if t.State == nil {
-		return wire.Encode(w, uint8(0))
+		return perunio.Encode(w, uint8(0))
 	}
 
 	// Encode stateSet and state
-	if err := wire.Encode(w, uint8(1), t.State); err != nil {
+	if err := perunio.Encode(w, uint8(1), t.State); err != nil {
 		return errors.WithMessage(err, "encoding stateSet bit and State")
 	}
 	return wallet.EncodeSparseSigs(w, t.Sigs)
@@ -50,7 +49,7 @@ func (t Transaction) Encode(w io.Writer) error {
 func (t *Transaction) Decode(r io.Reader) error {
 	// Decode stateSet
 	var stateSet uint8
-	if err := wire.Decode(r, &stateSet); err != nil {
+	if err := perunio.Decode(r, &stateSet); err != nil {
 		return errors.WithMessage(err, "decoding stateSet bit")
 	}
 	if (stateSet % 2) == 0 {
@@ -60,7 +59,7 @@ func (t *Transaction) Decode(r io.Reader) error {
 
 	// Decode State
 	t.State = new(State)
-	if err := wire.Decode(r, t.State); err != nil {
+	if err := perunio.Decode(r, t.State); err != nil {
 		return errors.WithMessage(err, "decoding state")
 	}
 

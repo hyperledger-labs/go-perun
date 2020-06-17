@@ -13,12 +13,12 @@ import (
 
 	"perun.network/go-perun/pkg/test"
 	"perun.network/go-perun/wallet"
-	"perun.network/go-perun/wire/msg"
+	"perun.network/go-perun/wire"
 )
 
 func init() {
-	msg.RegisterDecoder(msg.AuthResponse,
-		func(r io.Reader) (msg.Msg, error) {
+	wire.RegisterDecoder(wire.AuthResponse,
+		func(r io.Reader) (wire.Msg, error) {
 			var m AuthResponseMsg
 			return &m, m.Decode(r)
 		})
@@ -44,7 +44,7 @@ func ExchangeAddrs(ctx context.Context, id Identity, conn Conn) (Address, error)
 		sent := make(chan error, 1)
 		go func() { sent <- conn.Send(NewAuthResponseMsg(id)) }()
 
-		var m msg.Msg
+		var m wire.Msg
 		if m, err = conn.Recv(); err != nil {
 			err = errors.WithMessage(err, "Failed to receive message")
 		} else if addrM, ok := m.(*AuthResponseMsg); !ok {
@@ -63,16 +63,16 @@ func ExchangeAddrs(ctx context.Context, id Identity, conn Conn) (Address, error)
 	return addr, err
 }
 
-var _ msg.Msg = (*AuthResponseMsg)(nil)
+var _ wire.Msg = (*AuthResponseMsg)(nil)
 
 // AuthResponseMsg is the response message in the peer authentication protocol.
 type AuthResponseMsg struct {
 	Address Address
 }
 
-// Type returns msg.AuthResponse.
-func (m *AuthResponseMsg) Type() msg.Type {
-	return msg.AuthResponse
+// Type returns wire.AuthResponse.
+func (m *AuthResponseMsg) Type() wire.Type {
+	return wire.AuthResponse
 }
 
 // Encode encodes this AuthResponseMsg into an io.Writer.
@@ -89,6 +89,6 @@ func (m *AuthResponseMsg) Decode(r io.Reader) (err error) {
 // NewAuthResponseMsg creates an authentication response message.
 // In the future, it will also take an authentication challenge message as
 // additional argument.
-func NewAuthResponseMsg(id Identity) msg.Msg {
+func NewAuthResponseMsg(id Identity) wire.Msg {
 	return &AuthResponseMsg{id.Address()}
 }
