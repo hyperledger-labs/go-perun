@@ -5,7 +5,7 @@
 
 // +build !wrap_test
 
-package wallet // import "perun.network/go-perun/backend/sim/wallet"
+package wallet
 
 import (
 	"perun.network/go-perun/wallet"

@@ -3,7 +3,7 @@
 // of this source code is governed by the Apache 2.0 license that can be found
 // in the LICENSE file.
 
-package wallet // import "perun.network/go-perun/backend/ethereum/wallet"
+package wallet
 
 import (
 	"perun.network/go-perun/wallet"

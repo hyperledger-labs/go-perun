@@ -3,18 +3,6 @@
 // of this source code is governed by the Apache 2.0 license that can be found
 // in the LICENSE file.
 
-// +build !wrap_test
-
-package wallet
-
-import (
-	"testing"
-
-	"perun.network/go-perun/wallet"
-	"perun.network/go-perun/wallet/test"
-)
-
-func TestSetBackend(t *testing.T) {
-	wallet.SetBackendTest(t)
-	test.SetRandomizerTest(t)
-}
+// Package channel holds the core channel data structures.
+// Those data structures are interpreted by the adjudicator.
+package channel // import "perun.network/go-perun/channel"

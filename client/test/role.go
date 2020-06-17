@@ -4,7 +4,7 @@
 // in the LICENSE file.
 
 // Package test contains helpers for testing the client
-package test // import "perun.network/go-perun/client/test"
+package test
 
 import (
 	"context"

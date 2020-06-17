@@ -5,7 +5,7 @@
 
 // +build !wrap_test
 
-package channel // import "perun.network/go-perun/backend/sim/channel"
+package channel
 
 import (
 	"perun.network/go-perun/channel"

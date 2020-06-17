@@ -4,7 +4,7 @@
 // in the LICENSE file.
 
 // Package test contains helper functions for testing.
-package test // import "perun.network/go-perun/pkg/test"
+package test
 
 // CheckPanic tests whether a supplied function panics during its execution.
 // Returns whether the supplied function did panic, and if so, also returns the
