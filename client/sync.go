@@ -13,7 +13,7 @@ import (
 	"perun.network/go-perun/channel"
 	"perun.network/go-perun/channel/persistence"
 	"perun.network/go-perun/peer"
-	wire "perun.network/go-perun/wire/msg"
+	"perun.network/go-perun/wire"
 )
 
 func (c *Client) restorePeerChannels(p *peer.Peer) {

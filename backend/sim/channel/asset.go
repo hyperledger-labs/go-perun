@@ -10,7 +10,7 @@ import (
 	"math/rand"
 
 	"perun.network/go-perun/channel"
-	"perun.network/go-perun/wire"
+	perunio "perun.network/go-perun/pkg/io"
 )
 
 // Asset simulates a `channel.Asset` by only containing an `ID`
@@ -27,10 +27,10 @@ func NewRandomAsset(rng *rand.Rand) *Asset {
 
 // Encode encodes a sim Asset into the io.Writer `w`
 func (a Asset) Encode(w io.Writer) error {
-	return wire.Encode(w, a.ID)
+	return perunio.Encode(w, a.ID)
 }
 
 // Decode decodes a sim Asset from the io.Reader `r`
 func (a *Asset) Decode(r io.Reader) error {
-	return wire.Decode(r, &a.ID)
+	return perunio.Decode(r, &a.ID)
 }

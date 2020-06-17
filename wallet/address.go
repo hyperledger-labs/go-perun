@@ -12,7 +12,6 @@ import (
 	"github.com/pkg/errors"
 
 	"perun.network/go-perun/pkg/io"
-	"perun.network/go-perun/wire"
 )
 
 // Address represents a identifier used in a cryptocurrency.
@@ -71,7 +70,7 @@ func (a Addresses) Encode(w stdio.Writer) error {
 // Encode encodes a wallet address slice, the length of which is unknown to the
 // following decode operation.
 func (a AddressesWithLen) Encode(w stdio.Writer) error {
-	return wire.Encode(w,
+	return io.Encode(w,
 		addressSliceLen(len(a)),
 		(Addresses)(a))
 }
@@ -91,7 +90,7 @@ func (a Addresses) Decode(r stdio.Reader) (err error) {
 // Decode decodes a wallet address slice of unknown length.
 func (a *AddressesWithLen) Decode(r stdio.Reader) (err error) {
 	var parts addressSliceLen
-	if err = wire.Decode(r, &parts); err != nil {
+	if err = io.Decode(r, &parts); err != nil {
 		return errors.WithMessage(err, "decoding count")
 	}
 

@@ -12,7 +12,7 @@ import (
 
 	"github.com/pkg/errors"
 
-	"perun.network/go-perun/wire"
+	perunio "perun.network/go-perun/pkg/io"
 )
 
 // Sig is a single signature
@@ -43,14 +43,14 @@ func EncodeSparseSigs(w io.Writer, sigs []Sig) error {
 			mask[i/8] |= 0x01 << (i % 8)
 		}
 	}
-	if err := wire.Encode(w, mask); err != nil {
+	if err := perunio.Encode(w, mask); err != nil {
 		return errors.WithMessage(err, "encoding mask")
 	}
 
 	// Encode signatures
 	for _, sig := range sigs {
 		if sig != nil {
-			if err := wire.Encode(w, sig); err != nil {
+			if err := perunio.Encode(w, sig); err != nil {
 				return errors.WithMessage(err, "encoding signature")
 			}
 		}
@@ -64,7 +64,7 @@ func DecodeSparseSigs(r io.Reader, sigs *[]Sig) (err error) {
 	mask := make([]uint8, masklen)
 
 	//Decode mask
-	if err = wire.Decode(r, &mask); err != nil {
+	if err = perunio.Decode(r, &mask); err != nil {
 		return errors.WithMessage(err, "decoding mask")
 	}
 

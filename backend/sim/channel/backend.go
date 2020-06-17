@@ -15,8 +15,8 @@ import (
 
 	"perun.network/go-perun/channel"
 	"perun.network/go-perun/log"
+	perunio "perun.network/go-perun/pkg/io"
 	"perun.network/go-perun/wallet"
-	"perun.network/go-perun/wire"
 )
 
 // backend implements the utility interface defined in the channel package.
@@ -29,7 +29,7 @@ func (*backend) CalcID(p *channel.Params) channel.ID {
 	w := sha256.New()
 
 	// Write ChallengeDuration
-	if err := wire.Encode(w, p.ChallengeDuration); err != nil {
+	if err := perunio.Encode(w, p.ChallengeDuration); err != nil {
 		log.Panic("Could not serialize to buffer")
 	}
 	// Write Parts
@@ -43,7 +43,7 @@ func (*backend) CalcID(p *channel.Params) channel.ID {
 		log.Panic("Could not write to sha256 hasher")
 	}
 	// Write Nonce
-	if err := wire.Encode(w, p.Nonce); err != nil {
+	if err := perunio.Encode(w, p.Nonce); err != nil {
 		log.Panic("Could not write to sha256 hasher")
 	}
 
@@ -99,11 +99,11 @@ func (b *backend) Verify(addr wallet.Address, params *channel.Params, state *cha
 // encodeState packs all fields of a State into a []byte
 func (b *backend) encodeState(s channel.State, w io.Writer) error {
 	// Write ID
-	if err := wire.ByteSlice(s.ID[:]).Encode(w); err != nil {
+	if err := perunio.ByteSlice(s.ID[:]).Encode(w); err != nil {
 		return errors.WithMessage(err, "state id encode")
 	}
 	// Write Version
-	if err := wire.Encode(w, s.Version); err != nil {
+	if err := perunio.Encode(w, s.Version); err != nil {
 		return errors.WithMessage(err, "state version encode")
 	}
 	// Don't write the App Definition, since we do not want to sign it.
@@ -117,7 +117,7 @@ func (b *backend) encodeState(s channel.State, w io.Writer) error {
 		return errors.WithMessage(err, "state data encode")
 	}
 	// Write IsFinal
-	if err := wire.Encode(w, s.IsFinal); err != nil {
+	if err := perunio.Encode(w, s.IsFinal); err != nil {
 		return errors.WithMessage(err, "state isfinal encode")
 	}
 
@@ -151,7 +151,7 @@ func (b *backend) encodeAllocation(w io.Writer, a channel.Allocation) error {
 // encodeSubAlloc Writes all fields of `s` to `w`
 func (b *backend) encodeSubAlloc(w io.Writer, s channel.SubAlloc) error {
 	// Write ID
-	if err := wire.ByteSlice(s.ID[:]).Encode(w); err != nil {
+	if err := perunio.ByteSlice(s.ID[:]).Encode(w); err != nil {
 		return errors.WithMessage(err, "ID encode")
 	}
 	// Write Bals
@@ -164,7 +164,7 @@ func (b *backend) encodeSubAlloc(w io.Writer, s channel.SubAlloc) error {
 
 func (*backend) encodeBals(w io.Writer, bals []channel.Bal) error {
 	for _, bal := range bals {
-		if err := wire.Encode(w, bal); err != nil {
+		if err := perunio.Encode(w, bal); err != nil {
 			return errors.WithMessage(err, "bal encode")
 		}
 	}

@@ -9,7 +9,7 @@ import (
 	"context"
 	"strconv"
 
-	wire "perun.network/go-perun/wire/msg"
+	"perun.network/go-perun/wire"
 )
 
 // Broadcaster is a communications object that allows sending a single message

@@ -14,7 +14,7 @@ import (
 	"perun.network/go-perun/log"
 	"perun.network/go-perun/peer"
 	"perun.network/go-perun/pkg/sync"
-	wire "perun.network/go-perun/wire/msg"
+	"perun.network/go-perun/wire"
 )
 
 // A channelConn bundles the message sending and receiving infrastructure for a

@@ -13,7 +13,7 @@ import (
 
 	"perun.network/go-perun/log"
 	"perun.network/go-perun/pkg/sync"
-	wire "perun.network/go-perun/wire/msg"
+	"perun.network/go-perun/wire"
 )
 
 // Peer is an authenticated connection to a Perun peer.

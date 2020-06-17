@@ -13,8 +13,8 @@ import (
 
 	"perun.network/go-perun/channel"
 	"perun.network/go-perun/peer"
+	perunio "perun.network/go-perun/pkg/io"
 	"perun.network/go-perun/pkg/sortedkv"
-	"perun.network/go-perun/wire"
 )
 
 // ChannelCreated inserts a channel into the database.
@@ -155,7 +155,7 @@ func dbPutSourceField(db sortedkv.Writer, s channel.Source, key string) error {
 // dbPut reduces code duplication for encoding and writing data to a database.
 func dbPut(db sortedkv.Writer, key string, v interface{}) error {
 	var buf bytes.Buffer
-	if err := wire.Encode(&buf, v); err != nil {
+	if err := perunio.Encode(&buf, v); err != nil {
 		return errors.WithMessage(err, "encoding "+key)
 	}
 	if err := db.PutBytes(key, buf.Bytes()); err != nil {
@@ -171,7 +171,7 @@ func peerChannelKey(p peer.Address, ch channel.ID) (string, error) {
 		return "", errors.WithMessage(err, "encoding peer address")
 	}
 	key.WriteString(":channel:")
-	if err := wire.Encode(&key, ch); err != nil {
+	if err := perunio.Encode(&key, ch); err != nil {
 		return "", errors.WithMessage(err, "encoding channel id")
 	}
 	return key.String(), nil

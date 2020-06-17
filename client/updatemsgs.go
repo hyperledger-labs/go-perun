@@ -9,24 +9,24 @@ import (
 	"io"
 
 	"perun.network/go-perun/channel"
+	perunio "perun.network/go-perun/pkg/io"
 	"perun.network/go-perun/wallet"
 	"perun.network/go-perun/wire"
-	"perun.network/go-perun/wire/msg"
 )
 
 func init() {
-	msg.RegisterDecoder(msg.ChannelUpdate,
-		func(r io.Reader) (msg.Msg, error) {
+	wire.RegisterDecoder(wire.ChannelUpdate,
+		func(r io.Reader) (wire.Msg, error) {
 			var m msgChannelUpdate
 			return &m, m.Decode(r)
 		})
-	msg.RegisterDecoder(msg.ChannelUpdateAcc,
-		func(r io.Reader) (msg.Msg, error) {
+	wire.RegisterDecoder(wire.ChannelUpdateAcc,
+		func(r io.Reader) (wire.Msg, error) {
 			var m msgChannelUpdateAcc
 			return &m, m.Decode(r)
 		})
-	msg.RegisterDecoder(msg.ChannelUpdateRej,
-		func(r io.Reader) (msg.Msg, error) {
+	wire.RegisterDecoder(wire.ChannelUpdateRej,
+		func(r io.Reader) (wire.Msg, error) {
 			var m msgChannelUpdateRej
 			return &m, m.Decode(r)
 		})
@@ -36,7 +36,7 @@ type (
 	// ChannelMsg are all messages that can be routed to a particular channel
 	// controller.
 	ChannelMsg interface {
-		msg.Msg
+		wire.Msg
 		ID() channel.ID
 	}
 
@@ -86,29 +86,29 @@ var (
 )
 
 // Type returns this message's type: ChannelUpdate
-func (*msgChannelUpdate) Type() msg.Type {
-	return msg.ChannelUpdate
+func (*msgChannelUpdate) Type() wire.Type {
+	return wire.ChannelUpdate
 }
 
 // Type returns this message's type: ChannelUpdateAcc
-func (*msgChannelUpdateAcc) Type() msg.Type {
-	return msg.ChannelUpdateAcc
+func (*msgChannelUpdateAcc) Type() wire.Type {
+	return wire.ChannelUpdateAcc
 }
 
 // Type returns this message's type: ChannelUpdateRej
-func (*msgChannelUpdateRej) Type() msg.Type {
-	return msg.ChannelUpdateRej
+func (*msgChannelUpdateRej) Type() wire.Type {
+	return wire.ChannelUpdateRej
 }
 
 func (c msgChannelUpdate) Encode(w io.Writer) error {
-	return wire.Encode(w, c.State, c.ActorIdx, c.Sig)
+	return perunio.Encode(w, c.State, c.ActorIdx, c.Sig)
 }
 
 func (c *msgChannelUpdate) Decode(r io.Reader) (err error) {
 	if c.State == nil {
 		c.State = new(channel.State)
 	}
-	if err := wire.Decode(r, c.State, &c.ActorIdx); err != nil {
+	if err := perunio.Decode(r, c.State, &c.ActorIdx); err != nil {
 		return err
 	}
 	c.Sig, err = wallet.DecodeSig(r)
@@ -116,11 +116,11 @@ func (c *msgChannelUpdate) Decode(r io.Reader) (err error) {
 }
 
 func (c msgChannelUpdateAcc) Encode(w io.Writer) error {
-	return wire.Encode(w, c.ChannelID, c.Version, c.Sig)
+	return perunio.Encode(w, c.ChannelID, c.Version, c.Sig)
 }
 
 func (c *msgChannelUpdateAcc) Decode(r io.Reader) (err error) {
-	if err := wire.Decode(r, &c.ChannelID, &c.Version); err != nil {
+	if err := perunio.Decode(r, &c.ChannelID, &c.Version); err != nil {
 		return err
 	}
 	c.Sig, err = wallet.DecodeSig(r)
@@ -128,11 +128,11 @@ func (c *msgChannelUpdateAcc) Decode(r io.Reader) (err error) {
 }
 
 func (c msgChannelUpdateRej) Encode(w io.Writer) error {
-	return wire.Encode(w, c.ChannelID, c.Version, c.Reason)
+	return perunio.Encode(w, c.ChannelID, c.Version, c.Reason)
 }
 
 func (c *msgChannelUpdateRej) Decode(r io.Reader) (err error) {
-	return wire.Decode(r, &c.ChannelID, &c.Version, &c.Reason)
+	return perunio.Decode(r, &c.ChannelID, &c.Version, &c.Reason)
 }
 
 // ID returns the id of the channel this update refers to.

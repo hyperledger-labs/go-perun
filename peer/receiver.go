@@ -9,7 +9,7 @@ import (
 	"context"
 
 	"perun.network/go-perun/pkg/sync"
-	wire "perun.network/go-perun/wire/msg"
+	"perun.network/go-perun/wire"
 )
 
 const (

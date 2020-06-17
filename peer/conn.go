@@ -6,7 +6,7 @@
 package peer
 
 import (
-	wire "perun.network/go-perun/wire/msg"
+	"perun.network/go-perun/wire"
 )
 
 // Conn is a connection to a peer, and can send wire messages.

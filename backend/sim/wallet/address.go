@@ -16,8 +16,8 @@ import (
 	"github.com/pkg/errors"
 
 	"perun.network/go-perun/log"
+	perunio "perun.network/go-perun/pkg/io"
 	"perun.network/go-perun/wallet"
-	"perun.network/go-perun/wire"
 )
 
 // Address represents a simulated address.
@@ -96,14 +96,14 @@ func (a *Address) Equals(addr wallet.Address) bool {
 // go-perun/pkg/io.Serializer interface.
 func (a *Address) Encode(w io.Writer) error {
 	data := a.ByteArray()
-	return wire.Encode(w, data[:])
+	return perunio.Encode(w, data[:])
 }
 
 // Decode decodes an address from an io.Reader. Part of the
 // go-perun/pkg/io.Serializer interface.
 func (a *Address) Decode(r io.Reader) error {
 	data := make([]byte, 64)
-	if err := wire.Decode(r, &data); err != nil {
+	if err := perunio.Decode(r, &data); err != nil {
 		return errors.WithMessage(err, "decoding address")
 	}
 	a.X = new(big.Int).SetBytes(data[:32])

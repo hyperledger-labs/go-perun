@@ -16,7 +16,7 @@ import (
 	"perun.network/go-perun/peer"
 	"perun.network/go-perun/pkg/sync"
 	"perun.network/go-perun/wallet"
-	wire "perun.network/go-perun/wire/msg"
+	"perun.network/go-perun/wire"
 )
 
 // Client is a state channel client. It is the central controller to interact

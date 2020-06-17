@@ -14,7 +14,6 @@ import (
 
 	perunio "perun.network/go-perun/pkg/io"
 	"perun.network/go-perun/wallet"
-	"perun.network/go-perun/wire"
 )
 
 type (
@@ -99,14 +98,14 @@ func (s *State) Clone() *State {
 
 // Encode encodes a state into an `io.Writer` or returns an `error`
 func (s State) Encode(w io.Writer) error {
-	err := wire.Encode(w, s.ID, s.Version, s.Allocation, s.IsFinal, s.App.Def(), s.Data)
+	err := perunio.Encode(w, s.ID, s.Version, s.Allocation, s.IsFinal, s.App.Def(), s.Data)
 	return errors.WithMessage(err, "state encode")
 }
 
 // Decode decodes a state from an `io.Reader` or returns an `error`
 func (s *State) Decode(r io.Reader) error {
 	// Decode ID, Version, Allocation, IsFinal
-	if err := wire.Decode(r, &s.ID, &s.Version, &s.Allocation, &s.IsFinal); err != nil {
+	if err := perunio.Decode(r, &s.ID, &s.Version, &s.Allocation, &s.IsFinal); err != nil {
 		return errors.WithMessage(err, "id or version decode")
 	}
 	// Decode app
