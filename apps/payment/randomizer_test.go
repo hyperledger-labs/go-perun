@@ -17,7 +17,12 @@ import (
 
 func TestRandomizer(t *testing.T) {
 	rng := rand.New(rand.NewSource(0))
-	SetAppDef(test.NewRandomAddress(rng))
+	if backend.def == nil {
+		SetAppDef(test.NewRandomAddress(rng))
+		// Reset app def during cleanup in case this test runs before TestBackend,
+		// which assumes the app def to not be set yet.
+		t.Cleanup(func() { backend.def = nil })
+	}
 
 	r := new(Randomizer)
 	app := r.NewRandomApp(rng)
