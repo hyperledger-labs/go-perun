@@ -38,7 +38,7 @@ copyright_notice:
   <<: *only-default
   image: golang
   stage: vetting
-  script: "scripts/check-copyright-notice.sh"
+  script: ".scripts/check-copyright-notice.sh"
 
 spelling:
   <<: *only-default
