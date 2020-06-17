@@ -40,6 +40,12 @@ copyright_notice:
   stage: vetting
   script: ".scripts/check-copyright-notice.sh"
 
+vanity_import:
+  <<: *only-default
+  image: golang
+  stage: vetting
+  script: ".scripts/check-vanity-imports.sh $PWD"
+
 spelling:
   <<: *only-default
   image: golang
