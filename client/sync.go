@@ -7,6 +7,7 @@ package client
 
 import (
 	"context"
+	"sync"
 
 	"github.com/pkg/errors"
 
@@ -16,7 +17,7 @@ import (
 	"perun.network/go-perun/wire"
 )
 
-func (c *Client) restorePeerChannels(p *peer.Peer) {
+func (c *Client) restorePeerChannels(p *peer.Peer, done func()) {
 	log := c.logPeer(p)
 	it, err := c.pr.RestorePeer(p.PerunAddress)
 	if err != nil {
@@ -24,9 +25,13 @@ func (c *Client) restorePeerChannels(p *peer.Peer) {
 		p.Close()
 	}
 
+	var wg sync.WaitGroup
+	wg.Add(1)
 	for it.Next(c.Ctx()) {
 		chdata := it.Channel()
+		wg.Add(1)
 		go func() {
+			defer wg.Done()
 			log := c.logChan(chdata.ID())
 			log.Debug("Restoring channel...")
 			// Synchronize the channel with the peer, and settle if this fails.
@@ -60,6 +65,9 @@ func (c *Client) restorePeerChannels(p *peer.Peer) {
 			}
 		}()
 	}
+
+	wg.Done()
+	go func() { wg.Wait(); done() }()
 
 	if err := it.Close(); err != nil {
 		log.Errorf("Error while restoring a channel: %v", err)
