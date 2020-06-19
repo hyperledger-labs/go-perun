@@ -37,7 +37,7 @@ type Peer struct {
 	creating sync.Mutex // Prevent races when concurrently creating the peer.
 	sending  sync.Mutex // Blocks multiple Send calls.
 
-	created chan struct{} // Indicates whether a peer has been created yet.
+	created sync.Closer
 
 	producer
 }
@@ -73,7 +73,7 @@ func (p *Peer) create(conn Conn) {
 
 	if p.conn == nil {
 		p.conn = conn
-		close(p.created)
+		p.created.Close()
 	} else {
 		conn.Close()
 	}
@@ -94,7 +94,7 @@ func (p *Peer) waitExists(ctx context.Context) bool {
 	}
 
 	select {
-	case <-p.created:
+	case <-p.created.Closed():
 		return true
 	case <-p.Closed():
 	case <-done:
@@ -104,12 +104,19 @@ func (p *Peer) waitExists(ctx context.Context) bool {
 
 // exists returns whether the peer has been fully created.
 func (p *Peer) exists() bool {
-	select {
-	case <-p.created:
-		return true
-	default:
-		return false
-	}
+	return p.created.IsClosed()
+}
+
+// OnCreate calls fn after create is called, but only if it has not yet been
+// called. See pkg/sync/Closer.OnClose.
+func (p *Peer) OnCreate(fn func()) bool {
+	return p.created.OnClose(fn)
+}
+
+// OnCreateAlways calls fn after create is called, even if it has already been
+// called. See pkg/sync/Closer.OnCloseAlways.
+func (p *Peer) OnCreateAlways(fn func()) bool {
+	return p.created.OnCloseAlways(fn)
 }
 
 // Send sends a single message to a peer.
@@ -166,18 +173,15 @@ func (p *Peer) Close() (err error) {
 
 // newPeer creates a new peer from a peer address and connection.
 func newPeer(addr Address, conn Conn, _ Dialer) *Peer {
-	p := new(Peer)
-	*p = Peer{
+	p := &Peer{
 		PerunAddress: addr,
 
 		conn:     conn,
 		producer: makeProducer(),
-
-		created: make(chan struct{}),
 	}
 
 	if p.conn != nil {
-		close(p.created)
+		p.created.Close()
 	}
 
 	return p

@@ -72,7 +72,9 @@ func TestRegistry_Get_Multiple(t *testing.T) {
 	dialerId := wallettest.NewRandomAccount(rng)
 	listenerId := wallettest.NewRandomAccount(rng)
 	dialer := hub.NewDialer()
-	logPeer := func(p *peer.Peer) { t.Logf("subscribing %x\n", p.PerunAddress.Bytes()[:4]) }
+	logPeer := func(p *peer.Peer) {
+		p.OnCreateAlways(func() { t.Logf("subscribing %x\n", p.PerunAddress.Bytes()[:4]) })
+	}
 	dialerReg := peer.NewRegistry(dialerId, logPeer, dialer)
 	listenerReg := peer.NewRegistry(listenerId, logPeer, nil)
 	listener := hub.NewListener(listenerId.Address())
