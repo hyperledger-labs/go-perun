@@ -89,10 +89,10 @@ func isCloneable(t reflect.Type) bool {
 // clone calls x.Clone() if possible, otherwise it returns an error.
 func clone(x interface{}) (interface{}, error) {
 	if x == nil {
-		return nil, errors.Errorf("Cannot clone nil reference")
+		return nil, errors.Errorf("cannot clone nil reference")
 	}
 	if !isCloneable(reflect.TypeOf(x)) {
-		return nil, errors.Errorf("Input of type %T is not cloneable", x)
+		return nil, errors.Errorf("input of type %T is not cloneable", x)
 	}
 
 	v := reflect.ValueOf(x)
@@ -111,16 +111,16 @@ func clone(x interface{}) (interface{}, error) {
 // recursively if the provided values could be clones.
 func checkClone(p, q interface{}) error {
 	if !reflect.DeepEqual(p, q) {
-		return errors.New("Proper clones must be deeply equal")
+		return errors.New("proper clones must be deeply equal")
 	}
 	if p == nil || q == nil {
-		return errors.Errorf("Input must not be nil, got %v, %v", p, q)
+		return errors.Errorf("input must not be nil, got %v, %v", p, q)
 	}
 
 	tP := reflect.TypeOf(p)
 	tQ := reflect.TypeOf(q)
 	if tP != tQ || !isCloneable(tP) {
-		return errors.Errorf("Input must be cloneable, type %v is not", tP)
+		return errors.Errorf("input must be cloneable, type %v is not", tP)
 	}
 
 	v := reflect.ValueOf(p)
@@ -194,7 +194,7 @@ func validateInput(v, w reflect.Value) error {
 			panic("BUG: checkCloneImpl got nil inputs")
 		}
 		if v.Pointer() == w.Pointer() {
-			return errors.New("Both arguments reference the same structure")
+			return errors.New("both arguments reference the same structure")
 		}
 		if v.Elem().Kind() != reflect.Struct {
 			panic("BUG: expected reference to struct, got reference to reference")
@@ -284,7 +284,7 @@ func checkPtrOrSlice(f reflect.StructField, tag string, hasTag bool, kind reflec
 		}
 		if p != q && kind == reflect.Ptr && isCloneable(f.Type) {
 			err := checkCloneImpl(left.Elem(), right.Elem())
-			return errors.WithMessagef(err, "Error in cloneable field %v.%s", t, f.Name)
+			return errors.WithMessagef(err, "error in cloneable field %v.%s", t, f.Name)
 		}
 	}
 	return nil
@@ -325,7 +325,7 @@ func checkPtrOrSliceElem(f reflect.StructField, kindJ reflect.Kind, tag string, 
 		}
 	} else if kindJ == reflect.Struct && isCloneable(f.Type.Elem()) {
 		err := checkCloneImpl(left.Index(j), right.Index(j))
-		return errors.WithMessagef(err, "Error in cloneable element %v.%s[%d]", t, f.Name, j)
+		return errors.WithMessagef(err, "error in cloneable element %v.%s[%d]", t, f.Name, j)
 	}
 	return nil
 }

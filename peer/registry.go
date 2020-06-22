@@ -216,7 +216,7 @@ func (r *Registry) authenticatedDial(ctx context.Context, peer *Peer, addr Addre
 			if err != nil {
 				return errors.WithMessage(err, "ExchangeAddrs failed")
 			}
-			return errors.New("Dialed impersonator")
+			return errors.New("dialed impersonator")
 		}
 		return nil
 	}

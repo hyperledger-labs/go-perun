@@ -52,7 +52,7 @@ func (c *Channel) handleRegisteredEvent(ctx context.Context, reg *channel.Regist
 	log := c.log.WithField("proc", "watcher")
 	// Lock machine while registering is in progress.
 	if !c.machMtx.TryLockCtx(ctx) {
-		return errors.New("locking machine mutex in time")
+		return errors.Errorf("locking machine mutex in time: %v", ctx.Err())
 	}
 	defer c.machMtx.Unlock()
 
@@ -75,7 +75,7 @@ func (c *Channel) handleRegisteredEvent(ctx context.Context, reg *channel.Regist
 // channel has been successfully withdrawn.
 func (c *Channel) Settle(ctx context.Context) error {
 	if !c.machMtx.TryLockCtx(ctx) {
-		return errors.New("locking machine mutex in time")
+		return errors.Errorf("locking machine mutex in time: %v", ctx.Err())
 	}
 	defer c.machMtx.Unlock()
 	// Wrap the context to make sure that the settle call stops as soon as the
