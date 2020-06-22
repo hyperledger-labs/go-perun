@@ -17,6 +17,7 @@ import (
 	"perun.network/go-perun/peer"
 	perunio "perun.network/go-perun/pkg/io"
 	"perun.network/go-perun/pkg/sortedkv"
+	"perun.network/go-perun/wallet"
 )
 
 var _ persistence.ChannelIterator = (*ChannelIterator)(nil)
@@ -110,25 +111,46 @@ func eatExpect(r io.Reader, tok string) error {
 	return nil
 }
 
+type decOpts uint8
+
+const (
+	noOpts   decOpts = 0
+	allowEnd decOpts = 1 << iota
+	allowEmpty
+)
+
+// isSetIn masks the given opts with the current opt and returns
+// wether or not the corresponding bit of opt is set within opts.
+func (opt decOpts) isSetIn(opts decOpts) bool {
+	return opt&opts == opt
+}
+
 // Next advances the iterator and returns whether there is another channel.
 func (i *ChannelIterator) Next(context.Context) bool {
 	if len(i.its) == 0 {
 		return false
 	}
 
-	i.ch = &persistence.Channel{ParamsV: &channel.Params{}}
+	i.ch = &persistence.Channel{ParamsV: new(channel.Params)}
 
-	return i.decodeNext("current", &i.ch.CurrentTXV, true) &&
-		i.decodeNext("index", &i.ch.IdxV, false) &&
-		i.decodeNext("params", i.ch.ParamsV, false) &&
-		i.decodeNext("phase", &i.ch.PhaseV, false) &&
-		i.decodeNext("staging", &i.ch.StagingTXV, false)
+	if !i.decodeNext("current", &i.ch.CurrentTXV, allowEnd) ||
+		!i.decodeNext("index", &i.ch.IdxV, noOpts) ||
+		!i.decodeNext("params", i.ch.ParamsV, noOpts) ||
+		!i.decodeNext("phase", &i.ch.PhaseV, noOpts) {
+		return false
+	}
+	i.ch.StagingTXV.Sigs = make([]wallet.Sig, len(i.ch.ParamsV.Parts))
+	for idx, key := range sigKeys(len(i.ch.ParamsV.Parts)) {
+		i.decodeNext(key, wallet.SigDec{Sig: &i.ch.StagingTXV.Sigs[idx]}, allowEmpty)
+	}
+
+	return i.decodeNext("staging:state", &PersistedState{&i.ch.StagingTXV.State}, allowEmpty)
 }
 
 // recoverFromEmptyIterator is called when there is no iterator or when the
 // current iterator just ended. allowEnd signifies whether this situation is
 // allowed. It returns whether it could recover a new iterator.
-func (i *ChannelIterator) recoverFromEmptyIterator(key string, allowEnd bool) bool {
+func (i *ChannelIterator) recoverFromEmptyIterator(key string, allowedToEnd decOpts) bool {
 	err := i.its[0].Close()
 	i.its = i.its[1:]
 	if err != nil {
@@ -136,7 +158,7 @@ func (i *ChannelIterator) recoverFromEmptyIterator(key string, allowEnd bool) bo
 		return false
 	}
 
-	if !allowEnd {
+	if !allowEnd.isSetIn(allowedToEnd) {
 		i.err = errors.New("iterator ended; expected key " + key)
 		return false
 	}
@@ -147,14 +169,22 @@ func (i *ChannelIterator) recoverFromEmptyIterator(key string, allowEnd bool) bo
 // decodeNext reduces code duplication for decoding a value from an iterator. If
 // an iterator ends in the middle of decoding a channel, then the channel
 // iterator's error is set. Returns whether a value was decoded without error.
-func (i *ChannelIterator) decodeNext(key string, v interface{}, allowEnd bool) bool {
+func (i *ChannelIterator) decodeNext(key string, v interface{}, opts decOpts) bool {
 	for !i.its[0].Next() {
-		if !i.recoverFromEmptyIterator(key, allowEnd) {
+		if !i.recoverFromEmptyIterator(key, opts) {
 			return false
 		}
 	}
 
 	buf := bytes.NewBuffer(i.its[0].ValueBytes())
+	if buf.Len() == 0 {
+		if allowEmpty.isSetIn(opts) {
+			return true
+		}
+		i.err = errors.Errorf("unexpected empty value")
+		return false
+	}
+
 	i.err = errors.WithMessage(perunio.Decode(buf, v), "decoding "+key)
 	if i.err != nil {
 		return false
