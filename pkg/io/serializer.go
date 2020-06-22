@@ -3,8 +3,7 @@
 // of this source code is governed by the Apache 2.0 license that can be found
 // in the LICENSE file.
 
-// Package io contains the serialization interfaces used by perun.
-package io // import "perun.network/go-perun/pkg/io"
+package io
 
 import (
 	"io"

@@ -3,7 +3,7 @@
 // of this source code is governed by the Apache 2.0 license that can be found
 // in the LICENSE file.
 
-package test // import "perun.network/go-perun/channel/test"
+package test
 
 import (
 	"math/rand"
