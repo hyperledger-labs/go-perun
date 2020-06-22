@@ -160,7 +160,18 @@ func (c *Client) subscribePeer(p *peer.Peer) {
 		log.Debugf("Received %T message without subscription: %v", m, m)
 	})
 
-	go c.restorePeerChannels(p)
+	// Cache all sync messages until the sync protocol is done.
+	cacheCtx, cancel := context.WithCancel(p.Ctx())
+	p.OnCloseAlways(cancel)
+	p.Cache(cacheCtx, func(m wire.Msg) bool {
+		return m.Type() == wire.ChannelSync
+	})
+	// Start the sync protocol once the peer is set up. Cannot start earlier,
+	// because the peer's address is not known before if it is an incoming
+	// connection.
+	p.OnCreateAlways(func() {
+		c.restorePeerChannels(p, cancel)
+	})
 }
 
 func isReqMsg(m wire.Msg) bool {

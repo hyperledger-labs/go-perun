@@ -103,8 +103,12 @@ func (r *Registry) Listen(listener Listener) {
 // registry.
 func (r *Registry) setupConn(conn Conn) error {
 	timeout := time.Duration(exchangeAddrsTimeout)
-	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	ctx, cancel := context.WithTimeout(r.Ctx(), timeout)
 	defer cancel()
+
+	r.mutex.Lock()
+	unfinishedPeer := r.addPeer(nil, nil)
+	r.mutex.Unlock()
 
 	var peerAddr Address
 	var err error
@@ -116,9 +120,11 @@ func (r *Registry) setupConn(conn Conn) error {
 	defer r.mutex.Unlock()
 
 	if peer, _ := r.find(peerAddr); peer == nil {
-		r.addPeer(peerAddr, conn)
+		unfinishedPeer.PerunAddress = peerAddr
+		unfinishedPeer.create(conn)
 	} else {
 		peer.create(conn)
+		r.delete(unfinishedPeer)
 	}
 	return nil
 }
@@ -130,7 +136,7 @@ func (r *Registry) setupConn(conn Conn) error {
 // While iterating over the peers, find removes closed ones.
 func (r *Registry) find(addr Address) (*Peer, int) {
 	for i, peer := range r.peers {
-		if peer.PerunAddress.Equals(addr) {
+		if peer.PerunAddress != nil && peer.PerunAddress.Equals(addr) {
 			if peer.IsClosed() {
 				// remove from slice
 				r.peers[i] = r.peers[len(r.peers)-1]
@@ -226,7 +232,13 @@ func (r *Registry) NumPeers() int {
 	defer r.mutex.Unlock()
 
 	r.prune()
-	return len(r.peers)
+	l := 0
+	for _, p := range r.peers {
+		if p.PerunAddress != nil {
+			l++
+		}
+	}
+	return l
 }
 
 // Has return true if and only if there is a peer with the given address in the
@@ -259,15 +271,16 @@ func (r *Registry) addPeer(addr Address, conn Conn) *Peer {
 
 // delete deletes a peer from the registry.
 // If the peer does not exist in the registry, panics. Does not close the peer.
+// This function is not thread-safe and is assumed to only be called when the
+// mutex lock is held.
 func (r *Registry) delete(peer *Peer) {
-	r.mutex.Lock()
-	defer r.mutex.Unlock()
-
-	if _, i := r.find(peer.PerunAddress); i != -1 {
-		// Delete the i-th entry.
-		r.peers[i] = r.peers[len(r.peers)-1]
-		r.peers = r.peers[:len(r.peers)-1]
-	} else {
-		log.Panic("tried to delete non-existent peer!")
+	for i := range r.peers {
+		if r.peers[i] == peer {
+			// Delete the i-th entry.
+			r.peers[i] = r.peers[len(r.peers)-1]
+			r.peers = r.peers[:len(r.peers)-1]
+			return
+		}
 	}
+	log.Panic("tried to delete non-existent peer!")
 }
