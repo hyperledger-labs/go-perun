@@ -77,7 +77,7 @@ func Sign(acc wallet.Account, p *channel.Params, s *channel.State) (wallet.Sig, 
 	state := channelStateToEthState(s)
 	enc, err := encodeState(&state)
 	if err != nil {
-		return nil, errors.WithMessage(err, "Failed to encode state")
+		return nil, errors.WithMessage(err, "encoding state")
 	}
 	return acc.SignData(enc)
 }
@@ -90,7 +90,7 @@ func Verify(addr wallet.Address, p *channel.Params, s *channel.State, sig wallet
 	state := channelStateToEthState(s)
 	enc, err := encodeState(&state)
 	if err != nil {
-		return false, errors.WithMessage(err, "Failed to encode state")
+		return false, errors.WithMessage(err, "encoding state")
 	}
 	return ethwallet.VerifySignature(enc, sig, addr)
 }
