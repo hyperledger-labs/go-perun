@@ -69,6 +69,19 @@ func (r *PersistRestorer) RestorePeer(addr peer.Address) (persistence.ChannelIte
 	return it, nil
 }
 
+// RestoreChannel restores a single channel.
+func (r *PersistRestorer) RestoreChannel(ctx context.Context, id channel.ID) (*persistence.Channel, error) {
+	it := &ChannelIterator{restorer: r}
+	chandb := sortedkv.NewTable(r.db, "Chan:")
+
+	it.its = append(it.its, chandb.NewIteratorWithPrefix(string(id[:])))
+
+	if it.Next(ctx) {
+		return it.Channel(), it.Close()
+	}
+	return nil, it.Close()
+}
+
 // readAllPeers reads all peer entries from the database and populates the
 // restorer's channel cache.
 func (r *PersistRestorer) readAllPeers() (err error) {

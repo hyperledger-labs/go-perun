@@ -67,6 +67,9 @@ type (
 		// RestorePeer should return an iterator over all persisted channels which
 		// the given peer is a part of.
 		RestorePeer(peer.Address) (ChannelIterator, error)
+
+		// RestoreChannel should return the channel with the requested ID.
+		RestoreChannel(context.Context, channel.ID) (*Channel, error)
 	}
 
 	// PersistRestorer is a Persister and Restorer on the same data source and
