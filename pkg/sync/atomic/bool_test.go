@@ -3,18 +3,20 @@
 // of this source code is governed by the Apache 2.0 license that can be found
 // in the LICENSE file.
 
-package atomic
+package atomic_test
 
 import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+
+	"perun.network/go-perun/pkg/sync/atomic"
 )
 
 func TestBool(t *testing.T) {
 	assert := assert.New(t)
 
-	var b Bool
+	var b atomic.Bool
 	assert.False(b.IsSet())
 	b.Set()
 	assert.True(b.IsSet())

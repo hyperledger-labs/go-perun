@@ -78,7 +78,7 @@ func (b *backend) Sign(addr wallet.Account, params *channel.Params, state *chann
 // Verify verifies the signature for `state`
 func (b *backend) Verify(addr wallet.Address, params *channel.Params, state *channel.State, sig []byte) (bool, error) {
 	if err := state.Valid(); err != nil {
-		return false, errors.Wrap(err, "Cannot verify invalid state")
+		return false, errors.Wrap(err, "verifying invalid state")
 	}
 	log.Tracef("Verifying state %s version %d", string(state.ID[:]), state.Version)
 

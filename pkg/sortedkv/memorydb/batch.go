@@ -40,14 +40,14 @@ func (b *Batch) Apply() error {
 	for key, value := range b.writes {
 		err := b.db.Put(key, value)
 		if err != nil {
-			return errors.Wrap(err, "Failed to put entry.")
+			return errors.Wrap(err, "failed to put entry")
 		}
 	}
 
 	for key := range b.deletes {
 		err := b.db.Delete(key)
 		if err != nil {
-			return errors.Wrap(err, "Failed to delete entry.")
+			return errors.Wrap(err, "failed to delete entry")
 		}
 	}
 	return nil

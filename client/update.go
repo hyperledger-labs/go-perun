@@ -114,7 +114,7 @@ func (c *Channel) Update(ctx context.Context, up ChannelUpdate) (err error) {
 	}
 	// Lock machine while update is in progress.
 	if !c.machMtx.TryLockCtx(ctx) {
-		return errors.New("locking machine mutex in time")
+		return errors.Errorf("locking machine mutex in time: %v", ctx.Err())
 	}
 	defer c.machMtx.Unlock()
 

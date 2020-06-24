@@ -280,7 +280,7 @@ func compareOnChainAlloc(params *channel.Params, alloc channel.Allocation, cb *e
 	for a := range onChain {
 		for p := range onChain[a] {
 			if alloc.Balances[a][p].Cmp(onChain[a][p]) != 0 {
-				return errors.Errorf("Balances[%d][%d] differ. Expected: %v, on-chain: %v", a, p, alloc.Balances[a][p], onChain[a][p])
+				return errors.Errorf("balances[%d][%d] differ. Expected: %v, on-chain: %v", a, p, alloc.Balances[a][p], onChain[a][p])
 			}
 		}
 	}

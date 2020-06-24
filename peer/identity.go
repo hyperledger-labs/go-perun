@@ -46,9 +46,9 @@ func ExchangeAddrs(ctx context.Context, id Identity, conn Conn) (Address, error)
 
 		var m wire.Msg
 		if m, err = conn.Recv(); err != nil {
-			err = errors.WithMessage(err, "Failed to receive message")
+			err = errors.WithMessage(err, "receiving message")
 		} else if addrM, ok := m.(*AuthResponseMsg); !ok {
-			err = errors.Errorf("Expected AuthResponse wire msg, got %v", m.Type())
+			err = errors.Errorf("expected AuthResponse wire msg, got %v", m.Type())
 		} else {
 			err = <-sent // Wait until the message was sent.
 			addr = addrM.Address
