@@ -8,6 +8,7 @@ package wallet
 import (
 	"fmt"
 	stdio "io"
+	"strings"
 
 	"github.com/pkg/errors"
 
@@ -54,6 +55,10 @@ type addressSliceLen = uint16
 type AddressDec struct {
 	Addr *Address
 }
+
+// AddrKey is a non-human readable representation of an `Address`.
+// It can be compared and therefore used as a key in a map.
+type AddrKey string
 
 // Encode encodes a wallet address slice, the length of which is known to the
 // following decode operation.
@@ -102,4 +107,32 @@ func (a *AddressesWithLen) Decode(r stdio.Reader) (err error) {
 func (a AddressDec) Decode(r stdio.Reader) (err error) {
 	*a.Addr, err = DecodeAddress(r)
 	return err
+}
+
+// Key returns the `AddrKey` corresponding to the passed `Address`.
+// The `Address` can be retrieved with `FromKey`.
+// Panics when the `Address` can't be encoded.
+func Key(a Address) AddrKey {
+	var buff strings.Builder
+	if err := a.Encode(&buff); err != nil {
+		panic("Could not encode address in AddrKey")
+	}
+	return AddrKey(buff.String())
+}
+
+// FromKey returns the `Address` corresponding to the passed `AddrKey`
+// created by `Key`.
+// Panics when the `Address` can't be decoded.
+func FromKey(k AddrKey) Address {
+	a, err := DecodeAddress(strings.NewReader(string(k)))
+	if err != nil {
+		panic("Could not decode address in FromKey")
+	}
+	return a
+}
+
+// Equals Returns whether the passed `Address` has the same key as the
+// receiving `AddrKey`.
+func (k AddrKey) Equals(a Address) bool {
+	return k == Key(a)
 }
