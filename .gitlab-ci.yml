@@ -8,57 +8,25 @@ stages:
   - vetting
   - tests
 
-before_script:
-  - go get -u golang.org/x/lint/golint
-  - go get -u github.com/client9/misspell/cmd/misspell
-  - go get github.com/fzipp/gocyclo
-  - export GOPATH=$HOME/go
-  - export PATH=$PATH:$GOROOT/bin:$GOPATH/bin
-
-fmt:
+code_quality:
   <<: *only-default
-  image: golang
   stage: vetting
-  script: "! gofmt -l -s `ls -d */` | grep ."
-
-lint:
-  <<: *only-default
-  image: golang
-  stage: vetting
-  script: "golint -set_exit_status ./..."
+  image: perunnetwork/golangci-lint-jq:v1.27
+  script:
+    - golangci-lint run --config .golangci.yml --out-format code-climate | tee gl-code-quality-report.json | jq -r '.[] | "\(.location.path):\(.location.lines.begin) \(.description)"'
+  artifacts:
+    paths: [gl-code-quality-report.json]
   allow_failure: true
-
-vet:
-  <<: *only-default
-  image: golang
-  stage: vetting
-  script: "go vet ./..."
 
 copyright_notice:
   <<: *only-default
-  image: golang
   stage: vetting
   script: ".scripts/check-copyright-notice.sh"
 
 vanity_import:
   <<: *only-default
-  image: golang
   stage: vetting
   script: ".scripts/check-vanity-imports.sh $PWD"
-
-spelling:
-  <<: *only-default
-  image: golang
-  stage: vetting
-  script: "ls -d */ | xargs misspell -error"
-  allow_failure: true
-
-cyclomatic:
-  <<: *only-default
-  image: golang
-  stage: vetting
-  script: "find -name '*.go' -not -name '*_test.go' -exec gocyclo -over 15 {} +"
-  allow_failure: true
 
 unit_tests:
   image: golang
