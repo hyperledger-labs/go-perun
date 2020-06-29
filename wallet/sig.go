@@ -32,6 +32,19 @@ func CloneSigs(sigs []Sig) []Sig {
 	return clonedSigs
 }
 
+var _ perunio.Decoder = SigDec{}
+
+// SigDec is a helper type to decode signatures.
+type SigDec struct {
+	Sig *Sig
+}
+
+// Decode decodes a single signature.
+func (s SigDec) Decode(r io.Reader) (err error) {
+	*s.Sig, err = DecodeSig(r)
+	return err
+}
+
 // EncodeSparseSigs encodes a collection of signatures in the form ( mask, sig, sig, sig, ...)
 func EncodeSparseSigs(w io.Writer, sigs []Sig) error {
 	n := len(sigs)

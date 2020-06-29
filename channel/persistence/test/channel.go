@@ -83,7 +83,7 @@ func (c *Channel) CheckPersistence(ctx context.Context, t require.TestingT) {
 
 		require.Equal(t, c.Idx(), ch.Idx(), "Idx")
 		require.Equal(t, c.Params(), ch.Params(), "Params")
-		require.Equal(t, c.StagingTX(), ch.StagingTX(), "StagingTX")
+		requireEqualStagingTX(t, c.StagingTX(), ch.StagingTX())
 		require.Equal(t, c.CurrentTX(), ch.CurrentTX(), "CurrentTX")
 		require.Equal(t, c.Phase(), ch.Phase(), "Phase")
 
@@ -92,6 +92,42 @@ func (c *Channel) CheckPersistence(ctx context.Context, t require.TestingT) {
 
 	require.NoError(t, it.Close())
 	require.FailNow(t, "channel not found")
+}
+
+// EqualStagingLoose is a test for loose equality between two staging states,
+// where it is allowed for signatures to be a nil slice iff the transaction
+// which it is compared to also has a nil slice OR a slice of nil sigs.
+func requireEqualStagingTX(t require.TestingT, expected, actual channel.Transaction) {
+	require.Equal(t, expected.State, actual.State, "StagingTX.State")
+	requireEqualSigs(t, expected.Sigs, actual.Sigs)
+}
+
+func requireEqualSigs(t require.TestingT, expected, actual []wallet.Sig) {
+	if expected == nil && actual == nil {
+		return
+	}
+	actualNil := isNilSigs(actual)
+	expectedNil := isNilSigs(expected)
+	if (expected == nil && actualNil) ||
+		(expectedNil && actual == nil) {
+		return
+	}
+	if actualNil && expectedNil {
+		if len(expected) != len(actual) {
+			t.FailNow()
+		}
+		return
+	}
+	require.Equal(t, expected, actual, "StagingTX.Sigs")
+}
+
+func isNilSigs(s []wallet.Sig) bool {
+	for _, el := range s {
+		if el != nil {
+			return false
+		}
+	}
+	return true
 }
 
 // Init calls Init on the state machine and then checks the persistence.
