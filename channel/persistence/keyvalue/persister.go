@@ -35,7 +35,6 @@ func (p *PersistRestorer) ChannelCreated(_ context.Context, s channel.Source, pe
 	// Register the channel in the "Peer" table.
 	peerdb := sortedkv.NewTable(p.db, prefix.PeerDB).NewBatch()
 	for _, peer := range peers {
-		p.cache.addPeerChannel(peer, s.ID())
 		key, err := peerChannelKey(peer, s.ID())
 		if err != nil {
 			return err
@@ -63,11 +62,12 @@ func (p *PersistRestorer) ChannelRemoved(_ context.Context, id channel.ID) error
 	db := p.channelDB(id).NewBatch()
 	peerdb := sortedkv.NewTable(p.db, prefix.PeerDB).NewBatch()
 	// All keys a channel has.
-	params, err := getParamsForChan(p.db, id)
+	params, err := p.getParamsForChan(id)
 	if err != nil {
 		return err
 	}
-	keys := append([]string{"current", "index", "params", "phase", "staging:state"}, sigKeys(len(params.Parts))...)
+	keys := append([]string{"current", "index", "params", "phase", "staging:state"},
+		sigKeys(len(params.Parts))...)
 
 	for _, key := range keys {
 		if err := db.Delete(key); err != nil {
@@ -75,7 +75,11 @@ func (p *PersistRestorer) ChannelRemoved(_ context.Context, id channel.ID) error
 		}
 	}
 
-	for _, peer := range p.cache.peers[id] {
+	peers, err := p.peersForChan(id)
+	if err != nil {
+		return errors.WithMessage(err, "retrieving peers for channel")
+	}
+	for _, peer := range peers {
 		key, err := peerChannelKey(peer, id)
 		if err != nil {
 			return err
@@ -85,19 +89,35 @@ func (p *PersistRestorer) ChannelRemoved(_ context.Context, id channel.ID) error
 		}
 	}
 
-	p.cache.deleteChannel(id)
-
 	if err := db.Apply(); err != nil {
 		return errors.WithMessage(err, "applying channel batch")
 	}
 	return errors.WithMessage(peerdb.Apply(), "applying peer batch")
 }
 
+// peersForChan returns a slice of peer addresses for a given channel id from
+// the db of PersistRestorer.
+func (p *PersistRestorer) peersForChan(id channel.ID) ([]wire.Address, error) {
+	var ps []wire.Address
+	it := sortedkv.NewTable(p.db, prefix.PeerDB).NewIterator()
+	defer it.Close()
+	for it.Next() {
+		addr, chid, err := decodePeerChanID(it.Key())
+		if err != nil {
+			return nil, err
+		}
+		if chid == id {
+			ps = append(ps, addr)
+		}
+	}
+	return ps, nil
+}
+
 // getParamsForChan returns the channel parameters for a given channel id from
 // the db.
-func getParamsForChan(db sortedkv.Reader, id channel.ID) (channel.Params, error) {
+func (p *PersistRestorer) getParamsForChan(id channel.ID) (channel.Params, error) {
 	params := channel.Params{}
-	b, err := db.GetBytes(prefix.ChannelDB + string(id[:]) + ":params")
+	b, err := p.channelDB(id).GetBytes("params")
 	if err != nil {
 		return params, errors.WithMessage(err, "unable to retrieve params from db")
 	}
@@ -133,7 +153,9 @@ func (p *PersistRestorer) SigAdded(_ context.Context, s channel.Source, idx chan
 
 	numParts := len(s.Params().Parts)
 	key := sigKey(int(idx), numParts)
-	dbPutSource(db, s, key)
+	if err := dbPutSource(db, s, key); err != nil {
+		return err
+	}
 
 	return errors.WithMessage(db.Apply(), "applying batch")
 }
