@@ -189,6 +189,19 @@ func (p *PersistRestorer) RestorePeer(peer peer.Address) (persistence.ChannelIte
 	return it, nil
 }
 
+// RestoreChannel should return the channel with the requested ID.
+func (p *PersistRestorer) RestoreChannel(_ context.Context, id channel.ID) (*persistence.Channel, error) {
+	p.mu.RLock()
+	defer p.mu.RUnlock()
+
+	ch, ok := p.chans[id]
+	if !ok {
+		return nil, errors.Errorf("channel not found: %x", id)
+	}
+
+	return ch, nil
+}
+
 type chanIter struct {
 	chans []*persistence.Channel
 	idx   int // has to be initialized to -1

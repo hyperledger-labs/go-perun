@@ -33,7 +33,7 @@ func (p *PersistRestorer) ChannelCreated(_ context.Context, s channel.Source, pe
 	}
 
 	// Register the channel in the "Peer" table.
-	peerdb := sortedkv.NewTable(p.db, "Peer:").NewBatch()
+	peerdb := sortedkv.NewTable(p.db, prefix.PeerDB).NewBatch()
 	for _, peer := range peers {
 		p.cache.addPeerChannel(peer, s.ID())
 		key, err := peerChannelKey(peer, s.ID())
@@ -63,7 +63,7 @@ func sigKey(idx, numParts int) string {
 // ChannelRemoved deletes a channel from the database.
 func (p *PersistRestorer) ChannelRemoved(_ context.Context, id channel.ID) error {
 	db := p.channelDB(id).NewBatch()
-	peerdb := sortedkv.NewTable(p.db, "Peer:").NewBatch()
+	peerdb := sortedkv.NewTable(p.db, prefix.PeerDB).NewBatch()
 	// All keys a channel has.
 	params, err := getParamsForChan(p.db, id)
 	if err != nil {
@@ -237,5 +237,5 @@ func peerChannelKey(p peer.Address, ch channel.ID) (string, error) {
 
 // channelDB creates a prefixed database for persisting a channel's data.
 func (p *PersistRestorer) channelDB(id channel.ID) sortedkv.Database {
-	return sortedkv.NewTable(p.db, "Chan:"+string(id[:])+":")
+	return sortedkv.NewTable(p.db, prefix.ChannelDB+string(id[:])+":")
 }

@@ -48,7 +48,7 @@ func (r *PersistRestorer) ActivePeers(context.Context) ([]peer.Address, error) {
 func (r *PersistRestorer) RestoreAll() (persistence.ChannelIterator, error) {
 	return &ChannelIterator{
 		restorer: r,
-		its:      []sortedkv.Iterator{sortedkv.NewTable(r.db, "Chan:").NewIterator()},
+		its:      []sortedkv.Iterator{sortedkv.NewTable(r.db, prefix.ChannelDB).NewIterator()},
 	}, nil
 }
 
@@ -56,7 +56,7 @@ func (r *PersistRestorer) RestoreAll() (persistence.ChannelIterator, error) {
 // the given peer is a part of.
 func (r *PersistRestorer) RestorePeer(addr peer.Address) (persistence.ChannelIterator, error) {
 	it := &ChannelIterator{restorer: r}
-	chandb := sortedkv.NewTable(r.db, "Chan:")
+	chandb := sortedkv.NewTable(r.db, prefix.ChannelDB)
 
 	chs := r.cache.peerChannels[string(addr.Bytes())]
 	it.its = make([]sortedkv.Iterator, len(chs))
@@ -69,10 +69,27 @@ func (r *PersistRestorer) RestorePeer(addr peer.Address) (persistence.ChannelIte
 	return it, nil
 }
 
+// RestoreChannel restores a single channel.
+func (r *PersistRestorer) RestoreChannel(ctx context.Context, id channel.ID) (*persistence.Channel, error) {
+	chandb := sortedkv.NewTable(r.db, prefix.ChannelDB)
+	it := &ChannelIterator{
+		restorer: r,
+		its:      []sortedkv.Iterator{chandb.NewIteratorWithPrefix(string(id[:]))},
+	}
+
+	if it.Next(ctx) {
+		return it.Channel(), it.Close()
+	}
+	if err := it.Close(); err != nil {
+		return nil, errors.WithMessagef(err, "error restoring channel %x", id)
+	}
+	return nil, errors.Errorf("could not find channel %x", id)
+}
+
 // readAllPeers reads all peer entries from the database and populates the
 // restorer's channel cache.
 func (r *PersistRestorer) readAllPeers() (err error) {
-	it := sortedkv.NewTable(r.db, "Peer:").NewIterator()
+	it := sortedkv.NewTable(r.db, prefix.PeerDB).NewIterator()
 	defer it.Close()
 
 	for it.Next() {

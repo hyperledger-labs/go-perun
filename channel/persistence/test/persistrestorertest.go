@@ -10,6 +10,7 @@ import (
 	"math/rand"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"perun.network/go-perun/channel"
@@ -68,24 +69,37 @@ func GenericPersistRestorerTest(
 	numPeers int,
 	numChans int) {
 
+	t.Run("RestoreChannel error", func(t *testing.T) {
+		var id channel.ID
+		ch, err := pr.RestoreChannel(context.Background(), id)
+		assert.Error(t, err)
+		assert.Nil(t, ch)
+	})
+
 	ct := test.NewConcurrent(t)
 
 	c := NewClient(ctx, t, rng, pr)
 	peers := ptest.NewRandomAddresses(rng, numPeers)
 
-	channels := make([]*Channel, numChans*numPeers)
-	for i := 0; i < numChans*numPeers; i++ {
-		channels[i] = c.NewChannel(t, peers[i%len(peers)])
-		t.Logf("created channel %d for peer %d", i/len(peers), i%len(peers))
+	channels := make([]map[channel.ID]*Channel, numPeers)
+	for p := 0; p < numPeers; p++ {
+		channels[p] = make(map[channel.ID]*Channel)
+		for i := 0; i < numChans; i++ {
+			ch := c.NewChannel(t, peers[p])
+			channels[p][ch.ID()] = ch
+			t.Logf("created channel %d for peer %d", i, p)
+		}
 	}
 
+	iterIdx := 0
 	for idx := range peers {
 		idx := idx
-		for i := 0; i < numChans; i++ {
-			i := i
+		for _, ch := range channels[idx] {
+			ch := ch
+			iterIdx++
+			iterIdx := iterIdx
 			go ct.StageN("testing", numChans*numPeers, func(t require.TestingT) {
-				chIndex := idx + i*len(peers)
-				ch := channels[chIndex]
+				chIndex := iterIdx
 				rng := rand.New(rand.NewSource(int64(0xC00F + chIndex)))
 
 				ch.Init(t, rng)
@@ -125,6 +139,17 @@ func GenericPersistRestorerTest(
 		}
 	}
 	ct.Wait("testing")
+
+	for pIdx, peer := range peers {
+		it, err := pr.RestorePeer(peer)
+		require.NoError(t, err)
+
+		for it.Next(ctx) {
+			ch := it.Channel()
+			cached := channels[pIdx][ch.ID()]
+			cached.RequireEqual(t, ch)
+		}
+	}
 
 	// Test ActivePeers
 	persistedPeers, err := pr.ActivePeers(ctx)

@@ -8,6 +8,8 @@ package persistence
 import (
 	"context"
 
+	"github.com/pkg/errors"
+
 	"perun.network/go-perun/channel"
 	"perun.network/go-perun/peer"
 )
@@ -41,6 +43,9 @@ func (nonPersistRestorer) RestoreAll() (ChannelIterator, error) {
 
 func (nonPersistRestorer) RestorePeer(peer.Address) (ChannelIterator, error) {
 	return emptyChanIterator{}, nil
+}
+func (nonPersistRestorer) RestoreChannel(context.Context, channel.ID) (*Channel, error) {
+	return nil, errors.New("channel not found")
 }
 
 type emptyChanIterator struct{}
