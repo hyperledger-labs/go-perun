@@ -40,7 +40,8 @@ func NewPersistRestorer(db sortedkv.Database) (*PersistRestorer, error) {
 	return r, errors.WithMessage(r.readAllPeers(), "reading peers")
 }
 
-var prefix = struct{ ChannelDB, PeerDB string }{
+var prefix = struct{ ChannelDB, PeerDB, SigKey string }{
 	ChannelDB: "Chan:",
 	PeerDB:    "Peer:",
+	SigKey:    "staging:sig:",
 }

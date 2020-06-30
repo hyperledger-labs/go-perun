@@ -51,13 +51,11 @@ func (p *PersistRestorer) ChannelCreated(_ context.Context, s channel.Source, pe
 	return errors.WithMessage(peerdb.Apply(), "applying peer batch")
 }
 
-const dbSigKey = "staging:sig:"
-
 // sigKey creates a key for given idx and number of channel
 // participants.
 func sigKey(idx, numParts int) string {
 	width := int(math.Ceil(math.Log10(float64(numParts))))
-	return fmt.Sprintf("%s%0*d", dbSigKey, width, idx)
+	return fmt.Sprintf("%s%0*d", prefix.SigKey, width, idx)
 }
 
 // ChannelRemoved deletes a channel from the database.
@@ -99,7 +97,7 @@ func (p *PersistRestorer) ChannelRemoved(_ context.Context, id channel.ID) error
 // the db.
 func getParamsForChan(db sortedkv.Reader, id channel.ID) (channel.Params, error) {
 	params := channel.Params{}
-	b, err := db.GetBytes("Chan:" + string(id[:]) + ":params")
+	b, err := db.GetBytes(prefix.ChannelDB + string(id[:]) + ":params")
 	if err != nil {
 		return params, errors.WithMessage(err, "unable to retrieve params from db")
 	}
@@ -113,7 +111,7 @@ func sigKeys(numParts int) []string {
 	keys := make([]string, numParts)
 	width := int(math.Ceil(math.Log10(float64(numParts))))
 	for i := range keys {
-		keys[i] = fmt.Sprintf(dbSigKey+"%0*d", width, i)
+		keys[i] = fmt.Sprintf(prefix.SigKey+"%0*d", width, i)
 	}
 	return keys
 }
@@ -203,7 +201,7 @@ func dbPut(db sortedkv.Writer, key string, v interface{}) error {
 	return nil
 }
 
-var sigRegex = regexp.MustCompile(`^` + dbSigKey + `\d+$`)
+var sigRegex = regexp.MustCompile(`^` + prefix.SigKey + `\d+$`)
 
 func sigKeyIndex(key string) (int, bool) {
 	if !sigRegex.MatchString(key) {
