@@ -47,7 +47,7 @@ func (e *exiter) Exit(code int) {
 func (e *Exit) AssertExit(fn func(), code int) {
 	e.assert(func(ex *exiter) {
 		if !ex.called {
-			e.t.Error("exit was not called")
+			e.t.Errorf("exit was not called")
 		} else if ex.code != code {
 			e.t.Errorf("exit was called with wrong code %d, expected %d", ex.code, code)
 		}
@@ -61,7 +61,7 @@ func (e *Exit) AssertExit(fn func(), code int) {
 func (e *Exit) AssertNoExit(fn func()) {
 	e.assert(func(ex *exiter) {
 		if ex.called {
-			e.t.Error("exit was called")
+			e.t.Errorf("exit was called")
 		}
 	}, fn)
 }

@@ -15,19 +15,11 @@ type eventuallyT struct {
 	called bool
 }
 
-func (et *eventuallyT) Error(...interface{}) {
-	et.fail()
-}
-
 func (et *eventuallyT) Errorf(string, ...interface{}) {
 	et.fail()
 }
 
-func (et *eventuallyT) Fatal(...interface{}) {
-	et.fail()
-}
-
-func (et *eventuallyT) Fatalf(string, ...interface{}) {
+func (et *eventuallyT) FailNow() {
 	et.fail()
 }
 
@@ -70,7 +62,7 @@ func (et *EventuallyTest) Eventually(t T, assertion func(T)) {
 		}
 	}
 
-	assertion(t) // final call with actual testing object
+	assertion(t) // final call with actual testing object.
 }
 
 func (et *EventuallyTest) test(assertion func(T)) (success bool) {

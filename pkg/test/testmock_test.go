@@ -13,42 +13,38 @@ import (
 
 // This test tests the test tester, using itself for failing assertions.
 func TestTester(_t *testing.T) {
-	// positive assertions should not produce an error on _t
+	// positive assertions should not produce an error on _t.
 	_t.Run("correct assertions", func(_t *testing.T) {
 		tester := NewTester(_t)
 		tester.AssertError(func(t T) {
-			t.Error()
+			t.Errorf("")
 		})
 		tester.AssertError(func(t T) {
 			t.Errorf("")
 		})
 		tester.AssertErrorN(func(t T) {
-			t.Error()
 			t.Errorf("")
-			t.Error()
 			t.Errorf("")
-			t.Error()
+			t.Errorf("")
+			t.Errorf("")
+			t.Errorf("")
 		}, 5)
 
 		tester.AssertFatal(func(t T) {
-			t.Fatal()
-		})
-		tester.AssertFatal(func(t T) {
-			t.Fatalf("")
+			t.FailNow()
 		})
 
 		tester.AssertErrorFatal(func(t T) {
 			t.Errorf("")
-			t.Error()
-			t.Fatal()
+			t.FailNow()
 		})
 		tester.AssertErrorNFatal(func(t T) {
-			t.Error()
 			t.Errorf("")
-			t.Error()
 			t.Errorf("")
-			t.Error()
-			t.Fatal()
+			t.Errorf("")
+			t.Errorf("")
+			t.Errorf("")
+			t.FailNow()
 		}, 5)
 	})
 
@@ -56,64 +52,64 @@ func TestTester(_t *testing.T) {
 		// this is the tester with which we test the tester.
 		tt := NewTester(_t)
 
-		// not calling Error should produce an error
+		// not calling Errorf should produce an error.
 		tt.AssertError(func(t T) {
 			AssertError(t, func(T) {})
 		})
 
-		// calling Fatal instead of Error should produce an error
+		// calling FailNow instead of Errorf should produce an error.
 		tt.AssertError(func(t T) {
-			AssertError(t, func(t T) { t.Fatal() })
+			AssertError(t, func(t T) { t.FailNow() })
 		})
 
-		// calling Error 2 times while 3 expected should produce an error
+		// calling Errorf 2 times while 3 expected should produce an error.
 		tt.AssertError(func(t T) {
-			AssertErrorN(t, func(t T) { t.Error(); t.Errorf("") }, 3)
+			AssertErrorN(t, func(t T) { t.Errorf(""); t.Errorf("") }, 3)
 		})
 
-		// not calling Fatal should produce an error
+		// not calling FailNow should produce an error.
 		tt.AssertError(func(t T) {
 			AssertFatal(t, func(T) {})
 		})
 
-		// calling Error instead of Fatal should produce an error
+		// calling Errorf instead of FailNow should produce an error.
 		tt.AssertError(func(t T) {
-			AssertFatal(t, func(t T) { t.Error() })
+			AssertFatal(t, func(t T) { t.Errorf("") })
 		})
 
-		// not calling Error or Fatal should produce an error
+		// not calling Errorf or FailNow should produce an error.
 		tt.AssertError(func(t T) {
 			AssertErrorFatal(t, func(t T) {})
 		})
 
-		// calling only Error should produce an error
+		// calling only Errorf should produce an error.
 		tt.AssertError(func(t T) {
-			AssertErrorFatal(t, func(t T) { t.Error() })
+			AssertErrorFatal(t, func(t T) { t.Errorf("") })
 		})
 
-		// calling only Fatal should produce an error
+		// calling only FailNow should produce an error.
 		tt.AssertError(func(t T) {
-			AssertErrorFatal(t, func(t T) { t.Fatal() })
+			AssertErrorFatal(t, func(t T) { t.FailNow() })
 		})
 
-		// not calling Error or Fatal should produce an error
+		// not calling Errorf or FailNow should produce an error.
 		tt.AssertError(func(t T) {
 			AssertErrorNFatal(t, func(t T) {}, 1)
 		})
 
-		// calling only Error should produce an error
+		// calling only Errorf should produce an error.
 		tt.AssertError(func(t T) {
-			AssertErrorNFatal(t, func(t T) { t.Error(); t.Error() }, 2)
+			AssertErrorNFatal(t, func(t T) { t.Errorf(""); t.Errorf("") }, 2)
 		})
 
-		// calling only Fatal should produce an error
+		// calling only FailNow should produce an error.
 		tt.AssertError(func(t T) {
-			AssertErrorNFatal(t, func(t T) { t.Fatal() }, 2)
+			AssertErrorNFatal(t, func(t T) { t.FailNow() }, 2)
 		})
 
-		// calling Error the wrong amount of times and Fatal should produce an error
+		// calling Errorf the wrong amount of times and FailNow should produce an error.
 		tt.AssertError(func(t T) {
-			AssertErrorNFatal(t, func(t T) { t.Error(); t.Fatal() }, 2)
+			AssertErrorNFatal(t, func(t T) { t.Errorf(""); t.FailNow() }, 2)
 		})
 	})
 
