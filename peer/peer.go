@@ -47,6 +47,7 @@ type Peer struct {
 // called by the registry when the peer is registered.
 func (p *Peer) recvLoop() {
 	// Wait until the peer exists or is closed.
+	// nolint:staticcheck
 	if !p.waitExists(nil) {
 		return // closed before connection set
 	}
