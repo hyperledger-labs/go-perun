@@ -71,15 +71,19 @@ func (r *PersistRestorer) RestorePeer(addr peer.Address) (persistence.ChannelIte
 
 // RestoreChannel restores a single channel.
 func (r *PersistRestorer) RestoreChannel(ctx context.Context, id channel.ID) (*persistence.Channel, error) {
-	it := &ChannelIterator{restorer: r}
-
-	it.its = append(it.its, chandb.NewIteratorWithPrefix(string(id[:])))
 	chandb := sortedkv.NewTable(r.db, prefix.ChannelDB)
+	it := &ChannelIterator{
+		restorer: r,
+		its:      []sortedkv.Iterator{chandb.NewIteratorWithPrefix(string(id[:]))},
+	}
 
 	if it.Next(ctx) {
 		return it.Channel(), it.Close()
 	}
-	return nil, it.Close()
+	if err := it.Close(); err != nil {
+		return nil, errors.WithMessagef(err, "error restoring channel %x", id)
+	}
+	return nil, errors.Errorf("could not find channel %x", id)
 }
 
 // readAllPeers reads all peer entries from the database and populates the
