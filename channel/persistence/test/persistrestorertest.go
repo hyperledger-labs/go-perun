@@ -10,6 +10,7 @@ import (
 	"math/rand"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"perun.network/go-perun/channel"
@@ -67,6 +68,13 @@ func GenericPersistRestorerTest(
 	pr persistence.PersistRestorer,
 	numPeers int,
 	numChans int) {
+
+	t.Run("RestoreChannel error", func(t *testing.T) {
+		var id channel.ID
+		ch, err := pr.RestoreChannel(context.Background(), id)
+		assert.Error(t, err)
+		assert.Nil(t, ch)
+	})
 
 	ct := test.NewConcurrent(t)
 
