@@ -1,0 +1,96 @@
+run:
+  timeout: 2m
+
+  # list of build tags, all linters use it. Default is empty list.
+  #build-tags:
+  #  - wrap_test TODO currently broken
+
+  # Skip the eth bindings.
+  skip-dirs:
+    - backend/ethereum/bindings/
+
+  # Do not change go.{mod,sum}.
+  modules-download-mode: readonly
+
+linters:
+  disable-all: true
+  enable:
+    - bodyclose
+    - deadcode
+    - depguard
+    - dogsled
+    - dupl
+    - errcheck
+    - funlen
+    # We use init() functions.
+    #- gochecknoinits
+    - goconst
+    - gocritic
+    - gocyclo
+    - gofmt
+    - goimports
+    - golint
+    # This is stupid since it reports every constant as magic-number.
+    #- gomnd
+    - goprintffuncname
+    - gosec
+    - gosimple
+    - govet
+    - ineffassign
+    - interfacer
+    # This thing reports long lines, but we have a lot of them…
+    #- lll
+    - misspell
+    # We often just have a 'return' when using named returns.
+    #- nakedret
+    - nolintlint
+    - rowserrcheck
+    - scopelint
+    - staticcheck
+    - structcheck
+    - stylecheck
+    - typecheck
+    - unconvert
+    - unparam
+    - unused
+    - varcheck
+    - whitespace
+    - asciicheck
+    # We often use globals for backend stuff
+    #- gochecknoglobals
+    - gocognit
+    - godot
+    - godox
+    # Keeps reporting 'do not define dynamic errors, use wrapped static errors instead'.
+    #- goerr113
+    # We don't care about alignment right now.
+    #- maligned
+    - nestif
+    - prealloc
+    # This always reports that tests should be Black Box.
+    #- testpackage
+    #- wsl
+
+issues:
+  exclude-rules:
+    - path: pkg/test
+      linters:
+        - stylecheck
+
+    - path: test
+      linters:
+        # 'Error return value … not checked'
+        - errcheck 
+        - funlen
+        # Tests do not need to prealloc everything.
+        - prealloc
+    # Allow nil contexts in tests.
+    - path: test
+      text: "SA1012"
+      linters:
+        - staticcheck
+
+    # Exclude lll issues for long lines with go:generate.
+    - linters:
+        - lll
+      source: "^//go:generate "

@@ -87,6 +87,7 @@ type RecursivelyCloneableRef struct {
 }
 
 func (r *RecursivelyCloneableRef) Clone() *RecursivelyCloneableRef {
+	// nolint:staticcheck
 	return &RecursivelyCloneableRef{r.x.Clone()}
 }
 
