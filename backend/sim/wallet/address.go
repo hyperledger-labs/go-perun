@@ -82,14 +82,26 @@ func (a *Address) String() string {
 	return "0x" + hex.EncodeToString(bs)
 }
 
-// Equals checks the equality of two addresses.
+// Equals checks the equality of two addresses. The implementation must be
+// equivalent to checking `Address.Cmp(Address) == 0`.
 func (a *Address) Equals(addr wallet.Address) bool {
-	b, ok := addr.(*Address)
-	if !ok {
-		log.Panic("Equals(): wrong address type")
-	}
-
+	b := addr.(*Address)
 	return (a.X.Cmp(b.X) == 0) && (a.Y.Cmp(b.Y) == 0)
+}
+
+// Cmp checks the ordering of two addresses according to following definition:
+//   -1 if (a.X <  addr.X) || ((a.X == addr.X) && (a.Y < addr.Y))
+//    0 if (a.X == addr.X) && (a.Y == addr.Y)
+//   +1 if (a.X >  addr.X) || ((a.X == addr.X) && (a.Y > addr.Y))
+// So the X coordinate is weighted higher.
+func (a *Address) Cmp(addr wallet.Address) int {
+	b := addr.(*Address)
+	const EQ = 0
+	xCmp, yCmp := a.X.Cmp(b.X), a.Y.Cmp(b.Y)
+	if xCmp != EQ {
+		return xCmp
+	}
+	return yCmp
 }
 
 // Encode encodes this address into an io.Writer. Part of the
