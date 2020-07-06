@@ -13,8 +13,8 @@ import (
 
 	"perun.network/go-perun/channel"
 	ctest "perun.network/go-perun/channel/test"
-	"perun.network/go-perun/peer"
 	wtest "perun.network/go-perun/wallet/test"
+	"perun.network/go-perun/wire"
 )
 
 func TestPeerChans(t *testing.T) {
@@ -34,7 +34,7 @@ func TestPeerChans(t *testing.T) {
 	pc.Delete(id[0]) // p[1] should be deleted as id[0] was their only channel
 	assert.ElementsMatch(id[1:], pc.Get(ps[0]))
 	assert.ElementsMatch(id[1:], pc.Get(ps[2]))
-	assert.ElementsMatch([]peer.Address{ps[0], ps[2]}, pc.Peers())
+	assert.ElementsMatch([]wire.Address{ps[0], ps[2]}, pc.Peers())
 	assert.Nil(pc.Get(ps[1]))
 
 	pc.Delete(id[1]) // now all peers should have been deleted

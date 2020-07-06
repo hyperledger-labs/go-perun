@@ -14,10 +14,10 @@ import (
 
 	"perun.network/go-perun/channel"
 	"perun.network/go-perun/channel/persistence"
-	"perun.network/go-perun/peer"
 	perunio "perun.network/go-perun/pkg/io"
 	"perun.network/go-perun/pkg/sortedkv"
 	"perun.network/go-perun/wallet"
+	"perun.network/go-perun/wire"
 )
 
 var _ persistence.ChannelIterator = (*ChannelIterator)(nil)
@@ -32,10 +32,10 @@ type ChannelIterator struct {
 }
 
 // ActivePeers returns a list of all peers with which a channel is persisted.
-func (r *PersistRestorer) ActivePeers(context.Context) ([]peer.Address, error) {
-	ps := make([]peer.Address, 0, len(r.cache.peerChannels))
+func (r *PersistRestorer) ActivePeers(context.Context) ([]wire.Address, error) {
+	ps := make([]wire.Address, 0, len(r.cache.peerChannels))
 	for peerstr := range r.cache.peerChannels {
-		addr, err := peer.DecodeAddress(bytes.NewReader([]byte(peerstr)))
+		addr, err := wire.DecodeAddress(bytes.NewReader([]byte(peerstr)))
 		if err != nil {
 			return nil, errors.WithMessagef(err, "decoding peer address (%x)", []byte(peerstr))
 		}
@@ -54,7 +54,7 @@ func (r *PersistRestorer) RestoreAll() (persistence.ChannelIterator, error) {
 
 // RestorePeer should return an iterator over all persisted channels which
 // the given peer is a part of.
-func (r *PersistRestorer) RestorePeer(addr peer.Address) (persistence.ChannelIterator, error) {
+func (r *PersistRestorer) RestorePeer(addr wire.Address) (persistence.ChannelIterator, error) {
 	it := &ChannelIterator{restorer: r}
 	chandb := sortedkv.NewTable(r.db, prefix.ChannelDB)
 
@@ -95,8 +95,8 @@ func (r *PersistRestorer) readAllPeers() (err error) {
 	for it.Next() {
 		buf := bytes.NewBufferString(it.Key())
 
-		var addr peer.Address
-		if addr, err = peer.DecodeAddress(buf); err != nil {
+		var addr wire.Address
+		if addr, err = wire.DecodeAddress(buf); err != nil {
 			return errors.WithMessage(err, "decode peer address")
 		}
 

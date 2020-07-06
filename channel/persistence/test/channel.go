@@ -14,16 +14,16 @@ import (
 	"perun.network/go-perun/channel"
 	"perun.network/go-perun/channel/persistence"
 	ctest "perun.network/go-perun/channel/test"
-	"perun.network/go-perun/peer"
 	"perun.network/go-perun/wallet"
 	wtest "perun.network/go-perun/wallet/test"
+	"perun.network/go-perun/wire"
 )
 
 // Channel is a wrapper around a persisted channel and its participants, as well
 // as the associated persister and restorer.
 type Channel struct {
 	accounts []wallet.Account
-	peers    []peer.Address
+	peers    []wire.Address
 	*persistence.StateMachine
 
 	pr  persistence.PersistRestorer
@@ -42,7 +42,7 @@ func NewRandomChannel(
 	t require.TestingT,
 	pr persistence.PersistRestorer,
 	user channel.Index,
-	peers []peer.Address,
+	peers []wire.Address,
 	rng *rand.Rand) (c *Channel) {
 
 	accs, parts := wtest.NewRandomAccounts(rng, len(peers))
