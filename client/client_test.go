@@ -18,12 +18,11 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"perun.network/go-perun/channel"
-	"perun.network/go-perun/peer"
-	peertest "perun.network/go-perun/peer/test"
 	perunsync "perun.network/go-perun/pkg/sync"
 	"perun.network/go-perun/pkg/test"
 	wtest "perun.network/go-perun/wallet/test"
 	"perun.network/go-perun/wire"
+	wiretest "perun.network/go-perun/wire/test"
 )
 
 const timeout = 5 * time.Second
@@ -32,7 +31,7 @@ type DummyDialer struct {
 	t *testing.T
 }
 
-func (d DummyDialer) Dial(ctx context.Context, addr peer.Address) (peer.Conn, error) {
+func (d DummyDialer) Dial(ctx context.Context, addr wire.Address) (wire.Conn, error) {
 	d.t.Fatal("BUG: DummyDialer.Dial called")
 	return nil, errors.New("BUG")
 }
@@ -50,7 +49,7 @@ func NewDummyListener(t *testing.T) *DummyListener {
 	return &DummyListener{t: t}
 }
 
-func (d *DummyListener) Accept() (peer.Conn, error) {
+func (d *DummyListener) Accept() (wire.Conn, error) {
 	<-d.Closed()
 	return nil, errors.New("EOF")
 }
@@ -157,7 +156,7 @@ func TestClient_NewAndListen(t *testing.T) {
 	ass := assert.New(t)
 
 	rng := rand.New(rand.NewSource(0x1))
-	connHub := new(peertest.ConnHub)
+	connHub := new(wiretest.ConnHub)
 	c := New(wtest.NewRandomAccount(rng), &DummyDialer{t}, &DummyFunder{t}, &DummyAdjudicator{t}, wtest.RandomWallet())
 	// initialize the listener instance in the main goroutine
 	// if it is initialized in a goroutine, the goroutine may be put to sleep
@@ -185,7 +184,7 @@ func TestClient_NewAndListen(t *testing.T) {
 				break
 			}
 			ass.Equal(wire.AuthResponse, msg.Type())
-			authMsg, ok := msg.(*peer.AuthResponseMsg)
+			authMsg, ok := msg.(*wire.AuthResponseMsg)
 			ass.True(ok, "Have a message with type AuthResponse but cast failed")
 			ass.Equal(c.id.Address(), authMsg.Address)
 		}
@@ -208,12 +207,12 @@ func TestClient_NewAndListen(t *testing.T) {
 		defer cancel()
 		conn, err := dialer.Dial(ctx, c.id.Address())
 		ass.NoError(err, "Dialing the Client instance failed")
-		ass.NoError(conn.Send(peer.NewAuthResponseMsg(peerID)))
+		ass.NoError(conn.Send(wire.NewAuthResponseMsg(peerID)))
 
 		msg, err := conn.Recv()
 		ass.NoError(err)
 		ass.Equal(wire.AuthResponse, msg.Type())
-		authMsg, ok := msg.(*peer.AuthResponseMsg)
+		authMsg, ok := msg.(*wire.AuthResponseMsg)
 		ass.True(ok, "Have a message with type AuthResponse but cast failed")
 		ass.Equal(c.id.Address(), authMsg.Address)
 
@@ -268,7 +267,7 @@ func testClientMultiplexing(
 
 	seed := time.Now().UnixNano()
 	rng := rand.New(rand.NewSource(seed))
-	connHub := new(peertest.ConnHub)
+	connHub := new(wiretest.ConnHub)
 	listeners := make([]*Client, numListeners)
 	dialers := make([]*Client, numDialers)
 
@@ -359,8 +358,8 @@ func testClientMultiplexing(
 				time.Sleep(sleepTime * time.Millisecond)
 
 				j := xs[k]
-				var peers *peer.Registry
-				var addr peer.Address
+				var peers *wire.Registry
+				var addr wire.Address
 				if k < numListeners/2 {
 					peers = dialers[i].peers
 					addr = listeners[j].id.Address()

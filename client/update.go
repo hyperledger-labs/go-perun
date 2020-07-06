@@ -12,9 +12,9 @@ import (
 
 	"perun.network/go-perun/channel"
 	"perun.network/go-perun/log"
-	"perun.network/go-perun/peer"
 	"perun.network/go-perun/pkg/sync/atomic"
 	"perun.network/go-perun/wallet"
+	"perun.network/go-perun/wire"
 )
 
 // handleChannelUpdate forwards incoming channel update requests to the
@@ -22,7 +22,7 @@ import (
 // is unknown, an error is logged.
 //
 // This handler is dispatched from the Client.Handle routine.
-func (c *Client) handleChannelUpdate(uh UpdateHandler, p *peer.Peer, m *msgChannelUpdate) {
+func (c *Client) handleChannelUpdate(uh UpdateHandler, p *wire.Peer, m *msgChannelUpdate) {
 	ch, ok := c.channels.Get(m.ID())
 	if !ok {
 		c.logChan(m.ID()).WithField("peer", p.PerunAddress).Errorf("received update for unknown channel")

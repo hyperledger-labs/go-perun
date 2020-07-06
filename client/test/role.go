@@ -20,8 +20,8 @@ import (
 	"perun.network/go-perun/channel/persistence"
 	"perun.network/go-perun/client"
 	"perun.network/go-perun/log"
-	"perun.network/go-perun/peer"
 	wallettest "perun.network/go-perun/wallet/test"
+	"perun.network/go-perun/wire"
 )
 
 type (
@@ -42,9 +42,9 @@ type (
 	// RoleSetup contains the injectables for setting up the client.
 	RoleSetup struct {
 		Name        string
-		Identity    peer.Identity
-		Dialer      peer.Dialer
-		Listener    peer.Listener
+		Identity    wire.Identity
+		Dialer      wire.Dialer
+		Listener    wire.Listener
 		Funder      channel.Funder
 		Adjudicator channel.Adjudicator
 		Wallet      wallettest.Wallet
@@ -54,7 +54,7 @@ type (
 
 	// ExecConfig contains additional config parameters for the tests.
 	ExecConfig struct {
-		PeerAddrs  [2]peer.Address // must match the RoleSetup.Identity's
+		PeerAddrs  [2]wire.Address // must match the RoleSetup.Identity's
 		Asset      channel.Asset   // single Asset to use in this channel
 		InitBals   [2]*big.Int     // channel deposit of each role
 		NumUpdates [2]int          // how many updates each role sends
@@ -145,7 +145,7 @@ func (r *role) waitStage() {
 
 // Idxs maps the passed addresses to the indices in the 2-party-channel. If the
 // setup's Identity is not found in peers, Idxs panics.
-func (r *role) Idxs(peers [2]peer.Address) (our, their int) {
+func (r *role) Idxs(peers [2]wire.Address) (our, their int) {
 	if r.setup.Identity.Address().Equals(peers[0]) {
 		return 0, 1
 	} else if r.setup.Identity.Address().Equals(peers[1]) {
@@ -205,7 +205,7 @@ func (r *role) GoHandle(rng *rand.Rand) (h *acceptAllPropHandler, wait func()) {
 
 // GoListen starts the peer listener routine on the current client and returns a
 // wait() function with which it can be waited for the listener routine to stop.
-func (r *role) GoListen(l peer.Listener) (wait func()) {
+func (r *role) GoListen(l wire.Listener) (wait func()) {
 	done := make(chan struct{})
 	go func() {
 		defer close(done)

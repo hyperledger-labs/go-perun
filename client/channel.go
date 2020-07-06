@@ -13,9 +13,9 @@ import (
 	"perun.network/go-perun/channel"
 	"perun.network/go-perun/channel/persistence"
 	"perun.network/go-perun/log"
-	"perun.network/go-perun/peer"
 	perunsync "perun.network/go-perun/pkg/sync"
 	"perun.network/go-perun/wallet"
+	"perun.network/go-perun/wire"
 )
 
 // Channel is the channel controller, progressing the channel state machine and
@@ -38,7 +38,7 @@ type Channel struct {
 // controller after the channel proposal protocol ran successfully.
 func (c *Client) newChannel(
 	acc wallet.Account,
-	peers []*peer.Peer,
+	peers []*wire.Peer,
 	params channel.Params,
 ) (*Channel, error) {
 	machine, err := channel.NewStateMachine(acc, params)
@@ -49,7 +49,7 @@ func (c *Client) newChannel(
 }
 
 // channelFromSource is used to create a channel controller from restored data.
-func (c *Client) channelFromSource(s channel.Source, peers ...*peer.Peer) (*Channel, error) {
+func (c *Client) channelFromSource(s channel.Source, peers ...*wire.Peer) (*Channel, error) {
 	acc, err := c.wallet.Unlock(s.Params().Parts[s.Idx()])
 	if err != nil {
 		return nil, errors.WithMessage(err, "unlocking account for channel")
@@ -64,7 +64,7 @@ func (c *Client) channelFromSource(s channel.Source, peers ...*peer.Peer) (*Chan
 }
 
 // channelFromMachine creates a channel controller around the passed state machine.
-func (c *Client) channelFromMachine(machine *channel.StateMachine, peers ...*peer.Peer) (*Channel, error) {
+func (c *Client) channelFromMachine(machine *channel.StateMachine, peers ...*wire.Peer) (*Channel, error) {
 	pmachine := persistence.FromStateMachine(machine, c.pr)
 
 	// bundle peers into channel connection
@@ -143,7 +143,7 @@ func (c *Channel) Phase() channel.Phase {
 
 // Peers returns the Perun network addresses of all remote peers, in the order
 // of the peers as channel participants. The own address is omitted.
-func (c *Channel) Peers() []peer.Address {
+func (c *Channel) Peers() []wire.Address {
 	return c.conn.Peers()
 }
 

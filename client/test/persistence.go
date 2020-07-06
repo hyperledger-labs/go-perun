@@ -15,8 +15,8 @@ import (
 
 	"perun.network/go-perun/channel"
 	"perun.network/go-perun/client"
-	"perun.network/go-perun/peer"
 	"perun.network/go-perun/pkg/test"
+	"perun.network/go-perun/wire"
 )
 
 // A ConnHub can be used to create related Listeners and Dialers.
@@ -24,8 +24,8 @@ import (
 // to use possible other netorking infrastructure for the tests in the future,
 // it is consumed as an interface in the client persistence tests.
 type ConnHub interface {
-	NewListener(addr peer.Address) peer.Listener
-	NewDialer() peer.Dialer
+	NewListener(addr wire.Address) wire.Listener
+	NewDialer() wire.Dialer
 }
 
 type (
@@ -49,7 +49,7 @@ func (r *multiClientRole) ReplaceClient() {
 	r.setClient(cl)
 }
 
-func (r *multiClientRole) NewListener() peer.Listener {
+func (r *multiClientRole) NewListener() wire.Listener {
 	return r.hub.NewListener(r.setup.Identity.Address())
 }
 

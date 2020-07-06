@@ -13,11 +13,11 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"perun.network/go-perun/channel/test"
-	"perun.network/go-perun/peer"
+	"perun.network/go-perun/wire"
 )
 
 func testCh() *Channel {
-	r := peer.NewRelay()
+	r := wire.NewRelay()
 	conn := &channelConn{OnCloser: r, r: r}
 	return &Channel{OnCloser: conn, conn: conn}
 }

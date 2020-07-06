@@ -13,8 +13,8 @@ import (
 	chprtest "perun.network/go-perun/channel/persistence/test"
 	chtest "perun.network/go-perun/channel/test"
 	ctest "perun.network/go-perun/client/test"
-	"perun.network/go-perun/peer"
-	ptest "perun.network/go-perun/peer/test"
+	"perun.network/go-perun/wire"
+	wtest "perun.network/go-perun/wire/test"
 )
 
 func TestPersistencePetraRobert(t *testing.T) {
@@ -27,7 +27,7 @@ func TestPersistencePetraRobert(t *testing.T) {
 	}
 
 	cfg := ctest.ExecConfig{
-		PeerAddrs:  [2]peer.Address{setups[0].Identity.Address(), setups[1].Identity.Address()},
+		PeerAddrs:  [2]wire.Address{setups[0].Identity.Address(), setups[1].Identity.Address()},
 		Asset:      chtest.NewRandomAsset(rng),
 		InitBals:   [2]*big.Int{big.NewInt(100), big.NewInt(100)},
 		NumUpdates: [2]int{2, 2},
@@ -37,14 +37,14 @@ func TestPersistencePetraRobert(t *testing.T) {
 	executeTwoPartyTest(t, roles, cfg)
 }
 
-type connHub ptest.ConnHub // wrapper for correct return type signatures
+type connHub wtest.ConnHub // wrapper for correct return type signatures
 
-func (h *connHub) NewListener(addr peer.Address) peer.Listener {
-	return (*ptest.ConnHub)(h).NewListener(addr)
+func (h *connHub) NewListener(addr wire.Address) wire.Listener {
+	return (*wtest.ConnHub)(h).NewListener(addr)
 }
-func (h *connHub) NewDialer() peer.Dialer { return (*ptest.ConnHub)(h).NewDialer() }
+func (h *connHub) NewDialer() wire.Dialer { return (*wtest.ConnHub)(h).NewDialer() }
 
-func NewSetupsPersistence(t *testing.T, rng *rand.Rand, names []string) ([]ctest.RoleSetup, *ptest.ConnHub) {
+func NewSetupsPersistence(t *testing.T, rng *rand.Rand, names []string) ([]ctest.RoleSetup, *wtest.ConnHub) {
 	setups, hub := NewSetups(rng, names)
 	for i := range names {
 		setups[i].PR = chprtest.NewPersistRestorer(t)

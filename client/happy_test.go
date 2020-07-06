@@ -12,7 +12,7 @@ import (
 
 	chtest "perun.network/go-perun/channel/test"
 	ctest "perun.network/go-perun/client/test"
-	"perun.network/go-perun/peer"
+	"perun.network/go-perun/wire"
 )
 
 func TestHappyAliceBob(t *testing.T) {
@@ -24,7 +24,7 @@ func TestHappyAliceBob(t *testing.T) {
 	}
 
 	cfg := ctest.ExecConfig{
-		PeerAddrs:  [2]peer.Address{setups[0].Identity.Address(), setups[1].Identity.Address()},
+		PeerAddrs:  [2]wire.Address{setups[0].Identity.Address(), setups[1].Identity.Address()},
 		Asset:      chtest.NewRandomAsset(rng),
 		InitBals:   [2]*big.Int{big.NewInt(100), big.NewInt(100)},
 		NumUpdates: [2]int{2, 2},
