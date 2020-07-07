@@ -45,7 +45,7 @@ func AssertTerminatesCtx(ctx context.Context, t T, fn func()) {
 	t.Helper()
 
 	if !TerminatesCtx(ctx, fn) {
-		t.Error("function should have terminated within deadline")
+		t.Errorf("function should have terminated within deadline")
 	}
 }
 
@@ -55,7 +55,7 @@ func AssertNotTerminatesCtx(ctx context.Context, t T, fn func()) {
 	t.Helper()
 
 	if TerminatesCtx(ctx, fn) {
-		t.Error("Function should not have terminated within deadline")
+		t.Errorf("Function should not have terminated within deadline")
 	}
 }
 
@@ -65,7 +65,7 @@ func AssertTerminates(t T, deadline time.Duration, fn func()) {
 	t.Helper()
 
 	if !Terminates(deadline, fn) {
-		t.Error("Function should have terminated within deadline")
+		t.Errorf("Function should have terminated within deadline")
 	}
 }
 
@@ -75,6 +75,6 @@ func AssertNotTerminates(t T, deadline time.Duration, fn func()) {
 	t.Helper()
 
 	if Terminates(deadline, fn) {
-		t.Error("Function should not have terminated within deadline")
+		t.Errorf("Function should not have terminated within deadline")
 	}
 }

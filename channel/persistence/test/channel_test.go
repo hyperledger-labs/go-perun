@@ -9,53 +9,38 @@ import (
 	"math/rand"
 	"testing"
 
+	"perun.network/go-perun/pkg/test"
 	"perun.network/go-perun/wallet"
 )
 
-type mockEqualT struct {
-	*testing.T
-	Equal bool
-}
-
-// Errorf formats an error message
-func (m *mockEqualT) Errorf(format string, args ...interface{}) {
-	return
-}
-
-// FailNow marks the function as having failed
-func (m *mockEqualT) FailNow() {
-	m.Equal = false
-}
-
-func (m *mockEqualT) reset() {
-	m.Equal = true
-}
-
 func TestRequireEqualSigsTX(t *testing.T) {
-	var equalSigsTable = []struct {
-		s1    []wallet.Sig
-		s2    []wallet.Sig
-		Equal bool
+	var equalSigsTableNegative = []struct {
+		s1 []wallet.Sig
+		s2 []wallet.Sig
 	}{
-		{nil, nil, true},
-		{nil, make([]wallet.Sig, 10), true},
-		{make([]wallet.Sig, 10), nil, true},
-		{make([]wallet.Sig, 10), make([]wallet.Sig, 10), true},
-		{initSigSlice(10), make([]wallet.Sig, 10), false},
-		{make([]wallet.Sig, 10), initSigSlice(10), false},
-		{[]wallet.Sig{{1, 2, 3, 4}}, []wallet.Sig{{1, 2, 3, 4}}, true},
-		{[]wallet.Sig{{4, 3, 2, 1}}, []wallet.Sig{{1, 2, 3, 4}}, false},
-		{make([]wallet.Sig, 5), make([]wallet.Sig, 10), false},
-		{make([]wallet.Sig, 10), make([]wallet.Sig, 5), false},
+		{initSigSlice(10), make([]wallet.Sig, 10)},
+		{make([]wallet.Sig, 10), initSigSlice(10)},
+		{[]wallet.Sig{{4, 3, 2, 1}}, []wallet.Sig{{1, 2, 3, 4}}},
+		{make([]wallet.Sig, 5), make([]wallet.Sig, 10)},
+		{make([]wallet.Sig, 10), make([]wallet.Sig, 5)},
+	}
+	var equalSigsTablePositive = []struct {
+		s1 []wallet.Sig
+		s2 []wallet.Sig
+	}{
+		{nil, nil},
+		{nil, make([]wallet.Sig, 10)},
+		{make([]wallet.Sig, 10), nil},
+		{make([]wallet.Sig, 10), make([]wallet.Sig, 10)},
+		{[]wallet.Sig{{1, 2, 3, 4}}, []wallet.Sig{{1, 2, 3, 4}}},
 	}
 
-	wrapT := &mockEqualT{T: t, Equal: true}
-	for i, c := range equalSigsTable {
-		requireEqualSigs(wrapT, c.s1, c.s2)
-		if got := wrapT.Equal; got != c.Equal {
-			t.Errorf("Case: %v => wanted Equal to be %#v, but got: %#v", i, c.Equal, got)
-		}
-		wrapT.reset()
+	tt := test.NewTester(t)
+	for _, c := range equalSigsTableNegative {
+		tt.AssertFatal(func(t test.T) { requireEqualSigs(t, c.s1, c.s2) })
+	}
+	for _, c := range equalSigsTablePositive {
+		requireEqualSigs(t, c.s1, c.s2)
 	}
 }
 

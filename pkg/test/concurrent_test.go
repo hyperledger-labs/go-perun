@@ -18,7 +18,7 @@ import (
 func TestStage_FailNow(t *testing.T) {
 	t.Run("first fail", func(t *testing.T) {
 		AssertFatal(t, func(t T) {
-			ct := NewConcurrent(newFailNowTester(t))
+			ct := NewConcurrent(t)
 			s := ct.spawnStage("stage", 1)
 			s.FailNow()
 		})
@@ -64,22 +64,12 @@ func TestConcurrentT_Wait(t *testing.T) {
 	})
 }
 
-type failNowTester struct {
-	*testerT
-}
-
-func newFailNowTester(t T) *failNowTester {
-	return &failNowTester{testerT: t.(*testerT)}
-}
-
-func (t *failNowTester) FailNow() { t.fatal() }
-
 func TestConcurrentT_FailNow(t *testing.T) {
 	var ct *ConcurrentT
 
 	// Test that NewConcurrent.FailNow() calls T.FailNow().
 	AssertFatal(t, func(t T) {
-		ct = NewConcurrent(newFailNowTester(t))
+		ct = NewConcurrent(t)
 		ct.FailNow()
 	})
 
@@ -132,7 +122,7 @@ func TestConcurrentT_StageN(t *testing.T) {
 		N := 100
 		M := 100
 		AssertFatal(t, func(t T) {
-			ct := NewConcurrent(newFailNowTester(t))
+			ct := NewConcurrent(t)
 			var wg sync.WaitGroup
 			wg.Add(N)
 			for g := 0; g < N; g++ {
@@ -185,7 +175,7 @@ func TestConcurrentT_StageN(t *testing.T) {
 
 	t.Run("panic", func(t *testing.T) {
 		AssertFatal(t, func(t T) {
-			ct := NewConcurrent(newFailNowTester(t))
+			ct := NewConcurrent(t)
 			ct.Stage("stage", func(require.TestingT) { panic(nil) })
 		})
 	})

@@ -24,10 +24,8 @@ func TestEventually(t *testing.T) {
 		et.Eventually(t, func(t T) {})
 
 		fails := []func(T){
-			func(t T) { t.Error() },
 			func(t T) { t.Errorf("") },
-			func(t T) { t.Fatal() },
-			func(t T) { t.Fatalf("") },
+			func(t T) { t.FailNow() },
 		}
 
 		for _, fn := range fails {
@@ -44,21 +42,18 @@ func TestEventually(t *testing.T) {
 		tt := NewTester(t)
 
 		tt.AssertErrorN(func(t T) {
-			et.Eventually(t, func(t T) { t.Error() })
+			et.Eventually(t, func(t T) { t.Errorf("") })
 		}, 1)
 		tt.AssertErrorN(func(t T) {
 			et.Eventually(t, func(t T) { t.Errorf("") })
 		}, 1)
 
 		tt.AssertFatal(func(t T) {
-			et.Eventually(t, func(t T) { t.Fatal() })
-		})
-		tt.AssertFatal(func(t T) {
-			et.Eventually(t, func(t T) { t.Fatalf("") })
+			et.Eventually(t, func(t T) { t.FailNow() })
 		})
 
 		// fail just until after `within`
-		ftest := failUntil(time.Now().Add(within+pause), func(t T) { t.Error() })
+		ftest := failUntil(time.Now().Add(within+pause), func(t T) { t.Errorf("") })
 		tt.AssertErrorN(func(t T) {
 			et.Eventually(t, ftest.Fail)
 		}, 1)
@@ -88,7 +83,7 @@ func TestEventually(t *testing.T) {
 			tt.AssertErrorN(func(t T) {
 				Eventually(t, func(t T) {
 					numCalls++
-					t.Error()
+					t.Errorf("")
 				}, etest.within, etest.pause)
 			}, 1)
 			assert.Equal(t, etest.numCalls, numCalls)
