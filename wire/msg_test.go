@@ -12,7 +12,9 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
+	iotest "perun.network/go-perun/pkg/io/test"
 	"perun.network/go-perun/pkg/test"
+	wtest "perun.network/go-perun/wallet/test"
 )
 
 var nilDecoder = func(io.Reader) (Msg, error) { return nil, nil }
@@ -46,4 +48,15 @@ func TestRegisterExternalDecoder(t *testing.T) {
 		func() { RegisterExternalDecoder(Ping, nilDecoder, "PingFail") },
 		"registration of internal type should fail",
 	)
+}
+
+func TestEnvelope_EncodeDecode(t *testing.T) {
+	rng := test.Prng(t)
+	ping := &Envelope{
+		Sender:    wtest.NewRandomAddress(rng),
+		Recipient: wtest.NewRandomAddress(rng),
+		Msg:       NewPingMsg(),
+	}
+
+	iotest.GenericSerializerTest(t, ping)
 }

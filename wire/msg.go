@@ -15,17 +15,50 @@ import (
 	perunio "perun.network/go-perun/pkg/io"
 )
 
-// Msg is the top-level abstraction for all messages sent between perun
-// nodes.
-type Msg interface {
-	// Type returns the message's type.
-	Type() Type
-	// encoding of payload. Type byte should not be encoded.
-	perunio.Encoder
+type (
+	// Msg is the top-level abstraction for all messages sent between Perun
+	// nodes.
+	Msg interface {
+		// Type returns the message's type.
+		Type() Type
+		// encoding of payload. Type byte should not be encoded.
+		perunio.Encoder
+	}
+
+	// An Envelope encapsulates a message with routing information, that is, the
+	// sender and intended recipient.
+	Envelope struct {
+		Sender    Address // Sender of the message.
+		Recipient Address // Recipient of the message.
+		// Msg contained in this Envelope. Not embedded so Envelope doesn't implement Msg.
+		Msg Msg
+	}
+)
+
+// Encode encodes an Envelope into an io.Writer.
+func (env *Envelope) Encode(w io.Writer) error {
+	if err := perunio.Encode(w, env.Sender, env.Recipient); err != nil {
+		return err
+	}
+	return Encode(env.Msg, w)
 }
 
-// Encode encodes a message into an io.Writer.
-func Encode(msg Msg, w io.Writer) (err error) {
+// Decode decodes an Envelope from an io.Reader.
+func (env *Envelope) Decode(r io.Reader) (err error) {
+	if env.Sender, err = DecodeAddress(r); err != nil {
+		return err
+	}
+	if env.Recipient, err = DecodeAddress(r); err != nil {
+		return err
+	}
+	env.Msg, err = Decode(r)
+	return err
+}
+
+// Encode encodes a message into an io.Writer. It also encodes the
+// message type whereas the Msg.Encode implementation is assumed not to write
+// the type.
+func Encode(msg Msg, w io.Writer) error {
 	// Encode the message type and payload
 	return perunio.Encode(w, byte(msg.Type()), msg)
 }
