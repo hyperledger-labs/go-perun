@@ -29,3 +29,23 @@ func TestAsWalletAddr(t *testing.T) {
 		require.Equal(t, commonAddr.String(), ethAddr.String())
 	})
 }
+
+func TestAddressOrdering(t *testing.T) {
+	const LT, EQ, GT = -1, 0, 1
+	cases := []struct {
+		addr     [2]Address
+		expected int
+	}{
+		{[2]Address{{1, 1}, {2, 1}}, LT},
+		{[2]Address{{1, 1}, {1, 2}}, LT},
+		{[2]Address{{0, 1}, {1, 2}}, LT},
+		{[2]Address{{2, 1}, {1, 1}}, GT},
+		{[2]Address{{2, 2}, {2, 1}}, GT},
+		{[2]Address{{2, 1}, {1, 0}}, GT},
+		{[2]Address{{1, 1}, {1, 1}}, EQ},
+	}
+
+	for _, c := range cases {
+		require.Equal(t, c.expected, c.addr[0].Cmp(&c.addr[1]))
+	}
+}

@@ -21,10 +21,14 @@ type Address interface {
 	io.Serializer
 	// Bytes should return the representation of the address as byte slice.
 	Bytes() []byte
-	// String converts this address to a string
+	// String converts this address to a string.
 	fmt.Stringer
-	// Equals checks the equality of two addresses
+	// Equals returns wether the two addresses are equal. The implementation
+	// must be equivalent to checking `Address.Cmp(Address) == 0`.
 	Equals(Address) bool
+	// Cmp compares the byte representation of two addresses. For `a.Cmp(b)`
+	// returns -1 if a < b, 0 if a == b, 1 if a > b.
+	Cmp(Address) int
 }
 
 // IndexOfAddr returns the index of the given address in the address slice,
