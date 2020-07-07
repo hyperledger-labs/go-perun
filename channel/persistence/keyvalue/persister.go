@@ -17,13 +17,13 @@ import (
 	"github.com/pkg/errors"
 
 	"perun.network/go-perun/channel"
-	"perun.network/go-perun/peer"
 	perunio "perun.network/go-perun/pkg/io"
 	"perun.network/go-perun/pkg/sortedkv"
+	"perun.network/go-perun/wire"
 )
 
 // ChannelCreated inserts a channel into the database.
-func (p *PersistRestorer) ChannelCreated(_ context.Context, s channel.Source, peers []peer.Address) error {
+func (p *PersistRestorer) ChannelCreated(_ context.Context, s channel.Source, peers []wire.Address) error {
 	db := p.channelDB(s.ID()).NewBatch()
 	// Write the channel data in the "Channel" table.
 	numParts := len(s.Params().Parts)
@@ -223,7 +223,7 @@ func decodeIdxFromDBKey(key string) (int, error) {
 	return strconv.Atoi(vals[len(vals)-1])
 }
 
-func peerChannelKey(p peer.Address, ch channel.ID) (string, error) {
+func peerChannelKey(p wire.Address, ch channel.ID) (string, error) {
 	var key bytes.Buffer
 	if err := p.Encode(&key); err != nil {
 		return "", errors.WithMessage(err, "encoding peer address")

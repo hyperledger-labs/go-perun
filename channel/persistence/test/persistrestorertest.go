@@ -15,14 +15,14 @@ import (
 
 	"perun.network/go-perun/channel"
 	"perun.network/go-perun/channel/persistence"
-	"perun.network/go-perun/peer"
-	ptest "perun.network/go-perun/peer/test"
 	"perun.network/go-perun/pkg/test"
+	"perun.network/go-perun/wire"
+	wtest "perun.network/go-perun/wire/test"
 )
 
 // Client is a mock client that can be used to create channels.
 type Client struct {
-	addr peer.Address
+	addr wire.Address
 
 	rng *rand.Rand
 	pr  persistence.PersistRestorer
@@ -32,7 +32,7 @@ type Client struct {
 // NewClient creates a client.
 func NewClient(ctx context.Context, t *testing.T, rng *rand.Rand, pr persistence.PersistRestorer) *Client {
 	return &Client{
-		addr: ptest.NewRandomAddress(rng),
+		addr: wtest.NewRandomAddress(rng),
 		rng:  rng,
 		pr:   pr,
 		ctx:  ctx,
@@ -41,9 +41,9 @@ func NewClient(ctx context.Context, t *testing.T, rng *rand.Rand, pr persistence
 
 // NewChannel creates a new channel with the supplied peer as the other
 // participant. The client's participant index is randomly chosen.
-func (c *Client) NewChannel(t require.TestingT, p peer.Address) *Channel {
+func (c *Client) NewChannel(t require.TestingT, p wire.Address) *Channel {
 	idx := c.rng.Intn(2)
-	peers := make([]peer.Address, 2)
+	peers := make([]wire.Address, 2)
 	peers[idx] = c.addr
 	peers[idx^1] = p
 
@@ -59,7 +59,7 @@ func (c *Client) NewChannel(t require.TestingT, p peer.Address) *Channel {
 // GenericPersistRestorerTest tests a PersistRestorer by persisting 2-party
 // channels and then asserting equality of the restored channels. pr must be
 // fresh and not contain any previous channels. The parameter numChans controls
-// the channels created per peer. numPeers is the number of separate peers to
+// the channels created per wire. numPeers is the number of separate peers to
 // generate.
 func GenericPersistRestorerTest(
 	ctx context.Context,
@@ -79,7 +79,7 @@ func GenericPersistRestorerTest(
 	ct := test.NewConcurrent(t)
 
 	c := NewClient(ctx, t, rng, pr)
-	peers := ptest.NewRandomAddresses(rng, numPeers)
+	peers := wtest.NewRandomAddresses(rng, numPeers)
 
 	channels := make([]map[channel.ID]*Channel, numPeers)
 	for p := 0; p < numPeers; p++ {

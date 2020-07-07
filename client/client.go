@@ -13,7 +13,6 @@ import (
 	"perun.network/go-perun/channel"
 	"perun.network/go-perun/channel/persistence"
 	"perun.network/go-perun/log"
-	"perun.network/go-perun/peer"
 	"perun.network/go-perun/pkg/sync"
 	"perun.network/go-perun/wallet"
 	"perun.network/go-perun/wire"
@@ -25,10 +24,10 @@ import (
 //
 // Currently, only the two-party protocol is fully implemented.
 type Client struct {
-	id          peer.Identity
-	peers       *peer.Registry
+	id          wire.Account
+	peers       *wire.EndpointRegistry
 	channels    chanRegistry
-	reqRecv     *peer.Receiver
+	reqRecv     *wire.Receiver
 	funder      channel.Funder
 	adjudicator channel.Adjudicator
 	wallet      wallet.Wallet
@@ -55,8 +54,8 @@ type Client struct {
 //
 // If any argument is nil, New panics.
 func New(
-	id peer.Identity,
-	dialer peer.Dialer,
+	id wire.Account,
+	dialer wire.Dialer,
 	funder channel.Funder,
 	adjudicator channel.Adjudicator,
 	wallet wallet.Wallet,
@@ -78,14 +77,14 @@ func New(
 	c := &Client{
 		id:          id,
 		channels:    makeChanRegistry(),
-		reqRecv:     peer.NewReceiver(),
+		reqRecv:     wire.NewReceiver(),
 		funder:      funder,
 		adjudicator: adjudicator,
 		wallet:      wallet,
 		pr:          persistence.NonPersistRestorer,
 		log:         log,
 	}
-	c.peers = peer.NewRegistry(id, c.subscribePeer, dialer)
+	c.peers = wire.NewEndpointRegistry(id, c.subscribePeer, dialer)
 	return c
 }
 
@@ -136,7 +135,7 @@ func (c *Client) Channel(id channel.ID) (*Channel, error) {
 // This function does not start go routines but instead should
 // be started by the user as `go client.Listen()`. The client takes ownership of
 // the listener and will close it when the client is closed.
-func (c *Client) Listen(listener peer.Listener) {
+func (c *Client) Listen(listener wire.Listener) {
 	if listener == nil {
 		c.log.Panic("listener must not be nil")
 	}
@@ -144,7 +143,7 @@ func (c *Client) Listen(listener peer.Listener) {
 	c.peers.Listen(listener)
 }
 
-func (c *Client) subscribePeer(p *peer.Peer) {
+func (c *Client) subscribePeer(p *wire.Endpoint) {
 	log := c.logPeer(p)
 	log.Debugf("setting up default subscriptions")
 
@@ -209,7 +208,7 @@ func (c *Client) Log() log.Logger {
 	return c.log
 }
 
-func (c *Client) logPeer(p *peer.Peer) log.Logger {
+func (c *Client) logPeer(p *wire.Endpoint) log.Logger {
 	return c.log.WithField("peer", p.PerunAddress)
 }
 
@@ -237,15 +236,15 @@ func (c *Client) Reconnect(ctx context.Context) error {
 // skipping the own peer, if present in the list.
 func (c *Client) getPeers(
 	ctx context.Context,
-	addrs []peer.Address,
-) (peers []*peer.Peer, err error) {
+	addrs []wire.Address,
+) (peers []*wire.Endpoint, err error) {
 	idx := wallet.IndexOfAddr(addrs, c.id.Address())
 	l := len(addrs)
 	if idx != -1 {
 		l--
 	}
 
-	peers = make([]*peer.Peer, l)
+	peers = make([]*wire.Endpoint, l)
 	for i, a := range addrs {
 		if idx == -1 || i < idx {
 			peers[i], err = c.peers.Get(ctx, a)

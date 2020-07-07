@@ -12,7 +12,6 @@ import (
 
 	"perun.network/go-perun/channel"
 	"perun.network/go-perun/log"
-	"perun.network/go-perun/peer"
 	"perun.network/go-perun/pkg/sync"
 	"perun.network/go-perun/wire"
 )
@@ -23,9 +22,9 @@ import (
 type channelConn struct {
 	sync.OnCloser
 
-	b       *peer.Broadcaster
-	r       *peer.Relay // update response relay
-	peerIdx map[*peer.Peer]channel.Index
+	b       *wire.Broadcaster
+	r       *wire.Relay // update response relay
+	peerIdx map[*wire.Endpoint]channel.Index
 
 	log log.Logger
 }
@@ -35,9 +34,9 @@ type channelConn struct {
 // the peers is important: it must match their position in the channel
 // participant slice, or one less if their index is above our index, since we
 // are not part of the peer slice.
-func newChannelConn(id channel.ID, peers []*peer.Peer, idx channel.Index) (_ *channelConn, err error) {
+func newChannelConn(id channel.ID, peers []*wire.Endpoint, idx channel.Index) (_ *channelConn, err error) {
 	// relay to receive all update responses
-	relay := peer.NewRelay()
+	relay := wire.NewRelay()
 	// we cache all responses for the lifetime of the relay
 	relay.Cache(context.Background(), func(wire.Msg) bool { return true })
 	// Close the relay if anything goes wrong in the following.
@@ -56,7 +55,7 @@ func newChannelConn(id channel.ID, peers []*peer.Peer, idx channel.Index) (_ *ch
 		return ok && m.(ChannelMsg).ID() == id
 	}
 
-	peerIdx := make(map[*peer.Peer]channel.Index)
+	peerIdx := make(map[*wire.Endpoint]channel.Index)
 	for i, peer := range peers {
 		i := channel.Index(i)
 		peerIdx[peer] = i
@@ -72,7 +71,7 @@ func newChannelConn(id channel.ID, peers []*peer.Peer, idx channel.Index) (_ *ch
 
 	ch := &channelConn{
 		OnCloser: relay,
-		b:        peer.NewBroadcaster(peers),
+		b:        wire.NewBroadcaster(peers),
 		r:        relay,
 		peerIdx:  peerIdx,
 		log:      log.WithField("channel", id),
@@ -101,8 +100,8 @@ func (c *channelConn) Send(ctx context.Context, msg wire.Msg) error {
 
 // Peers returns the ordered list of peer addresses. Note that the length is
 // the number of channel participants minus one, since the own peer is excluded.
-func (c *channelConn) Peers() []peer.Address {
-	ps := make([]peer.Address, len(c.peerIdx)+1) // +1 for own nil entry
+func (c *channelConn) Peers() []wire.Address {
+	ps := make([]wire.Address, len(c.peerIdx)+1) // +1 for own nil entry
 	for p, i := range c.peerIdx {
 		ps[i] = p.PerunAddress
 	}
@@ -121,7 +120,7 @@ func (c *channelConn) Peers() []peer.Address {
 // The receiver should be closed after all expected responses are received.
 // The receiver is also closed when the channel connection is closed.
 func (c *channelConn) NewUpdateResRecv(version uint64) (*channelMsgRecv, error) {
-	recv := peer.NewReceiver()
+	recv := wire.NewReceiver()
 	if err := c.r.Subscribe(recv, func(m wire.Msg) bool {
 		resMsg, ok := m.(channelVerMsg)
 		return ok && resMsg.Ver() == version
@@ -140,8 +139,8 @@ type (
 	// A channelMsgRecv is a receiver of channel messages. Messages are received
 	// with Next(), which returns the peer's channel index and the message.
 	channelMsgRecv struct {
-		*peer.Receiver
-		peerIdx map[*peer.Peer]channel.Index
+		*wire.Receiver
+		peerIdx map[*wire.Endpoint]channel.Index
 		log     log.Logger
 	}
 )

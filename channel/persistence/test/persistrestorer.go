@@ -18,7 +18,7 @@ import (
 
 	"perun.network/go-perun/channel"
 	"perun.network/go-perun/channel/persistence"
-	"perun.network/go-perun/peer"
+	"perun.network/go-perun/wire"
 )
 
 // A PersistRestorer is a persistence.PersistRestorer implementation for testing purposes.
@@ -47,7 +47,7 @@ func NewPersistRestorer(t *testing.T) *PersistRestorer {
 
 // ChannelCreated fully persists all of the source's data.
 func (p *PersistRestorer) ChannelCreated(
-	_ context.Context, source channel.Source, peers []peer.Address) error {
+	_ context.Context, source channel.Source, peers []wire.Address) error {
 	p.mu.Lock()
 	defer p.mu.Unlock()
 
@@ -165,7 +165,7 @@ func (p *PersistRestorer) get(id channel.ID) (*persistence.Channel, bool) {
 // Restorer implementation
 
 // ActivePeers returns all peers that channels are persisted for.
-func (p *PersistRestorer) ActivePeers(context.Context) ([]peer.Address, error) {
+func (p *PersistRestorer) ActivePeers(context.Context) ([]wire.Address, error) {
 	p.mu.RLock()
 	defer p.mu.RUnlock()
 
@@ -174,7 +174,7 @@ func (p *PersistRestorer) ActivePeers(context.Context) ([]peer.Address, error) {
 
 // RestorePeer returns an iterator over all persisted channels which
 // the given peer is a part of.
-func (p *PersistRestorer) RestorePeer(peer peer.Address) (persistence.ChannelIterator, error) {
+func (p *PersistRestorer) RestorePeer(peer wire.Address) (persistence.ChannelIterator, error) {
 	p.mu.RLock()
 	defer p.mu.RUnlock()
 

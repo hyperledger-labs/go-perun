@@ -11,7 +11,7 @@ import (
 	"github.com/pkg/errors"
 
 	"perun.network/go-perun/channel"
-	"perun.network/go-perun/peer"
+	"perun.network/go-perun/wire"
 )
 
 // NonPersistRestorer is a PersistRestorer that doesn't do anything. All
@@ -23,7 +23,7 @@ type nonPersistRestorer struct{}
 
 // Persister implementation
 
-func (nonPersistRestorer) ChannelCreated(context.Context, channel.Source, []peer.Address) error {
+func (nonPersistRestorer) ChannelCreated(context.Context, channel.Source, []wire.Address) error {
 	return nil
 }
 func (nonPersistRestorer) ChannelRemoved(context.Context, channel.ID) error              { return nil }
@@ -35,13 +35,13 @@ func (nonPersistRestorer) Close() error                                         
 
 // Restorer implementation
 
-func (nonPersistRestorer) ActivePeers(context.Context) ([]peer.Address, error) { return nil, nil }
+func (nonPersistRestorer) ActivePeers(context.Context) ([]wire.Address, error) { return nil, nil }
 
 func (nonPersistRestorer) RestoreAll() (ChannelIterator, error) {
 	return emptyChanIterator{}, nil
 }
 
-func (nonPersistRestorer) RestorePeer(peer.Address) (ChannelIterator, error) {
+func (nonPersistRestorer) RestorePeer(wire.Address) (ChannelIterator, error) {
 	return emptyChanIterator{}, nil
 }
 func (nonPersistRestorer) RestoreChannel(context.Context, channel.ID) (*Channel, error) {

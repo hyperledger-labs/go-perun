@@ -10,12 +10,12 @@ import (
 	stdsync "sync"
 
 	"perun.network/go-perun/channel"
-	"perun.network/go-perun/peer"
+	"perun.network/go-perun/wire"
 )
 
 func newChannelCache() *channelCache {
 	return &channelCache{
-		peers:        make(map[channel.ID][]peer.Address),
+		peers:        make(map[channel.ID][]wire.Address),
 		peerChannels: make(map[string]map[channel.ID]struct{}),
 	}
 }
@@ -23,11 +23,11 @@ func newChannelCache() *channelCache {
 // channelCache contains all channels
 type channelCache struct {
 	mutex        stdsync.RWMutex
-	peers        map[channel.ID][]peer.Address      // Used when closing a channel.
+	peers        map[channel.ID][]wire.Address      // Used when closing a channel.
 	peerChannels map[string]map[channel.ID]struct{} // Address -> Set<chID>
 }
 
-func (c *channelCache) addPeerChannel(addr peer.Address, chID channel.ID) {
+func (c *channelCache) addPeerChannel(addr wire.Address, chID channel.ID) {
 	c.mutex.Lock()
 	defer c.mutex.Unlock()
 
@@ -42,7 +42,7 @@ func (c *channelCache) addPeerChannel(addr peer.Address, chID channel.ID) {
 	}
 }
 
-func (c *channelCache) deleteChannel(id channel.ID) []peer.Address {
+func (c *channelCache) deleteChannel(id channel.ID) []wire.Address {
 	c.mutex.Lock()
 	defer c.mutex.Unlock()
 

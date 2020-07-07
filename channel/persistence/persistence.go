@@ -10,7 +10,7 @@ import (
 	"io"
 
 	"perun.network/go-perun/channel"
-	"perun.network/go-perun/peer"
+	"perun.network/go-perun/wire"
 )
 
 type (
@@ -25,7 +25,7 @@ type (
 		// The current state will be the fully signed version 0 state. The staging
 		// state will be empty. The passed peers are the channel network peers,
 		// which should also be persisted.
-		ChannelCreated(ctx context.Context, source channel.Source, peers []peer.Address) error
+		ChannelCreated(ctx context.Context, source channel.Source, peers []wire.Address) error
 
 		// ChannelRemoved is called by the client when a channel is removed because
 		// it has been successfully settled and its data is no longer needed. All
@@ -62,11 +62,11 @@ type (
 	Restorer interface {
 		// ActivePeers should return a list of all peers with which any channel is
 		// persisted.
-		ActivePeers(context.Context) ([]peer.Address, error)
+		ActivePeers(context.Context) ([]wire.Address, error)
 
 		// RestorePeer should return an iterator over all persisted channels which
 		// the given peer is a part of.
-		RestorePeer(peer.Address) (ChannelIterator, error)
+		RestorePeer(wire.Address) (ChannelIterator, error)
 
 		// RestoreChannel should return the channel with the requested ID.
 		RestoreChannel(context.Context, channel.ID) (*Channel, error)

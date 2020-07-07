@@ -12,7 +12,6 @@ import (
 
 	"perun.network/go-perun/channel"
 	"perun.network/go-perun/log"
-	"perun.network/go-perun/peer"
 	"perun.network/go-perun/pkg/sync/atomic"
 	"perun.network/go-perun/wallet"
 	"perun.network/go-perun/wire"
@@ -38,7 +37,7 @@ type (
 	// panic.
 	ProposalResponder struct {
 		client *Client
-		peer   *peer.Peer
+		peer   *wire.Endpoint
 		req    *ChannelProposal
 		called atomic.Bool
 	}
@@ -136,7 +135,7 @@ func (c *Client) ProposeChannel(ctx context.Context, req *ChannelProposal) (*Cha
 //
 // This handler is dispatched from the Client.Handle routine.
 func (c *Client) handleChannelProposal(
-	handler ProposalHandler, p *peer.Peer, req *ChannelProposal) {
+	handler ProposalHandler, p *wire.Endpoint, req *ChannelProposal) {
 	if err := c.validTwoPartyProposal(req, 1, p.PerunAddress); err != nil {
 		c.logPeer(p).Debugf("received invalid channel proposal: %v", err)
 		return
@@ -149,7 +148,7 @@ func (c *Client) handleChannelProposal(
 }
 
 func (c *Client) handleChannelProposalAcc(
-	ctx context.Context, p *peer.Peer,
+	ctx context.Context, p *wire.Endpoint,
 	req *ChannelProposal, acc ProposalAcc,
 ) (*Channel, error) {
 	if acc.Participant == nil {
@@ -181,7 +180,7 @@ func (c *Client) handleChannelProposalAcc(
 }
 
 func (c *Client) handleChannelProposalRej(
-	ctx context.Context, p *peer.Peer,
+	ctx context.Context, p *wire.Endpoint,
 	req *ChannelProposal, reason string,
 ) error {
 	msgReject := &ChannelProposalRej{
@@ -218,7 +217,7 @@ func (c *Client) exchangeTwoPartyProposal(
 			(m.Type() == wire.ChannelProposalRej &&
 				m.(*ChannelProposalRej).SessID == sessID)
 	}
-	receiver := peer.NewReceiver()
+	receiver := wire.NewReceiver()
 	defer receiver.Close()
 
 	if err := p.Subscribe(receiver, isResponse); err != nil {

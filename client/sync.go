@@ -13,11 +13,10 @@ import (
 
 	"perun.network/go-perun/channel"
 	"perun.network/go-perun/channel/persistence"
-	"perun.network/go-perun/peer"
 	"perun.network/go-perun/wire"
 )
 
-func (c *Client) restorePeerChannels(p *peer.Peer, done func()) {
+func (c *Client) restorePeerChannels(p *wire.Endpoint, done func()) {
 	log := c.logPeer(p)
 	it, err := c.pr.RestorePeer(p.PerunAddress)
 	if err != nil {
@@ -76,8 +75,8 @@ func (c *Client) restorePeerChannels(p *peer.Peer, done func()) {
 
 // syncChannel synchronizes the channel state with the given peer and modifies
 // the current state if required.
-func (c *Client) syncChannel(ctx context.Context, ch *persistence.Channel, p *peer.Peer) (err error) {
-	recv := peer.NewReceiver()
+func (c *Client) syncChannel(ctx context.Context, ch *persistence.Channel, p *wire.Endpoint) (err error) {
+	recv := wire.NewReceiver()
 	id := ch.ID()
 	p.Subscribe(recv, func(m wire.Msg) bool {
 		return m.Type() == wire.ChannelSync && m.(ChannelMsg).ID() == id

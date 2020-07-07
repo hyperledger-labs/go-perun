@@ -21,8 +21,8 @@ import (
 	ethwtest "perun.network/go-perun/backend/ethereum/wallet/test"
 	clienttest "perun.network/go-perun/client/test"
 	"perun.network/go-perun/log"
-	"perun.network/go-perun/peer"
-	peertest "perun.network/go-perun/peer/test"
+	"perun.network/go-perun/wire"
+	wiretest "perun.network/go-perun/wire/test"
 )
 
 func TestDisputeMalloryCarol(t *testing.T) {
@@ -32,7 +32,7 @@ func TestDisputeMalloryCarol(t *testing.T) {
 	const A, B = 0, 1 // Indices of Mallory and Carol
 	var (
 		name  = [2]string{"Mallory", "Carol"}
-		hub   peertest.ConnHub
+		hub   wiretest.ConnHub
 		setup [2]clienttest.RoleSetup
 		role  [2]clienttest.Executer
 	)
@@ -42,8 +42,8 @@ func TestDisputeMalloryCarol(t *testing.T) {
 		setup[i] = clienttest.RoleSetup{
 			Name:        name[i],
 			Identity:    s.Accs[i],
-			Dialer:      hub.NewDialer(),
-			Listener:    hub.NewListener(s.Accs[i].Address()),
+			Dialer:      hub.NewNetDialer(),
+			Listener:    hub.NewNetListener(s.Accs[i].Address()),
 			Funder:      s.Funders[i],
 			Adjudicator: s.Adjs[i],
 			Wallet:      ethwtest.NewTmpWallet(),
@@ -58,7 +58,7 @@ func TestDisputeMalloryCarol(t *testing.T) {
 	role[B].SetStages(stages)
 
 	execConfig := clienttest.ExecConfig{
-		PeerAddrs:  [2]peer.Address{s.Accs[A].Address(), s.Accs[B].Address()},
+		PeerAddrs:  [2]wire.Address{s.Accs[A].Address(), s.Accs[B].Address()},
 		InitBals:   [2]*big.Int{big.NewInt(100), big.NewInt(1)},
 		Asset:      (*wallet.Address)(&s.Asset),
 		NumUpdates: [2]int{5, 0},
