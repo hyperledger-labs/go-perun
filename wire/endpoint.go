@@ -14,20 +14,20 @@ import (
 	"perun.network/go-perun/pkg/sync"
 )
 
-// Peer is an authenticated connection to a Perun peer.
+// Endpoint is an authenticated connection to a Perun peer.
 // It contains the peer's identity. Peers are thread-safe.
 // Peers must not be created manually. The creation of peers is handled by the
 // Registry, which tracks all existing peers. The registry, in turn, is used by
 // the Client.
 //
 // Sending messages to a peer is done via the Send() method, or via the
-// Broadcaster helper type. To receive messages from a Peer, use the Receiver
+// Broadcaster helper type. To receive messages from a Endpoint, use the Receiver
 // helper type (by subscribing).
 //
 // If a peer is entered into the registry, but still being dialed, then it
 // exists in an unfinished state, and all its operations will block until it is
 // dialed or closed.
-type Peer struct {
+type Endpoint struct {
 	PerunAddress Address // The peer's perun address.
 
 	conn Conn // The peer's connection.
@@ -43,7 +43,7 @@ type Peer struct {
 // recvLoop continuously receives messages from a peer until it is closed.
 // Received messages are relayed via the peer's subscription system. This is
 // called by the registry when the peer is registered.
-func (p *Peer) recvLoop() {
+func (p *Endpoint) recvLoop() {
 	// Wait until the peer exists or is closed.
 	// nolint:staticcheck
 	if !p.waitExists(nil) {
@@ -66,7 +66,7 @@ func (p *Peer) recvLoop() {
 // This is needed in the registry when a peer is still being dialed, but
 // already registered. This wakes up all operations that were started on the
 // unfinished peer object.
-func (p *Peer) create(conn Conn) {
+func (p *Endpoint) create(conn Conn) {
 	p.creating.Lock()
 	defer p.creating.Unlock()
 
@@ -82,7 +82,7 @@ func (p *Peer) create(conn Conn) {
 // The optional context can be used to add a third condition to wait for.
 // The functions returns whether the peer connection was set (true) or whether
 // the peer was prematurely closed or the context finshed (false).
-func (p *Peer) waitExists(ctx context.Context) bool {
+func (p *Endpoint) waitExists(ctx context.Context) bool {
 	var done <-chan struct{}
 	if ctx != nil {
 		done = ctx.Done()
@@ -102,19 +102,19 @@ func (p *Peer) waitExists(ctx context.Context) bool {
 }
 
 // exists returns whether the peer has been fully created.
-func (p *Peer) exists() bool {
+func (p *Endpoint) exists() bool {
 	return p.created.IsClosed()
 }
 
 // OnCreate calls fn after create is called, but only if it has not yet been
 // called. See pkg/sync/Closer.OnClose.
-func (p *Peer) OnCreate(fn func()) bool {
+func (p *Endpoint) OnCreate(fn func()) bool {
 	return p.created.OnClose(fn)
 }
 
 // OnCreateAlways calls fn after create is called, even if it has already been
 // called. See pkg/sync/Closer.OnCloseAlways.
-func (p *Peer) OnCreateAlways(fn func()) bool {
+func (p *Endpoint) OnCreateAlways(fn func()) bool {
 	return p.created.OnCloseAlways(fn)
 }
 
@@ -123,7 +123,7 @@ func (p *Peer) OnCreateAlways(fn func()) bool {
 //
 // The passed context is used to timeout the send operation. If the context
 // times out, the peer is closed.
-func (p *Peer) Send(ctx context.Context, m Msg) error {
+func (p *Endpoint) Send(ctx context.Context, m Msg) error {
 	// Wait until peer exists, is closed, or context timeout.
 	if !p.waitExists(ctx) {
 		p.Close()                        // replace with p.conn.Close() when reintroducing repair.
@@ -155,7 +155,7 @@ func (p *Peer) Send(ctx context.Context, m Msg) error {
 }
 
 // Close closes the peer's connection. A closed peer is no longer usable.
-func (p *Peer) Close() (err error) {
+func (p *Endpoint) Close() (err error) {
 	if err = p.producer.Close(); sync.IsAlreadyClosedError(err) {
 		return
 	}
@@ -170,9 +170,9 @@ func (p *Peer) Close() (err error) {
 	return
 }
 
-// newPeer creates a new peer from a peer address and connection.
-func newPeer(addr Address, conn Conn, _ Dialer) *Peer {
-	p := &Peer{
+// newEndpoint creates a new peer from a peer address and connection.
+func newEndpoint(addr Address, conn Conn, _ Dialer) *Endpoint {
+	p := &Endpoint{
 		PerunAddress: addr,
 
 		conn:     conn,
@@ -187,6 +187,6 @@ func newPeer(addr Address, conn Conn, _ Dialer) *Peer {
 }
 
 // String returns the peer's address string
-func (p *Peer) String() string {
+func (p *Endpoint) String() string {
 	return p.PerunAddress.String()
 }

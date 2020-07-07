@@ -24,8 +24,8 @@ import (
 //
 // Currently, only the two-party protocol is fully implemented.
 type Client struct {
-	id          wire.Identity
-	peers       *wire.Registry
+	id          wire.Account
+	peers       *wire.EndpointRegistry
 	channels    chanRegistry
 	reqRecv     *wire.Receiver
 	funder      channel.Funder
@@ -54,7 +54,7 @@ type Client struct {
 //
 // If any argument is nil, New panics.
 func New(
-	id wire.Identity,
+	id wire.Account,
 	dialer wire.Dialer,
 	funder channel.Funder,
 	adjudicator channel.Adjudicator,
@@ -84,7 +84,7 @@ func New(
 		pr:          persistence.NonPersistRestorer,
 		log:         log,
 	}
-	c.peers = wire.NewRegistry(id, c.subscribePeer, dialer)
+	c.peers = wire.NewEndpointRegistry(id, c.subscribePeer, dialer)
 	return c
 }
 
@@ -143,7 +143,7 @@ func (c *Client) Listen(listener wire.Listener) {
 	c.peers.Listen(listener)
 }
 
-func (c *Client) subscribePeer(p *wire.Peer) {
+func (c *Client) subscribePeer(p *wire.Endpoint) {
 	log := c.logPeer(p)
 	log.Debugf("setting up default subscriptions")
 
@@ -208,7 +208,7 @@ func (c *Client) Log() log.Logger {
 	return c.log
 }
 
-func (c *Client) logPeer(p *wire.Peer) log.Logger {
+func (c *Client) logPeer(p *wire.Endpoint) log.Logger {
 	return c.log.WithField("peer", p.PerunAddress)
 }
 
@@ -237,14 +237,14 @@ func (c *Client) Reconnect(ctx context.Context) error {
 func (c *Client) getPeers(
 	ctx context.Context,
 	addrs []wire.Address,
-) (peers []*wire.Peer, err error) {
+) (peers []*wire.Endpoint, err error) {
 	idx := wallet.IndexOfAddr(addrs, c.id.Address())
 	l := len(addrs)
 	if idx != -1 {
 		l--
 	}
 
-	peers = make([]*wire.Peer, l)
+	peers = make([]*wire.Endpoint, l)
 	for i, a := range addrs {
 		if idx == -1 || i < idx {
 			peers[i], err = c.peers.Get(ctx, a)

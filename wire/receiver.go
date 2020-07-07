@@ -19,7 +19,7 @@ const (
 
 // msgTuple is a helper type, because channels cannot have tuple types.
 type msgTuple struct {
-	*Peer
+	*Endpoint
 	Msg
 }
 
@@ -36,7 +36,7 @@ type Receiver struct {
 }
 
 // Next returns a channel to the next message.
-func (r *Receiver) Next(ctx context.Context) (*Peer, Msg) {
+func (r *Receiver) Next(ctx context.Context) (*Endpoint, Msg) {
 	select {
 	case <-ctx.Done():
 		return nil, nil
@@ -51,12 +51,12 @@ func (r *Receiver) Next(ctx context.Context) (*Peer, Msg) {
 	case <-r.Closed():
 		return nil, nil
 	case tuple := <-r.msgs:
-		return tuple.Peer, tuple.Msg
+		return tuple.Endpoint, tuple.Msg
 	}
 }
 
 // Put puts a new message into the queue.
-func (r *Receiver) Put(peer *Peer, msg Msg) {
+func (r *Receiver) Put(peer *Endpoint, msg Msg) {
 	select {
 	case r.msgs <- msgTuple{peer, msg}:
 	case <-r.Closed():

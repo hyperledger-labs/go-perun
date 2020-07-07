@@ -24,16 +24,16 @@ import (
 var timeout = 100 * time.Millisecond
 
 // Two nodes (1 dialer, 1 listener node) .Get() each other.
-func TestRegistry_Get_Pair(t *testing.T) {
+func TestEndpointRegistry_Get_Pair(t *testing.T) {
 	t.Parallel()
 	assert, require := assert.New(t), require.New(t)
 	rng := rand.New(rand.NewSource(3))
 	var hub wiretest.ConnHub
 	dialerId := wallettest.NewRandomAccount(rng)
 	listenerId := wallettest.NewRandomAccount(rng)
-	dialerReg := wire.NewRegistry(dialerId, func(*wire.Peer) {}, hub.NewDialer())
-	listenerReg := wire.NewRegistry(listenerId, func(*wire.Peer) {}, nil)
-	listener := hub.NewListener(listenerId.Address())
+	dialerReg := wire.NewEndpointRegistry(dialerId, func(*wire.Endpoint) {}, hub.NewNetDialer())
+	listenerReg := wire.NewEndpointRegistry(listenerId, func(*wire.Endpoint) {}, nil)
+	listener := hub.NewNetListener(listenerId.Address())
 
 	done := make(chan struct{})
 	go func() {
@@ -64,20 +64,20 @@ func TestRegistry_Get_Pair(t *testing.T) {
 }
 
 // Tests that calling .Get() concurrently on the same peer works properly.
-func TestRegistry_Get_Multiple(t *testing.T) {
+func TestEndpointRegistry_Get_Multiple(t *testing.T) {
 	t.Parallel()
 	assert := assert.New(t)
 	rng := rand.New(rand.NewSource(3))
 	var hub wiretest.ConnHub
 	dialerId := wallettest.NewRandomAccount(rng)
 	listenerId := wallettest.NewRandomAccount(rng)
-	dialer := hub.NewDialer()
-	logPeer := func(p *wire.Peer) {
+	dialer := hub.NewNetDialer()
+	logPeer := func(p *wire.Endpoint) {
 		p.OnCreateAlways(func() { t.Logf("subscribing %x\n", p.PerunAddress.Bytes()[:4]) })
 	}
-	dialerReg := wire.NewRegistry(dialerId, logPeer, dialer)
-	listenerReg := wire.NewRegistry(listenerId, logPeer, nil)
-	listener := hub.NewListener(listenerId.Address())
+	dialerReg := wire.NewEndpointRegistry(dialerId, logPeer, dialer)
+	listenerReg := wire.NewEndpointRegistry(listenerId, logPeer, nil)
+	listener := hub.NewNetListener(listenerId.Address())
 
 	done := make(chan struct{})
 	go func() {
@@ -89,7 +89,7 @@ func TestRegistry_Get_Multiple(t *testing.T) {
 	defer cancel()
 
 	const N = 4
-	peers := make(chan *wire.Peer, N)
+	peers := make(chan *wire.Endpoint, N)
 	for i := 0; i < N; i++ {
 		go func() {
 			p, err := dialerReg.Get(ctx, listenerId.Address())

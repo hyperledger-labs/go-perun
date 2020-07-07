@@ -16,15 +16,15 @@ import (
 	perunsync "perun.network/go-perun/pkg/sync"
 )
 
-// Registry is a peer Registry.
+// EndpointRegistry is a peer EndpointRegistry.
 // It should not be used manually, but only internally by the client.
-type Registry struct {
+type EndpointRegistry struct {
 	mutex sync.RWMutex
-	peers []*Peer  // The list of all of the registry's peers.
-	id    Identity // The identity of the node.
+	peers []*Endpoint // The list of all of the registry's peers.
+	id    Account     // The identity of the node.
 
-	dialer    Dialer      // Used for dialing peers (and later: repairing).
-	subscribe func(*Peer) // Sets up peer subscriptions.
+	dialer    Dialer          // Used for dialing peers (and later: repairing).
+	subscribe func(*Endpoint) // Sets up peer subscriptions.
 
 	log log.Logger
 	perunsync.Closer
@@ -32,11 +32,11 @@ type Registry struct {
 
 const exchangeAddrsTimeout = 10 * time.Second
 
-// NewRegistry creates a new registry.
+// NewEndpointRegistry creates a new registry.
 // The provided callback is used to set up new peer's subscriptions and it is
 // called before the peer starts receiving messages.
-func NewRegistry(id Identity, subscribe func(*Peer), dialer Dialer) *Registry {
-	return &Registry{
+func NewEndpointRegistry(id Account, subscribe func(*Endpoint), dialer Dialer) *EndpointRegistry {
+	return &EndpointRegistry{
 		id:        id,
 		subscribe: subscribe,
 		dialer:    dialer,
@@ -46,7 +46,7 @@ func NewRegistry(id Identity, subscribe func(*Peer), dialer Dialer) *Registry {
 }
 
 // Close closes the registry's dialer and all its peers.
-func (r *Registry) Close() (err error) {
+func (r *EndpointRegistry) Close() (err error) {
 	if err = r.Closer.Close(); err != nil {
 		return
 	}
@@ -74,7 +74,7 @@ func (r *Registry) Close() (err error) {
 // currently just automatically accepts them after successful authentication.
 // This function does not start go routines but instead should be started by the
 // user as `go registry.Listen()`.
-func (r *Registry) Listen(listener Listener) {
+func (r *EndpointRegistry) Listen(listener Listener) {
 	if !r.OnCloseAlways(func() {
 		if err := listener.Close(); err != nil {
 			r.log.Debugf("Registry.Listen: closing listener OnClose: %v", err)
@@ -101,7 +101,7 @@ func (r *Registry) Listen(listener Listener) {
 
 // setupConn authenticates a fresh connection, and if successful, adds it to the
 // registry.
-func (r *Registry) setupConn(conn Conn) error {
+func (r *EndpointRegistry) setupConn(conn Conn) error {
 	timeout := time.Duration(exchangeAddrsTimeout)
 	ctx, cancel := context.WithTimeout(r.Ctx(), timeout)
 	defer cancel()
@@ -134,7 +134,7 @@ func (r *Registry) setupConn(conn Conn) error {
 // find is not thread safe and is assumed to be called from a method which has
 // the r.mutex lock.
 // While iterating over the peers, find removes closed ones.
-func (r *Registry) find(addr Address) (*Peer, int) {
+func (r *EndpointRegistry) find(addr Address) (*Endpoint, int) {
 	for i, peer := range r.peers {
 		if peer.PerunAddress != nil && peer.PerunAddress.Equals(addr) {
 			if peer.IsClosed() {
@@ -153,7 +153,7 @@ func (r *Registry) find(addr Address) (*Peer, int) {
 // prune removes all closed peers from the Registry.
 // prune is not thread safe and is assumed to be called from a method which has
 // the r.mutex lock.
-func (r *Registry) prune() {
+func (r *EndpointRegistry) prune() {
 	peers := r.peers[:0]
 	for _, peer := range r.peers {
 		if !peer.IsClosed() {
@@ -169,7 +169,7 @@ func (r *Registry) prune() {
 // it, depending on the success of the dialing operation. The unfinished peer
 // object can be used already, but it will block until the peer is finished or
 // closed. If the registry is already closed, returns a closed peer.
-func (r *Registry) Get(ctx context.Context, addr Address) (*Peer, error) {
+func (r *EndpointRegistry) Get(ctx context.Context, addr Address) (*Endpoint, error) {
 	log := r.log.WithField("peer", addr)
 	log.Trace("Registry.Get")
 	r.mutex.Lock()
@@ -196,7 +196,7 @@ func (r *Registry) Get(ctx context.Context, addr Address) (*Peer, error) {
 	return peer, nil
 }
 
-func (r *Registry) authenticatedDial(ctx context.Context, peer *Peer, addr Address) error {
+func (r *EndpointRegistry) authenticatedDial(ctx context.Context, peer *Endpoint, addr Address) error {
 	conn, err := r.dialer.Dial(ctx, addr)
 
 	if peer.exists() {
@@ -227,7 +227,7 @@ func (r *Registry) authenticatedDial(ctx context.Context, peer *Peer, addr Addre
 
 // NumPeers returns the current number of peers in the registry including
 // placeholder peers (cf. Registry.Get).
-func (r *Registry) NumPeers() int {
+func (r *EndpointRegistry) NumPeers() int {
 	r.mutex.Lock()
 	defer r.mutex.Unlock()
 
@@ -244,7 +244,7 @@ func (r *Registry) NumPeers() int {
 // Has return true if and only if there is a peer with the given address in the
 // registry. The function does not differentiate between regular and
 // placeholder peers.
-func (r *Registry) Has(addr Address) bool {
+func (r *EndpointRegistry) Has(addr Address) bool {
 	r.mutex.Lock()
 	defer r.mutex.Unlock()
 
@@ -256,10 +256,10 @@ func (r *Registry) Has(addr Address) bool {
 // addPeer adds a new peer to the registry.
 // addPeer is not thread safe and is assumed to be called from a method which has
 // the r.mutex lock.
-func (r *Registry) addPeer(addr Address, conn Conn) *Peer {
+func (r *EndpointRegistry) addPeer(addr Address, conn Conn) *Endpoint {
 	r.log.WithField("peer", addr).Trace("Registry.addPeer")
 	// Create and register a new peer.
-	peer := newPeer(addr, conn, r.dialer)
+	peer := newEndpoint(addr, conn, r.dialer)
 	r.peers = append(r.peers, peer)
 	// Setup the peer's subscriptions.
 	r.subscribe(peer)
@@ -273,7 +273,7 @@ func (r *Registry) addPeer(addr Address, conn Conn) *Peer {
 // If the peer does not exist in the registry, panics. Does not close the peer.
 // This function is not thread-safe and is assumed to only be called when the
 // mutex lock is held.
-func (r *Registry) delete(peer *Peer) {
+func (r *EndpointRegistry) delete(peer *Endpoint) {
 	for i := range r.peers {
 		if r.peers[i] == peer {
 			// Delete the i-th entry.

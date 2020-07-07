@@ -31,7 +31,7 @@ const timeout = 100 * time.Millisecond
 func TestListener_Accept_Put(t *testing.T) {
 	t.Parallel()
 
-	l := NewListener()
+	l := NewNetListener()
 	done := make(chan struct{})
 	go func() {
 		defer close(done)
@@ -59,7 +59,7 @@ func TestListener_Accept_Close(t *testing.T) {
 	t.Parallel()
 
 	t.Run("close before accept", func(t *testing.T) {
-		l := NewListener()
+		l := NewNetListener()
 		l.Close()
 		test.AssertTerminates(t, timeout, func() {
 			conn, err := l.Accept()
@@ -69,7 +69,7 @@ func TestListener_Accept_Close(t *testing.T) {
 		})
 	})
 	t.Run("close during accept", func(t *testing.T) {
-		l := NewListener()
+		l := NewNetListener()
 
 		go func() {
 			<-time.After(timeout)
@@ -94,14 +94,14 @@ func TestListener_Put(t *testing.T) {
 		ctx, cancel := context.WithCancel(context.Background())
 		cancel()
 		test.AssertTerminates(t, timeout, func() {
-			assert.False(t, NewListener().Put(ctx, connection))
+			assert.False(t, NewNetListener().Put(ctx, connection))
 		})
 	})
 
 	t.Run("close", func(t *testing.T) {
 		t.Parallel()
 
-		l := NewListener()
+		l := NewNetListener()
 		l.Close()
 		test.AssertTerminates(t, timeout, func() {
 			// Closed listener must abort Put() calls.
@@ -116,7 +116,7 @@ func TestListener_Put(t *testing.T) {
 }
 
 func TestListener_Close(t *testing.T) {
-	l := NewListener()
+	l := NewNetListener()
 	assert.False(t, l.IsClosed())
 	assert.NoError(t, l.Close())
 	assert.True(t, l.IsClosed())

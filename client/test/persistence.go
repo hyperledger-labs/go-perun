@@ -24,8 +24,8 @@ import (
 // to use possible other netorking infrastructure for the tests in the future,
 // it is consumed as an interface in the client persistence tests.
 type ConnHub interface {
-	NewListener(addr wire.Address) wire.Listener
-	NewDialer() wire.Dialer
+	NewNetListener(addr wire.Address) wire.Listener
+	NewNetDialer() wire.Dialer
 }
 
 type (
@@ -44,13 +44,13 @@ type (
 // ReplaceClient replaces the client instance of the Role. Useful for
 // persistence testing.
 func (r *multiClientRole) ReplaceClient() {
-	dialer := r.hub.NewDialer()
+	dialer := r.hub.NewNetDialer()
 	cl := client.New(r.setup.Identity, dialer, r.setup.Funder, r.setup.Adjudicator, r.setup.Wallet)
 	r.setClient(cl)
 }
 
-func (r *multiClientRole) NewListener() wire.Listener {
-	return r.hub.NewListener(r.setup.Identity.Address())
+func (r *multiClientRole) NewNetListener() wire.Listener {
+	return r.hub.NewNetListener(r.setup.Identity.Address())
 }
 
 func makeMultiClientRole(setup RoleSetup, hub ConnHub, t *testing.T, stages int) multiClientRole {
@@ -172,7 +172,7 @@ func (r *Robert) Execute(cfg ExecConfig) {
 	r.ReplaceClient()
 	newCh := make(chan *paymentChannel, 1)
 	r.OnNewChannel(func(_ch *paymentChannel) { newCh <- _ch })
-	waitListen = r.GoListen(r.hub.NewListener(r.setup.Identity.Address()))
+	waitListen = r.GoListen(r.hub.NewNetListener(r.setup.Identity.Address()))
 	defer waitListen()
 
 	// 6. Robert listens

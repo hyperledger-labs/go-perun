@@ -13,7 +13,7 @@ import (
 // Broadcaster is a communications object that allows sending a single message
 // to multiple peers in a single operation.
 type Broadcaster struct {
-	peers []*Peer
+	peers []*Endpoint
 }
 
 // Send sends the requested message to all of the broadcaster's recipients.
@@ -29,7 +29,7 @@ func (b *Broadcaster) Send(ctx context.Context, m Msg) error {
 	gather := make(chan sendError, len(b.peers))
 	// Send all messages in parallel.
 	for i, p := range b.peers {
-		go func(i int, p *Peer) {
+		go func(i int, p *Endpoint) {
 			gather <- sendError{
 				index: i,
 				err:   p.Send(ctx, m),
@@ -74,6 +74,6 @@ func (err *BroadcastError) Error() string {
 }
 
 // NewBroadcaster creates a new broadcaster instance.
-func NewBroadcaster(peers []*Peer) *Broadcaster {
+func NewBroadcaster(peers []*Endpoint) *Broadcaster {
 	return &Broadcaster{peers: peers}
 }

@@ -42,7 +42,7 @@ type (
 	// RoleSetup contains the injectables for setting up the client.
 	RoleSetup struct {
 		Name        string
-		Identity    wire.Identity
+		Identity    wire.Account
 		Dialer      wire.Dialer
 		Listener    wire.Listener
 		Funder      channel.Funder

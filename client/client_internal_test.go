@@ -34,19 +34,19 @@ func TestClient_getPeers(t *testing.T) {
 	for i := range addr {
 		id := wallettest.NewRandomAccount(rng)
 		addr[i] = id.Address()
-		l := hub.NewListener(id.Address())
+		l := hub.NewNetListener(id.Address())
 		defer l.Close()
-		reg := wire.NewRegistry(id, func(*wire.Peer) {}, nil)
+		reg := wire.NewEndpointRegistry(id, func(*wire.Endpoint) {}, nil)
 		go func() {
 			defer wg.Done()
 			reg.Listen(l)
 		}()
 	}
 
-	dialer := hub.NewDialer()
+	dialer := hub.NewNetDialer()
 
 	id := wallettest.NewRandomAccount(rng)
-	reg := wire.NewRegistry(id, func(*wire.Peer) {}, dialer)
+	reg := wire.NewEndpointRegistry(id, func(*wire.Endpoint) {}, dialer)
 	// dummy client that only has an id and a registry
 	c := &Client{
 		id:    id,
@@ -91,7 +91,7 @@ func TestClient_getPeers(t *testing.T) {
 func TestClient_Channel(t *testing.T) {
 	rng := rand.New(rand.NewSource(0xdeadbeef))
 	id := wallettest.NewRandomAccount(rng)
-	reg := wire.NewRegistry(id, func(*wire.Peer) {}, nil)
+	reg := wire.NewEndpointRegistry(id, func(*wire.Endpoint) {}, nil)
 	// dummy client that only has an id and a registry
 	c := &Client{
 		id:       id,

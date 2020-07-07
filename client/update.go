@@ -22,7 +22,7 @@ import (
 // is unknown, an error is logged.
 //
 // This handler is dispatched from the Client.Handle routine.
-func (c *Client) handleChannelUpdate(uh UpdateHandler, p *wire.Peer, m *msgChannelUpdate) {
+func (c *Client) handleChannelUpdate(uh UpdateHandler, p *wire.Endpoint, m *msgChannelUpdate) {
 	ch, ok := c.channels.Get(m.ID())
 	if !ok {
 		c.logChan(m.ID()).WithField("peer", p.PerunAddress).Errorf("received update for unknown channel")

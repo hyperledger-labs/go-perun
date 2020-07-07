@@ -18,12 +18,12 @@ import (
 // correctly.
 func TestBroadcaster_Send(t *testing.T) {
 	N := 5
-	peers := make([]*Peer, N)
+	peers := make([]*Endpoint, N)
 	msg := NewPingMsg()
 	check := func(m Msg) { assert.Equal(t, msg, m) }
 
 	for i := 0; i < N; i++ {
-		peers[i] = newPeer(nil, newMockConn(check), nil)
+		peers[i] = newEndpoint(nil, newMockConn(check), nil)
 	}
 
 	b := NewBroadcaster(peers)
@@ -35,10 +35,10 @@ func TestBroadcaster_Send(t *testing.T) {
 // whole operation fails.
 func TestBroadcaster_Send_Error(t *testing.T) {
 	N := 5
-	peers := make([]*Peer, N)
+	peers := make([]*Endpoint, N)
 
 	for i := 0; i < N; i++ {
-		peers[i] = newPeer(nil, newMockConn(nil), nil)
+		peers[i] = newEndpoint(nil, newMockConn(nil), nil)
 	}
 
 	peers[1].Close()

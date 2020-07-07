@@ -41,7 +41,7 @@ func TestProducer(t *testing.T) {
 func TestProducer_produce_DefaultMsgHandler(t *testing.T) {
 	missedMsg := make(chan Msg, 1)
 	recv, send := newPipeConnPair()
-	p := newPeer(nil, recv, nil)
+	p := newEndpoint(nil, recv, nil)
 	go p.recvLoop()
 
 	p.SetDefaultMsgHandler(func(m Msg) {
@@ -68,7 +68,7 @@ func TestProducer_produce_closed(t *testing.T) {
 	p := makeProducer()
 	p.SetDefaultMsgHandler(func(m Msg) { missed = m })
 	assert.NoError(t, p.Close())
-	p.produce(NewPingMsg(), &Peer{})
+	p.produce(NewPingMsg(), &Endpoint{})
 	assert.Nil(t, missed, "produce() on closed producer shouldn't do anything")
 }
 
@@ -138,7 +138,7 @@ func TestProducer_caching(t *testing.T) {
 
 	ctx := context.Background()
 	prod.Cache(ctx, isPing)
-	ping0, peer0 := NewPingMsg(), &Peer{} // dummy peer
+	ping0, peer0 := NewPingMsg(), &Endpoint{} // dummy peer
 	pong1 := NewPongMsg()
 	pong2 := NewPongMsg()
 
@@ -146,12 +146,12 @@ func TestProducer_caching(t *testing.T) {
 	assert.Equal(1, prod.cache.Size())
 	assert.Len(unhandlesMsg, 0)
 
-	prod.produce(pong1, &Peer{})
+	prod.produce(pong1, &Endpoint{})
 	assert.Equal(1, prod.cache.Size())
 	assert.Len(unhandlesMsg, 1)
 
 	prod.Cache(ctx, isPong)
-	prod.produce(pong2, &Peer{})
+	prod.produce(pong2, &Endpoint{})
 	assert.Equal(2, prod.cache.Size())
 	assert.Len(unhandlesMsg, 1)
 

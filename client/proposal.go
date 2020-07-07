@@ -37,7 +37,7 @@ type (
 	// panic.
 	ProposalResponder struct {
 		client *Client
-		peer   *wire.Peer
+		peer   *wire.Endpoint
 		req    *ChannelProposal
 		called atomic.Bool
 	}
@@ -135,7 +135,7 @@ func (c *Client) ProposeChannel(ctx context.Context, req *ChannelProposal) (*Cha
 //
 // This handler is dispatched from the Client.Handle routine.
 func (c *Client) handleChannelProposal(
-	handler ProposalHandler, p *wire.Peer, req *ChannelProposal) {
+	handler ProposalHandler, p *wire.Endpoint, req *ChannelProposal) {
 	if err := c.validTwoPartyProposal(req, 1, p.PerunAddress); err != nil {
 		c.logPeer(p).Debugf("received invalid channel proposal: %v", err)
 		return
@@ -148,7 +148,7 @@ func (c *Client) handleChannelProposal(
 }
 
 func (c *Client) handleChannelProposalAcc(
-	ctx context.Context, p *wire.Peer,
+	ctx context.Context, p *wire.Endpoint,
 	req *ChannelProposal, acc ProposalAcc,
 ) (*Channel, error) {
 	if acc.Participant == nil {
@@ -180,7 +180,7 @@ func (c *Client) handleChannelProposalAcc(
 }
 
 func (c *Client) handleChannelProposalRej(
-	ctx context.Context, p *wire.Peer,
+	ctx context.Context, p *wire.Endpoint,
 	req *ChannelProposal, reason string,
 ) error {
 	msgReject := &ChannelProposalRej{

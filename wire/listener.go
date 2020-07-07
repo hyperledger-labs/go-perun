@@ -5,12 +5,6 @@
 
 package wire
 
-import (
-	"net"
-
-	"github.com/pkg/errors"
-)
-
 // Listener is an interface that allows listening for peer incoming connections.
 // The accepted connections still need to be authenticated.
 type Listener interface {
@@ -24,42 +18,4 @@ type Listener interface {
 	Accept() (Conn, error)
 	// Close closes the listener and aborts any ongoing Accept() call.
 	Close() error
-}
-
-// TCPListener is a TCP Listener.
-type TCPListener struct {
-	net.Listener
-}
-
-var _ Listener = &TCPListener{}
-
-// NewListener creates a listener reachable under the requested address.
-func NewListener(network string, address string) (*TCPListener, error) {
-	l, err := net.Listen(network, address)
-	if err != nil {
-		return nil, errors.Wrapf(err,
-			"failed to create listener for '%s'", address)
-	}
-
-	return &TCPListener{Listener: l}, nil
-}
-
-// NewTCPListener is a short-hand version of NewListener for TCP listeners.
-func NewTCPListener(address string) (*TCPListener, error) {
-	return NewListener("tcp", address)
-}
-
-// NewUnixListener is a short-hand version of NewListener for Unix listeners.
-func NewUnixListener(address string) (*TCPListener, error) {
-	return NewListener("unix", address)
-}
-
-// Accept implements peer.Dialer.Accept().
-func (l *TCPListener) Accept() (Conn, error) {
-	conn, err := l.Listener.Accept()
-	if err != nil {
-		return nil, errors.Wrap(err, "accept failed")
-	}
-
-	return NewIoConn(conn), nil
 }

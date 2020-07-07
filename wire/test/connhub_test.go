@@ -27,7 +27,7 @@ func TestConnHub_Create(t *testing.T) {
 
 		var c ConnHub
 		addr := wallettest.NewRandomAddress(rng)
-		d, l := c.NewDialer(), c.NewListener(addr)
+		d, l := c.NewNetDialer(), c.NewNetListener(addr)
 		assert.NotNil(d)
 		assert.NotNil(l)
 
@@ -61,10 +61,10 @@ func TestConnHub_Create(t *testing.T) {
 		var c ConnHub
 		addr := wallettest.NewRandomAddress(rng)
 
-		l := c.NewListener(addr)
+		l := c.NewNetListener(addr)
 		assert.NotNil(l)
 
-		assert.Panics(func() { c.NewListener(addr) })
+		assert.Panics(func() { c.NewNetListener(addr) })
 	})
 
 	t.Run("dial nonexisting", func(t *testing.T) {
@@ -72,7 +72,7 @@ func TestConnHub_Create(t *testing.T) {
 
 		var c ConnHub
 
-		d := c.NewDialer()
+		d := c.NewNetDialer()
 		test.AssertTerminates(t, timeout, func() {
 			conn, err := d.Dial(context.Background(), wallettest.NewRandomAddress(rng))
 			assert.Nil(conn)
@@ -87,8 +87,8 @@ func TestConnHub_Create(t *testing.T) {
 		c.Close()
 		addr := wallettest.NewRandomAddress(rng)
 
-		assert.Panics(func() { c.NewDialer() })
-		assert.Panics(func() { c.NewListener(addr) })
+		assert.Panics(func() { c.NewNetDialer() })
+		assert.Panics(func() { c.NewNetListener(addr) })
 	})
 }
 
@@ -98,7 +98,7 @@ func TestConnHub_Close(t *testing.T) {
 		assert := assert.New(t)
 
 		var c ConnHub
-		l := c.NewListener(wallettest.NewRandomAddress(rng))
+		l := c.NewNetListener(wallettest.NewRandomAddress(rng))
 		assert.NoError(c.Close())
 		assert.True(l.IsClosed())
 	})
@@ -107,8 +107,8 @@ func TestConnHub_Close(t *testing.T) {
 		assert := assert.New(t)
 
 		var c ConnHub
-		l := c.NewListener(wallettest.NewRandomAddress(rng))
-		l2 := NewListener()
+		l := c.NewNetListener(wallettest.NewRandomAddress(rng))
+		l2 := NewNetListener()
 		l2.Close()
 		c.insert(wallettest.NewRandomAccount(rng).Address(), l2)
 		assert.Error(c.Close())
@@ -119,7 +119,7 @@ func TestConnHub_Close(t *testing.T) {
 		assert := assert.New(t)
 
 		var c ConnHub
-		d := c.NewDialer()
+		d := c.NewNetDialer()
 		d2 := &Dialer{}
 		d2.Close()
 		c.dialers.insert(d2)

@@ -17,7 +17,7 @@ import (
 	"perun.network/go-perun/wire"
 )
 
-func TestPeerChans(t *testing.T) {
+func TestEndpointChans(t *testing.T) {
 	assert := assert.New(t)
 	rng := rand.New(rand.NewSource(20200525))
 	id := []channel.ID{ctest.NewRandomChannelID(rng), ctest.NewRandomChannelID(rng)}

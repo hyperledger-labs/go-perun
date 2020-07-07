@@ -92,7 +92,7 @@ func (p *producer) Subscribe(c Consumer, predicate Predicate) error {
 	cached := p.cache.Get(predicate)
 	go func() {
 		for _, m := range cached {
-			c.Put(m.Annex.(*Peer), m.Msg)
+			c.Put(m.Annex.(*Endpoint), m.Msg)
 		}
 	}()
 
@@ -126,7 +126,7 @@ func (p *producer) isEmpty() bool {
 	return len(p.consumers) == 0
 }
 
-func (p *producer) produce(m Msg, peer *Peer) {
+func (p *producer) produce(m Msg, peer *Endpoint) {
 	p.mutex.RLock()
 	defer p.mutex.RUnlock()
 

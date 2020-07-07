@@ -38,7 +38,7 @@ type Channel struct {
 // controller after the channel proposal protocol ran successfully.
 func (c *Client) newChannel(
 	acc wallet.Account,
-	peers []*wire.Peer,
+	peers []*wire.Endpoint,
 	params channel.Params,
 ) (*Channel, error) {
 	machine, err := channel.NewStateMachine(acc, params)
@@ -49,7 +49,7 @@ func (c *Client) newChannel(
 }
 
 // channelFromSource is used to create a channel controller from restored data.
-func (c *Client) channelFromSource(s channel.Source, peers ...*wire.Peer) (*Channel, error) {
+func (c *Client) channelFromSource(s channel.Source, peers ...*wire.Endpoint) (*Channel, error) {
 	acc, err := c.wallet.Unlock(s.Params().Parts[s.Idx()])
 	if err != nil {
 		return nil, errors.WithMessage(err, "unlocking account for channel")
@@ -64,7 +64,7 @@ func (c *Client) channelFromSource(s channel.Source, peers ...*wire.Peer) (*Chan
 }
 
 // channelFromMachine creates a channel controller around the passed state machine.
-func (c *Client) channelFromMachine(machine *channel.StateMachine, peers ...*wire.Peer) (*Channel, error) {
+func (c *Client) channelFromMachine(machine *channel.StateMachine, peers ...*wire.Endpoint) (*Channel, error) {
 	pmachine := persistence.FromStateMachine(machine, c.pr)
 
 	// bundle peers into channel connection

@@ -23,10 +23,10 @@ type ConnHub struct {
 	sync.Closer
 }
 
-// NewListener creates a new test listener for the given address.
+// NewNetListener creates a new test listener for the given address.
 // Registers the new listener in the hub. Panics if the address was already
 // entered or the hub is closed.
-func (h *ConnHub) NewListener(addr wire.Address) *Listener {
+func (h *ConnHub) NewNetListener(addr wire.Address) *Listener {
 	h.mutex.RLock()
 	defer h.mutex.RUnlock()
 
@@ -34,7 +34,7 @@ func (h *ConnHub) NewListener(addr wire.Address) *Listener {
 		panic("ConnHub already closed")
 	}
 
-	listener := NewListener()
+	listener := NewNetListener()
 	if err := h.insert(addr, listener); err != nil {
 		panic("double registration")
 	}
@@ -45,9 +45,9 @@ func (h *ConnHub) NewListener(addr wire.Address) *Listener {
 	return listener
 }
 
-// NewDialer creates a new test dialer.
+// NewNetDialer creates a new test dialer.
 // Registers the new dialer in the hub. Panics if the hub is closed.
-func (h *ConnHub) NewDialer() *Dialer {
+func (h *ConnHub) NewNetDialer() *Dialer {
 	h.mutex.RLock()
 	defer h.mutex.RUnlock()
 

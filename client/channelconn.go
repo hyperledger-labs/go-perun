@@ -24,7 +24,7 @@ type channelConn struct {
 
 	b       *wire.Broadcaster
 	r       *wire.Relay // update response relay
-	peerIdx map[*wire.Peer]channel.Index
+	peerIdx map[*wire.Endpoint]channel.Index
 
 	log log.Logger
 }
@@ -34,7 +34,7 @@ type channelConn struct {
 // the peers is important: it must match their position in the channel
 // participant slice, or one less if their index is above our index, since we
 // are not part of the peer slice.
-func newChannelConn(id channel.ID, peers []*wire.Peer, idx channel.Index) (_ *channelConn, err error) {
+func newChannelConn(id channel.ID, peers []*wire.Endpoint, idx channel.Index) (_ *channelConn, err error) {
 	// relay to receive all update responses
 	relay := wire.NewRelay()
 	// we cache all responses for the lifetime of the relay
@@ -55,7 +55,7 @@ func newChannelConn(id channel.ID, peers []*wire.Peer, idx channel.Index) (_ *ch
 		return ok && m.(ChannelMsg).ID() == id
 	}
 
-	peerIdx := make(map[*wire.Peer]channel.Index)
+	peerIdx := make(map[*wire.Endpoint]channel.Index)
 	for i, peer := range peers {
 		i := channel.Index(i)
 		peerIdx[peer] = i
@@ -140,7 +140,7 @@ type (
 	// with Next(), which returns the peer's channel index and the message.
 	channelMsgRecv struct {
 		*wire.Receiver
-		peerIdx map[*wire.Peer]channel.Index
+		peerIdx map[*wire.Endpoint]channel.Index
 		log     log.Logger
 	}
 )

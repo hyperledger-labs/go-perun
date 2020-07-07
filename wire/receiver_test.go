@@ -28,7 +28,7 @@ func TestReceiver_Close(t *testing.T) {
 
 func TestReceiver_Next(t *testing.T) {
 	t.Parallel()
-	peer := newPeer(nil, nil, nil)
+	peer := newEndpoint(nil, nil, nil)
 	msg := NewPingMsg()
 
 	t.Run("Happy case", func(t *testing.T) {

@@ -21,7 +21,7 @@ func TestRelay_Put(t *testing.T) {
 	r := NewReceiver()
 	relay.Subscribe(r, func(Msg) bool { return true })
 
-	p := newPeer(nil, nil, nil)
+	p := newEndpoint(nil, nil, nil)
 	msg := NewPingMsg()
 	go relay.Put(p, msg)
 
@@ -38,7 +38,7 @@ func TestRelay_WithPeerAndReceiver(t *testing.T) {
 	acceptAll := func(Msg) bool { return true }
 
 	send, recv := newPipeConnPair()
-	p := newPeer(nil, recv, nil)
+	p := newEndpoint(nil, recv, nil)
 	relay := NewRelay()
 	receiver := NewReceiver()
 

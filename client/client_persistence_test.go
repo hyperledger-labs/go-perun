@@ -39,10 +39,10 @@ func TestPersistencePetraRobert(t *testing.T) {
 
 type connHub wtest.ConnHub // wrapper for correct return type signatures
 
-func (h *connHub) NewListener(addr wire.Address) wire.Listener {
-	return (*wtest.ConnHub)(h).NewListener(addr)
+func (h *connHub) NewNetListener(addr wire.Address) wire.Listener {
+	return (*wtest.ConnHub)(h).NewNetListener(addr)
 }
-func (h *connHub) NewDialer() wire.Dialer { return (*wtest.ConnHub)(h).NewDialer() }
+func (h *connHub) NewNetDialer() wire.Dialer { return (*wtest.ConnHub)(h).NewNetDialer() }
 
 func NewSetupsPersistence(t *testing.T, rng *rand.Rand, names []string) ([]ctest.RoleSetup, *wtest.ConnHub) {
 	setups, hub := NewSetups(rng, names)

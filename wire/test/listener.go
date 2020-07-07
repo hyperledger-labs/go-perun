@@ -28,8 +28,8 @@ type Listener struct {
 	accepted int32 // The number of connections that have been accepted.
 }
 
-// NewListener creates a new test listener.
-func NewListener() *Listener {
+// NewNetListener creates a new test listener.
+func NewNetListener() *Listener {
 	return &Listener{
 		queue:    make(chan wire.Conn),
 		accepted: 0,

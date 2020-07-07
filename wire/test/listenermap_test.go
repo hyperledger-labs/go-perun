@@ -26,7 +26,7 @@ func TestListenerMap_find(t *testing.T) {
 
 	t.Run("map with entry", func(t *testing.T) {
 		key := test.NewRandomAddress(rng)
-		listener := NewListener()
+		listener := NewNetListener()
 		entry := listenerMapEntry{key, listener}
 		m := listenerMap{entries: []listenerMapEntry{entry}}
 
@@ -47,7 +47,7 @@ func TestListenerMap_insert(t *testing.T) {
 		m := listenerMap{}
 		for i := 0; i < 10; i++ {
 			key := test.NewRandomAddress(rng)
-			assert.NoError(t, m.insert(key, NewListener()))
+			assert.NoError(t, m.insert(key, NewNetListener()))
 			_, ok := m.find(key)
 			assert.True(t, ok)
 		}
@@ -56,8 +56,8 @@ func TestListenerMap_insert(t *testing.T) {
 	t.Run("double insert", func(t *testing.T) {
 		m := listenerMap{}
 		key := test.NewRandomAddress(rng)
-		assert.NoError(t, m.insert(key, NewListener()))
-		assert.Error(t, m.insert(key, NewListener()))
+		assert.NoError(t, m.insert(key, NewNetListener()))
+		assert.Error(t, m.insert(key, NewNetListener()))
 	})
 }
 
@@ -68,7 +68,7 @@ func TestListenerMap_erase(t *testing.T) {
 		m := listenerMap{}
 		for i := 0; i < 10; i++ {
 			key := test.NewRandomAddress(rng)
-			assert.NoError(t, m.insert(key, NewListener()))
+			assert.NoError(t, m.insert(key, NewNetListener()))
 			assert.NoError(t, m.erase(key))
 			_, ok := m.find(key)
 			assert.False(t, ok)

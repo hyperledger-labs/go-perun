@@ -161,7 +161,7 @@ func TestClient_NewAndListen(t *testing.T) {
 	// initialize the listener instance in the main goroutine
 	// if it is initialized in a goroutine, the goroutine may be put to sleep
 	// and the dialer may complain about a nonexistent listener
-	listener := connHub.NewListener(c.id.Address())
+	listener := connHub.NewNetListener(c.id.Address())
 	go c.Listen(listener)
 
 	require.Zero(c.peers.NumPeers())
@@ -170,7 +170,7 @@ func TestClient_NewAndListen(t *testing.T) {
 	go func() {
 		defer close(dialerDone)
 
-		dialer := connHub.NewDialer()
+		dialer := connHub.NewNetDialer()
 		defer dialer.Close()
 		ctx, cancel := context.WithTimeout(context.Background(), timeout)
 		defer cancel()
@@ -200,7 +200,7 @@ func TestClient_NewAndListen(t *testing.T) {
 
 	// make a successful connection
 	peerID := wtest.NewRandomAccount(rng)
-	dialer := connHub.NewDialer()
+	dialer := connHub.NewNetDialer()
 
 	go func() {
 		ctx, cancel := context.WithTimeout(context.Background(), timeout)
@@ -280,12 +280,12 @@ func testClientMultiplexing(
 		i := i
 		id := wtest.NewRandomAccount(rng)
 		listeners[i] = New(
-			id, connHub.NewDialer(), &DummyFunder{t}, &DummyAdjudicator{t}, wtest.RandomWallet())
-		go listeners[i].Listen(connHub.NewListener(listeners[i].id.Address()))
+			id, connHub.NewNetDialer(), &DummyFunder{t}, &DummyAdjudicator{t}, wtest.RandomWallet())
+		go listeners[i].Listen(connHub.NewNetListener(listeners[i].id.Address()))
 	}
 	for i := range dialers {
 		id := wtest.NewRandomAccount(rng)
-		dialers[i] = New(id, connHub.NewDialer(), &DummyFunder{t}, &DummyAdjudicator{t}, wtest.RandomWallet())
+		dialers[i] = New(id, connHub.NewNetDialer(), &DummyFunder{t}, &DummyAdjudicator{t}, wtest.RandomWallet())
 	}
 
 	hostBarrier := new(sync.WaitGroup)
@@ -358,7 +358,7 @@ func testClientMultiplexing(
 				time.Sleep(sleepTime * time.Millisecond)
 
 				j := xs[k]
-				var peers *wire.Registry
+				var peers *wire.EndpointRegistry
 				var addr wire.Address
 				if k < numListeners/2 {
 					peers = dialers[i].peers

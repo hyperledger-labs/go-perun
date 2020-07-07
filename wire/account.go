@@ -23,10 +23,10 @@ func init() {
 		})
 }
 
-// Identity is a node's permanent Perun identity, which is used to establish
+// Account is a node's permanent Perun identity, which is used to establish
 // authenticity within the Perun peer-to-peer network. For now, it is just a
 // stub.
-type Identity = wallet.Account
+type Account = wallet.Account
 
 // ExchangeAddrs exchanges Perun addresses of peers. It's the initial protocol
 // that is run when a new peer connection is established. It returns the address
@@ -36,7 +36,7 @@ type Identity = wallet.Account
 // In the future, ExchangeAddrs will be replaced by Authenticate to run a proper
 // authentication protocol. The protocol will then exchange Perun addresses and
 // establish authenticity.
-func ExchangeAddrs(ctx context.Context, id Identity, conn Conn) (Address, error) {
+func ExchangeAddrs(ctx context.Context, id Account, conn Conn) (Address, error) {
 	var addr Address
 	var err error
 	ok := test.TerminatesCtx(ctx, func() {
@@ -88,6 +88,6 @@ func (m *AuthResponseMsg) Decode(r io.Reader) (err error) {
 // NewAuthResponseMsg creates an authentication response message.
 // In the future, it will also take an authentication challenge message as
 // additional argument.
-func NewAuthResponseMsg(id Identity) Msg {
+func NewAuthResponseMsg(id Account) Msg {
 	return &AuthResponseMsg{id.Address()}
 }

@@ -54,8 +54,8 @@ func NewSetups(rng *rand.Rand, names []string) ([]ctest.RoleSetup, *wiretest.Con
 		setup[i] = ctest.RoleSetup{
 			Name:        names[i],
 			Identity:    acc,
-			Dialer:      hub.NewDialer(),
-			Listener:    hub.NewListener(acc.Address()),
+			Dialer:      hub.NewNetDialer(),
+			Listener:    hub.NewNetListener(acc.Address()),
 			Funder:      &logFunder{log.WithField("role", names[i])},
 			Adjudicator: &logAdjudicator{log.WithField("role", names[i])},
 			Wallet:      wtest.NewWallet(),
