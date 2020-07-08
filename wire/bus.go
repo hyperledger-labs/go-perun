@@ -5,18 +5,11 @@
 
 package wire
 
-import (
-	"context"
-)
-
 // A Bus is a central message bus over which all clients of a channel network
 // communicate. It is used as the transport layer abstraction for the
 // client.Client.
 type Bus interface {
-	// Publish should return nil when the message was delivered (outgoing) or is
-	// guaranteed to be eventually delivered (cached), depending on the goal of
-	// the implementation.
-	Publish(context.Context, *Envelope) error
+	Publisher
 
 	// SubscribeClient should route all messages with clientAddr as recipient to
 	// the provided Consumer. Every address may only be subscribed to once.
