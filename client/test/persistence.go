@@ -7,6 +7,7 @@ package test
 
 import (
 	"context"
+	"math/big"
 	"math/rand"
 	"testing"
 	"time"
@@ -15,23 +16,11 @@ import (
 
 	"perun.network/go-perun/channel"
 	"perun.network/go-perun/client"
-	"perun.network/go-perun/pkg/test"
-	"perun.network/go-perun/wire"
 )
-
-// A ConnHub can be used to create related Listeners and Dialers.
-// This is (almost) fulfilled by the peer/test.ConnHub but in order to be able
-// to use possible other netorking infrastructure for the tests in the future,
-// it is consumed as an interface in the client persistence tests.
-type ConnHub interface {
-	NewNetListener(addr wire.Address) wire.Listener
-	NewNetDialer() wire.Dialer
-}
 
 type (
 	multiClientRole struct {
 		role
-		hub ConnHub
 	}
 
 	// Petra is the Proposer in a Persistence test.
@@ -44,27 +33,25 @@ type (
 // ReplaceClient replaces the client instance of the Role. Useful for
 // persistence testing.
 func (r *multiClientRole) ReplaceClient() {
-	dialer := r.hub.NewNetDialer()
-	cl := client.New(r.setup.Identity, dialer, r.setup.Funder, r.setup.Adjudicator, r.setup.Wallet)
+	cl, err := client.New(r.setup.Identity, r.setup.Bus, r.setup.Funder, r.setup.Adjudicator, r.setup.Wallet)
+	if err != nil {
+		r.t.Fatal("Error recreating Client: ", err)
+	}
 	r.setClient(cl)
 }
 
-func (r *multiClientRole) NewNetListener() wire.Listener {
-	return r.hub.NewNetListener(r.setup.Identity.Address())
-}
-
-func makeMultiClientRole(setup RoleSetup, hub ConnHub, t *testing.T, stages int) multiClientRole {
-	return multiClientRole{role: makeRole(setup, t, stages), hub: hub}
+func makeMultiClientRole(setup RoleSetup, t *testing.T, stages int) multiClientRole {
+	return multiClientRole{role: makeRole(setup, t, stages)}
 }
 
 // NewPetra creates a new Proposer that executes the Petra protocol.
-func NewPetra(setup RoleSetup, hub ConnHub, t *testing.T) *Petra {
-	return &Petra{makeMultiClientRole(setup, hub, t, 6)}
+func NewPetra(setup RoleSetup, t *testing.T) *Petra {
+	return &Petra{makeMultiClientRole(setup, t, 6)}
 }
 
 // NewRobert creates a new Responder that executes the Robert protocol.
-func NewRobert(setup RoleSetup, hub ConnHub, t *testing.T) *Robert {
-	return &Robert{makeMultiClientRole(setup, hub, t, 6)}
+func NewRobert(setup RoleSetup, t *testing.T) *Robert {
+	return &Robert{makeMultiClientRole(setup, t, 6)}
 }
 
 // Execute executes the Petra protocol.
@@ -87,33 +74,33 @@ func (r *Petra) Execute(cfg ExecConfig) {
 	// 1. channel controller set up
 	r.waitStage()
 
-	// 2. exchange final state
-	ch.sendFinal()
+	// 2. send transfer
+	ch.sendTransfer(big.NewInt(1), "send#1")
 	r.waitStage()
 
-	// 3. Petra closes client, triggering disconnect and also closure of channel for Robert.
+	// 3. Both close client
 	assrt.NoError(r.Close())
 	assrt.True(ch.IsClosed(), "closing client should close channel")
 	wait() // Handle return
 	r.waitStage()
 
-	// 4. Robert closes client
-	r.waitStage()
-
 	r.assertPersistedPeerAndChannel(&cfg, ch.State())
 
-	// 5. Restart clients and let them sync channels
+	// 4. Restart clients and let them sync channels
 	r.ReplaceClient()
 	newCh := make(chan *paymentChannel, 1)
 	r.OnNewChannel(func(_ch *paymentChannel) { newCh <- _ch })
+	// ignore proposal handler
+	_, wait = r.GoHandle(rng)
+	defer wait()
 
-	// 6. Robert listens
+	// 5. Clients restarted
 	r.waitStage()
 
-	// We connect to Robert
+	// Restore channels locally
 	ctx, cancel := context.WithTimeout(context.Background(), r.timeout)
 	defer cancel()
-	assrt.NoError(r.Reconnect(ctx)) // should connect to Robert
+	assrt.NoError(r.Restore(ctx)) // should restore channels
 	select {
 	case ch = <-newCh: // expected
 		assrt.NotNil(ch)
@@ -123,6 +110,9 @@ func (r *Petra) Execute(cfg ExecConfig) {
 
 	r.waitStage()
 
+	// 6. Finalize restored channel
+	ch.recvFinal()
+
 	assrt.NoError(r.Close())
 }
 
@@ -131,7 +121,6 @@ func (r *Robert) Execute(cfg ExecConfig) {
 	assrt := assert.New(r.t)
 	rng := rand.New(rand.NewSource(0xB0B))
 
-	waitListen := r.GoListen(r.setup.Listener)
 	propHandler, waitHandler := r.GoHandle(rng)
 
 	// receive one accepted proposal
@@ -146,39 +135,30 @@ func (r *Robert) Execute(cfg ExecConfig) {
 	// 1st stage - channel controller set up
 	r.waitStage()
 
-	// 2. exchange final state
-	ch.recvFinal()
+	// 2. recv transfer
+	ch.recvTransfer(big.NewInt(1), "recv#1")
 	r.waitStage()
 
-	// 3. Petra closed.
-	r.waitStage()
-
-	test.Within1s.Eventually(r.t, func(t test.T) {
-		assert.True(t, ch.IsClosed(),
-			"disconnecting Petra should eventually have closed channel")
-		_, err = r.Channel(ch.ID())
-		assert.Error(t, err, "disconnecting Petra should have removed channel")
-	})
-
-	// 4. Robert shuts down
+	// 3. Both close client
 	assrt.NoError(r.Close())
-	waitListen()
+	assrt.True(ch.IsClosed(), "closing client should close channel")
 	waitHandler()
 	r.waitStage()
 
 	r.assertPersistedPeerAndChannel(&cfg, ch.State())
 
-	// 5. Restart clients and let them sync channels
+	// 4. Restart clients and let them sync channels
 	r.ReplaceClient()
 	newCh := make(chan *paymentChannel, 1)
 	r.OnNewChannel(func(_ch *paymentChannel) { newCh <- _ch })
-	waitListen = r.GoListen(r.hub.NewNetListener(r.setup.Identity.Address()))
-	defer waitListen()
 
-	// 6. Robert listens
+	// 5. Clients restarted
 	r.waitStage()
-	// Petra connects to us
 
+	// Restore channels locally
+	ctx, cancel := context.WithTimeout(context.Background(), r.timeout)
+	defer cancel()
+	assrt.NoError(r.Restore(ctx)) // should restore channels
 	select {
 	case ch = <-newCh: // expected
 		assrt.NotNil(ch)
@@ -187,6 +167,9 @@ func (r *Robert) Execute(cfg ExecConfig) {
 	}
 
 	r.waitStage()
+
+	// 6. Finalize restored channel
+	ch.sendFinal()
 
 	assrt.NoError(r.Close())
 }

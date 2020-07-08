@@ -17,7 +17,7 @@ import (
 
 func TestHappyAliceBob(t *testing.T) {
 	rng := rand.New(rand.NewSource(0x1337))
-	setups, _ := NewSetups(rng, []string{"Alice", "Bob"})
+	setups := NewSetups(rng, []string{"Alice", "Bob"})
 	roles := [2]ctest.Executer{
 		ctest.NewAlice(setups[0], t),
 		ctest.NewBob(setups[1], t),

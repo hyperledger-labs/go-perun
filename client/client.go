@@ -9,6 +9,7 @@ import (
 	"context"
 
 	"github.com/pkg/errors"
+	"golang.org/x/sync/errgroup"
 
 	"perun.network/go-perun/channel"
 	"perun.network/go-perun/channel/persistence"
@@ -25,9 +26,10 @@ import (
 // Currently, only the two-party protocol is fully implemented.
 type Client struct {
 	id          wire.Account
-	peers       *wire.EndpointRegistry
-	channels    chanRegistry
+	bus         wire.Bus
+	in          *wire.Relay // client relay, subscribed to the bus
 	reqRecv     *wire.Receiver
+	channels    chanRegistry
 	funder      channel.Funder
 	adjudicator channel.Adjudicator
 	wallet      wallet.Wallet
@@ -43,8 +45,8 @@ type Client struct {
 // network and not necessarily related to any on-chain identity or channel
 // identity.
 //
-// The dialer is used to dial new peers when a peer connection is not yet
-// established, e.g. when proposing a channel.
+// bus is the wire protocol bus over which messages to other network clients are
+// sent and received from.
 //
 // The funder and adjudicator are used to fund and dispute or settle a ledger
 // channel, respectively.
@@ -55,17 +57,17 @@ type Client struct {
 // If any argument is nil, New panics.
 func New(
 	id wire.Account,
-	dialer wire.Dialer,
+	bus wire.Bus,
 	funder channel.Funder,
 	adjudicator channel.Adjudicator,
 	wallet wallet.Wallet,
-) *Client {
+) (c *Client, err error) {
 	if id == nil {
 		log.Panic("identity must not be nil")
 	}
 	log := log.WithField("id", id.Address())
-	if dialer == nil {
-		log.Panic("dialer must not be nil")
+	if bus == nil {
+		log.Panic("bus must not be nil")
 	} else if funder == nil {
 		log.Panic("funder must not be nil")
 	} else if adjudicator == nil {
@@ -74,18 +76,45 @@ func New(
 		log.Panic("wallet must not be nil")
 	}
 
-	c := &Client{
+	in := wire.NewRelay()
+	defer func() {
+		if err != nil {
+			if cerr := in.Close(); cerr != nil {
+				err = errors.WithMessagef(err, "(error closing bus: %v)", cerr)
+			}
+		}
+	}()
+
+	in.SetDefaultMsgHandler(func(m *wire.Envelope) {
+		log.Debugf("Received %T message without subscription: %v", m.Msg, m)
+	})
+	if err := bus.SubscribeClient(in, id.Address()); err != nil {
+		return nil, errors.WithMessage(err, "subscribing client on bus")
+	}
+
+	reqRecv := wire.NewReceiver()
+	if err := in.Subscribe(reqRecv, isReqMsg); err != nil {
+		return nil, errors.WithMessage(err, "subscribing request receiver")
+	}
+
+	return &Client{
 		id:          id,
+		bus:         bus,
+		in:          in,
 		channels:    makeChanRegistry(),
-		reqRecv:     wire.NewReceiver(),
+		reqRecv:     reqRecv,
 		funder:      funder,
 		adjudicator: adjudicator,
 		wallet:      wallet,
 		pr:          persistence.NonPersistRestorer,
 		log:         log,
-	}
-	c.peers = wire.NewEndpointRegistry(id, c.subscribePeer, dialer)
-	return c
+	}, nil
+}
+
+func isReqMsg(m *wire.Envelope) bool {
+	return m.Msg.Type() == wire.ChannelProposal ||
+		m.Msg.Type() == wire.ChannelUpdate ||
+		m.Msg.Type() == wire.ChannelSync
 }
 
 // Close closes this state channel client.
@@ -96,8 +125,8 @@ func (c *Client) Close() error {
 	}
 
 	err := errors.WithMessage(c.channels.CloseAll(), "closing channels")
-	if cerr := c.peers.Close(); err == nil {
-		err = errors.WithMessage(cerr, "closing registry")
+	if rerr := c.in.Close(); err == nil {
+		err = errors.WithMessage(rerr, "closing incoming bus message relay")
 	}
 	if rerr := c.reqRecv.Close(); err == nil {
 		err = errors.WithMessage(rerr, "closing proposal receiver")
@@ -130,54 +159,6 @@ func (c *Client) Channel(id channel.ID) (*Channel, error) {
 	return nil, errors.New("unknown channel ID")
 }
 
-// Listen starts listening for incoming connections on the provided listener and
-// currently just automatically accepts them after successful authentication.
-// This function does not start go routines but instead should
-// be started by the user as `go client.Listen()`. The client takes ownership of
-// the listener and will close it when the client is closed.
-func (c *Client) Listen(listener wire.Listener) {
-	if listener == nil {
-		c.log.Panic("listener must not be nil")
-	}
-
-	c.peers.Listen(listener)
-}
-
-func (c *Client) subscribePeer(p *wire.Endpoint) {
-	log := c.logPeer(p)
-	log.Debugf("setting up default subscriptions")
-
-	if err := p.Subscribe(c.reqRecv, isReqMsg); err != nil {
-		log.Errorf("failed to subscribe to request messages on new peer: %v", err)
-		if err := p.Close(); err != nil {
-			log.Errorf("failed to close peer after unsuccessful subscription: %v", err)
-		}
-		return
-	}
-
-	p.SetDefaultMsgHandler(func(m wire.Msg) {
-		log.Debugf("Received %T message without subscription: %v", m, m)
-	})
-
-	// Cache all sync messages until the sync protocol is done.
-	cacheCtx, cancel := context.WithCancel(p.Ctx())
-	p.OnCloseAlways(cancel)
-	p.Cache(cacheCtx, func(m wire.Msg) bool {
-		return m.Type() == wire.ChannelSync
-	})
-	// Start the sync protocol once the peer is set up. Cannot start earlier,
-	// because the peer's address is not known before if it is an incoming
-	// connection.
-	p.OnCreateAlways(func() {
-		c.restorePeerChannels(p, cancel)
-	})
-}
-
-func isReqMsg(m wire.Msg) bool {
-	return m.Type() == wire.ChannelProposal ||
-		m.Type() == wire.ChannelUpdate
-}
-
 // Handle is the incoming request handler routine. It handles channel proposals
 // and channel update requests. It must be started exactly once by the user,
 // during the setup of the Client. Incoming requests are handled by the passed
@@ -188,73 +169,70 @@ func (c *Client) Handle(ph ProposalHandler, uh UpdateHandler) {
 	}
 
 	for {
-		p, msg := c.reqRecv.Next(c.Ctx())
-		if p == nil {
-			c.log.Debug("request receiver closed")
+		env, err := c.reqRecv.Next(c.Ctx())
+		if err != nil {
+			c.log.Debug("request receiver closed: ", err)
 			return
 		}
+		msg := env.Msg
 
 		switch msg.Type() {
 		case wire.ChannelProposal:
-			go c.handleChannelProposal(ph, p, msg.(*ChannelProposal))
+			go c.handleChannelProposal(ph, env.Sender, msg.(*ChannelProposal))
 		case wire.ChannelUpdate:
-			go c.handleChannelUpdate(uh, p, msg.(*msgChannelUpdate))
+			go c.handleChannelUpdate(uh, env.Sender, msg.(*msgChannelUpdate))
+		case wire.ChannelSync:
+			go c.handleSyncMsg(env.Sender, msg.(*msgChannelSync))
 		}
 	}
 }
 
-// Log is the getter for the client's field logger.
+// Log returns the logger used by the client. It is not thread-safe.
 func (c *Client) Log() log.Logger {
 	return c.log
 }
 
-func (c *Client) logPeer(p *wire.Endpoint) log.Logger {
-	return c.log.WithField("peer", p.PerunAddress)
+// SetLog sets the logger used by the client. It is not thread-safe.
+func (c *Client) SetLog(l log.Logger) {
+	c.log = l
+}
+
+func (c *Client) logPeer(p wire.Address) log.Logger {
+	return c.log.WithField("peer", p)
 }
 
 func (c *Client) logChan(id channel.ID) log.Logger {
 	return c.log.WithField("channel", id)
 }
 
-// Reconnect attempts to reconnect to all known peers from persistence. This
-// will restore all channels for all peers to which a connection could
-// successfully be established. Newly restored channels should be acquired
-// through the OnNewChannel callback.
-//
-// Note that connections are currently established serially, so allow for enough
-// time in the passed context.
-func (c *Client) Reconnect(ctx context.Context) error {
+// Restore restores all channels from persistence. Channels are restored in
+// parallel. Newly restored channels. should be acquired through the
+// OnNewChannel callback.
+func (c *Client) Restore(ctx context.Context) error {
 	ps, err := c.pr.ActivePeers(ctx)
 	if err != nil {
 		return errors.WithMessage(err, "restoring active peers")
 	}
-	_, err = c.getPeers(ctx, ps)
-	return err
+
+	var eg errgroup.Group
+	for _, p := range ps {
+		if p.Equals(c.id.Address()) {
+			continue // skip own peer
+		}
+		p := p
+		eg.Go(func() error { return c.restorePeerChannels(ctx, p) })
+	}
+
+	return eg.Wait()
 }
 
-// getPeers gets all peers from the registry for the provided addresses,
-// skipping the own peer, if present in the list.
-func (c *Client) getPeers(
-	ctx context.Context,
-	addrs []wire.Address,
-) (peers []*wire.Endpoint, err error) {
-	idx := wallet.IndexOfAddr(addrs, c.id.Address())
-	l := len(addrs)
-	if idx != -1 {
-		l--
-	}
-
-	peers = make([]*wire.Endpoint, l)
-	for i, a := range addrs {
-		if idx == -1 || i < idx {
-			peers[i], err = c.peers.Get(ctx, a)
-		} else if i > idx {
-			peers[i-1], err = c.peers.Get(ctx, a)
-		}
-		if err != nil {
-			return
-		}
-	}
-
-	return
+// pubMsg publishes the given message on the wire bus, setting the own client as
+// the sender.
+func (c *Client) pubMsg(ctx context.Context, msg wire.Msg, rec wire.Address) error {
+	c.log.WithField("peer", rec).Debugf("Publishing message: %v", msg)
+	return c.bus.Publish(ctx, &wire.Envelope{
+		Sender:    c.id.Address(),
+		Recipient: rec,
+		Msg:       msg,
+	})
 }

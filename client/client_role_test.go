@@ -16,7 +16,7 @@ import (
 	ctest "perun.network/go-perun/client/test"
 	"perun.network/go-perun/log"
 	wtest "perun.network/go-perun/wallet/test"
-	wiretest "perun.network/go-perun/wire/test"
+	"perun.network/go-perun/wire"
 )
 
 func executeTwoPartyTest(t *testing.T, role [2]ctest.Executer, cfg ctest.ExecConfig) {
@@ -42,9 +42,9 @@ func executeTwoPartyTest(t *testing.T, role [2]ctest.Executer, cfg ctest.ExecCon
 
 var defaultTimeout = 1 * time.Second
 
-func NewSetups(rng *rand.Rand, names []string) ([]ctest.RoleSetup, *wiretest.ConnHub) {
+func NewSetups(rng *rand.Rand, names []string) []ctest.RoleSetup {
 	var (
-		hub   wiretest.ConnHub
+		bus   = wire.NewLocalBus()
 		n     = len(names)
 		setup = make([]ctest.RoleSetup, n)
 	)
@@ -54,8 +54,7 @@ func NewSetups(rng *rand.Rand, names []string) ([]ctest.RoleSetup, *wiretest.Con
 		setup[i] = ctest.RoleSetup{
 			Name:        names[i],
 			Identity:    acc,
-			Dialer:      hub.NewNetDialer(),
-			Listener:    hub.NewNetListener(acc.Address()),
+			Bus:         bus,
 			Funder:      &logFunder{log.WithField("role", names[i])},
 			Adjudicator: &logAdjudicator{log.WithField("role", names[i])},
 			Wallet:      wtest.NewWallet(),
@@ -63,7 +62,7 @@ func NewSetups(rng *rand.Rand, names []string) ([]ctest.RoleSetup, *wiretest.Con
 		}
 	}
 
-	return setup, &hub
+	return setup
 }
 
 type (

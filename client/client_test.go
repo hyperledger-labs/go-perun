@@ -8,8 +8,6 @@ package client
 import (
 	"context"
 	"math/rand"
-	"runtime"
-	"sync"
 	"testing"
 	"time"
 
@@ -18,40 +16,23 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"perun.network/go-perun/channel"
-	perunsync "perun.network/go-perun/pkg/sync"
-	"perun.network/go-perun/pkg/test"
 	wtest "perun.network/go-perun/wallet/test"
 	"perun.network/go-perun/wire"
-	wiretest "perun.network/go-perun/wire/test"
 )
 
 const timeout = 5 * time.Second
 
-type DummyDialer struct {
+type DummyBus struct {
 	t *testing.T
 }
 
-func (d DummyDialer) Dial(ctx context.Context, addr wire.Address) (wire.Conn, error) {
-	d.t.Fatal("BUG: DummyDialer.Dial called")
-	return nil, errors.New("BUG")
+func (d DummyBus) Publish(context.Context, *wire.Envelope) error {
+	d.t.Error("DummyBus.Publish called")
+	return errors.New("DummyBus.Publish called")
 }
 
-func (d DummyDialer) Close() error {
+func (d DummyBus) SubscribeClient(wire.Consumer, wire.Address) error {
 	return nil
-}
-
-type DummyListener struct {
-	perunsync.Closer
-	t *testing.T
-}
-
-func NewDummyListener(t *testing.T) *DummyListener {
-	return &DummyListener{t: t}
-}
-
-func (d *DummyListener) Accept() (wire.Conn, error) {
-	<-d.Closed()
-	return nil, errors.New("EOF")
 }
 
 type DummyFunder struct {
@@ -85,26 +66,19 @@ func (d *DummyAdjudicator) SubscribeRegistered(context.Context, *channel.Params)
 func TestClient_New_NilArgs(t *testing.T) {
 	rng := rand.New(rand.NewSource(0x1111))
 	id := wtest.NewRandomAccount(rng)
-	d, f, a, w := &DummyDialer{t}, &DummyFunder{t}, &DummyAdjudicator{t}, wtest.RandomWallet()
-	assert.Panics(t, func() { New(nil, d, f, a, w) })
+	b, f, a, w := &DummyBus{t}, &DummyFunder{t}, &DummyAdjudicator{t}, wtest.RandomWallet()
+	assert.Panics(t, func() { New(nil, b, f, a, w) })
 	assert.Panics(t, func() { New(id, nil, f, a, w) })
-	assert.Panics(t, func() { New(id, d, nil, a, w) })
-	assert.Panics(t, func() { New(id, d, f, nil, w) })
-	assert.Panics(t, func() { New(id, d, f, a, nil) })
-}
-
-func TestClient_Listen_NilArgs(t *testing.T) {
-	rng := rand.New(rand.NewSource(0x20200108))
-	id := wtest.NewRandomAccount(rng)
-	c := New(id, &DummyDialer{t}, &DummyFunder{t}, &DummyAdjudicator{t}, wtest.RandomWallet())
-
-	assert.Panics(t, func() { c.Listen(nil) })
+	assert.Panics(t, func() { New(id, b, nil, a, w) })
+	assert.Panics(t, func() { New(id, b, f, nil, w) })
+	assert.Panics(t, func() { New(id, b, f, a, nil) })
 }
 
 func TestClient_Handle_NilArgs(t *testing.T) {
 	rng := rand.New(rand.NewSource(20200524))
 	id := wtest.NewRandomAccount(rng)
-	c := New(id, &DummyDialer{t}, &DummyFunder{t}, &DummyAdjudicator{t}, wtest.RandomWallet())
+	c, err := New(id, &DummyBus{t}, &DummyFunder{t}, &DummyAdjudicator{t}, wtest.RandomWallet())
+	require.NoError(t, err)
 
 	dummyUH := UpdateHandlerFunc(func(ChannelUpdate, *UpdateResponder) {})
 	assert.Panics(t, func() { c.Handle(nil, dummyUH) })
@@ -115,49 +89,20 @@ func TestClient_Handle_NilArgs(t *testing.T) {
 func TestClient_New(t *testing.T) {
 	rng := rand.New(rand.NewSource(0x1a2b3c))
 	id := wtest.NewRandomAccount(rng)
-	c := New(id, &DummyDialer{t}, &DummyFunder{t}, &DummyAdjudicator{t}, wtest.RandomWallet())
-
+	c, err := New(id, &DummyBus{t}, &DummyFunder{t}, &DummyAdjudicator{t}, wtest.RandomWallet())
+	assert.NoError(t, err)
 	require.NotNil(t, c)
-	assert.NotNil(t, c.peers)
 }
 
-func TestClient_NewAndListen_ListenerClose(t *testing.T) {
-	require := require.New(t)
-	ass := assert.New(t)
-
-	rng := rand.New(rand.NewSource(0x1a2b3c))
-	id := wtest.NewRandomAccount(rng)
-	c := New(id, &DummyDialer{t}, &DummyFunder{t}, &DummyAdjudicator{t}, wtest.RandomWallet())
-
-	require.NotNil(c)
-
-	listener := NewDummyListener(t)
-	numGoroutines := runtime.NumGoroutine()
-
-	go c.Listen(listener)
-
-	ass.NoError(c.Close())
-
-	select {
-	case <-listener.Closed():
-	case <-time.After(1 * time.Second):
-		t.Error("Listener was not closed within 1s")
-	}
-
-	// wait for listener goroutine to terminate (it may be put to sleep by the
-	// scheduler after closing the channel)
-	test.Within100ms.Eventually(t, func(t test.T) {
-		assert.Equal(t, numGoroutines, runtime.NumGoroutine())
-	})
-}
-
-func TestClient_NewAndListen(t *testing.T) {
+/*
+// TODO: move into wire/net as EndpointRegistry tests, if test doesn't exist yet.
+func _TestClient_NewAndListen(t *testing.T) {
 	require := require.New(t)
 	ass := assert.New(t)
 
 	rng := rand.New(rand.NewSource(0x1))
 	connHub := new(wiretest.ConnHub)
-	c := New(wtest.NewRandomAccount(rng), &DummyDialer{t}, &DummyFunder{t}, &DummyAdjudicator{t}, wtest.RandomWallet())
+	c := New(wtest.NewRandomAccount(rng), &DummyBus{t}, &DummyFunder{t}, &DummyAdjudicator{t}, wtest.RandomWallet())
 	// initialize the listener instance in the main goroutine
 	// if it is initialized in a goroutine, the goroutine may be put to sleep
 	// and the dialer may complain about a nonexistent listener
@@ -240,15 +185,15 @@ func TestClient_NewAndListen(t *testing.T) {
 	}
 }
 
-/*
 FIXME temporarily commented out since it fails the pipeline too often.
 func TestClient_Multiplexing(t *testing.T) {
 	t.Run("1/1", func(t *testing.T) { testClientMultiplexing(t, 1, 1) })
 	t.Run("1/1024", func(t *testing.T) { testClientMultiplexing(t, 1, 1024) })
 	t.Run("1024/1", func(t *testing.T) { testClientMultiplexing(t, 1024, 1) })
 	t.Run("32/32", func(t *testing.T) { testClientMultiplexing(t, 32, 32) })
-}*/
+}
 
+// TODO: move into wire/net as EndpointRegistry tests, if test doesn't exist yet.
 func testClientMultiplexing(
 	t *testing.T, numListeners, numDialers int) {
 	if !test.Race {
@@ -404,3 +349,5 @@ func testClientMultiplexing(
 		assert.NoErrorf(t, d.Close(), "closing dialer[%d]", i)
 	}
 }
+
+*/

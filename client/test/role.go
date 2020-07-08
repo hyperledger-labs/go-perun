@@ -43,8 +43,7 @@ type (
 	RoleSetup struct {
 		Name        string
 		Identity    wire.Account
-		Dialer      wire.Dialer
-		Listener    wire.Listener
+		Bus         wire.Bus
 		Funder      channel.Funder
 		Adjudicator channel.Adjudicator
 		Wallet      wallettest.Wallet
@@ -84,7 +83,10 @@ func makeRole(setup RoleSetup, t *testing.T, numStages int) (r role) {
 		t:         t,
 		numStages: numStages,
 	}
-	cl := client.New(r.setup.Identity, r.setup.Dialer, r.setup.Funder, r.setup.Adjudicator, r.setup.Wallet)
+	cl, err := client.New(r.setup.Identity, r.setup.Bus, r.setup.Funder, r.setup.Adjudicator, r.setup.Wallet)
+	if err != nil {
+		t.Fatal("Error creating client: ", err)
+	}
 	r.setClient(cl) // init client
 	return r
 }
@@ -101,7 +103,8 @@ func (r *role) setClient(cl *client.Client) {
 		}
 	})
 	r.Client = cl
-	r.log = cl.Log().WithField("role", r.setup.Name)
+	// Append role field to client logger and set role logger to client logger.
+	r.log = log.AppendField(cl, "role", r.setup.Name)
 }
 
 func (r *role) OnNewChannel(callback func(ch *paymentChannel)) {
@@ -199,23 +202,6 @@ func (r *role) GoHandle(rng *rand.Rand) (h *acceptAllPropHandler, wait func()) {
 
 	return propHandler, func() {
 		r.log.Debug("Waiting for request handler to return...")
-		<-done
-	}
-}
-
-// GoListen starts the peer listener routine on the current client and returns a
-// wait() function with which it can be waited for the listener routine to stop.
-func (r *role) GoListen(l wire.Listener) (wait func()) {
-	done := make(chan struct{})
-	go func() {
-		defer close(done)
-		r.log.Info("Starting peer listener.")
-		r.Listen(l)
-		r.log.Debug("Peer listener returned.")
-	}()
-
-	return func() {
-		r.log.Debug("Waiting for peer listener to return...")
 		<-done
 	}
 }

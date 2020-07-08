@@ -17,6 +17,8 @@ import (
 	"perun.network/go-perun/wire"
 )
 
+const proposerIdx, proposeeIdx = 0, 1
+
 type (
 	// A ProposalHandler decides how to handle incoming channel proposals from
 	// other channel network peers.
@@ -37,7 +39,7 @@ type (
 	// panic.
 	ProposalResponder struct {
 		client *Client
-		peer   *wire.Endpoint
+		peer   wire.Address
 		req    *ChannelProposal
 		called atomic.Bool
 	}
@@ -113,7 +115,7 @@ func (c *Client) ProposeChannel(ctx context.Context, req *ChannelProposal) (*Cha
 	}
 
 	// 1. check valid proposal
-	if err := c.validTwoPartyProposal(req, 0, req.PeerAddrs[1]); err != nil {
+	if err := c.validTwoPartyProposal(req, proposerIdx, req.PeerAddrs[proposeeIdx]); err != nil {
 		return nil, errors.WithMessage(err, "invalid channel proposal")
 	}
 
@@ -126,7 +128,7 @@ func (c *Client) ProposeChannel(ctx context.Context, req *ChannelProposal) (*Cha
 	// 3. create params, channel machine from gathered participant addresses
 	// 4. fund channel
 	// 5. return controller on successful funding
-	return c.setupChannel(ctx, req, parts)
+	return c.setupChannel(ctx, req, parts, proposerIdx)
 }
 
 // handleChannelProposal implements the receiving side of the (currently)
@@ -135,8 +137,8 @@ func (c *Client) ProposeChannel(ctx context.Context, req *ChannelProposal) (*Cha
 //
 // This handler is dispatched from the Client.Handle routine.
 func (c *Client) handleChannelProposal(
-	handler ProposalHandler, p *wire.Endpoint, req *ChannelProposal) {
-	if err := c.validTwoPartyProposal(req, 1, p.PerunAddress); err != nil {
+	handler ProposalHandler, p wire.Address, req *ChannelProposal) {
+	if err := c.validTwoPartyProposal(req, proposeeIdx, p); err != nil {
 		c.logPeer(p).Debugf("received invalid channel proposal: %v", err)
 		return
 	}
@@ -148,7 +150,7 @@ func (c *Client) handleChannelProposal(
 }
 
 func (c *Client) handleChannelProposalAcc(
-	ctx context.Context, p *wire.Endpoint,
+	ctx context.Context, p wire.Address,
 	req *ChannelProposal, acc ProposalAcc,
 ) (*Channel, error) {
 	if acc.Participant == nil {
@@ -159,35 +161,30 @@ func (c *Client) handleChannelProposalAcc(
 	// enables caching of incoming version 0 signatures before sending any message
 	// that might trigger a fast peer to send those. We don't know the channel id
 	// yet so the cache predicate is coarser than the later subscription.
-	enableVer0Cache(ctx, p)
+	enableVer0Cache(ctx, c.in)
 
 	msgAccept := &ChannelProposalAcc{
 		SessID:          req.SessID(),
 		ParticipantAddr: acc.Participant,
 	}
-	if err := p.Send(ctx, msgAccept); err != nil {
+	if err := c.pubMsg(ctx, msgAccept, p); err != nil {
 		c.logPeer(p).Errorf("error sending proposal acceptance: %v", err)
 		return nil, errors.WithMessage(err, "sending proposal acceptance")
 	}
 
-	// In the 2-party case, we hardcode the proposer to index 0 and responder to 1.
-	parts := []wallet.Address{req.ParticipantAddr, acc.Participant}
-	// Change ParticipantAddr to own address because setupChannel reads own
-	// address from this field. The ChannelProposal is consumed by setupChannel so
-	// there's no harm in changing it.
-	req.ParticipantAddr = acc.Participant
-	return c.setupChannel(ctx, req, parts)
+	parts := participants(req.ParticipantAddr, acc.Participant)
+	return c.setupChannel(ctx, req, parts, proposeeIdx)
 }
 
 func (c *Client) handleChannelProposalRej(
-	ctx context.Context, p *wire.Endpoint,
+	ctx context.Context, p wire.Address,
 	req *ChannelProposal, reason string,
 ) error {
 	msgReject := &ChannelProposalRej{
 		SessID: req.SessID(),
 		Reason: reason,
 	}
-	if err := p.Send(ctx, msgReject); err != nil {
+	if err := c.pubMsg(ctx, msgReject, p); err != nil {
 		c.logPeer(p).Warn("error sending proposal rejection")
 		return err
 	}
@@ -200,44 +197,48 @@ func (c *Client) exchangeTwoPartyProposal(
 	ctx context.Context,
 	proposal *ChannelProposal,
 ) ([]wallet.Address, error) {
-	p, err := c.peers.Get(ctx, proposal.PeerAddrs[1])
-	if err != nil {
-		return nil, errors.WithMessage(err, "failed to Get() participant[1]")
-	}
+	peer := proposal.PeerAddrs[proposeeIdx]
 
 	// enables caching of incoming version 0 signatures before sending any message
 	// that might trigger a fast peer to send those. We don't know the channel id
 	// yet so the cache predicate is coarser than the later subscription.
-	enableVer0Cache(ctx, p)
+	enableVer0Cache(ctx, c.in)
 
 	sessID := proposal.SessID()
-	isResponse := func(m wire.Msg) bool {
-		return (m.Type() == wire.ChannelProposalAcc &&
-			m.(*ChannelProposalAcc).SessID == sessID) ||
-			(m.Type() == wire.ChannelProposalRej &&
-				m.(*ChannelProposalRej).SessID == sessID)
+	isResponse := func(e *wire.Envelope) bool {
+		return (e.Msg.Type() == wire.ChannelProposalAcc &&
+			e.Msg.(*ChannelProposalAcc).SessID == sessID) ||
+			(e.Msg.Type() == wire.ChannelProposalRej &&
+				e.Msg.(*ChannelProposalRej).SessID == sessID)
 	}
 	receiver := wire.NewReceiver()
 	defer receiver.Close()
 
-	if err := p.Subscribe(receiver, isResponse); err != nil {
-		return nil, errors.WithMessagef(err, "subscribing peer %v", p)
+	if err := c.in.Subscribe(receiver, isResponse); err != nil {
+		return nil, errors.WithMessage(err, "subscribing proposal response recv")
 	}
 
-	if err := p.Send(ctx, proposal); err != nil {
-		return nil, errors.WithMessage(err, "channel proposal broadcast")
+	if err := c.pubMsg(ctx, proposal, peer); err != nil {
+		return nil, errors.WithMessage(err, "publishing channel proposal")
 	}
 
-	_, rawResponse := receiver.Next(ctx)
-	if rawResponse == nil {
-		return nil, errors.New("timeout when waiting for proposal response")
+	env, err := receiver.Next(ctx)
+	if err != nil {
+		return nil, errors.WithMessage(err, "receiving proposal response")
 	}
-	if rej, ok := rawResponse.(*ChannelProposalRej); ok {
+	if rej, ok := env.Msg.(*ChannelProposalRej); ok {
 		return nil, errors.Errorf("channel proposal rejected: %v", rej.Reason)
 	}
 
-	acc := rawResponse.(*ChannelProposalAcc) // this is safe because of predicate isResponse
-	return []wallet.Address{proposal.ParticipantAddr, acc.ParticipantAddr}, nil
+	acc := env.Msg.(*ChannelProposalAcc) // this is safe because of predicate isResponse
+	return participants(proposal.ParticipantAddr, acc.ParticipantAddr), nil
+}
+
+func participants(proposer, proposee wallet.Address) []wallet.Address {
+	parts := make([]wallet.Address, 2)
+	parts[proposerIdx] = proposer
+	parts[proposeeIdx] = proposee
+	return parts
 }
 
 // validTwoPartyProposal checks that the proposal is valid in the two-party
@@ -290,22 +291,19 @@ func (c *Client) setupChannel(
 	ctx context.Context,
 	prop *ChannelProposal,
 	parts []wallet.Address, // result of the MPCPP on prop
+	idx channel.Index, // our index
 ) (*Channel, error) {
 	params := channel.NewParamsUnsafe(prop.ChallengeDuration, parts, prop.AppDef, prop.Nonce)
 	if c.channels.Has(params.ID()) {
 		return nil, errors.New("channel already exists")
 	}
 
-	peers, err := c.getPeers(ctx, prop.PeerAddrs)
-	if err != nil {
-		return nil, errors.WithMessage(err, "getting peers from the registry")
-	}
-	acc, err := c.wallet.Unlock(prop.ParticipantAddr)
+	acc, err := c.wallet.Unlock(parts[idx])
 	if err != nil {
 		return nil, errors.WithMessage(err, "unlocking account")
 	}
 
-	ch, err := c.newChannel(acc, peers, *params)
+	ch, err := c.newChannel(acc, prop.PeerAddrs, *params)
 	if err != nil {
 		return nil, err
 	}
@@ -349,8 +347,8 @@ func (c *Client) setupChannel(
 
 // enableVer0Cache enables caching of incoming version 0 signatures
 func enableVer0Cache(ctx context.Context, c wire.Cacher) {
-	c.Cache(ctx, func(m wire.Msg) bool {
-		return m.Type() == wire.ChannelUpdateAcc &&
-			m.(*msgChannelUpdateAcc).Version == 0
+	c.Cache(ctx, func(m *wire.Envelope) bool {
+		return m.Msg.Type() == wire.ChannelUpdateAcc &&
+			m.Msg.(*msgChannelUpdateAcc).Version == 0
 	})
 }
