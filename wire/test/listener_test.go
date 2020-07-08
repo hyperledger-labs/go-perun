@@ -18,9 +18,9 @@ import (
 
 type fakeConn struct{}
 
-func (fakeConn) Send(wire.Msg) error     { panic("") }
-func (fakeConn) Recv() (wire.Msg, error) { panic("") }
-func (fakeConn) Close() error            { panic("") }
+func (fakeConn) Send(*wire.Envelope) error     { panic("") }
+func (fakeConn) Recv() (*wire.Envelope, error) { panic("") }
+func (fakeConn) Close() error                  { panic("") }
 
 // A valid connection needed to check that accept will pass along values
 // properly.

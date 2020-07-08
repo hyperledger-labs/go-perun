@@ -37,7 +37,7 @@ func TestConnHub_Create(t *testing.T) {
 				conn, err := l.Accept()
 				assert.NoError(err)
 				require.NotNil(rt, conn)
-				assert.NoError(conn.Send(wire.NewPingMsg()))
+				assert.NoError(conn.Send(NewRandomEnvelope(rng, wire.NewPingMsg())))
 			})
 		})
 
