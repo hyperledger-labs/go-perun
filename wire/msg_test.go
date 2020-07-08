@@ -18,8 +18,13 @@ import (
 	wtest "perun.network/go-perun/wallet/test"
 )
 
+// NewRandomEnvelope - copy from wire/test for internal tests.
 func NewRandomEnvelope(rng *rand.Rand, m Msg) *Envelope {
-	return &Envelope{wtest.NewRandomAddress(rng), wtest.NewRandomAddress(rng), m}
+	return &Envelope{
+		Sender:    wtest.NewRandomAddress(rng),
+		Recipient: wtest.NewRandomAddress(rng),
+		Msg:       m,
+	}
 }
 
 var nilDecoder = func(io.Reader) (Msg, error) { return nil, nil }
