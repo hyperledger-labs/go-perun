@@ -23,7 +23,6 @@ import (
 	clienttest "perun.network/go-perun/client/test"
 	"perun.network/go-perun/log"
 	"perun.network/go-perun/wire"
-	wiretest "perun.network/go-perun/wire/test"
 )
 
 var defaultTimeout = 5 * time.Second
@@ -35,7 +34,7 @@ func TestHappyAliceBob(t *testing.T) {
 	const A, B = 0, 1 // Indices of Alice and Bob
 	var (
 		name  = [2]string{"Alice", "Bob"}
-		hub   wiretest.ConnHub
+		bus   = wire.NewLocalBus()
 		setup [2]clienttest.RoleSetup
 		role  [2]clienttest.Executer
 	)
@@ -45,8 +44,7 @@ func TestHappyAliceBob(t *testing.T) {
 		setup[i] = clienttest.RoleSetup{
 			Name:        name[i],
 			Identity:    s.Accs[i],
-			Dialer:      hub.NewNetDialer(),
-			Listener:    hub.NewNetListener(s.Accs[i].Address()),
+			Bus:         bus,
 			Funder:      s.Funders[i],
 			Adjudicator: s.Adjs[i],
 			Wallet:      ethwtest.NewTmpWallet(),
