@@ -54,19 +54,20 @@ func TestDialer_Dial(t *testing.T) {
 
 	d := NewTCPDialer(timeout)
 	d.Register(laddr, lhost)
+	daddr := wallet.NewRandomAddress(rng)
 	defer d.Close()
 
 	t.Run("happy", func(t *testing.T) {
-		m := NewPingMsg()
+		e := &Envelope{daddr, laddr, NewPingMsg()}
 		ct := test.NewConcurrent(t)
 		go ct.Stage("accept", func(rt require.TestingT) {
 			conn, err := l.Accept()
 			assert.NoError(t, err)
 			require.NotNil(rt, conn)
 
-			rm, err := conn.Recv()
+			re, err := conn.Recv()
 			assert.NoError(t, err)
-			assert.Equal(t, rm, m)
+			assert.Equal(t, re, e)
 		})
 
 		ct.Stage("dial", func(rt require.TestingT) {
@@ -75,7 +76,7 @@ func TestDialer_Dial(t *testing.T) {
 				assert.NoError(t, err)
 				require.NotNil(rt, conn)
 
-				assert.NoError(t, conn.Send(m))
+				assert.NoError(t, conn.Send(e))
 			})
 		})
 

@@ -22,7 +22,7 @@ type producer struct {
 	consumers []subscription
 
 	cache             Cache
-	defaultMsgHandler func(Msg) // Handles messages with no subscriber.
+	defaultMsgHandler func(*Envelope) // Handles messages with no subscriber.
 }
 
 type subscription struct {
@@ -92,7 +92,7 @@ func (p *producer) Subscribe(c Consumer, predicate Predicate) error {
 	cached := p.cache.Get(predicate)
 	go func() {
 		for _, m := range cached {
-			c.Put(m.Annex.(*Endpoint), m.Msg)
+			c.Put(m.Envelope)
 		}
 	}()
 
@@ -126,7 +126,7 @@ func (p *producer) isEmpty() bool {
 	return len(p.consumers) == 0
 }
 
-func (p *producer) produce(m Msg, peer *Endpoint) {
+func (p *producer) produce(e *Envelope) {
 	p.mutex.RLock()
 	defer p.mutex.RUnlock()
 
@@ -136,24 +136,26 @@ func (p *producer) produce(m Msg, peer *Endpoint) {
 
 	any := false
 	for _, sub := range p.consumers {
-		if sub.predicate(m) {
-			sub.consumer.Put(peer, m)
+		if sub.predicate(e) {
+			sub.consumer.Put(e)
 			any = true
 		}
 	}
 
 	if !any {
-		if !p.cache.Put(m, peer) {
-			p.defaultMsgHandler(m)
+		if !p.cache.Put(e, nil) {
+			p.defaultMsgHandler(e)
 		}
 	}
 }
 
-func logUnhandledMsg(m Msg) {
-	log.Debugf("Received %T message without subscription: %v", m, m)
+func logUnhandledMsg(e *Envelope) {
+	log.WithField("sender", e.Sender).
+		WithField("recipient", e.Recipient).
+		Debugf("Received %T message without subscription: %v", e.Msg, e.Msg)
 }
 
-func (p *producer) SetDefaultMsgHandler(handler func(Msg)) {
+func (p *producer) SetDefaultMsgHandler(handler func(*Envelope)) {
 	if handler == nil {
 		handler = logUnhandledMsg
 	}

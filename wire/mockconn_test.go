@@ -18,33 +18,33 @@ var _ Conn = (*MockConn)(nil)
 type MockConn struct {
 	mutex     sync.Mutex
 	closed    atomic.Bool
-	recvQueue chan Msg
+	recvQueue chan *Envelope
 
-	sent func(Msg) // observes sent messages.
+	sent func(*Envelope) // observes sent messages.
 }
 
-func newMockConn(sent func(Msg)) *MockConn {
+func newMockConn(sent func(*Envelope)) *MockConn {
 	if sent == nil {
-		sent = func(Msg) {}
+		sent = func(*Envelope) {}
 	}
 
 	return &MockConn{
 		sent:      sent,
-		recvQueue: make(chan Msg, 1),
+		recvQueue: make(chan *Envelope, 1),
 	}
 }
 
-func (c *MockConn) Send(m Msg) error {
+func (c *MockConn) Send(e *Envelope) error {
 	c.mutex.Lock()
 	defer c.mutex.Unlock()
 	if c.closed.IsSet() {
 		return errors.New("closed")
 	}
-	c.sent(m)
+	c.sent(e)
 	return nil
 }
 
-func (c *MockConn) Recv() (Msg, error) {
+func (c *MockConn) Recv() (*Envelope, error) {
 	c.mutex.Lock()
 	defer c.mutex.Unlock()
 	if c.closed.IsSet() {

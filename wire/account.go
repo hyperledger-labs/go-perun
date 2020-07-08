@@ -28,45 +28,83 @@ func init() {
 // stub.
 type Account = wallet.Account
 
-// ExchangeAddrs exchanges Perun addresses of peers. It's the initial protocol
-// that is run when a new peer connection is established. It returns the address
-// of the peer on the other end of the connection. If the supplied context times
-// out before the protocol finishes, closes the connection.
+// ExchangeAddrsActive executes the active role of the address exchange
+// protocol. It is executed by the person that dials.
 //
-// In the future, ExchangeAddrs will be replaced by Authenticate to run a proper
-// authentication protocol. The protocol will then exchange Perun addresses and
-// establish authenticity.
-func ExchangeAddrs(ctx context.Context, id Account, conn Conn) (Address, error) {
-	var addr Address
+// In the future, it will be extended to become a proper authentication
+// protocol. The protocol will then exchange Perun addresses and establish
+// authenticity.
+func ExchangeAddrsActive(ctx context.Context, id Account, peer Address, conn Conn) error {
 	var err error
 	ok := test.TerminatesCtx(ctx, func() {
-		sent := make(chan error, 1)
-		go func() { sent <- conn.Send(NewAuthResponseMsg(id)) }()
+		err = conn.Send(&Envelope{
+			Sender:    id.Address(),
+			Recipient: peer,
+			Msg:       NewAuthResponseMsg(id),
+		})
+		if err != nil {
+			err = errors.WithMessage(err, "sending message")
+			return
+		}
 
-		var m Msg
-		if m, err = conn.Recv(); err != nil {
+		var e *Envelope
+		if e, err = conn.Recv(); err != nil {
 			err = errors.WithMessage(err, "receiving message")
-		} else if addrM, ok := m.(*AuthResponseMsg); !ok {
-			err = errors.Errorf("expected AuthResponse wire msg, got %v", m.Type())
-		} else {
-			err = <-sent // Wait until the message was sent.
-			addr = addrM.Address
+		} else if _, ok := e.Msg.(*AuthResponseMsg); !ok {
+			err = errors.Errorf("expected AuthResponse wire msg, got %v", e.Msg.Type())
+		} else if !e.Recipient.Equals(id.Address()) &&
+			!e.Sender.Equals(peer) {
+			err = errors.Errorf("unmatched response sender or recipient")
 		}
 	})
 
 	if !ok {
 		conn.Close()
-		return nil, ctx.Err()
+		return errors.WithMessage(ctx.Err(), "timeout")
 	}
 
+	return err
+}
+
+// ExchangeAddrsPassive executes the passive role of the address exchange
+// protocol. It is executed by the person that listens for incoming connections.
+func ExchangeAddrsPassive(ctx context.Context, id Account, conn Conn) (Address, error) {
+	var addr Address
+	var err error
+	ok := test.TerminatesCtx(ctx, func() {
+		var e *Envelope
+		if e, err = conn.Recv(); err != nil {
+			err = errors.WithMessage(err, "receiving auth message")
+		} else if _, ok := e.Msg.(*AuthResponseMsg); !ok {
+			err = errors.Errorf("expected AuthResponse wire msg, got %v", e.Msg.Type())
+		} else if !e.Recipient.Equals(id.Address()) {
+			err = errors.Errorf("unmatched response sender or recipient")
+		}
+		if err != nil {
+			return
+		}
+		addr, err = e.Sender, conn.Send(&Envelope{
+			Sender:    id.Address(),
+			Recipient: e.Sender,
+			Msg:       NewAuthResponseMsg(id),
+		})
+	})
+
+	if !ok {
+		conn.Close()
+		return nil, errors.WithMessage(ctx.Err(), "timeout")
+	} else if err != nil {
+		conn.Close()
+	}
 	return addr, err
 }
 
 var _ Msg = (*AuthResponseMsg)(nil)
 
 // AuthResponseMsg is the response message in the peer authentication protocol.
+//
+// This will be expanded later to contain signatures.
 type AuthResponseMsg struct {
-	Address Address
 }
 
 // Type returns AuthResponse.
@@ -76,18 +114,15 @@ func (m *AuthResponseMsg) Type() Type {
 
 // Encode encodes this AuthResponseMsg into an io.Writer.
 func (m *AuthResponseMsg) Encode(w io.Writer) error {
-	return m.Address.Encode(w)
+	return nil
 }
 
 // Decode decodes an AuthResponseMsg from an io.Reader.
 func (m *AuthResponseMsg) Decode(r io.Reader) (err error) {
-	m.Address, err = wallet.DecodeAddress(r)
-	return
+	return nil
 }
 
 // NewAuthResponseMsg creates an authentication response message.
-// In the future, it will also take an authentication challenge message as
-// additional argument.
-func NewAuthResponseMsg(id Account) Msg {
-	return &AuthResponseMsg{id.Address()}
+func NewAuthResponseMsg(_ Account) Msg {
+	return &AuthResponseMsg{}
 }

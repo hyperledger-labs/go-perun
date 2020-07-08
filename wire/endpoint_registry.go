@@ -112,7 +112,7 @@ func (r *EndpointRegistry) setupConn(conn Conn) error {
 
 	var peerAddr Address
 	var err error
-	if peerAddr, err = ExchangeAddrs(ctx, r.id, conn); err != nil {
+	if peerAddr, err = ExchangeAddrsPassive(ctx, r.id, conn); err != nil {
 		conn.Close()
 		return errors.WithMessage(err, "could not authenticate peer")
 	}
@@ -208,17 +208,9 @@ func (r *EndpointRegistry) authenticatedDial(ctx context.Context, peer *Endpoint
 		return errors.WithMessage(err, "failed to dial")
 	}
 
-	a, err := ExchangeAddrs(ctx, r.id, conn)
-	if err != nil || !a.Equals(addr) {
+	if err := ExchangeAddrsActive(ctx, r.id, addr, conn); err != nil {
 		conn.Close()
-		if !peer.exists() {
-			peer.Close()
-			if err != nil {
-				return errors.WithMessage(err, "ExchangeAddrs failed")
-			}
-			return errors.New("dialed impersonator")
-		}
-		return nil
+		return errors.WithMessage(err, "ExchangeAddrs failed")
 	}
 
 	peer.create(conn)

@@ -16,6 +16,7 @@ import (
 
 	"perun.network/go-perun/pkg/sync"
 	"perun.network/go-perun/pkg/test"
+	wallettest "perun.network/go-perun/wallet/test"
 )
 
 func TestProducer(t *testing.T) {
@@ -24,7 +25,7 @@ func TestProducer(t *testing.T) {
 	r2 := NewReceiver()
 	p := makeProducer()
 
-	pred := func(Msg) bool { return true }
+	pred := func(*Envelope) bool { return true }
 
 	assert.True(t, p.isEmpty())
 	assert.NoError(t, p.Subscribe(r0, pred))
@@ -39,41 +40,46 @@ func TestProducer(t *testing.T) {
 }
 
 func TestProducer_produce_DefaultMsgHandler(t *testing.T) {
-	missedMsg := make(chan Msg, 1)
+	missedMsg := make(chan *Envelope, 1)
 	recv, send := newPipeConnPair()
 	p := newEndpoint(nil, recv, nil)
 	go p.recvLoop()
 
-	p.SetDefaultMsgHandler(func(m Msg) {
-		missedMsg <- m
+	rng := test.Prng(t)
+
+	p.SetDefaultMsgHandler(func(e *Envelope) {
+		missedMsg <- e
 	})
 
 	test.AssertTerminates(t, timeout, func() {
 		r := NewReceiver()
-		p.Subscribe(r, func(m Msg) bool { return m.Type() == ChannelProposal })
-		assert.NoError(t, send.Send(NewPingMsg()))
-		assert.IsType(t, &PingMsg{}, <-missedMsg)
+		p.Subscribe(r, func(e *Envelope) bool { return e.Msg.Type() == ChannelProposal })
+		assert.NoError(t, send.Send(NewRandomEnvelope(rng, NewPingMsg())))
+		assert.IsType(t, &PingMsg{}, (<-missedMsg).Msg)
 	})
 
 	test.AssertNotTerminates(t, timeout, func() {
 		r := NewReceiver()
-		p.Subscribe(r, func(m Msg) bool { return m.Type() == Ping })
-		assert.NoError(t, send.Send(NewPingMsg()))
+		p.Subscribe(r, func(e *Envelope) bool { return e.Msg.Type() == Ping })
+		assert.NoError(t, send.Send(NewRandomEnvelope(rng, NewPingMsg())))
 		<-missedMsg
 	})
 }
 
 func TestProducer_produce_closed(t *testing.T) {
-	var missed Msg
+	var missed *Envelope
 	p := makeProducer()
-	p.SetDefaultMsgHandler(func(m Msg) { missed = m })
+	p.SetDefaultMsgHandler(func(e *Envelope) { missed = e })
 	assert.NoError(t, p.Close())
-	p.produce(NewPingMsg(), &Endpoint{})
+	rng := test.Prng(t)
+	a := wallettest.NewRandomAddress(rng)
+	b := wallettest.NewRandomAddress(rng)
+	p.produce(&Envelope{a, b, NewPingMsg()})
 	assert.Nil(t, missed, "produce() on closed producer shouldn't do anything")
 }
 
 func TestProducer_SetDefaultMsgHandler(t *testing.T) {
-	fn := func(Msg) {}
+	fn := func(*Envelope) {}
 	p := makeProducer()
 
 	logUnhandledMsgPtr := reflect.ValueOf(logUnhandledMsg).Pointer()
@@ -98,7 +104,7 @@ func TestProducer_Close(t *testing.T) {
 }
 
 func TestProducer_Subscribe(t *testing.T) {
-	fn := func(Msg) bool { return true }
+	fn := func(*Envelope) bool { return true }
 	t.Run("closed", func(t *testing.T) {
 		p := makeProducer()
 		p.Close()
@@ -130,37 +136,39 @@ func TestProducer_Subscribe(t *testing.T) {
 // messages to the cache.
 func TestProducer_caching(t *testing.T) {
 	assert := assert.New(t)
-	isPing := func(m Msg) bool { return m.Type() == Ping }
-	isPong := func(m Msg) bool { return m.Type() == Pong }
+	isPing := func(e *Envelope) bool { return e.Msg.Type() == Ping }
+	isPong := func(e *Envelope) bool { return e.Msg.Type() == Pong }
 	prod := makeProducer()
-	unhandlesMsg := make([]Msg, 0, 2)
-	prod.SetDefaultMsgHandler(func(m Msg) { unhandlesMsg = append(unhandlesMsg, m) })
+	unhandlesMsg := make([]*Envelope, 0, 2)
+	prod.SetDefaultMsgHandler(func(e *Envelope) { unhandlesMsg = append(unhandlesMsg, e) })
 
 	ctx := context.Background()
 	prod.Cache(ctx, isPing)
-	ping0, peer0 := NewPingMsg(), &Endpoint{} // dummy peer
-	pong1 := NewPongMsg()
-	pong2 := NewPongMsg()
 
-	prod.produce(ping0, peer0)
+	rng := test.Prng(t)
+	ping0 := NewRandomEnvelope(rng, NewPingMsg())
+	pong1 := NewRandomEnvelope(rng, NewPongMsg())
+	pong2 := NewRandomEnvelope(rng, NewPongMsg())
+
+	prod.produce(ping0)
 	assert.Equal(1, prod.cache.Size())
 	assert.Len(unhandlesMsg, 0)
 
-	prod.produce(pong1, &Endpoint{})
+	prod.produce(pong1)
 	assert.Equal(1, prod.cache.Size())
 	assert.Len(unhandlesMsg, 1)
 
 	prod.Cache(ctx, isPong)
-	prod.produce(pong2, &Endpoint{})
+	prod.produce(pong2)
 	assert.Equal(2, prod.cache.Size())
 	assert.Len(unhandlesMsg, 1)
 
 	rec := NewReceiver()
 	prod.Subscribe(rec, isPing)
 	test.AssertTerminates(t, timeout, func() {
-		recpeer, recmsg := rec.Next(ctx)
-		assert.Same(recpeer, peer0)
-		assert.Same(recmsg, ping0)
+		e, err := rec.Next(ctx)
+		assert.NoError(err)
+		assert.Same(e, ping0)
 	})
 	assert.Equal(1, prod.cache.Size())
 	assert.Len(unhandlesMsg, 1)
@@ -170,7 +178,7 @@ func TestProducer_caching(t *testing.T) {
 	assert.Contains(err.Error(), "cache")
 	assert.Zero(prod.cache.Size(), "producer.Close should flush the cache")
 
-	prod.Cache(ctx, func(Msg) bool { return true })
+	prod.Cache(ctx, func(*Envelope) bool { return true })
 	prod.cache.Put(ping0, nil)
 	assert.Zero(prod.cache.Size(), "Cache on closed producer should not enable caching")
 }

@@ -51,14 +51,14 @@ func (p *Endpoint) recvLoop() {
 	}
 
 	for {
-		m, err := p.conn.Recv()
+		e, err := p.conn.Recv()
 		if err != nil {
 			p.Close() // Ignore double close.
 			log.WithError(err).Errorf("Ending recvLoop on closed connection of peer %v", p.PerunAddress)
 			return
 		}
 		// Broadcast the received message to all interested subscribers.
-		p.produce(m, p)
+		p.produce(e)
 	}
 }
 
@@ -123,7 +123,7 @@ func (p *Endpoint) OnCreateAlways(fn func()) bool {
 //
 // The passed context is used to timeout the send operation. If the context
 // times out, the peer is closed.
-func (p *Endpoint) Send(ctx context.Context, m Msg) error {
+func (p *Endpoint) Send(ctx context.Context, e *Envelope) error {
 	// Wait until peer exists, is closed, or context timeout.
 	if !p.waitExists(ctx) {
 		p.Close()                        // replace with p.conn.Close() when reintroducing repair.
@@ -139,7 +139,7 @@ func (p *Endpoint) Send(ctx context.Context, m Msg) error {
 	// Asynchronously send, because we cannot abort Conn.Send().
 	go func() {
 		defer p.sending.Unlock()
-		sent <- p.conn.Send(m)
+		sent <- p.conn.Send(e)
 	}()
 
 	// Return as soon as the sending finishes, times out, or peer is closed.

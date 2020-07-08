@@ -19,6 +19,6 @@ func NewRelay() *Relay {
 }
 
 // Put puts a message into the relay.
-func (r *Relay) Put(p *Endpoint, msg Msg) {
-	r.produce(msg, p)
+func (r *Relay) Put(e *Envelope) {
+	r.produce(e)
 }

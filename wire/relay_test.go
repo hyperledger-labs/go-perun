@@ -19,23 +19,22 @@ func TestRelay_Put(t *testing.T) {
 
 	relay := NewRelay()
 	r := NewReceiver()
-	relay.Subscribe(r, func(Msg) bool { return true })
+	relay.Subscribe(r, func(*Envelope) bool { return true })
 
-	p := newEndpoint(nil, nil, nil)
-	msg := NewPingMsg()
-	go relay.Put(p, msg)
+	e := NewRandomEnvelope(test.Prng(t), NewPingMsg())
+	go relay.Put(e)
 
 	test.AssertTerminates(t, timeout, func() {
-		peer, m := r.Next(context.Background())
-		assert.Same(t, m, msg)
-		assert.Same(t, peer, p)
+		re, err := r.Next(context.Background())
+		assert.NoError(t, err)
+		assert.Equal(t, re, e)
 	})
 }
 
 func TestRelay_WithPeerAndReceiver(t *testing.T) {
 	t.Parallel()
 
-	acceptAll := func(Msg) bool { return true }
+	acceptAll := func(*Envelope) bool { return true }
 
 	send, recv := newPipeConnPair()
 	p := newEndpoint(nil, recv, nil)
@@ -46,12 +45,12 @@ func TestRelay_WithPeerAndReceiver(t *testing.T) {
 	p.Subscribe(relay, acceptAll)
 
 	go p.recvLoop()
-	msg := NewPingMsg()
-	send.Send(msg)
+	e := NewRandomEnvelope(test.Prng(t), NewPingMsg())
+	send.Send(e)
 
 	test.AssertTerminates(t, timeout, func() {
-		origin, receivedMsg := receiver.Next(context.Background())
-		assert.Equal(t, msg, receivedMsg)
-		assert.Same(t, origin, p)
+		re, err := receiver.Next(context.Background())
+		assert.NoError(t, err)
+		assert.Equal(t, re, e)
 	})
 }

@@ -16,6 +16,7 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	_ "perun.network/go-perun/backend/sim" // backend init
+	"perun.network/go-perun/pkg/test"
 	wallettest "perun.network/go-perun/wallet/test"
 )
 
@@ -88,7 +89,7 @@ func makeClient(t *testing.T, conn Conn, rng *rand.Rand, dialer Dialer) *client 
 	var registry = NewEndpointRegistry(wallettest.NewRandomAccount(rng), func(p *Endpoint) {
 		assert.NoError(
 			t,
-			p.Subscribe(receiver, func(Msg) bool { return true }),
+			p.Subscribe(receiver, func(*Envelope) bool { return true }),
 			"failed to subscribe a new peer")
 	}, dialer)
 
@@ -104,16 +105,18 @@ func TestEndpoint_Close(t *testing.T) {
 	t.Parallel()
 	s := makeSetup(t)
 	// Remember bob's address for later, we will need it for a registry lookup.
-	bobAddress := s.alice.endpoint.PerunAddress
+	bobAddr := s.alice.endpoint.PerunAddress
 	// The lookup needs to work because the test relies on it.
-	found, _ := s.alice.Registry.find(bobAddress)
+	found, _ := s.alice.Registry.find(bobAddr)
 	assert.Equal(t, s.alice.endpoint, found)
 	// Close Alice's connection to Bob.
 	assert.NoError(t, s.alice.endpoint.Close(), "closing a peer once must succeed")
 	assert.Error(t, s.alice.endpoint.Close(), "closing peers twice must fail")
 
 	// Sending over closed peers (not connections) must fail.
-	err := s.alice.endpoint.Send(context.Background(), NewPingMsg())
+	err := s.alice.endpoint.Send(
+		context.Background(),
+		NewRandomEnvelope(test.Prng(t), NewPingMsg()))
 	assert.Error(t, err, "sending to bob must fail", err)
 }
 
@@ -125,26 +128,29 @@ func TestEndpoint_Send_ImmediateAbort(t *testing.T) {
 	cancel()
 
 	// This operation should abort immediately.
-	assert.Error(t, s.alice.endpoint.Send(ctx, NewPingMsg()))
+	assert.Error(t, s.alice.endpoint.Send(ctx,
+		NewRandomEnvelope(test.Prng(t), NewPingMsg())))
 
 	assert.True(t, s.alice.endpoint.IsClosed(), "peer must be closed after failed sending")
 }
 
 func TestEndpoint_Send_Timeout(t *testing.T) {
 	t.Parallel()
+	rng := test.Prng(t)
 	conn, _ := newPipeConnPair()
 	p := newEndpoint(nil, conn, nil)
 
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 
-	assert.Error(t, p.Send(ctx, NewPingMsg()),
+	assert.Error(t, p.Send(ctx, NewRandomEnvelope(rng, NewPingMsg())),
 		"Send() must timeout on blocked connection")
 	assert.True(t, p.IsClosed(), "peer must be closed after failed Send()")
 }
 
 func TestEndpoint_Send_Timeout_Mutex_TryLockCtx(t *testing.T) {
 	t.Parallel()
+	rng := test.Prng(t)
 	conn, remote := newPipeConnPair()
 	p := newEndpoint(nil, conn, nil)
 
@@ -153,13 +159,14 @@ func TestEndpoint_Send_Timeout_Mutex_TryLockCtx(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 
-	assert.Error(t, p.Send(ctx, NewPingMsg()),
+	assert.Error(t, p.Send(ctx, NewRandomEnvelope(rng, NewPingMsg())),
 		"Send() must timeout on locked mutex")
 	assert.True(t, p.IsClosed(), "peer must be closed after failed Send()")
 }
 
 func TestEndpoint_Send_Close(t *testing.T) {
 	t.Parallel()
+	rng := test.Prng(t)
 	conn, _ := newPipeConnPair()
 	p := newEndpoint(nil, conn, nil)
 
@@ -167,7 +174,8 @@ func TestEndpoint_Send_Close(t *testing.T) {
 		<-time.NewTimer(timeout).C
 		p.Close()
 	}()
-	assert.Error(t, p.Send(context.Background(), NewPingMsg()),
+
+	assert.Error(t, p.Send(context.Background(), NewRandomEnvelope(rng, NewPingMsg())),
 		"Send() must be aborted by Close()")
 }
 

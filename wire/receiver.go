@@ -8,6 +8,8 @@ package wire
 import (
 	"context"
 
+	"github.com/pkg/errors"
+
 	"perun.network/go-perun/pkg/sync"
 )
 
@@ -17,12 +19,6 @@ const (
 	receiverBufferSize = 16
 )
 
-// msgTuple is a helper type, because channels cannot have tuple types.
-type msgTuple struct {
-	*Endpoint
-	Msg
-}
-
 var _ Consumer = (*Receiver)(nil)
 
 // Receiver is a helper object that can subscribe to different message
@@ -30,35 +26,35 @@ var _ Consumer = (*Receiver)(nil)
 // execution context at a time. If multiple contexts need to access a peer's
 // messages, then multiple receivers have to be created.
 type Receiver struct {
-	msgs chan msgTuple // Queued messages.
+	msgs chan *Envelope
 
 	sync.Closer
 }
 
 // Next returns a channel to the next message.
-func (r *Receiver) Next(ctx context.Context) (*Endpoint, Msg) {
+func (r *Receiver) Next(ctx context.Context) (*Envelope, error) {
 	select {
 	case <-ctx.Done():
-		return nil, nil
+		return nil, errors.Wrap(ctx.Err(), "context closed")
 	case <-r.Closed():
-		return nil, nil
+		return nil, errors.New("receiver closed")
 	default:
 	}
 
 	select {
 	case <-ctx.Done():
-		return nil, nil
+		return nil, errors.Wrap(ctx.Err(), "context closed")
 	case <-r.Closed():
-		return nil, nil
-	case tuple := <-r.msgs:
-		return tuple.Endpoint, tuple.Msg
+		return nil, errors.New("receiver closed")
+	case e := <-r.msgs:
+		return e, nil
 	}
 }
 
 // Put puts a new message into the queue.
-func (r *Receiver) Put(peer *Endpoint, msg Msg) {
+func (r *Receiver) Put(e *Envelope) {
 	select {
-	case r.msgs <- msgTuple{peer, msg}:
+	case r.msgs <- e:
 	case <-r.Closed():
 	}
 }
@@ -66,6 +62,6 @@ func (r *Receiver) Put(peer *Endpoint, msg Msg) {
 // NewReceiver creates a new receiver.
 func NewReceiver() *Receiver {
 	return &Receiver{
-		msgs: make(chan msgTuple, receiverBufferSize),
+		msgs: make(chan *Envelope, receiverBufferSize),
 	}
 }

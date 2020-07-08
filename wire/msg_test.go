@@ -7,6 +7,7 @@ package wire
 
 import (
 	"io"
+	"math/rand"
 	"strconv"
 	"testing"
 
@@ -16,6 +17,10 @@ import (
 	"perun.network/go-perun/pkg/test"
 	wtest "perun.network/go-perun/wallet/test"
 )
+
+func NewRandomEnvelope(rng *rand.Rand, m Msg) *Envelope {
+	return &Envelope{wtest.NewRandomAddress(rng), wtest.NewRandomAddress(rng), m}
+}
 
 var nilDecoder = func(io.Reader) (Msg, error) { return nil, nil }
 
@@ -51,12 +56,6 @@ func TestRegisterExternalDecoder(t *testing.T) {
 }
 
 func TestEnvelope_EncodeDecode(t *testing.T) {
-	rng := test.Prng(t)
-	ping := &Envelope{
-		Sender:    wtest.NewRandomAddress(rng),
-		Recipient: wtest.NewRandomAddress(rng),
-		Msg:       NewPingMsg(),
-	}
-
+	ping := NewRandomEnvelope(test.Prng(t), NewPingMsg())
 	iotest.GenericSerializerTest(t, ping)
 }

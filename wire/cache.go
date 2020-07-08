@@ -17,12 +17,12 @@ type (
 	// WithAnnex is a tuple of a message together with some arbitrary additional
 	// data (Annex)
 	WithAnnex struct {
-		Msg   Msg
-		Annex interface{}
+		Envelope *Envelope
+		Annex    interface{}
 	}
 
 	// A Predicate defines a message filter.
-	Predicate = func(Msg) bool
+	Predicate = func(*Envelope) bool
 
 	ctxPredicate struct {
 		ctx context.Context
@@ -43,7 +43,7 @@ func (c *Cache) Cache(ctx context.Context, p Predicate) {
 
 // Put puts the message into the cache if it matches any active prediacte.
 // If it matches several predicates, it is still only added once to the cache.
-func (c *Cache) Put(m Msg, a interface{}) bool {
+func (c *Cache) Put(e *Envelope, a interface{}) bool {
 	// we filter the predicates for non-active and lazily remove them
 	preds := c.preds[:0]
 	any := false
@@ -55,11 +55,11 @@ func (c *Cache) Put(m Msg, a interface{}) bool {
 			preds = append(preds, p)
 		}
 
-		any = any || p.p(m)
+		any = any || p.p(e)
 	}
 
 	if any {
-		c.msgs = append(c.msgs, WithAnnex{m, a})
+		c.msgs = append(c.msgs, WithAnnex{e, a})
 	}
 
 	c.preds = preds
@@ -73,7 +73,7 @@ func (c *Cache) Get(p Predicate) []WithAnnex {
 	// Usually, Get is called with the assumption to match at least one message
 	matches := make([]WithAnnex, 0, 1)
 	for _, m := range c.msgs {
-		if p(m.Msg) {
+		if p(m.Envelope) {
 			matches = append(matches, m)
 		} else {
 			msgs = append(msgs, m)

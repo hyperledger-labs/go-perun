@@ -23,21 +23,21 @@ func NewIoConn(conn io.ReadWriteCloser) Conn {
 	}
 }
 
-func (c *ioConn) Send(m Msg) error {
-	if err := Encode(m, c.conn); err != nil {
+func (c *ioConn) Send(e *Envelope) error {
+	if err := e.Encode(c.conn); err != nil {
 		c.conn.Close()
 		return err
 	}
 	return nil
 }
 
-func (c *ioConn) Recv() (Msg, error) {
-	m, err := Decode(c.conn)
-	if err != nil {
+func (c *ioConn) Recv() (*Envelope, error) {
+	var e Envelope
+	if err := e.Decode(c.conn); err != nil {
 		c.conn.Close()
 		return nil, err
 	}
-	return m, nil
+	return &e, nil
 }
 
 func (c *ioConn) Close() error {

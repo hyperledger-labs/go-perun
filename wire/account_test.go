@@ -26,7 +26,7 @@ func TestExchangeAddrs_ConnFail(t *testing.T) {
 	rng := rand.New(rand.NewSource(0xDDDDDEDE))
 	a, _ := newPipeConnPair()
 	a.Close()
-	addr, err := ExchangeAddrs(context.Background(), wallettest.NewRandomAccount(rng), a)
+	addr, err := ExchangeAddrsPassive(context.Background(), wallettest.NewRandomAccount(rng), a)
 	assert.Nil(t, addr)
 	assert.Error(t, err)
 }
@@ -43,14 +43,13 @@ func TestExchangeAddrs_Success(t *testing.T) {
 		defer wg.Done()
 		defer conn1.Close()
 
-		recvAddr0, err := ExchangeAddrs(context.Background(), account1, conn1)
+		recvAddr0, err := ExchangeAddrsPassive(context.Background(), account1, conn1)
 		assert.NoError(t, err)
 		assert.True(t, recvAddr0.Equals(account0.Address()))
 	}()
 
-	recvAddr1, err := ExchangeAddrs(context.Background(), account0, conn0)
+	err := ExchangeAddrsActive(context.Background(), account0, account1.Address(), conn0)
 	assert.NoError(t, err)
-	assert.True(t, recvAddr1.Equals(account1.Address()))
 
 	wg.Wait()
 }
@@ -62,7 +61,7 @@ func TestExchangeAddrs_Timeout(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 	pkgtest.AssertTerminates(t, 2*timeout, func() {
-		addr, err := ExchangeAddrs(ctx, wallettest.NewRandomAccount(rng), a)
+		addr, err := ExchangeAddrsPassive(ctx, wallettest.NewRandomAccount(rng), a)
 		assert.Nil(t, addr)
 		assert.Error(t, err)
 	})
@@ -72,8 +71,8 @@ func TestExchangeAddrs_BogusMsg(t *testing.T) {
 	rng := rand.New(rand.NewSource(0xcafe))
 	acc := wallettest.NewRandomAccount(rng)
 	conn := newMockConn(nil)
-	conn.recvQueue <- NewPingMsg()
-	addr, err := ExchangeAddrs(context.Background(), acc, conn)
+	conn.recvQueue <- NewRandomEnvelope(rng, NewPingMsg())
+	addr, err := ExchangeAddrsPassive(context.Background(), acc, conn)
 
 	assert.Error(t, err, "ExchangeAddrs should error when peer sends a non-AuthResponseMsg")
 	assert.Nil(t, addr)

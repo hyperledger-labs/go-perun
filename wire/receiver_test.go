@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/assert"
+
 	"perun.network/go-perun/pkg/test"
 )
 
@@ -28,17 +29,16 @@ func TestReceiver_Close(t *testing.T) {
 
 func TestReceiver_Next(t *testing.T) {
 	t.Parallel()
-	peer := newEndpoint(nil, nil, nil)
-	msg := NewPingMsg()
+	e := NewRandomEnvelope(test.Prng(t), NewPingMsg())
 
 	t.Run("Happy case", func(t *testing.T) {
 		t.Parallel()
 		test.AssertTerminates(t, timeout, func() {
 			r := NewReceiver()
-			go r.Put(peer, msg)
-			p, m := r.Next(context.Background())
-			assert.Same(t, p, peer)
-			assert.Same(t, m, msg)
+			go r.Put(e)
+			re, err := r.Next(context.Background())
+			assert.NoError(t, err)
+			assert.Same(t, e, re)
 		})
 	})
 
@@ -47,9 +47,9 @@ func TestReceiver_Next(t *testing.T) {
 		test.AssertTerminates(t, timeout, func() {
 			r := NewReceiver()
 			r.Close()
-			p, m := r.Next(context.Background())
-			assert.Nil(t, p)
-			assert.Nil(t, m)
+			re, err := r.Next(context.Background())
+			assert.Nil(t, re)
+			assert.Error(t, err)
 		})
 	})
 
@@ -61,9 +61,9 @@ func TestReceiver_Next(t *testing.T) {
 				time.Sleep(timeout)
 				r.Close()
 			}()
-			p, m := r.Next(context.Background())
-			assert.Nil(t, p)
-			assert.Nil(t, m)
+			re, err := r.Next(context.Background())
+			assert.Nil(t, re)
+			assert.Error(t, err)
 		})
 	})
 
@@ -73,9 +73,9 @@ func TestReceiver_Next(t *testing.T) {
 			r := NewReceiver()
 			ctx, cancel := context.WithCancel(context.Background())
 			cancel()
-			p, m := r.Next(ctx)
-			assert.Nil(t, p)
-			assert.Nil(t, m)
+			re, err := r.Next(ctx)
+			assert.Nil(t, re)
+			assert.Error(t, err)
 		})
 	})
 
@@ -85,9 +85,9 @@ func TestReceiver_Next(t *testing.T) {
 			r := NewReceiver()
 			ctx, cancel := context.WithTimeout(context.Background(), timeout)
 			defer cancel()
-			p, m := r.Next(ctx)
-			assert.Nil(t, p)
-			assert.Nil(t, m)
+			re, err := r.Next(ctx)
+			assert.Nil(t, re)
+			assert.Error(t, err)
 		})
 	})
 

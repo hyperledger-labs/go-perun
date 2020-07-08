@@ -10,12 +10,12 @@ package wire
 // that happen in other threads must interrupt ongoing Send and Recv calls.
 // This is the default behavior for sockets.
 type Conn interface {
-	// Recv receives a message from the peer.
+	// Recv receives an envelope from the peer.
 	// If an error occurs, the connection must close itself.
-	Recv() (Msg, error)
-	// Send sends a message to the peer.
+	Recv() (*Envelope, error)
+	// Send sends an envelope to the peer.
 	// If an error occurs, the connection must close itself.
-	Send(msg Msg) error
+	Send(*Envelope) error
 	// Close closes the connection and aborts any ongoing Send() and Recv()
 	// calls.
 	//
