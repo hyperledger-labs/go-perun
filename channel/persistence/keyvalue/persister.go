@@ -27,7 +27,8 @@ func (p *PersistRestorer) ChannelCreated(_ context.Context, s channel.Source, pe
 	db := p.channelDB(s.ID()).NewBatch()
 	// Write the channel data in the "Channel" table.
 	numParts := len(s.Params().Parts)
-	keys := append([]string{"current", "index", "params", "phase", "staging:state"}, sigKeys(numParts)...)
+	keys := append([]string{"current", "index", "params", "peers", "phase", "staging:state"},
+		sigKeys(numParts)...)
 	if err := dbPutSource(db, s, keys...); err != nil {
 		return err
 	}
@@ -66,7 +67,7 @@ func (p *PersistRestorer) ChannelRemoved(_ context.Context, id channel.ID) error
 	if err != nil {
 		return err
 	}
-	keys := append([]string{"current", "index", "params", "phase", "staging:state"},
+	keys := append([]string{"current", "index", "params", "peers", "phase", "staging:state"},
 		sigKeys(len(params.Parts))...)
 
 	for _, key := range keys {
@@ -98,19 +99,13 @@ func (p *PersistRestorer) ChannelRemoved(_ context.Context, id channel.ID) error
 // peersForChan returns a slice of peer addresses for a given channel id from
 // the db of PersistRestorer.
 func (p *PersistRestorer) peersForChan(id channel.ID) ([]wire.Address, error) {
-	var ps []wire.Address
-	it := sortedkv.NewTable(p.db, prefix.PeerDB).NewIterator()
-	defer it.Close()
-	for it.Next() {
-		addr, chid, err := decodePeerChanID(it.Key())
-		if err != nil {
-			return nil, err
-		}
-		if chid == id {
-			ps = append(ps, addr)
-		}
+	var ps wire.AddressesWithLen
+	peers, err := p.channelDB(id).Get(prefix.Peers)
+	if err != nil {
+		return nil, errors.WithMessage(err, "unable to get peerlist from db")
 	}
-	return ps, nil
+	return []wire.Address(ps), errors.WithMessage(perunio.Decode(bytes.NewBuffer([]byte(peers)), &ps),
+		"decoding peerlist")
 }
 
 // getParamsForChan returns the channel parameters for a given channel id from
@@ -194,6 +189,8 @@ func dbPutSourceField(db sortedkv.Writer, s channel.Source, key string) error {
 		return dbPut(db, key, s.Idx())
 	case "params":
 		return dbPut(db, key, s.Params())
+	case "peers":
+		return dbPut(db, key, wire.AddressesWithLen(s.Params().Parts))
 	case "phase":
 		return dbPut(db, key, s.Phase())
 	case "staging:state":

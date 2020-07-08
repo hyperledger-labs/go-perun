@@ -33,8 +33,9 @@ func NewPersistRestorer(db sortedkv.Database) *PersistRestorer {
 	}
 }
 
-var prefix = struct{ ChannelDB, PeerDB, SigKey string }{
+var prefix = struct{ ChannelDB, PeerDB, SigKey, Peers string }{
 	ChannelDB: "Chan:",
 	PeerDB:    "Peer:",
 	SigKey:    "staging:sig:",
+	Peers:     "peers",
 }

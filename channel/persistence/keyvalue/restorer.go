@@ -146,6 +146,7 @@ const (
 	noOpts   decOpts = 0
 	allowEnd decOpts = 1 << iota
 	allowEmpty
+	skip
 )
 
 // isSetIn masks the given opts with the current opt and returns
@@ -165,6 +166,7 @@ func (i *ChannelIterator) Next(context.Context) bool {
 	if !i.decodeNext("current", &i.ch.CurrentTXV, allowEnd) ||
 		!i.decodeNext("index", &i.ch.IdxV, noOpts) ||
 		!i.decodeNext("params", i.ch.ParamsV, noOpts) ||
+		!i.decodeNext("peers", nil, skip) ||
 		!i.decodeNext("phase", &i.ch.PhaseV, noOpts) {
 		return false
 	}
@@ -203,6 +205,10 @@ func (i *ChannelIterator) decodeNext(key string, v interface{}, opts decOpts) bo
 		if !i.recoverFromEmptyIterator(key, opts) {
 			return false
 		}
+	}
+
+	if skip.isSetIn(opts) {
+		return true
 	}
 
 	buf := bytes.NewBuffer(i.its[0].ValueBytes())
