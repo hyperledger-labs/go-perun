@@ -164,4 +164,10 @@ peerLoop:
 		}
 		t.Errorf("Peer[%d] not found in persisted peers", idx)
 	}
+
+	for _, chmap := range channels {
+		for _, ch := range chmap {
+			ch.Settle(t)
+		}
+	}
 }

@@ -35,8 +35,7 @@ func TestPersistRestorer_Generic(t *testing.T) {
 	for _, db := range dbs {
 		func() {
 			defer func() { require.NoError(t, db.Close()) }()
-			pr, err := NewPersistRestorer(db)
-			require.NoError(t, err)
+			pr := NewPersistRestorer(db)
 			test.GenericPersistRestorerTest(
 				context.Background(),
 				t,

@@ -9,6 +9,7 @@ import (
 	"bytes"
 	"context"
 	"io"
+	"strings"
 
 	"github.com/pkg/errors"
 
@@ -33,15 +34,22 @@ type ChannelIterator struct {
 
 // ActivePeers returns a list of all peers with which a channel is persisted.
 func (r *PersistRestorer) ActivePeers(context.Context) ([]wire.Address, error) {
-	ps := make([]wire.Address, 0, len(r.cache.peerChannels))
-	for peerstr := range r.cache.peerChannels {
-		addr, err := wire.DecodeAddress(bytes.NewReader([]byte(peerstr)))
+	it := sortedkv.NewTable(r.db, prefix.PeerDB).NewIterator()
+
+	peermap := make(map[wallet.AddrKey]wire.Address)
+	for it.Next() {
+		addr, err := wire.DecodeAddress(bytes.NewBufferString(it.Key()))
 		if err != nil {
-			return nil, errors.WithMessagef(err, "decoding peer address (%x)", []byte(peerstr))
+			return nil, errors.WithMessagef(err, "decoding peer key (%x)", it.Key())
 		}
-		ps = append(ps, addr)
+		peermap[wallet.Key(addr)] = addr
 	}
-	return ps, nil
+
+	peers := make([]wire.Address, 0, len(peermap))
+	for _, peer := range peermap {
+		peers = append(peers, peer)
+	}
+	return peers, errors.WithMessage(it.Close(), "closing iterator")
 }
 
 // RestoreAll should return an iterator over all persisted channels.
@@ -58,15 +66,32 @@ func (r *PersistRestorer) RestorePeer(addr wire.Address) (persistence.ChannelIte
 	it := &ChannelIterator{restorer: r}
 	chandb := sortedkv.NewTable(r.db, prefix.ChannelDB)
 
-	chs := r.cache.peerChannels[string(addr.Bytes())]
-	it.its = make([]sortedkv.Iterator, len(chs))
-	i := 0
-	for ch := range chs {
-		it.its[i] = chandb.NewIteratorWithPrefix(string(ch[:]))
-		i++
+	key, err := peerChannelsKey(addr)
+	if err != nil {
+		return nil, errors.WithMessage(err, "restoring peer")
+	}
+	itPeer := sortedkv.NewTable(r.db, prefix.PeerDB+key).NewIterator()
+	defer itPeer.Close()
+
+	var id channel.ID
+	for itPeer.Next() {
+		if err := perunio.Decode(bytes.NewBufferString(itPeer.Key()), &id); err != nil {
+			return nil, errors.WithMessage(err, "decode channel id")
+		}
+		it.its = append(it.its, chandb.NewIteratorWithPrefix(string(id[:])))
 	}
 
 	return it, nil
+}
+
+// peerChannelsKey creates a db-key-string for a given wire.Address.
+func peerChannelsKey(addr wire.Address) (string, error) {
+	var key strings.Builder
+	if err := addr.Encode(&key); err != nil {
+		return "", errors.WithMessage(err, "encoding peer address")
+	}
+	key.WriteString(":channel:")
+	return key.String(), nil
 }
 
 // RestoreChannel restores a single channel.
@@ -86,33 +111,20 @@ func (r *PersistRestorer) RestoreChannel(ctx context.Context, id channel.ID) (*p
 	return nil, errors.Errorf("could not find channel %x", id)
 }
 
-// readAllPeers reads all peer entries from the database and populates the
-// restorer's channel cache.
-func (r *PersistRestorer) readAllPeers() (err error) {
-	it := sortedkv.NewTable(r.db, prefix.PeerDB).NewIterator()
-	defer it.Close()
-
-	for it.Next() {
-		buf := bytes.NewBufferString(it.Key())
-
-		var addr wire.Address
-		if addr, err = wire.DecodeAddress(buf); err != nil {
-			return errors.WithMessage(err, "decode peer address")
-		}
-
-		if err = eatExpect(buf, ":channel:"); err != nil {
-			return errors.WithMessagef(err, "key: %s", it.Key())
-		}
-
-		var id channel.ID
-		if err = perunio.Decode(buf, &id); err != nil {
-			return errors.WithMessage(err, "decode channel id")
-		}
-
-		r.cache.addPeerChannel(addr, id)
+// decodePeerChanID decodes the channel.ID and peer.Address from a key.
+func decodePeerChanID(key string) (wire.Address, channel.ID, error) {
+	buf := bytes.NewBufferString(key)
+	addr, err := wire.DecodeAddress(buf)
+	if err != nil {
+		return addr, channel.ID{}, errors.WithMessage(err, "decode peer address")
 	}
 
-	return errors.WithMessage(it.Close(), "iterator")
+	if err = eatExpect(buf, ":channel:"); err != nil {
+		return nil, channel.ID{}, errors.WithMessagef(err, "key: %x", key)
+	}
+
+	var id channel.ID
+	return addr, id, errors.WithMessage(perunio.Decode(buf, &id), "decode channel id")
 }
 
 // eatExpect consumes bytes from a Reader and asserts that they are equal to
