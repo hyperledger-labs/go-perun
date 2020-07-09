@@ -3,10 +3,12 @@
 // of this source code is governed by the Apache 2.0 license that can be found
 // in the LICENSE file.
 
-package wire
+package net
 
 import (
 	"io"
+
+	"perun.network/go-perun/wire"
 )
 
 var _ Conn = (*ioConn)(nil)
@@ -23,7 +25,7 @@ func NewIoConn(conn io.ReadWriteCloser) Conn {
 	}
 }
 
-func (c *ioConn) Send(e *Envelope) error {
+func (c *ioConn) Send(e *wire.Envelope) error {
 	if err := e.Encode(c.conn); err != nil {
 		c.conn.Close()
 		return err
@@ -31,8 +33,8 @@ func (c *ioConn) Send(e *Envelope) error {
 	return nil
 }
 
-func (c *ioConn) Recv() (*Envelope, error) {
-	var e Envelope
+func (c *ioConn) Recv() (*wire.Envelope, error) {
+	var e wire.Envelope
 	if err := e.Decode(c.conn); err != nil {
 		c.conn.Close()
 		return nil, err

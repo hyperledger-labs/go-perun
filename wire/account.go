@@ -6,12 +6,8 @@
 package wire
 
 import (
-	"context"
 	"io"
 
-	"github.com/pkg/errors"
-
-	"perun.network/go-perun/pkg/test"
 	"perun.network/go-perun/wallet"
 )
 
@@ -27,77 +23,6 @@ func init() {
 // authenticity within the Perun peer-to-peer network. For now, it is just a
 // stub.
 type Account = wallet.Account
-
-// ExchangeAddrsActive executes the active role of the address exchange
-// protocol. It is executed by the person that dials.
-//
-// In the future, it will be extended to become a proper authentication
-// protocol. The protocol will then exchange Perun addresses and establish
-// authenticity.
-func ExchangeAddrsActive(ctx context.Context, id Account, peer Address, conn Conn) error {
-	var err error
-	ok := test.TerminatesCtx(ctx, func() {
-		err = conn.Send(&Envelope{
-			Sender:    id.Address(),
-			Recipient: peer,
-			Msg:       NewAuthResponseMsg(id),
-		})
-		if err != nil {
-			err = errors.WithMessage(err, "sending message")
-			return
-		}
-
-		var e *Envelope
-		if e, err = conn.Recv(); err != nil {
-			err = errors.WithMessage(err, "receiving message")
-		} else if _, ok := e.Msg.(*AuthResponseMsg); !ok {
-			err = errors.Errorf("expected AuthResponse wire msg, got %v", e.Msg.Type())
-		} else if !e.Recipient.Equals(id.Address()) &&
-			!e.Sender.Equals(peer) {
-			err = errors.Errorf("unmatched response sender or recipient")
-		}
-	})
-
-	if !ok {
-		conn.Close()
-		return errors.WithMessage(ctx.Err(), "timeout")
-	}
-
-	return err
-}
-
-// ExchangeAddrsPassive executes the passive role of the address exchange
-// protocol. It is executed by the person that listens for incoming connections.
-func ExchangeAddrsPassive(ctx context.Context, id Account, conn Conn) (Address, error) {
-	var addr Address
-	var err error
-	ok := test.TerminatesCtx(ctx, func() {
-		var e *Envelope
-		if e, err = conn.Recv(); err != nil {
-			err = errors.WithMessage(err, "receiving auth message")
-		} else if _, ok := e.Msg.(*AuthResponseMsg); !ok {
-			err = errors.Errorf("expected AuthResponse wire msg, got %v", e.Msg.Type())
-		} else if !e.Recipient.Equals(id.Address()) {
-			err = errors.Errorf("unmatched response sender or recipient")
-		}
-		if err != nil {
-			return
-		}
-		addr, err = e.Sender, conn.Send(&Envelope{
-			Sender:    id.Address(),
-			Recipient: e.Sender,
-			Msg:       NewAuthResponseMsg(id),
-		})
-	})
-
-	if !ok {
-		conn.Close()
-		return nil, errors.WithMessage(ctx.Err(), "timeout")
-	} else if err != nil {
-		conn.Close()
-	}
-	return addr, err
-}
 
 var _ Msg = (*AuthResponseMsg)(nil)
 

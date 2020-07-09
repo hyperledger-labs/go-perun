@@ -3,7 +3,7 @@
 // of this source code is governed by the Apache 2.0 license that can be found
 // in the LICENSE file.
 
-package wire
+package net
 
 import (
 	"context"
@@ -14,14 +14,15 @@ import (
 
 	"perun.network/go-perun/log"
 	perunsync "perun.network/go-perun/pkg/sync"
+	"perun.network/go-perun/wire"
 )
 
 // EndpointRegistry is a peer EndpointRegistry.
 // It should not be used manually, but only internally by the client.
 type EndpointRegistry struct {
 	mutex sync.RWMutex
-	peers []*Endpoint // The list of all of the registry's peers.
-	id    Account     // The identity of the node.
+	peers []*Endpoint  // The list of all of the registry's peers.
+	id    wire.Account // The identity of the node.
 
 	dialer    Dialer          // Used for dialing peers (and later: repairing).
 	subscribe func(*Endpoint) // Sets up peer subscriptions.
@@ -35,7 +36,7 @@ const exchangeAddrsTimeout = 10 * time.Second
 // NewEndpointRegistry creates a new registry.
 // The provided callback is used to set up new peer's subscriptions and it is
 // called before the peer starts receiving messages.
-func NewEndpointRegistry(id Account, subscribe func(*Endpoint), dialer Dialer) *EndpointRegistry {
+func NewEndpointRegistry(id wire.Account, subscribe func(*Endpoint), dialer Dialer) *EndpointRegistry {
 	return &EndpointRegistry{
 		id:        id,
 		subscribe: subscribe,
@@ -110,7 +111,7 @@ func (r *EndpointRegistry) setupConn(conn Conn) error {
 	unfinishedPeer := r.addPeer(nil, nil)
 	r.mutex.Unlock()
 
-	var peerAddr Address
+	var peerAddr wire.Address
 	var err error
 	if peerAddr, err = ExchangeAddrsPassive(ctx, r.id, conn); err != nil {
 		conn.Close()
@@ -134,7 +135,7 @@ func (r *EndpointRegistry) setupConn(conn Conn) error {
 // find is not thread safe and is assumed to be called from a method which has
 // the r.mutex lock.
 // While iterating over the peers, find removes closed ones.
-func (r *EndpointRegistry) find(addr Address) (*Endpoint, int) {
+func (r *EndpointRegistry) find(addr wire.Address) (*Endpoint, int) {
 	for i, peer := range r.peers {
 		if peer.PerunAddress != nil && peer.PerunAddress.Equals(addr) {
 			if peer.IsClosed() {
@@ -169,7 +170,7 @@ func (r *EndpointRegistry) prune() {
 // it, depending on the success of the dialing operation. The unfinished peer
 // object can be used already, but it will block until the peer is finished or
 // closed. If the registry is already closed, returns a closed peer.
-func (r *EndpointRegistry) Get(ctx context.Context, addr Address) (*Endpoint, error) {
+func (r *EndpointRegistry) Get(ctx context.Context, addr wire.Address) (*Endpoint, error) {
 	log := r.log.WithField("peer", addr)
 	log.Trace("Registry.Get")
 	r.mutex.Lock()
@@ -196,7 +197,7 @@ func (r *EndpointRegistry) Get(ctx context.Context, addr Address) (*Endpoint, er
 	return peer, nil
 }
 
-func (r *EndpointRegistry) authenticatedDial(ctx context.Context, peer *Endpoint, addr Address) error {
+func (r *EndpointRegistry) authenticatedDial(ctx context.Context, peer *Endpoint, addr wire.Address) error {
 	conn, err := r.dialer.Dial(ctx, addr)
 
 	if peer.exists() {
@@ -236,7 +237,7 @@ func (r *EndpointRegistry) NumPeers() int {
 // Has return true if and only if there is a peer with the given address in the
 // registry. The function does not differentiate between regular and
 // placeholder peers.
-func (r *EndpointRegistry) Has(addr Address) bool {
+func (r *EndpointRegistry) Has(addr wire.Address) bool {
 	r.mutex.Lock()
 	defer r.mutex.Unlock()
 
@@ -248,7 +249,7 @@ func (r *EndpointRegistry) Has(addr Address) bool {
 // addPeer adds a new peer to the registry.
 // addPeer is not thread safe and is assumed to be called from a method which has
 // the r.mutex lock.
-func (r *EndpointRegistry) addPeer(addr Address, conn Conn) *Endpoint {
+func (r *EndpointRegistry) addPeer(addr wire.Address, conn Conn) *Endpoint {
 	r.log.WithField("peer", addr).Trace("Registry.addPeer")
 	// Create and register a new peer.
 	peer := newEndpoint(addr, conn, r.dialer)

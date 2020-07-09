@@ -3,7 +3,7 @@
 // of this source code is governed by the Apache 2.0 license that can be found
 // in the LICENSE file.
 
-package wire
+package net
 
 import (
 	"context"
@@ -18,6 +18,8 @@ import (
 	_ "perun.network/go-perun/backend/sim" // backend init
 	"perun.network/go-perun/pkg/test"
 	wallettest "perun.network/go-perun/wallet/test"
+	"perun.network/go-perun/wire"
+	wiretest "perun.network/go-perun/wire/test"
 )
 
 // setup is a test setup consisting of two connected peers.
@@ -43,7 +45,7 @@ func makeSetup(t *testing.T) *setup {
 }
 
 // Dial simulates creating a connection to a
-func (s *setup) Dial(ctx context.Context, addr Address) (Conn, error) {
+func (s *setup) Dial(ctx context.Context, addr wire.Address) (Conn, error) {
 	s.mutex.RLock()
 	defer s.mutex.RUnlock()
 
@@ -80,16 +82,16 @@ func (s *setup) Close() error {
 type client struct {
 	endpoint *Endpoint
 	Registry *EndpointRegistry
-	*Receiver
+	*wire.Receiver
 }
 
 // makeClient creates a simulated test client.
 func makeClient(t *testing.T, conn Conn, rng *rand.Rand, dialer Dialer) *client {
-	var receiver = NewReceiver()
+	var receiver = wire.NewReceiver()
 	var registry = NewEndpointRegistry(wallettest.NewRandomAccount(rng), func(p *Endpoint) {
 		assert.NoError(
 			t,
-			p.Subscribe(receiver, func(*Envelope) bool { return true }),
+			p.Subscribe(receiver, func(*wire.Envelope) bool { return true }),
 			"failed to subscribe a new peer")
 	}, dialer)
 
@@ -116,7 +118,7 @@ func TestEndpoint_Close(t *testing.T) {
 	// Sending over closed peers (not connections) must fail.
 	err := s.alice.endpoint.Send(
 		context.Background(),
-		NewRandomEnvelope(test.Prng(t), NewPingMsg()))
+		wiretest.NewRandomEnvelope(test.Prng(t), wire.NewPingMsg()))
 	assert.Error(t, err, "sending to bob must fail", err)
 }
 
@@ -129,7 +131,7 @@ func TestEndpoint_Send_ImmediateAbort(t *testing.T) {
 
 	// This operation should abort immediately.
 	assert.Error(t, s.alice.endpoint.Send(ctx,
-		NewRandomEnvelope(test.Prng(t), NewPingMsg())))
+		wiretest.NewRandomEnvelope(test.Prng(t), wire.NewPingMsg())))
 
 	assert.True(t, s.alice.endpoint.IsClosed(), "peer must be closed after failed sending")
 }
@@ -143,7 +145,7 @@ func TestEndpoint_Send_Timeout(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 
-	assert.Error(t, p.Send(ctx, NewRandomEnvelope(rng, NewPingMsg())),
+	assert.Error(t, p.Send(ctx, wiretest.NewRandomEnvelope(rng, wire.NewPingMsg())),
 		"Send() must timeout on blocked connection")
 	assert.True(t, p.IsClosed(), "peer must be closed after failed Send()")
 }
@@ -159,7 +161,7 @@ func TestEndpoint_Send_Timeout_Mutex_TryLockCtx(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 
-	assert.Error(t, p.Send(ctx, NewRandomEnvelope(rng, NewPingMsg())),
+	assert.Error(t, p.Send(ctx, wiretest.NewRandomEnvelope(rng, wire.NewPingMsg())),
 		"Send() must timeout on locked mutex")
 	assert.True(t, p.IsClosed(), "peer must be closed after failed Send()")
 }
@@ -175,7 +177,7 @@ func TestEndpoint_Send_Close(t *testing.T) {
 		p.Close()
 	}()
 
-	assert.Error(t, p.Send(context.Background(), NewRandomEnvelope(rng, NewPingMsg())),
+	assert.Error(t, p.Send(context.Background(), wiretest.NewRandomEnvelope(rng, wire.NewPingMsg())),
 		"Send() must be aborted by Close()")
 }
 

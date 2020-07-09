@@ -14,9 +14,8 @@ import (
 
 	"perun.network/go-perun/pkg/sync"
 	"perun.network/go-perun/wire"
+	wirenet "perun.network/go-perun/wire/net"
 )
-
-var _ wire.Dialer = (*Dialer)(nil)
 
 // Dialer is a test dialer that can dial connections to Listeners via a ConnHub.
 type Dialer struct {
@@ -26,8 +25,10 @@ type Dialer struct {
 	sync.Closer
 }
 
+var _ wirenet.Dialer = (*Dialer)(nil)
+
 // Dial tries to connect to a wire.
-func (d *Dialer) Dial(ctx context.Context, address wire.Address) (wire.Conn, error) {
+func (d *Dialer) Dial(ctx context.Context, address wire.Address) (wirenet.Conn, error) {
 	if d.IsClosed() {
 		return nil, errors.New("dialer closed")
 	}
@@ -44,13 +45,13 @@ func (d *Dialer) Dial(ctx context.Context, address wire.Address) (wire.Conn, err
 	}
 
 	local, remote := net.Pipe()
-	if !l.Put(ctx, wire.NewIoConn(remote)) {
+	if !l.Put(ctx, wirenet.NewIoConn(remote)) {
 		local.Close()
 		remote.Close()
 		return nil, errors.New("Put() failed")
 	}
 	atomic.AddInt32(&d.dialed, 1)
-	return wire.NewIoConn(local), nil
+	return wirenet.NewIoConn(local), nil
 }
 
 // Close closes a connection.

@@ -3,7 +3,7 @@
 // of this source code is governed by the Apache 2.0 license that can be found
 // in the LICENSE file.
 
-package wire
+package net
 
 import (
 	"sync"
@@ -11,6 +11,7 @@ import (
 	"github.com/pkg/errors"
 
 	"perun.network/go-perun/pkg/sync/atomic"
+	"perun.network/go-perun/wire"
 )
 
 var _ Conn = (*MockConn)(nil)
@@ -18,23 +19,23 @@ var _ Conn = (*MockConn)(nil)
 type MockConn struct {
 	mutex     sync.Mutex
 	closed    atomic.Bool
-	recvQueue chan *Envelope
+	recvQueue chan *wire.Envelope
 
-	sent func(*Envelope) // observes sent messages.
+	sent func(*wire.Envelope) // observes sent messages.
 }
 
-func newMockConn(sent func(*Envelope)) *MockConn {
+func newMockConn(sent func(*wire.Envelope)) *MockConn {
 	if sent == nil {
-		sent = func(*Envelope) {}
+		sent = func(*wire.Envelope) {}
 	}
 
 	return &MockConn{
 		sent:      sent,
-		recvQueue: make(chan *Envelope, 1),
+		recvQueue: make(chan *wire.Envelope, 1),
 	}
 }
 
-func (c *MockConn) Send(e *Envelope) error {
+func (c *MockConn) Send(e *wire.Envelope) error {
 	c.mutex.Lock()
 	defer c.mutex.Unlock()
 	if c.closed.IsSet() {
@@ -44,7 +45,7 @@ func (c *MockConn) Send(e *Envelope) error {
 	return nil
 }
 
-func (c *MockConn) Recv() (*Envelope, error) {
+func (c *MockConn) Recv() (*wire.Envelope, error) {
 	c.mutex.Lock()
 	defer c.mutex.Unlock()
 	if c.closed.IsSet() {

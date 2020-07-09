@@ -3,11 +3,12 @@
 // of this source code is governed by the Apache 2.0 license that can be found
 // in the LICENSE file.
 
-package wire
+package net
 
 import (
 	"context"
 	"math/rand"
+	"net"
 	"sync"
 	"testing"
 	"time"
@@ -19,9 +20,12 @@ import (
 	"perun.network/go-perun/pkg/sync/atomic"
 	"perun.network/go-perun/pkg/test"
 	wallettest "perun.network/go-perun/wallet/test"
+	"perun.network/go-perun/wire"
 )
 
 var _ Dialer = (*mockDialer)(nil)
+
+const timeout = 100 * time.Millisecond
 
 type mockDialer struct {
 	dial   chan Conn
@@ -37,7 +41,7 @@ func (d *mockDialer) Close() error {
 	return nil
 }
 
-func (d *mockDialer) Dial(ctx context.Context, addr Address) (Conn, error) {
+func (d *mockDialer) Dial(ctx context.Context, addr wire.Address) (Conn, error) {
 	d.mutex.Lock()
 	defer d.mutex.Unlock()
 
@@ -210,7 +214,10 @@ func TestRegistry_authenticatedDial(t *testing.T) {
 		go func() {
 			d.put(a)
 			b.Recv()
-			b.Send(&Envelope{remoteAddr, id.Address(), NewPingMsg()})
+			b.Send(&wire.Envelope{
+				Sender:    remoteAddr,
+				Recipient: id.Address(),
+				Msg:       wire.NewPingMsg()})
 		}()
 		test.AssertTerminates(t, timeout, func() {
 			err := r.authenticatedDial(context.Background(), p, remoteAddr)
@@ -223,7 +230,10 @@ func TestRegistry_authenticatedDial(t *testing.T) {
 		a, b := newPipeConnPair()
 		go func() {
 			d.put(a)
-			b.Send(&Envelope{id.Address(), remoteAddr, NewPingMsg()})
+			b.Send(&wire.Envelope{
+				Sender:    id.Address(),
+				Recipient: remoteAddr,
+				Msg:       wire.NewPingMsg()})
 		}()
 		test.AssertTerminates(t, timeout, func() {
 			err := r.authenticatedDial(context.Background(), p, remoteAddr)
@@ -281,7 +291,10 @@ func TestRegistry_setupConn(t *testing.T) {
 		d := &mockDialer{dial: make(chan Conn)}
 		r := NewEndpointRegistry(id, func(*Endpoint) {}, d)
 		a, b := newPipeConnPair()
-		go b.Send(&Envelope{id.Address(), remoteID.Address(), NewPingMsg()})
+		go b.Send(&wire.Envelope{
+			Sender:    id.Address(),
+			Recipient: remoteID.Address(),
+			Msg:       wire.NewPingMsg()})
 		test.AssertTerminates(t, timeout, func() {
 			assert.Error(t, r.setupConn(a))
 		})
@@ -426,4 +439,10 @@ func TestRegistry_Close(t *testing.T) {
 
 		assert.Error(t, r.Close())
 	})
+}
+
+// newPipeConnPair creates endpoints that are connected via pipes.
+func newPipeConnPair() (a Conn, b Conn) {
+	c0, c1 := net.Pipe()
+	return NewIoConn(c0), NewIoConn(c1)
 }

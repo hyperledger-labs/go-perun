@@ -12,10 +12,10 @@ import (
 	"github.com/pkg/errors"
 
 	"perun.network/go-perun/pkg/sync"
-	"perun.network/go-perun/wire"
+	wirenet "perun.network/go-perun/wire/net"
 )
 
-var _ wire.Listener = &Listener{}
+var _ wirenet.Listener = &Listener{}
 
 // Listener is a mocked listener that can be used to control and examine a
 // listener. Accept() calls can be manually controlled via Put(). Accepted()
@@ -23,7 +23,7 @@ var _ wire.Listener = &Listener{}
 // whether a Listener is still open.
 type Listener struct {
 	sync.Closer
-	queue chan wire.Conn // The connection queue (unbuffered).
+	queue chan wirenet.Conn // The connection queue (unbuffered).
 
 	accepted int32 // The number of connections that have been accepted.
 }
@@ -31,14 +31,14 @@ type Listener struct {
 // NewNetListener creates a new test listener.
 func NewNetListener() *Listener {
 	return &Listener{
-		queue:    make(chan wire.Conn),
+		queue:    make(chan wirenet.Conn),
 		accepted: 0,
 	}
 }
 
 // Accept returns the next connection that is enqueued via Put(). This function
 // blocks until either Put() is called or until the listener is closed.
-func (l *Listener) Accept() (wire.Conn, error) {
+func (l *Listener) Accept() (wirenet.Conn, error) {
 	if l.IsClosed() {
 		return nil, errors.New("listener closed")
 	}
@@ -66,7 +66,7 @@ func (l *Listener) Close() error {
 //
 // Note that if Put() is called in parallel, there is no ordering guarantee for
 // the accepted connections.
-func (l *Listener) Put(ctx context.Context, conn wire.Conn) bool {
+func (l *Listener) Put(ctx context.Context, conn wirenet.Conn) bool {
 	select {
 	case l.queue <- conn:
 		return true

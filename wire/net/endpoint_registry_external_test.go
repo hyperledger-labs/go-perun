@@ -3,7 +3,7 @@
 // of this source code is governed by the Apache 2.0 license that can be found
 // in the LICENSE file.
 
-package wire_test
+package net_test
 
 import (
 	"context"
@@ -17,8 +17,8 @@ import (
 	"perun.network/go-perun/pkg/sync"
 	"perun.network/go-perun/pkg/test"
 	wallettest "perun.network/go-perun/wallet/test"
-	"perun.network/go-perun/wire"
-	wiretest "perun.network/go-perun/wire/test"
+	"perun.network/go-perun/wire/net"
+	nettest "perun.network/go-perun/wire/net/test"
 )
 
 var timeout = 100 * time.Millisecond
@@ -28,11 +28,11 @@ func TestEndpointRegistry_Get_Pair(t *testing.T) {
 	t.Parallel()
 	assert, require := assert.New(t), require.New(t)
 	rng := rand.New(rand.NewSource(3))
-	var hub wiretest.ConnHub
+	var hub nettest.ConnHub
 	dialerId := wallettest.NewRandomAccount(rng)
 	listenerId := wallettest.NewRandomAccount(rng)
-	dialerReg := wire.NewEndpointRegistry(dialerId, func(*wire.Endpoint) {}, hub.NewNetDialer())
-	listenerReg := wire.NewEndpointRegistry(listenerId, func(*wire.Endpoint) {}, nil)
+	dialerReg := net.NewEndpointRegistry(dialerId, func(*net.Endpoint) {}, hub.NewNetDialer())
+	listenerReg := net.NewEndpointRegistry(listenerId, func(*net.Endpoint) {}, nil)
 	listener := hub.NewNetListener(listenerId.Address())
 
 	done := make(chan struct{})
@@ -68,15 +68,15 @@ func TestEndpointRegistry_Get_Multiple(t *testing.T) {
 	t.Parallel()
 	assert := assert.New(t)
 	rng := rand.New(rand.NewSource(3))
-	var hub wiretest.ConnHub
+	var hub nettest.ConnHub
 	dialerId := wallettest.NewRandomAccount(rng)
 	listenerId := wallettest.NewRandomAccount(rng)
 	dialer := hub.NewNetDialer()
-	logPeer := func(p *wire.Endpoint) {
+	logPeer := func(p *net.Endpoint) {
 		p.OnCreateAlways(func() { t.Logf("subscribing %x\n", p.PerunAddress.Bytes()[:4]) })
 	}
-	dialerReg := wire.NewEndpointRegistry(dialerId, logPeer, dialer)
-	listenerReg := wire.NewEndpointRegistry(listenerId, logPeer, nil)
+	dialerReg := net.NewEndpointRegistry(dialerId, logPeer, dialer)
+	listenerReg := net.NewEndpointRegistry(listenerId, logPeer, nil)
 	listener := hub.NewNetListener(listenerId.Address())
 
 	done := make(chan struct{})
@@ -89,7 +89,7 @@ func TestEndpointRegistry_Get_Multiple(t *testing.T) {
 	defer cancel()
 
 	const N = 4
-	peers := make(chan *wire.Endpoint, N)
+	peers := make(chan *net.Endpoint, N)
 	for i := 0; i < N; i++ {
 		go func() {
 			p, err := dialerReg.Get(ctx, listenerId.Address())

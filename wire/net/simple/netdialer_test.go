@@ -3,7 +3,7 @@
 // of this source code is governed by the Apache 2.0 license that can be found
 // in the LICENSE file.
 
-package wire
+package simple
 
 import (
 	"context"
@@ -16,6 +16,7 @@ import (
 
 	"perun.network/go-perun/backend/sim/wallet"
 	"perun.network/go-perun/pkg/test"
+	"perun.network/go-perun/wire"
 )
 
 func TestNewTCPDialer(t *testing.T) {
@@ -58,7 +59,10 @@ func TestDialer_Dial(t *testing.T) {
 	defer d.Close()
 
 	t.Run("happy", func(t *testing.T) {
-		e := &Envelope{daddr, laddr, NewPingMsg()}
+		e := &wire.Envelope{
+			Sender:    daddr,
+			Recipient: laddr,
+			Msg:       wire.NewPingMsg()}
 		ct := test.NewConcurrent(t)
 		go ct.Stage("accept", func(rt require.TestingT) {
 			conn, err := l.Accept()

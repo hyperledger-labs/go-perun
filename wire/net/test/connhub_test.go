@@ -18,6 +18,7 @@ import (
 	"perun.network/go-perun/pkg/test"
 	wallettest "perun.network/go-perun/wallet/test"
 	"perun.network/go-perun/wire"
+	wiretest "perun.network/go-perun/wire/test"
 )
 
 func TestConnHub_Create(t *testing.T) {
@@ -37,7 +38,7 @@ func TestConnHub_Create(t *testing.T) {
 				conn, err := l.Accept()
 				assert.NoError(err)
 				require.NotNil(rt, conn)
-				assert.NoError(conn.Send(NewRandomEnvelope(rng, wire.NewPingMsg())))
+				assert.NoError(conn.Send(wiretest.NewRandomEnvelope(rng, wire.NewPingMsg())))
 			})
 		})
 
@@ -48,7 +49,7 @@ func TestConnHub_Create(t *testing.T) {
 				require.NotNil(rt, conn)
 				m, err := conn.Recv()
 				assert.NoError(err)
-				assert.IsType(wire.NewPingMsg(), m)
+				assert.IsType(wire.NewPingMsg(), m.Msg)
 			})
 		})
 

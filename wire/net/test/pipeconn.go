@@ -3,14 +3,16 @@
 // of this source code is governed by the Apache 2.0 license that can be found
 // in the LICENSE file.
 
-package wire
+package test
 
 import (
 	"net"
+
+	wirenet "perun.network/go-perun/wire/net"
 )
 
-// newPipeConnPair creates endpoints that are connected via pipes.
-func newPipeConnPair() (a Conn, b Conn) {
+// NewPipeConnPair creates endpoints that are connected via pipes.
+func NewPipeConnPair() (a wirenet.Conn, b wirenet.Conn) {
 	c0, c1 := net.Pipe()
-	return NewIoConn(c0), NewIoConn(c1)
+	return wirenet.NewIoConn(c0), wirenet.NewIoConn(c1)
 }

@@ -3,7 +3,7 @@
 // of this source code is governed by the Apache 2.0 license that can be found
 // in the LICENSE file.
 
-package wire
+package net
 
 import (
 	"context"
@@ -12,6 +12,7 @@ import (
 
 	"perun.network/go-perun/log"
 	"perun.network/go-perun/pkg/sync"
+	"perun.network/go-perun/wire"
 )
 
 // Endpoint is an authenticated connection to a Perun peer.
@@ -28,7 +29,7 @@ import (
 // exists in an unfinished state, and all its operations will block until it is
 // dialed or closed.
 type Endpoint struct {
-	PerunAddress Address // The peer's perun address.
+	PerunAddress wire.Address // The peer's perun address.
 
 	conn Conn // The peer's connection.
 
@@ -37,7 +38,7 @@ type Endpoint struct {
 
 	created sync.Closer
 
-	producer
+	wire.Relay
 }
 
 // recvLoop continuously receives messages from a peer until it is closed.
@@ -58,7 +59,7 @@ func (p *Endpoint) recvLoop() {
 			return
 		}
 		// Broadcast the received message to all interested subscribers.
-		p.produce(e)
+		p.Put(e)
 	}
 }
 
@@ -123,7 +124,7 @@ func (p *Endpoint) OnCreateAlways(fn func()) bool {
 //
 // The passed context is used to timeout the send operation. If the context
 // times out, the peer is closed.
-func (p *Endpoint) Send(ctx context.Context, e *Envelope) error {
+func (p *Endpoint) Send(ctx context.Context, e *wire.Envelope) error {
 	// Wait until peer exists, is closed, or context timeout.
 	if !p.waitExists(ctx) {
 		p.Close()                        // replace with p.conn.Close() when reintroducing repair.
@@ -156,7 +157,7 @@ func (p *Endpoint) Send(ctx context.Context, e *Envelope) error {
 
 // Close closes the peer's connection. A closed peer is no longer usable.
 func (p *Endpoint) Close() (err error) {
-	if err = p.producer.Close(); sync.IsAlreadyClosedError(err) {
+	if err = p.Relay.Close(); sync.IsAlreadyClosedError(err) {
 		return
 	}
 
@@ -171,12 +172,12 @@ func (p *Endpoint) Close() (err error) {
 }
 
 // newEndpoint creates a new peer from a peer address and connection.
-func newEndpoint(addr Address, conn Conn, _ Dialer) *Endpoint {
+func newEndpoint(addr wire.Address, conn Conn, _ Dialer) *Endpoint {
 	p := &Endpoint{
 		PerunAddress: addr,
 
-		conn:     conn,
-		producer: makeProducer(),
+		conn:  conn,
+		Relay: *wire.NewRelay(),
 	}
 
 	if p.conn != nil {
