@@ -14,11 +14,11 @@ import (
 // client.Client.
 type Bus interface {
 	// Publish should return nil when the message was delivered (outgoing) or is
-	// guaranteed to be eventually delivered (cached), depending on the goal of the
-	// implementation.
+	// guaranteed to be eventually delivered (cached), depending on the goal of
+	// the implementation.
 	Publish(context.Context, *Envelope) error
 
 	// SubscribeClient should route all messages with clientAddr as recipient to
-	// the provided Consumer.
+	// the provided Consumer. Every address may only be subscribed to once.
 	SubscribeClient(c Consumer, clientAddr Address) error
 }
