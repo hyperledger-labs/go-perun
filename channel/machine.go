@@ -111,8 +111,8 @@ type machine struct {
 	// currently registered event, if any
 	registered *RegisteredEvent
 
-	// log is a fields logger for this machine
-	log log.Logger `cloneable:"shallow"`
+	// logger embedding
+	log.Embedding
 }
 
 // newMachine returns a new uninitialized machine for the given parameters.
@@ -123,11 +123,11 @@ func newMachine(acc wallet.Account, params Params) (*machine, error) {
 	}
 
 	return &machine{
-		phase:  InitActing,
-		acc:    acc,
-		idx:    Index(idx),
-		params: params,
-		log:    log.WithField("ID", params.id),
+		phase:     InitActing,
+		acc:       acc,
+		idx:       Index(idx),
+		params:    params,
+		Embedding: log.MakeEmbedding(log.WithField("ID", params.id)),
 	}, nil
 
 }
@@ -175,7 +175,7 @@ func (m *machine) Phase() Phase {
 
 // setPhase is internally used to set the phase.
 func (m *machine) setPhase(p Phase) {
-	m.log.Tracef("phase transition: %v", PhaseTransition{m.phase, p})
+	m.Log().Tracef("phase transition: %v", PhaseTransition{m.phase, p})
 	m.phase = p
 }
 
@@ -503,6 +503,6 @@ func (m *machine) Clone() *machine {
 		stagingTX: m.stagingTX.Clone(),
 		currentTX: m.currentTX.Clone(),
 		prevTXs:   prevTXs,
-		log:       m.log,
+		Embedding: m.Embedding,
 	}
 }
