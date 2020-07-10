@@ -11,6 +11,7 @@ import (
 
 	"github.com/pkg/errors"
 
+	"perun.network/go-perun/log"
 	"perun.network/go-perun/wallet"
 )
 
@@ -47,11 +48,20 @@ func (h *LocalBus) Publish(ctx context.Context, e *Envelope) error {
 
 // Subscribe implements wire.Bus.SubscribeClient. There can only be one
 // subscription per receiver address.
+// When the Consumer closes, its subscription is removed.
 func (h *LocalBus) SubscribeClient(c Consumer, receiver Address) error {
 	recv := h.ensureRecv(receiver)
 	recv.recv = c
 	close(recv.exists)
 
+	c.OnCloseAlways(func() {
+		h.mutex.Lock()
+		defer h.mutex.Unlock()
+		delete(h.recvs, wallet.Key(receiver))
+		log.WithField("id", receiver).Debug("Client unsubscribed.")
+	})
+
+	log.WithField("id", receiver).Debug("Client subscribed.")
 	return nil
 }
 
