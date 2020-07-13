@@ -13,6 +13,7 @@ import (
 
 	"github.com/pkg/errors"
 	pkgsync "perun.network/go-perun/pkg/sync"
+	"perun.network/go-perun/wallet"
 	"perun.network/go-perun/wire"
 	wirenet "perun.network/go-perun/wire/net"
 )
@@ -20,10 +21,10 @@ import (
 // Dialer is a simple lookup-table based dialer that can dial known peers.
 // New peer addresses can be added via Register().
 type Dialer struct {
-	mutex   sync.RWMutex            // Protects peers.
-	peers   map[wire.Address]string // Known peer addresses.
-	dialer  net.Dialer              // Used to dial connections.
-	network string                  // The socket type.
+	mutex   sync.RWMutex              // Protects peers.
+	peers   map[wallet.AddrKey]string // Known peer addresses.
+	dialer  net.Dialer                // Used to dial connections.
+	network string                    // The socket type.
 
 	pkgsync.Closer
 }
@@ -36,7 +37,7 @@ var _ wirenet.Dialer = (*Dialer)(nil)
 // controls the type of connection that the dialer can dial.
 func NewNetDialer(network string, defaultTimeout time.Duration) *Dialer {
 	return &Dialer{
-		peers:   make(map[wire.Address]string),
+		peers:   make(map[wallet.AddrKey]string),
 		dialer:  net.Dialer{Timeout: defaultTimeout},
 		network: network,
 	}
@@ -52,11 +53,11 @@ func NewUnixDialer(defaultTimeout time.Duration) *Dialer {
 	return NewNetDialer("unix", defaultTimeout)
 }
 
-func (d *Dialer) get(addr wire.Address) (string, bool) {
+func (d *Dialer) get(key wallet.AddrKey) (string, bool) {
 	d.mutex.RLock()
 	defer d.mutex.RUnlock()
 
-	host, ok := d.peers[addr]
+	host, ok := d.peers[key]
 	return host, ok
 }
 
@@ -65,7 +66,7 @@ func (d *Dialer) Dial(ctx context.Context, addr wire.Address) (wirenet.Conn, err
 	done := make(chan struct{})
 	defer close(done)
 
-	host, ok := d.get(addr)
+	host, ok := d.get(wallet.Key(addr))
 	if !ok {
 		return nil, errors.New("peer not found")
 	}
@@ -95,5 +96,5 @@ func (d *Dialer) Register(addr wire.Address, address string) {
 	d.mutex.Lock()
 	defer d.mutex.Unlock()
 
-	d.peers[addr] = address
+	d.peers[wallet.Key(addr)] = address
 }

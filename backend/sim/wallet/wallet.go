@@ -19,7 +19,7 @@ var _ wallet.Wallet = (*Wallet)(nil)
 
 // NewWallet creates a new empty wallet.
 func NewWallet() *Wallet {
-	return &Wallet{accs: make(map[[64]byte]*Account)}
+	return &Wallet{accs: make(map[wallet.AddrKey]*Account)}
 }
 
 // NewRestoredWallet creates a wallet with a list of preexisting accounts which
@@ -43,7 +43,7 @@ func NewRestoredWallet(accounts ...*Account) *Wallet {
 // HasAccount.
 type Wallet struct {
 	accMutex sync.RWMutex
-	accs     map[[64]byte]*Account
+	accs     map[wallet.AddrKey]*Account
 }
 
 // Unlock retrieves the account belonging to the supplied address, and unlocks
@@ -53,7 +53,7 @@ func (w *Wallet) Unlock(a wallet.Address) (wallet.Account, error) {
 	w.accMutex.RLock()
 	defer w.accMutex.RUnlock()
 
-	acc, ok := w.accs[a.(*Address).ByteArray()]
+	acc, ok := w.accs[wallet.Key(a)]
 	if !ok {
 		return nil, errors.Errorf("unlock unknown address: %v", a)
 	}
@@ -79,7 +79,7 @@ func (w *Wallet) IncrementUsage(a wallet.Address) {
 	w.accMutex.RLock()
 	defer w.accMutex.RUnlock()
 
-	acc, ok := w.accs[a.(*Address).ByteArray()]
+	acc, ok := w.accs[wallet.Key(a)]
 	if !ok {
 		panic("invalid address")
 	}
@@ -92,12 +92,10 @@ func (w *Wallet) IncrementUsage(a wallet.Address) {
 // matched to another preceding IncrementUsage call or if the supplied address
 // does not correspond to any of the wallet's accounts.
 func (w *Wallet) DecrementUsage(a wallet.Address) {
-	bytes := a.(*Address).ByteArray()
-
 	w.accMutex.Lock()
 	defer w.accMutex.Unlock()
 
-	acc, ok := w.accs[bytes]
+	acc, ok := w.accs[wallet.Key(a)]
 	if !ok {
 		panic("invalid address")
 	}
@@ -109,7 +107,7 @@ func (w *Wallet) DecrementUsage(a wallet.Address) {
 
 	if newCount == 0 {
 		acc.locked.Set()
-		delete(w.accs, bytes)
+		delete(w.accs, wallet.Key(a))
 	}
 }
 
@@ -117,12 +115,10 @@ func (w *Wallet) DecrementUsage(a wallet.Address) {
 // and DecrementUsage). Panics if the supplied address does not correspond to
 // any of the wallet's accounts.
 func (w *Wallet) UsageCount(a wallet.Address) int {
-	bytes := a.(*Address).ByteArray()
-
 	w.accMutex.RLock()
 	defer w.accMutex.RUnlock()
 
-	acc, ok := w.accs[bytes]
+	acc, ok := w.accs[wallet.Key(a)]
 	if !ok {
 		panic("invalid address")
 	}
@@ -143,15 +139,15 @@ func (w *Wallet) NewRandomAccount(rng *rand.Rand) wallet.Account {
 // account was already registered beforehand, an error is returned. Does not
 // lock or unlock the account.
 func (w *Wallet) AddAccount(acc *Account) error {
-	bytes := acc.Address().(*Address).ByteArray()
+	key := wallet.Key(acc.Address())
 
 	w.accMutex.Lock()
 	defer w.accMutex.Unlock()
 
-	if _, ok := w.accs[bytes]; ok {
+	if _, ok := w.accs[key]; ok {
 		return errors.New("duplicate insertion")
 	}
-	w.accs[bytes] = acc
+	w.accs[key] = acc
 
 	return nil
 }
@@ -162,6 +158,6 @@ func (w *Wallet) HasAccount(acc *Account) bool {
 	w.accMutex.RLock()
 	defer w.accMutex.RUnlock()
 
-	_, ok := w.accs[acc.Address().(*Address).ByteArray()]
+	_, ok := w.accs[wallet.Key(acc.Address())]
 	return ok
 }
