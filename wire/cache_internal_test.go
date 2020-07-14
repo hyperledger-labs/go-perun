@@ -22,8 +22,6 @@ func TestCache(t *testing.T) {
 	var c Cache
 	require.Zero(c.Size())
 
-	type a struct{} // annex dummy type
-	a0, ao, a1, a2 := &a{}, &a{}, &a{}, &a{}
 	ping0 := NewRandomEnvelope(rng, NewPingMsg())
 	pong := NewRandomEnvelope(rng, NewPongMsg())
 	ping1 := NewRandomEnvelope(rng, NewPingMsg())
@@ -31,24 +29,24 @@ func TestCache(t *testing.T) {
 	// we want to uniquely identify messages by their timestamp
 	require.False(ping0.Msg.(*PingMsg).Created.Equal(ping1.Msg.(*PingMsg).Created))
 
-	assert.False(c.Put(ping0, a0), "Put into cache without predicate")
+	assert.False(c.Put(ping0), "Put into cache without predicate")
 	assert.Zero(c.Size())
 
 	isPing := func(e *Envelope) bool { return e.Msg.Type() == Ping }
 	ctx, cancel := context.WithCancel(context.Background())
 	c.Cache(ctx, isPing)
-	assert.True(c.Put(ping0, a0), "Put into cache with predicate")
+	assert.True(c.Put(ping0), "Put into cache with predicate")
 	assert.Equal(1, c.Size())
-	assert.False(c.Put(pong, ao), "Put into cache with non-matching prediacte")
+	assert.False(c.Put(pong), "Put into cache with non-matching prediacte")
 	assert.Equal(1, c.Size())
-	assert.True(c.Put(ping1, a1), "Put into cache with predicate")
+	assert.True(c.Put(ping1), "Put into cache with predicate")
 	assert.Equal(2, c.Size())
 
 	empty := c.Get(func(*Envelope) bool { return false })
 	assert.Len(empty, 0)
 
 	cancel()
-	assert.False(c.Put(ping2, a2), "Put into cache with canceled predicate")
+	assert.False(c.Put(ping2), "Put into cache with canceled predicate")
 	assert.Equal(2, c.Size())
 	assert.Len(c.preds, 0, "internal: Put should have removed canceled predicate")
 
@@ -58,11 +56,10 @@ func TestCache(t *testing.T) {
 	})
 	assert.Equal(1, c.Size())
 	require.Len(msgs, 1)
-	assert.Same(msgs[0].Envelope, ping0)
-	assert.Same(msgs[0].Annex, a0)
+	assert.Same(msgs[0], ping0)
 
 	c.Cache(context.Background(), isPing)
 	c.Flush()
 	assert.Equal(0, c.Size())
-	assert.False(c.Put(ping0, a0), "flushed cache should not hold any predicates")
+	assert.False(c.Put(ping0), "flushed cache should not hold any predicates")
 }

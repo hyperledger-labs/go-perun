@@ -181,6 +181,6 @@ func TestProducer_caching(t *testing.T) {
 	assert.Zero(prod.cache.Size(), "producer.Close should flush the cache")
 
 	prod.Cache(ctx, func(*Envelope) bool { return true })
-	prod.cache.Put(ping0, nil)
+	prod.cache.Put(ping0)
 	assert.Zero(prod.cache.Size(), "Cache on closed producer should not enable caching")
 }

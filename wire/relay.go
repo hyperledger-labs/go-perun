@@ -96,7 +96,7 @@ func (p *Relay) Subscribe(c Consumer, predicate Predicate) error {
 	cached := p.cache.Get(predicate)
 	go func() {
 		for _, m := range cached {
-			c.Put(m.Envelope)
+			c.Put(m)
 		}
 	}()
 
@@ -147,7 +147,7 @@ func (p *Relay) Put(e *Envelope) {
 	}
 
 	if !any {
-		if !p.cache.Put(e, nil) {
+		if !p.cache.Put(e) {
 			p.defaultMsgHandler(e)
 		}
 	}
