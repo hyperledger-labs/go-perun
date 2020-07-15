@@ -26,9 +26,7 @@ import (
 // Currently, only the two-party protocol is fully implemented.
 type Client struct {
 	id          wire.Account
-	bus         wire.Bus
-	in          *wire.Relay // client relay, subscribed to the bus
-	reqRecv     *wire.Receiver
+	conn        clientConn
 	channels    chanRegistry
 	funder      channel.Funder
 	adjudicator channel.Adjudicator
@@ -76,45 +74,21 @@ func New(
 		log.Panic("wallet must not be nil")
 	}
 
-	in := wire.NewRelay()
-	defer func() {
-		if err != nil {
-			if cerr := in.Close(); cerr != nil {
-				err = errors.WithMessagef(err, "(error closing bus: %v)", cerr)
-			}
-		}
-	}()
-
-	in.SetDefaultMsgHandler(func(m *wire.Envelope) {
-		log.Debugf("Received %T message without subscription: %v", m.Msg, m)
-	})
-	if err := bus.SubscribeClient(in, id.Address()); err != nil {
-		return nil, errors.WithMessage(err, "subscribing client on bus")
-	}
-
-	reqRecv := wire.NewReceiver()
-	if err := in.Subscribe(reqRecv, isReqMsg); err != nil {
-		return nil, errors.WithMessage(err, "subscribing request receiver")
+	conn, err := makeClientConn(id, bus)
+	if err != nil {
+		return nil, errors.WithMessage(err, "setting up client connection")
 	}
 
 	return &Client{
 		id:          id,
-		bus:         bus,
-		in:          in,
+		conn:        conn,
 		channels:    makeChanRegistry(),
-		reqRecv:     reqRecv,
 		funder:      funder,
 		adjudicator: adjudicator,
 		wallet:      wallet,
 		pr:          persistence.NonPersistRestorer,
 		log:         log,
 	}, nil
-}
-
-func isReqMsg(m *wire.Envelope) bool {
-	return m.Msg.Type() == wire.ChannelProposal ||
-		m.Msg.Type() == wire.ChannelUpdate ||
-		m.Msg.Type() == wire.ChannelSync
 }
 
 // Close closes this state channel client.
@@ -125,11 +99,8 @@ func (c *Client) Close() error {
 	}
 
 	err := errors.WithMessage(c.channels.CloseAll(), "closing channels")
-	if rerr := c.in.Close(); err == nil {
-		err = errors.WithMessage(rerr, "closing incoming bus message relay")
-	}
-	if rerr := c.reqRecv.Close(); err == nil {
-		err = errors.WithMessage(rerr, "closing proposal receiver")
+	if cerr := c.conn.Close(); err == nil {
+		err = errors.WithMessage(cerr, "closing channel connection")
 	}
 	return err
 }
@@ -169,7 +140,7 @@ func (c *Client) Handle(ph ProposalHandler, uh UpdateHandler) {
 	}
 
 	for {
-		env, err := c.reqRecv.Next(c.Ctx())
+		env, err := c.conn.nextReq(c.Ctx())
 		if err != nil {
 			c.log.Debug("request receiver closed: ", err)
 			return
@@ -183,6 +154,8 @@ func (c *Client) Handle(ph ProposalHandler, uh UpdateHandler) {
 			go c.handleChannelUpdate(uh, env.Sender, msg.(*msgChannelUpdate))
 		case wire.ChannelSync:
 			go c.handleSyncMsg(env.Sender, msg.(*msgChannelSync))
+		default:
+			c.log.Error("Unexpected %T message received in request loop")
 		}
 	}
 }
@@ -224,15 +197,4 @@ func (c *Client) Restore(ctx context.Context) error {
 	}
 
 	return eg.Wait()
-}
-
-// pubMsg publishes the given message on the wire bus, setting the own client as
-// the sender.
-func (c *Client) pubMsg(ctx context.Context, msg wire.Msg, rec wire.Address) error {
-	c.log.WithField("peer", rec).Debugf("Publishing message: %v", msg)
-	return c.bus.Publish(ctx, &wire.Envelope{
-		Sender:    c.id.Address(),
-		Recipient: rec,
-		Msg:       msg,
-	})
 }

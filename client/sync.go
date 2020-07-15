@@ -95,7 +95,7 @@ func (c *Client) handleSyncMsg(peer wire.Address, msg *msgChannelSync) {
 	defer ch.machMtx.Unlock()
 
 	syncMsg := newChannelSyncMsg(persistence.CloneSource(ch.machine))
-	if err := c.pubMsg(ctx, syncMsg, peer); err != nil {
+	if err := c.conn.pubMsg(ctx, syncMsg, peer); err != nil {
 		log.Error("Error sending sync reply: ", err)
 		return
 	}
@@ -117,7 +117,7 @@ func (c *Client) syncChannel(ctx context.Context, ch *persistence.Channel, p wir
 	recv := wire.NewReceiver()
 	defer recv.Close() // ignore error
 	id := ch.ID()
-	c.in.Subscribe(recv, func(m *wire.Envelope) bool {
+	c.conn.Subscribe(recv, func(m *wire.Envelope) bool {
 		return m.Msg.Type() == wire.ChannelSync && m.Msg.(ChannelMsg).ID() == id
 	})
 
@@ -125,7 +125,7 @@ func (c *Client) syncChannel(ctx context.Context, ch *persistence.Channel, p wir
 	// syncMsg needs to be a clone so that there's no data race when updating the
 	// own channel data later.
 	syncMsg := newChannelSyncMsg(persistence.CloneSource(ch))
-	go func() { sendError <- c.pubMsg(ctx, syncMsg, p) }()
+	go func() { sendError <- c.conn.pubMsg(ctx, syncMsg, p) }()
 	defer func() {
 		// When returning, either log the send error, or return it.
 		sendErr := <-sendError

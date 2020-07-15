@@ -70,7 +70,7 @@ func (c *Client) channelFromMachine(machine *channel.StateMachine, peers ...wire
 	pmachine := persistence.FromStateMachine(machine, c.pr)
 
 	// bundle peers into channel connection
-	conn, err := newChannelConn(machine.ID(), peers, machine.Idx(), c.in, c.bus)
+	conn, err := newChannelConn(machine.ID(), peers, machine.Idx(), &c.conn, &c.conn)
 	if err != nil {
 		return nil, errors.WithMessagef(err, "setting up channel connection")
 	}

@@ -161,13 +161,13 @@ func (c *Client) handleChannelProposalAcc(
 	// enables caching of incoming version 0 signatures before sending any message
 	// that might trigger a fast peer to send those. We don't know the channel id
 	// yet so the cache predicate is coarser than the later subscription.
-	enableVer0Cache(ctx, c.in)
+	enableVer0Cache(ctx, c.conn)
 
 	msgAccept := &ChannelProposalAcc{
 		SessID:          req.SessID(),
 		ParticipantAddr: acc.Participant,
 	}
-	if err := c.pubMsg(ctx, msgAccept, p); err != nil {
+	if err := c.conn.pubMsg(ctx, msgAccept, p); err != nil {
 		c.logPeer(p).Errorf("error sending proposal acceptance: %v", err)
 		return nil, errors.WithMessage(err, "sending proposal acceptance")
 	}
@@ -184,7 +184,7 @@ func (c *Client) handleChannelProposalRej(
 		SessID: req.SessID(),
 		Reason: reason,
 	}
-	if err := c.pubMsg(ctx, msgReject, p); err != nil {
+	if err := c.conn.pubMsg(ctx, msgReject, p); err != nil {
 		c.logPeer(p).Warn("error sending proposal rejection")
 		return err
 	}
@@ -202,7 +202,7 @@ func (c *Client) exchangeTwoPartyProposal(
 	// enables caching of incoming version 0 signatures before sending any message
 	// that might trigger a fast peer to send those. We don't know the channel id
 	// yet so the cache predicate is coarser than the later subscription.
-	enableVer0Cache(ctx, c.in)
+	enableVer0Cache(ctx, c.conn)
 
 	sessID := proposal.SessID()
 	isResponse := func(e *wire.Envelope) bool {
@@ -214,11 +214,11 @@ func (c *Client) exchangeTwoPartyProposal(
 	receiver := wire.NewReceiver()
 	defer receiver.Close()
 
-	if err := c.in.Subscribe(receiver, isResponse); err != nil {
+	if err := c.conn.Subscribe(receiver, isResponse); err != nil {
 		return nil, errors.WithMessage(err, "subscribing proposal response recv")
 	}
 
-	if err := c.pubMsg(ctx, proposal, peer); err != nil {
+	if err := c.conn.pubMsg(ctx, proposal, peer); err != nil {
 		return nil, errors.WithMessage(err, "publishing channel proposal")
 	}
 
