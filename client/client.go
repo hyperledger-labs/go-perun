@@ -25,7 +25,7 @@ import (
 //
 // Currently, only the two-party protocol is fully implemented.
 type Client struct {
-	id          wire.Account
+	address     wire.Address
 	conn        clientConn
 	channels    chanRegistry
 	funder      channel.Funder
@@ -39,9 +39,9 @@ type Client struct {
 
 // New creates a new State Channel Client.
 //
-// id is the channel network identity. It is the persistend identifier in the
-// network and not necessarily related to any on-chain identity or channel
-// identity.
+// address is the channel network address of this client. It is the persistend
+// identifier in the network and not necessarily related to any on-chain
+// identity or channel participant address.
 //
 // bus is the wire protocol bus over which messages to other network clients are
 // sent and received from.
@@ -54,16 +54,16 @@ type Client struct {
 //
 // If any argument is nil, New panics.
 func New(
-	id wire.Account,
+	address wire.Address,
 	bus wire.Bus,
 	funder channel.Funder,
 	adjudicator channel.Adjudicator,
 	wallet wallet.Wallet,
 ) (c *Client, err error) {
-	if id == nil {
-		log.Panic("identity must not be nil")
+	if address == nil {
+		log.Panic("address must not be nil")
 	}
-	log := log.WithField("id", id.Address())
+	log := log.WithField("id", address)
 	if bus == nil {
 		log.Panic("bus must not be nil")
 	} else if funder == nil {
@@ -74,13 +74,13 @@ func New(
 		log.Panic("wallet must not be nil")
 	}
 
-	conn, err := makeClientConn(id, bus)
+	conn, err := makeClientConn(address, bus)
 	if err != nil {
 		return nil, errors.WithMessage(err, "setting up client connection")
 	}
 
 	return &Client{
-		id:          id,
+		address:     address,
 		conn:        conn,
 		channels:    makeChanRegistry(),
 		funder:      funder,
@@ -189,7 +189,7 @@ func (c *Client) Restore(ctx context.Context) error {
 
 	var eg errgroup.Group
 	for _, p := range ps {
-		if p.Equals(c.id.Address()) {
+		if p.Equals(c.address) {
 			continue // skip own peer
 		}
 		p := p

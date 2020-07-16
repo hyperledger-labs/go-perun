@@ -65,7 +65,7 @@ func (d *DummyAdjudicator) SubscribeRegistered(context.Context, *channel.Params)
 
 func TestClient_New_NilArgs(t *testing.T) {
 	rng := rand.New(rand.NewSource(0x1111))
-	id := wtest.NewRandomAccount(rng)
+	id := wtest.NewRandomAddress(rng)
 	b, f, a, w := &DummyBus{t}, &DummyFunder{t}, &DummyAdjudicator{t}, wtest.RandomWallet()
 	assert.Panics(t, func() { New(nil, b, f, a, w) })
 	assert.Panics(t, func() { New(id, nil, f, a, w) })
@@ -76,8 +76,7 @@ func TestClient_New_NilArgs(t *testing.T) {
 
 func TestClient_Handle_NilArgs(t *testing.T) {
 	rng := rand.New(rand.NewSource(20200524))
-	id := wtest.NewRandomAccount(rng)
-	c, err := New(id, &DummyBus{t}, &DummyFunder{t}, &DummyAdjudicator{t}, wtest.RandomWallet())
+	c, err := New(wtest.NewRandomAddress(rng), &DummyBus{t}, &DummyFunder{t}, &DummyAdjudicator{t}, wtest.RandomWallet())
 	require.NoError(t, err)
 
 	dummyUH := UpdateHandlerFunc(func(ChannelUpdate, *UpdateResponder) {})
@@ -88,8 +87,7 @@ func TestClient_Handle_NilArgs(t *testing.T) {
 
 func TestClient_New(t *testing.T) {
 	rng := rand.New(rand.NewSource(0x1a2b3c))
-	id := wtest.NewRandomAccount(rng)
-	c, err := New(id, &DummyBus{t}, &DummyFunder{t}, &DummyAdjudicator{t}, wtest.RandomWallet())
+	c, err := New(wtest.NewRandomAddress(rng), &DummyBus{t}, &DummyFunder{t}, &DummyAdjudicator{t}, wtest.RandomWallet())
 	assert.NoError(t, err)
 	require.NotNil(t, c)
 }

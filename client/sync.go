@@ -51,7 +51,7 @@ func (c *Client) restoreChannel(p wire.Address, chdata *persistence.Channel) err
 
 	// TODO: read peers from chdata when available
 	peers := make([]wire.Address, 2)
-	peers[chdata.IdxV] = c.id.Address()
+	peers[chdata.IdxV] = c.address
 	peers[chdata.IdxV^1] = p
 
 	// Create the channel's controller.

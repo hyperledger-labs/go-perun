@@ -83,7 +83,7 @@ func makeRole(setup RoleSetup, t *testing.T, numStages int) (r role) {
 		t:         t,
 		numStages: numStages,
 	}
-	cl, err := client.New(r.setup.Identity, r.setup.Bus, r.setup.Funder, r.setup.Adjudicator, r.setup.Wallet)
+	cl, err := client.New(r.setup.Identity.Address(), r.setup.Bus, r.setup.Funder, r.setup.Adjudicator, r.setup.Wallet)
 	if err != nil {
 		t.Fatal("Error creating client: ", err)
 	}

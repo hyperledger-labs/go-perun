@@ -23,9 +23,9 @@ type clientConn struct {
 	log.Embedding
 }
 
-func makeClientConn(id wire.Account, bus wire.Bus) (c clientConn, err error) {
-	c.Embedding = log.MakeEmbedding(log.WithField("id", id))
-	c.sender = id.Address()
+func makeClientConn(address wire.Address, bus wire.Bus) (c clientConn, err error) {
+	c.Embedding = log.MakeEmbedding(log.WithField("id", address))
+	c.sender = address
 	c.bus = bus
 	c.Relay = wire.NewRelay()
 	defer func() {
@@ -39,7 +39,7 @@ func makeClientConn(id wire.Account, bus wire.Bus) (c clientConn, err error) {
 	c.Relay.SetDefaultMsgHandler(func(m *wire.Envelope) {
 		log.Debugf("Received %T message without subscription: %v", m.Msg, m)
 	})
-	if err := bus.SubscribeClient(c, id.Address()); err != nil {
+	if err := bus.SubscribeClient(c, c.sender); err != nil {
 		return c, errors.WithMessage(err, "subscribing client on bus")
 	}
 

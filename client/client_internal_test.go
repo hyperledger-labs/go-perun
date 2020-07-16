@@ -17,10 +17,9 @@ import (
 
 func TestClient_Channel(t *testing.T) {
 	rng := rand.New(rand.NewSource(0xdeadbeef))
-	id := wallettest.NewRandomAccount(rng)
 	// dummy client that only has an id and a registry
 	c := &Client{
-		id:       id,
+		address:  wallettest.NewRandomAddress(rng),
 		channels: makeChanRegistry(),
 	}
 

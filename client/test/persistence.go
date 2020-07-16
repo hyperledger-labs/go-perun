@@ -33,7 +33,7 @@ type (
 // ReplaceClient replaces the client instance of the Role. Useful for
 // persistence testing.
 func (r *multiClientRole) ReplaceClient() {
-	cl, err := client.New(r.setup.Identity, r.setup.Bus, r.setup.Funder, r.setup.Adjudicator, r.setup.Wallet)
+	cl, err := client.New(r.setup.Identity.Address(), r.setup.Bus, r.setup.Funder, r.setup.Adjudicator, r.setup.Wallet)
 	if err != nil {
 		r.t.Fatal("Error recreating Client: ", err)
 	}
