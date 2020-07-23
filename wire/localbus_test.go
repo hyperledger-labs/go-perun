@@ -13,5 +13,8 @@ import (
 )
 
 func TestLocalBus(t *testing.T) {
-	test.GenericBusTest(t, wire.NewLocalBus(), 16, 10)
+	bus := wire.NewLocalBus()
+	test.GenericBusTest(t, func(wire.Account) wire.Bus {
+		return bus
+	}, 16, 10)
 }

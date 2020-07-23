@@ -21,24 +21,32 @@ import (
 // tests that messages sent over the bus arrive at the correct destination. The
 // parameter numClients controls how many clients communicate over the bus, and
 // numMsgs controls how many messages each client sends to all other clients.
-func GenericBusTest(t *testing.T, bus wire.Bus, numClients, numMsgs int) {
+// The parameter busAssigner is used to assign a bus to each client, and must
+// perform any necessary work to make clients able to communicate with each
+// other (such as setting up dialers and listeners, in case of networking).
+func GenericBusTest(t *testing.T, busAssigner func(wire.Account) wire.Bus, numClients, numMsgs int) {
+	require.Greater(t, numClients, 1)
+	require.Greater(t, numMsgs, 0)
+
 	rng := test.Prng(t)
 	type Client struct {
-		r  *wire.Relay
-		id wire.Account
+		r   *wire.Relay
+		bus wire.Bus
+		id  wire.Account
 	}
 
 	clients := make([]Client, numClients)
 	for i := range clients {
 		clients[i].r = wire.NewRelay()
 		clients[i].id = wallettest.NewRandomAccount(rng)
+		clients[i].bus = busAssigner(clients[i].id)
 	}
 
 	// Here, we have common, reused code.
 
 	testNoReceive := func(t *testing.T) {
 		ct := test.NewConcurrent(t)
-		ctx, cancel := context.WithTimeout(context.Background(), 100*time.Millisecond)
+		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Millisecond)
 		defer cancel()
 		for i := range clients {
 			i := i
@@ -57,10 +65,14 @@ func GenericBusTest(t *testing.T, bus wire.Bus, numClients, numMsgs int) {
 		ct := test.NewConcurrent(t)
 		ctx, cancel := context.WithTimeout(
 			context.Background(),
-			time.Duration(numClients*numClients*numMsgs)*10*time.Millisecond)
+			time.Duration((numClients)*(numClients-1)*numMsgs)*10*time.Millisecond)
 		defer cancel()
+		waiting()
 		for sender := range clients {
 			for recipient := range clients {
+				if sender == recipient {
+					continue
+				}
 				sender, recipient := sender, recipient
 				origEnv := &wire.Envelope{
 					Sender:    clients[sender].id.Address(),
@@ -73,23 +85,22 @@ func GenericBusTest(t *testing.T, bus wire.Bus, numClients, numMsgs int) {
 					return e.Sender.Equals(clients[sender].id.Address())
 				})
 
-				go ct.StageN("receive", numClients*numClients, func(t require.TestingT) {
+				go ct.StageN("receive", numClients*(numClients-1), func(t require.TestingT) {
 					defer recv.Close()
 					for i := 0; i < numMsgs; i++ {
 						e, err := recv.Next(ctx)
 						require.NoError(t, err)
-						require.Same(t, e, origEnv)
+						require.Equal(t, e, origEnv)
 					}
 				})
-				go ct.StageN("publish", numClients*numClients, func(t require.TestingT) {
+				go ct.StageN("publish", numClients*(numClients-1), func(t require.TestingT) {
 					for i := 0; i < numMsgs; i++ {
-						err := bus.Publish(ctx, origEnv)
+						err := clients[sender].bus.Publish(ctx, origEnv)
 						require.NoError(t, err)
 					}
 				})
 			}
 		}
-		waiting()
 		ct.Wait("publish", "receive")
 
 		// There must be no additional messages received.
@@ -102,21 +113,18 @@ func GenericBusTest(t *testing.T, bus wire.Bus, numClients, numMsgs int) {
 
 	// First, we test that receiving without subscription will not result in any
 	// messages.
-	t.Run("empty receive", testNoReceive)
+	testNoReceive(t)
 	// Then, we test that messages are received even if we subscribe after
 	// publishing.
-	t.Run("subscribe after publish", func(t *testing.T) {
-		testPublishAndReceive(t, func() {
-			for i := range clients {
-				err := bus.SubscribeClient(clients[i].r, clients[i].id.Address())
-				require.NoError(t, err)
-			}
-		})
+	testPublishAndReceive(t, func() {
+		for i := range clients {
+			err := clients[i].bus.SubscribeClient(clients[i].r, clients[i].id.Address())
+			require.NoError(t, err)
+		}
 	})
+
 	// Now that the subscriptions are already set up, we test that published
 	// messages will be received if the subscription was in place before
 	// publishing.
-	t.Run("normal publish", func(t *testing.T) {
-		testPublishAndReceive(t, func() {})
-	})
+	testPublishAndReceive(t, func() {})
 }
