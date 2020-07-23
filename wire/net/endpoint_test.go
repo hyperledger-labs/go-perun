@@ -57,10 +57,10 @@ func (s *setup) Dial(ctx context.Context, addr wire.Address) (Conn, error) {
 	a, b := newPipeConnPair()
 
 	if addr.Equals(s.alice.endpoint.Address) { // Dialing Bob?
-		s.bob.Registry.addPeer(s.bob.endpoint.Address, b) // Bob accepts connection.
+		s.bob.Registry.addEndpoint(s.bob.endpoint.Address, b, true) // Bob accepts connection.
 		return a, nil
 	} else if addr.Equals(s.bob.endpoint.Address) { // Dialing Alice?
-		s.alice.Registry.addPeer(s.alice.endpoint.Address, a) // Alice accepts connection.
+		s.alice.Registry.addEndpoint(s.alice.endpoint.Address, a, true) // Alice accepts connection.
 		return b, nil
 	} else {
 		return nil, errors.New("unknown peer")
@@ -93,7 +93,7 @@ func makeClient(t *testing.T, conn Conn, rng *rand.Rand, dialer Dialer) *client 
 	}, dialer)
 
 	return &client{
-		endpoint: registry.addPeer(wallettest.NewRandomAddress(rng), conn),
+		endpoint: registry.addEndpoint(wallettest.NewRandomAddress(rng), conn, true),
 		Registry: registry,
 		Receiver: receiver,
 	}

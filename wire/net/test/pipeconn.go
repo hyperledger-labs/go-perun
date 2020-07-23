@@ -8,11 +8,51 @@ package test
 import (
 	"net"
 
+	"github.com/pkg/errors"
+
+	"perun.network/go-perun/pkg/sync/atomic"
+	"perun.network/go-perun/wire"
 	wirenet "perun.network/go-perun/wire/net"
 )
 
-// NewPipeConnPair creates endpoints that are connected via pipes.
-func NewPipeConnPair() (a wirenet.Conn, b wirenet.Conn) {
+// TestConn is a testing connection.
+type TestConn struct {
+	closed *atomic.Bool
+	conn   wirenet.Conn
+}
+
+// Send sends an envelope.
+func (c *TestConn) Send(e *wire.Envelope) (err error) {
+	if err = c.conn.Send(e); err != nil {
+		c.Close()
+	}
+	return
+}
+
+// Recv receives an envelope.
+func (c *TestConn) Recv() (e *wire.Envelope, err error) {
+	if e, err = c.conn.Recv(); err != nil {
+		c.Close()
+	}
+	return
+}
+
+// Close closes the TestConn.
+func (c *TestConn) Close() error {
+	if !c.closed.TrySet() {
+		return errors.New("already closed")
+	}
+	return c.conn.Close()
+}
+
+// IsClosed returns whether the TestConn is already closed.
+func (c *TestConn) IsClosed() bool {
+	return c.closed.IsSet()
+}
+
+// NewTestConnPair creates endpoints that are connected via pipes.
+func NewTestConnPair() (a wirenet.Conn, b wirenet.Conn) {
+	closed := new(atomic.Bool)
 	c0, c1 := net.Pipe()
-	return wirenet.NewIoConn(c0), wirenet.NewIoConn(c1)
+	return &TestConn{closed, wirenet.NewIoConn(c0)}, &TestConn{closed, wirenet.NewIoConn(c1)}
 }
