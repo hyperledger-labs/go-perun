@@ -56,11 +56,11 @@ func (s *setup) Dial(ctx context.Context, addr wire.Address) (Conn, error) {
 	// a: Alice's end, b: Bob's end.
 	a, b := newPipeConnPair()
 
-	if addr.Equals(s.alice.endpoint.PerunAddress) { // Dialing Bob?
-		s.bob.Registry.addPeer(s.bob.endpoint.PerunAddress, b) // Bob accepts connection.
+	if addr.Equals(s.alice.endpoint.Address) { // Dialing Bob?
+		s.bob.Registry.addPeer(s.bob.endpoint.Address, b) // Bob accepts connection.
 		return a, nil
-	} else if addr.Equals(s.bob.endpoint.PerunAddress) { // Dialing Alice?
-		s.alice.Registry.addPeer(s.alice.endpoint.PerunAddress, a) // Alice accepts connection.
+	} else if addr.Equals(s.bob.endpoint.Address) { // Dialing Alice?
+		s.alice.Registry.addPeer(s.alice.endpoint.Address, a) // Alice accepts connection.
 		return b, nil
 	} else {
 		return nil, errors.New("unknown peer")
@@ -88,11 +88,8 @@ type client struct {
 // makeClient creates a simulated test client.
 func makeClient(t *testing.T, conn Conn, rng *rand.Rand, dialer Dialer) *client {
 	var receiver = wire.NewReceiver()
-	var registry = NewEndpointRegistry(wallettest.NewRandomAccount(rng), func(p *Endpoint) {
-		assert.NoError(
-			t,
-			p.Subscribe(receiver, func(*wire.Envelope) bool { return true }),
-			"failed to subscribe a new peer")
+	var registry = NewEndpointRegistry(wallettest.NewRandomAccount(rng), func(wire.Address) wire.Consumer {
+		return receiver
 	}, dialer)
 
 	return &client{
@@ -107,9 +104,9 @@ func TestEndpoint_Close(t *testing.T) {
 	t.Parallel()
 	s := makeSetup(t)
 	// Remember bob's address for later, we will need it for a registry lookup.
-	bobAddr := s.alice.endpoint.PerunAddress
+	bobAddr := s.alice.endpoint.Address
 	// The lookup needs to work because the test relies on it.
-	found, _ := s.alice.Registry.find(bobAddr)
+	found := s.alice.Registry.find(bobAddr)
 	assert.Equal(t, s.alice.endpoint, found)
 	// Close Alice's connection to Bob.
 	assert.NoError(t, s.alice.endpoint.Close(), "closing a peer once must succeed")
@@ -133,28 +130,30 @@ func TestEndpoint_Send_ImmediateAbort(t *testing.T) {
 	assert.Error(t, s.alice.endpoint.Send(ctx,
 		wiretest.NewRandomEnvelope(test.Prng(t), wire.NewPingMsg())))
 
-	assert.True(t, s.alice.endpoint.IsClosed(), "peer must be closed after failed sending")
+	assert.Error(t, s.alice.endpoint.Close(),
+		"peer must be closed after failed sending")
 }
 
 func TestEndpoint_Send_Timeout(t *testing.T) {
 	t.Parallel()
 	rng := test.Prng(t)
 	conn, _ := newPipeConnPair()
-	p := newEndpoint(nil, conn, nil)
+	p := newEndpoint(nil, conn)
 
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 
 	assert.Error(t, p.Send(ctx, wiretest.NewRandomEnvelope(rng, wire.NewPingMsg())),
 		"Send() must timeout on blocked connection")
-	assert.True(t, p.IsClosed(), "peer must be closed after failed Send()")
+	assert.Error(t, p.Close(),
+		"peer must be closed after failed Send()")
 }
 
 func TestEndpoint_Send_Timeout_Mutex_TryLockCtx(t *testing.T) {
 	t.Parallel()
 	rng := test.Prng(t)
 	conn, remote := newPipeConnPair()
-	p := newEndpoint(nil, conn, nil)
+	p := newEndpoint(nil, conn)
 
 	go remote.Recv()
 	p.sending.Lock()
@@ -163,14 +162,15 @@ func TestEndpoint_Send_Timeout_Mutex_TryLockCtx(t *testing.T) {
 
 	assert.Error(t, p.Send(ctx, wiretest.NewRandomEnvelope(rng, wire.NewPingMsg())),
 		"Send() must timeout on locked mutex")
-	assert.True(t, p.IsClosed(), "peer must be closed after failed Send()")
+	assert.Error(t, p.Close(),
+		"peer must be closed after failed Send()")
 }
 
 func TestEndpoint_Send_Close(t *testing.T) {
 	t.Parallel()
 	rng := test.Prng(t)
 	conn, _ := newPipeConnPair()
-	p := newEndpoint(nil, conn, nil)
+	p := newEndpoint(nil, conn)
 
 	go func() {
 		<-time.NewTimer(timeout).C
@@ -181,79 +181,24 @@ func TestEndpoint_Send_Close(t *testing.T) {
 		"Send() must be aborted by Close()")
 }
 
-func TestEndpoint_IsClosed(t *testing.T) {
-	t.Parallel()
-	s := makeSetup(t)
-	assert.False(t, s.alice.endpoint.IsClosed(), "fresh peer must be open")
-	assert.NoError(t, s.alice.endpoint.Close(), "closing must succeed")
-	assert.True(t, s.alice.endpoint.IsClosed(), "closed peer must be closed")
-}
-
-func TestEndpoint_create(t *testing.T) {
-	t.Parallel()
-	p := newEndpoint(nil, nil, nil)
-	assert.False(t, p.exists(), "peer must not yet exist")
-
-	conn := newMockConn(nil)
-	p.create(conn)
-
-	assert.True(t, p.exists(), "peer must exist")
-
-	assert.False(t, conn.closed.IsSet(),
-		"Peer.create() on nonexisting peers must not close the new connection")
-
-	conn2 := newMockConn(nil)
-	p.create(conn2)
-	assert.True(t, conn2.closed.IsSet(),
-		"Peer.create() on existing peers must close the new connection")
-}
-
 // TestEndpoint_ClosedByRecvLoopOnConnClose is a regression test for
 // #181 `peer.Peer` does not handle connection termination properly
 func TestEndpoint_ClosedByRecvLoopOnConnClose(t *testing.T) {
 	t.Parallel()
 	eofReceived := make(chan struct{})
-	onCloseCalled := make(chan struct{})
 
 	rng := rand.New(rand.NewSource(0xcaffe2))
 	addr := wallettest.NewRandomAddress(rng)
 	conn0, conn1 := newPipeConnPair()
-	peer := newEndpoint(addr, conn0, nil)
-	assert.True(t, peer.OnClose(func() {
-		close(onCloseCalled)
-	}))
+	peer := newEndpoint(addr, conn0)
 
 	go func() {
-		peer.recvLoop()
+		peer.recvLoop(nil)
 		close(eofReceived)
 	}()
 
 	conn1.Close()
 	<-eofReceived
 
-	select {
-	case <-onCloseCalled:
-	case <-time.After(10 * time.Millisecond):
-		t.Error("on close callback time-out")
-	}
-
-	assert.True(t, peer.IsClosed())
-}
-
-func TestEndpoint_WaitExists_Timeout(t *testing.T) {
-	t.Parallel()
-	p := newEndpoint(nil, nil, nil)
-	ctx, cancel := context.WithCancel(context.Background())
-	cancel()
-	assert.False(t, p.waitExists(ctx))
-}
-
-func TestEndpoint_WaitExists_2nd_Close(t *testing.T) {
-	t.Parallel()
-	p := newEndpoint(nil, nil, nil)
-	go func() {
-		<-time.After(timeout)
-		p.Close()
-	}()
-	assert.False(t, p.waitExists(context.Background()))
+	assert.Error(t, peer.Close())
 }

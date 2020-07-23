@@ -8,14 +8,18 @@ package net
 import (
 	"io"
 
+	"github.com/pkg/errors"
+
+	"perun.network/go-perun/pkg/sync/atomic"
 	"perun.network/go-perun/wire"
 )
 
 var _ Conn = (*ioConn)(nil)
 
-// IoConn is a connection that communicates its messages over an io stream.
+// ioConn is a connection that communicates its messages over an io stream.
 type ioConn struct {
-	conn io.ReadWriteCloser
+	closed atomic.Bool
+	conn   io.ReadWriteCloser
 }
 
 // NewIoConn creates a peer message connection from an io stream.
@@ -27,7 +31,7 @@ func NewIoConn(conn io.ReadWriteCloser) Conn {
 
 func (c *ioConn) Send(e *wire.Envelope) error {
 	if err := e.Encode(c.conn); err != nil {
-		c.conn.Close()
+		c.Close()
 		return err
 	}
 	return nil
@@ -36,12 +40,15 @@ func (c *ioConn) Send(e *wire.Envelope) error {
 func (c *ioConn) Recv() (*wire.Envelope, error) {
 	var e wire.Envelope
 	if err := e.Decode(c.conn); err != nil {
-		c.conn.Close()
+		c.Close()
 		return nil, err
 	}
 	return &e, nil
 }
 
 func (c *ioConn) Close() error {
+	if !c.closed.TrySet() {
+		return errors.New("already closed")
+	}
 	return c.conn.Close()
 }
