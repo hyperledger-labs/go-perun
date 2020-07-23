@@ -21,7 +21,9 @@ code_quality:
 copyright_notice:
   <<: *only-default
   stage: vetting
-  script: ".scripts/check-copyright-notice.sh"
+  script:
+    - .scripts/check-copyright-notice.sh
+    - .scripts/check-notice-authors.sh origin/dev
 
 vanity_import:
   <<: *only-default
