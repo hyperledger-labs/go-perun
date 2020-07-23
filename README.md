@@ -163,7 +163,7 @@ We thank the German Federal Ministry of Education and Research (BMBF) for their 
 
 ## Copyright
 
-Copyright &copy; 2020 Chair of Applied Cryptography, Technische Universität Darmstadt, Germany.
+Copyright 2020 - See NOTICE file for copyright holders.
 All rights reserved.
 Use of the source code is governed by the Apache 2.0 license that can be found in the [LICENSE file](LICENSE).
 
