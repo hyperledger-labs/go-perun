@@ -38,7 +38,7 @@ type Channel struct {
 // controller after the channel proposal protocol ran successfully.
 func (c *Client) newChannel(
 	acc wallet.Account,
-	peers []*wire.Endpoint,
+	peers []wire.Address,
 	params channel.Params,
 ) (*Channel, error) {
 	machine, err := channel.NewStateMachine(acc, params)
@@ -49,7 +49,7 @@ func (c *Client) newChannel(
 }
 
 // channelFromSource is used to create a channel controller from restored data.
-func (c *Client) channelFromSource(s channel.Source, peers ...*wire.Endpoint) (*Channel, error) {
+func (c *Client) channelFromSource(s channel.Source, peers ...wire.Address) (*Channel, error) {
 	acc, err := c.wallet.Unlock(s.Params().Parts[s.Idx()])
 	if err != nil {
 		return nil, errors.WithMessage(err, "unlocking account for channel")
@@ -64,17 +64,18 @@ func (c *Client) channelFromSource(s channel.Source, peers ...*wire.Endpoint) (*
 }
 
 // channelFromMachine creates a channel controller around the passed state machine.
-func (c *Client) channelFromMachine(machine *channel.StateMachine, peers ...*wire.Endpoint) (*Channel, error) {
+func (c *Client) channelFromMachine(machine *channel.StateMachine, peers ...wire.Address) (*Channel, error) {
+	logger := c.logChan(machine.ID())
+	machine.SetLog(logger) // client logger has more fields
 	pmachine := persistence.FromStateMachine(machine, c.pr)
 
 	// bundle peers into channel connection
-	conn, err := newChannelConn(machine.ID(), peers, machine.Idx())
+	conn, err := newChannelConn(machine.ID(), peers, machine.Idx(), &c.conn, &c.conn)
 	if err != nil {
 		return nil, errors.WithMessagef(err, "setting up channel connection")
 	}
 
-	logger := c.logChan(machine.ID())
-	conn.SetLogger(logger)
+	conn.SetLog(logger)
 	return &Channel{
 		OnCloser:    conn,
 		log:         logger,
@@ -101,7 +102,7 @@ func (c *Channel) Ctx() context.Context {
 }
 
 func (c *Channel) setLogger(l log.Logger) {
-	c.conn.SetLogger(l)
+	c.conn.SetLog(l)
 	c.log = l
 }
 
@@ -179,7 +180,10 @@ func (c *Channel) initExchangeSigsAndEnable(ctx context.Context) error {
 		})
 	}()
 
-	pidx, cm := resRecv.Next(ctx)
+	pidx, cm, err := resRecv.Next(ctx)
+	if err != nil {
+		return errors.WithMessage(err, "receiving initial state sig")
+	}
 	acc, ok := cm.(*msgChannelUpdateAcc)
 	if !ok {
 		return errors.Errorf(

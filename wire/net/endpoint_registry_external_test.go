@@ -3,7 +3,7 @@
 // of this source code is governed by the Apache 2.0 license that can be found
 // in the LICENSE file.
 
-package wire_test
+package net_test
 
 import (
 	"context"
@@ -18,21 +18,24 @@ import (
 	"perun.network/go-perun/pkg/test"
 	wallettest "perun.network/go-perun/wallet/test"
 	"perun.network/go-perun/wire"
-	wiretest "perun.network/go-perun/wire/test"
+	"perun.network/go-perun/wire/net"
+	nettest "perun.network/go-perun/wire/net/test"
 )
 
 var timeout = 100 * time.Millisecond
+
+func nilConsumer(wire.Address) wire.Consumer { return nil }
 
 // Two nodes (1 dialer, 1 listener node) .Get() each other.
 func TestEndpointRegistry_Get_Pair(t *testing.T) {
 	t.Parallel()
 	assert, require := assert.New(t), require.New(t)
 	rng := rand.New(rand.NewSource(3))
-	var hub wiretest.ConnHub
+	var hub nettest.ConnHub
 	dialerId := wallettest.NewRandomAccount(rng)
 	listenerId := wallettest.NewRandomAccount(rng)
-	dialerReg := wire.NewEndpointRegistry(dialerId, func(*wire.Endpoint) {}, hub.NewNetDialer())
-	listenerReg := wire.NewEndpointRegistry(listenerId, func(*wire.Endpoint) {}, nil)
+	dialerReg := net.NewEndpointRegistry(dialerId, nilConsumer, hub.NewNetDialer())
+	listenerReg := net.NewEndpointRegistry(listenerId, nilConsumer, nil)
 	listener := hub.NewNetListener(listenerId.Address())
 
 	done := make(chan struct{})
@@ -46,17 +49,17 @@ func TestEndpointRegistry_Get_Pair(t *testing.T) {
 	p, err := dialerReg.Get(ctx, listenerId.Address())
 	assert.NoError(err)
 	require.NotNil(p)
-	assert.True(p.PerunAddress.Equals(listenerId.Address()))
+	assert.True(p.Address.Equals(listenerId.Address()))
 
 	// should allow the listener routine to add the peer to its registry
 	time.Sleep(timeout)
 	p, err = listenerReg.Get(ctx, dialerId.Address())
 	assert.NoError(err)
 	require.NotNil(p)
-	assert.True(p.PerunAddress.Equals(dialerId.Address()))
+	assert.True(p.Address.Equals(dialerId.Address()))
 
-	assert.NoError(listenerReg.Close())
-	assert.NoError(dialerReg.Close())
+	listenerReg.Close()
+	dialerReg.Close()
 	assert.True(sync.IsAlreadyClosedError(listener.Close()))
 	test.AssertTerminates(t, timeout, func() {
 		<-done
@@ -68,15 +71,16 @@ func TestEndpointRegistry_Get_Multiple(t *testing.T) {
 	t.Parallel()
 	assert := assert.New(t)
 	rng := rand.New(rand.NewSource(3))
-	var hub wiretest.ConnHub
+	var hub nettest.ConnHub
 	dialerId := wallettest.NewRandomAccount(rng)
 	listenerId := wallettest.NewRandomAccount(rng)
 	dialer := hub.NewNetDialer()
-	logPeer := func(p *wire.Endpoint) {
-		p.OnCreateAlways(func() { t.Logf("subscribing %x\n", p.PerunAddress.Bytes()[:4]) })
+	logPeer := func(addr wire.Address) wire.Consumer {
+		t.Logf("subscribing %s\n", addr)
+		return nil
 	}
-	dialerReg := wire.NewEndpointRegistry(dialerId, logPeer, dialer)
-	listenerReg := wire.NewEndpointRegistry(listenerId, logPeer, nil)
+	dialerReg := net.NewEndpointRegistry(dialerId, logPeer, dialer)
+	listenerReg := net.NewEndpointRegistry(listenerId, logPeer, nil)
 	listener := hub.NewNetListener(listenerId.Address())
 
 	done := make(chan struct{})
@@ -89,13 +93,13 @@ func TestEndpointRegistry_Get_Multiple(t *testing.T) {
 	defer cancel()
 
 	const N = 4
-	peers := make(chan *wire.Endpoint, N)
+	peers := make(chan *net.Endpoint, N)
 	for i := 0; i < N; i++ {
 		go func() {
 			p, err := dialerReg.Get(ctx, listenerId.Address())
 			assert.NoError(err)
 			if p != nil {
-				assert.True(p.PerunAddress.Equals(listenerId.Address()))
+				assert.True(p.Address.Equals(listenerId.Address()))
 			}
 			peers <- p
 		}()
@@ -124,11 +128,11 @@ func TestEndpointRegistry_Get_Multiple(t *testing.T) {
 	p, err := listenerReg.Get(ctx, dialerId.Address())
 	assert.NoError(err)
 	assert.NotNil(p)
-	assert.True(p.PerunAddress.Equals(dialerId.Address()))
+	assert.True(p.Address.Equals(dialerId.Address()))
 	assert.Equal(1, listener.NumAccepted())
 
-	assert.NoError(listenerReg.Close())
-	assert.NoError(dialerReg.Close())
+	listenerReg.Close()
+	dialerReg.Close()
 	assert.True(sync.IsAlreadyClosedError(listener.Close()))
 	test.AssertTerminates(t, timeout, func() { <-done })
 }

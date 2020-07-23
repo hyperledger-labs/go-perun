@@ -3,10 +3,12 @@
 // of this source code is governed by the Apache 2.0 license that can be found
 // in the LICENSE file.
 
-package wire
+package net // import "perun.network/go-perun/wire/net"
 
 import (
 	"context"
+
+	"perun.network/go-perun/wire"
 )
 
 // Dialer is an interface that allows creating a connection to a peer via its
@@ -18,7 +20,7 @@ type Dialer interface {
 	//
 	// Dial needs to be reentrant, and concurrent calls to Close() must abort
 	// any ongoing Dial() calls.
-	Dial(ctx context.Context, addr Address) (Conn, error)
+	Dial(ctx context.Context, addr wire.Address) (Conn, error)
 	// Close aborts any ongoing calls to Dial().
 	//
 	// Close() needs to be reentrant, and repeated calls to Close() need to

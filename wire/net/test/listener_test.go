@@ -14,17 +14,18 @@ import (
 
 	"perun.network/go-perun/pkg/test"
 	"perun.network/go-perun/wire"
+	wirenet "perun.network/go-perun/wire/net"
 )
 
 type fakeConn struct{}
 
-func (fakeConn) Send(wire.Msg) error     { panic("") }
-func (fakeConn) Recv() (wire.Msg, error) { panic("") }
-func (fakeConn) Close() error            { panic("") }
+func (fakeConn) Send(*wire.Envelope) error     { panic("") }
+func (fakeConn) Recv() (*wire.Envelope, error) { panic("") }
+func (fakeConn) Close() error                  { panic("") }
 
 // A valid connection needed to check that accept will pass along values
 // properly.
-var connection wire.Conn = new(fakeConn)
+var connection wirenet.Conn = new(fakeConn)
 
 const timeout = 100 * time.Millisecond
 

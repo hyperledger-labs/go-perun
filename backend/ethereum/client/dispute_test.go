@@ -22,7 +22,6 @@ import (
 	clienttest "perun.network/go-perun/client/test"
 	"perun.network/go-perun/log"
 	"perun.network/go-perun/wire"
-	wiretest "perun.network/go-perun/wire/test"
 )
 
 func TestDisputeMalloryCarol(t *testing.T) {
@@ -32,7 +31,7 @@ func TestDisputeMalloryCarol(t *testing.T) {
 	const A, B = 0, 1 // Indices of Mallory and Carol
 	var (
 		name  = [2]string{"Mallory", "Carol"}
-		hub   wiretest.ConnHub
+		bus   = wire.NewLocalBus()
 		setup [2]clienttest.RoleSetup
 		role  [2]clienttest.Executer
 	)
@@ -42,8 +41,7 @@ func TestDisputeMalloryCarol(t *testing.T) {
 		setup[i] = clienttest.RoleSetup{
 			Name:        name[i],
 			Identity:    s.Accs[i],
-			Dialer:      hub.NewNetDialer(),
-			Listener:    hub.NewNetListener(s.Accs[i].Address()),
+			Bus:         bus,
 			Funder:      s.Funders[i],
 			Adjudicator: s.Adjs[i],
 			Wallet:      ethwtest.NewTmpWallet(),

@@ -14,16 +14,14 @@ import (
 	chtest "perun.network/go-perun/channel/test"
 	ctest "perun.network/go-perun/client/test"
 	"perun.network/go-perun/wire"
-	wtest "perun.network/go-perun/wire/test"
 )
 
 func TestPersistencePetraRobert(t *testing.T) {
 	rng := rand.New(rand.NewSource(0x70707))
-	setups, _hub := NewSetupsPersistence(t, rng, []string{"Petra", "Robert"})
-	hub := (*connHub)(_hub)
+	setups := NewSetupsPersistence(t, rng, []string{"Petra", "Robert"})
 	roles := [2]ctest.Executer{
-		ctest.NewPetra(setups[0], hub, t),
-		ctest.NewRobert(setups[1], hub, t),
+		ctest.NewPetra(setups[0], t),
+		ctest.NewRobert(setups[1], t),
 	}
 
 	cfg := ctest.ExecConfig{
@@ -37,17 +35,10 @@ func TestPersistencePetraRobert(t *testing.T) {
 	executeTwoPartyTest(t, roles, cfg)
 }
 
-type connHub wtest.ConnHub // wrapper for correct return type signatures
-
-func (h *connHub) NewNetListener(addr wire.Address) wire.Listener {
-	return (*wtest.ConnHub)(h).NewNetListener(addr)
-}
-func (h *connHub) NewNetDialer() wire.Dialer { return (*wtest.ConnHub)(h).NewNetDialer() }
-
-func NewSetupsPersistence(t *testing.T, rng *rand.Rand, names []string) ([]ctest.RoleSetup, *wtest.ConnHub) {
-	setups, hub := NewSetups(rng, names)
+func NewSetupsPersistence(t *testing.T, rng *rand.Rand, names []string) []ctest.RoleSetup {
+	setups := NewSetups(rng, names)
 	for i := range names {
 		setups[i].PR = chprtest.NewPersistRestorer(t)
 	}
-	return setups, hub
+	return setups
 }

@@ -22,10 +22,10 @@ import (
 // is unknown, an error is logged.
 //
 // This handler is dispatched from the Client.Handle routine.
-func (c *Client) handleChannelUpdate(uh UpdateHandler, p *wire.Endpoint, m *msgChannelUpdate) {
+func (c *Client) handleChannelUpdate(uh UpdateHandler, p wire.Address, m *msgChannelUpdate) {
 	ch, ok := c.channels.Get(m.ID())
 	if !ok {
-		c.logChan(m.ID()).WithField("peer", p.PerunAddress).Errorf("received update for unknown channel")
+		c.logChan(m.ID()).WithField("peer", p).Error("received update for unknown channel")
 		return
 	}
 	pidx := ch.Idx() ^ 1
@@ -152,11 +152,11 @@ func (c *Channel) Update(ctx context.Context, up ChannelUpdate) (err error) {
 		return errors.WithMessage(err, "sending update")
 	}
 
-	pidx, res := resRecv.Next(ctx)
-	c.log.Tracef("Received update response (%T): %v", res, res)
-	if res == nil {
+	pidx, res, err := resRecv.Next(ctx)
+	if err != nil {
 		return errors.WithMessage(err, "receiving update response")
 	}
+	c.log.Tracef("Received update response (%T): %v", res, res)
 
 	if rej, ok := res.(*msgChannelUpdateRej); ok {
 		return errors.Errorf("update rejected: %s", rej.Reason)

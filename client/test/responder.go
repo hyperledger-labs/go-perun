@@ -27,8 +27,6 @@ func (r *Responder) Execute(cfg ExecConfig, exec func(ExecConfig, *paymentChanne
 	rng := rand.New(rand.NewSource(0xB0B))
 	assert := assert.New(r.t)
 
-	waitListen := r.GoListen(r.setup.Listener)
-	defer waitListen()
 	propHandler, waitHandler := r.GoHandle(rng)
 	defer waitHandler()
 

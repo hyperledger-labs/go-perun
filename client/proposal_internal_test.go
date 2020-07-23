@@ -21,12 +21,12 @@ func TestClient_validTwoPartyProposal(t *testing.T) {
 
 	// dummy client that only has an id
 	c := &Client{
-		id: wallettest.NewRandomAccount(rng),
+		address: wallettest.NewRandomAddress(rng),
 	}
 	validProp := *NewRandomChannelProposalReqNumParts(rng, 2)
-	validProp.PeerAddrs[0] = c.id.Address() // set us as the proposer
-	peerAddr := validProp.PeerAddrs[1]      // peer at 1 as receiver
-	require.False(t, peerAddr.Equals(c.id.Address()))
+	validProp.PeerAddrs[0] = c.address // set us as the proposer
+	peerAddr := validProp.PeerAddrs[1] // peer at 1 as receiver
+	require.False(t, peerAddr.Equals(c.address))
 	require.Len(t, validProp.PeerAddrs, 2)
 
 	validProp3Peers := *NewRandomChannelProposalReqNumParts(rng, 3)
@@ -50,11 +50,11 @@ func TestClient_validTwoPartyProposal(t *testing.T) {
 		},
 		{
 			&validProp,
-			0, c.id.Address(), false, // wrong peerAddr (ours)
+			0, c.address, false, // wrong peerAddr (ours)
 		},
 		{
 			&validProp,
-			1, c.id.Address(), false, // wrong index, wrong peer address
+			1, c.address, false, // wrong index, wrong peer address
 		},
 		{
 			&validProp3Peers, // valid proposal but three peers

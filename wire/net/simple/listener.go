@@ -3,48 +3,49 @@
 // of this source code is governed by the Apache 2.0 license that can be found
 // in the LICENSE file.
 
-package wire
+package simple
 
 import (
 	"net"
 
 	"github.com/pkg/errors"
+	wirenet "perun.network/go-perun/wire/net"
 )
 
-// NetListener is a TCP Listener.
-type NetListener struct {
+// Listener is a TCP Listener.
+type Listener struct {
 	net.Listener
 }
 
-var _ Listener = (*NetListener)(nil)
+var _ wirenet.Listener = (*Listener)(nil)
 
 // NewNetListener creates a listener reachable under the requested address.
-func NewNetListener(network string, address string) (*NetListener, error) {
+func NewNetListener(network string, address string) (*Listener, error) {
 	l, err := net.Listen(network, address)
 	if err != nil {
 		return nil, errors.Wrapf(err,
 			"failed to create listener for '%s'", address)
 	}
 
-	return &NetListener{Listener: l}, nil
+	return &Listener{Listener: l}, nil
 }
 
 // NewTCPListener is a short-hand version of NewNetListener for TCP listeners.
-func NewTCPListener(address string) (*NetListener, error) {
+func NewTCPListener(address string) (*Listener, error) {
 	return NewNetListener("tcp", address)
 }
 
 // NewUnixListener is a short-hand version of NewNetListener for Unix listeners.
-func NewUnixListener(address string) (*NetListener, error) {
+func NewUnixListener(address string) (*Listener, error) {
 	return NewNetListener("unix", address)
 }
 
 // Accept implements peer.Dialer.Accept().
-func (l *NetListener) Accept() (Conn, error) {
+func (l *Listener) Accept() (wirenet.Conn, error) {
 	conn, err := l.Listener.Accept()
 	if err != nil {
 		return nil, errors.Wrap(err, "accept failed")
 	}
 
-	return NewIoConn(conn), nil
+	return wirenet.NewIoConn(conn), nil
 }

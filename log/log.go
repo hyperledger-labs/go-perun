@@ -177,3 +177,44 @@ func WithFields(fs Fields) Logger {
 func WithError(err error) Logger {
 	return logger.WithError(err)
 }
+
+type (
+	// An Owner owns a Logger that can be retrieved and a new Logger can be set.
+	Owner interface {
+		// Log returns the logger used by the Owner
+		Log() Logger
+		// SetLog sets the logger that the Owner uses in the future.
+		SetLog(Logger)
+	}
+
+	// An Embedding can be embedded into any struct to endow it with a logger and
+	// getter and setter for this logger. Embedding implements an Owner.
+	Embedding struct {
+		log Logger
+	}
+)
+
+// AppendField sets the given field in the owner's logger. The resulting logger
+// is also returned.
+func AppendField(owner Owner, key string, value interface{}) Logger {
+	l := owner.Log().WithField(key, value)
+	owner.SetLog(l)
+	return l
+}
+
+// AppendField sets the given fields in the owner's logger. The resulting logger
+// is also returned.
+func AppendFields(owner Owner, fs Fields) Logger {
+	l := owner.Log().WithFields(fs)
+	owner.SetLog(l)
+	return l
+}
+
+// MakeEmbedding returns an Embedding around log.
+func MakeEmbedding(log Logger) Embedding { return Embedding{log: log} }
+
+// Log returns the embedded Logger.
+func (em Embedding) Log() Logger { return em.log }
+
+// SetLog sets the embedded Logger.
+func (em Embedding) SetLog(l Logger) { em.log = l }

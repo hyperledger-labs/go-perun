@@ -3,7 +3,7 @@
 // of this source code is governed by the Apache 2.0 license that can be found
 // in the LICENSE file.
 
-package wire
+package simple
 
 import (
 	"context"
@@ -14,8 +14,10 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"perun.network/go-perun/backend/sim/wallet"
+	simwallet "perun.network/go-perun/backend/sim/wallet"
 	"perun.network/go-perun/pkg/test"
+	"perun.network/go-perun/wallet"
+	"perun.network/go-perun/wire"
 )
 
 func TestNewTCPDialer(t *testing.T) {
@@ -30,23 +32,25 @@ func TestNewUnixDialer(t *testing.T) {
 
 func TestDialer_Register(t *testing.T) {
 	rng := rand.New(rand.NewSource(0xDDDDdede))
-	addr := wallet.NewRandomAddress(rng)
+	addr := simwallet.NewRandomAddress(rng)
+	key := wallet.Key(addr)
 	d := NewTCPDialer(0)
 
-	_, ok := d.get(addr)
+	_, ok := d.get(key)
 	require.False(t, ok)
 
 	d.Register(addr, "host")
 
-	_, ok = d.get(addr)
+	host, ok := d.get(key)
 	assert.True(t, ok)
+	assert.Equal(t, host, "host")
 }
 
 func TestDialer_Dial(t *testing.T) {
 	timeout := 100 * time.Millisecond
 	rng := rand.New(rand.NewSource(0xDDDDdede))
 	lhost := "127.0.0.1:7357"
-	laddr := wallet.NewRandomAddress(rng)
+	laddr := simwallet.NewRandomAddress(rng)
 
 	l, err := NewTCPListener(lhost)
 	require.NoError(t, err)
@@ -54,19 +58,23 @@ func TestDialer_Dial(t *testing.T) {
 
 	d := NewTCPDialer(timeout)
 	d.Register(laddr, lhost)
+	daddr := simwallet.NewRandomAddress(rng)
 	defer d.Close()
 
 	t.Run("happy", func(t *testing.T) {
-		m := NewPingMsg()
+		e := &wire.Envelope{
+			Sender:    daddr,
+			Recipient: laddr,
+			Msg:       wire.NewPingMsg()}
 		ct := test.NewConcurrent(t)
 		go ct.Stage("accept", func(rt require.TestingT) {
 			conn, err := l.Accept()
 			assert.NoError(t, err)
 			require.NotNil(rt, conn)
 
-			rm, err := conn.Recv()
+			re, err := conn.Recv()
 			assert.NoError(t, err)
-			assert.Equal(t, rm, m)
+			assert.Equal(t, re, e)
 		})
 
 		ct.Stage("dial", func(rt require.TestingT) {
@@ -75,7 +83,7 @@ func TestDialer_Dial(t *testing.T) {
 				assert.NoError(t, err)
 				require.NotNil(rt, conn)
 
-				assert.NoError(t, conn.Send(m))
+				assert.NoError(t, conn.Send(e))
 			})
 		})
 
@@ -93,7 +101,7 @@ func TestDialer_Dial(t *testing.T) {
 	})
 
 	t.Run("unknown host", func(t *testing.T) {
-		noHostAddr := wallet.NewRandomAddress(rng)
+		noHostAddr := simwallet.NewRandomAddress(rng)
 		d.Register(noHostAddr, "no such host")
 
 		test.AssertTerminates(t, timeout, func() {
@@ -105,7 +113,7 @@ func TestDialer_Dial(t *testing.T) {
 
 	t.Run("unknown address", func(t *testing.T) {
 		test.AssertTerminates(t, timeout, func() {
-			unkownAddr := wallet.NewRandomAddress(rng)
+			unkownAddr := simwallet.NewRandomAddress(rng)
 			conn, err := d.Dial(context.Background(), unkownAddr)
 			assert.Error(t, err)
 			assert.Nil(t, conn)

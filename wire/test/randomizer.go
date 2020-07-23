@@ -22,3 +22,13 @@ func NewRandomAddress(rng *rand.Rand) wire.Address {
 func NewRandomAddresses(rng *rand.Rand, n int) []wire.Address {
 	return test.NewRandomAddresses(rng, n)
 }
+
+// NewRandomEnvelope returns an envelope around message m with random sender and
+// recipient generated using randomness from rng.
+func NewRandomEnvelope(rng *rand.Rand, m wire.Msg) *wire.Envelope {
+	return &wire.Envelope{
+		Sender:    test.NewRandomAddress(rng),
+		Recipient: test.NewRandomAddress(rng),
+		Msg:       m,
+	}
+}

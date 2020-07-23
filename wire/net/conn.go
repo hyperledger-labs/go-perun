@@ -3,19 +3,21 @@
 // of this source code is governed by the Apache 2.0 license that can be found
 // in the LICENSE file.
 
-package wire
+package net
+
+import "perun.network/go-perun/wire"
 
 // Conn is a connection to a peer, and can send wire messages.
 // The Send and Recv methods do not have to be reentrant, but calls to Close
 // that happen in other threads must interrupt ongoing Send and Recv calls.
 // This is the default behavior for sockets.
 type Conn interface {
-	// Recv receives a message from the peer.
+	// Recv receives an envelope from the peer.
 	// If an error occurs, the connection must close itself.
-	Recv() (Msg, error)
-	// Send sends a message to the peer.
+	Recv() (*wire.Envelope, error)
+	// Send sends an envelope to the peer.
 	// If an error occurs, the connection must close itself.
-	Send(msg Msg) error
+	Send(*wire.Envelope) error
 	// Close closes the connection and aborts any ongoing Send() and Recv()
 	// calls.
 	//

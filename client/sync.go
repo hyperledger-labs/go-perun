@@ -7,7 +7,7 @@ package client
 
 import (
 	"context"
-	"sync"
+	"time"
 
 	"github.com/pkg/errors"
 
@@ -16,77 +16,116 @@ import (
 	"perun.network/go-perun/wire"
 )
 
-func (c *Client) restorePeerChannels(p *wire.Endpoint, done func()) {
-	log := c.logPeer(p)
-	it, err := c.pr.RestorePeer(p.PerunAddress)
+var syncReplyTimeout = 10 * time.Second
+
+func (c *Client) restorePeerChannels(ctx context.Context, p wire.Address) (err error) {
+	it, err := c.pr.RestorePeer(p)
 	if err != nil {
-		log.Errorf("Failed to restore channels for peer: %v", err)
-		p.Close()
+		return errors.WithMessagef(err, "restoring channels for peer: %v", err)
 	}
+	defer func() {
+		if cerr := it.Close(); cerr != nil {
+			err = errors.WithMessagef(err, "(error closing iterator: %v)", cerr)
+		}
+	}()
 
-	var wg sync.WaitGroup
-	wg.Add(1)
-	for it.Next(c.Ctx()) {
+	// Serially restore channels. We might change this to parallel restoring once
+	// we initiate the sync protocol from here again.
+	for it.Next(ctx) {
 		chdata := it.Channel()
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
-			log := c.logChan(chdata.ID())
-			log.Debug("Restoring channel...")
-			// Synchronize the channel with the peer, and settle if this fails.
-			if err := c.syncChannel(c.Ctx(), chdata, p); err != nil {
-				log.Errorf("Error synchronizing channels: %v; attempting settlement...", err)
-				chdata.PhaseV = channel.Withdrawing
-				// No peers, because we don't want any connections.
-				if ch, err := c.channelFromSource(chdata); err != nil {
-					log.Errorf("Failed to reconstruct channel for settling: %v", err)
-				} else if err := ch.Settle(c.Ctx()); err != nil {
-					log.Errorf("Failed to settle channel: %v", err)
-				}
-				return
-			}
+		if err := c.restoreChannel(p, chdata); err != nil {
+			return errors.WithMessage(err, "restoring channel")
+		}
+	}
+	return nil
+}
 
-			// Create the channel's controller.
-			ch, err := c.channelFromSource(chdata, p)
-			if err != nil {
-				log.Errorf("Failed to restore channel: %v", err)
-				return
-			}
-			// Putting the channel into the channel registry will call the
-			// OnNewChannel callback so that the user can deal with the restored
-			// channel.
-			if !c.channels.Put(chdata.ID(), ch) {
-				log.Warn("Channel already present, closing restored channel.")
-				// If the channel already existed, close this one.
-				ch.Close()
-			} else {
-				log.Info("Channel restored.")
-			}
-		}()
+func (c *Client) restoreChannel(p wire.Address, chdata *persistence.Channel) error {
+	log := c.logChan(chdata.ID())
+	log.Debug("Restoring channel...")
+
+	// TODO:
+	// Send outgoing channel sync request and receive possibly newer channel data.
+	// Incoming sync requests are handled by handleSyncMsg which is called from
+	// the client's request loop.
+
+	// TODO: read peers from chdata when available
+	peers := make([]wire.Address, 2)
+	peers[chdata.IdxV] = c.address
+	peers[chdata.IdxV^1] = p
+
+	// Create the channel's controller.
+	ch, err := c.channelFromSource(chdata, peers...)
+	if err != nil {
+		return errors.WithMessage(err, "creating channel controller")
 	}
 
-	wg.Done()
-	go func() { wg.Wait(); done() }()
+	// Putting the channel into the channel registry will call the
+	// OnNewChannel callback so that the user can deal with the restored
+	// channel.
+	if !c.channels.Put(chdata.ID(), ch) {
+		log.Warn("Channel already present, closing restored channel.")
+		// If the channel already existed, close this one.
+		ch.Close()
+	}
+	log.Info("Channel restored.")
+	return nil
+}
 
-	if err := it.Close(); err != nil {
-		log.Errorf("Error while restoring a channel: %v", err)
+// handleSyncMsg is the passive incoming sync message handler. If the channel
+// exists, it just sends the current channel data to the requester. If the
+// own channel is in the Signing phase, the ongoing update is discarded so that
+// the channel is reverted to the Acting phase.
+func (c *Client) handleSyncMsg(peer wire.Address, msg *msgChannelSync) {
+	log := c.logChan(msg.ID()).WithField("peer", peer)
+	ch, ok := c.channels.Get(msg.ID())
+	if !ok {
+		log.Error("received sync message for unknown channel")
+		return
+	}
+
+	// TODO: cancel ongoing protocol, like Update
+
+	ctx, cancel := context.WithTimeout(c.Ctx(), syncReplyTimeout)
+	defer cancel()
+	// Lock machine while replying to sync request.
+	if !ch.machMtx.TryLockCtx(ctx) {
+		log.Errorf("Could not lock machine mutex in time: %v", ctx.Err())
+	}
+	defer ch.machMtx.Unlock()
+
+	syncMsg := newChannelSyncMsg(persistence.CloneSource(ch.machine))
+	if err := c.conn.pubMsg(ctx, syncMsg, peer); err != nil {
+		log.Error("Error sending sync reply: ", err)
+		return
+	}
+	cancel() // can already release context resourcers
+
+	// Revert ongoing update since this is how synchronization is currently
+	// implemented... the peer will do the same.
+	if ch.machine.Phase() == channel.Signing {
+		// The passed context is used for persistence, so use client life-time context
+		if err := ch.machine.DiscardUpdate(c.Ctx()); err != nil {
+			log.Error("Error discarding update: ", err)
+		}
 	}
 }
 
 // syncChannel synchronizes the channel state with the given peer and modifies
 // the current state if required.
-func (c *Client) syncChannel(ctx context.Context, ch *persistence.Channel, p *wire.Endpoint) (err error) {
+func (c *Client) syncChannel(ctx context.Context, ch *persistence.Channel, p wire.Address) (err error) {
 	recv := wire.NewReceiver()
+	defer recv.Close() // ignore error
 	id := ch.ID()
-	p.Subscribe(recv, func(m wire.Msg) bool {
-		return m.Type() == wire.ChannelSync && m.(ChannelMsg).ID() == id
+	c.conn.Subscribe(recv, func(m *wire.Envelope) bool {
+		return m.Msg.Type() == wire.ChannelSync && m.Msg.(ChannelMsg).ID() == id
 	})
 
 	sendError := make(chan error, 1)
 	// syncMsg needs to be a clone so that there's no data race when updating the
 	// own channel data later.
 	syncMsg := newChannelSyncMsg(persistence.CloneSource(ch))
-	go func() { sendError <- p.Send(ctx, syncMsg) }()
+	go func() { sendError <- c.conn.pubMsg(ctx, syncMsg, p) }()
 	defer func() {
 		// When returning, either log the send error, or return it.
 		sendErr := <-sendError
@@ -98,11 +137,11 @@ func (c *Client) syncChannel(ctx context.Context, ch *persistence.Channel, p *wi
 	}()
 
 	// Receive sync message.
-	var _msg wire.Msg
-	if _, _msg = recv.Next(ctx); _msg == nil {
-		return errors.New("receiving sync message failed")
+	env, err := recv.Next(ctx)
+	if err != nil {
+		return errors.WithMessage(err, "receiving sync message")
 	}
-	msg := _msg.(*msgChannelSync)
+	msg := env.Msg.(*msgChannelSync) // safe by the predicate
 	// Validate sync message.
 	if err := validateMessage(ch, msg); err != nil {
 		return errors.WithMessage(err, "invalid message")
