@@ -6,6 +6,43 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.0] Despina - 2020-07-23 [:warning:]
+Introduced a wire messaging abstraction. License changed to Apache 2.0.
+
+### Added
+- Wire messages are now sent and received over an abstract `wire.Bus`. It serves
+  as a wire messaging abstraction for the `client` package using pub/sub
+  semantics.
+  - `wire.Msg`s are wrapped in `Envelope`s that have a sender and recipient.
+  - Two implementations available:
+    - `wire.LocalBus` for multiple clients running in the same program instance.
+    - `wire/net.Bus` for wire connections over networks.
+- Consistent use of `wallet.Address`es as map keys (`wallet.AddrKey`).
+- Ordering to `wallet.Addresses`es to resolve ties in protocols.
+- Contract validation to Ethereum backend.
+- Consistent creation of PRNGs in tests (`pkg/test.Prng`).
+
+### Changed
+- License to Apache 2.0.
+- The packages `peer`, `wire` and `pkg/io` were restructured:
+  - Serialization code was moved from `wire` into `pkg/io`.
+  - The `peer` package was merged into the `wire` package.
+  - Networking-specific `wire` components were moved into `wire/net`.
+  - The simple TCP/IP and Unix `Dialer` and `Listener` implementations were
+    moved into `wire/net/simple`.
+- The `ProposalHandler` and `UpdateHandler` interfaces' methods were renamed to
+  explicitly name what they handle (`HandleProposal` and `HandleUpdate`).
+- The keyvalue persister uses an improved data model and doesn't cache
+  peer-channels any more.
+- `Channel.Peers` now returns the full list of channel network peers, including
+  the own `wire.Address`.
+
+### Fixed
+- A race in `client` synchronization.
+
+### Removed
+- The `net` package, as it didn't contain anything useful.
+
 ## [0.3.0] Charon - 2020-05-29 [:warning:]
 Added persistence module to persist channel state data and handle client
 shutdowns/restarts, as well as disconnects/reconnects.
@@ -101,7 +138,8 @@ Initial release.
 
 [:warning:]: #:warning:
 
-[Unreleased]: https://github.com/perun-network/go-perun/compare/v0.3.0...HEAD
-[0.3.0]: https://github.com/perun-network/go-perun/releases/tag/v0.2.0...v0.3.0
-[0.2.0]: https://github.com/perun-network/go-perun/compare/tag/v0.1.0...v0.2.0
-[0.1.0]: https://github.com/perun-network/go-perun/releases/tag/v0.1.0
+[Unreleased]: https://github.com/perun-network/go-perun/compare/v0.4.0...HEAD
+[0.4.0]: https://github.com/perun-network/go-perun/compare/v0.3.0...v0.4.0
+[0.3.0]: https://github.com/perun-network/go-perun/compare/v0.2.0...v0.3.0
+[0.2.0]: https://github.com/perun-network/go-perun/compare/v0.1.0...v0.2.0
+[0.1.0]: https://github.com/perun-network/go-perun/releases/v0.1.0
