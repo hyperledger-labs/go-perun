@@ -21,7 +21,7 @@ They are blockchain-agnostic and only rely on a blockchain's capability to execu
 
 _go-perun_ is still alpha software.
 It should not be used in production.
-The current release, _Charon (v0.3.0)_, is not intended to have any practical use, and should only give potential users a general impression and invite feedback.
+The [current release](https://github.com/perun-network/go-perun/releases) is not intended to have any practical use, and should only give potential users a general impression and invite feedback.
 The authors take no responsibility for any loss of digital assets or other damage caused by the use of this software.
 **Do not use this software with real funds**.
 
@@ -77,8 +77,8 @@ The Ethereum smart contracts can be found in our [contracts-eth](https://github.
 
 **Logging and networking** capabilities can also be injected by the user.
 A default [logrus](https://github.com/sirupsen/logrus) implementation of the `log.Logger` interface can be set using `log/logrus.Set`.
-The Perun framework relies on user-injected `peer.Dialer` and `peer.Listener` implementations for networking.
-_go-perun_ is distributed with dialer and listener implementations for TCP and Unix sockets for testing purposes, which can be found in package `peer/net`.
+The Perun framework relies on a user-injected `wire.Bus` for inter-peer communication.  
+_go-perun_ ships with the `wire/net.Bus` implementation for TCP and Unix sockets.
 
 **Data persistence** can be enabled to continuously persist new states and signatures.
 There are currently three persistence backends provided, namely, a test backend for testing purposes, an in-memory key-value persister and a [LevelDB](https://github.com/syndtr/goleveldb) backend.
@@ -101,25 +101,23 @@ import (
 	"perun.network/go-perun/log"
 	"perun.network/go-perun/peer"
 	"perun.network/go-perun/wallet"
+	"perun.network/go-perun/wire"
 	// other imports
 )
 
 func main() {
-	// setup networking
-	var dialer peer.Dialer
-	var listener peer.Listener
 	// setup blockchain interaction
 	var funder channel.Funder
 	var adjudicator channel.Adjudicator
-	// setup off-chain identity
-	var identity peer.Identity
+	// setup perun network identity
+	var perunID wire.Address
+	// setup communication bus
+	var bus wire.Bus
 	// setup wallet for channel accounts
 	var w wallet.Wallet
 
 	// create state channel network client
-	c := client.New(identity, dialer, funder, adjudicator, w)
-	// optionally start listening for incoming connections
-	go c.Listen(listener)
+	c := client.New(perunID, bus, funder, adjudicator, w)
 
 	// choose how to react to incoming channel proposals
 	var proposalHandler client.ProposalHandler
@@ -163,8 +161,7 @@ We thank the German Federal Ministry of Education and Research (BMBF) for their 
 
 ## Copyright
 
-Copyright 2020 - See NOTICE file for copyright holders.
-All rights reserved.
+Copyright 2020 - See [NOTICE file](NOTICE) for copyright holders.  
 Use of the source code is governed by the Apache 2.0 license that can be found in the [LICENSE file](LICENSE).
 
 Contact us at [info@perun.network](mailto:info@perun.network).
