@@ -86,19 +86,19 @@ func (w *Wallet) NewRandomAccount(rnd *rand.Rand) wallet.Account {
 	}
 	address := crypto.PubkeyToAddress(privateKey.PublicKey)
 
-	if acc, err := w.Ks.Find(accounts.Account{Address: address}); err == nil {
-		w.Unlock((*ethwallet.Address)(&address))
-		return NewAccountFromEth(w, &acc)
-	}
-
-	ethAcc, err := w.Ks.ImportECDSA(privateKey, w.pw)
+	acc, err := w.Ks.Find(accounts.Account{Address: address})
 	if err != nil {
-		log.Panicf("Storing private key: %v", err)
+		ethAcc, err := w.Ks.ImportECDSA(privateKey, w.pw)
+		if err != nil {
+			log.Panicf("Storing private key: %v", err)
+		}
+		log.WithField("account", ethAcc.Address).Debug("Created new random account.")
+		acc = ethAcc
 	}
-	w.Unlock((*ethwallet.Address)(&address))
-	log.Debugf("Created new random account %v", ethAcc.Address)
 
-	return NewAccountFromEth(w, &ethAcc)
+	// nolint:errcheck, gosec	// Unlock will never return an error.
+	w.Unlock((*ethwallet.Address)(&address))
+	return NewAccountFromEth(w, &acc)
 }
 
 // Unlock retrieves the account with the given address and unlocks it. If there
