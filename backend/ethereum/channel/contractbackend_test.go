@@ -18,7 +18,6 @@ import (
 	"context"
 	"fmt"
 	"math/big"
-	"math/rand"
 	"testing"
 
 	"github.com/ethereum/go-ethereum/common"
@@ -30,6 +29,7 @@ import (
 	"perun.network/go-perun/backend/ethereum/channel/test"
 	ethwallet "perun.network/go-perun/backend/ethereum/wallet"
 	ethwallettest "perun.network/go-perun/backend/ethereum/wallet/test"
+	pkgtest "perun.network/go-perun/pkg/test"
 	"perun.network/go-perun/wallet"
 )
 
@@ -64,7 +64,7 @@ func Test_calcFundingIDs(t *testing.T) {
 }
 
 func Test_NewTransactor(t *testing.T) {
-	rng := rand.New(rand.NewSource(14))
+	rng := pkgtest.Prng(t)
 	s := test.NewSimSetup(rng)
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
@@ -91,7 +91,7 @@ func Test_NewTransactor(t *testing.T) {
 }
 
 func Test_NewWatchOpts(t *testing.T) {
-	rng := rand.New(rand.NewSource(14))
+	rng := pkgtest.Prng(t)
 	s := test.NewSimSetup(rng)
 	watchOpts, err := s.CB.NewWatchOpts(context.Background())
 	require.NoError(t, err, "Creating watchopts on valid ContractBackend should succeed")
@@ -107,7 +107,7 @@ func Test_NewWatchOpts(t *testing.T) {
 
 func TestFetchCodeAtAddr(t *testing.T) {
 	// Test setup
-	rng := rand.New(rand.NewSource(1929))
+	rng := pkgtest.Prng(t)
 	s := test.NewSimSetup(rng)
 
 	t.Run("no_code", func(t *testing.T) {

@@ -16,7 +16,6 @@ package channel_test
 
 import (
 	"context"
-	"math/rand"
 	"testing"
 
 	"github.com/ethereum/go-ethereum/common"
@@ -25,11 +24,12 @@ import (
 	ethchannel "perun.network/go-perun/backend/ethereum/channel"
 	"perun.network/go-perun/backend/ethereum/channel/test"
 	ethwallettest "perun.network/go-perun/backend/ethereum/wallet/test"
+	pkgtest "perun.network/go-perun/pkg/test"
 )
 
 func TestValidateAssetHolderETH(t *testing.T) {
 	// Test setup
-	rng := rand.New(rand.NewSource(1929))
+	rng := pkgtest.Prng(t)
 	s := test.NewSimSetup(rng)
 
 	t.Run("no_asset_code", func(t *testing.T) {

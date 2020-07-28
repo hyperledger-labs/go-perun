@@ -29,19 +29,18 @@ import (
 	"perun.network/go-perun/channel"
 	"perun.network/go-perun/channel/test"
 	iotest "perun.network/go-perun/pkg/io/test"
+	pkgtest "perun.network/go-perun/pkg/test"
 	perunwallet "perun.network/go-perun/wallet"
 	wallettest "perun.network/go-perun/wallet/test"
 )
 
 func TestGenericTests(t *testing.T) {
-	setup := newChannelSetup()
+	setup := newChannelSetup(pkgtest.Prng(t))
 	test.GenericBackendTest(t, setup)
 	test.GenericStateEqualTest(t, setup.State, setup.State2)
 }
 
-func newChannelSetup() *test.Setup {
-	rng := rand.New(rand.NewSource(1337))
-
+func newChannelSetup(rng *rand.Rand) *test.Setup {
 	params, state := test.NewRandomParamsAndState(rng, test.WithNumLocked(int(rng.Int31n(4)+1)))
 	params2, state2 := test.NewRandomParamsAndState(rng, test.WithIsFinal(!state.IsFinal), test.WithNumLocked(int(rng.Int31n(4)+1)))
 
@@ -111,7 +110,7 @@ func TestChannelID(t *testing.T) {
 }
 
 func TestAssetSerialization(t *testing.T) {
-	rng := rand.New(rand.NewSource(1337))
+	rng := pkgtest.Prng(t)
 	var asset Asset = ethwallettest.NewRandomAddress(rng)
 	reader, writer := io.Pipe()
 	done := make(chan struct{})

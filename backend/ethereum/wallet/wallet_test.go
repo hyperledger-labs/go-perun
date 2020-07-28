@@ -17,7 +17,6 @@ package wallet_test
 import (
 	"bytes"
 	"encoding/hex"
-	"math/rand"
 	"testing"
 
 	"github.com/ethereum/go-ethereum/common"
@@ -26,6 +25,7 @@ import (
 
 	ethwallet "perun.network/go-perun/backend/ethereum/wallet"
 	ethwallettest "perun.network/go-perun/backend/ethereum/wallet/test"
+	pkgtest "perun.network/go-perun/pkg/test"
 	"perun.network/go-perun/wallet"
 	"perun.network/go-perun/wallet/test"
 )
@@ -54,7 +54,7 @@ func TestGenericAddressTests(t *testing.T) {
 }
 
 func TestWallet_Contains(t *testing.T) {
-	rng := rand.New(rand.NewSource(0x007))
+	rng := pkgtest.Prng(t)
 	w := ethwallettest.NewTmpWallet()
 
 	assert.False(t, w.Contains(test.NewRandomAddress(rng)), "Expected wallet not to contain an empty account")

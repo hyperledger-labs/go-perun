@@ -16,7 +16,6 @@ package channel_test
 
 import (
 	"context"
-	"math/rand"
 	"sync"
 	"testing"
 	"time"
@@ -42,12 +41,7 @@ func TestAdjudicator_MultipleRegisters(t *testing.T) {
 }
 
 func registerMultipleConcurrent(t *testing.T, numParts int, parallel bool) {
-	seed := time.Now().UnixNano()
-	t.Logf("seed is %v", seed)
-	if parallel {
-		seed++
-	}
-	rng := rand.New(rand.NewSource(int64(seed)))
+	rng := pkgtest.Prng(t)
 	// create test setup
 	s := test.NewSetup(t, rng, numParts)
 	// create valid state and params
@@ -118,9 +112,7 @@ func registerMultipleConcurrent(t *testing.T, numParts int, parallel bool) {
 }
 
 func TestRegister_FinalState(t *testing.T) {
-	seed := time.Now().UnixNano()
-	t.Logf("seed is %v", seed)
-	rng := rand.New(rand.NewSource(int64(seed)))
+	rng := pkgtest.Prng(t)
 	// create new Adjudicator
 	s := test.NewSetup(t, rng, 1)
 	// create valid state and params
@@ -153,9 +145,7 @@ func TestRegister_FinalState(t *testing.T) {
 }
 
 func TestRegister_CancelledContext(t *testing.T) {
-	seed := time.Now().UnixNano()
-	t.Logf("seed is %v", seed)
-	rng := rand.New(rand.NewSource(int64(seed)))
+	rng := pkgtest.Prng(t)
 	// create test setup
 	s := test.NewSetup(t, rng, 1)
 	// create valid state and params

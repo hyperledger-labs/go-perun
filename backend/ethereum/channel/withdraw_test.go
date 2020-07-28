@@ -17,7 +17,6 @@ package channel_test
 import (
 	"context"
 	"math/big"
-	"math/rand"
 	"sync"
 	"testing"
 	"time"
@@ -44,12 +43,7 @@ func TestAdjudicator_MultipleWithdraws_FinalState(t *testing.T) {
 }
 
 func withdrawMultipleConcurrentFinal(t *testing.T, numParts int, parallel bool) {
-	seed := time.Now().UnixNano()
-	t.Logf("seed is %v", seed)
-	if parallel {
-		seed++
-	}
-	rng := rand.New(rand.NewSource(int64(seed)))
+	rng := pkgtest.Prng(t)
 	// create test setup
 	s := test.NewSetup(t, rng, numParts)
 	// create valid state and params
@@ -128,7 +122,7 @@ func TestWithdrawZeroBalance(t *testing.T) {
 
 // shouldFunders decides who should fund. 1 indicates funding, 0 indicates skipping.
 func testWithdrawZeroBalance(t *testing.T, n int) {
-	rng := rand.New(rand.NewSource(int64(0xDDD)))
+	rng := pkgtest.Prng(t)
 	s := test.NewSetup(t, rng, n)
 	// create valid state and params
 	params, state := channeltest.NewRandomParamsAndState(rng, channeltest.WithParts(s.Parts...), channeltest.WithAssets((*ethchannel.Asset)(&s.Asset)), channeltest.WithIsFinal(true))
@@ -185,7 +179,7 @@ func testWithdrawZeroBalance(t *testing.T, n int) {
 }
 
 func TestWithdraw(t *testing.T) {
-	rng := rand.New(rand.NewSource(0xc007))
+	rng := pkgtest.Prng(t)
 	// create test setup
 	s := test.NewSetup(t, rng, 1)
 	// create valid state and params
@@ -245,7 +239,7 @@ func TestWithdraw(t *testing.T) {
 
 func TestWithdrawNonFinal(t *testing.T) {
 	assert := assert.New(t)
-	rng := rand.New(rand.NewSource(0x7070707))
+	rng := pkgtest.Prng(t)
 	// create test setup
 	s := test.NewSetup(t, rng, 1)
 	// create valid state and params

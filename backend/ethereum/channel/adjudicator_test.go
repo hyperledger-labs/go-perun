@@ -16,7 +16,6 @@ package channel_test
 
 import (
 	"context"
-	"math/rand"
 	"testing"
 	"time"
 
@@ -30,6 +29,7 @@ import (
 	ethwallettest "perun.network/go-perun/backend/ethereum/wallet/test"
 	"perun.network/go-perun/channel"
 	channeltest "perun.network/go-perun/channel/test"
+	pkgtest "perun.network/go-perun/pkg/test"
 )
 
 const defaultTxTimeout = 2 * time.Second
@@ -49,9 +49,7 @@ func signState(t *testing.T, accounts []*ethwallet.Account, params *channel.Para
 }
 
 func TestSubscribeRegistered(t *testing.T) {
-	seed := time.Now().UnixNano()
-	t.Logf("seed is %v", seed)
-	rng := rand.New(rand.NewSource(int64(seed)))
+	rng := pkgtest.Prng(t)
 	// create test setup
 	s := test.NewSetup(t, rng, 1)
 	// create valid state and params
@@ -96,7 +94,7 @@ func TestSubscribeRegistered(t *testing.T) {
 
 func TestValidateAdjudicator(t *testing.T) {
 	// Test setup
-	rng := rand.New(rand.NewSource(1929))
+	rng := pkgtest.Prng(t)
 	s := test.NewSimSetup(rng)
 
 	t.Run("no_adj_code", func(t *testing.T) {
