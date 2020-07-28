@@ -17,7 +17,6 @@ package keyvalue
 import (
 	"context"
 	"io/ioutil"
-	"math/rand"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -28,6 +27,7 @@ import (
 	"perun.network/go-perun/pkg/sortedkv"
 	"perun.network/go-perun/pkg/sortedkv/leveldb"
 	"perun.network/go-perun/pkg/sortedkv/memorydb"
+	pkgtest "perun.network/go-perun/pkg/test"
 )
 
 func TestPersistRestorer_Generic(t *testing.T) {
@@ -41,18 +41,19 @@ func TestPersistRestorer_Generic(t *testing.T) {
 		memorydb.NewDatabase(),
 	}
 
-	for _, db := range dbs {
-		func() {
+	for i, db := range dbs {
+		func(i int64) {
 			defer func() { require.NoError(t, db.Close()) }()
 			pr := NewPersistRestorer(db)
+			rng := pkgtest.Prng(t, i)
 			test.GenericPersistRestorerTest(
 				context.Background(),
 				t,
-				rand.New(rand.NewSource(0xC00FED)),
+				rng,
 				pr,
 				4,
 				16)
-		}()
+		}(int64(i))
 	}
 }
 

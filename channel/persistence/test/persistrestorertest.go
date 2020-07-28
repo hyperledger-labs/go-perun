@@ -24,9 +24,11 @@ import (
 
 	"perun.network/go-perun/channel"
 	"perun.network/go-perun/channel/persistence"
+	"perun.network/go-perun/log"
 	"perun.network/go-perun/pkg/test"
+	pkgtest "perun.network/go-perun/pkg/test"
+	wtest "perun.network/go-perun/wallet/test"
 	"perun.network/go-perun/wire"
-	wtest "perun.network/go-perun/wire/test"
 )
 
 // Client is a mock client that can be used to create channels.
@@ -100,6 +102,7 @@ func GenericPersistRestorerTest(
 		}
 	}
 
+	subSeed := rng.Int63()
 	iterIdx := 0
 	for idx := range peers {
 		idx := idx
@@ -109,7 +112,9 @@ func GenericPersistRestorerTest(
 			iterIdx := iterIdx
 			go ct.StageN("testing", numChans*numPeers, func(t require.TestingT) {
 				chIndex := iterIdx
-				rng := rand.New(rand.NewSource(int64(0xC00F + chIndex)))
+				log.Error(subSeed)
+				seed := pkgtest.Seed("", subSeed, numChans, numPeers, chIndex, ch.ID())
+				rng := rand.New(rand.NewSource(seed))
 
 				ch.Init(t, rng)
 				ch.SignAll(t)

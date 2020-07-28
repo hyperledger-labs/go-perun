@@ -16,7 +16,6 @@ package net_test
 
 import (
 	"context"
-	"math/rand"
 	"testing"
 	"time"
 
@@ -39,7 +38,7 @@ func nilConsumer(wire.Address) wire.Consumer { return nil }
 func TestEndpointRegistry_Get_Pair(t *testing.T) {
 	t.Parallel()
 	assert, require := assert.New(t), require.New(t)
-	rng := rand.New(rand.NewSource(3))
+	rng := test.Prng(t)
 	var hub nettest.ConnHub
 	dialerId := wallettest.NewRandomAccount(rng)
 	listenerId := wallettest.NewRandomAccount(rng)
@@ -79,7 +78,7 @@ func TestEndpointRegistry_Get_Pair(t *testing.T) {
 func TestEndpointRegistry_Get_Multiple(t *testing.T) {
 	t.Parallel()
 	assert := assert.New(t)
-	rng := rand.New(rand.NewSource(3))
+	rng := test.Prng(t)
 	var hub nettest.ConnHub
 	dialerId := wallettest.NewRandomAccount(rng)
 	listenerId := wallettest.NewRandomAccount(rng)

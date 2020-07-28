@@ -15,13 +15,13 @@
 package client
 
 import (
-	"math/rand"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"perun.network/go-perun/channel/test"
+	pkgtest "perun.network/go-perun/pkg/test"
 	"perun.network/go-perun/wire"
 )
 
@@ -32,7 +32,7 @@ func testCh() *Channel {
 }
 
 func TestChanRegistry_Put(t *testing.T) {
-	rng := rand.New(rand.NewSource(0xDDDDdede))
+	rng := pkgtest.Prng(t)
 	ch := testCh()
 	id := test.NewRandomChannelID(rng)
 
@@ -63,7 +63,7 @@ func TestChanRegistry_Put(t *testing.T) {
 }
 
 func TestChanRegistry_Has(t *testing.T) {
-	rng := rand.New(rand.NewSource(0xDDDDdede))
+	rng := pkgtest.Prng(t)
 	ch := testCh()
 	id := test.NewRandomChannelID(rng)
 
@@ -80,7 +80,7 @@ func TestChanRegistry_Has(t *testing.T) {
 }
 
 func TestChanRegistry_Get(t *testing.T) {
-	rng := rand.New(rand.NewSource(0xDDDDdede))
+	rng := pkgtest.Prng(t)
 	ch := testCh()
 	id := test.NewRandomChannelID(rng)
 
@@ -101,7 +101,7 @@ func TestChanRegistry_Get(t *testing.T) {
 }
 
 func TestChanRegistry_Delete(t *testing.T) {
-	rng := rand.New(rand.NewSource(0xDDDDdede))
+	rng := pkgtest.Prng(t)
 	ch := testCh()
 	id := test.NewRandomChannelID(rng)
 
@@ -128,7 +128,7 @@ func TestChanRegistry_Delete(t *testing.T) {
 }
 
 func TestChanRegistry_CloseAll(t *testing.T) {
-	rng := rand.New(rand.NewSource(0xDDDDdede))
+	rng := pkgtest.Prng(t)
 	id := test.NewRandomChannelID(rng)
 
 	ch := testCh()

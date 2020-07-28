@@ -16,7 +16,6 @@ package channel_test
 
 import (
 	"math/big"
-	"math/rand"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -29,7 +28,7 @@ import (
 )
 
 func TestAllocationNumParts(t *testing.T) {
-	rng := rand.New(rand.NewSource(1))
+	rng := pkgtest.Prng(t)
 	tests := []struct {
 		name  string
 		alloc *channel.Allocation
@@ -62,7 +61,7 @@ func TestAllocationNumParts(t *testing.T) {
 }
 
 func TestAllocationSerialization(t *testing.T) {
-	rng := rand.New(rand.NewSource(1))
+	rng := pkgtest.Prng(t)
 	inputs := []perunio.Serializer{
 		test.NewRandomAllocation(rng, test.WithNumParts(1), test.WithNumAssets(1), test.WithNumLocked(0)),
 		test.NewRandomAllocation(rng, test.WithNumParts(1), test.WithNumAssets(1), test.WithNumLocked(1)),
@@ -73,7 +72,7 @@ func TestAllocationSerialization(t *testing.T) {
 }
 
 func TestAllocationValidLimits(t *testing.T) {
-	rng := rand.New(rand.NewSource(1337))
+	rng := pkgtest.Prng(t)
 	inputs := []struct {
 		numAssets         int
 		numParts          int
@@ -120,7 +119,7 @@ func TestAllocationValidLimits(t *testing.T) {
 }
 
 func TestAllocation_Clone(t *testing.T) {
-	rng := rand.New(rand.NewSource(1337))
+	rng := pkgtest.Prng(t)
 	tests := []struct {
 		name  string
 		alloc channel.Allocation
@@ -154,7 +153,7 @@ func TestAllocation_Clone(t *testing.T) {
 }
 
 func TestAllocation_Sum(t *testing.T) {
-	rng := rand.New(rand.NewSource(1337))
+	rng := pkgtest.Prng(t)
 
 	// note: different invalid allocations are tested in TestAllocation_valid
 
@@ -225,7 +224,7 @@ func TestAllocation_Sum(t *testing.T) {
 }
 
 func TestAllocation_Valid(t *testing.T) {
-	rng := rand.New(rand.NewSource(1337))
+	rng := pkgtest.Prng(t)
 	// note that all valid branches are already indirectly tested in TestAllocation_Sum
 	tests := []struct {
 		name  string

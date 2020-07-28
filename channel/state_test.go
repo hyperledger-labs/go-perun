@@ -15,16 +15,16 @@
 package channel_test
 
 import (
-	"math/rand"
 	"testing"
 
 	_ "perun.network/go-perun/backend/sim" // backend init
 	"perun.network/go-perun/channel/test"
 	iotest "perun.network/go-perun/pkg/io/test"
+	pkgtest "perun.network/go-perun/pkg/test"
 )
 
 func TestStateSerialization(t *testing.T) {
-	rng := rand.New(rand.NewSource(1337))
+	rng := pkgtest.Prng(t)
 	state := test.NewRandomState(rng, test.WithNumLocked(int(rng.Int31n(4)+1)))
 	state2 := test.NewRandomState(rng, test.WithIsFinal(!state.IsFinal), test.WithNumLocked(int(rng.Int31n(4)+1)))
 

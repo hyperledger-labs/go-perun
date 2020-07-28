@@ -16,11 +16,11 @@ package test_test
 
 import (
 	"context"
-	"math/rand"
 	"testing"
 
 	_ "perun.network/go-perun/backend/sim" // backend init
 	"perun.network/go-perun/channel/persistence/test"
+	pkgtest "perun.network/go-perun/pkg/test"
 )
 
 func TestPersistRestorer_Generic(t *testing.T) {
@@ -28,7 +28,7 @@ func TestPersistRestorer_Generic(t *testing.T) {
 	test.GenericPersistRestorerTest(
 		context.Background(),
 		t,
-		rand.New(rand.NewSource(20200525)),
+		pkgtest.Prng(t),
 		pr,
 		8,
 		8,

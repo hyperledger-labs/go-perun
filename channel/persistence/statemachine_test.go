@@ -15,7 +15,6 @@
 package persistence_test
 
 import (
-	"math/rand"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -24,6 +23,7 @@ import (
 	"perun.network/go-perun/channel/persistence"
 	"perun.network/go-perun/channel/persistence/test"
 	ctest "perun.network/go-perun/channel/test"
+	pkgtest "perun.network/go-perun/pkg/test"
 	wtest "perun.network/go-perun/wallet/test"
 )
 
@@ -34,7 +34,7 @@ import (
 // TODO: After #316 (custom random gens) this test can be greatly improved.
 func TestStateMachine(t *testing.T) {
 	require := require.New(t)
-	rng := rand.New(rand.NewSource(0x3a57))
+	rng := pkgtest.Prng(t)
 
 	const n = 5                                    // number of participants
 	accs, parts := wtest.NewRandomAccounts(rng, n) // local participant idx 0

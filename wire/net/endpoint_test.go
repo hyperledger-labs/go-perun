@@ -41,9 +41,8 @@ type setup struct {
 }
 
 // makeSetup creates a test setup.
-func makeSetup(t *testing.T) *setup {
+func makeSetup(t *testing.T, rng *rand.Rand) *setup {
 	a, b := newPipeConnPair()
-	rng := rand.New(rand.NewSource(0xb0baFEDD))
 	// We need the setup address when constructing the clients.
 	s := new(setup)
 	*s = setup{
@@ -111,7 +110,8 @@ func makeClient(t *testing.T, conn Conn, rng *rand.Rand, dialer Dialer) *client 
 // TestEndpoint_Close tests that closing a peer will make the peer object unusable.
 func TestEndpoint_Close(t *testing.T) {
 	t.Parallel()
-	s := makeSetup(t)
+	rng := test.Prng(t)
+	s := makeSetup(t, rng)
 	// Remember bob's address for later, we will need it for a registry lookup.
 	bobAddr := s.alice.endpoint.Address
 	// The lookup needs to work because the test relies on it.
@@ -130,7 +130,8 @@ func TestEndpoint_Close(t *testing.T) {
 
 func TestEndpoint_Send_ImmediateAbort(t *testing.T) {
 	t.Parallel()
-	s := makeSetup(t)
+	rng := test.Prng(t)
+	s := makeSetup(t, rng)
 
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
@@ -196,7 +197,7 @@ func TestEndpoint_ClosedByRecvLoopOnConnClose(t *testing.T) {
 	t.Parallel()
 	eofReceived := make(chan struct{})
 
-	rng := rand.New(rand.NewSource(0xcaffe2))
+	rng := test.Prng(t)
 	addr := wallettest.NewRandomAddress(rng)
 	conn0, conn1 := newPipeConnPair()
 	peer := newEndpoint(addr, conn0)

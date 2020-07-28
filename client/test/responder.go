@@ -15,10 +15,10 @@
 package test
 
 import (
-	"math/rand"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	pkgtest "perun.network/go-perun/pkg/test"
 )
 
 // Responder is a test client role. He accepts an incoming channel proposal.
@@ -33,7 +33,7 @@ func NewResponder(setup RoleSetup, t *testing.T, numStages int) *Responder {
 
 // Execute executes the Responder protocol.
 func (r *Responder) Execute(cfg ExecConfig, exec func(ExecConfig, *paymentChannel)) {
-	rng := rand.New(rand.NewSource(0xB0B))
+	rng := pkgtest.Prng(r.t, "responder")
 	assert := assert.New(r.t)
 
 	propHandler, waitHandler := r.GoHandle(rng)

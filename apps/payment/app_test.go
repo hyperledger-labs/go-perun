@@ -16,18 +16,18 @@ package payment
 
 import (
 	"math/big"
-	"math/rand"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 
 	"perun.network/go-perun/channel"
 	"perun.network/go-perun/channel/test"
+	pkgtest "perun.network/go-perun/pkg/test"
 	wallettest "perun.network/go-perun/wallet/test"
 )
 
 func TestApp_Def(t *testing.T) {
-	rng := rand.New(rand.NewSource(0))
+	rng := pkgtest.Prng(t)
 	def := wallettest.NewRandomAddress(rng)
 	app := &App{def}
 	assert.True(t, def.Equals(app.Def()))
@@ -82,7 +82,7 @@ func TestApp_ValidTransition(t *testing.T) {
 	}
 
 	app := new(App)
-	rng := rand.New(rand.NewSource(456))
+	rng := pkgtest.Prng(t)
 
 	for _, tt := range tests {
 		t.Run(tt.desc, func(t *testing.T) {

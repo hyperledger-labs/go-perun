@@ -19,13 +19,14 @@ import (
 	"testing"
 
 	"perun.network/go-perun/channel/test"
+	pkgtest "perun.network/go-perun/pkg/test"
 	"perun.network/go-perun/wallet"
 	wallettest "perun.network/go-perun/wallet/test"
 	"perun.network/go-perun/wire"
 )
 
 func TestChannelUpdateSerialization(t *testing.T) {
-	rng := rand.New(rand.NewSource(0xdeadbeef))
+	rng := pkgtest.Prng(t)
 	for i := 0; i < 4; i++ {
 		params, state := test.NewRandomParamsAndState(rng)
 		sig := newRandomSig(rng)
@@ -41,7 +42,7 @@ func TestChannelUpdateSerialization(t *testing.T) {
 }
 
 func TestChannelUpdateAccSerialization(t *testing.T) {
-	rng := rand.New(rand.NewSource(0xc0ffeefee))
+	rng := pkgtest.Prng(t)
 	for i := 0; i < 4; i++ {
 		sig := newRandomSig(rng)
 		m := &msgChannelUpdateAcc{
@@ -54,7 +55,7 @@ func TestChannelUpdateAccSerialization(t *testing.T) {
 }
 
 func TestChannelUpdateRejSerialization(t *testing.T) {
-	rng := rand.New(rand.NewSource(0xdeadbeef))
+	rng := pkgtest.Prng(t)
 	for i := 0; i < 4; i++ {
 		m := &msgChannelUpdateRej{
 			ChannelID: test.NewRandomChannelID(rng),

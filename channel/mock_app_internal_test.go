@@ -15,17 +15,17 @@
 package channel
 
 import (
-	"math/rand"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 
 	iotest "perun.network/go-perun/pkg/io/test"
+	pkgtest "perun.network/go-perun/pkg/test"
 	wallettest "perun.network/go-perun/wallet/test"
 )
 
 func TestMockApp(t *testing.T) {
-	rng := rand.New(rand.NewSource(1337))
+	rng := pkgtest.Prng(t)
 
 	address := wallettest.NewRandomAddress(rng)
 	app := NewMockApp(address)

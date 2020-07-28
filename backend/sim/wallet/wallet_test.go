@@ -15,17 +15,17 @@
 package wallet_test
 
 import (
-	"math/rand"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"perun.network/go-perun/backend/sim/wallet"
+	pkgtest "perun.network/go-perun/pkg/test"
 )
 
 func TestWallet_AddAccount(t *testing.T) {
-	rng := rand.New(rand.NewSource(0xC00F))
+	rng := pkgtest.Prng(t)
 	w := wallet.NewWallet()
 	acc := wallet.NewRandomAccount(rng)
 
@@ -36,7 +36,7 @@ func TestWallet_AddAccount(t *testing.T) {
 }
 
 func TestWallet_Unlock(t *testing.T) {
-	rng := rand.New(rand.NewSource(0xC00F))
+	rng := pkgtest.Prng(t)
 
 	// Create a wallet from existing accounts, as if just restored. These
 	// accounts are initially locked.
@@ -82,7 +82,7 @@ func TestWallet_Unlock(t *testing.T) {
 }
 
 func TestWallet_UsageCounting(t *testing.T) {
-	rng := rand.New(rand.NewSource(0xC00F))
+	rng := pkgtest.Prng(t)
 
 	w := wallet.NewWallet()
 	const N = 10

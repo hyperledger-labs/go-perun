@@ -17,7 +17,6 @@ package test
 import (
 	"context"
 	"math/big"
-	"math/rand"
 	"testing"
 	"time"
 
@@ -25,6 +24,7 @@ import (
 
 	"perun.network/go-perun/channel"
 	"perun.network/go-perun/client"
+	"perun.network/go-perun/pkg/test"
 )
 
 type (
@@ -66,7 +66,7 @@ func NewRobert(setup RoleSetup, t *testing.T) *Robert {
 // Execute executes the Petra protocol.
 func (r *Petra) Execute(cfg ExecConfig) {
 	assrt := assert.New(r.t)
-	rng := rand.New(rand.NewSource(0x2994))
+	rng := test.Prng(r.t, "petra")
 
 	prop := r.ChannelProposal(rng, &cfg)
 	ch, err := r.ProposeChannel(prop)
@@ -128,7 +128,7 @@ func (r *Petra) Execute(cfg ExecConfig) {
 // Execute executes the Robert protocol.
 func (r *Robert) Execute(cfg ExecConfig) {
 	assrt := assert.New(r.t)
-	rng := rand.New(rand.NewSource(0xB0B))
+	rng := test.Prng(r.t, "robert")
 
 	propHandler, waitHandler := r.GoHandle(rng)
 

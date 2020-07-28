@@ -15,10 +15,10 @@
 package test
 
 import (
-	"math/rand"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	pkgtest "perun.network/go-perun/pkg/test"
 )
 
 // Proposer is a test client role. He proposes the new channel.
@@ -33,7 +33,7 @@ func NewProposer(setup RoleSetup, t *testing.T, numStages int) *Proposer {
 
 // Execute executes the Proposer protocol.
 func (r *Proposer) Execute(cfg ExecConfig, exec func(ExecConfig, *paymentChannel)) {
-	rng := rand.New(rand.NewSource(0x471CE))
+	rng := pkgtest.Prng(r.t, "proposer")
 	assert := assert.New(r.t)
 
 	prop := r.ChannelProposal(rng, &cfg)

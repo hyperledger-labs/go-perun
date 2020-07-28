@@ -15,20 +15,20 @@
 package test
 
 import (
-	"math/rand"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 
 	"perun.network/go-perun/channel"
 	ctest "perun.network/go-perun/channel/test"
+	pkgtest "perun.network/go-perun/pkg/test"
 	wtest "perun.network/go-perun/wallet/test"
 	"perun.network/go-perun/wire"
 )
 
 func TestEndpointChans(t *testing.T) {
 	assert := assert.New(t)
-	rng := rand.New(rand.NewSource(20200525))
+	rng := pkgtest.Prng(t)
 	id := []channel.ID{ctest.NewRandomChannelID(rng), ctest.NewRandomChannelID(rng)}
 	ps := wtest.NewRandomAddresses(rng, 3)
 

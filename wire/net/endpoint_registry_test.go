@@ -16,7 +16,6 @@ package net
 
 import (
 	"context"
-	"math/rand"
 	"net"
 	"sync"
 	"testing"
@@ -114,7 +113,7 @@ func nilConsumer(wire.Address) wire.Consumer { return nil }
 // dialed comes in, the peer is assigned that connection.
 func TestRegistry_Get(t *testing.T) {
 	t.Parallel()
-	rng := rand.New(rand.NewSource(0xDDDDDeDe))
+	rng := test.Prng(t)
 	id := wallettest.NewRandomAccount(rng)
 	peerID := wallettest.NewRandomAccount(rng)
 	peerAddr := peerID.Address()
@@ -179,7 +178,7 @@ func TestRegistry_Get(t *testing.T) {
 
 func TestRegistry_authenticatedDial(t *testing.T) {
 	t.Parallel()
-	rng := rand.New(rand.NewSource(0xb0baFEDD))
+	rng := test.Prng(t)
 	id := wallettest.NewRandomAccount(rng)
 	d := &mockDialer{dial: make(chan Conn)}
 	r := NewEndpointRegistry(id, nilConsumer, d)
@@ -247,7 +246,7 @@ func TestRegistry_authenticatedDial(t *testing.T) {
 
 func TestRegistry_setupConn(t *testing.T) {
 	t.Parallel()
-	rng := rand.New(rand.NewSource(0xb0baFEDD))
+	rng := test.Prng(t)
 	id := wallettest.NewRandomAccount(rng)
 	remoteID := wallettest.NewRandomAccount(rng)
 
@@ -292,7 +291,7 @@ func TestRegistry_Listen(t *testing.T) {
 	t.Parallel()
 	assert := assert.New(t)
 
-	rng := rand.New(rand.NewSource(0xDDDDDeDe))
+	rng := test.Prng(t)
 
 	id := wallettest.NewRandomAccount(rng)
 	addr := id.Address()
@@ -333,7 +332,7 @@ func TestRegistry_Listen(t *testing.T) {
 // function. Other aspects of the function are already tested in other tests.
 func TestRegistry_addEndpoint_Subscribe(t *testing.T) {
 	t.Parallel()
-	rng := rand.New(rand.NewSource(0xDDDDDeDe))
+	rng := test.Prng(t)
 	called := false
 	r := NewEndpointRegistry(wallettest.NewRandomAccount(rng), func(wire.Address) wire.Consumer { called = true; return nil }, nil)
 
@@ -345,7 +344,7 @@ func TestRegistry_addEndpoint_Subscribe(t *testing.T) {
 func TestRegistry_Close(t *testing.T) {
 	t.Parallel()
 
-	rng := rand.New(rand.NewSource(0xb0baFEDD))
+	rng := test.Prng(t)
 
 	t.Run("double close error", func(t *testing.T) {
 		r := NewEndpointRegistry(wallettest.NewRandomAccount(rng), nilConsumer, nil)

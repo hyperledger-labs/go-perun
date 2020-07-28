@@ -15,7 +15,6 @@
 package channel_test
 
 import (
-	"math/rand"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -26,7 +25,7 @@ import (
 )
 
 func TestMachineClone(t *testing.T) {
-	rng := rand.New(rand.NewSource(0xDDDDD))
+	rng := pkgtest.Prng(t)
 
 	acc := wtest.NewRandomAccount(rng)
 	params := *test.NewRandomParams(rng, test.WithFirstPart(acc.Address()))

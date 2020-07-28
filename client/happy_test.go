@@ -16,16 +16,16 @@ package client_test
 
 import (
 	"math/big"
-	"math/rand"
 	"testing"
 
 	chtest "perun.network/go-perun/channel/test"
 	ctest "perun.network/go-perun/client/test"
+	"perun.network/go-perun/pkg/test"
 	"perun.network/go-perun/wire"
 )
 
 func TestHappyAliceBob(t *testing.T) {
-	rng := rand.New(rand.NewSource(0x1337))
+	rng := test.Prng(t)
 	setups := NewSetups(rng, []string{"Alice", "Bob"})
 	roles := [2]ctest.Executer{
 		ctest.NewAlice(setups[0], t),

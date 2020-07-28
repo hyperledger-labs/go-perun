@@ -16,16 +16,16 @@ package test
 
 import (
 	"context"
-	"math/rand"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 
+	pkgtest "perun.network/go-perun/pkg/test"
 	"perun.network/go-perun/wallet/test"
 )
 
 func TestDialer_Dial(t *testing.T) {
-	rng := rand.New(rand.NewSource(0xDDDDface))
+	rng := pkgtest.Prng(t)
 	// Closed dialer must always fail.
 	t.Run("closed", func(t *testing.T) {
 		var d Dialer

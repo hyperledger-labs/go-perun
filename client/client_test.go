@@ -16,7 +16,6 @@ package client
 
 import (
 	"context"
-	"math/rand"
 	"testing"
 	"time"
 
@@ -25,6 +24,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"perun.network/go-perun/channel"
+	"perun.network/go-perun/pkg/test"
 	wtest "perun.network/go-perun/wallet/test"
 	"perun.network/go-perun/wire"
 )
@@ -73,7 +73,7 @@ func (d *DummyAdjudicator) SubscribeRegistered(context.Context, *channel.Params)
 }
 
 func TestClient_New_NilArgs(t *testing.T) {
-	rng := rand.New(rand.NewSource(0x1111))
+	rng := test.Prng(t)
 	id := wtest.NewRandomAddress(rng)
 	b, f, a, w := &DummyBus{t}, &DummyFunder{t}, &DummyAdjudicator{t}, wtest.RandomWallet()
 	assert.Panics(t, func() { New(nil, b, f, a, w) })
@@ -84,7 +84,7 @@ func TestClient_New_NilArgs(t *testing.T) {
 }
 
 func TestClient_Handle_NilArgs(t *testing.T) {
-	rng := rand.New(rand.NewSource(20200524))
+	rng := test.Prng(t)
 	c, err := New(wtest.NewRandomAddress(rng), &DummyBus{t}, &DummyFunder{t}, &DummyAdjudicator{t}, wtest.RandomWallet())
 	require.NoError(t, err)
 
@@ -95,7 +95,7 @@ func TestClient_Handle_NilArgs(t *testing.T) {
 }
 
 func TestClient_New(t *testing.T) {
-	rng := rand.New(rand.NewSource(0x1a2b3c))
+	rng := test.Prng(t)
 	c, err := New(wtest.NewRandomAddress(rng), &DummyBus{t}, &DummyFunder{t}, &DummyAdjudicator{t}, wtest.RandomWallet())
 	assert.NoError(t, err)
 	require.NotNil(t, c)
