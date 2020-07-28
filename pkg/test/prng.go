@@ -16,6 +16,7 @@ package test
 
 import (
 	"encoding/binary"
+	"encoding/gob"
 	"fmt"
 	"hash/fnv"
 	"math/rand"
@@ -47,18 +48,25 @@ func genRootSeed() (rootSeed int64) {
 // Prng returns a pseudo-RNG that is seeded with the output of the `Seed`
 // function by passing it `t.Name()`.
 // Use it in tests with: rng := pkgtest.Prng(t)
-func Prng(t interface{ Name() string }) *rand.Rand {
-	return rand.New(rand.NewSource(Seed(t.Name())))
+func Prng(t interface{ Name() string }, args ...interface{}) *rand.Rand {
+	return rand.New(rand.NewSource(Seed(t.Name(), args...)))
 }
 
 // Seed generates a seed that is dependent on the rootSeed and the passed
 // seed argument.
 // To fix this seed, set the GOTESTSEED environment variable.
 // Example: GOTESTSEED=123 go test ./...
-func Seed(seed string) int64 {
+// Does not work with function pointers or structs without public fields.
+func Seed(seed string, args ...interface{}) int64 {
 	hasher := fnv.New64a()
-	if _, err := hasher.Write([]byte(seed)); err != nil {
-		panic("Could not hash the seed")
+	enc := gob.NewEncoder(hasher)
+	if err := enc.Encode(seed); err != nil {
+		panic("Could not gob-encode seed")
+	}
+	for _, arg := range args {
+		if err := enc.Encode(arg); err != nil {
+			panic(fmt.Sprintf("Could not gob-encode value: %v", err))
+		}
 	}
 	if err := binary.Write(hasher, binary.LittleEndian, rootSeed); err != nil {
 		panic("Could not hash the root seed")

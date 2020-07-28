@@ -27,15 +27,23 @@ type namer string
 func (s namer) Name() string { return string(s) }
 
 func TestSeedGeneration(t *testing.T) {
-	s := Seed("123")
-	assert.Equal(t, s, Seed("123"))
+	s := Seed("123", "456")
+	assert.Equal(t, s, Seed("123", "456"))
 	assert.NotEqual(t, s, Seed("1234"))
+	assert.NotEqual(t, s, Seed("1234", "456"))
+
+	var myStruct struct{ V int }
+	s = Seed("123", myStruct)
+	assert.Equal(t, s, Seed("123", myStruct))
+	assert.Equal(t, s, Seed("123", &myStruct))
+	assert.NotEqual(t, s, Seed("123", true))
+	assert.NotEqual(t, s, Seed("123", 465))
 
 	backup := rootSeed
 	defer func() { rootSeed = backup }()
 	rootSeed = 465
 	assert.NotEqual(t, s, Seed("123"))
-	assert.Equal(t, int64(-6222279139776267227), Seed("123"))
+	assert.Equal(t, int64(-1175328880047160524), Seed("123"))
 }
 
 func TestPrng(t *testing.T) {
@@ -81,5 +89,5 @@ func testRootEnv(t *testing.T) {
 	assert.Equal(t, genRootSeed(), genRootSeed())
 
 	rootSeed = genRootSeed()
-	assert.Equal(t, int64(8490245241735582052), Prng(namer("hi")).Int63())
+	assert.Equal(t, int64(870344282489673586), Prng(namer("hi")).Int63())
 }
