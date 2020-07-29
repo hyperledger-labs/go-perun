@@ -25,7 +25,7 @@ type (
 		Publish(context.Context, *Envelope) error
 	}
 
-	// A subscriber allows to subscribe Consumers, which will receive messages
+	// A Subscriber allows to subscribe Consumers, which will receive messages
 	// that match a predicate.
 	Subscriber interface {
 		// Subscribe adds a Consumer to the subscriptions.

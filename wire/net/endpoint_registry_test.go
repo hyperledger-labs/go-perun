@@ -123,7 +123,7 @@ func TestRegistry_Get(t *testing.T) {
 
 		dialer := newMockDialer()
 		r := NewEndpointRegistry(id, nilConsumer, dialer)
-		existing := newEndpoint(peerAddr, newMockConn(nil))
+		existing := newEndpoint(peerAddr, newMockConn())
 
 		r.endpoints[wallet.Key(peerAddr)] = newFullEndpoint(existing)
 		test.AssertTerminates(t, timeout, func() {
@@ -147,7 +147,6 @@ func TestRegistry_Get(t *testing.T) {
 		})
 
 		<-time.After(timeout)
-
 	})
 
 	t.Run("new peer (successful dial)", func(t *testing.T) {
@@ -269,7 +268,7 @@ func TestRegistry_setupConn(t *testing.T) {
 		a, b := newPipeConnPair()
 		go ExchangeAddrsActive(context.Background(), remoteID, id.Address(), b)
 
-		r.addEndpoint(remoteID.Address(), newMockConn(nil), false)
+		r.addEndpoint(remoteID.Address(), newMockConn(), false)
 		test.AssertTerminates(t, timeout, func() {
 			assert.NoError(t, r.setupConn(a))
 		})
@@ -337,7 +336,7 @@ func TestRegistry_addEndpoint_Subscribe(t *testing.T) {
 	r := NewEndpointRegistry(wallettest.NewRandomAccount(rng), func(wire.Address) wire.Consumer { called = true; return nil }, nil)
 
 	assert.False(t, called, "onNewEndpoint must not have been called yet")
-	r.addEndpoint(wallettest.NewRandomAddress(rng), newMockConn(nil), false)
+	r.addEndpoint(wallettest.NewRandomAddress(rng), newMockConn(), false)
 	assert.True(t, called, "onNewEndpoint must have been called")
 }
 

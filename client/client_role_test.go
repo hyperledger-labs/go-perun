@@ -18,7 +18,6 @@ import (
 	"context"
 	"math/rand"
 	"sync"
-	"testing"
 	"time"
 
 	"perun.network/go-perun/channel"
@@ -28,7 +27,7 @@ import (
 	"perun.network/go-perun/wire"
 )
 
-func executeTwoPartyTest(t *testing.T, role [2]ctest.Executer, cfg ctest.ExecConfig) {
+func executeTwoPartyTest(role [2]ctest.Executer, cfg ctest.ExecConfig) {
 	log.Info("Starting two-party test")
 
 	// enable stages synchronization

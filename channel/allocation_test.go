@@ -51,7 +51,8 @@ func TestAllocationNumParts(t *testing.T) {
 		},
 	}
 
-	for _, tt := range tests {
+	for _, _tt := range tests {
+		tt := _tt
 		t.Run(tt.name, func(t *testing.T) {
 			if got := tt.alloc.NumParts(); got != tt.want {
 				t.Errorf("Allocation.NumParts() = %v, want valid = %v", got, tt.want)
@@ -142,7 +143,8 @@ func TestAllocation_Clone(t *testing.T) {
 		},
 	}
 
-	for _, tt := range tests {
+	for _, _tt := range tests {
+		tt := _tt
 		t.Run(tt.name, func(t *testing.T) {
 			if err := tt.alloc.Valid(); err != nil {
 				t.Fatal(err.Error())
@@ -212,7 +214,8 @@ func TestAllocation_Sum(t *testing.T) {
 		},
 	}
 
-	for _, tt := range tests {
+	for _, _tt := range tests {
+		tt := _tt
 		t.Run(tt.name, func(t *testing.T) {
 			for i, got := range tt.alloc.Sum() {
 				if got.Cmp(tt.want[i]) != 0 {
@@ -356,7 +359,8 @@ func TestAllocation_Valid(t *testing.T) {
 		},
 	}
 
-	for _, tt := range tests {
+	for _, _tt := range tests {
+		tt := _tt
 		t.Run(tt.name, func(t *testing.T) {
 			if got := tt.alloc.Valid(); (got == nil) != tt.valid {
 				t.Errorf("Allocation.valid() = %v, want valid = %v", got, tt.valid)
@@ -365,7 +369,7 @@ func TestAllocation_Valid(t *testing.T) {
 	}
 }
 
-// suballocation serialization
+// suballocation serialization.
 func TestSuballocSerialization(t *testing.T) {
 	ss := []perunio.Serializer{
 		&channel.SubAlloc{channel.ID{2}, []channel.Bal{}},

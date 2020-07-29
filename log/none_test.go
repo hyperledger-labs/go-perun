@@ -22,7 +22,7 @@ import (
 	"perun.network/go-perun/pkg/test"
 )
 
-// TestNone tests the none logger for coverage :)
+// TestNone tests the none logger for coverage :).
 func TestNone(t *testing.T) {
 	None := &none{}
 

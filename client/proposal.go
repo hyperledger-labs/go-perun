@@ -221,6 +221,7 @@ func (c *Client) exchangeTwoPartyProposal(
 				e.Msg.(*ChannelProposalRej).SessID == sessID)
 	}
 	receiver := wire.NewReceiver()
+	// nolint:errcheck
 	defer receiver.Close()
 
 	if err := c.conn.Subscribe(receiver, isResponse); err != nil {
@@ -334,12 +335,12 @@ func (c *Client) setupChannel(
 			State:  ch.machine.State(), // initial state
 			Idx:    ch.machine.Idx(),
 		}); channel.IsFundingTimeoutError(err) {
-		ch.log.Warnf("Peers timed out funding channel(%v); settling...", err)
+		ch.Log().Warnf("Peers timed out funding channel(%v); settling...", err)
 		serr := ch.Settle(ctx)
 		return ch, errors.WithMessagef(err,
 			"peers timed out funding (subsequent settlement error: %v)", serr)
 	} else if err != nil { // other runtime error
-		ch.log.Warnf("error while funding channel: %v", err)
+		ch.Log().Warnf("error while funding channel: %v", err)
 		return ch, errors.WithMessage(err, "error while funding channel")
 	}
 
@@ -354,7 +355,7 @@ func (c *Client) setupChannel(
 	return ch, nil
 }
 
-// enableVer0Cache enables caching of incoming version 0 signatures
+// enableVer0Cache enables caching of incoming version 0 signatures.
 func enableVer0Cache(ctx context.Context, c wire.Cacher) {
 	c.Cache(ctx, func(m *wire.Envelope) bool {
 		return m.Msg.Type() == wire.ChannelUpdateAcc &&

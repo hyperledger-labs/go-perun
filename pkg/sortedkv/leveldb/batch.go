@@ -32,7 +32,7 @@ func (b *Batch) Put(key string, value string) error {
 
 // PutBytes puts a new byte slice into the batch.
 func (b *Batch) PutBytes(key string, value []byte) error {
-	b.Batch.Put([]byte(key), []byte(value))
+	b.Batch.Put([]byte(key), value)
 	return nil
 }
 

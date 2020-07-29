@@ -27,7 +27,7 @@ import (
 )
 
 // TestSignatureSerialize tests serializeSignature and deserializeSignature since
-// a signature is only a []byte, we cant use io.serializer here
+// a signature is only a []byte, we cant use io.serializer here.
 func TestSignatureSerialize(t *testing.T) {
 	a := assert.New(t)
 	// Constant seed for determinism
@@ -89,6 +89,7 @@ func TestGenericTests(t *testing.T) {
 	}
 }
 
+// nolint: interfacer
 func newWalletSetup(rng *rand.Rand) *test.Setup {
 	accountA := NewRandomAccount(rng)
 	accountB := NewRandomAccount(rng)

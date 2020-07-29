@@ -192,8 +192,9 @@ func (c ChannelProposal) SessID() (sid SessionID) {
 // * InitBals are valid
 // * No locked sub-allocations
 // * InitBals match the dimension of Parts
-// * non-zero ChallengeDuration
+// * non-zero ChallengeDuration.
 func (c ChannelProposal) Valid() error {
+	// nolint: gocritic
 	if c.InitBals == nil || c.ParticipantAddr == nil {
 		return errors.New("invalid nil fields")
 	} else if err := channel.ValidateParameters(

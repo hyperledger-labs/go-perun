@@ -21,6 +21,7 @@ import (
 
 	"github.com/pkg/errors"
 
+	"perun.network/go-perun/log"
 	"perun.network/go-perun/wallet"
 )
 
@@ -39,7 +40,9 @@ func NewRestoredWallet(accounts ...*Account) *Wallet {
 	w := NewWallet()
 	for _, acc := range accounts {
 		acc.locked.Set()
-		w.AddAccount(acc)
+		if err := w.AddAccount(acc); err != nil {
+			log.WithError(err).Panicf("Could not add account to wallet")
+		}
 	}
 
 	return w
@@ -140,7 +143,9 @@ func (w *Wallet) UsageCount(a wallet.Address) int {
 // the generated account. The returned account is already unlocked.
 func (w *Wallet) NewRandomAccount(rng *rand.Rand) wallet.Account {
 	acc := NewRandomAccount(rng)
-	w.AddAccount(acc)
+	if err := w.AddAccount(acc); err != nil {
+		log.WithError(err).Panic("Could not add account to wallet")
+	}
 	return acc
 }
 

@@ -39,10 +39,12 @@ type subscription struct {
 	predicate Predicate
 }
 
+// NewRelay returns a new Relay which logs unhandled messages.
 func NewRelay() *Relay {
 	return &Relay{defaultMsgHandler: logUnhandledMsg}
 }
 
+// Close closes the relay.
 func (p *Relay) Close() error {
 	if err := p.Closer.Close(); err != nil {
 		return err
@@ -139,6 +141,7 @@ func (p *Relay) isEmpty() bool {
 	return len(p.consumers) == 0
 }
 
+// Put puts an Envelope in the relay.
 func (p *Relay) Put(e *Envelope) {
 	p.mutex.RLock()
 	defer p.mutex.RUnlock()
@@ -168,6 +171,7 @@ func logUnhandledMsg(e *Envelope) {
 		Debugf("Received %T message without subscription: %v", e.Msg, e.Msg)
 }
 
+// SetDefaultMsgHandler sets the default message handler.
 func (p *Relay) SetDefaultMsgHandler(handler func(*Envelope)) {
 	if handler == nil {
 		handler = logUnhandledMsg

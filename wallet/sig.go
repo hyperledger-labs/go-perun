@@ -24,10 +24,10 @@ import (
 	perunio "perun.network/go-perun/pkg/io"
 )
 
-// Sig is a single signature
+// Sig is a single signature.
 type Sig = []byte
 
-// CloneSigs returns a deep copy of a slice of signatures
+// CloneSigs returns a deep copy of a slice of signatures.
 func CloneSigs(sigs []Sig) []Sig {
 	if sigs == nil {
 		return nil
@@ -54,7 +54,7 @@ func (s SigDec) Decode(r io.Reader) (err error) {
 	return err
 }
 
-// EncodeSparseSigs encodes a collection of signatures in the form ( mask, sig, sig, sig, ...)
+// EncodeSparseSigs encodes a collection of signatures in the form ( mask, sig, sig, sig, ...).
 func EncodeSparseSigs(w io.Writer, sigs []Sig) error {
 	n := len(sigs)
 
@@ -80,7 +80,7 @@ func EncodeSparseSigs(w io.Writer, sigs []Sig) error {
 	return nil
 }
 
-// DecodeSparseSigs decodes a collection of signatures in the form (mask, sig, sig, sig, ...)
+// DecodeSparseSigs decodes a collection of signatures in the form (mask, sig, sig, sig, ...).
 func DecodeSparseSigs(r io.Reader, sigs *[]Sig) (err error) {
 	masklen := int(math.Ceil(float64(len(*sigs)) / 8.0))
 	mask := make([]uint8, masklen)

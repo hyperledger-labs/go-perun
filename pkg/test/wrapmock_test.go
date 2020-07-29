@@ -21,7 +21,7 @@ import (
 )
 
 // spying mock to check if Error function was called.
-// If wasCalled is true, it means that an error
+// If wasCalled is true, it means that an error.
 type errorSpy struct {
 	t         *testing.T
 	wasCalled bool
@@ -72,7 +72,7 @@ func apple() {
 func onion() {}
 
 // TestWrapMock tests that the WrapMock does indeed call Error on the testing
-// object in the right situations
+// object in the right situations.
 func TestWrapMock(t *testing.T) {
 	spy := &errorSpy{t: t}
 	globalFruit = &fruit{
@@ -96,7 +96,7 @@ func TestWrapMock(t *testing.T) {
 	spy.assertError("onion() doesn't call method on global, Error should be produced")
 }
 
-// TestNewWrapMock tests that NewWrapMock() successfully creates a working WrapMock
+// TestNewWrapMock tests that NewWrapMock() successfully creates a working WrapMock.
 func TestNewWrapMock(t *testing.T) {
 	globalFruit = &fruit{
 		NewWrapMock(t),

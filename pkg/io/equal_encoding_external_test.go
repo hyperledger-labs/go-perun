@@ -23,7 +23,7 @@ import (
 	pkgtest "perun.network/go-perun/pkg/test"
 )
 
-// TestEqualEncoding tests EqualEncoding
+// TestEqualEncoding tests EqualEncoding.
 func TestEqualEncoding(t *testing.T) {
 	rng := pkgtest.Prng(t)
 	a := make(io.ByteSlice, 10)
@@ -33,7 +33,7 @@ func TestEqualEncoding(t *testing.T) {
 	rng.Read(a)
 	rng.Read(b)
 	rng.Read(c)
-	c2 := io.ByteSlice(c)
+	var c2 io.ByteSlice = c
 
 	tests := []struct {
 		a         io.Encoder

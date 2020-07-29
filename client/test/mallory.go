@@ -70,6 +70,7 @@ func (r *Mallory) exec(cfg ExecConfig, ch *paymentChannel) {
 	subCtx, subCancel := context.WithTimeout(context.Background(), r.timeout+challengeDuration)
 	defer subCancel()
 	sub, err := r.setup.Adjudicator.SubscribeRegistered(subCtx, ch.Params())
+	assert.NoError(err)
 
 	// 3rd stage - wait until Carol has refuted
 	r.waitStage()

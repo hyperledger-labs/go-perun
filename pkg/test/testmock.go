@@ -96,6 +96,7 @@ func (t *Tester) AssertErrorN(fn func(T), numCalls uint) {
 // T.FailNow() on the T object it calls fn with.
 func (t *Tester) AssertErrorFatal(fn func(T)) {
 	t.assert(func(tt *testerT) {
+		// nolint: gocritic
 		if tt.numErrorCalls == 0 && !tt.failNowCalled {
 			t.T.Errorf("the test did neither call Errorf() nor FailNow()")
 		} else if tt.numErrorCalls == 0 {
@@ -110,6 +111,7 @@ func (t *Tester) AssertErrorFatal(fn func(T)) {
 // times and T.FailNow() on the T object it calls fn with.
 func (t *Tester) AssertErrorNFatal(fn func(T), numCalls uint) {
 	t.assert(func(tt *testerT) {
+		// nolint: gocritic
 		if tt.numErrorCalls != numCalls && !tt.failNowCalled {
 			t.T.Errorf(
 				"the test called Errorf() %d times, expected %d, and didn't call FailNow()",

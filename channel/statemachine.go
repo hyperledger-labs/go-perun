@@ -138,7 +138,7 @@ func (m *StateMachine) validTransition(to *State, actor Index) (err error) {
 	return errors.WithMessagef(err, "runtime error in application's ValidTransition()")
 }
 
-// Clone returns a deep copy of StateMachine
+// Clone returns a deep copy of StateMachine.
 func (m *StateMachine) Clone() *StateMachine {
 	return &StateMachine{
 		machine: m.machine.Clone(),

@@ -44,7 +44,7 @@ const MaxNumParts = 1024
 // num-suballocations items of information in an Allocation.
 const MaxNumSubAllocations = 1024
 
-// Allocation and associated types
+// Allocation and associated types.
 type (
 	// Allocation is the distribution of assets, were the channel to be finalized.
 	//
@@ -333,7 +333,7 @@ func (a *Allocation) Equal(b *Allocation) error {
 	return nil
 }
 
-// summer returns sums of balances
+// summer returns sums of balances.
 type summer interface {
 	Sum() []Bal
 }

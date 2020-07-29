@@ -16,5 +16,5 @@
 
 package test
 
-// Race tells whether the -race build tag is set
+// Race tells whether the -race build tag is set.
 const Race = false

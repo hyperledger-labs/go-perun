@@ -75,6 +75,7 @@ func (c *Client) restoreChannel(p wire.Address, chdata *persistence.Channel) err
 	if !c.channels.Put(chdata.ID(), ch) {
 		log.Warn("Channel already present, closing restored channel.")
 		// If the channel already existed, close this one.
+		// nolint:errcheck,gosec
 		ch.Close()
 	}
 	log.Info("Channel restored.")
@@ -122,13 +123,18 @@ func (c *Client) handleSyncMsg(peer wire.Address, msg *msgChannelSync) {
 
 // syncChannel synchronizes the channel state with the given peer and modifies
 // the current state if required.
+// nolint:unused
 func (c *Client) syncChannel(ctx context.Context, ch *persistence.Channel, p wire.Address) (err error) {
 	recv := wire.NewReceiver()
+	// nolint:errcheck
 	defer recv.Close() // ignore error
 	id := ch.ID()
-	c.conn.Subscribe(recv, func(m *wire.Envelope) bool {
+	err = c.conn.Subscribe(recv, func(m *wire.Envelope) bool {
 		return m.Msg.Type() == wire.ChannelSync && m.Msg.(ChannelMsg).ID() == id
 	})
+	if err != nil {
+		return errors.WithMessage(err, "subscribing on relay")
+	}
 
 	sendError := make(chan error, 1)
 	// syncMsg needs to be a clone so that there's no data race when updating the
@@ -164,6 +170,7 @@ func (c *Client) syncChannel(ctx context.Context, ch *persistence.Channel, p wir
 }
 
 // validateMessage validates the remote channel sync message.
+// nolint:unused, nestif
 func validateMessage(ch *persistence.Channel, msg *msgChannelSync) error {
 	v := ch.CurrentTX().Version
 	mv := msg.CurrentTX.Version
@@ -181,11 +188,7 @@ func validateMessage(ch *persistence.Channel, msg *msgChannelSync) error {
 			return errors.New("sigs length mismatch")
 		}
 		for i, sig := range msg.CurrentTX.Sigs {
-			ok, err := channel.Verify(
-				ch.Params().Parts[i],
-				ch.Params(),
-				msg.CurrentTX.State,
-				sig)
+			ok, err := channel.Verify(ch.Params().Parts[i], ch.Params(), msg.CurrentTX.State, sig)
 			if err != nil {
 				return errors.WithMessagef(err, "validating sig %d", i)
 			}
@@ -197,7 +200,9 @@ func validateMessage(ch *persistence.Channel, msg *msgChannelSync) error {
 	return nil
 }
 
+// nolint:unused
 func revisePhase(ch *persistence.Channel) error {
+	// nolint: gocritic
 	if ch.PhaseV <= channel.Funding && ch.CurrentTXV.Version == 0 {
 		return errors.New("channel in Funding phase - funding during restore not implemented yet")
 		// if version > 0, phase will be set to Acting/Final at the end

@@ -98,8 +98,6 @@ func (t PhaseTransition) String() string {
 
 var signingPhases = []Phase{InitSigning, Signing}
 
-var postInitPhases = []Phase{Funding, Acting, Signing, Final}
-
 // A machine is the channel pushdown automaton that handles phase transitions.
 // It checks for correct signatures and valid phase transitions.
 // It only contains implementations for the phase transitions common to
@@ -138,7 +136,6 @@ func newMachine(acc wallet.Account, params Params) (*machine, error) {
 		params:    params,
 		Embedding: log.MakeEmbedding(log.WithField("ID", params.id)),
 	}, nil
-
 }
 
 func restoreMachine(acc wallet.Account, source Source) (*machine, error) {
@@ -152,12 +149,12 @@ func restoreMachine(acc wallet.Account, source Source) (*machine, error) {
 	return m, nil
 }
 
-// ID returns the channel id
+// ID returns the channel id.
 func (m *machine) ID() ID {
 	return m.params.ID()
 }
 
-// Account returns the account this channel is using for signing state updates
+// Account returns the account this channel is using for signing state updates.
 func (m *machine) Account() wallet.Account {
 	return m.acc
 }
@@ -167,7 +164,7 @@ func (m *machine) Idx() Index {
 	return m.idx
 }
 
-// Params returns the channel parameters
+// Params returns the channel parameters.
 func (m *machine) Params() *Params {
 	return &m.params
 }
@@ -177,7 +174,7 @@ func (m *machine) N() Index {
 	return Index(len(m.params.Parts))
 }
 
-// Phase returns the current phase
+// Phase returns the current phase.
 func (m *machine) Phase() Phase {
 	return m.phase
 }

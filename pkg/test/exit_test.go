@@ -57,5 +57,4 @@ func TestExit(t *testing.T) {
 		// calling AssertNoExit with exit call should fail
 		tt.AssertError(func(t T) { AssertNoExit(t, &exit, func() { exit(53) }) })
 	})
-
 }

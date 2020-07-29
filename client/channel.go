@@ -33,7 +33,7 @@ import (
 // Currently, only the two-party protocol is fully implemented.
 type Channel struct {
 	perunsync.OnCloser
-	log log.Logger
+	log.Embedding
 
 	conn        *channelConn
 	machine     persistence.StateMachine
@@ -87,7 +87,7 @@ func (c *Client) channelFromMachine(machine *channel.StateMachine, peers ...wire
 	conn.SetLog(logger)
 	return &Channel{
 		OnCloser:    conn,
-		log:         logger,
+		Embedding:   log.MakeEmbedding(logger),
 		conn:        conn,
 		machine:     pmachine,
 		adjudicator: c.adjudicator,
@@ -110,13 +110,8 @@ func (c *Channel) Ctx() context.Context {
 	return c.conn.r.Ctx()
 }
 
-func (c *Channel) setLogger(l log.Logger) {
-	c.conn.SetLog(l)
-	c.log = l
-}
-
 func (c *Channel) logPeer(idx channel.Index) log.Logger {
-	return c.log.WithField("peerIdx", idx)
+	return c.Log().WithField("peerIdx", idx)
 }
 
 // ID returns the channel ID.
@@ -178,6 +173,7 @@ func (c *Channel) initExchangeSigsAndEnable(ctx context.Context) error {
 	if err != nil {
 		return errors.WithMessage(err, "creating update response receiver")
 	}
+	// nolint:errcheck
 	defer resRecv.Close()
 
 	send := make(chan error)

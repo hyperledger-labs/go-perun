@@ -42,8 +42,8 @@ type ChannelIterator struct {
 }
 
 // ActivePeers returns a list of all peers with which a channel is persisted.
-func (r *PersistRestorer) ActivePeers(context.Context) ([]wire.Address, error) {
-	it := sortedkv.NewTable(r.db, prefix.PeerDB).NewIterator()
+func (pr *PersistRestorer) ActivePeers(context.Context) ([]wire.Address, error) {
+	it := sortedkv.NewTable(pr.db, prefix.PeerDB).NewIterator()
 
 	peermap := make(map[wallet.AddrKey]wire.Address)
 	for it.Next() {
@@ -62,25 +62,25 @@ func (r *PersistRestorer) ActivePeers(context.Context) ([]wire.Address, error) {
 }
 
 // RestoreAll should return an iterator over all persisted channels.
-func (r *PersistRestorer) RestoreAll() (persistence.ChannelIterator, error) {
+func (pr *PersistRestorer) RestoreAll() (persistence.ChannelIterator, error) {
 	return &ChannelIterator{
-		restorer: r,
-		its:      []sortedkv.Iterator{sortedkv.NewTable(r.db, prefix.ChannelDB).NewIterator()},
+		restorer: pr,
+		its:      []sortedkv.Iterator{sortedkv.NewTable(pr.db, prefix.ChannelDB).NewIterator()},
 	}, nil
 }
 
 // RestorePeer should return an iterator over all persisted channels which
 // the given peer is a part of.
-func (r *PersistRestorer) RestorePeer(addr wire.Address) (persistence.ChannelIterator, error) {
-	it := &ChannelIterator{restorer: r}
-	chandb := sortedkv.NewTable(r.db, prefix.ChannelDB)
+func (pr *PersistRestorer) RestorePeer(addr wire.Address) (persistence.ChannelIterator, error) {
+	it := &ChannelIterator{restorer: pr}
+	chandb := sortedkv.NewTable(pr.db, prefix.ChannelDB)
 
 	key, err := peerChannelsKey(addr)
 	if err != nil {
 		return nil, errors.WithMessage(err, "restoring peer")
 	}
-	itPeer := sortedkv.NewTable(r.db, prefix.PeerDB+key).NewIterator()
-	defer itPeer.Close()
+	itPeer := sortedkv.NewTable(pr.db, prefix.PeerDB+key).NewIterator()
+	defer itPeer.Close() // nolint: errcheck
 
 	var id channel.ID
 	for itPeer.Next() {
@@ -94,6 +94,7 @@ func (r *PersistRestorer) RestorePeer(addr wire.Address) (persistence.ChannelIte
 }
 
 // peerChannelsKey creates a db-key-string for a given wire.Address.
+// nolint: interfacer
 func peerChannelsKey(addr wire.Address) (string, error) {
 	var key strings.Builder
 	if err := addr.Encode(&key); err != nil {
@@ -104,10 +105,10 @@ func peerChannelsKey(addr wire.Address) (string, error) {
 }
 
 // RestoreChannel restores a single channel.
-func (r *PersistRestorer) RestoreChannel(ctx context.Context, id channel.ID) (*persistence.Channel, error) {
-	chandb := sortedkv.NewTable(r.db, prefix.ChannelDB)
+func (pr *PersistRestorer) RestoreChannel(ctx context.Context, id channel.ID) (*persistence.Channel, error) {
+	chandb := sortedkv.NewTable(pr.db, prefix.ChannelDB)
 	it := &ChannelIterator{
-		restorer: r,
+		restorer: pr,
 		its:      []sortedkv.Iterator{chandb.NewIteratorWithPrefix(string(id[:]))},
 	}
 
@@ -121,6 +122,7 @@ func (r *PersistRestorer) RestoreChannel(ctx context.Context, id channel.ID) (*p
 }
 
 // decodePeerChanID decodes the channel.ID and peer.Address from a key.
+// nolint: deadcode, unused
 func decodePeerChanID(key string) (wire.Address, channel.ID, error) {
 	buf := bytes.NewBufferString(key)
 	addr, err := wire.DecodeAddress(buf)
@@ -138,6 +140,7 @@ func decodePeerChanID(key string) (wire.Address, channel.ID, error) {
 
 // eatExpect consumes bytes from a Reader and asserts that they are equal to
 // the expected string.
+// nolint: deadcode, unused
 func eatExpect(r io.Reader, tok string) error {
 	buf := make([]byte, len(tok))
 	if _, err := io.ReadFull(r, buf); err != nil {

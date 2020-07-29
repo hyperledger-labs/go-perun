@@ -133,7 +133,7 @@ func (ch *paymentChannel) settleChan() {
 	ch.assertBals(ch.State())
 }
 
-// The payment channel is its own update handler
+// The payment channel is its own update handler.
 func (ch *paymentChannel) Handle(up client.ChannelUpdate, res *client.UpdateResponder) {
 	ch.log.Infof("Incoming channel update: %v", up)
 	ctx, cancel := context.WithTimeout(context.Background(), ch.r.timeout)

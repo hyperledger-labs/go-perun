@@ -34,7 +34,7 @@ func TestUpdateResponder_Reject_NilArgs(t *testing.T) {
 }
 
 // Channel.Update() is defined in `client/update.go` so its test can be found
-// here as well
+// here as well.
 func TestChannel_Update_NilArgs(t *testing.T) {
 	err := new(Channel).Update(nil, *new(ChannelUpdate))
 	require.Error(t, err)

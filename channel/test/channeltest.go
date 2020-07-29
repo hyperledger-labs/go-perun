@@ -26,7 +26,7 @@ import (
 
 type addressCreator = func() wallet.Address
 
-// Setup provides all objects needed for the generic channel tests
+// Setup provides all objects needed for the generic channel tests.
 type Setup struct {
 	// Params are the random parameters of `State`
 	Params *channel.Params
@@ -73,7 +73,8 @@ func genericChannelIDTest(t *testing.T, s *Setup) {
 
 	// Check that modifying the state changes the id
 	for _, modParams := range buildModifiedParams(s.Params, s.Params2, s) {
-		ID := channel.CalcID(&modParams)
+		params := modParams
+		ID := channel.CalcID(&params)
 		assert.NotEqual(t, ID, s.State.ID, "Channel ids should differ")
 	}
 }
@@ -102,8 +103,10 @@ func genericVerifyTest(t *testing.T, s *Setup) {
 	// -> The backend does not detect this
 
 	// Different params and different state
-	for _, modParams := range buildModifiedParams(s.Params, s.Params2, s) {
-		for _, fakeState := range buildModifiedStates(s.State, s.State2, false) {
+	for _, _modParams := range buildModifiedParams(s.Params, s.Params2, s) {
+		modParams := _modParams
+		for _, _fakeState := range buildModifiedStates(s.State, s.State2, false) {
+			fakeState := _fakeState
 			ok, err = channel.Verify(addr, &modParams, &fakeState, sig)
 			assert.False(t, ok, "Verify should return false")
 			if err2 := fakeState.Valid(); err2 != nil {

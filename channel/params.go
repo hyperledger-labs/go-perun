@@ -17,11 +17,11 @@ package channel
 import (
 	"bytes"
 	stdio "io"
-	"log"
 	"math/big"
 
 	"github.com/pkg/errors"
 
+	"perun.network/go-perun/log"
 	"perun.network/go-perun/pkg/io"
 	"perun.network/go-perun/wallet"
 )
@@ -40,7 +40,7 @@ var _ io.Serializer = (*Params)(nil)
 // Params are a channel's immutable parameters.  A channel's id is the hash of
 // (some of) its parameter, as determined by the backend.  All fields should be
 // treated as constant.
-// It should only be created through NewParams()
+// It should only be created through NewParams().
 type Params struct {
 	// ChannelID is the channel ID as calculated by the backend
 	id ID
@@ -73,7 +73,7 @@ func NewParams(challengeDuration uint64, parts []wallet.Address, appDef wallet.A
 // * non-zero ChallengeDuration
 // * non-nil nonce
 // * at least two and at most MaxNumParts parts
-// * appDef belongs to either a StateApp or ActionApp
+// * appDef belongs to either a StateApp or ActionApp.
 func ValidateParameters(challengeDuration uint64, numParts int, appDef wallet.Address, nonce *big.Int) error {
 	if challengeDuration == 0 {
 		return errors.New("challengeDuration must be != 0")
@@ -116,16 +116,18 @@ func NewParamsUnsafe(challengeDuration uint64, parts []wallet.Address, appDef wa
 	return p
 }
 
-// Clone returns a deep copy of Params
+// Clone returns a deep copy of Params.
 func (p *Params) Clone() *Params {
 	clonedParts := make([]wallet.Address, len(p.Parts))
 	for i, v := range p.Parts {
 		var buff bytes.Buffer
-		v.Encode(&buff)
+		if err := v.Encode(&buff); err != nil {
+			log.WithError(err).Panic("Could not encode part")
+		}
 
 		addr, err := wallet.DecodeAddress(&buff)
 		if err != nil {
-			panic("Could not clone params' addresses")
+			log.WithError(err).Panic("Could not clone params' addresses")
 		}
 		clonedParts[i] = addr
 	}

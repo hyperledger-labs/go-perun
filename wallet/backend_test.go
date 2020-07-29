@@ -29,7 +29,7 @@ type mockBackend struct {
 
 // wallet.Backend interface
 
-// DecodeAddress reads and decodes an address from an io.Writer
+// DecodeAddress reads and decodes an address from an io.Writer.
 func (m *mockBackend) DecodeAddress(io.Reader) (Address, error) {
 	m.AssertWrapped()
 	return nil, nil
@@ -45,10 +45,10 @@ func (m *mockBackend) VerifySignature([]byte, Sig, Address) (bool, error) {
 	return false, nil
 }
 
-// compile-time check that mockBackend imlements Backend
+// compile-time check that mockBackend imlements Backend.
 var _ Backend = (*mockBackend)(nil)
 
-// TestGlobalBackend tests all global backend wrappers
+// TestGlobalBackend tests all global backend wrappers.
 func TestGlobalBackend(t *testing.T) {
 	b := &mockBackend{test.NewWrapMock(t)}
 	SetBackend(b)

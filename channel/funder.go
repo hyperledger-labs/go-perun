@@ -83,7 +83,7 @@ func (e AssetFundingError) Error() string {
 	for _, peerIdx := range e.TimedOutPeers {
 		msg += fmt.Sprintf("[%d], ", peerIdx)
 	}
-	msg += fmt.Sprintf("did not fund channel in time")
+	msg += "did not fund channel in time"
 	return msg
 }
 

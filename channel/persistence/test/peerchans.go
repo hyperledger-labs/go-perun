@@ -49,7 +49,7 @@ func (pc peerChans) Add(id channel.ID, ps ...wire.Address) {
 // Don't use add, use Add.
 func (pc peerChans) add(id channel.ID, p wire.Address) {
 	pk := peerKey(p)
-	ids, _ := pc[pk] // nil ok, since we append
+	ids := pc[pk] // nil ok, since we append
 	pc[pk] = append(ids, id)
 }
 

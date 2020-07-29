@@ -46,7 +46,7 @@ func TestTransactionSerialization(t *testing.T) {
 	iotest.GenericSerializerTest(t, tx)
 }
 
-// newUniformBoolSlice generates a slice long size with all the elements set to choice
+// newUniformBoolSlice generates a slice long size with all the elements set to choice.
 func newUniformBoolSlice(size int, choice bool) []bool {
 	uniform := make([]bool, size)
 	for i := range uniform {
@@ -55,7 +55,7 @@ func newUniformBoolSlice(size int, choice bool) []bool {
 	return uniform
 }
 
-// newAlmostUniformBoolSlice creates []bool which has choice at indexChosen and all the others indexes are !choice
+// newAlmostUniformBoolSlice creates []bool which has choice at indexChosen and all the others indexes are !choice.
 func newAlmostUniformBoolSlice(indexChosen int, size int, choice bool) []bool {
 	almostUniform := make([]bool, size)
 	for i := range almostUniform {
@@ -68,7 +68,7 @@ func newAlmostUniformBoolSlice(indexChosen int, size int, choice bool) []bool {
 	return almostUniform
 }
 
-// newStripedBoolSlice creates an array []bool of length == size in which all the even indexes are set to choice
+// newStripedBoolSlice creates an array []bool of length == size in which all the even indexes are set to choice.
 func newStripedBoolSlice(size int, choice bool) []bool {
 	striped := make([]bool, size)
 	for i := range striped {

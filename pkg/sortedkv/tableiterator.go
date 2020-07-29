@@ -20,7 +20,7 @@ type tableIterator struct {
 	prefix int
 }
 
-// newTableIterator creates a new table iterator
+// newTableIterator creates a new table iterator.
 func newTableIterator(it Iterator, table *table) Iterator {
 	return &tableIterator{
 		Iterator: it,

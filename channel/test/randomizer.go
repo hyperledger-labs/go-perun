@@ -22,7 +22,6 @@ import (
 	"perun.network/go-perun/channel"
 	"perun.network/go-perun/wallet"
 	"perun.network/go-perun/wallet/test"
-	wallettest "perun.network/go-perun/wallet/test"
 )
 
 // The Randomizer interface provides the ability to create random assets.
@@ -154,7 +153,7 @@ func NewRandomParams(rng *rand.Rand, opts ...RandomOpt) *channel.Params {
 	if parts = opt.Parts(); parts == nil {
 		parts = make([]wallet.Address, numParts)
 		for i := range parts {
-			parts[i] = wallettest.NewRandomAddress(rng)
+			parts[i] = test.NewRandomAddress(rng)
 		}
 	}
 	if firstPart := opt.FirstPart(); firstPart != nil {
@@ -227,7 +226,7 @@ func NewRandomBal(rng *rand.Rand, opts ...RandomOpt) channel.Bal {
 		*max = (1 << 62)
 	}
 
-	return channel.Bal(big.NewInt(rng.Int63n(*max) + (*max - *min) + 1))
+	return big.NewInt(rng.Int63n(*max) + (*max - *min) + 1)
 }
 
 // NewRandomBals generates new random `channel.Bal`s.

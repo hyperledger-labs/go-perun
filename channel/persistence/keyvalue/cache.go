@@ -22,6 +22,7 @@ import (
 	"perun.network/go-perun/wire"
 )
 
+// nolint: deadcode, unused
 func newChannelCache() *channelCache {
 	return &channelCache{
 		peers:        make(map[channel.ID][]wire.Address),
@@ -29,7 +30,8 @@ func newChannelCache() *channelCache {
 	}
 }
 
-// channelCache contains all channels
+// channelCache contains all channels.
+// nolint: unused
 type channelCache struct {
 	mutex        stdsync.RWMutex
 	peers        map[channel.ID][]wire.Address      // Used when closing a channel.

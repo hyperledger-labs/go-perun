@@ -130,7 +130,7 @@ func IsAlreadyClosedError(err error) bool {
 	return ok
 }
 
-// implementation of a Closer as a context.Context
+// implementation of a Closer as a context.Context.
 type closerCtx Closer
 
 // Ctx returns a context that is canceled when the Closer is closed.

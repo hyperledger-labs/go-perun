@@ -73,7 +73,7 @@ func assertNoData(s *channel.State) {
 // NoData represents empty app data.
 type NoData struct{}
 
-// Clone creates a new NoData
+// Clone creates a new NoData.
 func (d *NoData) Clone() channel.Data {
 	return new(NoData)
 }

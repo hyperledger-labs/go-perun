@@ -103,13 +103,13 @@ func (s *State) Clone() *State {
 	return &clone
 }
 
-// Encode encodes a state into an `io.Writer` or returns an `error`
+// Encode encodes a state into an `io.Writer` or returns an `error`.
 func (s State) Encode(w io.Writer) error {
 	err := perunio.Encode(w, s.ID, s.Version, s.Allocation, s.IsFinal, s.App.Def(), s.Data)
 	return errors.WithMessage(err, "state encode")
 }
 
-// Decode decodes a state from an `io.Reader` or returns an `error`
+// Decode decodes a state from an `io.Reader` or returns an `error`.
 func (s *State) Decode(r io.Reader) error {
 	// Decode ID, Version, Allocation, IsFinal
 	if err := perunio.Decode(r, &s.ID, &s.Version, &s.Allocation, &s.IsFinal); err != nil {

@@ -32,11 +32,11 @@ import (
 // Address represents a simulated address.
 type Address ecdsa.PublicKey
 
-// compile time check that we implement the perun Address interface
+// compile time check that we implement the perun Address interface.
 var _ wallet.Address = (*Address)(nil)
 
 // NewRandomAddress creates a new address using the randomness
-// provided by rng
+// provided by rng.
 func NewRandomAddress(rng io.Reader) *Address {
 	privateKey, err := ecdsa.GenerateKey(curve, rng)
 

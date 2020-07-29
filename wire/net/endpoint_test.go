@@ -41,18 +41,18 @@ type setup struct {
 }
 
 // makeSetup creates a test setup.
-func makeSetup(t *testing.T, rng *rand.Rand) *setup {
+func makeSetup(rng *rand.Rand) *setup {
 	a, b := newPipeConnPair()
 	// We need the setup address when constructing the clients.
 	s := new(setup)
 	*s = setup{
-		alice: makeClient(t, a, rng, s),
-		bob:   makeClient(t, b, rng, s),
+		alice: makeClient(a, rng, s),
+		bob:   makeClient(b, rng, s),
 	}
 	return s
 }
 
-// Dial simulates creating a connection to a
+// Dial simulates creating a connection to a.
 func (s *setup) Dial(ctx context.Context, addr wire.Address) (Conn, error) {
 	s.mutex.RLock()
 	defer s.mutex.RUnlock()
@@ -64,6 +64,7 @@ func (s *setup) Dial(ctx context.Context, addr wire.Address) (Conn, error) {
 	// a: Alice's end, b: Bob's end.
 	a, b := newPipeConnPair()
 
+	// nolint: gocritic
 	if addr.Equals(s.alice.endpoint.Address) { // Dialing Bob?
 		s.bob.Registry.addEndpoint(s.bob.endpoint.Address, b, true) // Bob accepts connection.
 		return a, nil
@@ -94,7 +95,7 @@ type client struct {
 }
 
 // makeClient creates a simulated test client.
-func makeClient(t *testing.T, conn Conn, rng *rand.Rand, dialer Dialer) *client {
+func makeClient(conn Conn, rng *rand.Rand, dialer Dialer) *client {
 	var receiver = wire.NewReceiver()
 	var registry = NewEndpointRegistry(wallettest.NewRandomAccount(rng), func(wire.Address) wire.Consumer {
 		return receiver
@@ -111,7 +112,7 @@ func makeClient(t *testing.T, conn Conn, rng *rand.Rand, dialer Dialer) *client 
 func TestEndpoint_Close(t *testing.T) {
 	t.Parallel()
 	rng := test.Prng(t)
-	s := makeSetup(t, rng)
+	s := makeSetup(rng)
 	// Remember bob's address for later, we will need it for a registry lookup.
 	bobAddr := s.alice.endpoint.Address
 	// The lookup needs to work because the test relies on it.
@@ -131,7 +132,7 @@ func TestEndpoint_Close(t *testing.T) {
 func TestEndpoint_Send_ImmediateAbort(t *testing.T) {
 	t.Parallel()
 	rng := test.Prng(t)
-	s := makeSetup(t, rng)
+	s := makeSetup(rng)
 
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
@@ -192,7 +193,7 @@ func TestEndpoint_Send_Close(t *testing.T) {
 }
 
 // TestEndpoint_ClosedByRecvLoopOnConnClose is a regression test for
-// #181 `peer.Peer` does not handle connection termination properly
+// #181 `peer.Peer` does not handle connection termination properly.
 func TestEndpoint_ClosedByRecvLoopOnConnClose(t *testing.T) {
 	t.Parallel()
 	eofReceived := make(chan struct{})

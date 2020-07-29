@@ -47,7 +47,7 @@ func genRootSeed() (rootSeed int64) {
 
 // Prng returns a pseudo-RNG that is seeded with the output of the `Seed`
 // function by passing it `t.Name()`.
-// Use it in tests with: rng := pkgtest.Prng(t)
+// Use it in tests with: rng := pkgtest.Prng(t).
 func Prng(t interface{ Name() string }, args ...interface{}) *rand.Rand {
 	return rand.New(rand.NewSource(Seed(t.Name(), args...)))
 }

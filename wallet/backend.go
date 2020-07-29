@@ -46,17 +46,17 @@ func SetBackend(b Backend) {
 	backend = b
 }
 
-// DecodeAddress calls DecodeAddress of the current backend
+// DecodeAddress calls DecodeAddress of the current backend.
 func DecodeAddress(r io.Reader) (Address, error) {
 	return backend.DecodeAddress(r)
 }
 
-// DecodeSig calls DecodeSig of the current backend
+// DecodeSig calls DecodeSig of the current backend.
 func DecodeSig(r io.Reader) (Sig, error) {
 	return backend.DecodeSig(r)
 }
 
-// VerifySignature calls VerifySignature of the current backend
+// VerifySignature calls VerifySignature of the current backend.
 func VerifySignature(msg []byte, sign Sig, a Address) (bool, error) {
 	return backend.VerifySignature(msg, sign, a)
 }
