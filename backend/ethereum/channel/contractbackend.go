@@ -46,6 +46,23 @@ type ContractInterface interface {
 	ethereum.TransactionReader
 }
 
+// Transactor can be used to make transactOpts for a given account.
+type Transactor interface {
+	NewTransactor(account accounts.Account) (*bind.TransactOpts, error)
+}
+
+// KeyStoreTransactor can be used to make TransactOpts for accounts stored in a keystore.
+type KeyStoreTransactor struct {
+	ks *keystore.KeyStore
+}
+
+// NewTransactor returns a TransactOpts for the given account. It errors if the account is
+// not contained in the keystore used for initializing transactOpts backend.
+func (t *KeyStoreTransactor) NewTransactor(account accounts.Account) (*bind.TransactOpts, error) {
+	tr, err := bind.NewKeyStoreTransactor(t.ks, account)
+	return tr, errors.WithStack(err)
+}
+
 // ContractBackend adds a keystore and an on-chain account to the ContractInterface.
 // This is needed to send on-chain transaction to interact with the smart contracts.
 type ContractBackend struct {
