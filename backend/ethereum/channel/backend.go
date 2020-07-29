@@ -196,9 +196,10 @@ func encodeAllocation(alloc *adjudicator.ChannelAllocation) ([]byte, error) {
 		{Type: abiUint256ArrArr},
 		{Type: abiBytes},
 	}
+	// nolint:prealloc
 	var subAllocs []byte
-	for _, sub := range alloc.Locked {
-		subAlloc, err := encodeSubAlloc(&sub)
+	for i := range alloc.Locked {
+		subAlloc, err := encodeSubAlloc(&alloc.Locked[i])
 		if err != nil {
 			return nil, err
 		}

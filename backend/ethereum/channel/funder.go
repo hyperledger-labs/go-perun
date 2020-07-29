@@ -51,7 +51,7 @@ type Funder struct {
 	ethAssetHolder common.Address
 }
 
-// compile time check that we implement the perun funder interface
+// compile time check that we implement the perun funder interface.
 var _ channel.Funder = (*Funder)(nil)
 
 // NewETHFunder creates a new ethereum funder.
@@ -156,6 +156,7 @@ func checkFunded(ctx context.Context, request channel.FundingReq, asset assetHol
 	if err != nil {
 		return false, errors.WithMessagef(err, "filtering old Funding events for asset %d", asset.assetIndex)
 	}
+	// nolint:errcheck
 	defer iter.Close()
 
 	amount := new(big.Int).Set(request.State.Balances[asset.assetIndex][request.Idx])
@@ -230,6 +231,7 @@ func filterFunds(ctx context.Context, asset assetHolder, partIDs ...[32]byte) (*
 
 // waitForFundingConfirmation waits for the confirmation events on the blockchain that
 // both we and all peers successfully funded the channel.
+// nolint: funlen
 func (f *Funder) waitForFundingConfirmation(ctx context.Context, request channel.FundingReq, asset assetHolder, partIDs [][32]byte) error {
 	deposited := make(chan *assets.AssetHolderDeposited)
 	// Watch new events
@@ -257,7 +259,7 @@ func (f *Funder) waitForFundingConfirmation(ctx context.Context, request channel
 			errChan <- errors.WithMessagef(err, "filtering old Deposited events for asset %d", asset.assetIndex)
 			return
 		}
-		defer iter.Close()
+		defer iter.Close() // nolint: errcheck
 		for iter.Next() {
 			deposited <- iter.Event
 		}

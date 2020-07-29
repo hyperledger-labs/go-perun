@@ -40,11 +40,6 @@ import (
 	wallettest "perun.network/go-perun/wallet/test"
 )
 
-const (
-	keyDir   = "../wallet/testdata"
-	password = "secret"
-)
-
 func TestFunderZeroBalance(t *testing.T) {
 	t.Run("1 Participant", func(t *testing.T) {
 		testFunderZeroBalance(t, 1)
@@ -56,7 +51,7 @@ func TestFunderZeroBalance(t *testing.T) {
 
 func testFunderZeroBalance(t *testing.T, n int) {
 	rng := pkgtest.Prng(t)
-	parts, funders, _, params, allocation := newNFunders(context.Background(), t, rng, n)
+	parts, funders, params, allocation := newNFunders(context.Background(), t, rng, n)
 
 	for i := range parts {
 		if i%2 == 0 {
@@ -97,7 +92,7 @@ func TestFunder_Fund(t *testing.T) {
 	rng := pkgtest.Prng(t)
 	ctx, cancel := context.WithTimeout(context.Background(), defaultTxTimeout)
 	defer cancel()
-	parts, funders, _, params, allocation := newNFunders(ctx, t, rng, 1)
+	parts, funders, params, allocation := newNFunders(ctx, t, rng, 1)
 	// Test invalid funding request
 	assert.Panics(t, func() { funders[0].Fund(ctx, channel.FundingReq{}) }, "Funding with invalid funding req should fail")
 	// Test funding without assets
@@ -148,7 +143,8 @@ func testFundingTimeout(t *testing.T, faultyPeer, peers int) {
 	defer cancel()
 	rng := pkgtest.Prng(t)
 	ct := pkgtest.NewConcurrent(t)
-	_, funders, _, params, allocation := newNFunders(ctx, t, rng, peers)
+
+	_, funders, params, allocation := newNFunders(ctx, t, rng, peers)
 
 	for i, funder := range funders {
 		sleepTime := time.Duration(rng.Int63n(10) + 1)
@@ -196,7 +192,8 @@ func testFunderFunding(t *testing.T, n int) {
 	defer cancel()
 	rng := pkgtest.Prng(t)
 	ct := pkgtest.NewConcurrent(t)
-	_, funders, _, params, allocation := newNFunders(ctx, t, rng, n)
+
+	_, funders, params, allocation := newNFunders(ctx, t, rng, n)
 
 	for i, funder := range funders {
 		sleepTime := time.Duration(rng.Int63n(10) + 1)
@@ -226,7 +223,6 @@ func newNFunders(
 ) (
 	parts []wallet.Address,
 	funders []*ethchannel.Funder,
-	app channel.App,
 	params *channel.Params,
 	allocation *channel.Allocation,
 ) {
@@ -251,17 +247,8 @@ func newNFunders(
 	// The SimBackend advances 10 sec per transaction/block, so generously add 20
 	// sec funding duration per participant
 	params = channeltest.NewRandomParams(rng, channeltest.WithParts(parts...), channeltest.WithChallengeDuration(uint64(n)*20))
-	allocation = channeltest.NewRandomAllocation(rng, channeltest.WithNumParts(len(parts)), channeltest.WithAssets((*ethchannel.Asset)(&assetETH)))
+	allocation = channeltest.NewRandomAllocation(rng, channeltest.WithNumParts(n), channeltest.WithAssets((*ethchannel.Asset)(&assetETH)))
 	return
-}
-
-// newSimulatedFunder creates a new funder
-func newSimulatedFunder(t *testing.T) *ethchannel.Funder {
-	ctx, cancel := context.WithTimeout(context.Background(), defaultTxTimeout)
-	defer cancel()
-	rng := pkgtest.Prng(t)
-	_, funder, _, _, _ := newNFunders(ctx, t, rng, 1)
-	return funder[0]
 }
 
 // compareOnChainAlloc returns error if `alloc` differs from the on-chain allocation.

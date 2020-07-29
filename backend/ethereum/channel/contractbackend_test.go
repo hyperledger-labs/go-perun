@@ -55,7 +55,8 @@ func Test_calcFundingIDs(t *testing.T) {
 		{"Test non-empty array, non-empty channelID", []wallet.Address{fromEthAddr(common.BytesToAddress([]byte{}))},
 			[32]byte{1}, [][32]byte{{130, 172, 39, 157, 178, 106, 32, 109, 155, 165, 169, 76, 7, 255, 148, 10, 234, 75, 59, 253, 232, 130, 14, 201, 95, 78, 250, 10, 207, 208, 213, 188}}},
 	}
-	for _, tt := range tests {
+	for _, _tt := range tests {
+		tt := _tt
 		t.Run(tt.name, func(t *testing.T) {
 			got := ethchannel.FundingIDs(tt.channelID, tt.participants...)
 			assert.Equal(t, got, tt.want, "FundingIDs not as expected")
@@ -78,12 +79,13 @@ func Test_NewTransactor(t *testing.T) {
 		{"Test valid transactor", ctx, big.NewInt(0), uint64(0)},
 		{"Test valid transactor", ctx, big.NewInt(1220), uint64(12345)},
 	}
-	for _, tt := range tests {
+	for _, _tt := range tests {
+		tt := _tt
 		t.Run(tt.name, func(t *testing.T) {
 			transactor, err := s.CB.NewTransactor(tt.ctx, tt.value, tt.gasLimit)
 			assert.NoError(t, err, "Creating Transactor should succeed")
 			assert.Equal(t, s.TxSender.Account.Address, transactor.From, "Transactor address not properly set")
-			assert.Equal(t, uint64(tt.gasLimit), transactor.GasLimit, "Gas limit not set properly")
+			assert.Equal(t, tt.gasLimit, transactor.GasLimit, "Gas limit not set properly")
 			assert.Equal(t, tt.value, transactor.Value, "Transaction value not set properly")
 			assert.Equal(t, big.NewInt(1), transactor.GasPrice, "Invalid gas price")
 		})

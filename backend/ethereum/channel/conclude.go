@@ -29,7 +29,7 @@ import (
 // - it searches for a past concluded event
 //   - if found, channel is already concluded and success is returned
 //   - if none found, conclude/concludeFinal is called on the adjudicator
-// - it waits for a Concluded event from the blockchain
+// - it waits for a Concluded event from the blockchain.
 func (a *Adjudicator) ensureConcluded(ctx context.Context, req channel.AdjudicatorReq) error {
 	// Listen for Concluded event.
 	watchOpts, err := a.NewWatchOpts(ctx)

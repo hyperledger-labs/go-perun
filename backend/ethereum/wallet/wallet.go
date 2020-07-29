@@ -86,7 +86,9 @@ func (w *Wallet) NewRandomAccount(rnd *rand.Rand) wallet.Account {
 	address := crypto.PubkeyToAddress(privateKey.PublicKey)
 
 	if acc, err := w.Ks.Find(accounts.Account{Address: address}); err == nil {
-		w.Unlock((*Address)(&address))
+		if _, err := w.Unlock((*Address)(&address)); err != nil {
+			log.Panicf("Unlocking account: %v", err)
+		}
 		return NewAccountFromEth(w, &acc)
 	}
 
@@ -94,7 +96,9 @@ func (w *Wallet) NewRandomAccount(rnd *rand.Rand) wallet.Account {
 	if err != nil {
 		log.Panicf("Storing private key: %v", err)
 	}
-	w.Unlock((*Address)(&address))
+	if _, err := w.Unlock((*Address)(&address)); err != nil {
+		log.Panicf("Unlocking account: %v", err)
+	}
 	log.Debugf("Created new random account %v", ethAcc.Address)
 
 	return NewAccountFromEth(w, &ethAcc)

@@ -31,7 +31,7 @@ type Backend struct{}
 // ref https://github.com/ethereum/go-ethereum/blob/54b271a86dd748f3b0bcebeaf678dc34e0d6177a/crypto/signature_cgo.go#L66
 const SigLen = 65
 
-// compile-time check that the ethereum backend implements the perun backend
+// compile-time check that the ethereum backend implements the perun backend.
 var _ wallet.Backend = (*Backend)(nil)
 
 // DecodeAddress decodes an address from an io.Reader.
@@ -39,7 +39,7 @@ func (*Backend) DecodeAddress(r io.Reader) (wallet.Address, error) {
 	return DecodeAddress(r)
 }
 
-// DecodeSig reads a []byte with length of an ethereum signature
+// DecodeSig reads a []byte with length of an ethereum signature.
 func (*Backend) DecodeSig(r io.Reader) (wallet.Sig, error) {
 	return DecodeSig(r)
 }
@@ -55,7 +55,7 @@ func DecodeAddress(r io.Reader) (wallet.Address, error) {
 	return addr, addr.Decode(r)
 }
 
-// DecodeSig reads a []byte with length of an ethereum signature
+// DecodeSig reads a []byte with length of an ethereum signature.
 func DecodeSig(r io.Reader) (wallet.Sig, error) {
 	buf := make(wallet.Sig, SigLen)
 	return buf, perunio.Decode(r, &buf)
