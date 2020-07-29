@@ -19,15 +19,15 @@ import (
 	"encoding/binary"
 	"io"
 	"math"
-	"math/rand"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	pkgtest "perun.network/go-perun/pkg/test"
 )
 
 func TestEncodeDecodeString(t *testing.T) {
 	assert := assert.New(t)
-	rng := rand.New(rand.NewSource(0xdeadbeef))
+	rng := pkgtest.Prng(t)
 	uint8buf, uint16buf := make([]byte, math.MaxUint8), make([]byte, math.MaxUint16)
 	rng.Read(uint8buf)
 	rng.Read(uint16buf)

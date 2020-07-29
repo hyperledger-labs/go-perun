@@ -21,6 +21,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
+	pkgtest "perun.network/go-perun/pkg/test"
 	"perun.network/go-perun/wallet"
 	"perun.network/go-perun/wallet/test"
 )
@@ -30,7 +31,7 @@ import (
 func TestSignatureSerialize(t *testing.T) {
 	a := assert.New(t)
 	// Constant seed for determinism
-	rng := rand.New(rand.NewSource(1337))
+	rng := pkgtest.Prng(t)
 
 	// More iterations are better for catching value dependent bugs
 	for i := 0; i < 10; i++ {
@@ -58,17 +59,19 @@ func TestSignatureSerialize(t *testing.T) {
 func TestGenericTests(t *testing.T) {
 	t.Run("Generic Address Test", func(t *testing.T) {
 		t.Parallel()
-		test.GenericAddressTest(t, newWalletSetup())
+		rng := pkgtest.Prng(t, "address")
+		test.GenericAddressTest(t, newWalletSetup(rng))
 	})
 	t.Run("Generic Signature Test", func(t *testing.T) {
 		t.Parallel()
-		test.GenericSignatureTest(t, newWalletSetup())
-		test.GenericSignatureSizeTest(t, newWalletSetup())
+		rng := pkgtest.Prng(t, "signature")
+		test.GenericSignatureTest(t, newWalletSetup(rng))
+		test.GenericSignatureSizeTest(t, newWalletSetup(rng))
 	})
 
 	// NewRandomAddress is also tested in channel_test but since they are two packages,
 	// we also need to test it here
-	rng := rand.New(rand.NewSource(1337))
+	rng := pkgtest.Prng(t)
 	for i := 0; i < 10; i++ {
 		addr0 := NewRandomAddress(rng)
 		addr1 := NewRandomAddress(rng)
@@ -86,9 +89,7 @@ func TestGenericTests(t *testing.T) {
 	}
 }
 
-func newWalletSetup() *test.Setup {
-	rng := rand.New(rand.NewSource(1337))
-
+func newWalletSetup(rng *rand.Rand) *test.Setup {
 	accountA := NewRandomAccount(rng)
 	accountB := NewRandomAccount(rng)
 	unlockedAccount := func() (wallet.Account, error) { return accountA, nil }

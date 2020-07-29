@@ -15,16 +15,17 @@
 package wallet
 
 import (
-	"math/rand"
 	"testing"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/stretchr/testify/require"
+
+	pkgtest "perun.network/go-perun/pkg/test"
 )
 
 func TestAsWalletAddr(t *testing.T) {
 	t.Run("non-zero-value", func(t *testing.T) {
-		rng := rand.New(rand.NewSource(1929))
+		rng := pkgtest.Prng(t)
 		var commonAddr common.Address
 		rng.Read(commonAddr[:])
 

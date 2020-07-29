@@ -15,17 +15,17 @@
 package client
 
 import (
-	"math/rand"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 
 	channeltest "perun.network/go-perun/channel/test"
+	"perun.network/go-perun/pkg/test"
 	wallettest "perun.network/go-perun/wallet/test"
 )
 
 func TestClient_Channel(t *testing.T) {
-	rng := rand.New(rand.NewSource(0xdeadbeef))
+	rng := test.Prng(t)
 	// dummy client that only has an id and a registry
 	c := &Client{
 		address:  wallettest.NewRandomAddress(rng),

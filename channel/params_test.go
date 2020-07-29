@@ -15,7 +15,6 @@
 package channel_test
 
 import (
-	"math/rand"
 	"testing"
 
 	"perun.network/go-perun/channel/test"
@@ -25,13 +24,13 @@ import (
 )
 
 func TestParams_Clone(t *testing.T) {
-	rng := rand.New(rand.NewSource(0xDDDDD))
+	rng := pkgtest.Prng(t)
 	params := test.NewRandomParams(rng)
 	pkgtest.VerifyClone(t, params)
 }
 
 func TestParams_Serializer(t *testing.T) {
-	rng := rand.New(rand.NewSource(0xC00FED))
+	rng := pkgtest.Prng(t)
 	params := make([]io.Serializer, 10)
 	for i := range params {
 		params[i] = test.NewRandomParams(rng)

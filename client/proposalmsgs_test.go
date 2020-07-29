@@ -28,13 +28,14 @@ import (
 	"perun.network/go-perun/client"
 	"perun.network/go-perun/pkg/io"
 	perunio "perun.network/go-perun/pkg/io"
+	pkgtest "perun.network/go-perun/pkg/test"
 	"perun.network/go-perun/wallet"
 	wallettest "perun.network/go-perun/wallet/test"
 	"perun.network/go-perun/wire"
 )
 
 func TestChannelProposalReq_NilArgs(t *testing.T) {
-	rng := rand.New(rand.NewSource(2020 - 01 - 0x8))
+	rng := pkgtest.Prng(t)
 	c := &client.ChannelProposal{
 		ChallengeDuration: 1,
 		Nonce:             big.NewInt(2),
@@ -58,7 +59,7 @@ func TestChannelProposalReq_NilArgs(t *testing.T) {
 }
 
 func TestChannelProposalReqSerialization(t *testing.T) {
-	rng := rand.New(rand.NewSource(0xdeadbeef))
+	rng := pkgtest.Prng(t)
 	for i := 0; i < 4; i++ {
 		m := &client.ChannelProposal{
 			ChallengeDuration: 0,
@@ -80,7 +81,7 @@ func TestChannelProposalReqDecode_CheckMaxNumParts(t *testing.T) {
 	require := require.New(t)
 	assert := assert.New(t)
 
-	rng := rand.New(rand.NewSource(20191223))
+	rng := pkgtest.Prng(t)
 	c := client.NewRandomChannelProposalReq(rng)
 	buffer := new(bytes.Buffer)
 
@@ -105,9 +106,10 @@ func TestChannelProposalReqDecode_CheckMaxNumParts(t *testing.T) {
 }
 
 func TestChannelProposalReqSessID(t *testing.T) {
-	original := *client.NewRandomChannelProposalReq(rand.New(rand.NewSource(0xc0ffee)))
+	rng := pkgtest.Prng(t)
+	original := *client.NewRandomChannelProposalReq(rng)
 	s := original.SessID()
-	fake := client.NewRandomChannelProposalReq(rand.New(rand.NewSource(0xeeff0c)))
+	fake := client.NewRandomChannelProposalReq(rng)
 
 	assert.NotEqual(t, original.ChallengeDuration, fake.ChallengeDuration)
 	assert.NotEqual(t, original.Nonce, fake.Nonce)
@@ -147,7 +149,7 @@ func TestChannelProposalReqSessID(t *testing.T) {
 }
 
 func TestChannelProposalAccSerialization(t *testing.T) {
-	rng := rand.New(rand.NewSource(0xcafecafe))
+	rng := pkgtest.Prng(t)
 	for i := 0; i < 16; i++ {
 		m := &client.ChannelProposalAcc{
 			SessID:          newRandomSessID(rng),
@@ -158,7 +160,7 @@ func TestChannelProposalAccSerialization(t *testing.T) {
 }
 
 func TestChannelProposalRejSerialization(t *testing.T) {
-	rng := rand.New(rand.NewSource(0xcafecafe))
+	rng := pkgtest.Prng(t)
 	for i := 0; i < 16; i++ {
 		m := &client.ChannelProposalRej{
 			SessID: newRandomSessID(rng),

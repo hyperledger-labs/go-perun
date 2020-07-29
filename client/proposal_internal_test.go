@@ -21,12 +21,13 @@ import (
 	"github.com/stretchr/testify/require"
 
 	channeltest "perun.network/go-perun/channel/test"
+	pkgtest "perun.network/go-perun/pkg/test"
 	"perun.network/go-perun/wallet"
 	wallettest "perun.network/go-perun/wallet/test"
 )
 
 func TestClient_validTwoPartyProposal(t *testing.T) {
-	rng := rand.New(rand.NewSource(0xdeadbeef))
+	rng := pkgtest.Prng(t)
 
 	// dummy client that only has an id
 	c := &Client{

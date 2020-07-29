@@ -16,7 +16,6 @@ package simple
 
 import (
 	"context"
-	"math/rand"
 	"testing"
 	"time"
 
@@ -40,7 +39,7 @@ func TestNewUnixDialer(t *testing.T) {
 }
 
 func TestDialer_Register(t *testing.T) {
-	rng := rand.New(rand.NewSource(0xDDDDdede))
+	rng := test.Prng(t)
 	addr := simwallet.NewRandomAddress(rng)
 	key := wallet.Key(addr)
 	d := NewTCPDialer(0)
@@ -57,7 +56,7 @@ func TestDialer_Register(t *testing.T) {
 
 func TestDialer_Dial(t *testing.T) {
 	timeout := 100 * time.Millisecond
-	rng := rand.New(rand.NewSource(0xDDDDdede))
+	rng := test.Prng(t)
 	lhost := "127.0.0.1:7357"
 	laddr := simwallet.NewRandomAddress(rng)
 

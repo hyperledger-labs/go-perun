@@ -17,7 +17,6 @@ package client_test
 import (
 	"context"
 	"math/big"
-	"math/rand"
 	"sync"
 	"testing"
 	"time"
@@ -31,6 +30,7 @@ import (
 	ethwtest "perun.network/go-perun/backend/ethereum/wallet/test"
 	clienttest "perun.network/go-perun/client/test"
 	"perun.network/go-perun/log"
+	pkgtest "perun.network/go-perun/pkg/test"
 	"perun.network/go-perun/wire"
 )
 
@@ -38,7 +38,7 @@ var defaultTimeout = 5 * time.Second
 
 func TestHappyAliceBob(t *testing.T) {
 	log.Info("Starting happy test")
-	rng := rand.New(rand.NewSource(0x1337))
+	rng := pkgtest.Prng(t)
 
 	const A, B = 0, 1 // Indices of Alice and Bob
 	var (

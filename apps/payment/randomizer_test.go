@@ -15,17 +15,17 @@
 package payment
 
 import (
-	"math/rand"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 
 	_ "perun.network/go-perun/backend/sim" // backend init
+	pkgtest "perun.network/go-perun/pkg/test"
 	"perun.network/go-perun/wallet/test"
 )
 
 func TestRandomizer(t *testing.T) {
-	rng := rand.New(rand.NewSource(0))
+	rng := pkgtest.Prng(t)
 	if backend.def == nil {
 		SetAppDef(test.NewRandomAddress(rng))
 		// Reset app def during cleanup in case this test runs before TestBackend,

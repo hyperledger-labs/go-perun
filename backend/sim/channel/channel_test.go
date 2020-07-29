@@ -15,21 +15,21 @@
 package channel
 
 import (
-	"math/rand"
 	"testing"
 
 	chtest "perun.network/go-perun/channel/test"
+	pkgtest "perun.network/go-perun/pkg/test"
 	"perun.network/go-perun/wallet"
 	wtest "perun.network/go-perun/wallet/test"
 )
 
 func TestGenericTests(t *testing.T) {
-	setup := newChannelSetup()
+	setup := newChannelSetup(t)
 	chtest.GenericBackendTest(t, setup)
 }
 
-func newChannelSetup() *chtest.Setup {
-	rng := rand.New(rand.NewSource(1337))
+func newChannelSetup(t *testing.T) *chtest.Setup {
+	rng := pkgtest.Prng(t)
 
 	params, state := chtest.NewRandomParamsAndState(rng, chtest.WithNumLocked(int(rng.Int31n(4)+1)))
 	params2, state2 := chtest.NewRandomParamsAndState(rng, chtest.WithIsFinal(!state.IsFinal), chtest.WithNumLocked(int(rng.Int31n(4)+1)))

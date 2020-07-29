@@ -16,7 +16,6 @@ package test
 
 import (
 	"context"
-	"math/rand"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -25,13 +24,14 @@ import (
 	_ "perun.network/go-perun/backend/sim" // backend init
 	"perun.network/go-perun/pkg/sync"
 	"perun.network/go-perun/pkg/test"
+	pkgtest "perun.network/go-perun/pkg/test"
 	wallettest "perun.network/go-perun/wallet/test"
 	"perun.network/go-perun/wire"
 	wiretest "perun.network/go-perun/wire/test"
 )
 
 func TestConnHub_Create(t *testing.T) {
-	rng := rand.New(rand.NewSource(0xDDDDDEDE))
+	rng := pkgtest.Prng(t)
 	t.Run("create and dial existing", func(t *testing.T) {
 		assert := assert.New(t)
 
@@ -103,7 +103,7 @@ func TestConnHub_Create(t *testing.T) {
 }
 
 func TestConnHub_Close(t *testing.T) {
-	rng := rand.New(rand.NewSource(0xDDDDDEDE))
+	rng := pkgtest.Prng(t)
 	t.Run("nonempty close", func(t *testing.T) {
 		assert := assert.New(t)
 

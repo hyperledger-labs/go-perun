@@ -15,7 +15,6 @@
 package channel_test
 
 import (
-	"math/rand"
 	"testing"
 
 	"perun.network/go-perun/channel"
@@ -25,7 +24,7 @@ import (
 )
 
 func TestTransactionSerialization(t *testing.T) {
-	rng := rand.New(rand.NewSource(1337))
+	rng := pkgtest.Prng(t)
 	lengths := []int{2, 5, 10, 40}
 	var tests [][]bool
 	for _, l := range lengths {
@@ -80,7 +79,7 @@ func newStripedBoolSlice(size int, choice bool) []bool {
 }
 
 func TestTransactionClone(t *testing.T) {
-	rng := rand.New(rand.NewSource(0xDDD))
+	rng := pkgtest.Prng(t)
 	size := int(rng.Int31n(5)) + 2
 	testmask := newUniformBoolSlice(size, true)
 	tx := *test.NewRandomTransaction(rng, testmask)

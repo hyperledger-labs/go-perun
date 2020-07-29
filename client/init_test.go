@@ -22,6 +22,7 @@ import (
 	"perun.network/go-perun/apps/payment"
 	_ "perun.network/go-perun/backend/sim" // backend init
 	plogrus "perun.network/go-perun/log/logrus"
+	pkgtest "perun.network/go-perun/pkg/test"
 	wallettest "perun.network/go-perun/wallet/test"
 )
 
@@ -31,7 +32,7 @@ func init() {
 	plogrus.Set(logrus.WarnLevel, &logrus.TextFormatter{ForceColors: true})
 
 	// Tests of package client use the payment app for now...
-	rng := rand.New(rand.NewSource(0x9a09c3e008f1242))
+	rng := rand.New(rand.NewSource(pkgtest.Seed("test app def")))
 	appDef := wallettest.NewRandomAddress(rng)
 	payment.SetAppDef(appDef) // payment app address has to be set once at startup
 }

@@ -16,7 +16,6 @@ package wallet_test
 
 import (
 	"io"
-	"math/rand"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -41,7 +40,7 @@ func (t *testAddresses) Decode(r io.Reader) error {
 }
 
 func TestAddresses_Serializer(t *testing.T) {
-	rng := rand.New(rand.NewSource(0xC00FED))
+	rng := pkgtest.Prng(t)
 
 	addrs := wallettest.NewRandomAddresses(rng, 0)
 	iotest.GenericSerializerTest(t, &testAddresses{addrs})

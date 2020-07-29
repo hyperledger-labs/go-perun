@@ -22,11 +22,12 @@ import (
 	chprtest "perun.network/go-perun/channel/persistence/test"
 	chtest "perun.network/go-perun/channel/test"
 	ctest "perun.network/go-perun/client/test"
+	"perun.network/go-perun/pkg/test"
 	"perun.network/go-perun/wire"
 )
 
 func TestPersistencePetraRobert(t *testing.T) {
-	rng := rand.New(rand.NewSource(0x70707))
+	rng := test.Prng(t)
 	setups := NewSetupsPersistence(t, rng, []string{"Petra", "Robert"})
 	roles := [2]ctest.Executer{
 		ctest.NewPetra(setups[0], t),

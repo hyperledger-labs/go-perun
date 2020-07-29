@@ -15,17 +15,17 @@
 package io_test
 
 import (
-	"math/rand"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 
 	"perun.network/go-perun/pkg/io"
+	pkgtest "perun.network/go-perun/pkg/test"
 )
 
 // TestEqualEncoding tests EqualEncoding
 func TestEqualEncoding(t *testing.T) {
-	rng := rand.New(rand.NewSource(1337))
+	rng := pkgtest.Prng(t)
 	a := make(io.ByteSlice, 10)
 	b := make(io.ByteSlice, 10)
 	c := make(io.ByteSlice, 12)

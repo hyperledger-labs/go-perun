@@ -21,6 +21,7 @@ import (
 
 	"perun.network/go-perun/apps/payment"
 	plogrus "perun.network/go-perun/log/logrus"
+	pkgtest "perun.network/go-perun/pkg/test"
 	wallettest "perun.network/go-perun/wallet/test"
 )
 
@@ -31,7 +32,7 @@ func init() {
 	// TODO: This has to be set to the deployed app contract (or counterfactual
 	// address of it) when we start using it in tests.
 	// Use random seed that should be different from other seeds used in tests.
-	rng := rand.New(rand.NewSource(0x280a0f350eec))
+	rng := rand.New(rand.NewSource(pkgtest.Seed("test app def")))
 	appDef := wallettest.NewRandomAddress(rng)
 	payment.SetAppDef(appDef) // payment app address has to be set once at startup
 }

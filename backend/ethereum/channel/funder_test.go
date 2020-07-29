@@ -55,7 +55,7 @@ func TestFunderZeroBalance(t *testing.T) {
 }
 
 func testFunderZeroBalance(t *testing.T, n int) {
-	rng := rand.New(rand.NewSource(0xDDD))
+	rng := pkgtest.Prng(t)
 	parts, funders, _, params, allocation := newNFunders(context.Background(), t, rng, n)
 
 	for i := range parts {
@@ -94,10 +94,7 @@ func testFunderZeroBalance(t *testing.T, n int) {
 }
 
 func TestFunder_Fund(t *testing.T) {
-	// Need unique seed per run.
-	seed := time.Now().UnixNano()
-	t.Logf("seed is %d", seed)
-	rng := rand.New(rand.NewSource(seed))
+	rng := pkgtest.Prng(t)
 	ctx, cancel := context.WithTimeout(context.Background(), defaultTxTimeout)
 	defer cancel()
 	parts, funders, _, params, allocation := newNFunders(ctx, t, rng, 1)
@@ -149,13 +146,8 @@ func testFundingTimeout(t *testing.T, faultyPeer, peers int) {
 	t.Parallel()
 	ctx, cancel := context.WithTimeout(context.Background(), defaultTxTimeout)
 	defer cancel()
-	// Need unique seed per run.
-	seed := time.Now().UnixNano()
-	t.Logf("seed is %d", seed)
-	rng := rand.New(rand.NewSource(seed))
-
+	rng := pkgtest.Prng(t)
 	ct := pkgtest.NewConcurrent(t)
-
 	_, funders, _, params, allocation := newNFunders(ctx, t, rng, peers)
 
 	for i, funder := range funders {
@@ -202,13 +194,8 @@ func TestFunder_Fund_multi(t *testing.T) {
 func testFunderFunding(t *testing.T, n int) {
 	ctx, cancel := context.WithTimeout(context.Background(), defaultTxTimeout)
 	defer cancel()
-	// Need unique seed per run.
-	seed := time.Now().UnixNano()
-	t.Logf("seed is %d", seed)
-	rng := rand.New(rand.NewSource(seed))
-
+	rng := pkgtest.Prng(t)
 	ct := pkgtest.NewConcurrent(t)
-
 	_, funders, _, params, allocation := newNFunders(ctx, t, rng, n)
 
 	for i, funder := range funders {
@@ -272,10 +259,7 @@ func newNFunders(
 func newSimulatedFunder(t *testing.T) *ethchannel.Funder {
 	ctx, cancel := context.WithTimeout(context.Background(), defaultTxTimeout)
 	defer cancel()
-	// Need unique seed per run.
-	seed := time.Now().UnixNano()
-	t.Logf("seed is %d", seed)
-	rng := rand.New(rand.NewSource(seed))
+	rng := pkgtest.Prng(t)
 	_, funder, _, _, _ := newNFunders(ctx, t, rng, 1)
 	return funder[0]
 }

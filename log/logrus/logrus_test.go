@@ -18,16 +18,16 @@ import (
 	"bytes"
 	"encoding/hex"
 	"errors"
-	"math/rand"
 	"testing"
-
-	_ "perun.network/go-perun/backend/sim" // backend init
-	"perun.network/go-perun/log"
-	wtest "perun.network/go-perun/wallet/test"
 
 	"github.com/sirupsen/logrus"
 	"github.com/sirupsen/logrus/hooks/test"
 	"github.com/stretchr/testify/assert"
+
+	_ "perun.network/go-perun/backend/sim" // backend init
+	"perun.network/go-perun/log"
+	pkgtest "perun.network/go-perun/pkg/test"
+	wtest "perun.network/go-perun/wallet/test"
 )
 
 func TestLogrus(t *testing.T) {
@@ -48,7 +48,7 @@ func testLogrusInfo(t *testing.T) {
 }
 
 func testLogrusStringer(t *testing.T) {
-	rng := rand.New(rand.NewSource(0xDDDDD))
+	rng := pkgtest.Prng(t)
 	addr := wtest.NewRandomAddress(rng)
 	var data [32]byte
 	rng.Read(data[:])

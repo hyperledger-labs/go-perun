@@ -15,16 +15,16 @@
 package test
 
 import (
-	"math/rand"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 
+	pkgtest "perun.network/go-perun/pkg/test"
 	"perun.network/go-perun/wallet/test"
 )
 
 func TestListenerMap_find(t *testing.T) {
-	rng := rand.New(rand.NewSource(0xb0bafedd))
+	rng := pkgtest.Prng(t)
 
 	t.Run("empty map", func(t *testing.T) {
 		m := listenerMap{}
@@ -50,7 +50,7 @@ func TestListenerMap_find(t *testing.T) {
 }
 
 func TestListenerMap_insert(t *testing.T) {
-	rng := rand.New(rand.NewSource(0xb0bafedd))
+	rng := pkgtest.Prng(t)
 
 	t.Run("insert new", func(t *testing.T) {
 		m := listenerMap{}
@@ -71,7 +71,7 @@ func TestListenerMap_insert(t *testing.T) {
 }
 
 func TestListenerMap_erase(t *testing.T) {
-	rng := rand.New(rand.NewSource(0xb0bafedd))
+	rng := pkgtest.Prng(t)
 
 	t.Run("erase existing", func(t *testing.T) {
 		m := listenerMap{}

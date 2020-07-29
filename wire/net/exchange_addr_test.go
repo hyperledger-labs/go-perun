@@ -16,20 +16,19 @@ package net
 
 import (
 	"context"
-	"math/rand"
 	"sync"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 
-	pkgtest "perun.network/go-perun/pkg/test"
+	"perun.network/go-perun/pkg/test"
 	wallettest "perun.network/go-perun/wallet/test"
 	"perun.network/go-perun/wire"
 	wiretest "perun.network/go-perun/wire/test"
 )
 
 func TestExchangeAddrs_ConnFail(t *testing.T) {
-	rng := rand.New(rand.NewSource(0xDDDDDEDE))
+	rng := test.Prng(t)
 	a, _ := newPipeConnPair()
 	a.Close()
 	addr, err := ExchangeAddrsPassive(context.Background(), wallettest.NewRandomAccount(rng), a)
@@ -38,7 +37,7 @@ func TestExchangeAddrs_ConnFail(t *testing.T) {
 }
 
 func TestExchangeAddrs_Success(t *testing.T) {
-	rng := rand.New(rand.NewSource(0xfedd))
+	rng := test.Prng(t)
 	conn0, conn1 := newPipeConnPair()
 	defer conn0.Close()
 	account0, account1 := wallettest.NewRandomAccount(rng), wallettest.NewRandomAccount(rng)
@@ -61,12 +60,12 @@ func TestExchangeAddrs_Success(t *testing.T) {
 }
 
 func TestExchangeAddrs_Timeout(t *testing.T) {
-	rng := rand.New(rand.NewSource(0xDDDDDeDe))
+	rng := test.Prng(t)
 	a, _ := newPipeConnPair()
 
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
-	pkgtest.AssertTerminates(t, 2*timeout, func() {
+	test.AssertTerminates(t, 2*timeout, func() {
 		addr, err := ExchangeAddrsPassive(ctx, wallettest.NewRandomAccount(rng), a)
 		assert.Nil(t, addr)
 		assert.Error(t, err)
@@ -74,7 +73,7 @@ func TestExchangeAddrs_Timeout(t *testing.T) {
 }
 
 func TestExchangeAddrs_BogusMsg(t *testing.T) {
-	rng := rand.New(rand.NewSource(0xcafe))
+	rng := test.Prng(t)
 	acc := wallettest.NewRandomAccount(rng)
 	conn := newMockConn(nil)
 	conn.recvQueue <- wiretest.NewRandomEnvelope(rng, wire.NewPingMsg())

@@ -15,7 +15,6 @@
 package payment
 
 import (
-	"math/rand"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -29,7 +28,7 @@ import (
 func TestBackend(t *testing.T) {
 	pkgtest.OnlyOnce(t)
 
-	rng := rand.New(rand.NewSource(0))
+	rng := pkgtest.Prng(t)
 	assert, require := assert.New(t), require.New(t)
 
 	require.NotNil(backend, "init() should have initialized the backend")

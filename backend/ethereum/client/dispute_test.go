@@ -17,7 +17,6 @@ package client_test
 import (
 	"context"
 	"math/big"
-	"math/rand"
 	"sync"
 	"testing"
 
@@ -30,12 +29,13 @@ import (
 	ethwtest "perun.network/go-perun/backend/ethereum/wallet/test"
 	clienttest "perun.network/go-perun/client/test"
 	"perun.network/go-perun/log"
+	pkgtest "perun.network/go-perun/pkg/test"
 	"perun.network/go-perun/wire"
 )
 
 func TestDisputeMalloryCarol(t *testing.T) {
 	log.Info("Starting dispute test")
-	rng := rand.New(rand.NewSource(0xc0ffee))
+	rng := pkgtest.Prng(t)
 
 	const A, B = 0, 1 // Indices of Mallory and Carol
 	var (
