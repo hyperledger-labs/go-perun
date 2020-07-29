@@ -67,7 +67,7 @@ func (t *KeyStoreTransactor) NewTransactor(account accounts.Account) (*bind.Tran
 // This is needed to send on-chain transaction to interact with the smart contracts.
 type ContractBackend struct {
 	ContractInterface
-	ks      *keystore.KeyStore
+	tr      Transactor
 	account *accounts.Account
 }
 
@@ -75,7 +75,7 @@ type ContractBackend struct {
 func NewContractBackend(cf ContractInterface, ks *keystore.KeyStore, acc *accounts.Account) ContractBackend {
 	return ContractBackend{
 		ContractInterface: cf,
-		ks:                ks,
+		tr:                &KeyStoreTransactor{ks: ks},
 		account:           acc,
 	}
 }
@@ -136,9 +136,9 @@ func (c *ContractBackend) NewTransactor(ctx context.Context, valueWei *big.Int, 
 		return nil, errors.Wrap(err, "querying suggested gas price")
 	}
 
-	auth, err := bind.NewKeyStoreTransactor(c.ks, *c.account)
+	auth, err := c.tr.NewTransactor(*c.account)
 	if err != nil {
-		return nil, errors.Wrap(err, "creating transactor")
+		return nil, errors.WithMessage(err, "creating transactor")
 	}
 
 	auth.Nonce = new(big.Int).SetUint64(nonce)
