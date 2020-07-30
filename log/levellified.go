@@ -16,10 +16,10 @@ package log
 
 import "log"
 
-// Default level shift, such that Level value 0 is the default log level
+// Default level shift, such that Level value 0 is the default log level.
 const defaultLogLevelShift = 3 // WarnLevel
 
-// compile-time check that Levellified extends a StdLogger to a LevelLogger
+// compile-time check that Levellified extends a StdLogger to a LevelLogger.
 var _ LevelLogger = &Levellified{StdLogger: &log.Logger{}}
 
 // Levellified levellifies a standard logger. Calls are just forwarded to the wrapped
@@ -162,7 +162,7 @@ func (l *Levellified) lprintf(lvl Level, format string, args ...interface{}) {
 	}
 }
 
-// prepend prepends a slice args with element pre
+// prepend prepends a slice args with element pre.
 func prepend(pre interface{}, args []interface{}) []interface{} {
 	return append([]interface{}{pre}, args...)
 }

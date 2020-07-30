@@ -29,7 +29,7 @@ type AppRandomizer interface {
 
 var appRandomizer AppRandomizer = &MockAppRandomizer{}
 
-// isAppRandomizerSet whether the appRandomizer was already set with `SetAppRandomizer`
+// isAppRandomizerSet whether the appRandomizer was already set with `SetAppRandomizer`.
 var isAppRandomizerSet bool
 
 // SetAppRandomizer sets the global appRandomizer.

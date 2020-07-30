@@ -87,15 +87,16 @@ func TestEventually(t *testing.T) {
 			{time.Millisecond, 2 * time.Millisecond, 2},
 		}
 
-		for _, etest := range tests {
+		for _, _test := range tests {
+			test := _test
 			numCalls := uint(0)
 			tt.AssertErrorN(func(t T) {
 				Eventually(t, func(t T) {
 					numCalls++
 					t.Errorf("")
-				}, etest.within, etest.pause)
+				}, test.within, test.pause)
 			}, 1)
-			assert.Equal(t, etest.numCalls, numCalls)
+			assert.Equal(t, test.numCalls, numCalls)
 		}
 	})
 }

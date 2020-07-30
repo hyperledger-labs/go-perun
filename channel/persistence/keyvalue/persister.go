@@ -32,8 +32,8 @@ import (
 )
 
 // ChannelCreated inserts a channel into the database.
-func (p *PersistRestorer) ChannelCreated(_ context.Context, s channel.Source, peers []wire.Address) error {
-	db := p.channelDB(s.ID()).NewBatch()
+func (pr *PersistRestorer) ChannelCreated(_ context.Context, s channel.Source, peers []wire.Address) error {
+	db := pr.channelDB(s.ID()).NewBatch()
 	// Write the channel data in the "Channel" table.
 	numParts := len(s.Params().Parts)
 	keys := append([]string{"current", "index", "params", "peers", "phase", "staging:state"},
@@ -43,7 +43,7 @@ func (p *PersistRestorer) ChannelCreated(_ context.Context, s channel.Source, pe
 	}
 
 	// Register the channel in the "Peer" table.
-	peerdb := sortedkv.NewTable(p.db, prefix.PeerDB).NewBatch()
+	peerdb := sortedkv.NewTable(pr.db, prefix.PeerDB).NewBatch()
 	for _, peer := range peers {
 		key, err := peerChannelKey(peer, s.ID())
 		if err != nil {
@@ -68,11 +68,11 @@ func sigKey(idx, numParts int) string {
 }
 
 // ChannelRemoved deletes a channel from the database.
-func (p *PersistRestorer) ChannelRemoved(_ context.Context, id channel.ID) error {
-	db := p.channelDB(id).NewBatch()
-	peerdb := sortedkv.NewTable(p.db, prefix.PeerDB).NewBatch()
+func (pr *PersistRestorer) ChannelRemoved(_ context.Context, id channel.ID) error {
+	db := pr.channelDB(id).NewBatch()
+	peerdb := sortedkv.NewTable(pr.db, prefix.PeerDB).NewBatch()
 	// All keys a channel has.
-	params, err := p.getParamsForChan(id)
+	params, err := pr.getParamsForChan(id)
 	if err != nil {
 		return err
 	}
@@ -85,7 +85,7 @@ func (p *PersistRestorer) ChannelRemoved(_ context.Context, id channel.ID) error
 		}
 	}
 
-	peers, err := p.peersForChan(id)
+	peers, err := pr.peersForChan(id)
 	if err != nil {
 		return errors.WithMessage(err, "retrieving peers for channel")
 	}
@@ -107,9 +107,9 @@ func (p *PersistRestorer) ChannelRemoved(_ context.Context, id channel.ID) error
 
 // peersForChan returns a slice of peer addresses for a given channel id from
 // the db of PersistRestorer.
-func (p *PersistRestorer) peersForChan(id channel.ID) ([]wire.Address, error) {
+func (pr *PersistRestorer) peersForChan(id channel.ID) ([]wire.Address, error) {
 	var ps wire.AddressesWithLen
-	peers, err := p.channelDB(id).Get(prefix.Peers)
+	peers, err := pr.channelDB(id).Get(prefix.Peers)
 	if err != nil {
 		return nil, errors.WithMessage(err, "unable to get peerlist from db")
 	}
@@ -119,9 +119,9 @@ func (p *PersistRestorer) peersForChan(id channel.ID) ([]wire.Address, error) {
 
 // getParamsForChan returns the channel parameters for a given channel id from
 // the db.
-func (p *PersistRestorer) getParamsForChan(id channel.ID) (channel.Params, error) {
+func (pr *PersistRestorer) getParamsForChan(id channel.ID) (channel.Params, error) {
 	params := channel.Params{}
-	b, err := p.channelDB(id).GetBytes("params")
+	b, err := pr.channelDB(id).GetBytes("params")
 	if err != nil {
 		return params, errors.WithMessage(err, "unable to retrieve params from db")
 	}
@@ -141,8 +141,8 @@ func sigKeys(numParts int) []string {
 }
 
 // Staged persists the staging transaction as well as the channel's phase.
-func (p *PersistRestorer) Staged(_ context.Context, s channel.Source) error {
-	db := p.channelDB(s.ID()).NewBatch()
+func (pr *PersistRestorer) Staged(_ context.Context, s channel.Source) error {
+	db := pr.channelDB(s.ID()).NewBatch()
 
 	if err := dbPutSource(db, s, "staging:state", "phase"); err != nil {
 		return err
@@ -152,8 +152,8 @@ func (p *PersistRestorer) Staged(_ context.Context, s channel.Source) error {
 }
 
 // SigAdded persists the channel's staging transaction.
-func (p *PersistRestorer) SigAdded(_ context.Context, s channel.Source, idx channel.Index) error {
-	db := p.channelDB(s.ID()).NewBatch()
+func (pr *PersistRestorer) SigAdded(_ context.Context, s channel.Source, idx channel.Index) error {
+	db := pr.channelDB(s.ID()).NewBatch()
 
 	numParts := len(s.Params().Parts)
 	key := sigKey(int(idx), numParts)
@@ -165,8 +165,8 @@ func (p *PersistRestorer) SigAdded(_ context.Context, s channel.Source, idx chan
 }
 
 // Enabled persists the channel's staging and current transaction, and phase.
-func (p *PersistRestorer) Enabled(_ context.Context, s channel.Source) error {
-	db := p.channelDB(s.ID()).NewBatch()
+func (pr *PersistRestorer) Enabled(_ context.Context, s channel.Source) error {
+	db := pr.channelDB(s.ID()).NewBatch()
 
 	numParts := len(s.Params().Parts)
 	keys := append([]string{"staging:state", "current", "phase"}, sigKeys(numParts)...)
@@ -177,8 +177,8 @@ func (p *PersistRestorer) Enabled(_ context.Context, s channel.Source) error {
 }
 
 // PhaseChanged persists the channel's phase.
-func (p *PersistRestorer) PhaseChanged(_ context.Context, s channel.Source) error {
-	return dbPut(p.channelDB(s.ID()), "phase", s.Phase())
+func (pr *PersistRestorer) PhaseChanged(_ context.Context, s channel.Source) error {
+	return dbPut(pr.channelDB(s.ID()), "phase", s.Phase())
 }
 
 func dbPutSource(db sortedkv.Writer, s channel.Source, keys ...string) error {
@@ -243,12 +243,13 @@ func sigKeyIndex(key string) (int, bool) {
 }
 
 // decodeIdxFromDBKey decodes the encoded idx within a db key of the following
-// form : "Colon:Separated:Key:IDX"
+// form : "Colon:Separated:Key:IDX".
 func decodeIdxFromDBKey(key string) (int, error) {
 	vals := strings.Split(key, ":")
 	return strconv.Atoi(vals[len(vals)-1])
 }
 
+// nolint:interfacer
 func peerChannelKey(p wire.Address, ch channel.ID) (string, error) {
 	var key bytes.Buffer
 	if err := p.Encode(&key); err != nil {
@@ -262,6 +263,6 @@ func peerChannelKey(p wire.Address, ch channel.ID) (string, error) {
 }
 
 // channelDB creates a prefixed database for persisting a channel's data.
-func (p *PersistRestorer) channelDB(id channel.ID) sortedkv.Database {
-	return sortedkv.NewTable(p.db, prefix.ChannelDB+string(id[:])+":")
+func (pr *PersistRestorer) channelDB(id channel.ID) sortedkv.Database {
+	return sortedkv.NewTable(pr.db, prefix.ChannelDB+string(id[:])+":")
 }

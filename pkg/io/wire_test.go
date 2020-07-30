@@ -39,7 +39,9 @@ func TestWrongTypes(t *testing.T) {
 	}
 
 	d := make([]interface{}, len(values))
-	for i, v := range values {
+	for _i, _v := range values {
+		v := _v
+		i := _i
 		panics, _ := peruntest.CheckPanic(func() { Encode(w, v) })
 		assert.True(t, panics, "Encode() must panic on invalid type %T", v)
 

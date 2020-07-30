@@ -114,6 +114,7 @@ func (r *UpdateResponder) Reject(ctx context.Context, reason string) error {
 //
 // It returns nil if all peers accept the update. If any runtime error occurs or
 // any peer rejects the update, an error is returned.
+// nolint: funlen
 func (c *Channel) Update(ctx context.Context, up ChannelUpdate) (err error) {
 	if ctx == nil {
 		return errors.New("context must not be nil")
@@ -151,6 +152,7 @@ func (c *Channel) Update(ctx context.Context, up ChannelUpdate) (err error) {
 	if err != nil {
 		return errors.WithMessage(err, "creating update response receiver")
 	}
+	// nolint:errcheck
 	defer resRecv.Close()
 
 	msgUpdate := &msgChannelUpdate{
@@ -165,7 +167,7 @@ func (c *Channel) Update(ctx context.Context, up ChannelUpdate) (err error) {
 	if err != nil {
 		return errors.WithMessage(err, "receiving update response")
 	}
-	c.log.Tracef("Received update response (%T): %v", res, res)
+	c.Log().Tracef("Received update response (%T): %v", res, res)
 
 	if rej, ok := res.(*msgChannelUpdateRej); ok {
 		return errors.Errorf("update rejected: %s", rej.Reason)
@@ -324,7 +326,7 @@ func (c *Channel) SubUpdates(updateSub chan<- *channel.State) {
 // validTwoPartyUpdate performs additional protocol-dependent checks on the
 // proposed update that go beyond the machine's checks:
 // * actor and signer must be the same
-// * no locked sub-allocations
+// * no locked sub-allocations.
 func (c *Channel) validTwoPartyUpdate(up ChannelUpdate, sigIdx channel.Index) error {
 	if up.ActorIdx != sigIdx {
 		return errors.Errorf(

@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package net // import "perun.network/go-perun/wire/net"
+package net
 
 import (
 	"context"

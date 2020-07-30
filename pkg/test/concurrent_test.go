@@ -56,7 +56,7 @@ func TestConcurrentT_Wait(t *testing.T) {
 
 	t.Run("known name", func(t *testing.T) {
 		ct := NewConcurrent(t)
-		go ct.Stage("known", func(t require.TestingT) {
+		go ct.Stage("known", func(require.TestingT) {
 			time.Sleep(timeout / 2)
 		})
 		AssertTerminates(t, timeout, func() { ct.Wait("known") })
@@ -154,16 +154,16 @@ func TestConcurrentT_StageN(t *testing.T) {
 	t.Run("too few goroutines", func(t *testing.T) {
 		ct := NewConcurrent(t)
 		AssertNotTerminates(t, timeout, func() {
-			ct.StageN("stage", 2, func(t require.TestingT) {})
+			ct.StageN("stage", 2, func(require.TestingT) {})
 		})
 	})
 
 	t.Run("too many goroutines", func(t *testing.T) {
 		ct := NewConcurrent(t)
-		go ct.StageN("stage", 2, func(t require.TestingT) {})
-		ct.StageN("stage", 2, func(t require.TestingT) {})
+		go ct.StageN("stage", 2, func(require.TestingT) {})
+		ct.StageN("stage", 2, func(require.TestingT) {})
 		assert.Panics(t, func() {
-			ct.StageN("stage", 2, func(t require.TestingT) {})
+			ct.StageN("stage", 2, func(require.TestingT) {})
 		})
 	})
 
@@ -172,13 +172,13 @@ func TestConcurrentT_StageN(t *testing.T) {
 		var created sync.WaitGroup
 		created.Add(1)
 
-		go ct.StageN("stage", 2, func(t require.TestingT) {
+		go ct.StageN("stage", 2, func(require.TestingT) {
 			created.Done()
 		})
 
 		created.Wait()
 		assert.Panics(t, func() {
-			ct.StageN("stage", 3, func(t require.TestingT) {})
+			ct.StageN("stage", 3, func(require.TestingT) {})
 		})
 	})
 

@@ -173,7 +173,7 @@ func errorReason(ctx context.Context, b *ContractBackend, tx *types.Transaction,
 	return unpackError(res)
 }
 
-// Keccak256("Error(string)")[:4]
+// Keccak256("Error(string)")[:4].
 var errorSig = []byte{0x08, 0xc3, 0x79, 0xa0}
 
 func unpackError(result []byte) (string, error) {
@@ -188,6 +188,7 @@ func unpackError(result []byte) (string, error) {
 }
 
 // ContractBytecodeError signals invalid bytecode at given address, such as incorrect or no code.
+// nolint:stylecheck
 var ContractBytecodeError = stderrors.New("invalid bytecode at address")
 
 // IsContractBytecodeError returns whether the cause of the error was a invalid bytecode.

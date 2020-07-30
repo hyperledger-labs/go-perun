@@ -43,6 +43,7 @@ func (a *Adjudicator) Withdraw(ctx context.Context, req channel.AdjudicatorReq) 
 func (a *Adjudicator) ensureWithdrawn(ctx context.Context, req channel.AdjudicatorReq) error {
 	g, ctx := errgroup.WithContext(ctx)
 
+	// nolint:scopelint
 	for index, asset := range req.Tx.Allocation.Assets {
 		// Skip zero balance withdrawals
 		if req.Tx.Allocation.Balances[index][req.Idx].Sign() == 0 {
@@ -68,7 +69,7 @@ func (a *Adjudicator) ensureWithdrawn(ctx context.Context, req channel.Adjudicat
 			defer sub.Unsubscribe()
 
 			// Filter past events
-			if found, err := a.filterWithdrawn(ctx, req.Params.ID(), fundingID, contract); err != nil {
+			if found, err := a.filterWithdrawn(ctx, fundingID, contract); err != nil {
 				return errors.WithMessage(err, "filtering old Withdrawn events")
 			} else if found {
 				return nil
@@ -105,7 +106,7 @@ func bindAssetHolder(backend ContractBackend, asset channel.Asset, assetIndex in
 }
 
 // filterWithdrawn returns whether there has been a Withdrawn event in the past.
-func (a *Adjudicator) filterWithdrawn(ctx context.Context, channelID channel.ID, fundingID [32]byte, asset assetHolder) (bool, error) {
+func (a *Adjudicator) filterWithdrawn(ctx context.Context, fundingID [32]byte, asset assetHolder) (bool, error) {
 	filterOpts, err := a.NewFilterOpts(ctx)
 	if err != nil {
 		return false, err
@@ -114,6 +115,7 @@ func (a *Adjudicator) filterWithdrawn(ctx context.Context, channelID channel.ID,
 	if err != nil {
 		return false, errors.Wrap(err, "creating iterator")
 	}
+	// nolint:errcheck
 	defer iter.Close()
 
 	if !iter.Next() {

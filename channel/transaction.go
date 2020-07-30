@@ -32,7 +32,7 @@ type Transaction struct {
 
 var _ perunio.Serializer = (*Transaction)(nil)
 
-// Clone returns a deep copy of Transaction
+// Clone returns a deep copy of Transaction.
 func (t Transaction) Clone() Transaction {
 	return Transaction{
 		State: t.State.Clone(),
@@ -40,7 +40,7 @@ func (t Transaction) Clone() Transaction {
 	}
 }
 
-// Encode encodes a transaction into an `io.Writer` or returns an `error`
+// Encode encodes a transaction into an `io.Writer` or returns an `error`.
 func (t Transaction) Encode(w io.Writer) error {
 	// Encode stateSet == 0
 	if t.State == nil {
@@ -54,7 +54,7 @@ func (t Transaction) Encode(w io.Writer) error {
 	return wallet.EncodeSparseSigs(w, t.Sigs)
 }
 
-// Decode decodes a transaction from an `io.Reader` or returns an `error`
+// Decode decodes a transaction from an `io.Reader` or returns an `error`.
 func (t *Transaction) Decode(r io.Reader) error {
 	// Decode stateSet
 	var stateSet uint8

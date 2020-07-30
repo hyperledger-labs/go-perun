@@ -100,7 +100,6 @@ func testMutexTryLockCtx(
 	unlockDelay time.Duration,
 	lockTimeout time.Duration,
 	expectSuccess bool) {
-
 	t.Helper()
 	unlockDelay *= timeout
 	lockTimeout *= timeout

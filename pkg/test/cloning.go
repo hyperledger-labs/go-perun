@@ -55,6 +55,11 @@ func VerifyClone(t *testing.T, x interface{}) {
 	}
 }
 
+const (
+	shallowTag         = "shallow"
+	shallowElementsTag = "shallowElements"
+)
+
 // isCloneable checks if the given type possesses a method `Clone`.  Receiver
 // and return value can be values or references, e.g., with a method `func (*T)
 // Clone() T`, the type `T` is considered cloneable.
@@ -215,7 +220,8 @@ func validateInput(v, w reflect.Value) error {
 
 func checkTags(f reflect.StructField, t reflect.Type, tag string, kind reflect.Kind) error {
 	// find unknown and misplaced tags
-	if tag == "shallow" {
+	// nolint: gocritic
+	if tag == shallowTag {
 		if kind != reflect.Interface &&
 			kind != reflect.Ptr &&
 			kind != reflect.Slice {
@@ -224,7 +230,7 @@ func checkTags(f reflect.StructField, t reflect.Type, tag string, kind reflect.K
 					"pointer or a slice, got kind %v",
 				t, f.Name, tag, kind)
 		}
-	} else if tag == "shallowElements" {
+	} else if tag == shallowElementsTag {
 		if kind != reflect.Array && kind != reflect.Slice {
 			return errors.Errorf(
 				"Expected field %v.%s with tag '%s' to be an array or "+
@@ -277,7 +283,7 @@ func checkPtrOrSlice(f reflect.StructField, tag string, hasTag bool, kind reflec
 	if kind == reflect.Ptr || kind == reflect.Slice {
 		p := left.Pointer()
 		q := right.Pointer()
-		if p != q && hasTag && tag == "shallow" {
+		if p != q && hasTag && tag == shallowTag {
 			return errors.Errorf(
 				"Expected fields %v.%s with tag '%s' to have same pointees",
 				t, f.Name, tag)
@@ -285,7 +291,7 @@ func checkPtrOrSlice(f reflect.StructField, tag string, hasTag bool, kind reflec
 		// the length check below is necessary because all slices created
 		// empty seem to reference the same address in memory
 		if p == q && p != 0 &&
-			(!hasTag || tag != "shallow") &&
+			(!hasTag || tag != shallowTag) &&
 			(kind == reflect.Ptr || left.Len() > 0) {
 			return errors.Errorf(
 				"Expected fields %v.%s to have different pointees",
@@ -321,13 +327,13 @@ func checkPtrOrSliceElem(f reflect.StructField, kindJ reflect.Kind, tag string, 
 	if kindJ == reflect.Ptr || kindJ == reflect.Slice {
 		p := left.Index(j).Pointer()
 		q := right.Index(j).Pointer()
-		if p != q && hasTag && tag == "shallowElements" {
+		if p != q && hasTag && tag == shallowElementsTag {
 			return errors.Errorf(
 				"Expected elements %v.%s[%d] in slices with tag "+
 					"'%s' to have same pointees",
 				t, f.Name, j, tag)
 		}
-		if p == q && p != 0 && (!hasTag || tag != "shallowElements") {
+		if p == q && p != 0 && (!hasTag || tag != shallowElementsTag) {
 			return errors.Errorf(
 				"Expected elements %v.%s[%d] to have different pointees",
 				t, f.Name, j)

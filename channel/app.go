@@ -126,7 +126,7 @@ func IsActionApp(app App) bool {
 // appBackend stores the AppBackend globally for the channel package.
 var appBackend AppBackend = &MockAppBackend{}
 
-// isAppBackendSet whether the appBackend was already set with `SetAppBackend`
+// isAppBackendSet whether the appBackend was already set with `SetAppBackend`.
 var isAppBackendSet bool
 
 // SetAppBackend sets the channel package's app backend. This is more specific

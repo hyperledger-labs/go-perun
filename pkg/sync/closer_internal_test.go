@@ -83,7 +83,6 @@ func TestCloser_OnCloseAlways(t *testing.T) {
 		c.Close()
 		// OnCloseAlways must execute the handler if called before closing.
 		assert.True(t, executed.IsSet())
-
 	})
 
 	t.Run("after closing", func(t *testing.T) {
@@ -110,7 +109,6 @@ func TestCloser_OnClose(t *testing.T) {
 		c.Close()
 		// OnClose must execute the handler if called before closing.
 		assert.True(t, executed.IsSet())
-
 	})
 
 	t.Run("after closing", func(t *testing.T) {

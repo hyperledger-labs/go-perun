@@ -30,7 +30,7 @@ import (
 	psync "perun.network/go-perun/pkg/sync"
 )
 
-// compile time check that we implement the perun adjudicator interface
+// compile time check that we implement the perun adjudicator interface.
 var _ channel.Adjudicator = (*Adjudicator)(nil)
 
 // The Adjudicator struct implements the channel.Adjudicator interface

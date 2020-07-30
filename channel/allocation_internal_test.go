@@ -21,7 +21,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-// simple summer for testing
+// simple summer for testing.
 type balsum struct {
 	b []Bal
 }

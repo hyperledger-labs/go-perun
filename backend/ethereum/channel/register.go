@@ -56,6 +56,7 @@ func (a *Adjudicator) registerNonFinal(ctx context.Context, req channel.Adjudica
 		return nil, err
 	}
 	sub := _sub.(*RegisteredSub)
+	// nolint:errcheck
 	defer sub.Close()
 
 	// call register if there was no past event
@@ -112,6 +113,7 @@ func (a *Adjudicator) SubscribeRegistered(ctx context.Context, params *channel.P
 	for iter.Next() {
 		ev = iter.Event // fast-forward to newest event
 	}
+	// nolint:errcheck,gosec,gosec
 	iter.Close()
 	if err := iter.Error(); err != nil {
 		sub.Unsubscribe()

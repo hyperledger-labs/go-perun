@@ -47,7 +47,6 @@ func TestStutter(t *testing.T) {
 	for i, v := range values {
 		assert.Equal(t, decodedValue[i], v)
 	}
-
 }
 
 func testByteSlices(t *testing.T, serial ...perunio.ByteSlice) {
@@ -63,7 +62,6 @@ func testByteSlices(t *testing.T, serial ...perunio.ByteSlice) {
 	}()
 
 	for i, v := range serial {
-
 		d := make([]byte, len(v))
 		dest := perunio.ByteSlice(d)
 

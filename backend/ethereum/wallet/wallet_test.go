@@ -33,24 +33,18 @@ import (
 var dataToSign = []byte("SomeLongDataThatShouldBeSignedPlease")
 
 const (
-	password    = "secret"
 	sampleAddr  = "1234560000000000000000000000000000000000"
 	invalidAddr = "123456"
 )
 
-type Setup struct {
-	test.Setup
-	Wallet *ethwallet.Wallet
-}
-
 func TestGenericSignatureTests(t *testing.T) {
-	setup := newSetup(t)
+	setup := newSetup()
 	test.GenericSignatureTest(t, setup)
 	test.GenericSignatureSizeTest(t, setup)
 }
 
 func TestGenericAddressTests(t *testing.T) {
-	test.GenericAddressTest(t, newSetup(t))
+	test.GenericAddressTest(t, newSetup())
 }
 
 func TestWallet_Contains(t *testing.T) {
@@ -76,7 +70,7 @@ func TestSignatures(t *testing.T) {
 func TestBackend(t *testing.T) {
 	backend := new(ethwallet.Backend)
 
-	s := newSetup(t)
+	s := newSetup()
 
 	buff := bytes.NewReader(s.AddressBytes)
 	addr, err := backend.DecodeAddress(buff)
@@ -89,7 +83,7 @@ func TestBackend(t *testing.T) {
 	assert.Error(t, err, "Conversion from wrong address should fail")
 }
 
-func newSetup(t require.TestingT) *test.Setup {
+func newSetup() *test.Setup {
 	acc := ethwallettest.NewTmpWallet().NewAccount()
 	sampleBytes, err := hex.DecodeString(sampleAddr)
 	if err != nil {

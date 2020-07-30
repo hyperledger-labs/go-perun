@@ -31,7 +31,7 @@ import (
 // UnlockedAccount provides an unlocked account.
 type UnlockedAccount func() (wallet.Account, error)
 
-// Setup provides all objects needed for the generic tests
+// Setup provides all objects needed for the generic tests.
 type Setup struct {
 	UnlockedAccount UnlockedAccount // provides an account that is ready to sign
 	//Address tests
@@ -74,6 +74,7 @@ func GenericSignatureTest(t *testing.T, s *Setup) {
 		t.Error("Verification of invalid signature should produce error or return false")
 	}
 	// Expand the signature and check for error
+	// nolint:gocritic
 	tampered = append(sign, 0)
 	valid, err = s.Backend.VerifySignature(s.DataToSign, tampered, acc.Address())
 	if valid && err != nil {

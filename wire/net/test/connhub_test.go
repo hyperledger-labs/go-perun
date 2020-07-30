@@ -23,7 +23,6 @@ import (
 
 	_ "perun.network/go-perun/backend/sim" // backend init
 	"perun.network/go-perun/pkg/sync"
-	"perun.network/go-perun/pkg/test"
 	pkgtest "perun.network/go-perun/pkg/test"
 	wallettest "perun.network/go-perun/wallet/test"
 	"perun.network/go-perun/wire"
@@ -41,8 +40,8 @@ func TestConnHub_Create(t *testing.T) {
 		assert.NotNil(d)
 		assert.NotNil(l)
 
-		ct := test.NewConcurrent(t)
-		go test.AssertTerminates(t, timeout, func() {
+		ct := pkgtest.NewConcurrent(t)
+		go pkgtest.AssertTerminates(t, timeout, func() {
 			ct.Stage("accept", func(rt require.TestingT) {
 				conn, err := l.Accept()
 				assert.NoError(err)
@@ -51,7 +50,7 @@ func TestConnHub_Create(t *testing.T) {
 			})
 		})
 
-		test.AssertTerminates(t, timeout, func() {
+		pkgtest.AssertTerminates(t, timeout, func() {
 			ct.Stage("dial", func(rt require.TestingT) {
 				conn, err := d.Dial(context.Background(), addr)
 				assert.NoError(err)
@@ -83,7 +82,7 @@ func TestConnHub_Create(t *testing.T) {
 		var c ConnHub
 
 		d := c.NewNetDialer()
-		test.AssertTerminates(t, timeout, func() {
+		pkgtest.AssertTerminates(t, timeout, func() {
 			conn, err := d.Dial(context.Background(), wallettest.NewRandomAddress(rng))
 			assert.Nil(conn)
 			assert.Error(err)

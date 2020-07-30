@@ -24,7 +24,7 @@ import (
 	"perun.network/go-perun/wallet"
 )
 
-// compile time check that we implement the perun Address interface
+// compile time check that we implement the perun Address interface.
 var _ wallet.Address = (*Address)(nil)
 
 // Address represents an ethereum address as a perun address.

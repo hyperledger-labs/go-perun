@@ -40,5 +40,5 @@ func TestHappyAliceBob(t *testing.T) {
 		TxAmounts:  [2]*big.Int{big.NewInt(5), big.NewInt(3)},
 	}
 
-	executeTwoPartyTest(t, roles, cfg)
+	executeTwoPartyTest(roles, cfg)
 }

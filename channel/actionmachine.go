@@ -16,6 +16,7 @@ package channel
 
 import (
 	"bytes"
+	"log"
 
 	"github.com/pkg/errors"
 
@@ -115,22 +116,24 @@ func (m *ActionMachine) Update() error {
 }
 
 // setStaging sets the current staging phase and state and additionally clears
-// the staging actions
+// the staging actions.
 func (m *ActionMachine) setStaging(phase Phase, state *State) {
 	m.stagingActions = make([]Action, m.N())
 	m.machine.setStaging(phase, state)
 }
 
-// Clone returns a deep copy of ActionMachine
+// Clone returns a deep copy of ActionMachine.
 func (m *ActionMachine) Clone() *ActionMachine {
 	clonedActions := make([]Action, m.N())
 	for i, action := range m.stagingActions {
 		if action != nil {
 			var buff bytes.Buffer
-			action.Encode(&buff)
+			if err := action.Encode(&buff); err != nil {
+				log.Panicf("Could not encode action: %v", err)
+			}
 			clonedAction, err := m.app.DecodeAction(&buff)
 			if err != nil {
-				panic("App could not decode Action")
+				log.Panicf("App could not decode Action: %v", err)
 			}
 			clonedActions[i] = clonedAction
 		}

@@ -30,6 +30,7 @@ import (
 	pkgtest "perun.network/go-perun/pkg/test"
 )
 
+// nolint: dupl
 func TestAdjudicator_MultipleRegisters(t *testing.T) {
 	t.Run("Register 1 party parallel", func(t *testing.T) { registerMultipleConcurrent(t, 1, true) })
 	t.Run("Register 2 party parallel", func(t *testing.T) { registerMultipleConcurrent(t, 2, true) })

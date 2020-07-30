@@ -34,13 +34,13 @@ type Backend struct{}
 
 var _ wallet.Backend = new(Backend)
 
-// DecodeAddress decodes an address from the given Reader
+// DecodeAddress decodes an address from the given Reader.
 func (b *Backend) DecodeAddress(r io.Reader) (wallet.Address, error) {
 	var addr Address
 	return &addr, addr.Decode(r)
 }
 
-// DecodeSig reads a []byte with length of a signature
+// DecodeSig reads a []byte with length of a signature.
 func (b *Backend) DecodeSig(r io.Reader) (wallet.Sig, error) {
 	buf := make(wallet.Sig, curve.Params().BitSize/4)
 	return buf, perunio.Decode(r, &buf)

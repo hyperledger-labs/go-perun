@@ -40,7 +40,8 @@ func NewIoConn(conn io.ReadWriteCloser) Conn {
 
 func (c *ioConn) Send(e *wire.Envelope) error {
 	if err := e.Encode(c.conn); err != nil {
-		c.Close()
+		// nolint:errcheck,gosec
+		c.conn.Close()
 		return err
 	}
 	return nil
@@ -49,7 +50,8 @@ func (c *ioConn) Send(e *wire.Envelope) error {
 func (c *ioConn) Recv() (*wire.Envelope, error) {
 	var e wire.Envelope
 	if err := e.Decode(c.conn); err != nil {
-		c.Close()
+		// nolint:errcheck,gosec
+		c.conn.Close()
 		return nil, err
 	}
 	return &e, nil

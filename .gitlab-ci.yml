@@ -16,7 +16,6 @@ code_quality:
     - golangci-lint run --config .golangci.yml --out-format code-climate | tee gl-code-quality-report.json | jq -r '.[] | "\(.location.path):\(.location.lines.begin) \(.description)"'
   artifacts:
     paths: [gl-code-quality-report.json]
-  allow_failure: true
 
 copyright_notice:
   <<: *only-default

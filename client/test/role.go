@@ -276,7 +276,7 @@ type roleUpdateHandler role
 
 func (r *role) UpdateHandler() *roleUpdateHandler { return (*roleUpdateHandler)(r) }
 
-// HandleUpdate implements the Role as its own UpdateHandler
+// HandleUpdate implements the Role as its own UpdateHandler.
 func (h *roleUpdateHandler) HandleUpdate(up client.ChannelUpdate, res *client.UpdateResponder) {
 	ch, ok := h.chans[up.State.ID]
 	if !ok {

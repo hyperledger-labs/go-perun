@@ -28,7 +28,7 @@ func (randomizer) NewRandomAsset(rng *rand.Rand) channel.Asset {
 	return NewRandomAsset(rng)
 }
 
-// NewRandomAsset returns a new random ethereum Asset
+// NewRandomAsset returns a new random ethereum Asset.
 func NewRandomAsset(rng *rand.Rand) *ethchannel.Asset {
 	asset := ethwtest.NewRandomAddress(rng)
 	return &asset

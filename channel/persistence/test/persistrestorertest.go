@@ -25,7 +25,6 @@ import (
 	"perun.network/go-perun/channel"
 	"perun.network/go-perun/channel/persistence"
 	"perun.network/go-perun/log"
-	"perun.network/go-perun/pkg/test"
 	pkgtest "perun.network/go-perun/pkg/test"
 	wtest "perun.network/go-perun/wallet/test"
 	"perun.network/go-perun/wire"
@@ -79,7 +78,6 @@ func GenericPersistRestorerTest(
 	pr persistence.PersistRestorer,
 	numPeers int,
 	numChans int) {
-
 	t.Run("RestoreChannel error", func(t *testing.T) {
 		var id channel.ID
 		ch, err := pr.RestoreChannel(context.Background(), id)
@@ -87,8 +85,7 @@ func GenericPersistRestorerTest(
 		assert.Nil(t, ch)
 	})
 
-	ct := test.NewConcurrent(t)
-
+	ct := pkgtest.NewConcurrent(t)
 	c := NewClient(ctx, t, rng, pr)
 	peers := wtest.NewRandomAddresses(rng, numPeers)
 

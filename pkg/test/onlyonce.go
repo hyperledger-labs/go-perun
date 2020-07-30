@@ -32,6 +32,7 @@ var executedTestsMutex sync.Mutex
 // tests that have already been executed. OnlyOnce() has to be called directly
 // from the test's function, as its first action.
 func OnlyOnce(t Skipper) {
+	// nolint:dogsled
 	pc, _, _, _ := runtime.Caller(1)
 	name := runtime.FuncForPC(pc).Name()
 

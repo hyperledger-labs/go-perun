@@ -27,7 +27,7 @@ import (
 	"perun.network/go-perun/channel"
 )
 
-// Asset is an Ethereum asset
+// Asset is an Ethereum asset.
 type Asset = wallet.Address
 
 var _ channel.Asset = new(Asset)

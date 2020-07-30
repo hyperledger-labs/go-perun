@@ -24,14 +24,14 @@ import (
 	wirenet "perun.network/go-perun/wire/net"
 )
 
-// TestConn is a testing connection.
-type TestConn struct {
+// Conn is a testing connection.
+type Conn struct {
 	closed *atomic.Bool
 	conn   wirenet.Conn
 }
 
 // Send sends an envelope.
-func (c *TestConn) Send(e *wire.Envelope) (err error) {
+func (c *Conn) Send(e *wire.Envelope) (err error) {
 	if err = c.conn.Send(e); err != nil {
 		c.Close()
 	}
@@ -39,23 +39,23 @@ func (c *TestConn) Send(e *wire.Envelope) (err error) {
 }
 
 // Recv receives an envelope.
-func (c *TestConn) Recv() (e *wire.Envelope, err error) {
+func (c *Conn) Recv() (e *wire.Envelope, err error) {
 	if e, err = c.conn.Recv(); err != nil {
 		c.Close()
 	}
 	return
 }
 
-// Close closes the TestConn.
-func (c *TestConn) Close() error {
+// Close closes the Conn.
+func (c *Conn) Close() error {
 	if !c.closed.TrySet() {
 		return errors.New("already closed")
 	}
 	return c.conn.Close()
 }
 
-// IsClosed returns whether the TestConn is already closed.
-func (c *TestConn) IsClosed() bool {
+// IsClosed returns whether the Conn is already closed.
+func (c *Conn) IsClosed() bool {
 	return c.closed.IsSet()
 }
 
@@ -63,5 +63,5 @@ func (c *TestConn) IsClosed() bool {
 func NewTestConnPair() (a wirenet.Conn, b wirenet.Conn) {
 	closed := new(atomic.Bool)
 	c0, c1 := net.Pipe()
-	return &TestConn{closed, wirenet.NewIoConn(c0)}, &TestConn{closed, wirenet.NewIoConn(c1)}
+	return &Conn{closed, wirenet.NewIoConn(c0)}, &Conn{closed, wirenet.NewIoConn(c1)}
 }

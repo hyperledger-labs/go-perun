@@ -44,7 +44,7 @@ func Get() Logger {
 	return logger
 }
 
-// compile-time check that log.Logger implements a StdLogger
+// compile-time check that log.Logger implements a StdLogger.
 var _ StdLogger = &log.Logger{}
 
 // StdLogger describes the interface of the standard library log package logger.
@@ -87,7 +87,7 @@ type LevelLogger interface {
 	Errorln(...interface{})
 }
 
-// Fields is a collection of fields that can be passed to FieldLogger.WithFields
+// Fields is a collection of fields that can be passed to FieldLogger.WithFields.
 type Fields map[string]interface{}
 
 // Logger is a LevelLogger with structured field logging capabilities.
@@ -190,7 +190,7 @@ func WithError(err error) Logger {
 type (
 	// An Owner owns a Logger that can be retrieved and a new Logger can be set.
 	Owner interface {
-		// Log returns the logger used by the Owner
+		// Log returns the logger used by the Owner.
 		Log() Logger
 		// SetLog sets the logger that the Owner uses in the future.
 		SetLog(Logger)
@@ -211,7 +211,7 @@ func AppendField(owner Owner, key string, value interface{}) Logger {
 	return l
 }
 
-// AppendField sets the given fields in the owner's logger. The resulting logger
+// AppendFields sets the given fields in the owner's logger. The resulting logger
 // is also returned.
 func AppendFields(owner Owner, fs Fields) Logger {
 	l := owner.Log().WithFields(fs)

@@ -17,7 +17,6 @@ package client
 import (
 	"context"
 	"testing"
-	"time"
 
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
@@ -28,8 +27,6 @@ import (
 	wtest "perun.network/go-perun/wallet/test"
 	"perun.network/go-perun/wire"
 )
-
-const timeout = 5 * time.Second
 
 type DummyBus struct {
 	t *testing.T

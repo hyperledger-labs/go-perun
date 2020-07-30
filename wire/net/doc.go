@@ -1,4 +1,4 @@
-// Copyright 2019 - See NOTICE file for copyright holders.
+// Copyright 2020 - See NOTICE file for copyright holders.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,9 +12,5 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// +build race
-
-package test
-
-// Race tells whether the -race build tag is set.
-const Race = true
+// Package net contains the abstract communication logic between peers.
+package net // import "perun.network/go-perun/wire/net"

@@ -152,7 +152,7 @@ func (m *wrappedMock) WithError(error) Logger {
 	return m
 }
 
-// compile-time check that wrappedMock implements a Logger
+// compile-time check that wrappedMock implements a Logger.
 var _ Logger = (*wrappedMock)(nil)
 
 func TestGlobalCalls(t *testing.T) {

@@ -52,10 +52,10 @@ func (m *mockBackend) DecodeAsset(io.Reader) (Asset, error) {
 	return nil, nil
 }
 
-// compile-time check that mockBackend implements Backend
+// compile-time check that mockBackend implements Backend.
 var _ Backend = (*mockBackend)(nil)
 
-// TestGlobalBackend tests all global backend wrappers
+// TestGlobalBackend tests all global backend wrappers.
 func TestGlobalBackend(t *testing.T) {
 	b := &mockBackend{test.NewWrapMock(t)}
 	SetBackend(b)

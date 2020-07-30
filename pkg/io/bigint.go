@@ -22,7 +22,7 @@ import (
 )
 
 // MaxBigIntLength defines the maximum length of a big integer.
-// 1024bit -> 128 bytes
+// 1024bit -> 128 bytes.
 const MaxBigIntLength = 128
 
 // BigInt is a serializer big integer.
@@ -38,7 +38,7 @@ func (b *BigInt) Decode(reader io.Reader) error {
 		return errors.Wrap(err, "failed to decode length of big.Int")
 	}
 
-	var length = uint8(lengthData[0])
+	var length = lengthData[0]
 	if length > MaxBigIntLength {
 		return errors.New("big.Int too big to decode")
 	}

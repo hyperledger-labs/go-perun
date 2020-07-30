@@ -34,7 +34,7 @@ func (msg *serializerMsg) Decode(reader io.Reader) (err error) {
 	return err
 }
 
-// TestMsg performs generic tests on a wire.Msg object
+// TestMsg performs generic tests on a wire.Msg object.
 func TestMsg(t *testing.T, msg Msg) {
 	test.GenericSerializerTest(t, &serializerMsg{msg})
 }

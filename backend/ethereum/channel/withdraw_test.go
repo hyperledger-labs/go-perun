@@ -32,6 +32,7 @@ import (
 	pkgtest "perun.network/go-perun/pkg/test"
 )
 
+// nolint: dupl
 func TestAdjudicator_MultipleWithdraws_FinalState(t *testing.T) {
 	t.Run("Withdraw 1 party parallel", func(t *testing.T) { withdrawMultipleConcurrentFinal(t, 1, true) })
 	t.Run("Withdraw 2 party parallel", func(t *testing.T) { withdrawMultipleConcurrentFinal(t, 2, true) })
@@ -161,7 +162,8 @@ func testWithdrawZeroBalance(t *testing.T, n int) {
 	// we don't need to wait for a timeout since we registered a final state
 
 	// withdraw
-	for i, adj := range s.Adjs {
+	for i, _adj := range s.Adjs {
+		adj := _adj
 		req.Acc = s.Accs[i]
 		req.Idx = channel.Index(i)
 		// check that the nonce stays the same for zero balance withdrawals

@@ -48,7 +48,7 @@ func (p *fullEndpoint) Endpoint() *Endpoint {
 
 func newFullEndpoint(e *Endpoint) *fullEndpoint {
 	return &fullEndpoint{
-		endpoint: unsafe.Pointer(e),
+		endpoint: unsafe.Pointer(e), // nolint: gosec
 	}
 }
 
@@ -147,7 +147,11 @@ func (r *EndpointRegistry) Listen(listener Listener) {
 		r.Log().Debug("EndpointRegistry.Listen: setting up incoming connection")
 		// setup connection in a separate routine so that new incoming
 		// connections can immediately be handled.
-		go r.setupConn(conn)
+		go func() {
+			if err := r.setupConn(conn); err != nil {
+				log.WithError(err).Error("EndpointRegistry could not setup wire/net.Conn")
+			}
+		}()
 	}
 }
 
@@ -160,6 +164,7 @@ func (r *EndpointRegistry) setupConn(conn Conn) error {
 	var peerAddr wire.Address
 	var err error
 	if peerAddr, err = ExchangeAddrsPassive(ctx, r.id, conn); err != nil {
+		// nolint:errcheck,gosec
 		conn.Close()
 		r.Log().WithField("peer", peerAddr).Error("could not authenticate peer:", err)
 		return err
@@ -242,6 +247,7 @@ func (r *EndpointRegistry) authenticatedDial(
 	}
 
 	if err := ExchangeAddrsActive(ctx, r.id, addr, conn); err != nil {
+		// nolint:errcheck,gosec
 		conn.Close()
 		return nil, errors.WithMessage(err, "ExchangeAddrs failed")
 	}
@@ -319,7 +325,7 @@ func (r *EndpointRegistry) getOrCreateFullEndpoint(addr wire.Address, e *Endpoin
 // tie resolving, and whether the supplied endpoint was closed in the process.
 func (p *fullEndpoint) replace(newValue *Endpoint, self wire.Address, dialer bool) (updated *Endpoint, closed bool) {
 	// If there was no previous endpoint, just set the new one.
-	wasNil := atomic.CompareAndSwapPointer(&p.endpoint, nil, unsafe.Pointer(newValue))
+	wasNil := atomic.CompareAndSwapPointer(&p.endpoint, nil, unsafe.Pointer(newValue)) // nolint: gosec
 	if wasNil {
 		return newValue, false
 	}
@@ -330,16 +336,20 @@ func (p *fullEndpoint) replace(newValue *Endpoint, self wire.Address, dialer boo
 	// with the lesser Perun address and return the previously existing
 	// endpoint.
 	if dialer == (self.Cmp(newValue.Address) < 0) {
-		newValue.Close()
+		if err := newValue.Close(); err != nil {
+			log.Warn("newValue dialer already closed")
+		}
 		return p.Endpoint(), true
 	}
 
 	// Otherwise, install the new endpoint and close the old endpoint.
-	old := atomic.SwapPointer(&p.endpoint, unsafe.Pointer(newValue))
+	old := atomic.SwapPointer(&p.endpoint, unsafe.Pointer(newValue)) // nolint: gosec
 	if old != nil {
 		// It may be possible that in the meanwhile, the peer might have been
 		// replaced by another goroutine.
-		(*Endpoint)(old).Close()
+		if err := (*Endpoint)(old).Close(); err != nil {
+			log.Warn("Old Endpoint was already closed")
+		}
 	}
 
 	return newValue, false
@@ -347,7 +357,7 @@ func (p *fullEndpoint) replace(newValue *Endpoint, self wire.Address, dialer boo
 
 // delete deletes an endpoint if it was not replaced previously.
 func (p *fullEndpoint) delete(expectedOldValue *Endpoint) {
-	atomic.CompareAndSwapPointer(&p.endpoint, unsafe.Pointer(expectedOldValue), nil)
+	atomic.CompareAndSwapPointer(&p.endpoint, unsafe.Pointer(expectedOldValue), nil) // nolint: gosec
 }
 
 func (r *EndpointRegistry) find(addr wire.Address) *Endpoint {

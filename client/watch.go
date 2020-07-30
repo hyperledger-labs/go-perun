@@ -30,7 +30,7 @@ import (
 // If handling failed, the watcher routine returns the respective error. It is
 // the user's job to restart the watcher after the cause of the error got fixed.
 func (c *Channel) Watch() error {
-	log := c.log.WithField("proc", "watcher")
+	log := c.Log().WithField("proc", "watcher")
 	defer log.Info("Watcher returned.")
 
 	ctx := c.Ctx()
@@ -38,7 +38,9 @@ func (c *Channel) Watch() error {
 	if err != nil {
 		return errors.WithMessage(err, "subscribing to RegisteredEvents")
 	}
+	// nolint:errcheck
 	defer sub.Close()
+	// nolint:errcheck,gosec
 	c.OnCloseAlways(func() { sub.Close() })
 
 	// Wait for on-chain event
@@ -58,7 +60,7 @@ func (c *Channel) Watch() error {
 // handleRegisteredEvent stores the passed RegisteredEvent to the machine and
 // settles the channel.
 func (c *Channel) handleRegisteredEvent(ctx context.Context, reg *channel.RegisteredEvent) error {
-	log := c.log.WithField("proc", "watcher")
+	log := c.Log().WithField("proc", "watcher")
 	// Lock machine while registering is in progress.
 	if !c.machMtx.TryLockCtx(ctx) {
 		return errors.Errorf("locking machine mutex in time: %v", ctx.Err())
@@ -106,21 +108,21 @@ func (c *Channel) settle(ctx context.Context) error {
 	// still catch this case to be future proof.
 	if c.machine.Phase() < channel.Registered || reg == nil || reg.Version < ver {
 		if reg != nil && reg.Version < ver {
-			c.log.Warnf("Lower version %d (< %d) registered, refuting...", reg.Version, ver)
+			c.Log().Warnf("Lower version %d (< %d) registered, refuting...", reg.Version, ver)
 		}
 		if err := c.register(ctx); err != nil {
 			return errors.WithMessage(err, "registering")
 		}
-		c.log.Info("Channel state registered.")
+		c.Log().Info("Channel state registered.")
 	}
 
 	if reg = c.machine.Registered(); !reg.Timeout.IsElapsed(ctx) {
 		if c.machine.State().IsFinal {
-			c.log.Warnf(
+			c.Log().Warnf(
 				"Unexpected withdrawal timeout while settling final state. Waiting until %v.",
 				reg.Timeout)
 		} else {
-			c.log.Infof("Waiting until %v for withdrawal.", reg.Timeout)
+			c.Log().Infof("Waiting until %v for withdrawal.", reg.Timeout)
 		}
 
 		if err := reg.Timeout.Wait(ctx); err != nil {
@@ -131,7 +133,7 @@ func (c *Channel) settle(ctx context.Context) error {
 	if err := c.withdraw(ctx); err != nil {
 		return errors.WithMessage(err, "withdrawing")
 	}
-	c.log.Info("Withdrawal successful.")
+	c.Log().Info("Withdrawal successful.")
 	c.wallet.DecrementUsage(c.machine.Account().Address())
 	return nil
 }

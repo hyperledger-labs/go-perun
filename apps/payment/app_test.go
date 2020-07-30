@@ -84,7 +84,8 @@ func TestApp_ValidTransition(t *testing.T) {
 	app := new(App)
 	rng := pkgtest.Prng(t)
 
-	for _, tt := range tests {
+	for _, _tt := range tests {
+		tt := _tt
 		t.Run(tt.desc, func(t *testing.T) {
 			assert := assert.New(t)
 			from := test.NewRandomState(rng, test.WithApp(app), test.WithBalances(asBalances(tt.from...)...), test.WithNumAssets(len(tt.from)))

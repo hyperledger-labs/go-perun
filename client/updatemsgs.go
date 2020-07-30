@@ -94,17 +94,17 @@ var (
 	_ channelUpdateResMsg = (*msgChannelUpdateRej)(nil)
 )
 
-// Type returns this message's type: ChannelUpdate
+// Type returns this message's type: ChannelUpdate.
 func (*msgChannelUpdate) Type() wire.Type {
 	return wire.ChannelUpdate
 }
 
-// Type returns this message's type: ChannelUpdateAcc
+// Type returns this message's type: ChannelUpdateAcc.
 func (*msgChannelUpdateAcc) Type() wire.Type {
 	return wire.ChannelUpdateAcc
 }
 
-// Type returns this message's type: ChannelUpdateRej
+// Type returns this message's type: ChannelUpdateRej.
 func (*msgChannelUpdateRej) Type() wire.Type {
 	return wire.ChannelUpdateRej
 }

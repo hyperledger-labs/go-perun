@@ -151,7 +151,8 @@ func Test_clone(t *testing.T) {
 		{nil, false},
 	}
 
-	for _, test := range tests {
+	for _, _test := range tests {
+		test := _test
 		x := test.Input
 		c, err := clone(test.Input)
 		if c == nil && err == nil || c != nil && err != nil {
@@ -160,6 +161,7 @@ func Test_clone(t *testing.T) {
 				x, c, err)
 		}
 
+		// nolint: nestif
 		if test.CloneShouldSucceed {
 			if c == nil {
 				t.Errorf("Expected non-nil first return value by clone(%T)", x)
@@ -380,7 +382,7 @@ func Test_checkClone(t *testing.T) {
 // only the preceding nodes change. Below, y was modified to become y':
 //
 // x  -> y  -> z
-// x' -> y' ---^
+// x' -> y' ---^.
 type ListNode struct {
 	prev    *ListNode
 	next    *ListNode `cloneable:"shallow"`
@@ -442,7 +444,7 @@ func (h HasArray) Clone() HasArray {
 	}
 }
 
-// "manually" because the clones are computed individually
+// "manually" because the clones are computed individually.
 func Test_checkCloneManually(t *testing.T) {
 	p0 := ListNode{
 		nil, nil, 1, []*big.Float{big.NewFloat(1)}, []*big.Float{big.NewFloat(-1)},

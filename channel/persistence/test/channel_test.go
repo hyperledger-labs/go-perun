@@ -45,7 +45,8 @@ func TestRequireEqualSigsTX(t *testing.T) {
 	}
 
 	tt := test.NewTester(t)
-	for _, c := range equalSigsTableNegative {
+	for _, _c := range equalSigsTableNegative {
+		c := _c
 		tt.AssertFatal(func(t test.T) { requireEqualSigs(t, c.s1, c.s2) })
 	}
 	for _, c := range equalSigsTablePositive {
@@ -58,6 +59,7 @@ func initSigSlice(length int) []wallet.Sig {
 	for i := range s {
 		s[i] = make(wallet.Sig, 32)
 		for j := 0; j < 32; j++ {
+			// nolint:gosec
 			s[i][j] = byte(rand.Int())
 		}
 	}

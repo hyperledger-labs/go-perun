@@ -33,13 +33,9 @@ type MockConn struct {
 	sent func(*wire.Envelope) // observes sent messages.
 }
 
-func newMockConn(sent func(*wire.Envelope)) *MockConn {
-	if sent == nil {
-		sent = func(*wire.Envelope) {}
-	}
-
+func newMockConn() *MockConn {
 	return &MockConn{
-		sent:      sent,
+		sent:      func(*wire.Envelope) {},
 		recvQueue: make(chan *wire.Envelope, 1),
 	}
 }

@@ -27,7 +27,6 @@ import (
 	"perun.network/go-perun/channel/test"
 	"perun.network/go-perun/client"
 	"perun.network/go-perun/pkg/io"
-	perunio "perun.network/go-perun/pkg/io"
 	pkgtest "perun.network/go-perun/pkg/test"
 	"perun.network/go-perun/wallet"
 	wallettest "perun.network/go-perun/wallet/test"
@@ -87,12 +86,12 @@ func TestChannelProposalReqDecode_CheckMaxNumParts(t *testing.T) {
 
 	// reimplementation of ChannelProposalReq.Encode modified to create the
 	// maximum number of participants possible with the encoding
-	require.NoError(perunio.Encode(buffer, c.ChallengeDuration, c.Nonce))
+	require.NoError(io.Encode(buffer, c.ChallengeDuration, c.Nonce))
 	require.NoError(
 		io.Encode(buffer, c.ParticipantAddr, c.AppDef, c.InitData, c.InitBals))
 
 	numParts := int32(channel.MaxNumParts + 1)
-	require.NoError(perunio.Encode(buffer, numParts))
+	require.NoError(io.Encode(buffer, numParts))
 
 	for i := 0; i < int(numParts); i++ {
 		require.NoError(wallettest.NewRandomAddress(rng).Encode(buffer))
@@ -176,7 +175,7 @@ func newRandomSessID(rng *rand.Rand) (id client.SessionID) {
 }
 
 // newRandomstring returns a random string of length between minLen and
-// minLen+maxLenDiff
+// minLen+maxLenDiff.
 func newRandomString(rng *rand.Rand, minLen, maxLenDiff int) string {
 	r := make([]byte, minLen+rng.Intn(maxLenDiff))
 	rng.Read(r)

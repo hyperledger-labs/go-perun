@@ -33,7 +33,7 @@ type backend struct{}
 
 var _ channel.Backend = new(backend)
 
-// CalcID calculates a channel's ID by hashing all fields of its parameters
+// CalcID calculates a channel's ID by hashing all fields of its parameters.
 func (*backend) CalcID(p *channel.Params) channel.ID {
 	w := sha256.New()
 
@@ -66,7 +66,7 @@ func (*backend) CalcID(p *channel.Params) channel.ID {
 	return id
 }
 
-// Sign signs `state`
+// Sign signs `state`.
 func (b *backend) Sign(addr wallet.Account, params *channel.Params, state *channel.State) ([]byte, error) {
 	log.Tracef("Signing state %s version %d", string(state.ID[:]), state.Version)
 
@@ -84,7 +84,7 @@ func (b *backend) Sign(addr wallet.Account, params *channel.Params, state *chann
 	return addr.SignData(buff.Bytes())
 }
 
-// Verify verifies the signature for `state`
+// Verify verifies the signature for `state`.
 func (b *backend) Verify(addr wallet.Address, params *channel.Params, state *channel.State, sig []byte) (bool, error) {
 	if err := state.Valid(); err != nil {
 		return false, errors.Wrap(err, "verifying invalid state")
@@ -105,7 +105,7 @@ func (b *backend) Verify(addr wallet.Address, params *channel.Params, state *cha
 	return wallet.VerifySignature(buff.Bytes(), sig, addr)
 }
 
-// encodeState packs all fields of a State into a []byte
+// encodeState packs all fields of a State into a []byte.
 func (b *backend) encodeState(s channel.State, w io.Writer) error {
 	// Write ID
 	if err := perunio.ByteSlice(s.ID[:]).Encode(w); err != nil {
@@ -133,7 +133,7 @@ func (b *backend) encodeState(s channel.State, w io.Writer) error {
 	return nil
 }
 
-// encodeAllocation Writes all fields of `a` to `w`
+// encodeAllocation Writes all fields of `a` to `w`.
 func (b *backend) encodeAllocation(w io.Writer, a channel.Allocation) error {
 	// Write Assets
 	for _, asset := range a.Assets {
@@ -157,7 +157,7 @@ func (b *backend) encodeAllocation(w io.Writer, a channel.Allocation) error {
 	return nil
 }
 
-// encodeSubAlloc Writes all fields of `s` to `w`
+// encodeSubAlloc Writes all fields of `s` to `w`.
 func (b *backend) encodeSubAlloc(w io.Writer, s channel.SubAlloc) error {
 	// Write ID
 	if err := perunio.ByteSlice(s.ID[:]).Encode(w); err != nil {

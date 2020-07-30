@@ -26,7 +26,7 @@ func Next(key string) string {
 // for all prefix,suffix: prefix+suffix < IncrementPrefix(prefix).
 // If the empty string or a string where all bits are 1 is passed, the empty string
 // is returned, indicating no upper limit.
-// This is useful for string range calculations
+// This is useful for string range calculations.
 func IncPrefix(key string) string {
 	keyb := []byte(key)
 	overflows := 0

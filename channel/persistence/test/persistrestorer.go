@@ -55,40 +55,40 @@ func NewPersistRestorer(t *testing.T) *PersistRestorer {
 // Persister implementation
 
 // ChannelCreated fully persists all of the source's data.
-func (p *PersistRestorer) ChannelCreated(
+func (pr *PersistRestorer) ChannelCreated(
 	_ context.Context, source channel.Source, peers []wire.Address) error {
-	p.mu.Lock()
-	defer p.mu.Unlock()
+	pr.mu.Lock()
+	defer pr.mu.Unlock()
 
 	id := source.ID()
-	_, ok := p.chans[id]
+	_, ok := pr.chans[id]
 	if ok {
 		return errors.Errorf("channel already persisted: %x", id)
 	}
 
-	p.chans[id] = persistence.CloneSource(source)
-	p.pcs.Add(id, peers...)
+	pr.chans[id] = persistence.CloneSource(source)
+	pr.pcs.Add(id, peers...)
 	return nil
 }
 
 // ChannelRemoved removes the channel from the test persister's memory.
-func (p *PersistRestorer) ChannelRemoved(_ context.Context, id channel.ID) error {
-	p.mu.Lock()
-	defer p.mu.Unlock()
+func (pr *PersistRestorer) ChannelRemoved(_ context.Context, id channel.ID) error {
+	pr.mu.Lock()
+	defer pr.mu.Unlock()
 
-	_, ok := p.chans[id]
+	_, ok := pr.chans[id]
 	if !ok {
 		return errors.Errorf("channel doesn't exist: %x", id)
 	}
-	delete(p.chans, id)
-	p.pcs.Delete(id)
+	delete(pr.chans, id)
+	pr.pcs.Delete(id)
 	return nil
 }
 
 // Staged only persists a channel's staged state, all its currently known
 // signatures and the phase.
-func (p *PersistRestorer) Staged(_ context.Context, s channel.Source) error {
-	ch, ok := p.get(s.ID())
+func (pr *PersistRestorer) Staged(_ context.Context, s channel.Source) error {
+	ch, ok := pr.get(s.ID())
 	if !ok {
 		return errors.Errorf("channel doesn't exist: %x", s.ID())
 	}
@@ -99,8 +99,8 @@ func (p *PersistRestorer) Staged(_ context.Context, s channel.Source) error {
 }
 
 // SigAdded only persists the signature for the given index.
-func (p *PersistRestorer) SigAdded(_ context.Context, s channel.Source, idx channel.Index) error {
-	ch, ok := p.get(s.ID())
+func (pr *PersistRestorer) SigAdded(_ context.Context, s channel.Source, idx channel.Index) error {
+	ch, ok := pr.get(s.ID())
 	if !ok {
 		return errors.Errorf("channel doesn't exist: %x", s.ID())
 	} else if ch.StagingTXV.State == nil {
@@ -113,8 +113,8 @@ func (p *PersistRestorer) SigAdded(_ context.Context, s channel.Source, idx chan
 
 // Enabled fully persists the current and staging transaction and phase. The
 // staging transaction should be nil.
-func (p *PersistRestorer) Enabled(_ context.Context, s channel.Source) error {
-	ch, ok := p.get(s.ID())
+func (pr *PersistRestorer) Enabled(_ context.Context, s channel.Source) error {
+	ch, ok := pr.get(s.ID())
 	if !ok {
 		return errors.Errorf("channel doesn't exist: %x", s.ID())
 	}
@@ -126,8 +126,8 @@ func (p *PersistRestorer) Enabled(_ context.Context, s channel.Source) error {
 }
 
 // PhaseChanged only persists the phase.
-func (p *PersistRestorer) PhaseChanged(_ context.Context, s channel.Source) error {
-	ch, ok := p.get(s.ID())
+func (pr *PersistRestorer) PhaseChanged(_ context.Context, s channel.Source) error {
+	ch, ok := pr.get(s.ID())
 	if !ok {
 		return errors.Errorf("channel doesn't exist: %x", s.ID())
 	}
@@ -138,21 +138,21 @@ func (p *PersistRestorer) PhaseChanged(_ context.Context, s channel.Source) erro
 
 // Close resets the persister's memory, i.e., all internally persisted channel
 // data is deleted. It can be reused afterwards.
-func (p *PersistRestorer) Close() error {
-	p.chans = make(map[channel.ID]*persistence.Channel)
+func (pr *PersistRestorer) Close() error {
+	pr.chans = make(map[channel.ID]*persistence.Channel)
 	return nil
 }
 
 // AssertEqual asserts that a channel of the same ID got persisted and that all
 // its data fields match the data coming from Source s.
-func (p *PersistRestorer) AssertEqual(s channel.Source) {
-	ch, ok := p.get(s.ID())
+func (pr *PersistRestorer) AssertEqual(s channel.Source) {
+	ch, ok := pr.get(s.ID())
 	if !ok {
-		p.t.Errorf("channel doesn't exist: %x", s.ID())
+		pr.t.Errorf("channel doesn't exist: %x", s.ID())
 		return
 	}
 
-	assert := assert.New(p.t)
+	assert := assert.New(pr.t)
 	assert.Equal(s.Idx(), ch.IdxV, "Idx mismatch")
 	assert.Equal(s.Params(), ch.ParamsV, "Params mismatch")
 	assert.Equal(s.StagingTX(), ch.StagingTXV, "StagingTX mismatch")
@@ -164,46 +164,46 @@ func (p *PersistRestorer) AssertEqual(s channel.Source) {
 // Since persister access is guaranteed to be single-threaded per channel, it
 // makes sense for the Persister implementation methods to use this getter to
 // get the pointer to the channel storage.
-func (p *PersistRestorer) get(id channel.ID) (*persistence.Channel, bool) {
-	p.mu.Lock()
-	defer p.mu.Unlock()
-	ch, ok := p.chans[id]
+func (pr *PersistRestorer) get(id channel.ID) (*persistence.Channel, bool) {
+	pr.mu.Lock()
+	defer pr.mu.Unlock()
+	ch, ok := pr.chans[id]
 	return ch, ok
 }
 
 // Restorer implementation
 
 // ActivePeers returns all peers that channels are persisted for.
-func (p *PersistRestorer) ActivePeers(context.Context) ([]wire.Address, error) {
-	p.mu.RLock()
-	defer p.mu.RUnlock()
+func (pr *PersistRestorer) ActivePeers(context.Context) ([]wire.Address, error) {
+	pr.mu.RLock()
+	defer pr.mu.RUnlock()
 
-	return p.pcs.Peers(), nil
+	return pr.pcs.Peers(), nil
 }
 
 // RestorePeer returns an iterator over all persisted channels which
 // the given peer is a part of.
-func (p *PersistRestorer) RestorePeer(peer wire.Address) (persistence.ChannelIterator, error) {
-	p.mu.RLock()
-	defer p.mu.RUnlock()
+func (pr *PersistRestorer) RestorePeer(peer wire.Address) (persistence.ChannelIterator, error) {
+	pr.mu.RLock()
+	defer pr.mu.RUnlock()
 
-	ids := p.pcs.Get(peer)
+	ids := pr.pcs.Get(peer)
 	it := &chanIter{
 		chans: make([]*persistence.Channel, len(ids)),
 		idx:   -1,
 	}
 	for i, id := range ids {
-		it.chans[i] = p.chans[id]
+		it.chans[i] = pr.chans[id]
 	}
 	return it, nil
 }
 
 // RestoreChannel should return the channel with the requested ID.
-func (p *PersistRestorer) RestoreChannel(_ context.Context, id channel.ID) (*persistence.Channel, error) {
-	p.mu.RLock()
-	defer p.mu.RUnlock()
+func (pr *PersistRestorer) RestoreChannel(_ context.Context, id channel.ID) (*persistence.Channel, error) {
+	pr.mu.RLock()
+	defer pr.mu.RUnlock()
 
-	ch, ok := p.chans[id]
+	ch, ok := pr.chans[id]
 	if !ok {
 		return nil, errors.Errorf("channel not found: %x", id)
 	}

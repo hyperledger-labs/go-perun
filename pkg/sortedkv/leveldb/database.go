@@ -80,7 +80,7 @@ func (d *Database) PutBytes(key string, value []byte) error {
 }
 
 // Delete removes the key from the key-value store.
-// If the key is not present, an error is returned
+// If the key is not present, an error is returned.
 func (d *Database) Delete(key string) error {
 	has, err := d.DB.Has([]byte(key), nil)
 

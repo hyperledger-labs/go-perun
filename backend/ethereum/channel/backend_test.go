@@ -88,7 +88,8 @@ func TestChannelID(t *testing.T) {
 			"0",
 			"c8ac0e8f7eeea864a050a8626dfa0ffb916f43c90bc6b2ba68df6ed063c952e2"},
 	}
-	for _, tt := range tests {
+	for _, _tt := range tests {
+		tt := _tt
 		t.Run(tt.name, func(t *testing.T) {
 			nonce, ok := new(big.Int).SetString(tt.nonceStr, 16)
 			assert.True(t, ok, "Setting the nonce should not fail")

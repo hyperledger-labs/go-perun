@@ -76,7 +76,7 @@ func (b *Bus) Publish(ctx context.Context, e *wire.Envelope) (err error) {
 		select {
 		case <-ctx.Done():
 			return errors.WithMessagef(err, "publishing %T envelope", e.Msg)
-		case <-b.Ctx().Done():
+		case <-b.ctx().Done():
 			return errors.Errorf("publishing %T envelope: Bus closed", e.Msg)
 		default:
 		}
@@ -107,7 +107,8 @@ func (b *Bus) addSubscriber(c wire.Consumer, addr wire.Address) {
 	b.recvs[wallet.Key(addr)] = c
 }
 
-func (b *Bus) Ctx() context.Context {
+// ctx returns the context of the bus' registry.
+func (b *Bus) ctx() context.Context {
 	return b.reg.Ctx()
 }
 
@@ -115,7 +116,7 @@ func (b *Bus) Ctx() context.Context {
 func (b *Bus) dispatchMsgs() {
 	for {
 		// Return when the bus is closed.
-		e, err := b.mainRecv.Next(b.Ctx())
+		e, err := b.mainRecv.Next(b.ctx())
 		if err != nil {
 			return
 		}

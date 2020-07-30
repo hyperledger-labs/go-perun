@@ -31,6 +31,7 @@ type localBusReceiver struct {
 
 var _ Bus = (*LocalBus)(nil)
 
+// LocalBus is a bus that only sends message in the same process.
 type LocalBus struct {
 	mutex sync.RWMutex
 	recvs map[wallet.AddrKey]*localBusReceiver
@@ -55,7 +56,7 @@ func (h *LocalBus) Publish(ctx context.Context, e *Envelope) error {
 	}
 }
 
-// Subscribe implements wire.Bus.SubscribeClient. There can only be one
+// SubscribeClient implements wire.Bus.SubscribeClient. There can only be one
 // subscription per receiver address.
 // When the Consumer closes, its subscription is removed.
 func (h *LocalBus) SubscribeClient(c Consumer, receiver Address) error {
