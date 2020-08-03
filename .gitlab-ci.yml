@@ -1,7 +1,8 @@
 .only-default: &only-default
   only:
     - tags
-    - pushes
+    - dev
+    - master
     - merge_requests
 
 stages:
@@ -11,11 +12,8 @@ stages:
 code_quality:
   <<: *only-default
   stage: vetting
-  image: perunnetwork/golangci-lint-jq:v1.27
-  script:
-    - golangci-lint run --config .golangci.yml --out-format code-climate | tee gl-code-quality-report.json | jq -r '.[] | "\(.location.path):\(.location.lines.begin) \(.description)"'
-  artifacts:
-    paths: [gl-code-quality-report.json]
+  image: golangci/golangci-lint:v1.27
+  script: "golangci-lint run --config .golangci.yml"
 
 copyright_notice:
   <<: *only-default
@@ -30,17 +28,13 @@ vanity_import:
   script: ".scripts/check-vanity-imports.sh $PWD"
 
 unit_tests:
+  <<: *only-default
   image: golang
   stage: tests
   script: "go test -timeout 60s -cover ./..."
-  only:
-    - merge_requests
 
 unit_race_tests:
+  <<: *only-default
   image: golang
   stage: tests
   script: "go test -timeout 120s -race -gcflags=all=-d=checkptr=0 ./..."
-  only:
-    - merge_requests
-  when: on_success
-

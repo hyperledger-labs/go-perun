@@ -1,26 +1,35 @@
+language: go
 os: linux
-dist: xenial
+dist: bionic
+go:
+  - 1.14.x
+go_import_path: perun.network/go-perun
+
 git:
   submodules: false
-language: go
-go: stable
-go_import_path: perun.network/go-perun
-env:
-  - GO111MODULE=on
-cache: 
+  depth: false
+cache:
   directories:
     - $HOME/.cache/go-build
     - $HOME/gopath/pkg/mod
 
+stages:
+  - vetting
+  - unit_tests
+  - unit_race_tests
+
+services:
+  - docker
+
 jobs:
   include:
-    - stage: lint_fmt_vet_misspell
+    - stage: vetting
+      before_script: docker pull golangci/golangci-lint:v1.27
       script:
-        - go get -u golang.org/x/lint/golint github.com/client9/misspell/cmd/misspell
-        - "! gofmt -l -s `ls -d */` | grep ."
-        - "go vet ./..."
-        - golint -set_exit_status ./...
-        - "ls -d */ | xargs misspell -error"
+        - .scripts/check-copyright-notice.sh
+        - .scripts/check-notice-authors.sh origin/dev
+        - .scripts/check-vanity-imports.sh $TRAVIS_BUILD_DIR
+        - docker run --rm -v$TRAVIS_BUILD_DIR:/src -w/src golangci/golangci-lint:v1.27 golangci-lint run --config .golangci.yml
 
     - stage: unit_tests
       before_script:
