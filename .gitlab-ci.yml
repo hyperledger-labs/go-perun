@@ -20,7 +20,7 @@ copyright_notice:
   stage: vetting
   script:
     - .scripts/check-copyright-notice.sh
-    - .scripts/check-notice-authors.sh origin/dev
+    - .scripts/check-notice-authors.sh $(git log --pretty=format:"%H" --merges -n 1)
 
 vanity_import:
   <<: *only-default

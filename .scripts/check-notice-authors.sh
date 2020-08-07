@@ -19,8 +19,8 @@ exit_code=0
 
 # This script checks that all new commiters email adresses are contained in the NOTICE
 # file.
-# To check all commits on the current branch:   ./check-notice-authors.sh
-# To check all commits newer than base:         ./check-notice-authors.sh base
+# To check all commits on the current branch:       ./check-notice-authors.sh
+# To check all commits newer than the last merge:   ./check-notice-authors.sh $(git log --pretty=format:"%H" --merges -n 1)
 
 # Call with an ancestor whereas all commits newer than the ancestor are checked.
 base="$1"
