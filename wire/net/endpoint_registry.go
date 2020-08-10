@@ -301,7 +301,9 @@ func (r *EndpointRegistry) addEndpoint(addr wire.Address, conn Conn, dialer bool
 	consumer := r.onNewEndpoint(addr)
 	// Start receiving messages.
 	go func() {
-		e.recvLoop(consumer)
+		if err := e.recvLoop(consumer); err != nil {
+			r.Log().WithError(err).Error("recvLoop finished unexpectedly")
+		}
 		fe.delete(e)
 	}()
 

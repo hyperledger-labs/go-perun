@@ -16,10 +16,10 @@ package net
 
 import (
 	"context"
+	"io"
 
 	"github.com/pkg/errors"
 
-	"perun.network/go-perun/log"
 	"perun.network/go-perun/pkg/sync"
 	"perun.network/go-perun/wire"
 )
@@ -42,14 +42,20 @@ type Endpoint struct {
 // recvLoop continuously receives messages from an Endpoint until it is closed.
 // Received messages are relayed via the Endpoint's subscription system. This is
 // called by the registry when the Endpoint is registered.
-func (p *Endpoint) recvLoop(c wire.Consumer) {
+//
+// Does not return an error when the Endpoint closing fails or when
+// conn.Recv returns io.EOF, which indicates connection closing for TCP.
+func (p *Endpoint) recvLoop(c wire.Consumer) error {
 	for {
 		e, err := p.conn.Recv()
 		if err != nil {
 			// nolint:errcheck,gosec
 			p.Close() // Ignore double close.
-			log.WithError(err).Errorf("Ending recvLoop on closed connection of Endpoint %v", p.Address)
-			return
+			// Check for graceful TCP connection close.
+			if errors.Cause(err) == io.EOF {
+				return nil
+			}
+			return err
 		}
 		// Emit the received envelope.
 		c.Put(e)

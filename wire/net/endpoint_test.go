@@ -204,8 +204,9 @@ func TestEndpoint_ClosedByRecvLoopOnConnClose(t *testing.T) {
 	peer := newEndpoint(addr, conn0)
 
 	go func() {
-		peer.recvLoop(nil)
-		close(eofReceived)
+		if err := peer.recvLoop(nil); err == nil {
+			close(eofReceived)
+		}
 	}()
 
 	conn1.Close()
