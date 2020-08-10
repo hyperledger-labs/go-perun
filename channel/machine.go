@@ -455,11 +455,16 @@ func (m *machine) validTransition(to *State) error {
 	if to.ID != m.params.id {
 		return errors.New("new state's ID doesn't match")
 	}
-	if !m.params.App.Def().Equals(to.App.Def()) {
-		return errors.New("new state's App dosen't match")
-	}
 
 	newError := func(s string) error { return NewStateTransitionError(m.params.id, s) }
+
+	if m.params.App != nil {
+		if to.App == nil || !m.params.App.Def().Equals(to.App.Def()) {
+			return newError("new state's App dosen't match")
+		}
+	} else if to.App != nil {
+		return newError("new state must have no app")
+	}
 
 	if m.currentTX.IsFinal {
 		return newError("cannot advance final state")

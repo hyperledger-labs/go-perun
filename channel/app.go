@@ -17,6 +17,8 @@ package channel
 import (
 	"io"
 
+	"github.com/pkg/errors"
+
 	perunio "perun.network/go-perun/pkg/io"
 	"perun.network/go-perun/wallet"
 )
@@ -146,4 +148,40 @@ func SetAppBackend(b AppBackend) {
 // AppFromDefinition is a global wrapper call to the app backend function.
 func AppFromDefinition(def wallet.Address) (App, error) {
 	return appBackend.AppFromDefinition(def)
+}
+
+// OptAppEnc makes an optional App value encodable.
+type OptAppEnc struct {
+	App
+}
+
+// Encode encodes an optional App value.
+func (e OptAppEnc) Encode(w io.Writer) error {
+	if e.App != nil {
+		return perunio.Encode(w, true, e.App.Def())
+	}
+	return perunio.Encode(w, false)
+}
+
+// OptAppDec makes an optional App value decodable.
+type OptAppDec struct {
+	App *App
+}
+
+// Decode decodes an optional App value.
+func (d OptAppDec) Decode(r io.Reader) (err error) {
+	var hasApp bool
+	if err = perunio.Decode(r, &hasApp); err != nil {
+		return err
+	}
+	if !hasApp {
+		*d.App = nil
+		return nil
+	}
+	appDef, err := wallet.DecodeAddress(r)
+	if err != nil {
+		return errors.WithMessage(err, "decode app address")
+	}
+	*d.App, err = AppFromDefinition(appDef)
+	return errors.WithMessage(err, "resolve app")
 }
