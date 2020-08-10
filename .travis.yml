@@ -7,7 +7,6 @@ go_import_path: perun.network/go-perun
 
 git:
   submodules: false
-  depth: false
 cache:
   directories:
     - $HOME/.cache/go-build
@@ -27,7 +26,7 @@ jobs:
       before_script: docker pull golangci/golangci-lint:v1.27
       script:
         - .scripts/check-copyright-notice.sh
-        - .scripts/check-notice-authors.sh origin/dev
+        - .scripts/check-notice-authors.sh $(git log --pretty=format:"%H" --merges -n 1)
         - .scripts/check-vanity-imports.sh $TRAVIS_BUILD_DIR
         - docker run --rm -v$TRAVIS_BUILD_DIR:/src -w/src golangci/golangci-lint:v1.27 golangci-lint run --config .golangci.yml
 
