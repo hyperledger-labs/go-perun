@@ -47,3 +47,8 @@ func Terminates(deadline time.Duration, fn func()) bool {
 	defer cancel()
 	return TerminatesCtx(ctx, fn)
 }
+
+// TerminatesQuickly checks whether a function terminates within 20 ms.
+func TerminatesQuickly(fn func()) bool {
+	return Terminates(time.Millisecond*20, fn)
+}

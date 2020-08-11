@@ -75,3 +75,27 @@ func TestAssertNotTerminates(t *testing.T) {
 		})
 	})
 }
+
+func TestAssertTerminatesQuickly(t *testing.T) {
+	t.Run("success case", func(t *testing.T) {
+		AssertTerminatesQuickly(t, func() {})
+	})
+
+	t.Run("error case", func(t *testing.T) {
+		test.AssertError(t, func(t test.T) {
+			AssertTerminatesQuickly(t, func() { time.Sleep(time.Hour) })
+		})
+	})
+}
+
+func TestAssertNotTerminatesQuickly(t *testing.T) {
+	t.Run("success case", func(t *testing.T) {
+		AssertNotTerminatesQuickly(t, func() { time.Sleep(time.Hour) })
+	})
+
+	t.Run("error case", func(t *testing.T) {
+		test.AssertError(t, func(t test.T) {
+			AssertNotTerminatesQuickly(t, func() {})
+		})
+	})
+}

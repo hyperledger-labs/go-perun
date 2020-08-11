@@ -67,3 +67,8 @@ func TestTerminates(t *testing.T) {
 		}))
 	})
 }
+
+func TestTerminatesQuickly(t *testing.T) {
+	assert.False(t, TerminatesQuickly(func() { time.Sleep(time.Hour) }))
+	assert.True(t, TerminatesQuickly(func() {}))
+}

@@ -58,7 +58,26 @@ func AssertTerminates(t test.T, deadline time.Duration, fn func()) {
 func AssertNotTerminates(t test.T, deadline time.Duration, fn func()) {
 	t.Helper()
 
-	if pkg.Terminates(deadline, fn) {
-		t.Errorf("Function should not have terminated within deadline")
+	if pkg.Terminates(timeout, fn) {
+		t.Errorf("Function should not have terminated within timeout")
+	}
+}
+
+// AssertTerminatesQuickly asserts that a function terminates within 20 ms.
+func AssertTerminatesQuickly(t test.T, fn func()) {
+	t.Helper()
+
+	if !pkg.TerminatesQuickly(fn) {
+		t.Errorf("Function should have terminated within timeout")
+	}
+}
+
+// AssertNotTerminatesQuickly asserts that a function does not terminate within
+// 20 ms.
+func AssertNotTerminatesQuickly(t test.T, fn func()) {
+	t.Helper()
+
+	if pkg.TerminatesQuickly(fn) {
+		t.Errorf("Function should not have terminated within timeout")
 	}
 }
