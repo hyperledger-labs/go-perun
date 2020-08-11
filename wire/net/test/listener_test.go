@@ -21,7 +21,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"perun.network/go-perun/pkg/test"
+	ctxtest "perun.network/go-perun/pkg/context/test"
 	"perun.network/go-perun/wire"
 	wirenet "perun.network/go-perun/wire/net"
 )
@@ -46,7 +46,7 @@ func TestListener_Accept_Put(t *testing.T) {
 	go func() {
 		defer close(done)
 
-		test.AssertTerminates(t, timeout, func() {
+		ctxtest.AssertTerminates(t, timeout, func() {
 			conn, err := l.Accept()
 			assert.NoError(t, err, "Accept must not fail")
 			assert.Same(t, connection, conn,
@@ -61,7 +61,7 @@ func TestListener_Accept_Put(t *testing.T) {
 
 	assert.True(t, l.Put(ctx, connection))
 	// there is no select with `time.After()` branch here because the goroutine
-	// calls `test.AssertTerminates`
+	// calls `ctxtest.AssertTerminates`
 	<-done
 }
 
@@ -71,7 +71,7 @@ func TestListener_Accept_Close(t *testing.T) {
 	t.Run("close before accept", func(t *testing.T) {
 		l := NewNetListener()
 		l.Close()
-		test.AssertTerminates(t, timeout, func() {
+		ctxtest.AssertTerminates(t, timeout, func() {
 			conn, err := l.Accept()
 			assert.Error(t, err, "Accept must fail")
 			assert.Nil(t, conn)
@@ -86,7 +86,7 @@ func TestListener_Accept_Close(t *testing.T) {
 			l.Close()
 		}()
 
-		test.AssertTerminates(t, 2*timeout, func() {
+		ctxtest.AssertTerminates(t, 2*timeout, func() {
 			conn, err := l.Accept()
 			assert.Error(t, err, "Accept must fail")
 			assert.Nil(t, conn)
@@ -103,7 +103,7 @@ func TestListener_Put(t *testing.T) {
 
 		ctx, cancel := context.WithCancel(context.Background())
 		cancel()
-		test.AssertTerminates(t, timeout, func() {
+		ctxtest.AssertTerminates(t, timeout, func() {
 			assert.False(t, NewNetListener().Put(ctx, connection))
 		})
 	})
@@ -113,7 +113,7 @@ func TestListener_Put(t *testing.T) {
 
 		l := NewNetListener()
 		l.Close()
-		test.AssertTerminates(t, timeout, func() {
+		ctxtest.AssertTerminates(t, timeout, func() {
 			// Closed listener must abort Put() calls.
 			assert.False(t, l.Put(context.Background(), connection))
 			// Accept() must always fail when closed.

@@ -23,6 +23,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	simwallet "perun.network/go-perun/backend/sim/wallet"
+	ctxtest "perun.network/go-perun/pkg/context/test"
 	"perun.network/go-perun/pkg/test"
 	"perun.network/go-perun/wallet"
 	"perun.network/go-perun/wire"
@@ -86,7 +87,7 @@ func TestDialer_Dial(t *testing.T) {
 		})
 
 		ct.Stage("dial", func(rt require.TestingT) {
-			test.AssertTerminates(t, timeout, func() {
+			ctxtest.AssertTerminates(t, timeout, func() {
 				conn, err := d.Dial(context.Background(), laddr)
 				assert.NoError(t, err)
 				require.NotNil(rt, conn)
@@ -101,7 +102,7 @@ func TestDialer_Dial(t *testing.T) {
 	t.Run("aborted context", func(t *testing.T) {
 		ctx, cancel := context.WithCancel(context.Background())
 		cancel()
-		test.AssertTerminates(t, timeout, func() {
+		ctxtest.AssertTerminates(t, timeout, func() {
 			conn, err := d.Dial(ctx, laddr)
 			assert.Nil(t, conn)
 			assert.Error(t, err)
@@ -112,7 +113,7 @@ func TestDialer_Dial(t *testing.T) {
 		noHostAddr := simwallet.NewRandomAddress(rng)
 		d.Register(noHostAddr, "no such host")
 
-		test.AssertTerminates(t, timeout, func() {
+		ctxtest.AssertTerminates(t, timeout, func() {
 			conn, err := d.Dial(context.Background(), noHostAddr)
 			assert.Nil(t, conn)
 			assert.Error(t, err)
@@ -120,7 +121,7 @@ func TestDialer_Dial(t *testing.T) {
 	})
 
 	t.Run("unknown address", func(t *testing.T) {
-		test.AssertTerminates(t, timeout, func() {
+		ctxtest.AssertTerminates(t, timeout, func() {
 			unkownAddr := simwallet.NewRandomAddress(rng)
 			conn, err := d.Dial(context.Background(), unkownAddr)
 			assert.Error(t, err)

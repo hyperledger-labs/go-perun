@@ -29,7 +29,7 @@ func AssertTerminatesCtx(ctx context.Context, t test.T, fn func()) {
 	t.Helper()
 
 	if !pkg.TerminatesCtx(ctx, fn) {
-		t.Errorf("function should have terminated within deadline")
+		t.Errorf("function should have terminated within timeout")
 	}
 }
 
@@ -39,23 +39,23 @@ func AssertNotTerminatesCtx(ctx context.Context, t test.T, fn func()) {
 	t.Helper()
 
 	if pkg.TerminatesCtx(ctx, fn) {
-		t.Errorf("Function should not have terminated within deadline")
+		t.Errorf("Function should not have terminated within timeout")
 	}
 }
 
 // AssertTerminates asserts that a function terminates within a certain
 // timeout.
-func AssertTerminates(t test.T, deadline time.Duration, fn func()) {
+func AssertTerminates(t test.T, timeout time.Duration, fn func()) {
 	t.Helper()
 
-	if !pkg.Terminates(deadline, fn) {
-		t.Errorf("Function should have terminated within deadline")
+	if !pkg.Terminates(timeout, fn) {
+		t.Errorf("Function should have terminated within timeout")
 	}
 }
 
 // AssertNotTerminates asserts that a function does not terminate within a
 // certain timeout.
-func AssertNotTerminates(t test.T, deadline time.Duration, fn func()) {
+func AssertNotTerminates(t test.T, timeout time.Duration, fn func()) {
 	t.Helper()
 
 	if pkg.Terminates(timeout, fn) {

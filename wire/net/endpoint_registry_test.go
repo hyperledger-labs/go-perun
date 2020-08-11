@@ -25,6 +25,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	ctxtest "perun.network/go-perun/pkg/context/test"
 	"perun.network/go-perun/pkg/sync/atomic"
 	"perun.network/go-perun/pkg/test"
 	"perun.network/go-perun/wallet"
@@ -126,7 +127,7 @@ func TestRegistry_Get(t *testing.T) {
 		existing := newEndpoint(peerAddr, newMockConn())
 
 		r.endpoints[wallet.Key(peerAddr)] = newFullEndpoint(existing)
-		test.AssertTerminates(t, timeout, func() {
+		ctxtest.AssertTerminates(t, timeout, func() {
 			p, err := r.Get(context.Background(), peerAddr)
 			assert.NoError(t, err)
 			assert.Same(t, p, existing)
@@ -140,7 +141,7 @@ func TestRegistry_Get(t *testing.T) {
 		r := NewEndpointRegistry(id, nilConsumer, dialer)
 
 		dialer.Close()
-		test.AssertTerminates(t, timeout, func() {
+		ctxtest.AssertTerminates(t, timeout, func() {
 			p, err := r.Get(context.Background(), peerAddr)
 			assert.Error(t, err)
 			assert.Nil(t, p)
@@ -257,7 +258,7 @@ func TestRegistry_setupConn(t *testing.T) {
 			Sender:    id.Address(),
 			Recipient: remoteID.Address(),
 			Msg:       wire.NewPingMsg()})
-		test.AssertTerminates(t, timeout, func() {
+		ctxtest.AssertTerminates(t, timeout, func() {
 			assert.Error(t, r.setupConn(a))
 		})
 	})
@@ -269,7 +270,7 @@ func TestRegistry_setupConn(t *testing.T) {
 		go ExchangeAddrsActive(context.Background(), remoteID, id.Address(), b)
 
 		r.addEndpoint(remoteID.Address(), newMockConn(), false)
-		test.AssertTerminates(t, timeout, func() {
+		ctxtest.AssertTerminates(t, timeout, func() {
 			assert.NoError(t, r.setupConn(a))
 		})
 	})
@@ -280,7 +281,7 @@ func TestRegistry_setupConn(t *testing.T) {
 		a, b := newPipeConnPair()
 		go ExchangeAddrsActive(context.Background(), remoteID, id.Address(), b)
 
-		test.AssertTerminates(t, timeout, func() {
+		ctxtest.AssertTerminates(t, timeout, func() {
 			assert.NoError(t, r.setupConn(a))
 		})
 	})
@@ -303,7 +304,7 @@ func TestRegistry_Listen(t *testing.T) {
 
 	go func() {
 		// Listen() will only terminate if the listener is closed.
-		test.AssertTerminates(t, 2*timeout, func() { r.Listen(l) })
+		ctxtest.AssertTerminates(t, 2*timeout, func() { r.Listen(l) })
 	}()
 
 	a, b := newPipeConnPair()
@@ -320,7 +321,7 @@ func TestRegistry_Listen(t *testing.T) {
 	assert.True(l.isClosed(), "closing the registry should close the listener")
 
 	l2 := newMockListener()
-	test.AssertTerminates(t, timeout, func() {
+	ctxtest.AssertTerminates(t, timeout, func() {
 		r.Listen(l2)
 		assert.True(l2.isClosed(),
 			"Listen on closed registry should close the listener immediately")

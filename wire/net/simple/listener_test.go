@@ -21,7 +21,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"perun.network/go-perun/pkg/test"
+	"perun.network/go-perun/pkg/context/test"
 )
 
 const addr = "0.0.0.0:1337"

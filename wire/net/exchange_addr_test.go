@@ -21,6 +21,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
+	ctxtest "perun.network/go-perun/pkg/context/test"
 	"perun.network/go-perun/pkg/test"
 	wallettest "perun.network/go-perun/wallet/test"
 	"perun.network/go-perun/wire"
@@ -65,7 +66,7 @@ func TestExchangeAddrs_Timeout(t *testing.T) {
 
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
-	test.AssertTerminates(t, 2*timeout, func() {
+	ctxtest.AssertTerminates(t, 2*timeout, func() {
 		addr, err := ExchangeAddrsPassive(ctx, wallettest.NewRandomAccount(rng), a)
 		assert.Nil(t, addr)
 		assert.Error(t, err)

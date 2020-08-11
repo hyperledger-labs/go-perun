@@ -42,8 +42,8 @@ func TerminatesCtx(ctx context.Context, fn func()) bool {
 }
 
 // Terminates checks whether a function terminates within a certain timeout.
-func Terminates(deadline time.Duration, fn func()) bool {
-	ctx, cancel := context.WithTimeout(context.Background(), deadline)
+func Terminates(timeout time.Duration, fn func()) bool {
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 	return TerminatesCtx(ctx, fn)
 }
