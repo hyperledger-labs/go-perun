@@ -21,6 +21,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
+	ctxtest "perun.network/go-perun/pkg/context/test"
 	"perun.network/go-perun/pkg/test"
 )
 
@@ -42,7 +43,7 @@ func TestReceiver_Next(t *testing.T) {
 
 	t.Run("Happy case", func(t *testing.T) {
 		t.Parallel()
-		test.AssertTerminates(t, timeout, func() {
+		ctxtest.AssertTerminates(t, timeout, func() {
 			r := NewReceiver()
 			go r.Put(e)
 			re, err := r.Next(context.Background())
@@ -53,7 +54,7 @@ func TestReceiver_Next(t *testing.T) {
 
 	t.Run("Closed before", func(t *testing.T) {
 		t.Parallel()
-		test.AssertTerminates(t, timeout, func() {
+		ctxtest.AssertTerminates(t, timeout, func() {
 			r := NewReceiver()
 			r.Close()
 			re, err := r.Next(context.Background())
@@ -64,7 +65,7 @@ func TestReceiver_Next(t *testing.T) {
 
 	t.Run("Delayed close", func(t *testing.T) {
 		t.Parallel()
-		test.AssertTerminates(t, timeout*2, func() {
+		ctxtest.AssertTerminates(t, timeout*2, func() {
 			r := NewReceiver()
 			go func() {
 				time.Sleep(timeout)
@@ -78,7 +79,7 @@ func TestReceiver_Next(t *testing.T) {
 
 	t.Run("Context instant timeout", func(t *testing.T) {
 		t.Parallel()
-		test.AssertTerminates(t, timeout, func() {
+		ctxtest.AssertTerminates(t, timeout, func() {
 			r := NewReceiver()
 			ctx, cancel := context.WithCancel(context.Background())
 			cancel()
@@ -90,7 +91,7 @@ func TestReceiver_Next(t *testing.T) {
 
 	t.Run("Context delayed timeout", func(t *testing.T) {
 		t.Parallel()
-		test.AssertTerminates(t, timeout*2, func() {
+		ctxtest.AssertTerminates(t, timeout*2, func() {
 			r := NewReceiver()
 			ctx, cancel := context.WithTimeout(context.Background(), timeout)
 			defer cancel()

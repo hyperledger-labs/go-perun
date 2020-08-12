@@ -18,7 +18,8 @@ import (
 	"context"
 
 	"github.com/pkg/errors"
-	"perun.network/go-perun/pkg/test"
+
+	pkg "perun.network/go-perun/pkg/context"
 	"perun.network/go-perun/wire"
 )
 
@@ -30,7 +31,7 @@ import (
 // authenticity.
 func ExchangeAddrsActive(ctx context.Context, id wire.Account, peer wire.Address, conn Conn) error {
 	var err error
-	ok := test.TerminatesCtx(ctx, func() {
+	ok := pkg.TerminatesCtx(ctx, func() {
 		err = conn.Send(&wire.Envelope{
 			Sender:    id.Address(),
 			Recipient: peer,
@@ -66,7 +67,7 @@ func ExchangeAddrsActive(ctx context.Context, id wire.Account, peer wire.Address
 func ExchangeAddrsPassive(ctx context.Context, id wire.Account, conn Conn) (wire.Address, error) {
 	var addr wire.Address
 	var err error
-	ok := test.TerminatesCtx(ctx, func() {
+	ok := pkg.TerminatesCtx(ctx, func() {
 		var e *wire.Envelope
 		if e, err = conn.Recv(); err != nil {
 			err = errors.WithMessage(err, "receiving auth message")

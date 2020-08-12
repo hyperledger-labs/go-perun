@@ -23,6 +23,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	ctxtest "perun.network/go-perun/pkg/context/test"
 	"perun.network/go-perun/pkg/sync"
 	"perun.network/go-perun/pkg/test"
 	wallettest "perun.network/go-perun/wallet/test"
@@ -62,7 +63,7 @@ func TestProducer_produce_DefaultMsgHandler(t *testing.T) {
 		missedMsg <- e
 	})
 
-	test.AssertTerminates(t, timeout, func() {
+	ctxtest.AssertTerminates(t, timeout, func() {
 		r := NewReceiver()
 		p.Subscribe(r, func(e *Envelope) bool { return e.Msg.Type() == ChannelProposal })
 		assert.NoError(t, send.Send(NewRandomEnvelope(rng, NewPingMsg())))
@@ -133,7 +134,7 @@ func TestProducer_Subscribe(t *testing.T) {
 		p := NewRelay()
 		r := NewReceiver()
 		r.Close()
-		test.AssertTerminates(t, timeout, func() {
+		ctxtest.AssertTerminates(t, timeout, func() {
 			assert.Error(t, p.Subscribe(r, fn))
 		})
 		time.Sleep(timeout)
@@ -176,7 +177,7 @@ func TestProducer_caching(t *testing.T) {
 
 	rec := NewReceiver()
 	prod.Subscribe(rec, isPing)
-	test.AssertTerminates(t, timeout, func() {
+	ctxtest.AssertTerminates(t, timeout, func() {
 		e, err := rec.Next(ctx)
 		assert.NoError(err)
 		assert.Same(e, ping0)

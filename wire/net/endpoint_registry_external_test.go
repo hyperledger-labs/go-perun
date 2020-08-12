@@ -22,6 +22,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	ctxtest "perun.network/go-perun/pkg/context/test"
 	"perun.network/go-perun/pkg/sync"
 	"perun.network/go-perun/pkg/test"
 	wallettest "perun.network/go-perun/wallet/test"
@@ -69,7 +70,7 @@ func TestEndpointRegistry_Get_Pair(t *testing.T) {
 	listenerReg.Close()
 	dialerReg.Close()
 	assert.True(sync.IsAlreadyClosedError(listener.Close()))
-	test.AssertTerminates(t, timeout, func() {
+	ctxtest.AssertTerminates(t, timeout, func() {
 		<-done
 	})
 }
@@ -114,7 +115,7 @@ func TestEndpointRegistry_Get_Multiple(t *testing.T) {
 	}
 
 	ct := test.NewConcurrent(t)
-	test.AssertTerminates(t, timeout, func() {
+	ctxtest.AssertTerminates(t, timeout, func() {
 		ct.Stage("terminates", func(t require.TestingT) {
 			require := require.New(t)
 			p := <-peers
@@ -142,5 +143,5 @@ func TestEndpointRegistry_Get_Multiple(t *testing.T) {
 	listenerReg.Close()
 	dialerReg.Close()
 	assert.True(sync.IsAlreadyClosedError(listener.Close()))
-	test.AssertTerminates(t, timeout, func() { <-done })
+	ctxtest.AssertTerminates(t, timeout, func() { <-done })
 }

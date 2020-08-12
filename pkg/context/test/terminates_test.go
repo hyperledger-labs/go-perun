@@ -1,4 +1,4 @@
-// Copyright 2019 - See NOTICE file for copyright holders.
+// Copyright 2020 - See NOTICE file for copyright holders.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -19,58 +19,14 @@ import (
 	"testing"
 	"time"
 
-	"github.com/stretchr/testify/assert"
+	"perun.network/go-perun/pkg/test"
 )
 
 const timeout = 200 * time.Millisecond
 
-func TestTerminatesCtx(t *testing.T) {
-	// Test often, to detect if there are rare execution branches (due to
-	// 'select' statements).
-	for i := 0; i < 256; i++ {
-		t.Run("immediate deadline", func(t *testing.T) {
-			ctx, cancel := context.WithCancel(context.Background())
-			cancel()
-			assert.False(t, TerminatesCtx(ctx, func() {}))
-		})
-	}
-
-	t.Run("delayed deadline", func(t *testing.T) {
-		ctx, cancel := context.WithTimeout(context.Background(), timeout)
-		cancel()
-		assert.False(t, TerminatesCtx(ctx, func() {
-			<-time.After(2 * timeout)
-		}))
-	})
-
-	t.Run("no deadline", func(t *testing.T) {
-		assert.True(t, TerminatesCtx(context.Background(), func() {}))
-	})
-}
-
-func TestTerminates(t *testing.T) {
-	// Test often, to detect if there are rare execution branches (due to
-	// 'select' statements).
-	for i := 0; i < 256; i++ {
-		t.Run("immediate deadline", func(t *testing.T) {
-			assert.False(t, Terminates(-1, func() { <-time.After(time.Second) }))
-		})
-	}
-
-	t.Run("delayed deadline", func(t *testing.T) {
-		assert.False(t, Terminates(timeout, func() {
-			<-time.After(2 * timeout)
-		}))
-
-		assert.True(t, Terminates(2*timeout, func() {
-			<-time.After(timeout)
-		}))
-	})
-}
-
 func TestAssertTerminatesCtx(t *testing.T) {
 	t.Run("error case", func(t *testing.T) {
-		AssertError(t, func(t T) {
+		test.AssertError(t, func(t test.T) {
 			ctx, cancel := context.WithCancel(context.Background())
 			cancel()
 			AssertTerminatesCtx(ctx, t, func() {})
@@ -90,7 +46,7 @@ func TestAssertNotTerminatesCtx(t *testing.T) {
 	})
 
 	t.Run("error case", func(t *testing.T) {
-		AssertError(t, func(t T) {
+		test.AssertError(t, func(t test.T) {
 			AssertNotTerminatesCtx(context.Background(), t, func() {})
 		})
 	})
@@ -98,7 +54,7 @@ func TestAssertNotTerminatesCtx(t *testing.T) {
 
 func TestAssertTerminates(t *testing.T) {
 	t.Run("error case", func(t *testing.T) {
-		AssertError(t, func(t T) {
+		test.AssertError(t, func(t test.T) {
 			AssertTerminates(t, -1, func() {})
 		})
 	})
@@ -114,8 +70,32 @@ func TestAssertNotTerminates(t *testing.T) {
 	})
 
 	t.Run("error case", func(t *testing.T) {
-		AssertError(t, func(t T) {
+		test.AssertError(t, func(t test.T) {
 			AssertNotTerminates(t, timeout, func() {})
+		})
+	})
+}
+
+func TestAssertTerminatesQuickly(t *testing.T) {
+	t.Run("success case", func(t *testing.T) {
+		AssertTerminatesQuickly(t, func() {})
+	})
+
+	t.Run("error case", func(t *testing.T) {
+		test.AssertError(t, func(t test.T) {
+			AssertTerminatesQuickly(t, func() { time.Sleep(time.Hour) })
+		})
+	})
+}
+
+func TestAssertNotTerminatesQuickly(t *testing.T) {
+	t.Run("success case", func(t *testing.T) {
+		AssertNotTerminatesQuickly(t, func() { time.Sleep(time.Hour) })
+	})
+
+	t.Run("error case", func(t *testing.T) {
+		test.AssertError(t, func(t test.T) {
+			AssertNotTerminatesQuickly(t, func() {})
 		})
 	})
 }
