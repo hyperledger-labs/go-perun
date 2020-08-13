@@ -104,10 +104,10 @@ func TestChannelProposalReqDecode_CheckMaxNumParts(t *testing.T) {
 	assert.Contains(err.Error(), "participants")
 }
 
-func TestChannelProposalReqSessID(t *testing.T) {
+func TestChannelProposalReqProposalID(t *testing.T) {
 	rng := pkgtest.Prng(t)
 	original := *client.NewRandomChannelProposalReq(rng)
-	s := original.SessID()
+	s := original.ProposalID()
 	fake := client.NewRandomChannelProposalReq(rng)
 
 	assert.NotEqual(t, original.ChallengeDuration, fake.ChallengeDuration)
@@ -119,39 +119,39 @@ func TestChannelProposalReqSessID(t *testing.T) {
 
 	c0 := original
 	c0.ChallengeDuration = fake.ChallengeDuration
-	assert.NotEqual(t, s, c0.SessID())
+	assert.NotEqual(t, s, c0.ProposalID())
 
 	c1 := original
 	c1.Nonce = fake.Nonce
-	assert.NotEqual(t, s, c1.SessID())
+	assert.NotEqual(t, s, c1.ProposalID())
 
 	c2 := original
 	c2.ParticipantAddr = fake.ParticipantAddr
-	assert.Equal(t, s, c2.SessID())
+	assert.Equal(t, s, c2.ProposalID())
 
 	// TODO: #266
 	//c3 := original
 	//c3.AppDef = fake.AppDef
-	//assert.NotEqual(t, s, c3.SessID())
+	//assert.NotEqual(t, s, c3.ProposalID())
 
 	//c4 := original
 	//c4.InitData = fake.InitData
-	//assert.NotEqual(t, s, c4.SessID())
+	//assert.NotEqual(t, s, c4.ProposalID())
 
 	c5 := original
 	c5.InitBals = fake.InitBals
-	assert.NotEqual(t, s, c5.SessID())
+	assert.NotEqual(t, s, c5.ProposalID())
 
 	c6 := original
 	c6.PeerAddrs = fake.PeerAddrs
-	assert.NotEqual(t, s, c6.SessID())
+	assert.NotEqual(t, s, c6.ProposalID())
 }
 
 func TestChannelProposalAccSerialization(t *testing.T) {
 	rng := pkgtest.Prng(t)
 	for i := 0; i < 16; i++ {
 		m := &client.ChannelProposalAcc{
-			SessID:          newRandomSessID(rng),
+			ProposalID:      newRandomProposalID(rng),
 			ParticipantAddr: wallettest.NewRandomAddress(rng),
 		}
 		wire.TestMsg(t, m)
@@ -162,14 +162,14 @@ func TestChannelProposalRejSerialization(t *testing.T) {
 	rng := pkgtest.Prng(t)
 	for i := 0; i < 16; i++ {
 		m := &client.ChannelProposalRej{
-			SessID: newRandomSessID(rng),
-			Reason: newRandomString(rng, 16, 16),
+			ProposalID: newRandomProposalID(rng),
+			Reason:     newRandomString(rng, 16, 16),
 		}
 		wire.TestMsg(t, m)
 	}
 }
 
-func newRandomSessID(rng *rand.Rand) (id client.SessionID) {
+func newRandomProposalID(rng *rand.Rand) (id client.ProposalID) {
 	rng.Read(id[:])
 	return
 }
