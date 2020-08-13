@@ -57,11 +57,17 @@ type (
 
 	// An AdjudicatorReq collects all necessary information to make calls to the
 	// adjudicator.
+	//
+	// If the Secondary flag is set to true, it is assumed that this is an
+	// on-chain request that is executed by the other channel participants as well
+	// and the Adjudicator backend may run an optimized on-chain transaction
+	// protocol, possibly saving unnecessary double sending of transactions.
 	AdjudicatorReq struct {
-		Params *Params
-		Acc    wallet.Account
-		Tx     Transaction
-		Idx    Index
+		Params    *Params
+		Acc       wallet.Account
+		Tx        Transaction
+		Idx       Index
+		Secondary bool
 	}
 
 	// RegisteredEvent is the abstract event that signals a successful state
