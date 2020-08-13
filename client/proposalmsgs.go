@@ -80,7 +80,7 @@ func (c ChannelProposal) Encode(w io.Writer) error {
 		return err
 	}
 
-	if err := perunio.Encode(w, c.ParticipantAddr, c.AppDef, c.InitData, c.InitBals); err != nil {
+	if err := perunio.Encode(w, c.ParticipantAddr, OptAppDefAndDataEnc{c.AppDef, c.InitData}, c.InitBals); err != nil {
 		return err
 	}
 
@@ -94,13 +94,45 @@ func (c ChannelProposal) Encode(w io.Writer) error {
 	if err := perunio.Encode(w, numParts); err != nil {
 		return err
 	}
-	for i := range c.PeerAddrs {
-		if err := c.PeerAddrs[i].Encode(w); err != nil {
-			return errors.Errorf("error encoding participant %d", i)
-		}
+	return wallet.Addresses(c.PeerAddrs).Encode(w)
+}
+
+// OptAppDefAndDataEnc makes an optional pair of App definition and Data encodable.
+type OptAppDefAndDataEnc struct {
+	wallet.Address
+	channel.Data
+}
+
+// Encode encodes an optional pair of App definition and Data.
+func (o OptAppDefAndDataEnc) Encode(w io.Writer) error {
+	if o.Address == nil {
+		return perunio.Encode(w, false)
+	}
+	return perunio.Encode(w, true, o.Address, o.Data)
+}
+
+// OptAppDefAndDataDec makes an optional pair of App definition and Data decodable.
+type OptAppDefAndDataDec struct {
+	Address *wallet.Address
+	Data    *channel.Data
+}
+
+// Decode decodes an optional pair of App definition and Data.
+func (o OptAppDefAndDataDec) Decode(r io.Reader) (err error) {
+	*o.Data = nil
+	*o.Address = nil
+	var app channel.App
+	if err = perunio.Decode(r, channel.OptAppDec{App: &app}); err != nil {
+		return err
 	}
 
-	return nil
+	if app == nil {
+		return nil
+	}
+
+	*o.Address = app.Def()
+	*o.Data, err = app.DecodeData(r)
+	return err
 }
 
 // Decode decodes a ChannelProposalRequest from an io.Reader.
@@ -113,25 +145,14 @@ func (c *ChannelProposal) Decode(r io.Reader) (err error) {
 		return err
 	}
 
-	if c.ParticipantAddr, err = wallet.DecodeAddress(r); err != nil {
-		return err
-	}
-	if c.AppDef, err = wallet.DecodeAddress(r); err != nil {
-		return err
-	}
-	var app channel.App
-	if app, err = channel.AppFromDefinition(c.AppDef); err != nil {
-		return err
-	}
-
-	if c.InitData, err = app.DecodeData(r); err != nil {
-		return err
-	}
-
 	if c.InitBals == nil {
 		c.InitBals = new(channel.Allocation)
 	}
-	if err := perunio.Decode(r, c.InitBals); err != nil {
+
+	if err := perunio.Decode(r,
+		wallet.AddressDec{Addr: &c.ParticipantAddr},
+		OptAppDefAndDataDec{&c.AppDef, &c.InitData},
+		c.InitBals); err != nil {
 		return err
 	}
 
@@ -150,13 +171,7 @@ func (c *ChannelProposal) Decode(r io.Reader) (err error) {
 	}
 
 	c.PeerAddrs = make([]wallet.Address, numParts)
-	for i := range c.PeerAddrs {
-		if c.PeerAddrs[i], err = wallet.DecodeAddress(r); err != nil {
-			return err
-		}
-	}
-
-	return nil
+	return wallet.Addresses(c.PeerAddrs).Decode(r)
 }
 
 // ProposalID returns the identifier of this channel proposal request as

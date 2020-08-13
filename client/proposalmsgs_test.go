@@ -59,13 +59,20 @@ func TestChannelProposalReq_NilArgs(t *testing.T) {
 
 func TestChannelProposalReqSerialization(t *testing.T) {
 	rng := pkgtest.Prng(t)
-	for i := 0; i < 4; i++ {
+	for i := 0; i < 8; i++ {
+		var app wallet.Address
+		var initData channel.Data
+		if i&1 == 0 {
+			app = test.NewRandomApp(rng).Def()
+			initData = test.NewRandomData(rng)
+		}
+
 		m := &client.ChannelProposal{
 			ChallengeDuration: 0,
 			Nonce:             big.NewInt(rng.Int63()),
 			ParticipantAddr:   wallettest.NewRandomAddress(rng),
-			AppDef:            test.NewRandomApp(rng).Def(),
-			InitData:          test.NewRandomData(rng),
+			AppDef:            app,
+			InitData:          initData,
 			InitBals:          test.NewRandomAllocation(rng, test.WithNumParts(2)),
 			PeerAddrs: []wallet.Address{
 				wallettest.NewRandomAddress(rng),
@@ -88,7 +95,7 @@ func TestChannelProposalReqDecode_CheckMaxNumParts(t *testing.T) {
 	// maximum number of participants possible with the encoding
 	require.NoError(io.Encode(buffer, c.ChallengeDuration, c.Nonce))
 	require.NoError(
-		io.Encode(buffer, c.ParticipantAddr, c.AppDef, c.InitData, c.InitBals))
+		io.Encode(buffer, c.ParticipantAddr, client.OptAppDefAndDataEnc{c.AppDef, c.InitData}, c.InitBals))
 
 	numParts := int32(channel.MaxNumParts + 1)
 	require.NoError(io.Encode(buffer, numParts))

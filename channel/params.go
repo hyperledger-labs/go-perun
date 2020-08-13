@@ -37,8 +37,8 @@ var Zero ID = ID{}
 
 var _ io.Serializer = (*Params)(nil)
 
-// Params are a channel's immutable parameters.  A channel's id is the hash of
-// (some of) its parameter, as determined by the backend.  All fields should be
+// Params are a channel's immutable parameters. A channel's id is the hash of
+// (some of) its parameter, as determined by the backend. All fields should be
 // treated as constant.
 // It should only be created through NewParams().
 type Params struct {
@@ -48,7 +48,8 @@ type Params struct {
 	ChallengeDuration uint64
 	// Parts are the channel participants
 	Parts []wallet.Address
-	// App identifies the application that this channel is running.
+	// App identifies the application that this channel is running. It is
+	// optional, and if nil, signifies that a channel is a payment channel.
 	App App `cloneable:"shallow"`
 	// Nonce is a randomness to make the channel id unique
 	Nonce *big.Int
@@ -60,8 +61,9 @@ func (p *Params) ID() ID {
 }
 
 // NewParams creates Params from the given data and performs sanity checks. The
-// channel id is also calculated here and persisted because it probably is an
-// expensive hash operation.
+// appDef optional: if it is nil, it describes a payment channel. The channel id
+// is also calculated here and persisted because it probably is an expensive
+// hash operation.
 func NewParams(challengeDuration uint64, parts []wallet.Address, appDef wallet.Address, nonce *big.Int) (*Params, error) {
 	if err := ValidateParameters(challengeDuration, len(parts), appDef, nonce); err != nil {
 		return nil, errors.WithMessage(err, "invalid parameter for NewParams")
@@ -87,19 +89,21 @@ func ValidateParameters(challengeDuration uint64, numParts int, appDef wallet.Ad
 	if numParts > MaxNumParts {
 		return errors.Errorf("too many participants, got: %d max: %d", numParts, MaxNumParts)
 	}
-	app, err := AppFromDefinition(appDef)
-	if err != nil {
-		return errors.WithMessage(err, "app from definition")
-	}
-	if !IsStateApp(app) && !IsActionApp(app) {
-		return errors.New("app must be either an Action- or StateApp")
+	if appDef != nil {
+		app, err := AppFromDefinition(appDef)
+		if err != nil {
+			return errors.WithMessage(err, "app from definition")
+		}
+		if !IsStateApp(app) && !IsActionApp(app) {
+			return errors.New("app must be either an Action- or StateApp")
+		}
 	}
 	return nil
 }
 
-// NewParamsUnsafe creates Params from the given data and does NOT perform sanity checks.
-// The channel id is also calculated here and persisted because it probably is an
-// expensive hash operation.
+// NewParamsUnsafe creates Params from the given data and does NOT perform
+// sanity checks. The channel id is also calculated here and persisted because
+// it probably is an expensive hash operation.
 func NewParamsUnsafe(challengeDuration uint64, parts []wallet.Address, appDef wallet.Address, nonce *big.Int) *Params {
 	app, err := AppFromDefinition(appDef)
 	if err != nil {
@@ -146,23 +150,16 @@ func (p *Params) Encode(w stdio.Writer) error {
 		p.id,
 		p.ChallengeDuration,
 		wallet.AddressesWithLen(p.Parts),
-		p.App.Def(),
+		OptAppEnc{p.App},
 		p.Nonce)
 }
 
 // Decode uses the pkg/io module to deserialize a params instance.
 func (p *Params) Decode(r stdio.Reader) error {
-	var appDef wallet.Address
-	err := io.Decode(r,
+	return io.Decode(r,
 		&p.id,
 		&p.ChallengeDuration,
 		(*wallet.AddressesWithLen)(&p.Parts),
-		wallet.AddressDec{Addr: &appDef},
+		OptAppDec{&p.App},
 		&p.Nonce)
-	if err != nil {
-		return errors.WithMessage(err, "decode fields")
-	}
-
-	p.App, err = AppFromDefinition(appDef)
-	return errors.WithMessage(err, "resolve app")
 }
