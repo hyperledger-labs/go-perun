@@ -38,7 +38,7 @@ type Channel struct {
 	conn        *channelConn
 	machine     persistence.StateMachine
 	machMtx     perunsync.Mutex
-	updateSub   chan<- *channel.State
+	onUpdate    func(from, to *channel.State)
 	adjudicator channel.Adjudicator
 	wallet      wallet.Wallet
 }
