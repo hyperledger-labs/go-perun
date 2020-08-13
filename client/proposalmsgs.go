@@ -46,9 +46,9 @@ func init() {
 		})
 }
 
-// SessionID is a unique identifier generated for every instantiantiation of
-// a channel.
-type SessionID = [32]byte
+// ProposalID uniquely identifies the channel proposal as
+// specified by the Channel Proposal Protocol (CPP).
+type ProposalID = [32]byte
 
 // ChannelProposal contains all data necessary to propose a new
 // channel to a given set of peers. It is also sent over the wire.
@@ -159,16 +159,17 @@ func (c *ChannelProposal) Decode(r io.Reader) (err error) {
 	return nil
 }
 
-// SessID calculates the SessionID of a ChannelProposalReq.
-func (c ChannelProposal) SessID() (sid SessionID) {
+// ProposalID returns the identifier of this channel proposal request as
+// specified by the Channel Proposal Protocol (CPP).
+func (c ChannelProposal) ProposalID() (propID ProposalID) {
 	hasher := sha3.New256()
 	if err := perunio.Encode(hasher, c.Nonce); err != nil {
-		log.Panicf("session ID nonce encoding: %v", err)
+		log.Panicf("proposal ID nonce encoding: %v", err)
 	}
 
 	for _, p := range c.PeerAddrs {
 		if err := perunio.Encode(hasher, p); err != nil {
-			log.Panicf("session ID participant encoding: %v", err)
+			log.Panicf("proposal ID participant encoding: %v", err)
 		}
 	}
 
@@ -179,10 +180,10 @@ func (c ChannelProposal) SessID() (sid SessionID) {
 		c.InitBals,
 		c.AppDef,
 	); err != nil {
-		log.Panicf("session ID data encoding error: %v", err)
+		log.Panicf("proposal ID data encoding error: %v", err)
 	}
 
-	copy(sid[:], hasher.Sum(nil))
+	copy(propID[:], hasher.Sum(nil))
 	return
 }
 
@@ -211,14 +212,14 @@ func (c ChannelProposal) Valid() error {
 }
 
 // ChannelProposalAcc contains all data for a response to a channel proposal
-// message. The SessID must be computed from the channel proposal messages one
+// message. The ProposalID must correspond to the channel proposal request one
 // wishes to respond to. ParticipantAddr should be a participant address just
 // for this channel instantiation.
 //
 // The type implements the channel proposal response messages from the
 // Multi-Party Channel Proposal Protocol (MPCPP).
 type ChannelProposalAcc struct {
-	SessID          SessionID
+	ProposalID      ProposalID
 	ParticipantAddr wallet.Address
 }
 
@@ -229,8 +230,8 @@ func (ChannelProposalAcc) Type() wire.Type {
 
 // Encode encodes the ChannelProposalAcc into an io.Writer.
 func (acc ChannelProposalAcc) Encode(w io.Writer) error {
-	if err := perunio.Encode(w, acc.SessID); err != nil {
-		return errors.WithMessage(err, "SID encoding")
+	if err := perunio.Encode(w, acc.ProposalID); err != nil {
+		return errors.WithMessage(err, "encoding proposal id")
 	}
 
 	if err := acc.ParticipantAddr.Encode(w); err != nil {
@@ -242,8 +243,8 @@ func (acc ChannelProposalAcc) Encode(w io.Writer) error {
 
 // Decode decodes a ChannelProposalAcc from an io.Reader.
 func (acc *ChannelProposalAcc) Decode(r io.Reader) (err error) {
-	if err = perunio.Decode(r, &acc.SessID); err != nil {
-		return errors.WithMessage(err, "SID decoding")
+	if err = perunio.Decode(r, &acc.ProposalID); err != nil {
+		return errors.WithMessage(err, "decoding proposal id")
 	}
 
 	acc.ParticipantAddr, err = wallet.DecodeAddress(r)
@@ -256,8 +257,8 @@ func (acc *ChannelProposalAcc) Decode(r io.Reader) (err error) {
 // The message is one of two possible responses in the
 // Multi-Party Channel Proposal Protocol (MPCPP).
 type ChannelProposalRej struct {
-	SessID SessionID
-	Reason string
+	ProposalID ProposalID
+	Reason     string
 }
 
 // Type returns wire.ChannelProposalRej.
@@ -267,10 +268,10 @@ func (ChannelProposalRej) Type() wire.Type {
 
 // Encode encodes a ChannelProposalRej into an io.Writer.
 func (rej ChannelProposalRej) Encode(w io.Writer) error {
-	return perunio.Encode(w, rej.SessID, rej.Reason)
+	return perunio.Encode(w, rej.ProposalID, rej.Reason)
 }
 
 // Decode decodes a ChannelProposalRej from an io.Reader.
 func (rej *ChannelProposalRej) Decode(r io.Reader) error {
-	return perunio.Decode(r, &rej.SessID, &rej.Reason)
+	return perunio.Decode(r, &rej.ProposalID, &rej.Reason)
 }

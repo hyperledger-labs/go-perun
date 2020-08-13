@@ -173,7 +173,7 @@ func (c *Client) handleChannelProposalAcc(
 	enableVer0Cache(ctx, c.conn)
 
 	msgAccept := &ChannelProposalAcc{
-		SessID:          req.SessID(),
+		ProposalID:      req.ProposalID(),
 		ParticipantAddr: acc.Participant,
 	}
 	if err := c.conn.pubMsg(ctx, msgAccept, p); err != nil {
@@ -190,8 +190,8 @@ func (c *Client) handleChannelProposalRej(
 	req *ChannelProposal, reason string,
 ) error {
 	msgReject := &ChannelProposalRej{
-		SessID: req.SessID(),
-		Reason: reason,
+		ProposalID: req.ProposalID(),
+		Reason:     reason,
 	}
 	if err := c.conn.pubMsg(ctx, msgReject, p); err != nil {
 		c.logPeer(p).Warn("error sending proposal rejection")
@@ -213,12 +213,12 @@ func (c *Client) exchangeTwoPartyProposal(
 	// yet so the cache predicate is coarser than the later subscription.
 	enableVer0Cache(ctx, c.conn)
 
-	sessID := proposal.SessID()
+	proposalID := proposal.ProposalID()
 	isResponse := func(e *wire.Envelope) bool {
 		return (e.Msg.Type() == wire.ChannelProposalAcc &&
-			e.Msg.(*ChannelProposalAcc).SessID == sessID) ||
+			e.Msg.(*ChannelProposalAcc).ProposalID == proposalID) ||
 			(e.Msg.Type() == wire.ChannelProposalRej &&
-				e.Msg.(*ChannelProposalRej).SessID == sessID)
+				e.Msg.(*ChannelProposalRej).ProposalID == proposalID)
 	}
 	receiver := wire.NewReceiver()
 	// nolint:errcheck
