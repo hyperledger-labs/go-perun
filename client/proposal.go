@@ -68,13 +68,16 @@ func (f ProposalHandlerFunc) HandleProposal(p *ChannelProposal, r *ProposalRespo
 // Returns the newly created channel controller if the channel was successfully
 // created and funded. Panics if the proposal was already accepted or rejected.
 //
-// After the channel got successfully created, the user is required to start the
-// update handler with Channel.ListenUpdates(UpdateHandler) and to start the
-// channel watcher with Channel.Watch() on the returned channel controller.
+// After the channel controller got successfully set up, it is passed to the
+// callback registered with Client.OnNewChannel. Accept returns after this
+// callback has run.
 //
 // It is important that the passed context does not cancel before twice the
 // ChallengeDuration has passed (at least for real blockchain backends with wall
 // time), or the channel cannot be settled if a peer times out funding.
+//
+// After the channel got successfully created, the user is required to start the
+// channel watcher with Channel.Watch() on the returned channel controller.
 func (r *ProposalResponder) Accept(ctx context.Context, acc ProposalAcc) (*Channel, error) {
 	if ctx == nil {
 		return nil, errors.New("context must not be nil")
@@ -110,14 +113,17 @@ func (r *ProposalResponder) Reject(ctx context.Context, reason string) error {
 // - the channel is funded. If successful,
 // - the channel controller is returned.
 //
-// After the channel got successfully created, the user is required to start the
-// update handler with Channel.ListenUpdates(UpdateHandler) and to start the
-// channel watcher with Channel.Watch(context.Context) on the returned channel
-// controller.
+// After the channel controller got successfully set up, it is passed to the
+// callback registered with Client.OnNewChannel. Accept returns after this
+// callback has run.
 //
 // It is important that the passed context does not cancel before twice the
 // ChallengeDuration has passed (at least for real blockchain backends with wall
 // time), or the channel cannot be settled if a peer times out funding.
+//
+// After the channel got successfully created, the user is required to start the
+// channel watcher with Channel.Watch() on the returned channel
+// controller.
 func (c *Client) ProposeChannel(ctx context.Context, req *ChannelProposal) (*Channel, error) {
 	if ctx == nil || req == nil {
 		c.log.Panic("invalid nil argument")

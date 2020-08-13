@@ -189,7 +189,7 @@ func (c *Client) logChan(id channel.ID) log.Logger {
 }
 
 // Restore restores all channels from persistence. Channels are restored in
-// parallel. Newly restored channels. should be acquired through the
+// parallel. Newly restored channels should be acquired through the
 // OnNewChannel callback.
 func (c *Client) Restore(ctx context.Context) error {
 	ps, err := c.pr.ActivePeers(ctx)
