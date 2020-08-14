@@ -143,4 +143,13 @@ func GenericAddressTest(t *testing.T, s *Setup) {
 	t.Run("Generic Serializer Test", func(t *testing.T) {
 		test.GenericSerializerTest(t, addr)
 	})
+	// a.Equals(Decode(Encode(a)))
+	t.Run("Serialize Equals Test", func(t *testing.T) {
+		buff := new(bytes.Buffer)
+		require.NoError(t, addr.Encode(buff))
+		addr2, err := s.Backend.DecodeAddress(buff)
+		require.NoError(t, err)
+
+		assert.True(t, addr.Equals(addr2))
+	})
 }

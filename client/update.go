@@ -296,7 +296,9 @@ func (c *Channel) handleUpdateRej(
 // notification on channel updates, the enabled state is sent on it.
 func (c *Channel) enableNotifyUpdate(ctx context.Context) error {
 	var err error
-	if c.machine.StagingState().IsFinal {
+	from := c.machine.State()
+	to := c.machine.StagingState()
+	if to.IsFinal {
 		err = c.machine.EnableFinal(ctx)
 	} else {
 		err = c.machine.EnableUpdate(ctx)
@@ -306,21 +308,19 @@ func (c *Channel) enableNotifyUpdate(ctx context.Context) error {
 		return errors.WithMessage(err, "enabling update")
 	}
 
-	if c.updateSub != nil {
-		c.updateSub <- c.machine.State()
+	if c.onUpdate != nil {
+		c.onUpdate(from, to)
 	}
 	return nil
 }
 
-// SubUpdates sets up a subscription to state updates on the provided go channel.
+// OnUpdate sets up a callback to state updates for the channel.
 // The subscription cannot be canceled, but it can be replaced.
-// The provided go channel is not closed if the Channel is closed. It must not
-// be closed while the Channel is not closed.
-// The States that are sent on the channel are not clones but pointers to the
+// The States that are passed to the callback are not clones but pointers to the
 // State in the channel machine, so they must not be modified. If you need to
-// modify the State, .Clone() it first.
-func (c *Channel) SubUpdates(updateSub chan<- *channel.State) {
-	c.updateSub = updateSub
+// modify the State, .Clone() them first.
+func (c *Channel) OnUpdate(cb func(from, to *channel.State)) {
+	c.onUpdate = cb
 }
 
 // validTwoPartyUpdate performs additional protocol-dependent checks on the

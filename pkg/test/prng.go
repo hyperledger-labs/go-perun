@@ -38,7 +38,7 @@ func genRootSeed() (rootSeed int64) {
 	if val, ok := os.LookupEnv(envTestSeed); ok {
 		rootSeed, err := strconv.ParseInt(val, 10, 64)
 		if err != nil {
-			panic("Could not parse GOTESTSEED as int64")
+			panic(fmt.Sprintf("Could not parse %s = '%s' as int64", envTestSeed, val))
 		}
 		return rootSeed
 	}

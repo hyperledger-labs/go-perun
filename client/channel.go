@@ -38,7 +38,7 @@ type Channel struct {
 	conn        *channelConn
 	machine     persistence.StateMachine
 	machMtx     perunsync.Mutex
-	updateSub   chan<- *channel.State
+	onUpdate    func(from, to *channel.State)
 	adjudicator channel.Adjudicator
 	wallet      wallet.Wallet
 }
@@ -146,8 +146,8 @@ func (c *Channel) Phase() channel.Phase {
 	return c.machine.Phase()
 }
 
-// Peers returns the Perun network addresses of all remote peers, in the order
-// of the peers as channel participants. The own address is omitted.
+// Peers returns the Perun network addresses of all peers, in the order
+// of the channel participants.
 func (c *Channel) Peers() []wire.Address {
 	return c.conn.Peers()
 }
