@@ -68,11 +68,12 @@ func TestHappyAliceBob(t *testing.T) {
 	role[B].SetStages(stages)
 
 	execConfig := clienttest.ExecConfig{
-		PeerAddrs:  [2]wire.Address{s.Accs[A].Address(), s.Accs[B].Address()},
-		InitBals:   [2]*big.Int{big.NewInt(100), big.NewInt(100)},
-		Asset:      (*wallet.Address)(&s.Asset),
-		NumUpdates: [2]int{2, 2},
-		TxAmounts:  [2]*big.Int{big.NewInt(5), big.NewInt(3)},
+		PeerAddrs:   [2]wire.Address{s.Accs[A].Address(), s.Accs[B].Address()},
+		InitBals:    [2]*big.Int{big.NewInt(100), big.NewInt(100)},
+		Asset:       (*wallet.Address)(&s.Asset),
+		NumPayments: [2]int{2, 2},
+		NumRequests: [2]int{2, 2},
+		TxAmounts:   [2]*big.Int{big.NewInt(5), big.NewInt(3)},
 	}
 
 	var wg sync.WaitGroup
@@ -88,8 +89,11 @@ func TestHappyAliceBob(t *testing.T) {
 	wg.Wait()
 
 	// Assert correct final balances
-	aliceToBob := big.NewInt(int64(execConfig.NumUpdates[A])*execConfig.TxAmounts[A].Int64() -
-		int64(execConfig.NumUpdates[B])*execConfig.TxAmounts[B].Int64())
+	aliceToBob := big.NewInt(int64(execConfig.NumPayments[A])*execConfig.TxAmounts[A].Int64() -
+		int64(execConfig.NumPayments[B])*execConfig.TxAmounts[B].Int64() -
+		int64(execConfig.NumRequests[A])*execConfig.TxAmounts[A].Int64() +
+		int64(execConfig.NumRequests[B])*execConfig.TxAmounts[B].Int64())
+
 	finalBalAlice := new(big.Int).Sub(execConfig.InitBals[A], aliceToBob)
 	finalBalBob := new(big.Int).Add(execConfig.InitBals[B], aliceToBob)
 	// reset context timeout
