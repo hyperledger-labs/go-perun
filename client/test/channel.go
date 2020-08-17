@@ -59,23 +59,23 @@ func newPaymentChannel(ch *client.Channel, r *role) *paymentChannel {
 	}
 }
 
-func (ch *paymentChannel) sendUpdate(update func(*channel.State), desc string) {
+func (ch *paymentChannel) sendUpdate(actor channel.Index, update func(*channel.State), desc string) {
 	ch.log.Debugf("Sending update: %s", desc)
 	ctx, cancel := context.WithTimeout(context.Background(), ch.r.timeout)
 	defer cancel()
 
-	err := ch.UpdateBy(ctx, update)
+	err := ch.UpdateBy(ctx, actor, update)
 	ch.log.Infof("Sent update: %s, err: %v", desc, err)
 	assert.NoError(ch.r.t, err)
 }
 
-func (ch *paymentChannel) sendTransfer(amount channel.Bal, desc string) {
-	ch.sendUpdate(
+func (ch *paymentChannel) sendTransfer(amount channel.Bal, sender channel.Index, desc string) {
+	ch.sendUpdate(sender,
 		func(state *channel.State) {
-			transferBal(stateBals(state), ch.Idx(), amount)
+			transferBal(stateBals(state), sender, amount)
 		}, desc)
 
-	transferBal(ch.bals, ch.Idx(), amount)
+	transferBal(ch.bals, sender, amount)
 	ch.assertBals(ch.State())
 }
 
@@ -94,10 +94,10 @@ func (ch *paymentChannel) recvUpdate(accept bool, desc string) *channel.State {
 	}
 }
 
-func (ch *paymentChannel) recvTransfer(amount channel.Bal, desc string) {
+func (ch *paymentChannel) recvTransfer(amount channel.Bal, receiver channel.Index, desc string) {
 	state := ch.recvUpdate(true, desc)
 	if state != nil {
-		transferBal(ch.bals, ch.Idx()^1, amount)
+		transferBal(ch.bals, receiver^1, amount)
 		ch.assertBals(state)
 	} // else recvUpdate timed out
 }
@@ -115,7 +115,7 @@ func (ch *paymentChannel) assertBals(state *channel.State) {
 }
 
 func (ch *paymentChannel) sendFinal() {
-	ch.sendUpdate(func(state *channel.State) {
+	ch.sendUpdate(ch.Idx(), func(state *channel.State) {
 		state.IsFinal = true
 	}, "final")
 	assert.True(ch.r.t, ch.State().IsFinal)
