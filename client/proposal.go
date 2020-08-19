@@ -135,7 +135,7 @@ func (c *Client) ProposeChannel(ctx context.Context, req *ChannelProposal) (*Cha
 	}
 
 	// 2. send proposal and wait for response
-	parts, err := c.exchangeTwoPartyProposal(ctx, req)
+	parts, acc, err := c.exchangeTwoPartyProposal(ctx, req)
 	if err != nil {
 		return nil, errors.WithMessage(err, "sending proposal")
 	}
@@ -143,7 +143,7 @@ func (c *Client) ProposeChannel(ctx context.Context, req *ChannelProposal) (*Cha
 	// 3. create params, channel machine from gathered participant addresses
 	// 4. fund channel
 	// 5. return controller on successful funding
-	return c.setupChannel(ctx, req, parts, proposerIdx)
+	return c.setupChannel(ctx, req, acc, parts, proposerIdx)
 }
 
 // handleChannelProposal implements the receiving side of the (currently)
@@ -188,7 +188,7 @@ func (c *Client) handleChannelProposalAcc(
 	}
 
 	parts := participants(req.ParticipantAddr, acc.Participant)
-	return c.setupChannel(ctx, req, parts, proposeeIdx)
+	return c.setupChannel(ctx, req, msgAccept, parts, proposeeIdx)
 }
 
 func (c *Client) handleChannelProposalRej(
@@ -211,7 +211,7 @@ func (c *Client) handleChannelProposalRej(
 func (c *Client) exchangeTwoPartyProposal(
 	ctx context.Context,
 	proposal *ChannelProposal,
-) ([]wallet.Address, error) {
+) ([]wallet.Address, *ChannelProposalAcc, error) {
 	peer := proposal.PeerAddrs[proposeeIdx]
 
 	// enables caching of incoming version 0 signatures before sending any message
@@ -231,23 +231,23 @@ func (c *Client) exchangeTwoPartyProposal(
 	defer receiver.Close()
 
 	if err := c.conn.Subscribe(receiver, isResponse); err != nil {
-		return nil, errors.WithMessage(err, "subscribing proposal response recv")
+		return nil, nil, errors.WithMessage(err, "subscribing proposal response recv")
 	}
 
 	if err := c.conn.pubMsg(ctx, proposal, peer); err != nil {
-		return nil, errors.WithMessage(err, "publishing channel proposal")
+		return nil, nil, errors.WithMessage(err, "publishing channel proposal")
 	}
 
 	env, err := receiver.Next(ctx)
 	if err != nil {
-		return nil, errors.WithMessage(err, "receiving proposal response")
+		return nil, nil, errors.WithMessage(err, "receiving proposal response")
 	}
 	if rej, ok := env.Msg.(*ChannelProposalRej); ok {
-		return nil, errors.Errorf("channel proposal rejected: %v", rej.Reason)
+		return nil, nil, errors.Errorf("channel proposal rejected: %v", rej.Reason)
 	}
 
 	acc := env.Msg.(*ChannelProposalAcc) // this is safe because of predicate isResponse
-	return participants(proposal.ParticipantAddr, acc.ParticipantAddr), nil
+	return participants(proposal.ParticipantAddr, acc.ParticipantAddr), acc, nil
 }
 
 func participants(proposer, proposee wallet.Address) []wallet.Address {
@@ -306,10 +306,12 @@ func (c *Client) validTwoPartyProposal(
 func (c *Client) setupChannel(
 	ctx context.Context,
 	prop *ChannelProposal,
+	accMsg *ChannelProposalAcc,
 	parts []wallet.Address, // result of the MPCPP on prop
 	idx channel.Index, // our index
 ) (*Channel, error) {
-	params := channel.NewParamsUnsafe(prop.ChallengeDuration, parts, prop.AppDef, prop.Nonce)
+	shares := []NonceShare{prop.NonceShare, accMsg.NonceShare}
+	params := channel.NewParamsUnsafe(prop.ChallengeDuration, parts, prop.AppDef, CalcNonce(shares))
 	if c.channels.Has(params.ID()) {
 		return nil, errors.New("channel already exists")
 	}

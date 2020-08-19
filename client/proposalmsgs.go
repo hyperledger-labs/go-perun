@@ -15,12 +15,13 @@
 package client
 
 import (
+	"hash"
 	"io"
 	"log"
-	"math/big"
+
+	"golang.org/x/crypto/sha3"
 
 	"github.com/pkg/errors"
-	"golang.org/x/crypto/sha3"
 
 	"perun.network/go-perun/channel"
 	perunio "perun.network/go-perun/pkg/io"
@@ -46,9 +47,14 @@ func init() {
 		})
 }
 
+func newHasher() hash.Hash { return sha3.New256() }
+
 // ProposalID uniquely identifies the channel proposal as
 // specified by the Channel Proposal Protocol (CPP).
 type ProposalID = [32]byte
+
+// NonceShare is used to cooperatively calculate a channel's nonce.
+type NonceShare = [32]byte
 
 // ChannelProposal contains all data necessary to propose a new
 // channel to a given set of peers. It is also sent over the wire.
@@ -57,7 +63,7 @@ type ProposalID = [32]byte
 // Multi-Party Channel Proposal Protocol (MPCPP).
 type ChannelProposal struct {
 	ChallengeDuration uint64
-	Nonce             *big.Int
+	NonceShare        NonceShare
 	ParticipantAddr   wallet.Address
 	AppDef            wallet.Address
 	InitData          channel.Data
@@ -76,7 +82,7 @@ func (c ChannelProposal) Encode(w io.Writer) error {
 		return errors.New("writer must not be nil")
 	}
 
-	if err := perunio.Encode(w, c.ChallengeDuration, c.Nonce); err != nil {
+	if err := perunio.Encode(w, c.ChallengeDuration, c.NonceShare); err != nil {
 		return err
 	}
 
@@ -141,7 +147,7 @@ func (c *ChannelProposal) Decode(r io.Reader) (err error) {
 		return errors.New("reader must not be nil")
 	}
 
-	if err := perunio.Decode(r, &c.ChallengeDuration, &c.Nonce); err != nil {
+	if err := perunio.Decode(r, &c.ChallengeDuration, &c.NonceShare); err != nil {
 		return err
 	}
 
@@ -177,8 +183,8 @@ func (c *ChannelProposal) Decode(r io.Reader) (err error) {
 // ProposalID returns the identifier of this channel proposal request as
 // specified by the Channel Proposal Protocol (CPP).
 func (c ChannelProposal) ProposalID() (propID ProposalID) {
-	hasher := sha3.New256()
-	if err := perunio.Encode(hasher, c.Nonce); err != nil {
+	hasher := newHasher()
+	if err := perunio.Encode(hasher, c.NonceShare); err != nil {
 		log.Panicf("proposal ID nonce encoding: %v", err)
 	}
 
@@ -204,7 +210,7 @@ func (c ChannelProposal) ProposalID() (propID ProposalID) {
 
 // Valid checks that the channel proposal is valid:
 // * ParticipantAddr, InitBals must not be nil
-// * ValidateParameters returns nil
+// * ValidateProposalParameters returns nil
 // * InitBals are valid
 // * No locked sub-allocations
 // * InitBals match the dimension of Parts
@@ -213,8 +219,8 @@ func (c ChannelProposal) Valid() error {
 	// nolint: gocritic
 	if c.InitBals == nil || c.ParticipantAddr == nil {
 		return errors.New("invalid nil fields")
-	} else if err := channel.ValidateParameters(
-		c.ChallengeDuration, len(c.PeerAddrs), c.AppDef, c.Nonce); err != nil {
+	} else if err := channel.ValidateProposalParameters(
+		c.ChallengeDuration, len(c.PeerAddrs), c.AppDef); err != nil {
 		return errors.WithMessage(err, "invalid channel parameters")
 	} else if err := c.InitBals.Valid(); err != nil {
 		return err
@@ -235,6 +241,7 @@ func (c ChannelProposal) Valid() error {
 // Multi-Party Channel Proposal Protocol (MPCPP).
 type ChannelProposalAcc struct {
 	ProposalID      ProposalID
+	NonceShare      NonceShare
 	ParticipantAddr wallet.Address
 }
 
@@ -245,25 +252,18 @@ func (ChannelProposalAcc) Type() wire.Type {
 
 // Encode encodes the ChannelProposalAcc into an io.Writer.
 func (acc ChannelProposalAcc) Encode(w io.Writer) error {
-	if err := perunio.Encode(w, acc.ProposalID); err != nil {
-		return errors.WithMessage(err, "encoding proposal id")
-	}
-
-	if err := acc.ParticipantAddr.Encode(w); err != nil {
-		return errors.WithMessage(err, "participant address encoding")
-	}
-
-	return nil
+	return perunio.Encode(w,
+		acc.ProposalID,
+		acc.NonceShare,
+		acc.ParticipantAddr)
 }
 
 // Decode decodes a ChannelProposalAcc from an io.Reader.
 func (acc *ChannelProposalAcc) Decode(r io.Reader) (err error) {
-	if err = perunio.Decode(r, &acc.ProposalID); err != nil {
-		return errors.WithMessage(err, "decoding proposal id")
-	}
-
-	acc.ParticipantAddr, err = wallet.DecodeAddress(r)
-	return errors.WithMessage(err, "participant address decoding")
+	return perunio.Decode(r,
+		&acc.ProposalID,
+		&acc.NonceShare,
+		wallet.AddressDec{Addr: &acc.ParticipantAddr})
 }
 
 // ChannelProposalRej is used to reject a ChannelProposalReq.
@@ -289,4 +289,16 @@ func (rej ChannelProposalRej) Encode(w io.Writer) error {
 // Decode decodes a ChannelProposalRej from an io.Reader.
 func (rej *ChannelProposalRej) Decode(r io.Reader) error {
 	return perunio.Decode(r, &rej.ProposalID, &rej.Reason)
+}
+
+// CalcNonce calculates a nonce from its shares. The order of the shares must
+// correspond to the participant indices.
+func CalcNonce(nonceShares []NonceShare) channel.Nonce {
+	hasher := newHasher()
+	for i, share := range nonceShares {
+		if err := perunio.Encode(hasher, share); err != nil {
+			log.Panicf("Failed to encode nonce share %d for hashing", i)
+		}
+	}
+	return channel.NonceFromBytes(hasher.Sum(nil))
 }
