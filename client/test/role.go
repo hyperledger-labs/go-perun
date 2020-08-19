@@ -221,15 +221,13 @@ func (r *role) ChannelProposal(rng *rand.Rand, cfg *ExecConfig) *client.ChannelP
 		Assets:   []channel.Asset{cfg.Asset},
 		Balances: [][]channel.Bal{cfg.InitBals[:]},
 	}
-	return &client.ChannelProposal{
-		ChallengeDuration: 60, // 60 sec
-		Nonce:             big.NewInt(rng.Int63()),
-		ParticipantAddr:   r.setup.Wallet.NewRandomAccount(rng).Address(),
-		AppDef:            payment.AppDef(),
-		InitData:          new(payment.NoData),
-		InitBals:          initBals,
-		PeerAddrs:         cfg.PeerAddrs[:],
-	}
+	return client.NewChannelProposal(
+		60, // 60 sec
+		r.setup.Wallet.NewRandomAccount(rng).Address(),
+		initBals,
+		cfg.PeerAddrs[:],
+		client.WithNonceFrom(rng),
+		client.WithApp(payment.AppDef(), new(payment.NoData)))
 }
 
 // AcceptAllPropHandler returns a ProposalHandler that accepts all requests to

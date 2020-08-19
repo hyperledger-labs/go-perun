@@ -17,13 +17,13 @@ package client
 import (
 	"hash"
 	"io"
-	"log"
 
 	"golang.org/x/crypto/sha3"
 
 	"github.com/pkg/errors"
 
 	"perun.network/go-perun/channel"
+	"perun.network/go-perun/log"
 	perunio "perun.network/go-perun/pkg/io"
 	"perun.network/go-perun/wallet"
 	"perun.network/go-perun/wire"
@@ -62,13 +62,35 @@ type NonceShare = [32]byte
 // ChannelProposal implements the channel proposal messages from the
 // Multi-Party Channel Proposal Protocol (MPCPP).
 type ChannelProposal struct {
-	ChallengeDuration uint64
-	NonceShare        NonceShare
-	ParticipantAddr   wallet.Address
-	AppDef            wallet.Address
-	InitData          channel.Data
-	InitBals          *channel.Allocation
-	PeerAddrs         []wire.Address
+	ChallengeDuration uint64              // Dispute challenge duration.
+	NonceShare        NonceShare          // Proposer's channel nonce share.
+	ParticipantAddr   wallet.Address      // Proposer's address in the channel.
+	AppDef            wallet.Address      // App definition, or nil.
+	InitData          channel.Data        // Initial App data, or nil (if App nil).
+	InitBals          *channel.Allocation // Initial balances.
+	PeerAddrs         []wire.Address      // Participants' wire addresses.
+}
+
+// NewChannelProposal creates a channel proposal and applies the supplied
+// options. For more information, see ProposalOpts.
+func NewChannelProposal(
+	challengeDuration uint64,
+	participantAddr wallet.Address,
+	initBals *channel.Allocation,
+	peerAddrs []wire.Address,
+	opts ...ProposalOpts,
+) *ChannelProposal {
+	opt := union(opts...)
+
+	return &ChannelProposal{
+		ChallengeDuration: challengeDuration,
+		NonceShare:        opt.nonce(),
+		ParticipantAddr:   participantAddr,
+		AppDef:            opt.appDef(),
+		InitData:          opt.appData(),
+		InitBals:          initBals,
+		PeerAddrs:         peerAddrs,
+	}
 }
 
 // Type returns wire.ChannelProposal.
@@ -119,14 +141,14 @@ func (o OptAppDefAndDataEnc) Encode(w io.Writer) error {
 
 // OptAppDefAndDataDec makes an optional pair of App definition and Data decodable.
 type OptAppDefAndDataDec struct {
-	Address *wallet.Address
-	Data    *channel.Data
+	Def  *wallet.Address
+	Data *channel.Data
 }
 
 // Decode decodes an optional pair of App definition and Data.
 func (o OptAppDefAndDataDec) Decode(r io.Reader) (err error) {
 	*o.Data = nil
-	*o.Address = nil
+	*o.Def = nil
 	var app channel.App
 	if err = perunio.Decode(r, channel.OptAppDec{App: &app}); err != nil {
 		return err
@@ -136,7 +158,7 @@ func (o OptAppDefAndDataDec) Decode(r io.Reader) (err error) {
 		return nil
 	}
 
-	*o.Address = app.Def()
+	*o.Def = app.Def()
 	*o.Data, err = app.DecodeData(r)
 	return err
 }
@@ -232,6 +254,24 @@ func (c ChannelProposal) Valid() error {
 	return nil
 }
 
+// NewChannelProposalAcc constructs an accept message that belongs to a proposal
+// message. It should be used instead of manually constructing an accept
+// message.
+func (c ChannelProposal) NewChannelProposalAcc(
+	participantAddr wallet.Address,
+	nonceShare ProposalOpts,
+) *ChannelProposalAcc {
+	if !nonceShare.isNonce() {
+		log.WithField("proposal", c.ProposalID()).
+			Panic("NewChannelProposalAcc: nonceShare has no configured nonce")
+	}
+	return &ChannelProposalAcc{
+		ProposalID:      c.ProposalID(),
+		NonceShare:      nonceShare.nonce(),
+		ParticipantAddr: participantAddr,
+	}
+}
+
 // ChannelProposalAcc contains all data for a response to a channel proposal
 // message. The ProposalID must correspond to the channel proposal request one
 // wishes to respond to. ParticipantAddr should be a participant address just
@@ -240,9 +280,9 @@ func (c ChannelProposal) Valid() error {
 // The type implements the channel proposal response messages from the
 // Multi-Party Channel Proposal Protocol (MPCPP).
 type ChannelProposalAcc struct {
-	ProposalID      ProposalID
-	NonceShare      NonceShare
-	ParticipantAddr wallet.Address
+	ProposalID      ProposalID     // Proposal session ID we're answering.
+	NonceShare      NonceShare     // Responder's channel nonce share.
+	ParticipantAddr wallet.Address // Responder's participant address.
 }
 
 // Type returns wire.ChannelProposalAcc.
@@ -272,8 +312,8 @@ func (acc *ChannelProposalAcc) Decode(r io.Reader) (err error) {
 // The message is one of two possible responses in the
 // Multi-Party Channel Proposal Protocol (MPCPP).
 type ChannelProposalRej struct {
-	ProposalID ProposalID
-	Reason     string
+	ProposalID ProposalID // The channel proposal to reject.
+	Reason     string     // The rejection reason.
 }
 
 // Type returns wire.ChannelProposalRej.
@@ -289,16 +329,4 @@ func (rej ChannelProposalRej) Encode(w io.Writer) error {
 // Decode decodes a ChannelProposalRej from an io.Reader.
 func (rej *ChannelProposalRej) Decode(r io.Reader) error {
 	return perunio.Decode(r, &rej.ProposalID, &rej.Reason)
-}
-
-// CalcNonce calculates a nonce from its shares. The order of the shares must
-// correspond to the participant indices.
-func CalcNonce(nonceShares []NonceShare) channel.Nonce {
-	hasher := newHasher()
-	for i, share := range nonceShares {
-		if err := perunio.Encode(hasher, share); err != nil {
-			log.Panicf("Failed to encode nonce share %d for hashing", i)
-		}
-	}
-	return channel.NonceFromBytes(hasher.Sum(nil))
 }
