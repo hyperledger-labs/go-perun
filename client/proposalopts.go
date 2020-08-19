@@ -58,9 +58,6 @@ func (o ProposalOpts) nonce() NonceShare {
 
 // isNonce returns whether a ProposalOpts contains a manually set nonce.
 func (o ProposalOpts) isNonce() bool {
-	if o == nil {
-		return false
-	}
 	_, ok := o[optNames.nonce]
 	return ok
 }

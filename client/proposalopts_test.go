@@ -26,7 +26,7 @@ func TestProposalOpts_isNonce(t *testing.T) {
 	// Nil, empty, and app proposal options do not have nonces.
 	require.False(t, WithApp(nil, nil).isNonce())
 	require.False(t, ProposalOpts{}.isNonce())
-	require.False(t, (*ProposalOpts)(nil).isNonce())
+	require.False(t, (ProposalOpts)(nil).isNonce())
 
 	require.True(t, WithNonce(NonceShare{}).isNonce())
 	require.True(t, WithNonceFrom(test.Prng(t)).isNonce())

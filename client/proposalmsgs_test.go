@@ -25,6 +25,7 @@ import (
 	"perun.network/go-perun/channel"
 	"perun.network/go-perun/channel/test"
 	"perun.network/go-perun/client"
+	clienttest "perun.network/go-perun/client/test"
 	"perun.network/go-perun/pkg/io"
 	pkgtest "perun.network/go-perun/pkg/test"
 	wallettest "perun.network/go-perun/wallet/test"
@@ -33,11 +34,8 @@ import (
 
 func TestChannelProposalReq_NilArgs(t *testing.T) {
 	rng := pkgtest.Prng(t)
-	c := client.NewChannelProposal(
-		1,
-		wallettest.NewRandomAddress(rng),
-		test.NewRandomAllocation(rng, test.WithNumParts(2)),
-		wallettest.NewRandomAddresses(rng, 2),
+	c := clienttest.NewRandomChannelProposal(
+		rng,
 		client.WithNonceFrom(rng),
 		client.WithApp(test.NewRandomApp(rng).Def(), test.NewRandomData(rng)))
 
@@ -58,13 +56,7 @@ func TestChannelProposalReqSerialization(t *testing.T) {
 			app = client.WithApp(test.NewRandomApp(rng).Def(), test.NewRandomData(rng))
 		}
 
-		m := client.NewChannelProposal(
-			1,
-			wallettest.NewRandomAddress(rng),
-			test.NewRandomAllocation(rng, test.WithNumParts(2)),
-			wallettest.NewRandomAddresses(rng, 2),
-			client.WithNonceFrom(rng),
-			app)
+		m := clienttest.NewRandomChannelProposal(rng, client.WithNonceFrom(rng), app)
 		wire.TestMsg(t, m)
 	}
 }
