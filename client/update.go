@@ -46,7 +46,7 @@ type (
 	ChannelUpdate struct {
 		// State is the proposed new state.
 		State *channel.State
-		// ActorIdx is the actor causing the new state.  It does not need to
+		// ActorIdx is the actor causing the new state. It does not need to
 		// coincide with the sender of the request.
 		ActorIdx uint16
 	}
@@ -56,6 +56,10 @@ type (
 	UpdateHandler interface {
 		// HandleUpdate is the user callback called by the channel controller on an
 		// incoming update request.
+		//
+		// A channel peer might request an update from you by setting your index
+		// as the ActorIdx, so don't forget to check the ActorIdx according to
+		// your application logic.
 		HandleUpdate(ChannelUpdate, *UpdateResponder)
 	}
 
@@ -69,6 +73,10 @@ type (
 	// otherwise Reject(), possibly giving a reason for the rejection.
 	// Only a single function must be called and every further call causes a
 	// panic.
+	//
+	// The user has to check the ActorIdx of the request since it is possible
+	// to request updates by using the other peers actor index. They should only
+	// accept updates which benefit him.
 	UpdateResponder struct {
 		channel *Channel
 		pidx    channel.Index
@@ -111,15 +119,16 @@ func (r *UpdateResponder) Reject(ctx context.Context, reason string) error {
 }
 
 // Update proposes the given channel update to all channel participants.
+// It is possible to request updates from other peers by using their actor index.
 //
-// It returns nil if all peers accept the update. If any runtime error occurs or
+// Returns nil if all peers accept the update. If any runtime error occurs or
 // any peer rejects the update, an error is returned.
 // nolint: funlen
 func (c *Channel) Update(ctx context.Context, up ChannelUpdate) (err error) {
 	if ctx == nil {
 		return errors.New("context must not be nil")
 	}
-	if err := c.validTwoPartyUpdate(up, c.machine.Idx()); err != nil {
+	if err := c.validTwoPartyUpdate(up); err != nil {
 		return err
 	}
 	// Lock machine while update is in progress.
@@ -182,18 +191,19 @@ func (c *Channel) Update(ctx context.Context, up ChannelUpdate) (err error) {
 }
 
 // UpdateBy updates the channel state using the update function and proposes the new state
-// to all other channel participants.
+// to all other channel participants. If the actor is different from the sender of the
+// update, it is called a request.
 //
-// It returns nil if all peers accept the update. If any runtime error occurs or
+// Returns nil if all peers accept the update. If any runtime error occurs or
 // any peer rejects the update, an error is returned.
-func (c *Channel) UpdateBy(ctx context.Context, update func(*channel.State)) (err error) {
+func (c *Channel) UpdateBy(ctx context.Context, actor channel.Index, update func(*channel.State)) (err error) {
 	state := c.State().Clone()
 	update(state)
 	state.Version++
 
 	return c.Update(ctx, ChannelUpdate{
 		State:    state,
-		ActorIdx: c.Idx(),
+		ActorIdx: actor,
 	})
 }
 
@@ -203,7 +213,7 @@ func (c *Channel) handleUpdateReq(
 	pidx channel.Index,
 	req *msgChannelUpdate,
 	uh UpdateHandler) {
-	if err := c.validTwoPartyUpdate(req.ChannelUpdate, pidx); err != nil {
+	if err := c.validTwoPartyUpdate(req.ChannelUpdate); err != nil {
 		// TODO: how to handle invalid updates? Just drop and ignore them?
 		c.logPeer(pidx).Warnf("invalid update received: %v", err)
 		return
@@ -325,13 +335,8 @@ func (c *Channel) OnUpdate(cb func(from, to *channel.State)) {
 
 // validTwoPartyUpdate performs additional protocol-dependent checks on the
 // proposed update that go beyond the machine's checks:
-// * actor and signer must be the same
 // * no locked sub-allocations.
-func (c *Channel) validTwoPartyUpdate(up ChannelUpdate, sigIdx channel.Index) error {
-	if up.ActorIdx != sigIdx {
-		return errors.Errorf(
-			"Currently, only update proposals with the proposing peer as actor are allowed.")
-	}
+func (c *Channel) validTwoPartyUpdate(up ChannelUpdate) error {
 	if len(up.State.Locked) > 0 {
 		return errors.New("no locked sub-allocations allowed")
 	}

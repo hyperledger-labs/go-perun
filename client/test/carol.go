@@ -39,7 +39,7 @@ func (r *Carol) Execute(cfg ExecConfig) {
 
 func (r *Carol) exec(cfg ExecConfig, ch *paymentChannel) {
 	assert := assert.New(r.t)
-	_, them := r.Idxs(cfg.PeerAddrs)
+	we, them := r.Idxs(cfg.PeerAddrs)
 
 	// start watcher
 	watcher := make(chan error)
@@ -53,8 +53,8 @@ func (r *Carol) exec(cfg ExecConfig, ch *paymentChannel) {
 	r.waitStage()
 
 	// Carol receives some updates from Mallory
-	for i := 0; i < cfg.NumUpdates[them]; i++ {
-		ch.recvTransfer(cfg.TxAmounts[them], fmt.Sprintf("Mallory#%d", i))
+	for i := 0; i < cfg.NumPayments[them]; i++ {
+		ch.recvTransfer(cfg.TxAmounts[them], we, fmt.Sprintf("Mallory#%d", i))
 	}
 	// 2nd stage - txs received
 	r.waitStage()

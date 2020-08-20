@@ -84,7 +84,7 @@ func (r *Petra) Execute(cfg ExecConfig) {
 	r.waitStage()
 
 	// 2. send transfer
-	ch.sendTransfer(big.NewInt(1), "send#1")
+	ch.sendTransfer(big.NewInt(1), ch.Idx(), "send#1")
 	r.waitStage()
 
 	// 3. Both close client
@@ -145,7 +145,7 @@ func (r *Robert) Execute(cfg ExecConfig) {
 	r.waitStage()
 
 	// 2. recv transfer
-	ch.recvTransfer(big.NewInt(1), "recv#1")
+	ch.recvTransfer(big.NewInt(1), ch.Idx(), "recv#1")
 	r.waitStage()
 
 	// 3. Both close client

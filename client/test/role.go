@@ -62,11 +62,12 @@ type (
 
 	// ExecConfig contains additional config parameters for the tests.
 	ExecConfig struct {
-		PeerAddrs  [2]wire.Address // must match the RoleSetup.Identity's
-		Asset      channel.Asset   // single Asset to use in this channel
-		InitBals   [2]*big.Int     // channel deposit of each role
-		NumUpdates [2]int          // how many updates each role sends
-		TxAmounts  [2]*big.Int     // amounts that are to be sent by each role
+		PeerAddrs   [2]wire.Address // must match the RoleSetup.Identity's
+		Asset       channel.Asset   // single Asset to use in this channel
+		InitBals    [2]*big.Int     // channel deposit of each role
+		NumPayments [2]int          // how many payments each role sends
+		NumRequests [2]int          // how many requests each role sends
+		TxAmounts   [2]*big.Int     // amounts that are to be sent/requested by each role
 	}
 
 	// An Executer is a Role that can execute a protocol.
@@ -157,7 +158,7 @@ func (r *role) waitStage() {
 
 // Idxs maps the passed addresses to the indices in the 2-party-channel. If the
 // setup's Identity is not found in peers, Idxs panics.
-func (r *role) Idxs(peers [2]wire.Address) (our, their int) {
+func (r *role) Idxs(peers [2]wire.Address) (our, their channel.Index) {
 	if r.setup.Identity.Address().Equals(peers[0]) {
 		return 0, 1
 	} else if r.setup.Identity.Address().Equals(peers[1]) {

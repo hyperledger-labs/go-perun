@@ -65,11 +65,11 @@ func TestDisputeMalloryCarol(t *testing.T) {
 	role[B].SetStages(stages)
 
 	execConfig := clienttest.ExecConfig{
-		PeerAddrs:  [2]wire.Address{s.Accs[A].Address(), s.Accs[B].Address()},
-		InitBals:   [2]*big.Int{big.NewInt(100), big.NewInt(1)},
-		Asset:      (*wallet.Address)(&s.Asset),
-		NumUpdates: [2]int{5, 0},
-		TxAmounts:  [2]*big.Int{big.NewInt(20), big.NewInt(0)},
+		PeerAddrs:   [2]wire.Address{s.Accs[A].Address(), s.Accs[B].Address()},
+		InitBals:    [2]*big.Int{big.NewInt(100), big.NewInt(1)},
+		Asset:       (*wallet.Address)(&s.Asset),
+		NumPayments: [2]int{5, 0},
+		TxAmounts:   [2]*big.Int{big.NewInt(20), big.NewInt(0)},
 	}
 
 	var wg sync.WaitGroup
@@ -85,8 +85,8 @@ func TestDisputeMalloryCarol(t *testing.T) {
 	wg.Wait()
 
 	// Assert correct final balances
-	netTransfer := big.NewInt(int64(execConfig.NumUpdates[A])*execConfig.TxAmounts[A].Int64() -
-		int64(execConfig.NumUpdates[B])*execConfig.TxAmounts[B].Int64())
+	netTransfer := big.NewInt(int64(execConfig.NumPayments[A])*execConfig.TxAmounts[A].Int64() -
+		int64(execConfig.NumPayments[B])*execConfig.TxAmounts[B].Int64())
 	finalBal := [2]*big.Int{
 		new(big.Int).Sub(execConfig.InitBals[A], netTransfer),
 		new(big.Int).Add(execConfig.InitBals[B], netTransfer)}
