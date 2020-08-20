@@ -15,7 +15,7 @@
 package test
 
 import (
-	"math/big"
+	"io"
 	"math/rand"
 
 	"perun.network/go-perun/channel"
@@ -118,7 +118,7 @@ func WithLockedIDs(ids ...channel.ID) RandomOpt {
 }
 
 // WithNonce sets the `Nonce` that should be used.
-func WithNonce(nonce *big.Int) RandomOpt {
+func WithNonce(nonce channel.Nonce) RandomOpt {
 	return RandomOpt{"nonce": nonce}
 }
 
@@ -324,11 +324,13 @@ func (o RandomOpt) LockedIDs(rng *rand.Rand) (ids []channel.ID) {
 
 // Nonce returns the `Nonce` value of the `RandomOpt`.
 // If not present, a random value is generated with `rng` as entropy source.
-func (o RandomOpt) Nonce(rng *rand.Rand) *big.Int {
+func (o RandomOpt) Nonce(rng io.Reader) channel.Nonce {
 	if _, ok := o["nonce"]; !ok {
-		o["nonce"] = big.NewInt(rng.Int63())
+		var n = make([]byte, channel.MaxNonceLen)
+		rng.Read(n)
+		o["nonce"] = channel.NonceFromBytes(n)
 	}
-	return o["nonce"].(*big.Int)
+	return o["nonce"].(channel.Nonce)
 }
 
 // NumAssets returns the `NumAssets` value of the `RandomOpt`.

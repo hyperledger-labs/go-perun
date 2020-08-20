@@ -21,6 +21,7 @@ import (
 
 	"perun.network/go-perun/channel"
 	"perun.network/go-perun/log"
+	"perun.network/go-perun/pkg/io"
 	"perun.network/go-perun/pkg/sync/atomic"
 	"perun.network/go-perun/wallet"
 	"perun.network/go-perun/wire"
@@ -134,16 +135,14 @@ func (c *Client) ProposeChannel(ctx context.Context, req *ChannelProposal) (*Cha
 		return nil, errors.WithMessage(err, "invalid channel proposal")
 	}
 
-	// 2. send proposal and wait for response
-	parts, err := c.exchangeTwoPartyProposal(ctx, req)
+	// 2. send proposal and wait for response, create params
+	params, err := c.exchangeTwoPartyProposal(ctx, req)
 	if err != nil {
 		return nil, errors.WithMessage(err, "sending proposal")
 	}
 
-	// 3. create params, channel machine from gathered participant addresses
-	// 4. fund channel
-	// 5. return controller on successful funding
-	return c.setupChannel(ctx, req, parts, proposerIdx)
+	// 3. Create channel controller, fund channel, and return the controller
+	return c.setupChannel(ctx, req, params, proposerIdx)
 }
 
 // handleChannelProposal implements the receiving side of the (currently)
@@ -178,17 +177,14 @@ func (c *Client) handleChannelProposalAcc(
 	// yet so the cache predicate is coarser than the later subscription.
 	enableVer0Cache(ctx, c.conn)
 
-	msgAccept := &ChannelProposalAcc{
-		ProposalID:      req.ProposalID(),
-		ParticipantAddr: acc.Participant,
-	}
+	msgAccept := req.NewChannelProposalAcc(acc.Participant, WithRandomNonce())
 	if err := c.conn.pubMsg(ctx, msgAccept, p); err != nil {
 		c.logPeer(p).Errorf("error sending proposal acceptance: %v", err)
 		return nil, errors.WithMessage(err, "sending proposal acceptance")
 	}
 
-	parts := participants(req.ParticipantAddr, acc.Participant)
-	return c.setupChannel(ctx, req, parts, proposeeIdx)
+	params := finalizeCPP(req, msgAccept)
+	return c.setupChannel(ctx, req, params, proposeeIdx)
 }
 
 func (c *Client) handleChannelProposalRej(
@@ -207,11 +203,12 @@ func (c *Client) handleChannelProposalRej(
 }
 
 // exchangeTwoPartyProposal implements the multi-party channel proposal
-// protocol for the two-party case.
+// protocol for the two-party case. It returns the agreed upon channel
+// parameters.
 func (c *Client) exchangeTwoPartyProposal(
 	ctx context.Context,
 	proposal *ChannelProposal,
-) ([]wallet.Address, error) {
+) (*channel.Params, error) {
 	peer := proposal.PeerAddrs[proposeeIdx]
 
 	// enables caching of incoming version 0 signatures before sending any message
@@ -247,14 +244,7 @@ func (c *Client) exchangeTwoPartyProposal(
 	}
 
 	acc := env.Msg.(*ChannelProposalAcc) // this is safe because of predicate isResponse
-	return participants(proposal.ParticipantAddr, acc.ParticipantAddr), nil
-}
-
-func participants(proposer, proposee wallet.Address) []wallet.Address {
-	parts := make([]wallet.Address, 2)
-	parts[proposerIdx] = proposer
-	parts[proposeeIdx] = proposee
-	return parts
+	return finalizeCPP(proposal, acc), nil
 }
 
 // validTwoPartyProposal checks that the proposal is valid in the two-party
@@ -288,14 +278,43 @@ func (c *Client) validTwoPartyProposal(
 	return nil
 }
 
+func finalizeCPP(prop *ChannelProposal, acc *ChannelProposalAcc) *channel.Params {
+	nonce := calcNonce(nonceShares(prop.NonceShare, acc.NonceShare))
+	parts := participants(prop.ParticipantAddr, acc.ParticipantAddr)
+	return channel.NewParamsUnsafe(prop.ChallengeDuration, parts, prop.AppDef, nonce)
+}
+
+func participants(proposer, proposee wallet.Address) []wallet.Address {
+	parts := make([]wallet.Address, 2)
+	parts[proposerIdx] = proposer
+	parts[proposeeIdx] = proposee
+	return parts
+}
+
+func nonceShares(proposer, proposee NonceShare) []NonceShare {
+	shares := make([]NonceShare, 2)
+	shares[proposerIdx] = proposer
+	shares[proposeeIdx] = proposee
+	return shares
+}
+
+// calcNonce calculates a nonce from its shares. The order of the shares must
+// correspond to the participant indices.
+func calcNonce(nonceShares []NonceShare) channel.Nonce {
+	hasher := newHasher()
+	for i, share := range nonceShares {
+		if err := io.Encode(hasher, share); err != nil {
+			log.Panicf("Failed to encode nonce share %d for hashing", i)
+		}
+	}
+	return channel.NonceFromBytes(hasher.Sum(nil))
+}
+
 // setupChannel sets up a new channel controller for the given proposal and
-// participant addresses, using the wallet to unlock the account for our
-// participant. The own participant is chosen as prop.ParticipantAddr, so make
-// sure that this field has been set correctly and not to the initial proposer.
+// params, using the wallet to unlock the account for our participant.
 //
-// The parameters are assembled and the initial state with signatures is
-// exchanged. The channel will be funded and if successful, the channel
-// controller is returned.
+// The initial state with signatures is exchanged. The channel will be funded
+// and if successful, the channel controller is returned.
 //
 // It does not perform a validity check on the proposal, so make sure to only
 // pass valid proposals.
@@ -306,15 +325,14 @@ func (c *Client) validTwoPartyProposal(
 func (c *Client) setupChannel(
 	ctx context.Context,
 	prop *ChannelProposal,
-	parts []wallet.Address, // result of the MPCPP on prop
+	params *channel.Params,
 	idx channel.Index, // our index
 ) (*Channel, error) {
-	params := channel.NewParamsUnsafe(prop.ChallengeDuration, parts, prop.AppDef, prop.Nonce)
 	if c.channels.Has(params.ID()) {
 		return nil, errors.New("channel already exists")
 	}
 
-	acc, err := c.wallet.Unlock(parts[idx])
+	acc, err := c.wallet.Unlock(params.Parts[idx])
 	if err != nil {
 		return nil, errors.WithMessage(err, "unlocking account")
 	}

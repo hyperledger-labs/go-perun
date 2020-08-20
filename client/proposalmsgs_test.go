@@ -16,7 +16,6 @@ package client_test
 
 import (
 	"bytes"
-	"math/big"
 	"math/rand"
 	"testing"
 
@@ -26,27 +25,19 @@ import (
 	"perun.network/go-perun/channel"
 	"perun.network/go-perun/channel/test"
 	"perun.network/go-perun/client"
+	clienttest "perun.network/go-perun/client/test"
 	"perun.network/go-perun/pkg/io"
 	pkgtest "perun.network/go-perun/pkg/test"
-	"perun.network/go-perun/wallet"
 	wallettest "perun.network/go-perun/wallet/test"
 	"perun.network/go-perun/wire"
 )
 
 func TestChannelProposalReq_NilArgs(t *testing.T) {
 	rng := pkgtest.Prng(t)
-	c := &client.ChannelProposal{
-		ChallengeDuration: 1,
-		Nonce:             big.NewInt(2),
-		ParticipantAddr:   wallettest.NewRandomAddress(rng),
-		AppDef:            test.NewRandomApp(rng).Def(),
-		InitData:          test.NewRandomData(rng),
-		InitBals:          test.NewRandomAllocation(rng, test.WithNumParts(2)),
-		PeerAddrs: []wallet.Address{
-			wallettest.NewRandomAddress(rng),
-			wallettest.NewRandomAddress(rng),
-		},
-	}
+	c := clienttest.NewRandomChannelProposal(
+		rng,
+		client.WithNonceFrom(rng),
+		client.WithApp(test.NewRandomApp(rng).Def(), test.NewRandomData(rng)))
 
 	err := c.Encode(nil)
 	require.Error(t, err)
@@ -60,25 +51,12 @@ func TestChannelProposalReq_NilArgs(t *testing.T) {
 func TestChannelProposalReqSerialization(t *testing.T) {
 	rng := pkgtest.Prng(t)
 	for i := 0; i < 8; i++ {
-		var app wallet.Address
-		var initData channel.Data
+		var app client.ProposalOpts
 		if i&1 == 0 {
-			app = test.NewRandomApp(rng).Def()
-			initData = test.NewRandomData(rng)
+			app = client.WithApp(test.NewRandomApp(rng).Def(), test.NewRandomData(rng))
 		}
 
-		m := &client.ChannelProposal{
-			ChallengeDuration: 0,
-			Nonce:             big.NewInt(rng.Int63()),
-			ParticipantAddr:   wallettest.NewRandomAddress(rng),
-			AppDef:            app,
-			InitData:          initData,
-			InitBals:          test.NewRandomAllocation(rng, test.WithNumParts(2)),
-			PeerAddrs: []wallet.Address{
-				wallettest.NewRandomAddress(rng),
-				wallettest.NewRandomAddress(rng),
-			},
-		}
+		m := clienttest.NewRandomChannelProposal(rng, client.WithNonceFrom(rng), app)
 		wire.TestMsg(t, m)
 	}
 }
@@ -93,7 +71,7 @@ func TestChannelProposalReqDecode_CheckMaxNumParts(t *testing.T) {
 
 	// reimplementation of ChannelProposalReq.Encode modified to create the
 	// maximum number of participants possible with the encoding
-	require.NoError(io.Encode(buffer, c.ChallengeDuration, c.Nonce))
+	require.NoError(io.Encode(buffer, c.ChallengeDuration, c.NonceShare))
 	require.NoError(
 		io.Encode(buffer, c.ParticipantAddr, client.OptAppDefAndDataEnc{c.AppDef, c.InitData}, c.InitBals))
 
@@ -118,7 +96,7 @@ func TestChannelProposalReqProposalID(t *testing.T) {
 	fake := client.NewRandomChannelProposalReq(rng)
 
 	assert.NotEqual(t, original.ChallengeDuration, fake.ChallengeDuration)
-	assert.NotEqual(t, original.Nonce, fake.Nonce)
+	assert.NotEqual(t, original.NonceShare, fake.NonceShare)
 	assert.NotEqual(t, original.ParticipantAddr, fake.ParticipantAddr)
 	// TODO: while using the payment app in channel tests, they all have the same
 	// address. Fixed in #266
@@ -129,7 +107,7 @@ func TestChannelProposalReqProposalID(t *testing.T) {
 	assert.NotEqual(t, s, c0.ProposalID())
 
 	c1 := original
-	c1.Nonce = fake.Nonce
+	c1.NonceShare = fake.NonceShare
 	assert.NotEqual(t, s, c1.ProposalID())
 
 	c2 := original

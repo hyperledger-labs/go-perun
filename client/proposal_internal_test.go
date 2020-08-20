@@ -95,13 +95,11 @@ func NewRandomChannelProposalReqNumParts(rng *rand.Rand, numPeers int) *ChannelP
 	data := channeltest.NewRandomData(rng)
 	alloc := channeltest.NewRandomAllocation(rng, channeltest.WithNumParts(numPeers))
 	participantAddr := wallettest.NewRandomAddress(rng)
-	return &ChannelProposal{
-		ChallengeDuration: rng.Uint64(),
-		Nonce:             params.Nonce,
-		ParticipantAddr:   participantAddr,
-		AppDef:            params.App.Def(),
-		InitData:          data,
-		InitBals:          alloc,
-		PeerAddrs:         params.Parts,
-	}
+	return NewChannelProposal(
+		rng.Uint64(),
+		participantAddr,
+		alloc,
+		params.Parts,
+		WithNonceFrom(rng),
+		WithApp(params.App.Def(), data))
 }

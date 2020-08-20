@@ -32,6 +32,20 @@ const IDLen = 32
 // ID represents a channelID.
 type ID = [IDLen]byte
 
+// MaxNonceLen is the maximum byte count of a nonce.
+const MaxNonceLen = 32
+
+// Nonce is the channel parameters' nonce type.
+type Nonce = *big.Int
+
+// NonceFromBytes creates a nonce from a byte slice.
+func NonceFromBytes(b []byte) Nonce {
+	if len(b) > MaxNonceLen {
+		log.Panicf("NonceFromBytes: longer than MaxNonceLen (%d/%d)", len(b), MaxNonceLen)
+	}
+	return new(big.Int).SetBytes(b)
+}
+
 // Zero is the default channelID.
 var Zero ID = ID{}
 
@@ -51,8 +65,8 @@ type Params struct {
 	// App identifies the application that this channel is running. It is
 	// optional, and if nil, signifies that a channel is a payment channel.
 	App App `cloneable:"shallow"`
-	// Nonce is a randomness to make the channel id unique
-	Nonce *big.Int
+	// Nonce is a random value that makes the channel's ID unique.
+	Nonce Nonce
 }
 
 // ID returns the channelID of this channel.
@@ -64,32 +78,27 @@ func (p *Params) ID() ID {
 // appDef optional: if it is nil, it describes a payment channel. The channel id
 // is also calculated here and persisted because it probably is an expensive
 // hash operation.
-func NewParams(challengeDuration uint64, parts []wallet.Address, appDef wallet.Address, nonce *big.Int) (*Params, error) {
+func NewParams(challengeDuration uint64, parts []wallet.Address, appDef wallet.Address, nonce Nonce) (*Params, error) {
 	if err := ValidateParameters(challengeDuration, len(parts), appDef, nonce); err != nil {
 		return nil, errors.WithMessage(err, "invalid parameter for NewParams")
 	}
 	return NewParamsUnsafe(challengeDuration, parts, appDef, nonce), nil
 }
 
-// ValidateParameters checks that the arguments form valid Params:
+// ValidateProposalParameters validates all parameters that are part of the
+// proposal message in the MPCPP. Checks the following conditions:
 // * non-zero ChallengeDuration
-// * non-nil nonce
 // * at least two and at most MaxNumParts parts
 // * appDef belongs to either a StateApp or ActionApp.
-func ValidateParameters(challengeDuration uint64, numParts int, appDef wallet.Address, nonce *big.Int) error {
-	if challengeDuration == 0 {
+func ValidateProposalParameters(challengeDuration uint64, numParts int, appDef wallet.Address) error {
+	switch {
+	case challengeDuration == 0:
 		return errors.New("challengeDuration must be != 0")
-	}
-	if nonce == nil {
-		return errors.New("nonce must not be nil")
-	}
-	if numParts < 2 {
+	case numParts < 2:
 		return errors.New("need at least two participants")
-	}
-	if numParts > MaxNumParts {
+	case numParts > MaxNumParts:
 		return errors.Errorf("too many participants, got: %d max: %d", numParts, MaxNumParts)
-	}
-	if appDef != nil {
+	case appDef != nil:
 		app, err := AppFromDefinition(appDef)
 		if err != nil {
 			return errors.WithMessage(err, "app from definition")
@@ -101,10 +110,25 @@ func ValidateParameters(challengeDuration uint64, numParts int, appDef wallet.Ad
 	return nil
 }
 
+// ValidateParameters checks that the arguments form valid Params. Checks
+// everything from ValidateProposalParameters, and that the nonce is not nil.
+func ValidateParameters(challengeDuration uint64, numParts int, appDef wallet.Address, nonce Nonce) error {
+	if err := ValidateProposalParameters(challengeDuration, numParts, appDef); err != nil {
+		return err
+	}
+	if nonce == nil {
+		return errors.New("nonce must not be nil")
+	}
+	if len(nonce.Bytes()) > MaxNonceLen {
+		return errors.Errorf("nonce too long (%d > %d)", len(nonce.Bytes()), MaxNonceLen)
+	}
+	return nil
+}
+
 // NewParamsUnsafe creates Params from the given data and does NOT perform
 // sanity checks. The channel id is also calculated here and persisted because
 // it probably is an expensive hash operation.
-func NewParamsUnsafe(challengeDuration uint64, parts []wallet.Address, appDef wallet.Address, nonce *big.Int) *Params {
+func NewParamsUnsafe(challengeDuration uint64, parts []wallet.Address, appDef wallet.Address, nonce Nonce) *Params {
 	app, err := AppFromDefinition(appDef)
 	if err != nil {
 		log.Panic("AppFromDefinition on validated parameters returned error")

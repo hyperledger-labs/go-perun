@@ -15,14 +15,15 @@
 package client
 
 import (
+	"hash"
 	"io"
-	"log"
-	"math/big"
 
-	"github.com/pkg/errors"
 	"golang.org/x/crypto/sha3"
 
+	"github.com/pkg/errors"
+
 	"perun.network/go-perun/channel"
+	"perun.network/go-perun/log"
 	perunio "perun.network/go-perun/pkg/io"
 	"perun.network/go-perun/wallet"
 	"perun.network/go-perun/wire"
@@ -46,9 +47,14 @@ func init() {
 		})
 }
 
+func newHasher() hash.Hash { return sha3.New256() }
+
 // ProposalID uniquely identifies the channel proposal as
 // specified by the Channel Proposal Protocol (CPP).
 type ProposalID = [32]byte
+
+// NonceShare is used to cooperatively calculate a channel's nonce.
+type NonceShare = [32]byte
 
 // ChannelProposal contains all data necessary to propose a new
 // channel to a given set of peers. It is also sent over the wire.
@@ -56,13 +62,35 @@ type ProposalID = [32]byte
 // ChannelProposal implements the channel proposal messages from the
 // Multi-Party Channel Proposal Protocol (MPCPP).
 type ChannelProposal struct {
-	ChallengeDuration uint64
-	Nonce             *big.Int
-	ParticipantAddr   wallet.Address
-	AppDef            wallet.Address
-	InitData          channel.Data
-	InitBals          *channel.Allocation
-	PeerAddrs         []wire.Address
+	ChallengeDuration uint64              // Dispute challenge duration.
+	NonceShare        NonceShare          // Proposer's channel nonce share.
+	ParticipantAddr   wallet.Address      // Proposer's address in the channel.
+	AppDef            wallet.Address      // App definition, or nil.
+	InitData          channel.Data        // Initial App data, or nil (if App nil).
+	InitBals          *channel.Allocation // Initial balances.
+	PeerAddrs         []wire.Address      // Participants' wire addresses.
+}
+
+// NewChannelProposal creates a channel proposal and applies the supplied
+// options. For more information, see ProposalOpts.
+func NewChannelProposal(
+	challengeDuration uint64,
+	participantAddr wallet.Address,
+	initBals *channel.Allocation,
+	peerAddrs []wire.Address,
+	opts ...ProposalOpts,
+) *ChannelProposal {
+	opt := union(opts...)
+
+	return &ChannelProposal{
+		ChallengeDuration: challengeDuration,
+		NonceShare:        opt.nonce(),
+		ParticipantAddr:   participantAddr,
+		AppDef:            opt.appDef(),
+		InitData:          opt.appData(),
+		InitBals:          initBals,
+		PeerAddrs:         peerAddrs,
+	}
 }
 
 // Type returns wire.ChannelProposal.
@@ -76,7 +104,7 @@ func (c ChannelProposal) Encode(w io.Writer) error {
 		return errors.New("writer must not be nil")
 	}
 
-	if err := perunio.Encode(w, c.ChallengeDuration, c.Nonce); err != nil {
+	if err := perunio.Encode(w, c.ChallengeDuration, c.NonceShare); err != nil {
 		return err
 	}
 
@@ -113,14 +141,14 @@ func (o OptAppDefAndDataEnc) Encode(w io.Writer) error {
 
 // OptAppDefAndDataDec makes an optional pair of App definition and Data decodable.
 type OptAppDefAndDataDec struct {
-	Address *wallet.Address
-	Data    *channel.Data
+	Def  *wallet.Address
+	Data *channel.Data
 }
 
 // Decode decodes an optional pair of App definition and Data.
 func (o OptAppDefAndDataDec) Decode(r io.Reader) (err error) {
 	*o.Data = nil
-	*o.Address = nil
+	*o.Def = nil
 	var app channel.App
 	if err = perunio.Decode(r, channel.OptAppDec{App: &app}); err != nil {
 		return err
@@ -130,7 +158,7 @@ func (o OptAppDefAndDataDec) Decode(r io.Reader) (err error) {
 		return nil
 	}
 
-	*o.Address = app.Def()
+	*o.Def = app.Def()
 	*o.Data, err = app.DecodeData(r)
 	return err
 }
@@ -141,7 +169,7 @@ func (c *ChannelProposal) Decode(r io.Reader) (err error) {
 		return errors.New("reader must not be nil")
 	}
 
-	if err := perunio.Decode(r, &c.ChallengeDuration, &c.Nonce); err != nil {
+	if err := perunio.Decode(r, &c.ChallengeDuration, &c.NonceShare); err != nil {
 		return err
 	}
 
@@ -177,8 +205,8 @@ func (c *ChannelProposal) Decode(r io.Reader) (err error) {
 // ProposalID returns the identifier of this channel proposal request as
 // specified by the Channel Proposal Protocol (CPP).
 func (c ChannelProposal) ProposalID() (propID ProposalID) {
-	hasher := sha3.New256()
-	if err := perunio.Encode(hasher, c.Nonce); err != nil {
+	hasher := newHasher()
+	if err := perunio.Encode(hasher, c.NonceShare); err != nil {
 		log.Panicf("proposal ID nonce encoding: %v", err)
 	}
 
@@ -204,7 +232,7 @@ func (c ChannelProposal) ProposalID() (propID ProposalID) {
 
 // Valid checks that the channel proposal is valid:
 // * ParticipantAddr, InitBals must not be nil
-// * ValidateParameters returns nil
+// * ValidateProposalParameters returns nil
 // * InitBals are valid
 // * No locked sub-allocations
 // * InitBals match the dimension of Parts
@@ -213,8 +241,8 @@ func (c ChannelProposal) Valid() error {
 	// nolint: gocritic
 	if c.InitBals == nil || c.ParticipantAddr == nil {
 		return errors.New("invalid nil fields")
-	} else if err := channel.ValidateParameters(
-		c.ChallengeDuration, len(c.PeerAddrs), c.AppDef, c.Nonce); err != nil {
+	} else if err := channel.ValidateProposalParameters(
+		c.ChallengeDuration, len(c.PeerAddrs), c.AppDef); err != nil {
 		return errors.WithMessage(err, "invalid channel parameters")
 	} else if err := c.InitBals.Valid(); err != nil {
 		return err
@@ -226,6 +254,24 @@ func (c ChannelProposal) Valid() error {
 	return nil
 }
 
+// NewChannelProposalAcc constructs an accept message that belongs to a proposal
+// message. It should be used instead of manually constructing an accept
+// message.
+func (c ChannelProposal) NewChannelProposalAcc(
+	participantAddr wallet.Address,
+	nonceShare ProposalOpts,
+) *ChannelProposalAcc {
+	if !nonceShare.isNonce() {
+		log.WithField("proposal", c.ProposalID()).
+			Panic("NewChannelProposalAcc: nonceShare has no configured nonce")
+	}
+	return &ChannelProposalAcc{
+		ProposalID:      c.ProposalID(),
+		NonceShare:      nonceShare.nonce(),
+		ParticipantAddr: participantAddr,
+	}
+}
+
 // ChannelProposalAcc contains all data for a response to a channel proposal
 // message. The ProposalID must correspond to the channel proposal request one
 // wishes to respond to. ParticipantAddr should be a participant address just
@@ -234,8 +280,9 @@ func (c ChannelProposal) Valid() error {
 // The type implements the channel proposal response messages from the
 // Multi-Party Channel Proposal Protocol (MPCPP).
 type ChannelProposalAcc struct {
-	ProposalID      ProposalID
-	ParticipantAddr wallet.Address
+	ProposalID      ProposalID     // Proposal session ID we're answering.
+	NonceShare      NonceShare     // Responder's channel nonce share.
+	ParticipantAddr wallet.Address // Responder's participant address.
 }
 
 // Type returns wire.ChannelProposalAcc.
@@ -245,25 +292,18 @@ func (ChannelProposalAcc) Type() wire.Type {
 
 // Encode encodes the ChannelProposalAcc into an io.Writer.
 func (acc ChannelProposalAcc) Encode(w io.Writer) error {
-	if err := perunio.Encode(w, acc.ProposalID); err != nil {
-		return errors.WithMessage(err, "encoding proposal id")
-	}
-
-	if err := acc.ParticipantAddr.Encode(w); err != nil {
-		return errors.WithMessage(err, "participant address encoding")
-	}
-
-	return nil
+	return perunio.Encode(w,
+		acc.ProposalID,
+		acc.NonceShare,
+		acc.ParticipantAddr)
 }
 
 // Decode decodes a ChannelProposalAcc from an io.Reader.
 func (acc *ChannelProposalAcc) Decode(r io.Reader) (err error) {
-	if err = perunio.Decode(r, &acc.ProposalID); err != nil {
-		return errors.WithMessage(err, "decoding proposal id")
-	}
-
-	acc.ParticipantAddr, err = wallet.DecodeAddress(r)
-	return errors.WithMessage(err, "participant address decoding")
+	return perunio.Decode(r,
+		&acc.ProposalID,
+		&acc.NonceShare,
+		wallet.AddressDec{Addr: &acc.ParticipantAddr})
 }
 
 // ChannelProposalRej is used to reject a ChannelProposalReq.
@@ -272,8 +312,8 @@ func (acc *ChannelProposalAcc) Decode(r io.Reader) (err error) {
 // The message is one of two possible responses in the
 // Multi-Party Channel Proposal Protocol (MPCPP).
 type ChannelProposalRej struct {
-	ProposalID ProposalID
-	Reason     string
+	ProposalID ProposalID // The channel proposal to reject.
+	Reason     string     // The rejection reason.
 }
 
 // Type returns wire.ChannelProposalRej.
