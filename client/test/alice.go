@@ -74,7 +74,7 @@ func (r *Alice) exec(cfg ExecConfig, ch *paymentChannel) {
 	ch.recvFinal()
 
 	// 5th Settle channel
-	ch.settleChan()
+	ch.settle()
 
 	// 6th final stage
 	r.waitStage()

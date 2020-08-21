@@ -96,5 +96,5 @@ func (r *Mallory) exec(cfg ExecConfig, ch *paymentChannel) {
 	assert.Error(err, "withdrawing should fail because Carol should have refuted.")
 
 	// settling current version should work
-	ch.settleChan()
+	ch.settle()
 }

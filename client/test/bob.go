@@ -76,7 +76,7 @@ func (r *Bob) exec(cfg ExecConfig, ch *paymentChannel) {
 	ch.sendFinal()
 
 	// 5th Settle channel
-	ch.settleChan()
+	ch.settleSecondary()
 
 	// 6th final stage
 	r.waitStage()
