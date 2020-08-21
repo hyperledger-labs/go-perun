@@ -78,13 +78,36 @@ func (c *Channel) handleRegisteredEvent(ctx context.Context, reg *channel.Regist
 		return errors.WithMessage(err, "setting machine to Registered phase")
 	}
 
-	return c.settle(ctx)
+	return c.settle(ctx, false)
 }
 
 // Settle settles the channel: it is made sure that the current state is
 // registered and the final balance withdrawn. This call blocks until the
 // channel has been successfully withdrawn.
 func (c *Channel) Settle(ctx context.Context) error {
+	return c.settleLocked(ctx, false)
+}
+
+// SettleSecondary settles the channel: it is made sure that the current state
+// is registered and the final balance withdrawn. This call blocks until the
+// channel has been successfully withdrawn.
+//
+// SettleSecondary is a variant of Settle that can be called when
+// collaboratively settling a channel at the same time as the other channel
+// peers. The initiator of the channel settlement should call Settle, whereas
+// all responders can call SettleSecondary. The blockchain backend might then
+// run an optimized settlement protocol that possibly saves sending unnecessary
+// duplicate transactions in parallel. If the initiator is maliciously not
+// sending the required transactions, the backend guarantees that it will
+// eventually send the required transactions, so it is always safe to call
+// SettleSecondary.
+func (c *Channel) SettleSecondary(ctx context.Context) error {
+	return c.settleLocked(ctx, true)
+}
+
+// settleLocked calls settle with the channel mutex locked and the context also
+// set to cancel when the client is closed.
+func (c *Channel) settleLocked(ctx context.Context, secondary bool) error {
 	if !c.machMtx.TryLockCtx(ctx) {
 		return errors.Errorf("locking machine mutex in time: %v", ctx.Err())
 	}
@@ -94,15 +117,20 @@ func (c *Channel) Settle(ctx context.Context) error {
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 	c.OnClose(cancel)
-	return c.settle(ctx)
+	return c.settle(ctx, secondary)
 }
 
 // settle makes sure that the current state is registered and the final balance
 // withdrawn. This call blocks until the channel has been successfully
 // withdrawn.
 //
+// If the secondary flag is true and the channel is in a final state, the
+// blockchain backend might run an optimized withdrawing protocol, possibly
+// skipping the sending of unnecessary transactions, where the other user is
+// assumed to be the initiator of the settlement process.
+//
 // The caller is expected to have locked the channel mutex.
-func (c *Channel) settle(ctx context.Context) error {
+func (c *Channel) settle(ctx context.Context, secondary bool) error {
 	ver, reg := c.machine.State().Version, c.machine.Registered()
 	// If the machine is at least in phase Registered, reg shouldn't be nil. We
 	// still catch this case to be future proof.
@@ -130,7 +158,7 @@ func (c *Channel) settle(ctx context.Context) error {
 		}
 	}
 
-	if err := c.withdraw(ctx); err != nil {
+	if err := c.withdraw(ctx, secondary); err != nil {
 		return errors.WithMessage(err, "withdrawing")
 	}
 	c.Log().Info("Withdrawal successful.")
@@ -164,12 +192,13 @@ func (c *Channel) register(ctx context.Context) error {
 // progresses the machine phases.
 //
 // The caller is expected to have locked the channel mutex.
-func (c *Channel) withdraw(ctx context.Context) error {
+func (c *Channel) withdraw(ctx context.Context, secondary bool) error {
 	if err := c.machine.SetWithdrawing(ctx); err != nil {
 		return err
 	}
 
 	req := c.machine.AdjudicatorReq()
+	req.Secondary = secondary
 	if err := c.adjudicator.Withdraw(ctx, req); err != nil {
 		return errors.WithMessage(err, "calling Withdraw")
 	}

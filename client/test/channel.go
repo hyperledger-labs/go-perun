@@ -126,10 +126,17 @@ func (ch *paymentChannel) recvFinal() {
 	assert.True(ch.r.t, ch.State().IsFinal)
 }
 
-func (ch *paymentChannel) settleChan() {
+func (ch *paymentChannel) settle() {
 	ctx, cancel := context.WithTimeout(context.Background(), ch.r.timeout)
 	defer cancel()
 	assert.NoError(ch.r.t, ch.Settle(ctx))
+	ch.assertBals(ch.State())
+}
+
+func (ch *paymentChannel) settleSecondary() {
+	ctx, cancel := context.WithTimeout(context.Background(), ch.r.timeout)
+	defer cancel()
+	assert.NoError(ch.r.t, ch.SettleSecondary(ctx))
 	ch.assertBals(ch.State())
 }
 
