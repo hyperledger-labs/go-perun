@@ -30,6 +30,8 @@ type (
 		// Def is an identifier of the channel application. It is usually the
 		// (counterfactual) on-chain address of the stateless contract that defines
 		// what valid actions or transitions are.
+		// Calling this function on a NoApp panics, so ensure that IsNoApp
+		// returns false.
 		Def() wallet.Address
 
 		// DecodeData decodes data specific to this application. This has to be
