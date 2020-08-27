@@ -121,7 +121,7 @@ const (
 	Pong
 	Shutdown
 	AuthResponse
-	ChannelProposal
+	LedgerChannelProposal
 	ChannelProposalAcc
 	ChannelProposalRej
 	ChannelUpdate
@@ -132,17 +132,17 @@ const (
 )
 
 var typeNames = map[Type]string{
-	Ping:               "Ping",
-	Pong:               "Pong",
-	Shutdown:           "Shutdown",
-	AuthResponse:       "AuthResponse",
-	ChannelProposal:    "ChannelProposal",
-	ChannelProposalAcc: "ChannelProposalAcc",
-	ChannelProposalRej: "ChannelProposalRej",
-	ChannelUpdate:      "ChannelUpdate",
-	ChannelUpdateAcc:   "ChannelUpdateAcc",
-	ChannelUpdateRej:   "ChannelUpdateRej",
-	ChannelSync:        "ChannelSync",
+	Ping:                  "Ping",
+	Pong:                  "Pong",
+	Shutdown:              "Shutdown",
+	AuthResponse:          "AuthResponse",
+	LedgerChannelProposal: "LedgerChannelProposal",
+	ChannelProposalAcc:    "ChannelProposalAcc",
+	ChannelProposalRej:    "ChannelProposalRej",
+	ChannelUpdate:         "ChannelUpdate",
+	ChannelUpdateAcc:      "ChannelUpdateAcc",
+	ChannelUpdateRej:      "ChannelUpdateRej",
+	ChannelSync:           "ChannelSync",
 }
 
 // String returns the name of a message type if it is valid and name known

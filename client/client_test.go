@@ -87,7 +87,7 @@ func TestClient_Handle_NilArgs(t *testing.T) {
 
 	dummyUH := UpdateHandlerFunc(func(ChannelUpdate, *UpdateResponder) {})
 	assert.Panics(t, func() { c.Handle(nil, dummyUH) })
-	dummyPH := ProposalHandlerFunc(func(*ChannelProposal, *ProposalResponder) {})
+	dummyPH := ProposalHandlerFunc(func(ChannelProposal, *ProposalResponder) {})
 	assert.Panics(t, func() { c.Handle(dummyPH, nil) })
 }
 

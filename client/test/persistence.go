@@ -68,7 +68,7 @@ func (r *Petra) Execute(cfg ExecConfig) {
 	assrt := assert.New(r.t)
 	rng := test.Prng(r.t, "petra")
 
-	prop := r.ChannelProposal(rng, &cfg)
+	prop := r.LedgerChannelProposal(rng, &cfg)
 	ch, err := r.ProposeChannel(prop)
 	assrt.NoError(err)
 	assrt.NotNil(ch)

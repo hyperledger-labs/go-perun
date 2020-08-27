@@ -36,7 +36,7 @@ func (r *Proposer) Execute(cfg ExecConfig, exec func(ExecConfig, *paymentChannel
 	rng := pkgtest.Prng(r.t, "proposer")
 	assert := assert.New(r.t)
 
-	prop := r.ChannelProposal(rng, &cfg)
+	prop := r.LedgerChannelProposal(rng, &cfg)
 	ch, err := r.ProposeChannel(prop)
 	assert.NoError(err)
 	assert.NotNil(ch)

@@ -158,8 +158,8 @@ func (c *Client) Handle(ph ProposalHandler, uh UpdateHandler) {
 		msg := env.Msg
 
 		switch msg.Type() {
-		case wire.ChannelProposal:
-			go c.handleChannelProposal(ph, env.Sender, msg.(*ChannelProposal))
+		case wire.LedgerChannelProposal:
+			go c.handleChannelProposal(ph, env.Sender, msg.(*LedgerChannelProposal))
 		case wire.ChannelUpdate:
 			go c.handleChannelUpdate(uh, env.Sender, msg.(*msgChannelUpdate))
 		case wire.ChannelSync:

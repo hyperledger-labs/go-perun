@@ -35,13 +35,13 @@ type (
 	ProposalHandler interface {
 		// HandleProposal is the user callback called by the Client on an incoming channel
 		// proposal.
-		HandleProposal(*ChannelProposal, *ProposalResponder)
+		HandleProposal(ChannelProposal, *ProposalResponder)
 	}
 
 	// ProposalHandlerFunc is an adapter type to allow the use of functions as
 	// proposal handlers. ProposalHandlerFunc(f) is a ProposalHandler that calls
 	// f when HandleProposal is called.
-	ProposalHandlerFunc func(*ChannelProposal, *ProposalResponder)
+	ProposalHandlerFunc func(ChannelProposal, *ProposalResponder)
 
 	// ProposalResponder lets the user respond to a channel proposal. If the user
 	// wants to accept the proposal, they should call Accept(), otherwise Reject().
@@ -50,7 +50,7 @@ type (
 	ProposalResponder struct {
 		client *Client
 		peer   wire.Address
-		req    *ChannelProposal
+		req    *BaseChannelProposal
 		called atomic.Bool
 	}
 
@@ -63,7 +63,7 @@ type (
 )
 
 // HandleProposal calls the proposal handler function.
-func (f ProposalHandlerFunc) HandleProposal(p *ChannelProposal, r *ProposalResponder) { f(p, r) }
+func (f ProposalHandlerFunc) HandleProposal(p ChannelProposal, r *ProposalResponder) { f(p, r) }
 
 // Accept lets the user signal that they want to accept the channel proposal.
 // Returns the newly created channel controller if the channel was successfully
@@ -87,11 +87,8 @@ func (r *ProposalResponder) Accept(ctx context.Context, acc ProposalAcc) (*Chann
 	if !r.called.TrySet() {
 		log.Panic("multiple calls on proposal responder")
 	}
-	if ctx == nil {
-		log.Panic("nil context")
-	}
 
-	return r.client.handleChannelProposalAcc(ctx, r.peer, r.req, acc)
+	return r.client.handleChannelProposalAcc(ctx, r.peer, r.req.Proposal(), acc)
 }
 
 // Reject lets the user signal that they reject the channel proposal.
@@ -101,10 +98,6 @@ func (r *ProposalResponder) Reject(ctx context.Context, reason string) error {
 	if !r.called.TrySet() {
 		log.Panic("multiple calls on proposal responder")
 	}
-	if ctx == nil {
-		log.Panic("nil context")
-	}
-
 	return r.client.handleChannelProposalRej(ctx, r.peer, r.req, reason)
 }
 
@@ -125,13 +118,14 @@ func (r *ProposalResponder) Reject(ctx context.Context, reason string) error {
 // After the channel got successfully created, the user is required to start the
 // channel watcher with Channel.Watch() on the returned channel
 // controller.
-func (c *Client) ProposeChannel(ctx context.Context, req *ChannelProposal) (*Channel, error) {
+func (c *Client) ProposeChannel(ctx context.Context, req ChannelProposal) (*Channel, error) {
 	if ctx == nil || req == nil {
 		c.log.Panic("invalid nil argument")
 	}
 
 	// 1. check valid proposal
-	if err := c.validTwoPartyProposal(req, proposerIdx, req.PeerAddrs[proposeeIdx]); err != nil {
+	peer := req.Proposal().PeerAddrs[proposeeIdx]
+	if err := c.validTwoPartyProposal(req.Proposal(), proposerIdx, peer); err != nil {
 		return nil, errors.WithMessage(err, "invalid channel proposal")
 	}
 
@@ -142,7 +136,7 @@ func (c *Client) ProposeChannel(ctx context.Context, req *ChannelProposal) (*Cha
 	}
 
 	// 3. Create channel controller, fund channel, and return the controller
-	return c.setupChannel(ctx, req, params, proposerIdx)
+	return c.setupChannel(ctx, req.Proposal(), params, proposerIdx)
 }
 
 // handleChannelProposal implements the receiving side of the (currently)
@@ -151,21 +145,21 @@ func (c *Client) ProposeChannel(ctx context.Context, req *ChannelProposal) (*Cha
 //
 // This handler is dispatched from the Client.Handle routine.
 func (c *Client) handleChannelProposal(
-	handler ProposalHandler, p wire.Address, req *ChannelProposal) {
-	if err := c.validTwoPartyProposal(req, proposeeIdx, p); err != nil {
+	handler ProposalHandler, p wire.Address, req ChannelProposal) {
+	if err := c.validTwoPartyProposal(req.Proposal(), proposeeIdx, p); err != nil {
 		c.logPeer(p).Debugf("received invalid channel proposal: %v", err)
 		return
 	}
 
 	c.logPeer(p).Trace("calling proposal handler")
-	responder := &ProposalResponder{client: c, peer: p, req: req}
+	responder := &ProposalResponder{client: c, peer: p, req: req.Proposal()}
 	handler.HandleProposal(req, responder)
 	// control flow continues in responder.Accept/Reject
 }
 
 func (c *Client) handleChannelProposalAcc(
 	ctx context.Context, p wire.Address,
-	req *ChannelProposal, acc ProposalAcc,
+	req *BaseChannelProposal, acc ProposalAcc,
 ) (*Channel, error) {
 	if acc.Participant == nil {
 		c.logPeer(p).Error("user returned nil Participant in ProposalAcc")
@@ -189,7 +183,7 @@ func (c *Client) handleChannelProposalAcc(
 
 func (c *Client) handleChannelProposalRej(
 	ctx context.Context, p wire.Address,
-	req *ChannelProposal, reason string,
+	req *BaseChannelProposal, reason string,
 ) error {
 	msgReject := &ChannelProposalRej{
 		ProposalID: req.ProposalID(),
@@ -207,16 +201,17 @@ func (c *Client) handleChannelProposalRej(
 // parameters.
 func (c *Client) exchangeTwoPartyProposal(
 	ctx context.Context,
-	proposal *ChannelProposal,
+	proposal ChannelProposal,
 ) (*channel.Params, error) {
-	peer := proposal.PeerAddrs[proposeeIdx]
+	propBase := proposal.Proposal()
+	peer := propBase.PeerAddrs[proposeeIdx]
 
 	// enables caching of incoming version 0 signatures before sending any message
 	// that might trigger a fast peer to send those. We don't know the channel id
 	// yet so the cache predicate is coarser than the later subscription.
 	enableVer0Cache(ctx, c.conn)
 
-	proposalID := proposal.ProposalID()
+	proposalID := propBase.ProposalID()
 	isResponse := func(e *wire.Envelope) bool {
 		return (e.Msg.Type() == wire.ChannelProposalAcc &&
 			e.Msg.(*ChannelProposalAcc).ProposalID == proposalID) ||
@@ -244,7 +239,7 @@ func (c *Client) exchangeTwoPartyProposal(
 	}
 
 	acc := env.Msg.(*ChannelProposalAcc) // this is safe because of predicate isResponse
-	return finalizeCPP(proposal, acc), nil
+	return finalizeCPP(propBase, acc), nil
 }
 
 // validTwoPartyProposal checks that the proposal is valid in the two-party
@@ -252,7 +247,7 @@ func (c *Client) exchangeTwoPartyProposal(
 // the receiver to have index 1. The generic validity of the proposal is also
 // checked.
 func (c *Client) validTwoPartyProposal(
-	proposal *ChannelProposal,
+	proposal *BaseChannelProposal,
 	ourIdx int,
 	peerAddr wallet.Address,
 ) error {
@@ -278,7 +273,7 @@ func (c *Client) validTwoPartyProposal(
 	return nil
 }
 
-func finalizeCPP(prop *ChannelProposal, acc *ChannelProposalAcc) *channel.Params {
+func finalizeCPP(prop *BaseChannelProposal, acc *ChannelProposalAcc) *channel.Params {
 	nonce := calcNonce(nonceShares(prop.NonceShare, acc.NonceShare))
 	parts := participants(prop.ParticipantAddr, acc.ParticipantAddr)
 	return channel.NewParamsUnsafe(prop.ChallengeDuration, parts, prop.AppDef, nonce)
@@ -324,7 +319,7 @@ func calcNonce(nonceShares []NonceShare) channel.Nonce {
 // time), or the channel cannot be settled if a peer times out funding.
 func (c *Client) setupChannel(
 	ctx context.Context,
-	prop *ChannelProposal,
+	prop *BaseChannelProposal,
 	params *channel.Params,
 	idx channel.Index, // our index
 ) (*Channel, error) {

@@ -169,7 +169,7 @@ func (r *role) Idxs(peers [2]wire.Address) (our, their channel.Index) {
 
 // ProposeChannel sends the channel proposal req. It times out after the timeout
 // specified in the Role's setup.
-func (r *role) ProposeChannel(req *client.ChannelProposal) (*paymentChannel, error) {
+func (r *role) ProposeChannel(req client.ChannelProposal) (*paymentChannel, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), r.timeout)
 	defer cancel()
 	_ch, err := r.Client.ProposeChannel(ctx, req)
@@ -216,12 +216,12 @@ func (r *role) GoHandle(rng *rand.Rand) (h *acceptAllPropHandler, wait func()) {
 	}
 }
 
-func (r *role) ChannelProposal(rng *rand.Rand, cfg *ExecConfig) *client.ChannelProposal {
+func (r *role) LedgerChannelProposal(rng *rand.Rand, cfg *ExecConfig) client.ChannelProposal {
 	initBals := &channel.Allocation{
 		Assets:   []channel.Asset{cfg.Asset},
 		Balances: [][]channel.Bal{cfg.InitBals[:]},
 	}
-	return client.NewChannelProposal(
+	return client.NewLedgerChannelProposal(
 		60, // 60 sec
 		r.setup.Wallet.NewRandomAccount(rng).Address(),
 		initBals,
@@ -242,7 +242,7 @@ func (r *role) AcceptAllPropHandler(rng *rand.Rand) *acceptAllPropHandler {
 	}
 }
 
-func (h *acceptAllPropHandler) HandleProposal(req *client.ChannelProposal, res *client.ProposalResponder) {
+func (h *acceptAllPropHandler) HandleProposal(req client.ChannelProposal, res *client.ProposalResponder) {
 	h.r.log.Infof("Accepting incoming channel request: %v", req)
 	ctx, cancel := context.WithTimeout(context.Background(), h.r.setup.Timeout)
 	defer cancel()

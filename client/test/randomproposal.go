@@ -25,14 +25,14 @@ import (
 
 // NewRandomChannelProposal creates a random channel proposal with the supplied
 // options. Number of participants is fixed to 2.
-func NewRandomChannelProposal(rng *rand.Rand, opts ...client.ProposalOpts) *client.ChannelProposal {
+func NewRandomChannelProposal(rng *rand.Rand, opts ...client.ProposalOpts) client.ChannelProposal {
 	return NewRandomChannelProposalBy(rng, wallettest.NewRandomAddress(rng), opts...)
 }
 
 // NewRandomChannelProposalBy creates a random channel proposal with the
 // supplied options and proposer. Number of participants is fixed to 2.
-func NewRandomChannelProposalBy(rng *rand.Rand, proposer wallet.Address, opts ...client.ProposalOpts) *client.ChannelProposal {
-	return client.NewChannelProposal(
+func NewRandomChannelProposalBy(rng *rand.Rand, proposer wallet.Address, opts ...client.ProposalOpts) client.ChannelProposal {
+	return client.NewLedgerChannelProposal(
 		rng.Uint64(),
 		proposer,
 		channeltest.NewRandomAllocation(rng, channeltest.WithNumParts(2)),
