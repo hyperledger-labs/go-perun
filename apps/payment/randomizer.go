@@ -34,5 +34,5 @@ func (*Randomizer) NewRandomApp(*rand.Rand) channel.App {
 
 // NewRandomData returns NoData because a PaymentApp does not have data.
 func (*Randomizer) NewRandomData(*rand.Rand) channel.Data {
-	return new(NoData)
+	return channel.NoData()
 }

@@ -24,7 +24,6 @@ import (
 	"testing"
 	"time"
 
-	"perun.network/go-perun/apps/payment"
 	"perun.network/go-perun/channel"
 	"perun.network/go-perun/channel/persistence"
 	"perun.network/go-perun/client"
@@ -62,12 +61,13 @@ type (
 
 	// ExecConfig contains additional config parameters for the tests.
 	ExecConfig struct {
-		PeerAddrs   [2]wire.Address // must match the RoleSetup.Identity's
-		Asset       channel.Asset   // single Asset to use in this channel
-		InitBals    [2]*big.Int     // channel deposit of each role
-		NumPayments [2]int          // how many payments each role sends
-		NumRequests [2]int          // how many requests each role sends
-		TxAmounts   [2]*big.Int     // amounts that are to be sent/requested by each role
+		PeerAddrs   [2]wire.Address     // must match the RoleSetup.Identity's
+		Asset       channel.Asset       // single Asset to use in this channel
+		InitBals    [2]*big.Int         // channel deposit of each role
+		NumPayments [2]int              // how many payments each role sends
+		NumRequests [2]int              // how many requests each role sends
+		TxAmounts   [2]*big.Int         // amounts that are to be sent/requested by each role
+		App         client.ProposalOpts // must be either WithApp or WithoutApp
 	}
 
 	// An Executer is a Role that can execute a protocol.
@@ -217,6 +217,10 @@ func (r *role) GoHandle(rng *rand.Rand) (h *acceptAllPropHandler, wait func()) {
 }
 
 func (r *role) LedgerChannelProposal(rng *rand.Rand, cfg *ExecConfig) client.ChannelProposal {
+	if !cfg.App.SetsApp() {
+		r.log.Panic("Invalid ExecConfig: App does not specify an app.")
+	}
+
 	initBals := &channel.Allocation{
 		Assets:   []channel.Asset{cfg.Asset},
 		Balances: [][]channel.Bal{cfg.InitBals[:]},
@@ -227,7 +231,7 @@ func (r *role) LedgerChannelProposal(rng *rand.Rand, cfg *ExecConfig) client.Cha
 		initBals,
 		cfg.PeerAddrs[:],
 		client.WithNonceFrom(rng),
-		client.WithApp(payment.AppDef(), new(payment.NoData)))
+		cfg.App)
 }
 
 // AcceptAllPropHandler returns a ProposalHandler that accepts all requests to

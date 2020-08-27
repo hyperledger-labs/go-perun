@@ -18,6 +18,7 @@ import (
 	"testing"
 
 	_ "perun.network/go-perun/backend/sim" // backend init
+	"perun.network/go-perun/channel"
 	"perun.network/go-perun/channel/test"
 	iotest "perun.network/go-perun/pkg/io/test"
 	pkgtest "perun.network/go-perun/pkg/test"
@@ -30,4 +31,8 @@ func TestStateSerialization(t *testing.T) {
 
 	iotest.GenericSerializerTest(t, state)
 	test.GenericStateEqualTest(t, state, state2)
+
+	state.App = channel.NoApp()
+	state.Data = channel.NoData()
+	iotest.GenericSerializerTest(t, state)
 }

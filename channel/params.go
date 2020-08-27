@@ -78,11 +78,11 @@ func (p *Params) ID() ID {
 // appDef optional: if it is nil, it describes a payment channel. The channel id
 // is also calculated here and persisted because it probably is an expensive
 // hash operation.
-func NewParams(challengeDuration uint64, parts []wallet.Address, appDef wallet.Address, nonce Nonce) (*Params, error) {
-	if err := ValidateParameters(challengeDuration, len(parts), appDef, nonce); err != nil {
+func NewParams(challengeDuration uint64, parts []wallet.Address, app App, nonce Nonce) (*Params, error) {
+	if err := ValidateParameters(challengeDuration, len(parts), app, nonce); err != nil {
 		return nil, errors.WithMessage(err, "invalid parameter for NewParams")
 	}
-	return NewParamsUnsafe(challengeDuration, parts, appDef, nonce), nil
+	return NewParamsUnsafe(challengeDuration, parts, app, nonce), nil
 }
 
 // ValidateProposalParameters validates all parameters that are part of the
@@ -90,7 +90,7 @@ func NewParams(challengeDuration uint64, parts []wallet.Address, appDef wallet.A
 // * non-zero ChallengeDuration
 // * at least two and at most MaxNumParts parts
 // * appDef belongs to either a StateApp or ActionApp.
-func ValidateProposalParameters(challengeDuration uint64, numParts int, appDef wallet.Address) error {
+func ValidateProposalParameters(challengeDuration uint64, numParts int, app App) error {
 	switch {
 	case challengeDuration == 0:
 		return errors.New("challengeDuration must be != 0")
@@ -98,22 +98,18 @@ func ValidateProposalParameters(challengeDuration uint64, numParts int, appDef w
 		return errors.New("need at least two participants")
 	case numParts > MaxNumParts:
 		return errors.Errorf("too many participants, got: %d max: %d", numParts, MaxNumParts)
-	case appDef != nil:
-		app, err := AppFromDefinition(appDef)
-		if err != nil {
-			return errors.WithMessage(err, "app from definition")
-		}
-		if !IsStateApp(app) && !IsActionApp(app) {
-			return errors.New("app must be either an Action- or StateApp")
-		}
+	case app == nil:
+		return errors.New("app must not be nil")
+	case !IsStateApp(app) && !IsActionApp(app):
+		return errors.New("app must be either an Action- or StateApp")
 	}
 	return nil
 }
 
 // ValidateParameters checks that the arguments form valid Params. Checks
 // everything from ValidateProposalParameters, and that the nonce is not nil.
-func ValidateParameters(challengeDuration uint64, numParts int, appDef wallet.Address, nonce Nonce) error {
-	if err := ValidateProposalParameters(challengeDuration, numParts, appDef); err != nil {
+func ValidateParameters(challengeDuration uint64, numParts int, app App, nonce Nonce) error {
+	if err := ValidateProposalParameters(challengeDuration, numParts, app); err != nil {
 		return err
 	}
 	if nonce == nil {
@@ -128,11 +124,7 @@ func ValidateParameters(challengeDuration uint64, numParts int, appDef wallet.Ad
 // NewParamsUnsafe creates Params from the given data and does NOT perform
 // sanity checks. The channel id is also calculated here and persisted because
 // it probably is an expensive hash operation.
-func NewParamsUnsafe(challengeDuration uint64, parts []wallet.Address, appDef wallet.Address, nonce Nonce) *Params {
-	app, err := AppFromDefinition(appDef)
-	if err != nil {
-		log.Panic("AppFromDefinition on validated parameters returned error")
-	}
+func NewParamsUnsafe(challengeDuration uint64, parts []wallet.Address, app App, nonce Nonce) *Params {
 	p := &Params{
 		ChallengeDuration: challengeDuration,
 		Parts:             parts,

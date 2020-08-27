@@ -42,7 +42,7 @@ func TestApp_ValidInit(t *testing.T) {
 	wrongdata := &channel.State{Data: new(channel.MockOp)}
 	assert.Panics(func() { app.ValidInit(nil, wrongdata) })
 
-	nodata := &channel.State{Data: new(NoData)}
+	nodata := &channel.State{Data: channel.NoData()}
 	assert.Nil(app.ValidInit(nil, nodata))
 }
 
