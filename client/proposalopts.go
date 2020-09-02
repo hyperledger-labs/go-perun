@@ -20,30 +20,35 @@ import (
 
 	"perun.network/go-perun/channel"
 	"perun.network/go-perun/log"
-	"perun.network/go-perun/wallet"
 )
 
 // ProposalOpts contains optional configuration instructions for channel
-// proposals and channel proposal acceptance messages. Per default, no app is
-// set, and a random nonce share is generated.
+// proposals and channel proposal acceptance messages. Per default, NoApp and
+// NoData is set, and a random nonce share is generated.
 type ProposalOpts map[string]interface{}
 
-var optNames = struct{ nonce, appDef, appData string }{nonce: "nonce", appDef: "appDef", appData: "appData"}
+var optNames = struct{ nonce, app, appData string }{nonce: "nonce", app: "app", appData: "appData"}
 
-// appDef returns the option's configured app definition, or nil.
-func (o ProposalOpts) appDef() wallet.Address {
-	if v := o[optNames.appDef]; v != nil {
-		return v.(wallet.Address)
+// App returns the option's configured app.
+func (o ProposalOpts) App() channel.App {
+	if v := o[optNames.app]; v != nil {
+		return v.(channel.App)
 	}
-	return nil
+	return channel.NoApp()
 }
 
-// appData returns the option's configured app data, or nil.
-func (o ProposalOpts) appData() channel.Data {
+// AppData returns the option's configured app data.
+func (o ProposalOpts) AppData() channel.Data {
 	if v := o[optNames.appData]; v != nil {
 		return v.(channel.Data)
 	}
-	return nil
+	return channel.NoData()
+}
+
+// SetsApp returns whether an app and data have been explicitly set.
+func (o ProposalOpts) SetsApp() bool {
+	_, ok := o[optNames.app]
+	return ok
 }
 
 // nonce returns the option's configured nonce share, or a random nonce share.
@@ -95,7 +100,12 @@ func WithRandomNonce() ProposalOpts {
 	return WithNonceFrom(rand.Reader)
 }
 
-// WithApp configures an app definition and initial data.
-func WithApp(appDef wallet.Address, initData channel.Data) ProposalOpts {
-	return ProposalOpts{optNames.appDef: appDef, optNames.appData: initData}
+// WithApp configures an app and initial data.
+func WithApp(app channel.App, initData channel.Data) ProposalOpts {
+	return ProposalOpts{optNames.app: app, optNames.appData: initData}
+}
+
+// WithoutApp configures a NoApp and NoData.
+func WithoutApp() ProposalOpts {
+	return WithApp(channel.NoApp(), channel.NoData())
 }

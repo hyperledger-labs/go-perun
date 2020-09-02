@@ -33,36 +33,25 @@ type backend struct{}
 var _ channel.Backend = new(backend)
 
 // CalcID calculates a channel's ID by hashing all fields of its parameters.
-func (*backend) CalcID(p *channel.Params) channel.ID {
+func (*backend) CalcID(p *channel.Params) (id channel.ID) {
 	w := sha256.New()
 
-	// Write ChallengeDuration
-	if err := perunio.Encode(w, p.ChallengeDuration); err != nil {
-		log.Panic("Could not serialize to buffer")
-	}
 	// Write Parts
 	for _, addr := range p.Parts {
 		if err := addr.Encode(w); err != nil {
 			log.Panic("Could not write to sha256 hasher")
 		}
 	}
-	// Write App Address
-	if err := p.App.Def().Encode(w); err != nil {
-		log.Panic("Could not write to sha256 hasher")
-	}
-	// Write Nonce
-	if err := perunio.Encode(w, p.Nonce); err != nil {
+
+	err := perunio.Encode(w, p.Nonce, p.ChallengeDuration, channel.OptAppEnc{App: p.App})
+	if err != nil {
 		log.Panic("Could not write to sha256 hasher")
 	}
 
-	var id channel.ID
-	hash := w.Sum(nil)
-
-	if copy(id[:], hash) != 32 {
+	if copy(id[:], w.Sum(nil)) != 32 {
 		log.Panic("Could not copy id")
 	}
-
-	return id
+	return
 }
 
 // Sign signs `state`.

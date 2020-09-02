@@ -37,7 +37,7 @@ func TestChannelProposalReq_NilArgs(t *testing.T) {
 	c := clienttest.NewRandomChannelProposal(
 		rng,
 		client.WithNonceFrom(rng),
-		client.WithApp(test.NewRandomApp(rng).Def(), test.NewRandomData(rng)))
+		client.WithApp(test.NewRandomApp(rng), test.NewRandomData(rng)))
 
 	err := c.Encode(nil)
 	require.Error(t, err)
@@ -53,7 +53,7 @@ func TestChannelProposalReqSerialization(t *testing.T) {
 	for i := 0; i < 8; i++ {
 		var app client.ProposalOpts
 		if i&1 == 0 {
-			app = client.WithApp(test.NewRandomApp(rng).Def(), test.NewRandomData(rng))
+			app = client.WithApp(test.NewRandomApp(rng), test.NewRandomData(rng))
 		}
 
 		m := clienttest.NewRandomChannelProposal(rng, client.WithNonceFrom(rng), app)
@@ -73,7 +73,7 @@ func TestChannelProposalReqDecode_CheckMaxNumParts(t *testing.T) {
 	// maximum number of participants possible with the encoding
 	require.NoError(io.Encode(buffer, c.ChallengeDuration, c.NonceShare))
 	require.NoError(
-		io.Encode(buffer, c.ParticipantAddr, client.OptAppDefAndDataEnc{c.AppDef, c.InitData}, c.InitBals))
+		io.Encode(buffer, c.ParticipantAddr, client.OptAppAndDataEnc{c.App, c.InitData}, c.InitBals))
 
 	numParts := int32(channel.MaxNumParts + 1)
 	require.NoError(io.Encode(buffer, numParts))
@@ -100,7 +100,7 @@ func TestChannelProposalReqProposalID(t *testing.T) {
 	assert.NotEqual(t, original.ParticipantAddr, fake.ParticipantAddr)
 	// TODO: while using the payment app in channel tests, they all have the same
 	// address. Fixed in #266
-	// assert.NotEqual(t, original.AppDef, fake.AppDef)
+	// assert.NotEqual(t, original.App, fake.App)
 
 	c0 := original
 	c0.ChallengeDuration = fake.ChallengeDuration

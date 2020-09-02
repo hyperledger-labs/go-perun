@@ -37,7 +37,7 @@ func (a *App) Def() wallet.Address {
 
 // DecodeData does not read anything from the reader and returns new NoData.
 func (a *App) DecodeData(io.Reader) (channel.Data, error) {
-	return new(NoData), nil
+	return Data(), nil
 }
 
 // ValidTransition checks that money flows only from the actor to the other
@@ -64,21 +64,13 @@ func (a *App) ValidInit(_ *channel.Params, s *channel.State) error {
 }
 
 func assertNoData(s *channel.State) {
-	_, ok := s.Data.(*NoData)
-	if !ok {
-		log.Panicf("payment app must have no data (new(NoData)), has type %T", s.Data)
+	if !channel.IsNoData(s.Data) {
+		log.Panicf("payment app data must be NoData, is %T", s.Data)
 	}
 }
 
-// NoData represents empty app data.
-type NoData struct{}
-
-// Clone creates a new NoData.
-func (d *NoData) Clone() channel.Data {
-	return new(NoData)
-}
-
-// Encode does nothing as NoData has no data.
-func (d *NoData) Encode(io.Writer) error {
-	return nil
+// Data returns the data that has to be used while creating a payment channel
+// proposal. The Data is empty.
+func Data() channel.Data {
+	return channel.NoData()
 }

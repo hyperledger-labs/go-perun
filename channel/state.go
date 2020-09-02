@@ -20,7 +20,6 @@ import (
 	"github.com/pkg/errors"
 
 	perunio "perun.network/go-perun/pkg/io"
-	"perun.network/go-perun/wallet"
 )
 
 type (
@@ -105,25 +104,16 @@ func (s *State) Clone() *State {
 
 // Encode encodes a state into an `io.Writer` or returns an `error`.
 func (s State) Encode(w io.Writer) error {
-	err := perunio.Encode(w, s.ID, s.Version, s.Allocation, s.IsFinal, s.App.Def(), s.Data)
+	err := perunio.Encode(w, s.ID, s.Version, s.Allocation, s.IsFinal, OptAppEnc{s.App}, s.Data)
 	return errors.WithMessage(err, "state encode")
 }
 
 // Decode decodes a state from an `io.Reader` or returns an `error`.
 func (s *State) Decode(r io.Reader) error {
-	// Decode ID, Version, Allocation, IsFinal
-	if err := perunio.Decode(r, &s.ID, &s.Version, &s.Allocation, &s.IsFinal); err != nil {
+	// Decode ID, Version, Allocation, IsFinal, App
+	err := perunio.Decode(r, &s.ID, &s.Version, &s.Allocation, &s.IsFinal, OptAppDec{&s.App})
+	if err != nil {
 		return errors.WithMessage(err, "id or version decode")
-	}
-	// Decode app
-	var err error
-	def, err := wallet.DecodeAddress(r)
-	if err != nil {
-		return errors.WithMessage(err, "app definition decode")
-	}
-	s.App, err = AppFromDefinition(def)
-	if err != nil {
-		return errors.WithMessage(err, "app from definition")
 	}
 	// Decode app data
 	s.Data, err = s.App.DecodeData(r)

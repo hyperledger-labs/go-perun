@@ -102,5 +102,5 @@ func NewRandomBaseChannelProposalReqNumParts(rng *rand.Rand, numPeers int) BaseC
 		alloc,
 		params.Parts,
 		WithNonceFrom(rng),
-		WithApp(params.App.Def(), data))
+		WithApp(params.App, data))
 }

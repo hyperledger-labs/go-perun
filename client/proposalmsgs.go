@@ -76,7 +76,7 @@ type (
 		ChallengeDuration uint64              // Dispute challenge duration.
 		NonceShare        NonceShare          // Proposer's channel nonce share.
 		ParticipantAddr   wallet.Address      // Proposer's address in the channel.
-		AppDef            wallet.Address      // App definition, or nil.
+		App               channel.App         // App definition, or nil.
 		InitData          channel.Data        // Initial App data, or nil (if App nil).
 		InitBals          *channel.Allocation // Initial balances.
 		PeerAddrs         []wire.Address      // Participants' wire addresses.
@@ -104,8 +104,8 @@ func makeBaseChannelProposal(
 		ChallengeDuration: challengeDuration,
 		NonceShare:        opt.nonce(),
 		ParticipantAddr:   participantAddr,
-		AppDef:            opt.appDef(),
-		InitData:          opt.appData(),
+		App:               opt.App(),
+		InitData:          opt.AppData(),
 		InitBals:          initBals,
 		PeerAddrs:         peerAddrs,
 	}
@@ -126,7 +126,7 @@ func (p *BaseChannelProposal) Encode(w io.Writer) error {
 		return err
 	}
 
-	if err := perunio.Encode(w, p.ParticipantAddr, OptAppDefAndDataEnc{p.AppDef, p.InitData}, p.InitBals); err != nil {
+	if err := perunio.Encode(w, p.ParticipantAddr, OptAppAndDataEnc{p.App, p.InitData}, p.InitBals); err != nil {
 		return err
 	}
 
@@ -143,41 +143,29 @@ func (p *BaseChannelProposal) Encode(w io.Writer) error {
 	return wallet.Addresses(p.PeerAddrs).Encode(w)
 }
 
-// OptAppDefAndDataEnc makes an optional pair of App definition and Data encodable.
-type OptAppDefAndDataEnc struct {
-	wallet.Address
+// OptAppAndDataEnc makes an optional pair of App definition and Data encodable.
+type OptAppAndDataEnc struct {
+	channel.App
 	channel.Data
 }
 
 // Encode encodes an optional pair of App definition and Data.
-func (o OptAppDefAndDataEnc) Encode(w io.Writer) error {
-	if o.Address == nil {
-		return perunio.Encode(w, false)
-	}
-	return perunio.Encode(w, true, o.Address, o.Data)
+func (o OptAppAndDataEnc) Encode(w io.Writer) error {
+	return perunio.Encode(w, channel.OptAppEnc{App: o.App}, o.Data)
 }
 
-// OptAppDefAndDataDec makes an optional pair of App definition and Data decodable.
-type OptAppDefAndDataDec struct {
-	Def  *wallet.Address
+// OptAppAndDataDec makes an optional pair of App definition and Data decodable.
+type OptAppAndDataDec struct {
+	App  *channel.App
 	Data *channel.Data
 }
 
 // Decode decodes an optional pair of App definition and Data.
-func (o OptAppDefAndDataDec) Decode(r io.Reader) (err error) {
-	*o.Data = nil
-	*o.Def = nil
-	var app channel.App
-	if err = perunio.Decode(r, channel.OptAppDec{App: &app}); err != nil {
+func (o OptAppAndDataDec) Decode(r io.Reader) (err error) {
+	if err = perunio.Decode(r, channel.OptAppDec{App: o.App}); err != nil {
 		return err
 	}
-
-	if app == nil {
-		return nil
-	}
-
-	*o.Def = app.Def()
-	*o.Data, err = app.DecodeData(r)
+	*o.Data, err = (*o.App).DecodeData(r)
 	return err
 }
 
@@ -197,7 +185,7 @@ func (p *BaseChannelProposal) Decode(r io.Reader) (err error) {
 
 	if err := perunio.Decode(r,
 		wallet.AddressDec{Addr: &p.ParticipantAddr},
-		OptAppDefAndDataDec{&p.AppDef, &p.InitData},
+		OptAppAndDataDec{&p.App, &p.InitData},
 		p.InitBals); err != nil {
 		return err
 	}
@@ -237,9 +225,8 @@ func (p *BaseChannelProposal) ProposalID() (propID ProposalID) {
 	if err := perunio.Encode(
 		hasher,
 		p.ChallengeDuration,
-		p.InitData,
 		p.InitBals,
-		p.AppDef,
+		OptAppAndDataEnc{p.App, p.InitData},
 	); err != nil {
 		log.Panicf("proposal ID data encoding error: %v", err)
 	}
@@ -260,7 +247,7 @@ func (p *BaseChannelProposal) Valid() error {
 	if p.InitBals == nil || p.ParticipantAddr == nil {
 		return errors.New("invalid nil fields")
 	} else if err := channel.ValidateProposalParameters(
-		p.ChallengeDuration, len(p.PeerAddrs), p.AppDef); err != nil {
+		p.ChallengeDuration, len(p.PeerAddrs), p.App); err != nil {
 		return errors.WithMessage(err, "invalid channel parameters")
 	} else if err := p.InitBals.Valid(); err != nil {
 		return err

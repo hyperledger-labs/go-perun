@@ -18,7 +18,9 @@ import (
 	"math/big"
 	"testing"
 
+	"perun.network/go-perun/apps/payment"
 	chtest "perun.network/go-perun/channel/test"
+	"perun.network/go-perun/client"
 	ctest "perun.network/go-perun/client/test"
 	"perun.network/go-perun/pkg/test"
 	"perun.network/go-perun/wire"
@@ -26,20 +28,26 @@ import (
 
 func TestHappyAliceBob(t *testing.T) {
 	rng := test.Prng(t)
-	setups := NewSetups(rng, []string{"Alice", "Bob"})
-	roles := [2]ctest.Executer{
-		ctest.NewAlice(setups[0], t),
-		ctest.NewBob(setups[1], t),
-	}
+	for i := 0; i < 2; i++ {
+		setups := NewSetups(rng, []string{"Alice", "Bob"})
+		roles := [2]ctest.Executer{
+			ctest.NewAlice(setups[0], t),
+			ctest.NewBob(setups[1], t),
+		}
 
-	cfg := ctest.ExecConfig{
-		PeerAddrs:   [2]wire.Address{setups[0].Identity.Address(), setups[1].Identity.Address()},
-		Asset:       chtest.NewRandomAsset(rng),
-		InitBals:    [2]*big.Int{big.NewInt(100), big.NewInt(100)},
-		NumPayments: [2]int{2, 2},
-		NumRequests: [2]int{2, 2},
-		TxAmounts:   [2]*big.Int{big.NewInt(5), big.NewInt(3)},
-	}
+		cfg := ctest.ExecConfig{
+			PeerAddrs:   [2]wire.Address{setups[0].Identity.Address(), setups[1].Identity.Address()},
+			Asset:       chtest.NewRandomAsset(rng),
+			InitBals:    [2]*big.Int{big.NewInt(100), big.NewInt(100)},
+			NumPayments: [2]int{2, 2},
+			NumRequests: [2]int{2, 2},
+			TxAmounts:   [2]*big.Int{big.NewInt(5), big.NewInt(3)},
+			App:         client.WithApp(payment.NewApp(), payment.Data()),
+		}
 
-	executeTwoPartyTest(roles, cfg)
+		if i == 1 {
+			cfg.App = client.WithoutApp()
+		}
+		executeTwoPartyTest(roles, cfg)
+	}
 }

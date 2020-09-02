@@ -21,6 +21,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	_ "perun.network/go-perun/backend/sim" // backend init
+	"perun.network/go-perun/channel"
 	pkgtest "perun.network/go-perun/pkg/test"
 	"perun.network/go-perun/wallet/test"
 )
@@ -57,7 +58,7 @@ func TestNoData(t *testing.T) {
 	assert := assert.New(t)
 
 	assert.NotPanics(func() {
-		data := new(NoData)
+		data := channel.NoData()
 		assert.Nil(data.Encode(nil))
 	})
 
@@ -66,10 +67,10 @@ func TestNoData(t *testing.T) {
 		data, err := app.DecodeData(nil)
 		assert.NoError(err)
 		assert.NotNil(data)
-		assert.IsType(&NoData{}, data)
+		assert.True(channel.IsNoData(data))
 	})
 
-	data := new(NoData)
+	data := channel.NoData()
 	clone := data.Clone()
 	assert.IsType(data, clone)
 }

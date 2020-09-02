@@ -25,9 +25,12 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"perun.network/go-perun/apps/payment"
 	"perun.network/go-perun/backend/ethereum/channel/test"
 	"perun.network/go-perun/backend/ethereum/wallet"
 	ethwtest "perun.network/go-perun/backend/ethereum/wallet/test"
+	"perun.network/go-perun/channel"
+	perunclient "perun.network/go-perun/client"
 	clienttest "perun.network/go-perun/client/test"
 	"perun.network/go-perun/log"
 	pkgtest "perun.network/go-perun/pkg/test"
@@ -74,6 +77,7 @@ func TestHappyAliceBob(t *testing.T) {
 		NumPayments: [2]int{2, 2},
 		NumRequests: [2]int{2, 2},
 		TxAmounts:   [2]*big.Int{big.NewInt(5), big.NewInt(3)},
+		App:         perunclient.WithApp(payment.NewApp(), channel.NoData()),
 	}
 
 	var wg sync.WaitGroup

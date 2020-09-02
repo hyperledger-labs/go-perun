@@ -30,6 +30,8 @@ type (
 		// Def is an identifier of the channel application. It is usually the
 		// (counterfactual) on-chain address of the stateless contract that defines
 		// what valid actions or transitions are.
+		// Calling this function on a NoApp panics, so ensure that IsNoApp
+		// returns false.
 		Def() wallet.Address
 
 		// DecodeData decodes data specific to this application. This has to be
@@ -157,10 +159,10 @@ type OptAppEnc struct {
 
 // Encode encodes an optional App value.
 func (e OptAppEnc) Encode(w io.Writer) error {
-	if e.App != nil {
-		return perunio.Encode(w, true, e.App.Def())
+	if IsNoApp(e.App) {
+		return perunio.Encode(w, false)
 	}
-	return perunio.Encode(w, false)
+	return perunio.Encode(w, true, e.App.Def())
 }
 
 // OptAppDec makes an optional App value decodable.
@@ -175,7 +177,7 @@ func (d OptAppDec) Decode(r io.Reader) (err error) {
 		return err
 	}
 	if !hasApp {
-		*d.App = nil
+		*d.App = NoApp()
 		return nil
 	}
 	appDef, err := wallet.DecodeAddress(r)

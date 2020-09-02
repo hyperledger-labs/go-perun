@@ -462,11 +462,11 @@ func (m *machine) validTransition(to *State) error {
 
 	newError := func(s string) error { return NewStateTransitionError(m.params.id, s) }
 
-	if m.params.App != nil {
-		if to.App == nil || !m.params.App.Def().Equals(to.App.Def()) {
+	if !IsNoApp(m.params.App) {
+		if IsNoApp(to.App) || !m.params.App.Def().Equals(to.App.Def()) {
 			return newError("new state's App dosen't match")
 		}
-	} else if to.App != nil {
+	} else if !IsNoApp(to.App) {
 		return newError("new state must have no app")
 	}
 

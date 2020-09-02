@@ -276,7 +276,7 @@ func (c *Client) validTwoPartyProposal(
 func finalizeCPP(prop *BaseChannelProposal, acc *ChannelProposalAcc) *channel.Params {
 	nonce := calcNonce(nonceShares(prop.NonceShare, acc.NonceShare))
 	parts := participants(prop.ParticipantAddr, acc.ParticipantAddr)
-	return channel.NewParamsUnsafe(prop.ChallengeDuration, parts, prop.AppDef, nonce)
+	return channel.NewParamsUnsafe(prop.ChallengeDuration, parts, prop.App, nonce)
 }
 
 func participants(proposer, proposee wallet.Address) []wallet.Address {

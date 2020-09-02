@@ -77,3 +77,6 @@ func AppDef() wallet.Address {
 	}
 	return backend.AppDef()
 }
+
+// NewApp returns a payment app.
+func NewApp() *App { return &App{AppDef()} }

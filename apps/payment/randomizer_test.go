@@ -20,6 +20,7 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	_ "perun.network/go-perun/backend/sim" // backend init
+	"perun.network/go-perun/channel"
 	pkgtest "perun.network/go-perun/pkg/test"
 	"perun.network/go-perun/wallet/test"
 )
@@ -36,5 +37,5 @@ func TestRandomizer(t *testing.T) {
 	r := new(Randomizer)
 	app := r.NewRandomApp(rng)
 	assert.True(t, app.Def().Equals(AppDef()))
-	assert.IsType(t, &NoData{}, r.NewRandomData(rng))
+	assert.True(t, channel.IsNoData(r.NewRandomData(rng)))
 }
