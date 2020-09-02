@@ -66,7 +66,7 @@ func TestChannelProposalReqDecode_CheckMaxNumParts(t *testing.T) {
 	assert := assert.New(t)
 
 	rng := pkgtest.Prng(t)
-	c := client.NewRandomChannelProposalReq(rng)
+	c := client.NewRandomBaseChannelProposalReq(rng)
 	buffer := new(bytes.Buffer)
 
 	// reimplementation of ChannelProposalReq.Encode modified to create the
@@ -83,7 +83,7 @@ func TestChannelProposalReqDecode_CheckMaxNumParts(t *testing.T) {
 	}
 	// end of ChannelProposalReq.Encode clone
 
-	var d client.ChannelProposal
+	d := client.LedgerChannelProposal{}
 	err := d.Decode(buffer)
 	require.Error(err)
 	assert.Contains(err.Error(), "participants")
@@ -91,9 +91,9 @@ func TestChannelProposalReqDecode_CheckMaxNumParts(t *testing.T) {
 
 func TestChannelProposalReqProposalID(t *testing.T) {
 	rng := pkgtest.Prng(t)
-	original := *client.NewRandomChannelProposalReq(rng)
+	original := client.NewRandomBaseChannelProposalReq(rng)
 	s := original.ProposalID()
-	fake := client.NewRandomChannelProposalReq(rng)
+	fake := client.NewRandomBaseChannelProposalReq(rng)
 
 	assert.NotEqual(t, original.ChallengeDuration, fake.ChallengeDuration)
 	assert.NotEqual(t, original.NonceShare, fake.NonceShare)

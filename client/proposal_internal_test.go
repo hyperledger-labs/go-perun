@@ -33,51 +33,52 @@ func TestClient_validTwoPartyProposal(t *testing.T) {
 	c := &Client{
 		address: wallettest.NewRandomAddress(rng),
 	}
-	validProp := *NewRandomChannelProposalReqNumParts(rng, 2)
-	validProp.PeerAddrs[0] = c.address // set us as the proposer
-	peerAddr := validProp.PeerAddrs[1] // peer at 1 as receiver
+	validProp := NewRandomBaseChannelProposalReqNumParts(rng, 2)
+	validProp.Proposal().PeerAddrs[0] = c.address // set us as the proposer
+	peerAddr := validProp.Proposal().PeerAddrs[1] // peer at 1 as receiver
 	require.False(t, peerAddr.Equals(c.address))
-	require.Len(t, validProp.PeerAddrs, 2)
+	require.Len(t, validProp.Proposal().PeerAddrs, 2)
 
-	validProp3Peers := *NewRandomChannelProposalReqNumParts(rng, 3)
-	invalidProp := validProp          // shallow copy
-	invalidProp.ChallengeDuration = 0 // invalidate
+	validProp3Peers := NewRandomBaseChannelProposalReqNumParts(rng, 3)
+	invalidProp := BaseChannelProposal{}
+	*invalidProp.Proposal() = *validProp.Proposal() // shallow copy
+	invalidProp.Proposal().ChallengeDuration = 0    // invalidate
 
 	tests := []struct {
-		prop     *ChannelProposal
+		prop     BaseChannelProposal
 		ourIdx   int
 		peerAddr wallet.Address
 		valid    bool
 	}{
 		{
-			&validProp,
+			validProp,
 			0, peerAddr, true,
 		},
 		// test all three invalid combinations of peer address, index
 		{
-			&validProp,
+			validProp,
 			1, peerAddr, false, // wrong ourIdx
 		},
 		{
-			&validProp,
+			validProp,
 			0, c.address, false, // wrong peerAddr (ours)
 		},
 		{
-			&validProp,
+			validProp,
 			1, c.address, false, // wrong index, wrong peer address
 		},
 		{
-			&validProp3Peers, // valid proposal but three peers
+			validProp3Peers, // valid proposal but three peers
 			0, peerAddr, false,
 		},
 		{
-			&invalidProp, // invalid proposal, correct other params
+			invalidProp, // invalid proposal, correct other params
 			0, peerAddr, false,
 		},
 	}
 
 	for i, tt := range tests {
-		valid := c.validTwoPartyProposal(tt.prop, tt.ourIdx, tt.peerAddr)
+		valid := c.validTwoPartyProposal(&tt.prop, tt.ourIdx, tt.peerAddr)
 		if tt.valid && valid != nil {
 			t.Errorf("[%d] Exptected proposal to be valid but got: %v", i, valid)
 		} else if !tt.valid && valid == nil {
@@ -86,16 +87,16 @@ func TestClient_validTwoPartyProposal(t *testing.T) {
 	}
 }
 
-func NewRandomChannelProposalReq(rng *rand.Rand) *ChannelProposal {
-	return NewRandomChannelProposalReqNumParts(rng, rng.Intn(10)+2)
+func NewRandomBaseChannelProposalReq(rng *rand.Rand) BaseChannelProposal {
+	return NewRandomBaseChannelProposalReqNumParts(rng, rng.Intn(10)+2)
 }
 
-func NewRandomChannelProposalReqNumParts(rng *rand.Rand, numPeers int) *ChannelProposal {
+func NewRandomBaseChannelProposalReqNumParts(rng *rand.Rand, numPeers int) BaseChannelProposal {
 	params := channeltest.NewRandomParams(rng, channeltest.WithNumParts(numPeers))
 	data := channeltest.NewRandomData(rng)
 	alloc := channeltest.NewRandomAllocation(rng, channeltest.WithNumParts(numPeers))
 	participantAddr := wallettest.NewRandomAddress(rng)
-	return NewChannelProposal(
+	return makeBaseChannelProposal(
 		rng.Uint64(),
 		participantAddr,
 		alloc,

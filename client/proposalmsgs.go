@@ -30,9 +30,9 @@ import (
 )
 
 func init() {
-	wire.RegisterDecoder(wire.ChannelProposal,
+	wire.RegisterDecoder(wire.LedgerChannelProposal,
 		func(r io.Reader) (wire.Msg, error) {
-			var m ChannelProposal
+			m := LedgerChannelProposal{}
 			return &m, m.Decode(r)
 		})
 	wire.RegisterDecoder(wire.ChannelProposalAcc,
@@ -56,33 +56,51 @@ type ProposalID = [32]byte
 // NonceShare is used to cooperatively calculate a channel's nonce.
 type NonceShare = [32]byte
 
-// ChannelProposal contains all data necessary to propose a new
-// channel to a given set of peers. It is also sent over the wire.
-//
-// ChannelProposal implements the channel proposal messages from the
-// Multi-Party Channel Proposal Protocol (MPCPP).
-type ChannelProposal struct {
-	ChallengeDuration uint64              // Dispute challenge duration.
-	NonceShare        NonceShare          // Proposer's channel nonce share.
-	ParticipantAddr   wallet.Address      // Proposer's address in the channel.
-	AppDef            wallet.Address      // App definition, or nil.
-	InitData          channel.Data        // Initial App data, or nil (if App nil).
-	InitBals          *channel.Allocation // Initial balances.
-	PeerAddrs         []wire.Address      // Participants' wire addresses.
-}
+type (
+	// ChannelProposal is the interface that describes all channel proposal message
+	// types.
+	ChannelProposal interface {
+		wire.Msg
+		perunio.Decoder
 
-// NewChannelProposal creates a channel proposal and applies the supplied
+		// Proposal returns the channel proposal's common values.
+		Proposal() *BaseChannelProposal
+	}
+
+	// BaseChannelProposal contains all data necessary to propose a new
+	// channel to a given set of peers. It is also sent over the wire.
+	//
+	// ChannelProposal implements the channel proposal messages from the
+	// Multi-Party Channel Proposal Protocol (MPCPP).
+	BaseChannelProposal struct {
+		ChallengeDuration uint64              // Dispute challenge duration.
+		NonceShare        NonceShare          // Proposer's channel nonce share.
+		ParticipantAddr   wallet.Address      // Proposer's address in the channel.
+		AppDef            wallet.Address      // App definition, or nil.
+		InitData          channel.Data        // Initial App data, or nil (if App nil).
+		InitBals          *channel.Allocation // Initial balances.
+		PeerAddrs         []wire.Address      // Participants' wire addresses.
+	}
+
+	// LedgerChannelProposal is a channel proposal for ledger channels and has no
+	// additional values beyond a BaseChannelProposal.
+	LedgerChannelProposal struct {
+		BaseChannelProposal
+	}
+)
+
+// makeBaseChannelProposal creates a BaseChannelProposal and applies the supplied
 // options. For more information, see ProposalOpts.
-func NewChannelProposal(
+func makeBaseChannelProposal(
 	challengeDuration uint64,
 	participantAddr wallet.Address,
 	initBals *channel.Allocation,
 	peerAddrs []wire.Address,
 	opts ...ProposalOpts,
-) *ChannelProposal {
+) BaseChannelProposal {
 	opt := union(opts...)
 
-	return &ChannelProposal{
+	return BaseChannelProposal{
 		ChallengeDuration: challengeDuration,
 		NonceShare:        opt.nonce(),
 		ParticipantAddr:   participantAddr,
@@ -93,36 +111,36 @@ func NewChannelProposal(
 	}
 }
 
-// Type returns wire.ChannelProposal.
-func (ChannelProposal) Type() wire.Type {
-	return wire.ChannelProposal
+// Proposal returns the channel proposal's common values.
+func (p *BaseChannelProposal) Proposal() *BaseChannelProposal {
+	return p
 }
 
 // Encode encodes the ChannelProposalReq into an io.writer.
-func (c ChannelProposal) Encode(w io.Writer) error {
+func (p *BaseChannelProposal) Encode(w io.Writer) error {
 	if w == nil {
 		return errors.New("writer must not be nil")
 	}
 
-	if err := perunio.Encode(w, c.ChallengeDuration, c.NonceShare); err != nil {
+	if err := perunio.Encode(w, p.ChallengeDuration, p.NonceShare); err != nil {
 		return err
 	}
 
-	if err := perunio.Encode(w, c.ParticipantAddr, OptAppDefAndDataEnc{c.AppDef, c.InitData}, c.InitBals); err != nil {
+	if err := perunio.Encode(w, p.ParticipantAddr, OptAppDefAndDataEnc{p.AppDef, p.InitData}, p.InitBals); err != nil {
 		return err
 	}
 
-	if len(c.PeerAddrs) > channel.MaxNumParts {
+	if len(p.PeerAddrs) > channel.MaxNumParts {
 		return errors.Errorf(
 			"expected maximum number of participants %d, got %d",
-			channel.MaxNumParts, len(c.PeerAddrs))
+			channel.MaxNumParts, len(p.PeerAddrs))
 	}
 
-	numParts := int32(len(c.PeerAddrs))
+	numParts := int32(len(p.PeerAddrs))
 	if err := perunio.Encode(w, numParts); err != nil {
 		return err
 	}
-	return wallet.Addresses(c.PeerAddrs).Encode(w)
+	return wallet.Addresses(p.PeerAddrs).Encode(w)
 }
 
 // OptAppDefAndDataEnc makes an optional pair of App definition and Data encodable.
@@ -164,23 +182,23 @@ func (o OptAppDefAndDataDec) Decode(r io.Reader) (err error) {
 }
 
 // Decode decodes a ChannelProposalRequest from an io.Reader.
-func (c *ChannelProposal) Decode(r io.Reader) (err error) {
+func (p *BaseChannelProposal) Decode(r io.Reader) (err error) {
 	if r == nil {
 		return errors.New("reader must not be nil")
 	}
 
-	if err := perunio.Decode(r, &c.ChallengeDuration, &c.NonceShare); err != nil {
+	if err := perunio.Decode(r, &p.ChallengeDuration, &p.NonceShare); err != nil {
 		return err
 	}
 
-	if c.InitBals == nil {
-		c.InitBals = new(channel.Allocation)
+	if p.InitBals == nil {
+		p.InitBals = new(channel.Allocation)
 	}
 
 	if err := perunio.Decode(r,
-		wallet.AddressDec{Addr: &c.ParticipantAddr},
-		OptAppDefAndDataDec{&c.AppDef, &c.InitData},
-		c.InitBals); err != nil {
+		wallet.AddressDec{Addr: &p.ParticipantAddr},
+		OptAppDefAndDataDec{&p.AppDef, &p.InitData},
+		p.InitBals); err != nil {
 		return err
 	}
 
@@ -198,19 +216,19 @@ func (c *ChannelProposal) Decode(r io.Reader) (err error) {
 			channel.MaxNumParts, numParts)
 	}
 
-	c.PeerAddrs = make([]wallet.Address, numParts)
-	return wallet.Addresses(c.PeerAddrs).Decode(r)
+	p.PeerAddrs = make([]wallet.Address, numParts)
+	return wallet.Addresses(p.PeerAddrs).Decode(r)
 }
 
 // ProposalID returns the identifier of this channel proposal request as
 // specified by the Channel Proposal Protocol (CPP).
-func (c ChannelProposal) ProposalID() (propID ProposalID) {
+func (p *BaseChannelProposal) ProposalID() (propID ProposalID) {
 	hasher := newHasher()
-	if err := perunio.Encode(hasher, c.NonceShare); err != nil {
+	if err := perunio.Encode(hasher, p.NonceShare); err != nil {
 		log.Panicf("proposal ID nonce encoding: %v", err)
 	}
 
-	for _, p := range c.PeerAddrs {
+	for _, p := range p.PeerAddrs {
 		if err := perunio.Encode(hasher, p); err != nil {
 			log.Panicf("proposal ID participant encoding: %v", err)
 		}
@@ -218,10 +236,10 @@ func (c ChannelProposal) ProposalID() (propID ProposalID) {
 
 	if err := perunio.Encode(
 		hasher,
-		c.ChallengeDuration,
-		c.InitData,
-		c.InitBals,
-		c.AppDef,
+		p.ChallengeDuration,
+		p.InitData,
+		p.InitBals,
+		p.AppDef,
 	); err != nil {
 		log.Panicf("proposal ID data encoding error: %v", err)
 	}
@@ -237,18 +255,18 @@ func (c ChannelProposal) ProposalID() (propID ProposalID) {
 // * No locked sub-allocations
 // * InitBals match the dimension of Parts
 // * non-zero ChallengeDuration.
-func (c ChannelProposal) Valid() error {
+func (p *BaseChannelProposal) Valid() error {
 	// nolint: gocritic
-	if c.InitBals == nil || c.ParticipantAddr == nil {
+	if p.InitBals == nil || p.ParticipantAddr == nil {
 		return errors.New("invalid nil fields")
 	} else if err := channel.ValidateProposalParameters(
-		c.ChallengeDuration, len(c.PeerAddrs), c.AppDef); err != nil {
+		p.ChallengeDuration, len(p.PeerAddrs), p.AppDef); err != nil {
 		return errors.WithMessage(err, "invalid channel parameters")
-	} else if err := c.InitBals.Valid(); err != nil {
+	} else if err := p.InitBals.Valid(); err != nil {
 		return err
-	} else if len(c.InitBals.Locked) != 0 {
+	} else if len(p.InitBals.Locked) != 0 {
 		return errors.New("initial allocation cannot have locked funds")
-	} else if len(c.InitBals.Balances[0]) != len(c.PeerAddrs) {
+	} else if len(p.InitBals.Balances[0]) != len(p.PeerAddrs) {
 		return errors.New("wrong dimension of initial balances")
 	}
 	return nil
@@ -257,19 +275,42 @@ func (c ChannelProposal) Valid() error {
 // NewChannelProposalAcc constructs an accept message that belongs to a proposal
 // message. It should be used instead of manually constructing an accept
 // message.
-func (c ChannelProposal) NewChannelProposalAcc(
+func (p *BaseChannelProposal) NewChannelProposalAcc(
 	participantAddr wallet.Address,
 	nonceShare ProposalOpts,
 ) *ChannelProposalAcc {
 	if !nonceShare.isNonce() {
-		log.WithField("proposal", c.ProposalID()).
+		log.WithField("proposal", p.ProposalID()).
 			Panic("NewChannelProposalAcc: nonceShare has no configured nonce")
 	}
 	return &ChannelProposalAcc{
-		ProposalID:      c.ProposalID(),
+		ProposalID:      p.ProposalID(),
 		NonceShare:      nonceShare.nonce(),
 		ParticipantAddr: participantAddr,
 	}
+}
+
+// NewLedgerChannelProposal creates a ledger channel proposal and applies the
+// supplied options. For more information, see ProposalOpts.
+func NewLedgerChannelProposal(
+	challengeDuration uint64,
+	participantAddr wallet.Address,
+	initBals *channel.Allocation,
+	peerAddrs []wire.Address,
+	opts ...ProposalOpts,
+) *LedgerChannelProposal {
+	return &LedgerChannelProposal{
+		makeBaseChannelProposal(
+			challengeDuration,
+			participantAddr,
+			initBals,
+			peerAddrs,
+			opts...)}
+}
+
+// Type returns wire.ChannelProposal.
+func (LedgerChannelProposal) Type() wire.Type {
+	return wire.LedgerChannelProposal
 }
 
 // ChannelProposalAcc contains all data for a response to a channel proposal
