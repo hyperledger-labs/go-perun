@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package wallet
+package keystore
 
 import (
 	"crypto/ecdsa"
@@ -25,6 +25,7 @@ import (
 	"github.com/ethereum/go-ethereum/crypto/secp256k1"
 	"github.com/pkg/errors"
 
+	ethwallet "perun.network/go-perun/backend/ethereum/wallet"
 	"perun.network/go-perun/log"
 	"perun.network/go-perun/wallet"
 )
@@ -63,7 +64,7 @@ func (w *Wallet) Contains(a wallet.Address) bool {
 		return false
 	}
 
-	return w.Ks.HasAddress(AsEthAddr(a))
+	return w.Ks.HasAddress(ethwallet.AsEthAddr(a))
 }
 
 // NewAccount creates a new random account which is already unlocked.
@@ -86,9 +87,7 @@ func (w *Wallet) NewRandomAccount(rnd *rand.Rand) wallet.Account {
 	address := crypto.PubkeyToAddress(privateKey.PublicKey)
 
 	if acc, err := w.Ks.Find(accounts.Account{Address: address}); err == nil {
-		if _, err := w.Unlock((*Address)(&address)); err != nil {
-			log.Panicf("Unlocking account: %v", err)
-		}
+		w.Unlock((*ethwallet.Address)(&address))
 		return NewAccountFromEth(w, &acc)
 	}
 
@@ -96,9 +95,7 @@ func (w *Wallet) NewRandomAccount(rnd *rand.Rand) wallet.Account {
 	if err != nil {
 		log.Panicf("Storing private key: %v", err)
 	}
-	if _, err := w.Unlock((*Address)(&address)); err != nil {
-		log.Panicf("Unlocking account: %v", err)
-	}
+	w.Unlock((*ethwallet.Address)(&address))
 	log.Debugf("Created new random account %v", ethAcc.Address)
 
 	return NewAccountFromEth(w, &ethAcc)
@@ -109,7 +106,7 @@ func (w *Wallet) NewRandomAccount(rnd *rand.Rand) wallet.Account {
 func (w *Wallet) Unlock(addr wallet.Address) (wallet.Account, error) {
 	log.Debugf("Unlocking account %v", addr)
 	// Hack: create ethereum account from ethereum address.
-	acc := accounts.Account{Address: common.Address(*addr.(*Address))}
+	acc := accounts.Account{Address: common.Address(*addr.(*ethwallet.Address))}
 
 	if err := w.Ks.Unlock(acc, w.pw); err != nil {
 		return nil, errors.Wrapf(err, "unlocking %v", addr)

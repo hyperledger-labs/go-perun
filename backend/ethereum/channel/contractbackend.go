@@ -24,7 +24,6 @@ import (
 	"github.com/ethereum/go-ethereum/accounts"
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
-	"github.com/ethereum/go-ethereum/accounts/keystore"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/pkg/errors"
@@ -51,18 +50,6 @@ type Transactor interface {
 	NewTransactor(account accounts.Account) (*bind.TransactOpts, error)
 }
 
-// KeyStoreTransactor can be used to make TransactOpts for accounts stored in a keystore.
-type KeyStoreTransactor struct {
-	ks *keystore.KeyStore
-}
-
-// NewTransactor returns a TransactOpts for the given account. It errors if the account is
-// not contained in the keystore used for initializing transactOpts backend.
-func (t *KeyStoreTransactor) NewTransactor(account accounts.Account) (*bind.TransactOpts, error) {
-	tr, err := bind.NewKeyStoreTransactor(t.ks, account)
-	return tr, errors.WithStack(err)
-}
-
 // ContractBackend adds a keystore and an on-chain account to the ContractInterface.
 // This is needed to send on-chain transaction to interact with the smart contracts.
 type ContractBackend struct {
@@ -72,10 +59,10 @@ type ContractBackend struct {
 }
 
 // NewContractBackend creates a new ContractBackend with the given parameters.
-func NewContractBackend(cf ContractInterface, ks *keystore.KeyStore, acc *accounts.Account) ContractBackend {
+func NewContractBackend(cf ContractInterface, tr Transactor, acc *accounts.Account) ContractBackend {
 	return ContractBackend{
 		ContractInterface: cf,
-		tr:                &KeyStoreTransactor{ks: ks},
+		tr:                tr,
 		account:           acc,
 	}
 }

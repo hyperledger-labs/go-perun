@@ -25,7 +25,7 @@ import (
 
 	ethchannel "perun.network/go-perun/backend/ethereum/channel"
 	ethwallet "perun.network/go-perun/backend/ethereum/wallet"
-	ethwallettest "perun.network/go-perun/backend/ethereum/wallet/test"
+	"perun.network/go-perun/backend/ethereum/wallet/keystore"
 	"perun.network/go-perun/wallet"
 	wallettest "perun.network/go-perun/wallet/test"
 )
@@ -36,14 +36,14 @@ type (
 	// SimSetup holds the test setup for a simulated backend.
 	SimSetup struct {
 		SimBackend *SimulatedBackend           // A simulated blockchain backend
-		TxSender   *ethwallet.Account          // funded account for sending transactions
+		TxSender   *keystore.Account           // funded account for sending transactions
 		CB         *ethchannel.ContractBackend // contract backend bound to the TxSender
 	}
 
 	// Setup holds a complete test setup for channel backend testing.
 	Setup struct {
 		SimSetup
-		Accs    []*ethwallet.Account // on-chain funders and channel participant accounts
+		Accs    []*keystore.Account  // on-chain funders and channel participant accounts
 		Parts   []wallet.Address     // channel participants
 		Recvs   []*ethwallet.Address // on-chain receivers of withdrawn funds
 		Funders []*ethchannel.Funder // funders, bound to respective account
@@ -56,12 +56,13 @@ type (
 // generate the random account for sending of transaction.
 func NewSimSetup(rng *rand.Rand) *SimSetup {
 	simBackend := NewSimulatedBackend()
-	ks := ethwallettest.GetKeystore()
-	txAccount := wallettest.NewRandomAccount(rng).(*ethwallet.Account)
+	ksWallet := wallettest.RandomWallet().(*keystore.Wallet)
+	txAccount := ksWallet.NewRandomAccount(rng).(*keystore.Account)
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 	simBackend.FundAddress(ctx, txAccount.Account.Address)
-	contractBackend := ethchannel.NewContractBackend(simBackend, ks, &txAccount.Account)
+
+	contractBackend := ethchannel.NewContractBackend(simBackend, keystore.NewTransactor(*ksWallet), &txAccount.Account)
 
 	return &SimSetup{
 		SimBackend: simBackend,
@@ -78,7 +79,7 @@ func NewSimSetup(rng *rand.Rand) *SimSetup {
 func NewSetup(t *testing.T, rng *rand.Rand, n int) *Setup {
 	s := &Setup{
 		SimSetup: *NewSimSetup(rng),
-		Accs:     make([]*ethwallet.Account, n),
+		Accs:     make([]*keystore.Account, n),
 		Parts:    make([]wallet.Address, n),
 		Recvs:    make([]*ethwallet.Address, n),
 		Funders:  make([]*ethchannel.Funder, n),
@@ -94,12 +95,14 @@ func NewSetup(t *testing.T, rng *rand.Rand, n int) *Setup {
 	t.Logf("asset holder address is %v", s.Asset)
 	t.Logf("adjudicator address is %v", adjudicator)
 
+	ksWallet := wallettest.RandomWallet().(*keystore.Wallet)
+	require.NoErrorf(t, err, "initializing wallet from test keystore")
 	for i := 0; i < n; i++ {
-		s.Accs[i] = wallettest.NewRandomAccount(rng).(*ethwallet.Account)
+		s.Accs[i] = ksWallet.NewRandomAccount(rng).(*keystore.Account)
 		s.Parts[i] = s.Accs[i].Address()
 		s.SimBackend.FundAddress(ctx, s.Accs[i].Account.Address)
-		s.Recvs[i] = wallettest.NewRandomAddress(rng).(*ethwallet.Address)
-		cb := ethchannel.NewContractBackend(s.SimBackend, ethwallettest.GetKeystore(), &s.Accs[i].Account)
+		s.Recvs[i] = ksWallet.NewRandomAccount(rng).Address().(*ethwallet.Address)
+		cb := ethchannel.NewContractBackend(s.SimBackend, keystore.NewTransactor(*ksWallet), &s.Accs[i].Account)
 		s.Funders[i] = ethchannel.NewETHFunder(cb, s.Asset)
 		s.Adjs[i] = NewSimAdjudicator(cb, adjudicator, common.Address(*s.Recvs[i]))
 	}
