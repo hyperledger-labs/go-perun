@@ -62,7 +62,7 @@ func NewSimSetup(rng *rand.Rand) *SimSetup {
 	defer cancel()
 	simBackend.FundAddress(ctx, txAccount.Account.Address)
 
-	contractBackend := ethchannel.NewContractBackend(simBackend, keystore.NewTransactor(*ksWallet), &txAccount.Account)
+	contractBackend := ethchannel.NewContractBackend(simBackend, keystore.NewTransactor(*ksWallet))
 
 	return &SimSetup{
 		SimBackend: simBackend,
@@ -88,9 +88,9 @@ func NewSetup(t *testing.T, rng *rand.Rand, n int) *Setup {
 
 	ctx, cancel := context.WithTimeout(context.Background(), defaultTxTimeout)
 	defer cancel()
-	adjudicator, err := ethchannel.DeployAdjudicator(ctx, *s.CB)
+	adjudicator, err := ethchannel.DeployAdjudicator(ctx, *s.CB, s.TxSender.Account)
 	require.NoError(t, err)
-	s.Asset, err = ethchannel.DeployETHAssetholder(ctx, *s.CB, adjudicator)
+	s.Asset, err = ethchannel.DeployETHAssetholder(ctx, *s.CB, adjudicator, s.TxSender.Account)
 	require.NoError(t, err)
 	t.Logf("asset holder address is %v", s.Asset)
 	t.Logf("adjudicator address is %v", adjudicator)
@@ -104,7 +104,7 @@ func NewSetup(t *testing.T, rng *rand.Rand, n int) *Setup {
 		s.Recvs[i] = ksWallet.NewRandomAccount(rng).Address().(*ethwallet.Address)
 		cb := ethchannel.NewContractBackend(s.SimBackend, keystore.NewTransactor(*ksWallet), &s.Accs[i].Account)
 		s.Funders[i] = ethchannel.NewETHFunder(cb, s.Asset)
-		s.Adjs[i] = NewSimAdjudicator(cb, adjudicator, common.Address(*s.Recvs[i]))
+		s.Adjs[i] = NewSimAdjudicator(cb, adjudicator, common.Address(*s.Recvs[i]), s.Accs[i].Account)
 	}
 
 	return s

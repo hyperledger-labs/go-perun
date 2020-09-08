@@ -82,7 +82,7 @@ func Test_NewTransactor(t *testing.T) {
 	for _, _tt := range tests {
 		tt := _tt
 		t.Run(tt.name, func(t *testing.T) {
-			transactor, err := s.CB.NewTransactor(tt.ctx, tt.value, tt.gasLimit)
+			transactor, err := s.CB.NewTransactor(tt.ctx, tt.value, tt.gasLimit, s.TxSender.Account)
 			assert.NoError(t, err, "Creating Transactor should succeed")
 			assert.Equal(t, s.TxSender.Account.Address, transactor.From, "Transactor address not properly set")
 			assert.Equal(t, tt.gasLimit, transactor.GasLimit, "Gas limit not set properly")
@@ -124,7 +124,7 @@ func TestFetchCodeAtAddr(t *testing.T) {
 	t.Run("valid_bytecode", func(t *testing.T) {
 		ctx, cancel := context.WithTimeout(context.Background(), defaultTxTimeout)
 		defer cancel()
-		adjudicatorAddr, err := ethchannel.DeployAdjudicator(ctx, *s.CB)
+		adjudicatorAddr, err := ethchannel.DeployAdjudicator(ctx, *s.CB, s.TxSender.Account)
 		require.NoError(t, err)
 		t.Logf("contract deployed at address - %v", adjudicatorAddr)
 		code, err := ethchannel.FetchCodeAtAddr(ctx, *s.CB, adjudicatorAddr)

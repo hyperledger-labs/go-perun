@@ -135,7 +135,7 @@ func (a *Adjudicator) callAssetWithdraw(ctx context.Context, request channel.Adj
 			return nil, errors.Wrap(ctx.Err(), "context canceled while acquiring tx lock")
 		}
 		defer a.mu.Unlock()
-		trans, err := a.NewTransactor(ctx, big.NewInt(0), GasLimit)
+		trans, err := a.NewTransactor(ctx, big.NewInt(0), GasLimit, a.txSender)
 		if err != nil {
 			return nil, errors.WithMessagef(err, "creating transactor for asset %d", asset.assetIndex)
 		}
@@ -151,7 +151,7 @@ func (a *Adjudicator) callAssetWithdraw(ctx context.Context, request channel.Adj
 		return err
 	}
 
-	return errors.WithMessage(a.confirmTransaction(ctx, tx), "mining transaction")
+	return errors.WithMessage(a.confirmTransaction(ctx, tx, a.txSender), "mining transaction")
 }
 
 func (a *Adjudicator) newWithdrawalAuth(request channel.AdjudicatorReq, asset assetHolder) (assets.AssetHolderWithdrawalAuth, []byte, error) {

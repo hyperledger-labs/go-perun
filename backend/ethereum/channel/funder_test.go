@@ -230,10 +230,10 @@ func newNFunders(
 
 	deployAccount := &ksWallet.NewRandomAccount(rng).(*keystore.Account).Account
 	simBackend.FundAddress(ctx, deployAccount.Address)
-	contractBackend := ethchannel.NewContractBackend(simBackend, keystore.NewTransactor(*ksWallet), deployAccount)
+	contractBackend := ethchannel.NewContractBackend(simBackend, keystore.NewTransactor(*ksWallet))
 
 	// Deploy Assetholder
-	assetETH, err := ethchannel.DeployETHAssetholder(ctx, contractBackend, deployAccount.Address)
+	assetETH, err := ethchannel.DeployETHAssetholder(ctx, contractBackend, deployAccount.Address, *deployAccount)
 	require.NoError(t, err, "Deployment should succeed")
 	t.Logf("asset holder address is %v", assetETH)
 

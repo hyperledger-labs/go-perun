@@ -54,16 +54,14 @@ type Transactor interface {
 // This is needed to send on-chain transaction to interact with the smart contracts.
 type ContractBackend struct {
 	ContractInterface
-	tr      Transactor
-	account *accounts.Account
+	tr Transactor
 }
 
 // NewContractBackend creates a new ContractBackend with the given parameters.
-func NewContractBackend(cf ContractInterface, tr Transactor, acc *accounts.Account) ContractBackend {
+func NewContractBackend(cf ContractInterface, tr Transactor) ContractBackend {
 	return ContractBackend{
 		ContractInterface: cf,
 		tr:                tr,
-		account:           acc,
 	}
 }
 
@@ -112,8 +110,8 @@ func (c *ContractBackend) pastOffsetBlockNum(ctx context.Context) (uint64, error
 // NewTransactor returns bind.TransactOpts with the current nonce, suggested gas
 // price and account of the ContractBackend. The gasLimit and value in wei are
 // taken from the parameters.
-func (c *ContractBackend) NewTransactor(ctx context.Context, valueWei *big.Int, gasLimit uint64) (*bind.TransactOpts, error) {
-	nonce, err := c.PendingNonceAt(ctx, c.account.Address)
+func (c *ContractBackend) NewTransactor(ctx context.Context, valueWei *big.Int, gasLimit uint64, acc accounts.Account) (*bind.TransactOpts, error) {
+	nonce, err := c.PendingNonceAt(ctx, acc.Address)
 	if err != nil {
 		return nil, errors.Wrap(err, "querying pending nonce")
 	}
@@ -123,7 +121,7 @@ func (c *ContractBackend) NewTransactor(ctx context.Context, valueWei *big.Int, 
 		return nil, errors.Wrap(err, "querying suggested gas price")
 	}
 
-	auth, err := c.tr.NewTransactor(*c.account)
+	auth, err := c.tr.NewTransactor(acc)
 	if err != nil {
 		return nil, errors.WithMessage(err, "creating transactor")
 	}
@@ -136,13 +134,13 @@ func (c *ContractBackend) NewTransactor(ctx context.Context, valueWei *big.Int, 
 	return auth, nil
 }
 
-func (c *ContractBackend) confirmTransaction(ctx context.Context, tx *types.Transaction) error {
+func (c *ContractBackend) confirmTransaction(ctx context.Context, tx *types.Transaction, acc accounts.Account) error {
 	receipt, err := bind.WaitMined(ctx, c, tx)
 	if err != nil {
 		return errors.Wrap(err, "sending transaction")
 	}
 	if receipt.Status == types.ReceiptStatusFailed {
-		reason, err := errorReason(ctx, c, tx, receipt.BlockNumber)
+		reason, err := errorReason(ctx, c, tx, receipt.BlockNumber, acc)
 		if err != nil {
 			log.Warn("TX failed; error determining reason: ", err)
 		} else {
@@ -161,9 +159,9 @@ func IsTxFailedError(err error) bool {
 	return errors.Cause(err) == ErrorTxFailed
 }
 
-func errorReason(ctx context.Context, b *ContractBackend, tx *types.Transaction, blockNum *big.Int) (string, error) {
+func errorReason(ctx context.Context, b *ContractBackend, tx *types.Transaction, blockNum *big.Int, acc accounts.Account) (string, error) {
 	msg := ethereum.CallMsg{
-		From:     b.account.Address,
+		From:     acc.Address,
 		To:       tx.To(),
 		Gas:      tx.Gas(),
 		GasPrice: tx.GasPrice(),
