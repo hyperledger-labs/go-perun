@@ -38,7 +38,7 @@ import (
 type assetHolder struct {
 	*assets.AssetHolder
 	*common.Address
-	assetIndex int
+	assetIndex channel.Index
 }
 
 // Funder implements the channel.Funder interface for Ethereum.
@@ -89,19 +89,20 @@ func (f *Funder) Fund(ctx context.Context, request channel.FundingReq) error {
 		cancel() // cancel funding context on funding timeout
 	}()
 
-	partIDs := FundingIDs(channelID, request.Params.Parts...)
+	fundingIDs := FundingIDs(channelID, request.Params.Parts...)
 
 	errChan := make(chan error, len(request.State.Assets))
 	errs := make([]*channel.AssetFundingError, len(request.State.Assets))
 	var wg sync.WaitGroup
 	wg.Add(len(request.State.Assets))
 	for index, asset := range request.State.Assets {
-		go func(index int, asset channel.Asset) {
+		go func(index channel.Index, asset channel.Asset) {
 			defer wg.Done()
-			if err := f.fundAsset(ctx, request, index, asset, partIDs, errs); err != nil {
+			if err := f.fundAsset(ctx, request, index, asset, fundingIDs, errs); err != nil {
+				f.log.WithField("asset", asset).WithError(err).Error("Could not fund asset")
 				errChan <- errors.WithMessage(err, "fund asset")
 			}
-		}(index, asset)
+		}(channel.Index(index), asset)
 	}
 	wg.Wait()
 	close(errChan)
@@ -118,7 +119,7 @@ func (f *Funder) Fund(ctx context.Context, request channel.FundingReq) error {
 	return channel.NewFundingTimeoutError(prunedErrs)
 }
 
-func (f *Funder) fundAsset(ctx context.Context, request channel.FundingReq, assetIndex int, asset channel.Asset, partIDs [][32]byte, errs []*channel.AssetFundingError) error {
+func (f *Funder) fundAsset(ctx context.Context, request channel.FundingReq, assetIndex channel.Index, asset channel.Asset, fundingIDs [][32]byte, errs []*channel.AssetFundingError) error {
 	contract, err := f.connectToContract(asset, assetIndex)
 	if err != nil {
 		return errors.Wrap(err, "connecting to contracts")
@@ -127,7 +128,7 @@ func (f *Funder) fundAsset(ctx context.Context, request channel.FundingReq, asse
 	// start watching for deposit events, also including past ones
 	confirmation := make(chan error)
 	go func() {
-		confirmation <- f.waitForFundingConfirmation(ctx, request, contract, partIDs)
+		confirmation <- f.waitForFundingConfirmation(ctx, request, contract, fundingIDs)
 	}()
 
 	// check whether we already funded
@@ -166,7 +167,7 @@ func checkFunded(ctx context.Context, request channel.FundingReq, asset assetHol
 	return amount.Sign() != 1, iter.Error()
 }
 
-func (f *Funder) connectToContract(asset channel.Asset, assetIndex int) (assetHolder, error) {
+func (f *Funder) connectToContract(asset channel.Asset, assetIndex channel.Index) (assetHolder, error) {
 	// Decode and set the asset address.
 	assetAddr := common.Address(*asset.(*Asset))
 	ctr, err := assets.NewAssetHolder(assetAddr, f)
@@ -221,7 +222,7 @@ func filterFunds(ctx context.Context, asset assetHolder, partIDs ...[32]byte) (*
 		Start:   uint64(1),
 		End:     nil,
 		Context: ctx}
-	iter, err := asset.FilterDeposited(&filterOpts, partIDs)
+	iter, err := asset.FilterDeposited(&filterOpts, fundingIDs)
 	if err != nil {
 		return nil, errors.Wrap(err, "filtering deposited events")
 	}
@@ -232,14 +233,14 @@ func filterFunds(ctx context.Context, asset assetHolder, partIDs ...[32]byte) (*
 // waitForFundingConfirmation waits for the confirmation events on the blockchain that
 // both we and all peers successfully funded the channel.
 // nolint: funlen
-func (f *Funder) waitForFundingConfirmation(ctx context.Context, request channel.FundingReq, asset assetHolder, partIDs [][32]byte) error {
+func (f *Funder) waitForFundingConfirmation(ctx context.Context, request channel.FundingReq, asset assetHolder, fundingIDs [][32]byte) error {
 	deposited := make(chan *assets.AssetHolderDeposited)
 	// Watch new events
 	watchOpts, err := f.NewWatchOpts(ctx)
 	if err != nil {
 		return errors.WithMessage(err, "error creating watchopts")
 	}
-	sub, err := asset.WatchDeposited(watchOpts, deposited, partIDs)
+	sub, err := asset.WatchDeposited(watchOpts, deposited, fundingIDs)
 	if err != nil {
 		return errors.Wrapf(err, "WatchDeposit on asset %d failed", asset.assetIndex)
 	}
@@ -254,7 +255,7 @@ func (f *Funder) waitForFundingConfirmation(ctx context.Context, request channel
 
 	// Query all old funding events
 	go func() {
-		iter, err := filterFunds(ctx, asset, partIDs...)
+		iter, err := filterFunds(ctx, asset, fundingIDs...)
 		if err != nil {
 			errChan <- errors.WithMessagef(err, "filtering old Deposited events for asset %d", asset.assetIndex)
 			return
@@ -277,7 +278,7 @@ func (f *Funder) waitForFundingConfirmation(ctx context.Context, request channel
 			log.Debugf("peer[%d] Received event with amount %v", request.Idx, event.Amount)
 
 			// Calculate the position in the participant array.
-			idx := getPartIdx(event.FundingID, partIDs)
+			idx := getPartIdx(event.FundingID, fundingIDs)
 
 			amount := allocation.Balances[asset.assetIndex][idx]
 			if amount.Sign() == 0 {
@@ -311,8 +312,8 @@ func (f *Funder) waitForFundingConfirmation(ctx context.Context, request channel
 	return nil
 }
 
-func getPartIdx(partID [32]byte, partIDs [][32]byte) int {
-	for i, id := range partIDs {
+func getPartIdx(partID [32]byte, fundingIDs [][32]byte) int {
+	for i, id := range fundingIDs {
 		if id == partID {
 			return i
 		}
@@ -320,7 +321,7 @@ func getPartIdx(partID [32]byte, partIDs [][32]byte) int {
 	return -1
 }
 
-func countZeroBalances(alloc *channel.Allocation, assetIndex int) (n int) {
+func countZeroBalances(alloc *channel.Allocation, assetIndex channel.Index) (n int) {
 	for _, part := range alloc.Balances[assetIndex] {
 		if part.Sign() == 0 {
 			n++
@@ -332,7 +333,7 @@ func countZeroBalances(alloc *channel.Allocation, assetIndex int) (n int) {
 // FundingIDs returns a slice the same size as the number of passed participants
 // where each entry contains the hash Keccak256(channel id || participant address).
 func FundingIDs(channelID channel.ID, participants ...perunwallet.Address) [][32]byte {
-	partIDs := make([][32]byte, len(participants))
+	ids := make([][32]byte, len(participants))
 	args := abi.Arguments{{Type: abiBytes32}, {Type: abiAddress}}
 	for idx, pID := range participants {
 		address := pID.(*wallet.Address)
@@ -340,7 +341,7 @@ func FundingIDs(channelID channel.ID, participants ...perunwallet.Address) [][32
 		if err != nil {
 			log.Panicf("error packing values: %v", err)
 		}
-		partIDs[idx] = crypto.Keccak256Hash(bytes)
+		ids[idx] = crypto.Keccak256Hash(bytes)
 	}
-	return partIDs
+	return ids
 }

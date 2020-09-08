@@ -163,7 +163,7 @@ func testFundingTimeout(t *testing.T, faultyPeer, peers int) {
 			err := funder.Fund(ctx, req)
 			require.True(rt, channel.IsFundingTimeoutError(err), "funder should return FundingTimeoutError")
 			pErr := errors.Cause(err).(*channel.FundingTimeoutError) // unwrap error
-			assert.Equal(t, pErr.Errors[0].Asset, 0, "Wrong asset set")
+			assert.Equal(t, pErr.Errors[0].Asset, channel.Index(0), "Wrong asset set")
 			assert.Equal(t, uint16(faultyPeer), pErr.Errors[0].TimedOutPeers[0], "Peer should be detected as erroneous")
 		})
 	}

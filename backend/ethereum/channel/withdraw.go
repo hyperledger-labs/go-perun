@@ -58,7 +58,7 @@ func (a *Adjudicator) ensureWithdrawn(ctx context.Context, req channel.Adjudicat
 			}
 			fundingID := FundingIDs(req.Params.ID(), req.Params.Parts[req.Idx])[0]
 			withdrawn := make(chan *assets.AssetHolderWithdrawn)
-			contract, err := bindAssetHolder(a.ContractBackend, asset, index)
+			contract, err := bindAssetHolder(a.ContractBackend, asset, channel.Index(index))
 			if err != nil {
 				return errors.WithMessage(err, "connecting asset holder")
 			}
@@ -95,7 +95,7 @@ func (a *Adjudicator) ensureWithdrawn(ctx context.Context, req channel.Adjudicat
 	return g.Wait()
 }
 
-func bindAssetHolder(backend ContractBackend, asset channel.Asset, assetIndex int) (assetHolder, error) {
+func bindAssetHolder(backend ContractBackend, asset channel.Asset, assetIndex channel.Index) (assetHolder, error) {
 	// Decode and set the asset address.
 	assetAddr := common.Address(*asset.(*Asset))
 	ctr, err := assets.NewAssetHolder(assetAddr, backend)
