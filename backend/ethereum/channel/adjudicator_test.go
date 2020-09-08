@@ -25,7 +25,7 @@ import (
 
 	ethchannel "perun.network/go-perun/backend/ethereum/channel"
 	"perun.network/go-perun/backend/ethereum/channel/test"
-	ethwallet "perun.network/go-perun/backend/ethereum/wallet"
+	"perun.network/go-perun/backend/ethereum/wallet/keystore"
 	ethwallettest "perun.network/go-perun/backend/ethereum/wallet/test"
 	"perun.network/go-perun/channel"
 	channeltest "perun.network/go-perun/channel/test"
@@ -34,7 +34,7 @@ import (
 
 const defaultTxTimeout = 2 * time.Second
 
-func signState(t *testing.T, accounts []*ethwallet.Account, params *channel.Params, state *channel.State) channel.Transaction {
+func signState(t *testing.T, accounts []*keystore.Account, params *channel.Params, state *channel.State) channel.Transaction {
 	// Sign valid state.
 	sigs := make([][]byte, len(accounts))
 	for i := range accounts {

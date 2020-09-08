@@ -24,7 +24,6 @@ import (
 	"github.com/ethereum/go-ethereum/accounts"
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
-	"github.com/ethereum/go-ethereum/accounts/keystore"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/pkg/errors"
@@ -46,19 +45,24 @@ type ContractInterface interface {
 	ethereum.TransactionReader
 }
 
+// Transactor can be used to make transactOpts for a given account.
+type Transactor interface {
+	NewTransactor(account accounts.Account) (*bind.TransactOpts, error)
+}
+
 // ContractBackend adds a keystore and an on-chain account to the ContractInterface.
 // This is needed to send on-chain transaction to interact with the smart contracts.
 type ContractBackend struct {
 	ContractInterface
-	ks      *keystore.KeyStore
+	tr      Transactor
 	account *accounts.Account
 }
 
 // NewContractBackend creates a new ContractBackend with the given parameters.
-func NewContractBackend(cf ContractInterface, ks *keystore.KeyStore, acc *accounts.Account) ContractBackend {
+func NewContractBackend(cf ContractInterface, tr Transactor, acc *accounts.Account) ContractBackend {
 	return ContractBackend{
 		ContractInterface: cf,
-		ks:                ks,
+		tr:                tr,
 		account:           acc,
 	}
 }
@@ -119,9 +123,9 @@ func (c *ContractBackend) NewTransactor(ctx context.Context, valueWei *big.Int, 
 		return nil, errors.Wrap(err, "querying suggested gas price")
 	}
 
-	auth, err := bind.NewKeyStoreTransactor(c.ks, *c.account)
+	auth, err := c.tr.NewTransactor(*c.account)
 	if err != nil {
-		return nil, errors.Wrap(err, "creating transactor")
+		return nil, errors.WithMessage(err, "creating transactor")
 	}
 
 	auth.Nonce = new(big.Int).SetUint64(nonce)

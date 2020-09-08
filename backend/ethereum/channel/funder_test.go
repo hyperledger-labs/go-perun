@@ -31,8 +31,7 @@ import (
 	"perun.network/go-perun/backend/ethereum/bindings/assets"
 	ethchannel "perun.network/go-perun/backend/ethereum/channel"
 	"perun.network/go-perun/backend/ethereum/channel/test"
-	ethwallet "perun.network/go-perun/backend/ethereum/wallet"
-	ethwallettest "perun.network/go-perun/backend/ethereum/wallet/test"
+	"perun.network/go-perun/backend/ethereum/wallet/keystore"
 	"perun.network/go-perun/channel"
 	channeltest "perun.network/go-perun/channel/test"
 	pkgtest "perun.network/go-perun/pkg/test"
@@ -227,23 +226,27 @@ func newNFunders(
 	allocation *channel.Allocation,
 ) {
 	simBackend := test.NewSimulatedBackend()
-	ks := ethwallettest.GetKeystore()
-	deployAccount := &wallettest.NewRandomAccount(rng).(*ethwallet.Account).Account
+	ksWallet := wallettest.RandomWallet().(*keystore.Wallet)
+
+	deployAccount := &ksWallet.NewRandomAccount(rng).(*keystore.Account).Account
 	simBackend.FundAddress(ctx, deployAccount.Address)
-	contractBackend := ethchannel.NewContractBackend(simBackend, ks, deployAccount)
+	contractBackend := ethchannel.NewContractBackend(simBackend, keystore.NewTransactor(*ksWallet), deployAccount)
+
 	// Deploy Assetholder
 	assetETH, err := ethchannel.DeployETHAssetholder(ctx, contractBackend, deployAccount.Address)
 	require.NoError(t, err, "Deployment should succeed")
 	t.Logf("asset holder address is %v", assetETH)
+
 	parts = make([]wallet.Address, n)
 	funders = make([]*ethchannel.Funder, n)
 	for i := 0; i < n; i++ {
-		acc := wallettest.NewRandomAccount(rng).(*ethwallet.Account)
+		acc := ksWallet.NewRandomAccount(rng).(*keystore.Account)
 		simBackend.FundAddress(ctx, acc.Account.Address)
 		parts[i] = acc.Address()
-		cb := ethchannel.NewContractBackend(simBackend, ks, &acc.Account)
+		cb := ethchannel.NewContractBackend(simBackend, keystore.NewTransactor(*ksWallet), &acc.Account)
 		funders[i] = ethchannel.NewETHFunder(cb, assetETH)
 	}
+
 	// The SimBackend advances 10 sec per transaction/block, so generously add 20
 	// sec funding duration per participant
 	params = channeltest.NewRandomParams(rng, channeltest.WithParts(parts...), channeltest.WithChallengeDuration(uint64(n)*20))

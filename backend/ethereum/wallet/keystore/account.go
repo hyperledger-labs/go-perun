@@ -12,11 +12,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package wallet
+package keystore
 
 import (
 	"github.com/ethereum/go-ethereum/accounts"
 	"github.com/pkg/errors"
+
+	ethwallet "perun.network/go-perun/backend/ethereum/wallet"
 	"perun.network/go-perun/wallet"
 )
 
@@ -28,12 +30,12 @@ type Account struct {
 
 // Address returns the ethereum address of this account.
 func (a *Account) Address() wallet.Address {
-	return (*Address)(&a.Account.Address)
+	return (*ethwallet.Address)(&a.Account.Address)
 }
 
 // SignData is used to sign data with this account.
 func (a *Account) SignData(data []byte) ([]byte, error) {
-	hash := prefixedHash(data)
+	hash := ethwallet.PrefixedHash(data)
 	sig, err := a.wallet.Ks.SignHash(a.Account, hash)
 	if err != nil {
 		return nil, errors.Wrap(err, "SignHash")

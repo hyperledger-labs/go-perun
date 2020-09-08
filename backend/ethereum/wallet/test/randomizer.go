@@ -19,17 +19,18 @@ import (
 	"log"
 	"math/rand"
 
-	"github.com/ethereum/go-ethereum/accounts/keystore"
+	accsKeystore "github.com/ethereum/go-ethereum/accounts/keystore"
 	"github.com/ethereum/go-ethereum/common"
 
 	ethwallet "perun.network/go-perun/backend/ethereum/wallet"
+	"perun.network/go-perun/backend/ethereum/wallet/keystore"
 	"perun.network/go-perun/wallet"
 	wtest "perun.network/go-perun/wallet/test"
 )
 
 // randomizer implements the channel.test.Backend interface.
 type randomizer struct {
-	wallet *ethwallet.Wallet
+	wallet *keystore.Wallet
 }
 
 // NewRandomizer creates a new randomized keystore.
@@ -69,7 +70,7 @@ func (r *randomizer) NewWallet() wtest.Wallet {
 
 // NewTmpWallet creates a wallet that uses a unique temporary directory to
 // store its keys.
-func NewTmpWallet() *ethwallet.Wallet {
+func NewTmpWallet() *keystore.Wallet {
 	const prefix = "go-perun-test-eth-keystore-"
 	tmpDir, err := ioutil.TempDir("", prefix)
 	if err != nil {
@@ -77,7 +78,7 @@ func NewTmpWallet() *ethwallet.Wallet {
 	}
 	const scryptN = 2
 	const scryptP = 1
-	w, err := ethwallet.NewWallet(keystore.NewKeyStore(tmpDir, scryptN, scryptP), tmpDir)
+	w, err := keystore.NewWallet(accsKeystore.NewKeyStore(tmpDir, scryptN, scryptP), tmpDir)
 	if err != nil {
 		log.Panic("Could not create wallet:", err)
 	}

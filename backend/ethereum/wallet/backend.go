@@ -63,7 +63,7 @@ func DecodeSig(r io.Reader) (wallet.Sig, error) {
 
 // VerifySignature verifies if a signature was made by this account.
 func VerifySignature(msg []byte, sig wallet.Sig, a wallet.Address) (bool, error) {
-	hash := prefixedHash(msg)
+	hash := PrefixedHash(msg)
 	sigCopy := make([]byte, SigLen)
 	copy(sigCopy, sig)
 	if len(sigCopy) == SigLen && (sigCopy[SigLen-1] >= 27) {
@@ -77,7 +77,9 @@ func VerifySignature(msg []byte, sig wallet.Sig, a wallet.Address) (bool, error)
 	return a.Equals((*Address)(&addr)), nil
 }
 
-func prefixedHash(data []byte) []byte {
+// PrefixedHash adds an ethereum specific prefix to the hash of given data, rehashes the results
+// and returns it.
+func PrefixedHash(data []byte) []byte {
 	hash := crypto.Keccak256(data)
 	prefix := []byte("\x19Ethereum Signed Message:\n32")
 	return crypto.Keccak256(prefix, hash)
