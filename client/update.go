@@ -48,7 +48,7 @@ type (
 		State *channel.State
 		// ActorIdx is the actor causing the new state. It does not need to
 		// coincide with the sender of the request.
-		ActorIdx uint16
+		ActorIdx channel.Index
 	}
 
 	// An UpdateHandler decides how to handle incoming channel update requests
@@ -104,14 +104,19 @@ func (r *UpdateResponder) Reject(ctx context.Context, reason string) error {
 	return r.channel.handleUpdateRej(ctx, r.pidx, r.req, reason)
 }
 
-// Update proposes the given channel update to all channel participants.
+// Update proposes the `next` state to all channel participants.
+// `next` should not be modified while this function runs.
 //
 // Returns nil if all peers accept the update. If any runtime error occurs or
 // any peer rejects the update, an error is returned.
 // nolint: funlen
-func (c *Channel) Update(ctx context.Context, up ChannelUpdate) (err error) {
+func (c *Channel) Update(ctx context.Context, next *channel.State) (err error) {
 	if ctx == nil {
 		return errors.New("context must not be nil")
+	}
+	up := ChannelUpdate{
+		State:    next,
+		ActorIdx: c.machine.Idx(),
 	}
 	if err := c.validTwoPartyUpdate(up, c.machine.Idx()); err != nil {
 		return err
@@ -185,10 +190,7 @@ func (c *Channel) UpdateBy(ctx context.Context, update func(*channel.State)) (er
 	update(state)
 	state.Version++
 
-	return c.Update(ctx, ChannelUpdate{
-		State:    state,
-		ActorIdx: c.Idx(),
-	})
+	return c.Update(ctx, state)
 }
 
 // handleUpdateReq is called by the controller on incoming channel update
