@@ -58,7 +58,7 @@ func (a *Adjudicator) ensureWithdrawn(ctx context.Context, req channel.Adjudicat
 			}
 			fundingID := FundingIDs(req.Params.ID(), req.Params.Parts[req.Idx])[0]
 			withdrawn := make(chan *assets.AssetHolderWithdrawn)
-			contract, err := bindAssetHolder(a.ContractBackend, asset, index)
+			contract, err := bindAssetHolder(a.ContractBackend, asset, channel.Index(index))
 			if err != nil {
 				return errors.WithMessage(err, "connecting asset holder")
 			}
@@ -95,7 +95,7 @@ func (a *Adjudicator) ensureWithdrawn(ctx context.Context, req channel.Adjudicat
 	return g.Wait()
 }
 
-func bindAssetHolder(backend ContractBackend, asset channel.Asset, assetIndex int) (assetHolder, error) {
+func bindAssetHolder(backend ContractBackend, asset channel.Asset, assetIndex channel.Index) (assetHolder, error) {
 	// Decode and set the asset address.
 	assetAddr := common.Address(*asset.(*Asset))
 	ctr, err := assets.NewAssetHolder(assetAddr, backend)
@@ -135,7 +135,7 @@ func (a *Adjudicator) callAssetWithdraw(ctx context.Context, request channel.Adj
 			return nil, errors.Wrap(ctx.Err(), "context canceled while acquiring tx lock")
 		}
 		defer a.mu.Unlock()
-		trans, err := a.NewTransactor(ctx, big.NewInt(0), GasLimit)
+		trans, err := a.NewTransactor(ctx, big.NewInt(0), GasLimit, a.txSender)
 		if err != nil {
 			return nil, errors.WithMessagef(err, "creating transactor for asset %d", asset.assetIndex)
 		}
@@ -151,7 +151,7 @@ func (a *Adjudicator) callAssetWithdraw(ctx context.Context, request channel.Adj
 		return err
 	}
 
-	return errors.WithMessage(a.confirmTransaction(ctx, tx), "mining transaction")
+	return errors.WithMessage(a.confirmTransaction(ctx, tx, a.txSender), "mining transaction")
 }
 
 func (a *Adjudicator) newWithdrawalAuth(request channel.AdjudicatorReq, asset assetHolder) (assets.AssetHolderWithdrawalAuth, []byte, error) {

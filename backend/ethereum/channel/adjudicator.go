@@ -19,6 +19,7 @@ import (
 	"fmt"
 	"math/big"
 
+	"github.com/ethereum/go-ethereum/accounts"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
@@ -44,11 +45,13 @@ type Adjudicator struct {
 	log log.Logger
 	// Transaction mutex
 	mu psync.Mutex
+	// txSender is sending the TX.
+	txSender accounts.Account
 }
 
 // NewAdjudicator creates a new ethereum adjudicator. The receiver is the
 // on-chain address that receives withdrawals.
-func NewAdjudicator(backend ContractBackend, contract common.Address, receiver common.Address) *Adjudicator {
+func NewAdjudicator(backend ContractBackend, contract common.Address, receiver common.Address, txSender accounts.Account) *Adjudicator {
 	contr, err := adjudicator.NewAdjudicator(contract, backend)
 	if err != nil {
 		panic("Could not create a new instance of adjudicator")
@@ -57,7 +60,8 @@ func NewAdjudicator(backend ContractBackend, contract common.Address, receiver c
 		ContractBackend: backend,
 		contract:        contr,
 		Receiver:        receiver,
-		log:             log.WithField("account", backend.account.Address),
+		txSender:        txSender,
+		log:             log.WithField("txSender", txSender.Address),
 	}
 }
 
@@ -104,7 +108,7 @@ func (a *Adjudicator) call(ctx context.Context, req channel.AdjudicatorReq, fn a
 		}
 		defer a.mu.Unlock()
 
-		trans, err := a.NewTransactor(ctx, big.NewInt(0), GasLimit)
+		trans, err := a.NewTransactor(ctx, big.NewInt(0), GasLimit, a.txSender)
 		if err != nil {
 			return nil, errors.WithMessage(err, "creating transactor")
 		}
@@ -119,7 +123,7 @@ func (a *Adjudicator) call(ctx context.Context, req channel.AdjudicatorReq, fn a
 		return err
 	}
 
-	return errors.WithMessage(a.confirmTransaction(ctx, tx), "mining transaction")
+	return errors.WithMessage(a.confirmTransaction(ctx, tx, a.txSender), "mining transaction")
 }
 
 // ValidateAdjudicator checks if the bytecode at given address is correct.

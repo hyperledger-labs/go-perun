@@ -22,6 +22,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ethereum/go-ethereum/accounts"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/pkg/errors"
@@ -163,7 +164,7 @@ func testFundingTimeout(t *testing.T, faultyPeer, peers int) {
 			err := funder.Fund(ctx, req)
 			require.True(rt, channel.IsFundingTimeoutError(err), "funder should return FundingTimeoutError")
 			pErr := errors.Cause(err).(*channel.FundingTimeoutError) // unwrap error
-			assert.Equal(t, pErr.Errors[0].Asset, 0, "Wrong asset set")
+			assert.Equal(t, pErr.Errors[0].Asset, channel.Index(0), "Wrong asset set")
 			assert.Equal(t, uint16(faultyPeer), pErr.Errors[0].TimedOutPeers[0], "Peer should be detected as erroneous")
 		})
 	}
@@ -230,12 +231,13 @@ func newNFunders(
 
 	deployAccount := &ksWallet.NewRandomAccount(rng).(*keystore.Account).Account
 	simBackend.FundAddress(ctx, deployAccount.Address)
-	contractBackend := ethchannel.NewContractBackend(simBackend, keystore.NewTransactor(*ksWallet), deployAccount)
+	contractBackend := ethchannel.NewContractBackend(simBackend, keystore.NewTransactor(*ksWallet))
 
 	// Deploy Assetholder
-	assetETH, err := ethchannel.DeployETHAssetholder(ctx, contractBackend, deployAccount.Address)
+	assetAddr, err := ethchannel.DeployETHAssetholder(ctx, contractBackend, deployAccount.Address, *deployAccount)
 	require.NoError(t, err, "Deployment should succeed")
-	t.Logf("asset holder address is %v", assetETH)
+	t.Logf("asset holder address is %v", assetAddr)
+	asset := ethchannel.Asset(assetAddr)
 
 	parts = make([]wallet.Address, n)
 	funders = make([]*ethchannel.Funder, n)
@@ -243,14 +245,16 @@ func newNFunders(
 		acc := ksWallet.NewRandomAccount(rng).(*keystore.Account)
 		simBackend.FundAddress(ctx, acc.Account.Address)
 		parts[i] = acc.Address()
-		cb := ethchannel.NewContractBackend(simBackend, keystore.NewTransactor(*ksWallet), &acc.Account)
-		funders[i] = ethchannel.NewETHFunder(cb, assetETH)
+		cb := ethchannel.NewContractBackend(simBackend, keystore.NewTransactor(*ksWallet))
+		accounts := map[ethchannel.Asset]accounts.Account{asset: acc.Account}
+		depositors := map[ethchannel.Asset]ethchannel.Depositor{asset: new(ethchannel.ETHDepositor)}
+		funders[i] = ethchannel.NewFunder(cb, accounts, depositors)
 	}
 
 	// The SimBackend advances 10 sec per transaction/block, so generously add 20
 	// sec funding duration per participant
 	params = channeltest.NewRandomParams(rng, channeltest.WithParts(parts...), channeltest.WithChallengeDuration(uint64(n)*20))
-	allocation = channeltest.NewRandomAllocation(rng, channeltest.WithNumParts(n), channeltest.WithAssets((*ethchannel.Asset)(&assetETH)))
+	allocation = channeltest.NewRandomAllocation(rng, channeltest.WithNumParts(n), channeltest.WithAssets((*ethchannel.Asset)(&assetAddr)))
 	return
 }
 

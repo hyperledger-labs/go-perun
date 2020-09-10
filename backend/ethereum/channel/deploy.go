@@ -18,6 +18,7 @@ import (
 	"context"
 	"math/big"
 
+	"github.com/ethereum/go-ethereum/accounts"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
@@ -30,8 +31,8 @@ import (
 const deployGasLimit = 6600000
 
 // DeployETHAssetholder deploys a new ETHAssetHolder contract.
-func DeployETHAssetholder(ctx context.Context, backend ContractBackend, adjudicatorAddr common.Address) (common.Address, error) {
-	auth, err := backend.NewTransactor(ctx, big.NewInt(0), deployGasLimit)
+func DeployETHAssetholder(ctx context.Context, backend ContractBackend, adjudicatorAddr common.Address, deployer accounts.Account) (common.Address, error) {
+	auth, err := backend.NewTransactor(ctx, big.NewInt(0), deployGasLimit, deployer)
 	if err != nil {
 		return common.Address{}, errors.WithMessage(err, "could not create transactor")
 	}
@@ -47,8 +48,8 @@ func DeployETHAssetholder(ctx context.Context, backend ContractBackend, adjudica
 }
 
 // DeployAdjudicator deploys a new Adjudicator contract.
-func DeployAdjudicator(ctx context.Context, backend ContractBackend) (common.Address, error) {
-	auth, err := backend.NewTransactor(ctx, big.NewInt(0), deployGasLimit)
+func DeployAdjudicator(ctx context.Context, backend ContractBackend, deployer accounts.Account) (common.Address, error) {
+	auth, err := backend.NewTransactor(ctx, big.NewInt(0), deployGasLimit, deployer)
 	if err != nil {
 		return common.Address{}, errors.WithMessage(err, "could not create transactor")
 	}

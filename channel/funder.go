@@ -51,7 +51,7 @@ type (
 
 	// An AssetFundingError indicates the peers who timed-out funding a specific asset.
 	AssetFundingError struct {
-		Asset         int     // The asset for which the timeouts occurred
+		Asset         Index   // The asset for which the timeouts occurred
 		TimedOutPeers []Index // Indices of the peers who failed to fund in time
 	}
 )
