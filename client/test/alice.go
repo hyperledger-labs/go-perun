@@ -26,7 +26,7 @@ type Alice struct {
 
 // NewAlice creates a new Proposer that executes the Alice protocol.
 func NewAlice(setup RoleSetup, t *testing.T) *Alice {
-	return &Alice{Proposer: *NewProposer(setup, t, 6)}
+	return &Alice{Proposer: *NewProposer(setup, t, 4)}
 }
 
 // Execute executes the Alice protocol.
@@ -41,41 +41,24 @@ func (r *Alice) exec(cfg ExecConfig, ch *paymentChannel) {
 
 	// 1st Alice receives some updates from Bob
 	for i := 0; i < cfg.NumPayments[them]; i++ {
-		ch.recvTransfer(cfg.TxAmounts[them], we, fmt.Sprintf("Bob#%d", i))
+		ch.recvTransfer(cfg.TxAmounts[them], fmt.Sprintf("Bob#%d", i))
 	}
 	// 2nd stage
 	r.waitStage()
 
 	// 2nd Alice sends some updates to Bob
 	for i := 0; i < cfg.NumPayments[we]; i++ {
-		ch.sendTransfer(cfg.TxAmounts[we], we, fmt.Sprintf("Alice#%d", i))
+		ch.sendTransfer(cfg.TxAmounts[we], fmt.Sprintf("Alice#%d", i))
 	}
-
 	// 3rd stage
 	r.waitStage()
 
-	// 3rd Alice receives payment requests from Bob.
-	for i := 0; i < cfg.NumRequests[them]; i++ {
-		ch.recvTransfer(cfg.TxAmounts[them], them, fmt.Sprintf("Bob-req#%d", i))
-	}
-
-	// 4th stage
-	r.waitStage()
-
-	// 4th Alice sends payment requests to Bob.
-	for i := 0; i < cfg.NumRequests[we]; i++ {
-		ch.sendTransfer(cfg.TxAmounts[we], them, fmt.Sprintf("Alice-req#%d", i))
-	}
-
-	// 5th stage
-	r.waitStage()
-
-	// 5th Alice receives final state from Bob
+	// 3rd Alice receives final state from Bob
 	ch.recvFinal()
 
-	// 5th Settle channel
+	// 4th Settle channel
 	ch.settle()
 
-	// 6th final stage
+	// 4th final stage
 	r.waitStage()
 }

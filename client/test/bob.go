@@ -26,7 +26,7 @@ type Bob struct {
 
 // NewBob creates a new Responder that executes the Bob protocol.
 func NewBob(setup RoleSetup, t *testing.T) *Bob {
-	return &Bob{Responder: *NewResponder(setup, t, 6)}
+	return &Bob{Responder: *NewResponder(setup, t, 4)}
 }
 
 // Execute executes the Bob protocol.
@@ -42,42 +42,24 @@ func (r *Bob) exec(cfg ExecConfig, ch *paymentChannel) {
 
 	// 1st Bob sends some updates to Alice
 	for i := 0; i < cfg.NumPayments[we]; i++ {
-		ch.sendTransfer(cfg.TxAmounts[we], we, fmt.Sprintf("Bob#%d", i))
+		ch.sendTransfer(cfg.TxAmounts[we], fmt.Sprintf("Bob#%d", i))
 	}
-
 	// 2nd stage
 	r.waitStage()
 
 	// 2nd Bob receives some updates from Alice
 	for i := 0; i < cfg.NumPayments[them]; i++ {
-		ch.recvTransfer(cfg.TxAmounts[them], we, fmt.Sprintf("Alice#%d", i))
+		ch.recvTransfer(cfg.TxAmounts[them], fmt.Sprintf("Alice#%d", i))
 	}
-
 	// 3rd stage
 	r.waitStage()
 
-	// 3rd Bob sends payment requests to Alice.
-	for i := 0; i < cfg.NumRequests[we]; i++ {
-		ch.sendTransfer(cfg.TxAmounts[we], them, fmt.Sprintf("Bob-req#%d", i))
-	}
-
-	// 4th stage
-	r.waitStage()
-
-	// 4th Bob receives for payment requests from Alice.
-	for i := 0; i < cfg.NumRequests[them]; i++ {
-		ch.recvTransfer(cfg.TxAmounts[them], them, fmt.Sprintf("Alice-req#%d", i))
-	}
-
-	// 5th stage
-	r.waitStage()
-
-	// 5rd Bob sends a final state
+	// 3rd Bob sends a final state
 	ch.sendFinal()
 
-	// 5th Settle channel
+	// 4th Settle channel
 	ch.settleSecondary()
 
-	// 6th final stage
+	// 4th final stage
 	r.waitStage()
 }

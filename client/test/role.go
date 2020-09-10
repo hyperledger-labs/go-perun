@@ -64,9 +64,8 @@ type (
 		PeerAddrs   [2]wire.Address     // must match the RoleSetup.Identity's
 		Asset       channel.Asset       // single Asset to use in this channel
 		InitBals    [2]*big.Int         // channel deposit of each role
-		NumPayments [2]int              // how many payments each role sends
-		NumRequests [2]int              // how many requests each role sends
-		TxAmounts   [2]*big.Int         // amounts that are to be sent/requested by each role
+		NumPayments [2]int              // how many updates each role sends
+		TxAmounts   [2]*big.Int         // amounts that are to be sent by each role
 		App         client.ProposalOpts // must be either WithApp or WithoutApp
 	}
 
