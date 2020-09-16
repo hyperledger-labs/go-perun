@@ -53,21 +53,19 @@ type (
 		req    *BaseChannelProposal
 		called atomic.Bool
 	}
-
-	// ProposalAcc is the proposal acceptance struct that the user passes to
-	// ProposalResponder.Accept() when they want to accept an incoming channel
-	// proposal.
-	ProposalAcc struct {
-		Participant wallet.Address
-	}
 )
 
 // HandleProposal calls the proposal handler function.
 func (f ProposalHandlerFunc) HandleProposal(p ChannelProposal, r *ProposalResponder) { f(p, r) }
 
 // Accept lets the user signal that they want to accept the channel proposal.
-// Returns the newly created channel controller if the channel was successfully
-// created and funded. Panics if the proposal was already accepted or rejected.
+// The ChannelProposalAcc message has to be created using
+// ChannelProposal.Proposal().NewChannelProposalAcc on the proposal that was
+// passed to the handler.
+//
+// Accept returns the newly created channel controller if the channel was
+// successfully created and funded. Panics if the proposal was already accepted
+// or rejected.
 //
 // After the channel controller got successfully set up, it is passed to the
 // callback registered with Client.OnNewChannel. Accept returns after this
@@ -79,7 +77,7 @@ func (f ProposalHandlerFunc) HandleProposal(p ChannelProposal, r *ProposalRespon
 //
 // After the channel got successfully created, the user is required to start the
 // channel watcher with Channel.Watch() on the returned channel controller.
-func (r *ProposalResponder) Accept(ctx context.Context, acc ProposalAcc) (*Channel, error) {
+func (r *ProposalResponder) Accept(ctx context.Context, acc *ChannelProposalAcc) (*Channel, error) {
 	if ctx == nil {
 		return nil, errors.New("context must not be nil")
 	}
@@ -159,11 +157,11 @@ func (c *Client) handleChannelProposal(
 
 func (c *Client) handleChannelProposalAcc(
 	ctx context.Context, p wire.Address,
-	req *BaseChannelProposal, acc ProposalAcc,
+	req *BaseChannelProposal, acc *ChannelProposalAcc,
 ) (*Channel, error) {
-	if acc.Participant == nil {
-		c.logPeer(p).Error("user returned nil Participant in ProposalAcc")
-		return nil, errors.New("nil Participant in ProposalAcc")
+	if acc == nil {
+		c.logPeer(p).Error("user passed nil ChannelProposalAcc")
+		return nil, errors.New("nil ChannelProposalAcc")
 	}
 
 	// enables caching of incoming version 0 signatures before sending any message
@@ -171,13 +169,12 @@ func (c *Client) handleChannelProposalAcc(
 	// yet so the cache predicate is coarser than the later subscription.
 	enableVer0Cache(ctx, c.conn)
 
-	msgAccept := req.NewChannelProposalAcc(acc.Participant, WithRandomNonce())
-	if err := c.conn.pubMsg(ctx, msgAccept, p); err != nil {
+	if err := c.conn.pubMsg(ctx, acc, p); err != nil {
 		c.logPeer(p).Errorf("error sending proposal acceptance: %v", err)
 		return nil, errors.WithMessage(err, "sending proposal acceptance")
 	}
 
-	params := finalizeCPP(req, msgAccept)
+	params := finalizeCPP(req, acc)
 	return c.setupChannel(ctx, req, params, proposeeIdx)
 }
 
