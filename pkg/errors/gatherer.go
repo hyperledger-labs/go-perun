@@ -32,7 +32,7 @@ func NewGatherer() *Gatherer {
 // NewGatherer() to create error gatherers.
 type Gatherer struct {
 	mutex sync.Mutex
-	errs  *accumulatedError
+	errs  accumulatedError
 	wg    sync.WaitGroup
 
 	failed chan struct{} // Closed when an error has occurred.
@@ -51,13 +51,8 @@ func (g *Gatherer) Add(err error) {
 	}
 
 	g.mutex.Lock()
-	defer g.mutex.Unlock()
-
-	if g.errs == nil {
-		g.errs = &accumulatedError{}
-	}
-
-	g.errs.errs = append(g.errs.errs, err)
+	g.errs = append(g.errs, err)
+	g.mutex.Unlock()
 
 	select {
 	case <-g.failed:
@@ -76,16 +71,17 @@ func (g *Gatherer) Go(fn func() error) {
 }
 
 // Wait waits until all goroutines that have been launched via Go() have
-// returned.
-func (g *Gatherer) Wait() {
+// returned and returns the accumulated error.
+func (g *Gatherer) Wait() error {
 	g.wg.Wait()
+	return g.Err()
 }
 
 // Err returns the accumulated error. If there are no errors, returns nil.
 func (g *Gatherer) Err() error {
 	g.mutex.Lock()
 	defer g.mutex.Unlock()
-	if g.errs == nil { // Because (*accumulatedError)(nil) != (error)(nil).
+	if g.errs == nil { // Because accumulatedError(nil) != error(nil).
 		return nil
 	}
 	return g.errs
@@ -96,27 +92,25 @@ type stackTracer interface {
 	StackTrace() errors.StackTrace
 }
 
-type accumulatedError struct {
-	errs []error
-}
+type accumulatedError []error
 
 // Error returns an error message containing all the sub-errors that occurred.
-func (e *accumulatedError) Error() string {
+func (e accumulatedError) Error() string {
 	var builder strings.Builder
-	builder.WriteString(fmt.Sprintf("(%d error", len(e.errs)))
-	if len(e.errs) != 1 {
+	builder.WriteString(fmt.Sprintf("(%d error", len(e)))
+	if len(e) != 1 {
 		builder.WriteByte('s')
 	}
 	builder.WriteByte(')')
-	for i, err := range e.errs {
+	for i, err := range e {
 		builder.WriteString(fmt.Sprintf("\n%d): %s", i+1, err.Error()))
 	}
 	return builder.String()
 }
 
 // StackTrace returns the first available stack trace, or none.
-func (e *accumulatedError) StackTrace() errors.StackTrace {
-	for _, err := range e.errs {
+func (e accumulatedError) StackTrace() errors.StackTrace {
+	for _, err := range e {
 		if s, ok := err.(stackTracer); ok {
 			return s.StackTrace()
 		}
@@ -133,8 +127,8 @@ func Causes(err error) []error {
 	}
 
 	cerr := errors.Cause(err)
-	if acc, ok := cerr.(*accumulatedError); ok {
-		return acc.errs
+	if acc, ok := cerr.(accumulatedError); ok {
+		return acc
 	}
 	return []error{err}
 }
