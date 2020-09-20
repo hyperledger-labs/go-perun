@@ -23,7 +23,6 @@ import (
 	"perun.network/go-perun/channel"
 	"perun.network/go-perun/log"
 	"perun.network/go-perun/pkg/sync"
-	"perun.network/go-perun/wallet"
 	"perun.network/go-perun/wire"
 )
 
@@ -141,7 +140,7 @@ type (
 	// with Next(), which returns the peer's channel index and the message.
 	channelMsgRecv struct {
 		*wire.Receiver
-		peers []wallet.Address
+		peers []wire.Address
 		log   log.Logger
 	}
 )
@@ -153,7 +152,7 @@ func (r *channelMsgRecv) Next(ctx context.Context) (channel.Index, ChannelMsg, e
 	if err != nil {
 		return 0, nil, err
 	}
-	idx := wallet.IndexOfAddr(r.peers, env.Sender)
+	idx := wire.IndexOfAddr(r.peers, env.Sender)
 	if idx == -1 {
 		return 0, nil, errors.Errorf("channel connection received message from unexpected peer %v", env.Sender)
 	}

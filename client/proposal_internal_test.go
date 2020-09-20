@@ -24,6 +24,7 @@ import (
 	pkgtest "perun.network/go-perun/pkg/test"
 	"perun.network/go-perun/wallet"
 	wallettest "perun.network/go-perun/wallet/test"
+	wiretest "perun.network/go-perun/wire/test"
 )
 
 func TestClient_validTwoPartyProposal(t *testing.T) {
@@ -92,15 +93,16 @@ func NewRandomBaseChannelProposalReq(rng *rand.Rand) BaseChannelProposal {
 }
 
 func NewRandomBaseChannelProposalReqNumParts(rng *rand.Rand, numPeers int) BaseChannelProposal {
-	params := channeltest.NewRandomParams(rng, channeltest.WithNumParts(numPeers))
-	data := channeltest.NewRandomData(rng)
 	alloc := channeltest.NewRandomAllocation(rng, channeltest.WithNumParts(numPeers))
 	participantAddr := wallettest.NewRandomAddress(rng)
+	peers := wiretest.NewRandomAddresses(rng, numPeers)
+	app := channeltest.NewRandomApp(rng)
+	data := channeltest.NewRandomData(rng)
 	return makeBaseChannelProposal(
 		rng.Uint64(),
 		participantAddr,
 		alloc,
-		params.Parts,
+		peers,
 		WithNonceFrom(rng),
-		WithApp(params.App, data))
+		WithApp(app, data))
 }

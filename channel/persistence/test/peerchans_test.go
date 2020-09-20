@@ -22,15 +22,15 @@ import (
 	"perun.network/go-perun/channel"
 	ctest "perun.network/go-perun/channel/test"
 	pkgtest "perun.network/go-perun/pkg/test"
-	wtest "perun.network/go-perun/wallet/test"
 	"perun.network/go-perun/wire"
+	wiretest "perun.network/go-perun/wire/test"
 )
 
 func TestEndpointChans(t *testing.T) {
 	assert := assert.New(t)
 	rng := pkgtest.Prng(t)
 	id := []channel.ID{ctest.NewRandomChannelID(rng), ctest.NewRandomChannelID(rng)}
-	ps := wtest.NewRandomAddresses(rng, 3)
+	ps := wiretest.NewRandomAddresses(rng, 3)
 
 	pc := make(peerChans)
 	pc.Add(id[0], ps...)

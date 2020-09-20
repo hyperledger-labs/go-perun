@@ -140,7 +140,7 @@ func (p *BaseChannelProposal) Encode(w io.Writer) error {
 	if err := perunio.Encode(w, numParts); err != nil {
 		return err
 	}
-	return wallet.Addresses(p.PeerAddrs).Encode(w)
+	return wire.Addresses(p.PeerAddrs).Encode(w)
 }
 
 // OptAppAndDataEnc makes an optional pair of App definition and Data encodable.
@@ -204,8 +204,12 @@ func (p *BaseChannelProposal) Decode(r io.Reader) (err error) {
 			channel.MaxNumParts, numParts)
 	}
 
-	p.PeerAddrs = make([]wallet.Address, numParts)
-	return wallet.Addresses(p.PeerAddrs).Decode(r)
+	p.PeerAddrs = make([]wire.Address, numParts)
+	if err := wire.Addresses(p.PeerAddrs).Decode(r); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 // ProposalID returns the identifier of this channel proposal request as
