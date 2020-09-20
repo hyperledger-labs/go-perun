@@ -23,12 +23,13 @@ import (
 )
 
 func TestRequireEqualSigsTX(t *testing.T) {
+	prng := test.Prng(t)
 	var equalSigsTableNegative = []struct {
 		s1 []wallet.Sig
 		s2 []wallet.Sig
 	}{
-		{initSigSlice(10), make([]wallet.Sig, 10)},
-		{make([]wallet.Sig, 10), initSigSlice(10)},
+		{initSigSlice(10, prng), make([]wallet.Sig, 10)},
+		{make([]wallet.Sig, 10), initSigSlice(10, prng)},
 		{[]wallet.Sig{{4, 3, 2, 1}}, []wallet.Sig{{1, 2, 3, 4}}},
 		{make([]wallet.Sig, 5), make([]wallet.Sig, 10)},
 		{make([]wallet.Sig, 10), make([]wallet.Sig, 5)},
@@ -54,13 +55,12 @@ func TestRequireEqualSigsTX(t *testing.T) {
 	}
 }
 
-func initSigSlice(length int) []wallet.Sig {
+func initSigSlice(length int, prng *rand.Rand) []wallet.Sig {
 	s := make([]wallet.Sig, length)
 	for i := range s {
 		s[i] = make(wallet.Sig, 32)
 		for j := 0; j < 32; j++ {
-			// nolint:gosec
-			s[i][j] = byte(rand.Int())
+			s[i][j] = byte(prng.Int())
 		}
 	}
 	return s
