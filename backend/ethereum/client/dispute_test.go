@@ -24,10 +24,10 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"perun.network/go-perun/apps/payment"
 	"perun.network/go-perun/backend/ethereum/channel/test"
 	"perun.network/go-perun/backend/ethereum/wallet"
 	ethwtest "perun.network/go-perun/backend/ethereum/wallet/test"
+	chtest "perun.network/go-perun/channel/test"
 	"perun.network/go-perun/client"
 	clienttest "perun.network/go-perun/client/test"
 	"perun.network/go-perun/log"
@@ -72,7 +72,7 @@ func TestDisputeMalloryCarol(t *testing.T) {
 		Asset:       (*wallet.Address)(&s.Asset),
 		NumPayments: [2]int{5, 0},
 		TxAmounts:   [2]*big.Int{big.NewInt(20), big.NewInt(0)},
-		App:         client.WithApp(payment.NewApp(), payment.Data()),
+		App:         client.WithApp(chtest.NewRandomAppAndData(rng)),
 	}
 
 	var wg sync.WaitGroup
