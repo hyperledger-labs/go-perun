@@ -41,7 +41,7 @@ const (
 	// os.Exit(1) or similar.  It it the highest level of severity.
 	FatalLevel Level = iota - defaultLogLevelShift // -3: default level WarnLevel
 	// PanicLevel calls the wrapped logger's Panic method with the prefix "[panic]".
-	// The wrapped logger should usually call panic with the given message
+	// The wrapped logger should usually call panic with the given message.
 	PanicLevel
 	// ErrorLevel calls the wrapped logger's Print method with the prefix "[error]".
 	ErrorLevel

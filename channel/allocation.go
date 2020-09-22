@@ -76,7 +76,7 @@ type (
 		Bals []Bal
 	}
 
-	// Bal is a single asset's balance
+	// Bal is a single asset's balance.
 	Bal = *big.Int
 
 	// Asset identifies an asset. E.g., it may be the address of the multi-sig

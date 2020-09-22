@@ -29,10 +29,10 @@ import (
 type Index = uint16
 
 type (
-	// Phase is a phase of the channel pushdown automaton
+	// Phase is a phase of the channel pushdown automaton.
 	Phase uint8
 
-	// PhaseTransition represents a transition between two phases
+	// PhaseTransition represents a transition between two phases.
 	PhaseTransition struct {
 		From, To Phase
 	}

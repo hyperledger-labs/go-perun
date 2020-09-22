@@ -41,7 +41,7 @@ type (
 		bals []channel.Bal // independent tracking of channel balance for testing
 	}
 
-	// A handlerRes encapsulates the result of a channel handling request
+	// A handlerRes encapsulates the result of a channel handling request.
 	handlerRes struct {
 		up  client.ChannelUpdate
 		err error
