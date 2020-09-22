@@ -40,7 +40,6 @@ func TestHappyAliceBob(t *testing.T) {
 			Asset:       chtest.NewRandomAsset(rng),
 			InitBals:    [2]*big.Int{big.NewInt(100), big.NewInt(100)},
 			NumPayments: [2]int{2, 2},
-			NumRequests: [2]int{2, 2},
 			TxAmounts:   [2]*big.Int{big.NewInt(5), big.NewInt(3)},
 			App:         client.WithApp(payment.NewApp(), payment.Data()),
 		}

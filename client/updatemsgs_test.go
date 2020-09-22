@@ -18,6 +18,7 @@ import (
 	"math/rand"
 	"testing"
 
+	"perun.network/go-perun/channel"
 	"perun.network/go-perun/channel/test"
 	pkgtest "perun.network/go-perun/pkg/test"
 	"perun.network/go-perun/wallet"
@@ -28,12 +29,12 @@ import (
 func TestChannelUpdateSerialization(t *testing.T) {
 	rng := pkgtest.Prng(t)
 	for i := 0; i < 4; i++ {
-		params, state := test.NewRandomParamsAndState(rng)
+		state := test.NewRandomState(rng)
 		sig := newRandomSig(rng)
 		m := &msgChannelUpdate{
 			ChannelUpdate: ChannelUpdate{
 				State:    state,
-				ActorIdx: uint16(rng.Int31n(int32(len(params.Parts)))),
+				ActorIdx: channel.Index(rng.Intn(state.NumParts())),
 			},
 			Sig: sig,
 		}

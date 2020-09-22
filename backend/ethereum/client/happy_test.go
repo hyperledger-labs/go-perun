@@ -75,7 +75,6 @@ func TestHappyAliceBob(t *testing.T) {
 		InitBals:    [2]*big.Int{big.NewInt(100), big.NewInt(100)},
 		Asset:       (*wallet.Address)(&s.Asset),
 		NumPayments: [2]int{2, 2},
-		NumRequests: [2]int{2, 2},
 		TxAmounts:   [2]*big.Int{big.NewInt(5), big.NewInt(3)},
 		App:         perunclient.WithApp(payment.NewApp(), channel.NoData()),
 	}
@@ -94,10 +93,7 @@ func TestHappyAliceBob(t *testing.T) {
 
 	// Assert correct final balances
 	aliceToBob := big.NewInt(int64(execConfig.NumPayments[A])*execConfig.TxAmounts[A].Int64() -
-		int64(execConfig.NumPayments[B])*execConfig.TxAmounts[B].Int64() -
-		int64(execConfig.NumRequests[A])*execConfig.TxAmounts[A].Int64() +
-		int64(execConfig.NumRequests[B])*execConfig.TxAmounts[B].Int64())
-
+		int64(execConfig.NumPayments[B])*execConfig.TxAmounts[B].Int64())
 	finalBalAlice := new(big.Int).Sub(execConfig.InitBals[A], aliceToBob)
 	finalBalBob := new(big.Int).Add(execConfig.InitBals[B], aliceToBob)
 	// reset context timeout

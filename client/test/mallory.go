@@ -51,7 +51,7 @@ func (r *Mallory) exec(cfg ExecConfig, ch *paymentChannel) {
 
 	// Mallory sends some updates to Carol
 	for i := 0; i < cfg.NumPayments[we]; i++ {
-		ch.sendTransfer(cfg.TxAmounts[we], we, fmt.Sprintf("Mallory#%d", i))
+		ch.sendTransfer(cfg.TxAmounts[we], fmt.Sprintf("Mallory#%d", i))
 	}
 	// 2nd stage - txs sent
 	r.waitStage()

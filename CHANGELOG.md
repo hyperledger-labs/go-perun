@@ -6,6 +6,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+ - `channel.Update` to accept a `channel.State` instead of `channel.ChannelUpdate`.
+  This simplifies the usage.
 ## [0.4.0] Despina - 2020-07-23 [:warning:]
 Introduced a wire messaging abstraction. License changed to Apache 2.0.
 
