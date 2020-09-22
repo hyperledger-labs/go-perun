@@ -181,4 +181,8 @@ peerLoop:
 			ch.Settle(t)
 		}
 	}
+
+	ps, err := pr.ActivePeers(ctx)
+	require.NoError(t, err)
+	require.Len(t, ps, 0)
 }

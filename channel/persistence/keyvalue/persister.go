@@ -36,10 +36,15 @@ func (pr *PersistRestorer) ChannelCreated(_ context.Context, s channel.Source, p
 	db := pr.channelDB(s.ID()).NewBatch()
 	// Write the channel data in the "Channel" table.
 	numParts := len(s.Params().Parts)
-	keys := append([]string{"current", "index", "params", "peers", "phase", "staging:state"},
+	keys := append([]string{"current", "index", "params", "phase", "staging:state"},
 		sigKeys(numParts)...)
 	if err := dbPutSource(db, s, keys...); err != nil {
 		return err
+	}
+
+	// Write peers in the "Channel" table.
+	if err := dbPut(db, prefix.Peers, wire.AddressesWithLen(peers)); err != nil {
+		return errors.WithMessage(err, "putting peers into channel table")
 	}
 
 	// Register the channel in the "Peer" table.
@@ -198,8 +203,6 @@ func dbPutSourceField(db sortedkv.Writer, s channel.Source, key string) error {
 		return dbPut(db, key, s.Idx())
 	case "params":
 		return dbPut(db, key, s.Params())
-	case "peers":
-		return dbPut(db, key, wire.AddressesWithLen(s.Params().Parts))
 	case "phase":
 		return dbPut(db, key, s.Phase())
 	case "staging:state":
