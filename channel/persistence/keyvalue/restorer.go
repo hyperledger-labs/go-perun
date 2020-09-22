@@ -42,7 +42,7 @@ type ChannelIterator struct {
 }
 
 // ActivePeers returns a list of all peers with which a channel is persisted.
-func (pr *PersistRestorer) ActivePeers(context.Context) ([]wire.Address, error) {
+func (pr *PersistRestorer) ActivePeers(ctx context.Context) ([]wire.Address, error) {
 	it := sortedkv.NewTable(pr.db, prefix.PeerDB).NewIterator()
 
 	peermap := make(map[wallet.AddrKey]wire.Address)
@@ -59,6 +59,18 @@ func (pr *PersistRestorer) ActivePeers(context.Context) ([]wire.Address, error) 
 		peers = append(peers, peer)
 	}
 	return peers, errors.WithMessage(it.Close(), "closing iterator")
+}
+
+// channelPeers returns a slice of peer addresses for a given channel id from
+// the db of PersistRestorer.
+func (pr *PersistRestorer) channelPeers(id channel.ID) ([]wire.Address, error) {
+	var ps wire.AddressesWithLen
+	peers, err := pr.channelDB(id).Get(prefix.Peers)
+	if err != nil {
+		return nil, errors.WithMessage(err, "unable to get peerlist from db")
+	}
+	return []wire.Address(ps), errors.WithMessage(perunio.Decode(bytes.NewBuffer([]byte(peers)), &ps),
+		"decoding peerlist")
 }
 
 // RestoreAll should return an iterator over all persisted channels.
@@ -158,7 +170,6 @@ const (
 	noOpts   decOpts = 0
 	allowEnd decOpts = 1 << iota
 	allowEmpty
-	skip
 )
 
 // isSetIn masks the given opts with the current opt and returns
@@ -173,12 +184,11 @@ func (i *ChannelIterator) Next(context.Context) bool {
 		return false
 	}
 
-	i.ch = &persistence.Channel{ParamsV: new(channel.Params)}
-
+	i.ch = persistence.NewChannel()
 	if !i.decodeNext("current", &i.ch.CurrentTXV, allowEnd) ||
 		!i.decodeNext("index", &i.ch.IdxV, noOpts) ||
 		!i.decodeNext("params", i.ch.ParamsV, noOpts) ||
-		!i.decodeNext("peers", nil, skip) ||
+		!i.decodeNext("peers", (*wire.AddressesWithLen)(&i.ch.PeersV), noOpts) ||
 		!i.decodeNext("phase", &i.ch.PhaseV, noOpts) {
 		return false
 	}
@@ -217,10 +227,6 @@ func (i *ChannelIterator) decodeNext(key string, v interface{}, opts decOpts) bo
 		if !i.recoverFromEmptyIterator(key, opts) {
 			return false
 		}
-	}
-
-	if skip.isSetIn(opts) {
-		return true
 	}
 
 	buf := bytes.NewBuffer(i.its[0].ValueBytes())

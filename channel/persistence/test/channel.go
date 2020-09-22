@@ -68,8 +68,19 @@ func NewRandomChannel(
 	}
 
 	require.NoError(t, pr.ChannelCreated(ctx, c.StateMachine, c.peers))
-
+	c.AssertPersisted(ctx, t)
 	return
+}
+
+func requireEqualPeers(t require.TestingT, expected, actual []wire.Address) {
+	require.Equal(t, len(expected), len(actual))
+	for i, p := range expected {
+		if !p.Equals(actual[i]) {
+			t.Errorf("restored peers for channel do not match\nexpected: %v\nactual: %v",
+				actual, expected)
+			t.FailNow()
+		}
+	}
 }
 
 // AssertPersisted reads the channel state from the restorer and compares it
@@ -81,6 +92,7 @@ func (c *Channel) AssertPersisted(ctx context.Context, t require.TestingT) {
 	require.NoError(t, err)
 	require.NotNil(t, ch)
 	c.RequireEqual(t, ch)
+	requireEqualPeers(t, c.peers, ch.PeersV)
 }
 
 // RequireEqual asserts that the channel is equal to the provided channel state.

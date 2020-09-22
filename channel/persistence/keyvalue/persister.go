@@ -73,7 +73,7 @@ func sigKey(idx, numParts int) string {
 }
 
 // ChannelRemoved deletes a channel from the database.
-func (pr *PersistRestorer) ChannelRemoved(_ context.Context, id channel.ID) error {
+func (pr *PersistRestorer) ChannelRemoved(ctx context.Context, id channel.ID) error {
 	db := pr.channelDB(id).NewBatch()
 	peerdb := sortedkv.NewTable(pr.db, prefix.PeerDB).NewBatch()
 	// All keys a channel has.
@@ -90,7 +90,7 @@ func (pr *PersistRestorer) ChannelRemoved(_ context.Context, id channel.ID) erro
 		}
 	}
 
-	peers, err := pr.peersForChan(id)
+	peers, err := pr.channelPeers(id)
 	if err != nil {
 		return errors.WithMessage(err, "retrieving peers for channel")
 	}
@@ -108,18 +108,6 @@ func (pr *PersistRestorer) ChannelRemoved(_ context.Context, id channel.ID) erro
 		return errors.WithMessage(err, "applying channel batch")
 	}
 	return errors.WithMessage(peerdb.Apply(), "applying peer batch")
-}
-
-// peersForChan returns a slice of peer addresses for a given channel id from
-// the db of PersistRestorer.
-func (pr *PersistRestorer) peersForChan(id channel.ID) ([]wire.Address, error) {
-	var ps wire.AddressesWithLen
-	peers, err := pr.channelDB(id).Get(prefix.Peers)
-	if err != nil {
-		return nil, errors.WithMessage(err, "unable to get peerlist from db")
-	}
-	return []wire.Address(ps), errors.WithMessage(perunio.Decode(bytes.NewBuffer([]byte(peers)), &ps),
-		"decoding peerlist")
 }
 
 // getParamsForChan returns the channel parameters for a given channel id from
