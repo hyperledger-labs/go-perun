@@ -59,12 +59,8 @@ func NewWallet(ks *keystore.KeyStore, pw string) (*Wallet, error) {
 }
 
 // Contains checks whether this wallet holds this account.
-func (w *Wallet) Contains(a wallet.Address) bool {
-	if a == nil {
-		return false
-	}
-
-	return w.Ks.HasAddress(ethwallet.AsEthAddr(a))
+func (w *Wallet) Contains(a common.Address) bool {
+	return w.Ks.HasAddress(a)
 }
 
 // NewAccount creates a new random account which is already unlocked.

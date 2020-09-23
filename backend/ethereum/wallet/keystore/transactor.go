@@ -29,6 +29,9 @@ type Transactor struct {
 // NewTransactor returns a TransactOpts for the given account. It errors if the account is
 // not contained in the keystore used for initializing transactOpts backend.
 func (t *Transactor) NewTransactor(account accounts.Account) (*bind.TransactOpts, error) {
+	if !t.ks.HasAddress(account.Address) {
+		return nil, errors.New("the wallet does not contain the keys for the given account")
+	}
 	tr, err := bind.NewKeyStoreTransactor(t.ks, account)
 	return tr, errors.WithStack(err)
 }
