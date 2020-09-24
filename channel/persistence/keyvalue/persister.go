@@ -36,10 +36,15 @@ func (pr *PersistRestorer) ChannelCreated(_ context.Context, s channel.Source, p
 	db := pr.channelDB(s.ID()).NewBatch()
 	// Write the channel data in the "Channel" table.
 	numParts := len(s.Params().Parts)
-	keys := append([]string{"current", "index", "params", "peers", "phase", "staging:state"},
+	keys := append([]string{"current", "index", "params", "phase", "staging:state"},
 		sigKeys(numParts)...)
 	if err := dbPutSource(db, s, keys...); err != nil {
 		return err
+	}
+
+	// Write peers in the "Channel" table.
+	if err := dbPut(db, prefix.Peers, wire.AddressesWithLen(peers)); err != nil {
+		return errors.WithMessage(err, "putting peers into channel table")
 	}
 
 	// Register the channel in the "Peer" table.
@@ -68,7 +73,7 @@ func sigKey(idx, numParts int) string {
 }
 
 // ChannelRemoved deletes a channel from the database.
-func (pr *PersistRestorer) ChannelRemoved(_ context.Context, id channel.ID) error {
+func (pr *PersistRestorer) ChannelRemoved(ctx context.Context, id channel.ID) error {
 	db := pr.channelDB(id).NewBatch()
 	peerdb := sortedkv.NewTable(pr.db, prefix.PeerDB).NewBatch()
 	// All keys a channel has.
@@ -85,7 +90,7 @@ func (pr *PersistRestorer) ChannelRemoved(_ context.Context, id channel.ID) erro
 		}
 	}
 
-	peers, err := pr.peersForChan(id)
+	peers, err := pr.channelPeers(id)
 	if err != nil {
 		return errors.WithMessage(err, "retrieving peers for channel")
 	}
@@ -103,18 +108,6 @@ func (pr *PersistRestorer) ChannelRemoved(_ context.Context, id channel.ID) erro
 		return errors.WithMessage(err, "applying channel batch")
 	}
 	return errors.WithMessage(peerdb.Apply(), "applying peer batch")
-}
-
-// peersForChan returns a slice of peer addresses for a given channel id from
-// the db of PersistRestorer.
-func (pr *PersistRestorer) peersForChan(id channel.ID) ([]wire.Address, error) {
-	var ps wire.AddressesWithLen
-	peers, err := pr.channelDB(id).Get(prefix.Peers)
-	if err != nil {
-		return nil, errors.WithMessage(err, "unable to get peerlist from db")
-	}
-	return []wire.Address(ps), errors.WithMessage(perunio.Decode(bytes.NewBuffer([]byte(peers)), &ps),
-		"decoding peerlist")
 }
 
 // getParamsForChan returns the channel parameters for a given channel id from
@@ -198,8 +191,6 @@ func dbPutSourceField(db sortedkv.Writer, s channel.Source, key string) error {
 		return dbPut(db, key, s.Idx())
 	case "params":
 		return dbPut(db, key, s.Params())
-	case "peers":
-		return dbPut(db, key, wire.AddressesWithLen(s.Params().Parts))
 	case "phase":
 		return dbPut(db, key, s.Phase())
 	case "staging:state":

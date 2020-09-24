@@ -109,23 +109,30 @@ type (
 		io.Closer
 	}
 
-	// A Channel holds all data that is necessary for restoring a channel
+	// A chSource holds all data that is necessary for restoring a channel
 	// controller.
-	Channel struct {
+	chSource struct {
 		IdxV       channel.Index       // IdxV is the own index in the channel.
 		ParamsV    *channel.Params     // ParamsV are the channel parameters.
 		StagingTXV channel.Transaction // StagingTxV is the staging transaction.
 		CurrentTXV channel.Transaction // CurrentTXV is the current transaction.
 		PhaseV     channel.Phase       // PhaseV is the current channel phase.
 	}
+
+	// Channel holds all data that is necessary to restore a channel controller
+	// and additionally the related peers for this channel.
+	Channel struct {
+		chSource
+		PeersV []wire.Address
+	}
 )
 
 var _ channel.Source = (*Channel)(nil)
 
 // CloneSource creates a new Channel object whose fields are clones of the data
-// coming from Source s.
-func CloneSource(s channel.Source) *Channel {
-	return &Channel{
+// coming from Source s. Returned `PeersV` are `nil`.
+func CloneSource(s channel.Source) channel.Source {
+	return &chSource{
 		IdxV:       s.Idx(),
 		ParamsV:    s.Params().Clone(),
 		StagingTXV: s.StagingTX().Clone(),
@@ -134,20 +141,42 @@ func CloneSource(s channel.Source) *Channel {
 	}
 }
 
+// NewChannel creates a new Channel object whose fields are initialized.
+func NewChannel() *Channel {
+	return &Channel{
+		chSource{ParamsV: new(channel.Params)},
+		nil,
+	}
+}
+
+// FromSource creates a new Channel object from given `channel.Source` and peers.
+func FromSource(s channel.Source, ps []wire.Address) *Channel {
+	return &Channel{
+		chSource{
+			IdxV:       s.Idx(),
+			ParamsV:    s.Params().Clone(),
+			StagingTXV: s.StagingTX().Clone(),
+			CurrentTXV: s.CurrentTX().Clone(),
+			PhaseV:     s.Phase(),
+		},
+		ps,
+	}
+}
+
 // ID is the channel ID of this source. It is the same as Params().ID().
-func (c *Channel) ID() channel.ID { return c.ParamsV.ID() }
+func (c *chSource) ID() channel.ID { return c.ParamsV.ID() }
 
 // Idx is the own index in the channel.
-func (c *Channel) Idx() channel.Index { return c.IdxV }
+func (c *chSource) Idx() channel.Index { return c.IdxV }
 
 // Params are the channel parameters.
-func (c *Channel) Params() *channel.Params { return c.ParamsV }
+func (c *chSource) Params() *channel.Params { return c.ParamsV }
 
 // StagingTX is the staged transaction (State+incomplete list of sigs).
-func (c *Channel) StagingTX() channel.Transaction { return c.StagingTXV }
+func (c *chSource) StagingTX() channel.Transaction { return c.StagingTXV }
 
 // CurrentTX is the current transaction (State+complete list of sigs).
-func (c *Channel) CurrentTX() channel.Transaction { return c.CurrentTXV }
+func (c *chSource) CurrentTX() channel.Transaction { return c.CurrentTXV }
 
 // Phase is the phase in which the channel is currently in.
-func (c *Channel) Phase() channel.Phase { return c.PhaseV }
+func (c *chSource) Phase() channel.Phase { return c.PhaseV }

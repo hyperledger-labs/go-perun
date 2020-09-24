@@ -21,18 +21,18 @@ import (
 )
 
 type (
-	// StateTransitionError happens in case of an invalid channel state transition
+	// StateTransitionError happens in case of an invalid channel state transition.
 	StateTransitionError struct {
 		ID ID
 	}
 
-	// ActionError happens if an invalid action is applied to a channel state
+	// ActionError happens if an invalid action is applied to a channel state.
 	ActionError struct {
 		ID ID
 	}
 
 	// PhaseTransitionError happens in case of an invalid channel machine phase
-	// transition
+	// transition.
 	PhaseTransitionError struct {
 		ID      ID
 		current Phase
