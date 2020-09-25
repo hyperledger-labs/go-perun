@@ -29,7 +29,12 @@ func NewRandomAddress(rng *rand.Rand) wire.Address {
 
 // NewRandomAddresses returns a slice of random peer addresses.
 func NewRandomAddresses(rng *rand.Rand, n int) []wire.Address {
-	return test.NewRandomAddresses(rng, n)
+	walletAddresses := test.NewRandomAddresses(rng, n)
+	addresses := make([]wire.Address, len(walletAddresses))
+	for i, x := range walletAddresses {
+		addresses[i] = x
+	}
+	return addresses
 }
 
 // NewRandomEnvelope returns an envelope around message m with random sender and

@@ -21,6 +21,7 @@ import (
 	"perun.network/go-perun/client"
 	"perun.network/go-perun/wallet"
 	wallettest "perun.network/go-perun/wallet/test"
+	wiretest "perun.network/go-perun/wire/test"
 )
 
 // NewRandomChannelProposal creates a random channel proposal with the supplied
@@ -36,6 +37,6 @@ func NewRandomChannelProposalBy(rng *rand.Rand, proposer wallet.Address, opts ..
 		rng.Uint64(),
 		proposer,
 		channeltest.NewRandomAllocation(rng, channeltest.WithNumParts(2)),
-		wallettest.NewRandomAddresses(rng, 2),
+		wiretest.NewRandomAddresses(rng, 2),
 		opts...)
 }
