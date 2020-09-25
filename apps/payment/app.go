@@ -74,3 +74,8 @@ func assertNoData(s *channel.State) {
 func Data() channel.Data {
 	return channel.NoData()
 }
+
+// IsData returns wether an app data is valid payment app data.
+func IsData(data channel.Data) bool {
+	return channel.IsNoData(data)
+}

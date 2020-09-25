@@ -98,9 +98,7 @@ func TestChannelProposalReqProposalID(t *testing.T) {
 	assert.NotEqual(t, original.ChallengeDuration, fake.ChallengeDuration)
 	assert.NotEqual(t, original.NonceShare, fake.NonceShare)
 	assert.NotEqual(t, original.ParticipantAddr, fake.ParticipantAddr)
-	// TODO: while using the payment app in channel tests, they all have the same
-	// address. Fixed in #266
-	// assert.NotEqual(t, original.App, fake.App)
+	assert.NotEqual(t, original.App, fake.App)
 
 	c0 := original
 	c0.ChallengeDuration = fake.ChallengeDuration
@@ -114,14 +112,13 @@ func TestChannelProposalReqProposalID(t *testing.T) {
 	c2.ParticipantAddr = fake.ParticipantAddr
 	assert.Equal(t, s, c2.ProposalID())
 
-	// TODO: #266
-	//c3 := original
-	//c3.AppDef = fake.AppDef
-	//assert.NotEqual(t, s, c3.ProposalID())
+	c3 := original
+	c3.App = fake.App
+	assert.NotEqual(t, s, c3.ProposalID())
 
-	//c4 := original
-	//c4.InitData = fake.InitData
-	//assert.NotEqual(t, s, c4.ProposalID())
+	c4 := original
+	c4.InitData = fake.InitData
+	assert.NotEqual(t, s, c4.ProposalID())
 
 	c5 := original
 	c5.InitBals = fake.InitBals

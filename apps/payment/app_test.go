@@ -42,8 +42,8 @@ func TestApp_ValidInit(t *testing.T) {
 	wrongdata := &channel.State{Data: new(channel.MockOp)}
 	assert.Panics(func() { app.ValidInit(nil, wrongdata) })
 
-	nodata := &channel.State{Data: channel.NoData()}
-	assert.Nil(app.ValidInit(nil, nodata))
+	data := &channel.State{Data: Data()}
+	assert.Nil(app.ValidInit(nil, data))
 }
 
 func TestApp_ValidTransition(t *testing.T) {
@@ -88,7 +88,11 @@ func TestApp_ValidTransition(t *testing.T) {
 		tt := _tt
 		t.Run(tt.desc, func(t *testing.T) {
 			assert := assert.New(t)
-			from := test.NewRandomState(rng, test.WithApp(app), test.WithBalances(asBalances(tt.from...)...), test.WithNumAssets(len(tt.from)))
+			from := test.NewRandomState(rng,
+				test.WithApp(app),
+				test.WithAppData(Data()),
+				test.WithBalances(asBalances(tt.from...)...),
+			)
 			numParticipants := len(tt.from[0])
 			for i := 0; i < numParticipants; i++ {
 				// valid self-transition
@@ -96,7 +100,11 @@ func TestApp_ValidTransition(t *testing.T) {
 			}
 
 			for _, tto := range tt.tos {
-				to := test.NewRandomState(rng, test.WithApp(app), test.WithBalances(asBalances(tto.alloc...)...), test.WithNumAssets(len(tt.from)))
+				to := test.NewRandomState(rng,
+					test.WithApp(app),
+					test.WithAppData(Data()),
+					test.WithBalances(asBalances(tto.alloc...)...),
+				)
 				for i := 0; i < numParticipants; i++ {
 					err := app.ValidTransition(nil, from, to, channel.Index(i))
 					if i == tto.valid {

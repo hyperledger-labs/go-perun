@@ -20,8 +20,8 @@ import (
 	"perun.network/go-perun/channel"
 )
 
-// The AppRandomizer interface provides functionality to create RandomApps and
-// RandomData which is useful for testing.
+// The AppRandomizer interface provides functionality for creating random
+// data and apps which is useful for testing.
 type AppRandomizer interface {
 	NewRandomApp(*rand.Rand) channel.App
 	NewRandomData(*rand.Rand) channel.Data
@@ -29,10 +29,11 @@ type AppRandomizer interface {
 
 var appRandomizer AppRandomizer = &MockAppRandomizer{}
 
-// isAppRandomizerSet whether the appRandomizer was already set with `SetAppRandomizer`.
+// isAppRandomizerSet tracks whether the AppRandomizer was already set
+// with `SetAppRandomizer`.
 var isAppRandomizerSet bool
 
-// SetAppRandomizer sets the global appRandomizer.
+// SetAppRandomizer sets the global `appRandomizer`.
 func SetAppRandomizer(r AppRandomizer) {
 	if isAppRandomizerSet {
 		panic("app randomizer already set")
@@ -54,6 +55,7 @@ func NewRandomApp(rng *rand.Rand, opts ...RandomOpt) channel.App {
 	}
 	// WithAppDef does not set the app in the options
 	app := appRandomizer.NewRandomApp(rng)
+	channel.RegisterSingleApp(app.Def(), app)
 	updateOpts(opts, WithApp(app))
 	return app
 }

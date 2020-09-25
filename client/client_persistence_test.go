@@ -19,7 +19,6 @@ import (
 	"math/rand"
 	"testing"
 
-	"perun.network/go-perun/apps/payment"
 	chprtest "perun.network/go-perun/channel/persistence/test"
 	chtest "perun.network/go-perun/channel/test"
 	"perun.network/go-perun/client"
@@ -42,7 +41,7 @@ func TestPersistencePetraRobert(t *testing.T) {
 		InitBals:    [2]*big.Int{big.NewInt(100), big.NewInt(100)},
 		NumPayments: [2]int{2, 2},
 		TxAmounts:   [2]*big.Int{big.NewInt(5), big.NewInt(3)},
-		App:         client.WithApp(payment.NewApp(), payment.Data()),
+		App:         client.WithApp(chtest.NewRandomApp(rng), chtest.NewRandomData(rng)),
 	}
 
 	executeTwoPartyTest(roles, cfg)
