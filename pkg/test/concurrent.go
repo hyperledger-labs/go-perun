@@ -120,7 +120,7 @@ func (t *ConcurrentT) getStage(name string) *stage {
 	return s
 }
 
-// Wait waits until the stages with the requested names terminate.
+// Wait waits until the stages and barriers with the requested names terminate.
 // If any stage fails, terminates the current goroutine.
 func (t *ConcurrentT) Wait(names ...string) {
 	if len(names) == 0 {
@@ -188,4 +188,31 @@ func shouldPrintStack(stack string) bool {
 // It is a shorthand notation for StageN(name, 1, fn).
 func (t *ConcurrentT) Stage(name string, fn func(require.TestingT)) {
 	t.StageN(name, 1, fn)
+}
+
+// BarrierN creates a barrier that can be waited on by other goroutines using
+// Wait(). After n calls to BarrierN have been made, all waiting goroutines
+// continue. Similar to Stage and StageN, all calls to the same barrier must
+// share the same n and there must be at most n calls to BarrierN or
+// FailBarrierN for each barrier name.
+func (t *ConcurrentT) BarrierN(name string, n int) {
+	t.spawnStage(name, n).pass()
+	t.Wait(name)
+}
+
+// FailBarrier marks a barrier as failed. It terminates the current test and
+// all goroutines waiting for the barrier.
+func (t *ConcurrentT) FailBarrierN(name string, n int) {
+	t.spawnStage(name, n).FailNow()
+}
+
+// Barrier is a shorthand notation for Barrier(name, 1).
+func (t *ConcurrentT) Barrier(name string) {
+	t.spawnStage(name, 1).pass()
+}
+
+// FailBarrier creates a synchronisation point and marks it as failed, so that
+// waiting goroutines will terminate.
+func (t *ConcurrentT) FailBarrier(name string) {
+	t.spawnStage(name, 1).FailNow()
 }
