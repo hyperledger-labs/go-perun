@@ -18,6 +18,7 @@ import (
 	"math/big"
 	"testing"
 
+	"perun.network/go-perun/apps/payment"
 	chtest "perun.network/go-perun/channel/test"
 	"perun.network/go-perun/client"
 	ctest "perun.network/go-perun/client/test"
@@ -44,7 +45,9 @@ func TestHappyAliceBob(t *testing.T) {
 		}
 
 		if i == 1 {
-			cfg.App = client.WithoutApp()
+			cfg.App = client.WithApp(
+				chtest.NewRandomAppAndData(rng, chtest.WithAppRandomizer(new(payment.Randomizer))),
+			)
 		}
 		executeTwoPartyTest(roles, cfg)
 	}

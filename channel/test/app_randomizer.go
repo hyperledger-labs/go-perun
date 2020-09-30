@@ -50,12 +50,12 @@ func NewRandomApp(rng *rand.Rand, opts ...RandomOpt) channel.App {
 		return app
 	}
 	if def := opt.AppDef(); def != nil {
-		app, _ := channel.AppFromDefinition(def)
+		app, _ := channel.Resolve(def)
 		return app
 	}
 	// WithAppDef does not set the app in the options
-	app := appRandomizer.NewRandomApp(rng)
-	channel.RegisterSingleApp(app.Def(), app)
+	app := opt.AppRandomizer().NewRandomApp(rng)
+	channel.RegisterApp(app)
 	updateOpts(opts, WithApp(app))
 	return app
 }
@@ -68,7 +68,13 @@ func NewRandomData(rng *rand.Rand, opts ...RandomOpt) channel.Data {
 		return data
 	}
 
-	data := appRandomizer.NewRandomData(rng)
+	data := opt.AppRandomizer().NewRandomData(rng)
 	updateOpts(opts, WithAppData(data))
 	return data
+}
+
+// NewRandomAppAndData creates a new random channel.App and new random channel.Data.
+func NewRandomAppAndData(rng *rand.Rand, opts ...RandomOpt) (channel.App, channel.Data) {
+	opt := mergeRandomOpts(opts...)
+	return NewRandomApp(rng, opt), NewRandomData(rng, opt)
 }

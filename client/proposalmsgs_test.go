@@ -37,7 +37,7 @@ func TestChannelProposalReq_NilArgs(t *testing.T) {
 	c := clienttest.NewRandomChannelProposal(
 		rng,
 		client.WithNonceFrom(rng),
-		client.WithApp(test.NewRandomApp(rng), test.NewRandomData(rng)))
+		client.WithApp(test.NewRandomAppAndData(rng)))
 
 	err := c.Encode(nil)
 	require.Error(t, err)
@@ -53,7 +53,7 @@ func TestChannelProposalReqSerialization(t *testing.T) {
 	for i := 0; i < 8; i++ {
 		var app client.ProposalOpts
 		if i&1 == 0 {
-			app = client.WithApp(test.NewRandomApp(rng), test.NewRandomData(rng))
+			app = client.WithApp(test.NewRandomAppAndData(rng))
 		}
 
 		m := clienttest.NewRandomChannelProposal(rng, client.WithNonceFrom(rng), app)
