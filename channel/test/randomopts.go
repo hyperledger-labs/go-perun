@@ -16,11 +16,18 @@ package test
 
 import (
 	"io"
+	"math/big"
 	"math/rand"
 
 	"perun.network/go-perun/channel"
 	"perun.network/go-perun/wallet"
 )
+
+// MaxBalance is the maximum balance used for testing.
+// It is set to 2 ^ 128 - 1 since when 2 ^ 256 - 1 is used, the faucet
+// key is depleted.
+// The production limit can be found in `go-perun/channel.MaxBalance`.
+var MaxBalance = new(big.Int).Sub(new(big.Int).Lsh(big.NewInt(1), 128), big.NewInt(1))
 
 // RandomOpt defines a map of options than can be passed
 // to `NewRandomX` functions in order to alter their default behaviour.
@@ -66,8 +73,8 @@ func WithBalances(balances ...[]channel.Bal) RandomOpt {
 }
 
 // WithBalancesInRange sets the range within which balances are randomly generated.
-func WithBalancesInRange(min, max int64) RandomOpt {
-	return RandomOpt{"balanceRange": []int64{min, max}}
+func WithBalancesInRange(min, max channel.Bal) RandomOpt {
+	return RandomOpt{"balanceRange": []channel.Bal{min, max}}
 }
 
 // WithChallengeDuration sets the `ChallengeDuration` that should be used.
@@ -233,7 +240,7 @@ func (o RandomOpt) Assets() []channel.Asset {
 
 // Balances returns the `Balances` value of the `RandomOpt`.
 // If not present, returns nil.
-func (o RandomOpt) Balances() [][]channel.Bal {
+func (o RandomOpt) Balances() channel.Balances {
 	if _, ok := o["balances"]; !ok {
 		return nil
 	}
@@ -242,12 +249,12 @@ func (o RandomOpt) Balances() [][]channel.Bal {
 
 // BalancesRange returns the `BalancesRange` value of the `RandomOpt`.
 // If not present, returns nil,nil.
-func (o RandomOpt) BalancesRange() (min, max *int64) {
+func (o RandomOpt) BalancesRange() (min, max channel.Bal) {
 	if _, ok := o["balanceRange"]; !ok {
 		return nil, nil
 	}
-	r := o["balanceRange"].([]int64)
-	return &r[0], &r[1]
+	r := o["balanceRange"].([]channel.Bal)
+	return r[0], r[1]
 }
 
 // ChallengeDuration returns the `ChallengeDuration` value of the `RandomOpt`.

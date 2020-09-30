@@ -15,6 +15,8 @@
 package test
 
 import (
+	crand "crypto/rand"
+	"fmt"
 	"log"
 	"math/big"
 	"math/rand"
@@ -218,15 +220,20 @@ func NewRandomBal(rng *rand.Rand, opts ...RandomOpt) channel.Bal {
 	opt := mergeRandomOpts(opts...)
 	min, max := opt.BalancesRange()
 	if min == nil {
-		min = new(int64)
-		*min = 0
+		// Use 1 here since 0 is nearly impossible anyway and many
+		// test assume != 0.
+		min = big.NewInt(1)
 	}
 	if max == nil {
-		max = new(int64)
-		*max = (1 << 62)
+		max = new(big.Int).Rsh(MaxBalance, 30) // 2^98
 	}
 
-	return big.NewInt(rng.Int63n(*max) + (*max - *min) + 1)
+	bal, err := crand.Int(rng, max)
+	if err != nil {
+		panic(fmt.Sprintf("Error creating random big.Int: %v", err))
+	}
+	// rng(max) + (max - min) + 1
+	return new(big.Int).Add(new(big.Int).Add(bal, big.NewInt(1)), new(big.Int).Sub(max, min))
 }
 
 // NewRandomBals generates new random `channel.Bal`s.
