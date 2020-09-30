@@ -63,12 +63,8 @@ func TestSubscribeRegistered(t *testing.T) {
 	txCtx, txCancel := context.WithTimeout(context.Background(), defaultTxTimeout)
 	defer txCancel()
 	// fund the contract
-	reqFund := channel.FundingReq{
-		Params: params,
-		State:  state,
-		Idx:    channel.Index(0),
-	}
-	require.NoError(t, s.Funders[0].Fund(txCtx, reqFund), "funding should succeed")
+	reqFund := channel.NewFundingReq(params, state, channel.Index(0), state.Balances)
+	require.NoError(t, s.Funders[0].Fund(txCtx, *reqFund), "funding should succeed")
 	// Now test the register function
 	tx := signState(t, s.Accs, params, state)
 	req := channel.AdjudicatorReq{
