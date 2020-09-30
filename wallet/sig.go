@@ -85,12 +85,12 @@ func DecodeSparseSigs(r io.Reader, sigs *[]Sig) (err error) {
 	masklen := int(math.Ceil(float64(len(*sigs)) / 8.0))
 	mask := make([]uint8, masklen)
 
-	//Decode mask
+	// Decode mask
 	if err = perunio.Decode(r, &mask); err != nil {
 		return errors.WithMessage(err, "decoding mask")
 	}
 
-	//Decoding mask's signatures
+	// Decoding mask's signatures
 	for maskIdx, sigIdx := 0, 0; maskIdx < len(mask); maskIdx++ {
 		for bitIdx := 0; bitIdx < 8 && sigIdx < len(*sigs); bitIdx, sigIdx = bitIdx+1, sigIdx+1 {
 			if ((mask[maskIdx] >> bitIdx) % 2) == 0 {
