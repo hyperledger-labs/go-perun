@@ -19,6 +19,7 @@ import (
 	"math/big"
 
 	perunio "perun.network/go-perun/pkg/io"
+	perunbig "perun.network/go-perun/pkg/math/big"
 
 	"github.com/pkg/errors"
 )
@@ -44,6 +45,10 @@ const MaxNumParts = 1024
 // num-suballocations items of information in an Allocation.
 const MaxNumSubAllocations = 1024
 
+// MaxBalance is the maximum amount of funds per asset that a user can possess.
+// It is set to 2 ^ 256 - 1.
+var MaxBalance = new(big.Int).Sub(new(big.Int).Lsh(big.NewInt(1), 256), big.NewInt(1))
+
 // Allocation and associated types.
 type (
 	// Allocation is the distribution of assets, were the channel to be finalized.
@@ -62,11 +67,14 @@ type (
 		// Assets are the asset types held in this channel
 		Assets []Asset
 		// Balances is the allocation of assets to the Params.Parts
-		Balances [][]Bal
+		Balances
 		// Locked is the locked allocation to sub-app-channels. It is allowed to be
 		// nil, in which case there's nothing locked.
 		Locked []SubAlloc
 	}
+
+	// Balances two dimensional slice of `Bal`. Is a `Summer`.
+	Balances [][]Bal
 
 	// SubAlloc is the allocation of assets to a single receiver channel ID.
 	// The size of the balances slice must be of the same size as the assets slice
@@ -86,7 +94,9 @@ type (
 	Asset = perunio.Encoder
 )
 
-var _ perunio.Serializer = new(Allocation)
+var _ perunio.Serializer = (*Allocation)(nil)
+var _ perunbig.Summer = (*Allocation)(nil)
+var _ perunbig.Summer = (*Balances)(nil)
 
 // NumParts returns the number of participants of this Allocation. It returns -1 if
 // there are no Balances, i.e., if the Allocation is invalid.
@@ -107,12 +117,7 @@ func (a Allocation) Clone() (clone Allocation) {
 		}
 	}
 
-	if a.Balances != nil {
-		clone.Balances = make([][]Bal, len(a.Balances))
-		for i, pa := range a.Balances {
-			clone.Balances[i] = CloneBals(pa)
-		}
-	}
+	clone.Balances = a.Balances.Clone()
 
 	if a.Locked != nil {
 		clone.Locked = make([]SubAlloc, len(a.Locked))
@@ -124,6 +129,19 @@ func (a Allocation) Clone() (clone Allocation) {
 		}
 	}
 
+	return clone
+}
+
+// Clone returns a deep copy of the Balance object.
+// If it is nil, it returns nil.
+func (b Balances) Clone() Balances {
+	if b == nil {
+		return nil
+	}
+	clone := make([][]Bal, len(b))
+	for i, pa := range b {
+		clone[i] = CloneBals(pa)
+	}
 	return clone
 }
 
@@ -144,13 +162,8 @@ func (a Allocation) Encode(w io.Writer) error {
 		}
 	}
 	// encode participant allocations
-	for i := range a.Balances {
-		for j := range a.Balances[i] {
-			if err := perunio.Encode(w, a.Balances[i][j]); err != nil {
-				return errors.WithMessagef(
-					err, "encoding balance of asset %d of participant %d", i, j)
-			}
-		}
+	if err := a.Balances.Encode(w); err != nil {
+		return errors.WithMessage(err, "encoding balances")
 	}
 	// encode suballocations
 	for i, s := range a.Locked {
@@ -183,16 +196,8 @@ func (a *Allocation) Decode(r io.Reader) error {
 		a.Assets[i] = asset
 	}
 	// decode participant allocations
-	a.Balances = make([][]Bal, numAssets)
-	for i := range a.Balances {
-		a.Balances[i] = make([]Bal, numParts)
-		for j := range a.Balances[i] {
-			a.Balances[i][j] = new(big.Int)
-			if err := perunio.Decode(r, &a.Balances[i][j]); err != nil {
-				return errors.WithMessagef(
-					err, "decoding balance of asset %d of participant %d", i, j)
-			}
-		}
+	if err := perunio.Decode(r, a.Balances.Decoder(numAssets, numParts)); err != nil {
+		return errors.WithMessage(err, "decoding balances")
 	}
 	// decode locked allocations
 	a.Locked = make([]SubAlloc, numLocked)
@@ -204,6 +209,50 @@ func (a *Allocation) Decode(r io.Reader) error {
 	}
 
 	return a.Valid()
+}
+
+type balancesDec struct {
+	bals                *Balances
+	numAssets, numParts Index
+}
+
+// Decoder returns an `io.Decoder` that can be used with our en/decode pattern.
+func (b *Balances) Decoder(numAssets, numParts Index) perunio.Decoder {
+	return &balancesDec{
+		bals:      b,
+		numAssets: numAssets,
+		numParts:  numParts,
+	}
+}
+
+// Decodes the `bals` field of the receiver with the set `numAssets`
+// and `numarts`.
+func (b *balancesDec) Decode(r io.Reader) error {
+	*b.bals = make(Balances, b.numAssets)
+	for i := range *b.bals {
+		(*b.bals)[i] = make([]Bal, b.numParts)
+		for j := range (*b.bals)[i] {
+			(*b.bals)[i][j] = new(big.Int)
+			if err := perunio.Decode(r, &(*b.bals)[i][j]); err != nil {
+				return errors.WithMessagef(
+					err, "decoding balance of asset %d of participant %d", i, j)
+			}
+		}
+	}
+	return nil
+}
+
+// Encode encodes these balances into an io.Writer.
+func (b Balances) Encode(w io.Writer) error {
+	for i := range b {
+		for j := range b[i] {
+			if err := perunio.Encode(w, b[i][j]); err != nil {
+				return errors.WithMessagef(
+					err, "encoding balance of asset %d of participant %d", i, j)
+			}
+		}
+	}
+	return nil
 }
 
 // CloneBals creates a deep copy of a balance array.
@@ -268,18 +317,7 @@ func (a Allocation) Valid() error {
 // Sum returns the sum of each asset over all participants and locked
 // allocations.
 func (a Allocation) Sum() []Bal {
-	n := len(a.Assets)
-	totals := make([]*big.Int, n)
-	for i := 0; i < n; i++ {
-		totals[i] = new(big.Int)
-	}
-
-	for i, asset := range a.Balances {
-		for _, bal := range asset {
-			totals[i].Add(totals[i], bal)
-		}
-	}
-
+	totals := a.Balances.Sum()
 	// Locked is allowed to have zero length, in which case there's nothing locked
 	// and the loop is empty.
 	for _, a := range a.Locked {
@@ -288,6 +326,22 @@ func (a Allocation) Sum() []Bal {
 		}
 	}
 
+	return totals
+}
+
+// Sum returns the sum of each asset over all participants.
+func (b Balances) Sum() []Bal {
+	n := len(b)
+	totals := make([]*big.Int, n)
+	for i := 0; i < n; i++ {
+		totals[i] = new(big.Int)
+	}
+
+	for i, asset := range b {
+		for _, bal := range asset {
+			totals[i].Add(totals[i], bal)
+		}
+	}
 	return totals
 }
 

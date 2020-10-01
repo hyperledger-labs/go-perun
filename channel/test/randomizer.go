@@ -248,17 +248,17 @@ func NewRandomBals(rng *rand.Rand, numBals int, opts ...RandomOpt) []channel.Bal
 	return bals
 }
 
-// NewRandomBalances generates a new random `[][]channel.Bal`.
+// NewRandomBalances generates a new random `channel.Balances`.
 // Options: `WithBalances`, `WithNumAssets`, `WithNumParts`
 // and all from `NewRandomBals`.
-func NewRandomBalances(rng *rand.Rand, opts ...RandomOpt) [][]channel.Bal {
+func NewRandomBalances(rng *rand.Rand, opts ...RandomOpt) channel.Balances {
 	opt := mergeRandomOpts(opts...)
 
 	if balances := opt.Balances(); balances != nil {
 		return balances
 	}
 
-	balances := make([][]channel.Bal, opt.NumAssets(rng))
+	balances := make(channel.Balances, opt.NumAssets(rng))
 	for i := range balances {
 		balances[i] = NewRandomBals(rng, opt.NumParts(rng), opt)
 	}
@@ -295,4 +295,17 @@ func NewRandomTransaction(rng *rand.Rand, sigMask []bool, opts ...RandomOpt) *ch
 		State: state,
 		Sigs:  sigs,
 	}
+}
+
+// ShuffleBalances shuffles the balances of the participants per asset
+// and returns it. The returned `Balance` has the same `Sum()` value.
+func ShuffleBalances(rng *rand.Rand, b channel.Balances) channel.Balances {
+	ret := b.Clone()
+	for _, a := range ret {
+		a := a
+		rng.Shuffle(len(a), func(i, j int) {
+			a[i], a[j] = a[j], a[i]
+		})
+	}
+	return ret
 }

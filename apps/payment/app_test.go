@@ -120,8 +120,8 @@ func TestApp_ValidTransition(t *testing.T) {
 	// to pass valid input.
 }
 
-func asBalances(rawBals ...[]int64) [][]channel.Bal {
-	ret := make([][]channel.Bal, len(rawBals))
+func asBalances(rawBals ...[]int64) channel.Balances {
+	ret := make(channel.Balances, len(rawBals))
 	for i, rawBal := range rawBals {
 		ret[i] = make([]channel.Bal, len(rawBal))
 		for j, bal := range rawBal {
