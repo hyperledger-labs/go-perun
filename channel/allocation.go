@@ -333,26 +333,6 @@ func (a *Allocation) Equal(b *Allocation) error {
 	return nil
 }
 
-// summer returns sums of balances.
-type summer interface {
-	Sum() []Bal
-}
-
-func equalSum(b0, b1 summer) (bool, error) {
-	s0, s1 := b0.Sum(), b1.Sum()
-	n := len(s0)
-	if n != len(s1) {
-		return false, errors.New("dimension mismatch")
-	}
-
-	for i := 0; i < n; i++ {
-		if s0[i].Cmp(s1[i]) != 0 {
-			return false, nil
-		}
-	}
-	return true, nil
-}
-
 var _ perunio.Serializer = new(SubAlloc)
 
 // Valid checks if this suballocation is valid.
