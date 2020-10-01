@@ -57,7 +57,7 @@ func withdrawMultipleConcurrentFinal(t *testing.T, numParts int, parallel bool) 
 	for i, funder := range s.Funders {
 		sleepTime := time.Duration(rng.Int63n(10) + 1)
 		i, funder := i, funder
-		go ct.StageN("funding loop", numParts, func(rt require.TestingT) {
+		go ct.StageN("funding loop", numParts, func(rt pkgtest.ConcT) {
 			time.Sleep(sleepTime * time.Millisecond)
 			req := channel.FundingReq{
 				Params: params,
@@ -139,7 +139,7 @@ func testWithdrawZeroBalance(t *testing.T, n int) {
 	ct := pkgtest.NewConcurrent(t)
 	for i, funder := range s.Funders {
 		i, funder := i, funder
-		go ct.StageN("funding loop", n, func(rt require.TestingT) {
+		go ct.StageN("funding loop", n, func(rt pkgtest.ConcT) {
 			req := channel.FundingReq{
 				Params: params,
 				State:  state,
