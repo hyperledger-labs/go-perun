@@ -17,6 +17,7 @@ package test
 import (
 	"runtime"
 	"strconv"
+	"strings"
 	"sync"
 	stdatomic "sync/atomic"
 
@@ -71,7 +72,7 @@ func (s *stage) pass() {
 // FailNow marks the stage as failed and terminates the goroutine.
 func (s *stage) FailNow() {
 	s.failed.Set()
-	s.wg.Done()
+	defer s.wg.Done()
 	s.ct.FailNow()
 }
 
@@ -128,7 +129,7 @@ func (t *ConcurrentT) Wait(names ...string) {
 
 	for _, name := range names {
 		if !t.getStage(name).wait() {
-			runtime.Goexit()
+			t.FailNow()
 		}
 	}
 }
@@ -156,25 +157,31 @@ func (t *ConcurrentT) FailNow() {
 // ConcurrentT.StageN() instead.
 func (t *ConcurrentT) StageN(name string, goroutines int, fn func(require.TestingT)) {
 	stage := t.spawnStage(name, goroutines)
-	aborted := true
-	// Detect whether fn terminates via panic() or direct calls to
-	// runtime.Goexit(). Mark the stage as done if it is not yet marked. Call
-	// FailNow() on the test.
-	defer func() {
-		if aborted {
-			if stage.failed.TrySet() {
-				defer stage.wg.Done()
-			}
-			t.FailNow()
+
+	abort := CheckAbort(func() {
+		fn(stage)
+	})
+
+	if abort != nil {
+		// Fail the stage, if it had not been marked as such, yet.
+		if stage.failed.TrySet() {
+			defer stage.wg.Done()
 		}
-	}()
-
-	fn(stage)
-
-	aborted = false
+		// If it is a panic or Goexit from certain contexts, print stack trace.
+		if _, ok := abort.(*Panic); ok || shouldPrintStack(abort.Stack()) {
+			print("\n", abort.String())
+		}
+		t.FailNow()
+	}
 
 	stage.pass()
 	t.Wait(name)
+}
+
+func shouldPrintStack(stack string) bool {
+	// Ignore goroutines that terminate in Wait() because that's a controlled
+	// shutdown of the test and not an error.
+	return !strings.Contains(stack, "(*ConcurrentT).Wait(")
 }
 
 // Stage creates a named execution stage.

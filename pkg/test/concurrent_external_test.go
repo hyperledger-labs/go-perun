@@ -63,6 +63,21 @@ func TestConcurrentT_FailNow(t *testing.T) {
 	// Test that after that, FailNow() calls runtime.Goexit().
 	assert.True(t, test.CheckGoexit(ct.FailNow),
 		"redundant FailNow() must call runtime.Goexit()")
+
+	t.Run("hammer", func(t *testing.T) {
+		const parallel = 12
+		for tries := 0; tries < 512; tries++ {
+			test.AssertFatal(t, func(t test.T) {
+				ct := test.NewConcurrent(t)
+				for g := 0; g < parallel; g++ {
+					go ct.StageN("concurrent", parallel, func(t test.ConcT) {
+						t.FailNow()
+					})
+				}
+				ct.Wait("concurrent")
+			})
+		}
+	})
 }
 
 func TestConcurrentT_StageN(t *testing.T) {
