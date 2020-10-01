@@ -126,13 +126,10 @@ func TestTester(_t *testing.T) {
 	_t.Run("panicking assertion", func(_t *testing.T) {
 		assert := assert.New(_t)
 		tester := NewTester(_t)
-		assert.PanicsWithValue(
-			"boom",
-			func() {
-				tester.assert(func(*testerT) {}, func(T) { panic("boom") })
-			},
-			"Tester.assert caught other panic",
-		)
+		_, value := CheckPanic(func() {
+			tester.assert(func(*testerT) {}, func(T) { panic("boom") })
+		})
+		assert.Equal("boom", value, "Tester.assert caught other panic")
 
 		// panic(nil)
 		panicked, pval := CheckPanic(func() { tester.assert(func(*testerT) {}, func(T) { panic(nil) }) })

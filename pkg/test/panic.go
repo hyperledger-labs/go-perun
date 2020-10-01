@@ -20,7 +20,12 @@ package test
 // value passed to panic().
 func CheckPanic(function func()) (didPanic bool, value interface{}) {
 	// Catch the panic, if it happens and store the passed value.
-	defer func() { value = recover() }()
+	defer func() {
+		value = recover()
+		if p, ok := value.(*Panic); ok {
+			value = p.Value()
+		}
+	}()
 	// Set up for the panic case.
 	didPanic = true
 	// Call the function to be checked.
