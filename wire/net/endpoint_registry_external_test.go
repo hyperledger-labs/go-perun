@@ -116,7 +116,7 @@ func TestEndpointRegistry_Get_Multiple(t *testing.T) {
 
 	ct := test.NewConcurrent(t)
 	ctxtest.AssertTerminates(t, timeout, func() {
-		ct.Stage("terminates", func(t require.TestingT) {
+		ct.Stage("terminates", func(t test.ConcT) {
 			require := require.New(t)
 			p := <-peers
 			require.NotNil(p)

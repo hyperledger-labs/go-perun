@@ -107,7 +107,7 @@ func GenericPersistRestorerTest(
 			ch := ch
 			iterIdx++
 			iterIdx := iterIdx
-			go ct.StageN("testing", numChans*numPeers, func(t require.TestingT) {
+			go ct.StageN("testing", numChans*numPeers, func(t pkgtest.ConcT) {
 				chIndex := iterIdx
 				log.Error(subSeed)
 				seed := pkgtest.Seed("", subSeed, numChans, numPeers, chIndex, ch.ID())

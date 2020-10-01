@@ -43,7 +43,7 @@ func TestConnHub_Create(t *testing.T) {
 
 		ct := pkgtest.NewConcurrent(t)
 		go ctxtest.AssertTerminates(t, timeout, func() {
-			ct.Stage("accept", func(rt require.TestingT) {
+			ct.Stage("accept", func(rt pkgtest.ConcT) {
 				conn, err := l.Accept()
 				assert.NoError(err)
 				require.NotNil(rt, conn)
@@ -52,7 +52,7 @@ func TestConnHub_Create(t *testing.T) {
 		})
 
 		ctxtest.AssertTerminates(t, timeout, func() {
-			ct.Stage("dial", func(rt require.TestingT) {
+			ct.Stage("dial", func(rt pkgtest.ConcT) {
 				conn, err := d.Dial(context.Background(), addr)
 				assert.NoError(err)
 				require.NotNil(rt, conn)
