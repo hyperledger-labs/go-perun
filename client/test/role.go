@@ -222,7 +222,7 @@ func (r *role) LedgerChannelProposal(rng *rand.Rand, cfg *ExecConfig) client.Cha
 
 	initBals := &channel.Allocation{
 		Assets:   []channel.Asset{cfg.Asset},
-		Balances: [][]channel.Bal{cfg.InitBals[:]},
+		Balances: channel.Balances{cfg.InitBals[:]},
 	}
 	return client.NewLedgerChannelProposal(
 		60, // 60 sec

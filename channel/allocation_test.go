@@ -15,15 +15,18 @@
 package channel_test
 
 import (
+	"io"
 	"math/big"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	"perun.network/go-perun/channel"
 	"perun.network/go-perun/channel/test"
 	perunio "perun.network/go-perun/pkg/io"
 	iotest "perun.network/go-perun/pkg/io/test"
+	pkgbig "perun.network/go-perun/pkg/math/big"
 	pkgtest "perun.network/go-perun/pkg/test"
 )
 
@@ -61,6 +64,53 @@ func TestAllocationNumParts(t *testing.T) {
 	}
 }
 
+func TestBalancesEqualSum(t *testing.T) {
+	rng := pkgtest.Prng(t)
+	for i := 0; i < 10; i++ {
+		// Two random balances are different by chance.
+		a, b := test.NewRandomBalances(rng), test.NewRandomBalances(rng)
+		ok, err := pkgbig.EqualSum(a, b)
+		if len(a) != len(b) {
+			require.Error(t, err, "Sum with different dimensions should error")
+		} else {
+			assert.False(t, ok, "a and b should have different sums")
+		}
+		// Shuffling must not change the sum.
+		s := test.ShuffleBalances(rng, a)
+		ok, err = pkgbig.EqualSum(a, s)
+		require.NoError(t, err)
+		assert.True(t, ok)
+	}
+}
+
+type balancesDec struct {
+	b                   channel.Balances
+	numAssets, numParts channel.Index
+}
+
+func (b *balancesDec) Decode(r io.Reader) error {
+	if err := perunio.Decode(r, &b.numAssets, &b.numParts); err != nil {
+		return err
+	}
+	// Need two calls, since otherwise numAsset and numParts are already bound.
+	return b.b.Decoder(b.numAssets, b.numParts).Decode(r)
+}
+
+func (b balancesDec) Encode(w io.Writer) error {
+	return perunio.Encode(w, b.numAssets, b.numParts, b.b)
+}
+
+func TestBalancesSerialization(t *testing.T) {
+	rng := pkgtest.Prng(t)
+	for n := 0; n < 10; n++ {
+		alloc := test.NewRandomAllocation(rng)
+		if alloc.Valid() == nil {
+			dec := &balancesDec{alloc.Balances, channel.Index(len(alloc.Assets)), channel.Index(alloc.NumParts())}
+			iotest.GenericSerializerTest(t, dec)
+		}
+	}
+}
+
 func TestAllocationSerialization(t *testing.T) {
 	rng := pkgtest.Prng(t)
 	inputs := []perunio.Serializer{
@@ -91,7 +141,7 @@ func TestAllocationValidLimits(t *testing.T) {
 	for ti, x := range inputs {
 		allocation := &channel.Allocation{
 			Assets:   make([]channel.Asset, x.numAssets),
-			Balances: make([][]channel.Bal, x.numAssets),
+			Balances: make(channel.Balances, x.numAssets),
 			Locked:   make([]channel.SubAlloc, x.numSuballocations),
 		}
 
@@ -167,13 +217,13 @@ func TestAllocation_Sum(t *testing.T) {
 	}{
 		{
 			"single asset/one participant",
-			*test.NewRandomAllocation(rng, test.WithNumAssets(1), test.WithNumParts(1), test.WithBalancesInRange(1, 1)),
+			*test.NewRandomAllocation(rng, test.WithNumAssets(1), test.WithNumParts(1), test.WithBalancesInRange(big.NewInt(1), big.NewInt(1))),
 			[]channel.Bal{big.NewInt(1)},
 		},
 
 		{
 			"single asset/one participant/empty locked slice",
-			*test.NewRandomAllocation(rng, test.WithNumAssets(1), test.WithNumParts(1), test.WithBalancesInRange(1, 1)),
+			*test.NewRandomAllocation(rng, test.WithNumAssets(1), test.WithNumParts(1), test.WithBalancesInRange(big.NewInt(1), big.NewInt(1))),
 			[]channel.Bal{big.NewInt(1)},
 		},
 
@@ -185,7 +235,7 @@ func TestAllocation_Sum(t *testing.T) {
 
 		{
 			"three assets/three participants",
-			*test.NewRandomAllocation(rng, test.WithNumAssets(3), test.WithNumParts(3), test.WithBalances([][]channel.Bal{
+			*test.NewRandomAllocation(rng, test.WithNumAssets(3), test.WithNumParts(3), test.WithBalances(channel.Balances{
 				{big.NewInt(1), big.NewInt(2), big.NewInt(4)},
 				{big.NewInt(8), big.NewInt(16), big.NewInt(32)},
 				{big.NewInt(64), big.NewInt(128), big.NewInt(256)},
@@ -195,7 +245,7 @@ func TestAllocation_Sum(t *testing.T) {
 
 		{
 			"single asset/one participants/one locked",
-			*test.NewRandomAllocation(rng, test.WithNumAssets(1), test.WithNumParts(1), test.WithLocked(channel.SubAlloc{Bals: []channel.Bal{big.NewInt(2)}}), test.WithBalancesInRange(1, 1)),
+			*test.NewRandomAllocation(rng, test.WithNumAssets(1), test.WithNumParts(1), test.WithLocked(channel.SubAlloc{Bals: []channel.Bal{big.NewInt(2)}}), test.WithBalancesInRange(big.NewInt(1), big.NewInt(1))),
 			[]channel.Bal{big.NewInt(3)},
 		},
 
@@ -205,7 +255,7 @@ func TestAllocation_Sum(t *testing.T) {
 				*test.NewRandomSubAlloc(rng, test.WithLockedBals(big.NewInt(4), big.NewInt(0x80), big.NewInt(0x1000))),
 				*test.NewRandomSubAlloc(rng, test.WithLockedBals(big.NewInt(8), big.NewInt(0x100), big.NewInt(0x2000))),
 				*test.NewRandomSubAlloc(rng, test.WithLockedBals(big.NewInt(0x10), big.NewInt(0x200), big.NewInt(0x4000))),
-			), test.WithBalances([][]channel.Bal{
+			), test.WithBalances(channel.Balances{
 				{big.NewInt(1), big.NewInt(2)},
 				{big.NewInt(0x20), big.NewInt(0x40)},
 				{big.NewInt(0x400), big.NewInt(0x800)},
@@ -238,7 +288,7 @@ func TestAllocation_Valid(t *testing.T) {
 			"one participant/no locked valid",
 			channel.Allocation{
 				Assets:   test.NewRandomAssets(rng, test.WithNumAssets(1)),
-				Balances: [][]channel.Bal{{big.NewInt(1)}},
+				Balances: channel.Balances{{big.NewInt(1)}},
 				Locked:   nil,
 			},
 			true,
@@ -268,7 +318,7 @@ func TestAllocation_Valid(t *testing.T) {
 			"no participant/no locked",
 			channel.Allocation{
 				Assets:   test.NewRandomAssets(rng, test.WithNumAssets(1)),
-				Balances: make([][]channel.Bal, 0),
+				Balances: make(channel.Balances, 0),
 			},
 			false,
 		},
@@ -277,7 +327,7 @@ func TestAllocation_Valid(t *testing.T) {
 			"two participants/wrong number of asset",
 			channel.Allocation{
 				Assets: test.NewRandomAssets(rng, test.WithNumAssets(3)),
-				Balances: [][]channel.Bal{
+				Balances: channel.Balances{
 					{big.NewInt(1), big.NewInt(8)},
 					{big.NewInt(2), big.NewInt(16)},
 				},
@@ -289,7 +339,7 @@ func TestAllocation_Valid(t *testing.T) {
 			"three assets/wrong number of participants",
 			channel.Allocation{
 				Assets: test.NewRandomAssets(rng, test.WithNumAssets(3)),
-				Balances: [][]channel.Bal{
+				Balances: channel.Balances{
 					{big.NewInt(1), big.NewInt(8)},
 					{big.NewInt(2), big.NewInt(16)},
 					{big.NewInt(64)},
@@ -302,7 +352,7 @@ func TestAllocation_Valid(t *testing.T) {
 			"two participants/one locked wrong dimension",
 			channel.Allocation{
 				Assets: test.NewRandomAssets(rng, test.WithNumAssets(3)),
-				Balances: [][]channel.Bal{
+				Balances: channel.Balances{
 					{big.NewInt(1), big.NewInt(2)},
 					{big.NewInt(8), big.NewInt(16)},
 					{big.NewInt(64), big.NewInt(128)},
@@ -318,7 +368,7 @@ func TestAllocation_Valid(t *testing.T) {
 			"three assets/one locked invalid dimension",
 			channel.Allocation{
 				Assets: test.NewRandomAssets(rng, test.WithNumAssets(3)),
-				Balances: [][]channel.Bal{
+				Balances: channel.Balances{
 					{big.NewInt(1), big.NewInt(2)},
 					{big.NewInt(8), big.NewInt(16)},
 					{big.NewInt(64), big.NewInt(128)},
@@ -333,7 +383,7 @@ func TestAllocation_Valid(t *testing.T) {
 			"two participants/negative balance",
 			channel.Allocation{
 				Assets: test.NewRandomAssets(rng, test.WithNumAssets(3)),
-				Balances: [][]channel.Bal{
+				Balances: channel.Balances{
 					{big.NewInt(1), big.NewInt(2)},
 					{big.NewInt(8), big.NewInt(-1)},
 					{big.NewInt(64), big.NewInt(128)},
@@ -347,7 +397,7 @@ func TestAllocation_Valid(t *testing.T) {
 			"two participants/one locked negative balance",
 			channel.Allocation{
 				Assets: test.NewRandomAssets(rng, test.WithNumAssets(2)),
-				Balances: [][]channel.Bal{
+				Balances: channel.Balances{
 					{big.NewInt(1), big.NewInt(8)},
 					{big.NewInt(2), big.NewInt(16)},
 				},

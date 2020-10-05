@@ -27,7 +27,9 @@ import (
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/pkg/errors"
 
-	sync "perun.network/go-perun/pkg/sync"
+	"perun.network/go-perun/channel"
+	"perun.network/go-perun/channel/test"
+	"perun.network/go-perun/pkg/sync"
 )
 
 // GasLimit is the max amount of gas we want to send per transaction.
@@ -57,7 +59,7 @@ func NewSimulatedBackend() *SimulatedBackend {
 		common.BytesToAddress([]byte{6}): {Balance: big.NewInt(1)}, // ECAdd
 		common.BytesToAddress([]byte{7}): {Balance: big.NewInt(1)}, // ECScalarMul
 		common.BytesToAddress([]byte{8}): {Balance: big.NewInt(1)}, // ECPairing
-		faucetAddr:                       {Balance: new(big.Int).Sub(new(big.Int).Lsh(big.NewInt(1), 256), big.NewInt(9))},
+		faucetAddr:                       {Balance: new(big.Int).Sub(channel.MaxBalance, big.NewInt(9))},
 	}
 	alloc := core.GenesisAlloc(addr)
 	return &SimulatedBackend{
@@ -82,8 +84,7 @@ func (s *SimulatedBackend) FundAddress(ctx context.Context, addr common.Address)
 	if err != nil {
 		panic(err)
 	}
-	value := new(big.Int).Lsh(big.NewInt(1), 64) // 10 eth in wei
-	tx := types.NewTransaction(nonce, addr, value, GasLimit, big.NewInt(1), nil)
+	tx := types.NewTransaction(nonce, addr, test.MaxBalance, GasLimit, big.NewInt(1), nil)
 	signer := types.NewEIP155Signer(big.NewInt(1337))
 	signedTX, err := types.SignTx(tx, signer, s.faucetKey)
 	if err != nil {
