@@ -161,3 +161,21 @@ func (d OptAppDec) Decode(r io.Reader) (err error) {
 	*d.App, err = Resolve(appDef)
 	return errors.WithMessage(err, "resolve app")
 }
+
+// AppShouldEqual compares two Apps for equality.
+func AppShouldEqual(expected, actual App) error {
+	if IsNoApp(expected) && IsNoApp(actual) {
+		return nil
+	}
+
+	if !IsNoApp(expected) && IsNoApp(actual) ||
+		IsNoApp(expected) && !IsNoApp(actual) {
+		return errors.New("(non-)nil App definitions")
+	}
+
+	if !expected.Def().Equals(actual.Def()) {
+		return errors.New("different App definitions")
+	}
+
+	return nil
+}

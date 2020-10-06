@@ -463,12 +463,8 @@ func (m *machine) validTransition(to *State) error {
 
 	newError := func(s string) error { return NewStateTransitionError(m.params.id, s) }
 
-	if !IsNoApp(m.params.App) {
-		if IsNoApp(to.App) || !m.params.App.Def().Equals(to.App.Def()) {
-			return newError("new state's App dosen't match")
-		}
-	} else if !IsNoApp(to.App) {
-		return newError("new state must have no app")
+	if err := AppShouldEqual(m.params.App, to.App); err != nil {
+		return newError(fmt.Sprintf("new state's App doesn't match: %v", err))
 	}
 
 	if m.currentTX.IsFinal {
@@ -484,7 +480,7 @@ func (m *machine) validTransition(to *State) error {
 	}
 
 	if eq, err := big.EqualSum(m.currentTX.Allocation, to.Allocation); err != nil {
-		return err
+		return newError(fmt.Sprintf("allocation: %v", err))
 	} else if !eq {
 		return newError("allocations must be preserved")
 	}
