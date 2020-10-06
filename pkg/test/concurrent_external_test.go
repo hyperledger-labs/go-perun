@@ -15,6 +15,7 @@
 package test_test
 
 import (
+	"fmt"
 	"strconv"
 	"sync"
 	"testing"
@@ -37,14 +38,14 @@ func TestConcurrentT_Wait(t *testing.T) {
 
 	t.Run("unknown name", func(t *testing.T) {
 		ct := test.NewConcurrent(t)
-		ct.Stage("known", func(t require.TestingT) {
+		ct.Stage("known", func(t test.ConcT) {
 		})
 		ctxtest.AssertNotTerminates(t, timeout, func() { ct.Wait("unknown") })
 	})
 
 	t.Run("known name", func(t *testing.T) {
 		ct := test.NewConcurrent(t)
-		go ct.Stage("known", func(require.TestingT) {
+		go ct.Stage("known", func(test.ConcT) {
 			time.Sleep(timeout / 2)
 		})
 		ctxtest.AssertTerminates(t, timeout, func() { ct.Wait("known") })
@@ -89,7 +90,7 @@ func TestConcurrentT_StageN(t *testing.T) {
 
 		for i := 0; i < 2; i++ {
 			go func() {
-				ct.StageN("stage", 2, func(t require.TestingT) {
+				ct.StageN("stage", 2, func(t test.ConcT) {
 					executed.Done()
 				})
 				returned.Done()
@@ -110,7 +111,7 @@ func TestConcurrentT_StageN(t *testing.T) {
 			go func(g int) {
 				for stage := 0; stage < M; stage++ {
 					if g&1 == 0 {
-						ct.StageN(strconv.Itoa(stage), N/2, func(t require.TestingT) {
+						ct.StageN(strconv.Itoa(stage), N/2, func(t test.ConcT) {
 						})
 					} else {
 						ct.Wait(strconv.Itoa(stage))
@@ -131,7 +132,7 @@ func TestConcurrentT_StageN(t *testing.T) {
 				go func(g int) {
 					defer wg.Done()
 					for stage := 0; stage < M; stage++ {
-						ct.StageN(strconv.Itoa(stage), N, func(t require.TestingT) {
+						ct.StageN(strconv.Itoa(stage), N, func(t test.ConcT) {
 							if g == N/2 {
 								t.FailNow()
 							}
@@ -147,16 +148,16 @@ func TestConcurrentT_StageN(t *testing.T) {
 	t.Run("too few goroutines", func(t *testing.T) {
 		ct := test.NewConcurrent(t)
 		ctxtest.AssertNotTerminates(t, timeout, func() {
-			ct.StageN("stage", 2, func(require.TestingT) {})
+			ct.StageN("stage", 2, func(test.ConcT) {})
 		})
 	})
 
 	t.Run("too many goroutines", func(t *testing.T) {
 		ct := test.NewConcurrent(t)
-		go ct.StageN("stage", 2, func(require.TestingT) {})
-		ct.StageN("stage", 2, func(require.TestingT) {})
+		go ct.StageN("stage", 2, func(test.ConcT) {})
+		ct.StageN("stage", 2, func(test.ConcT) {})
 		assert.Panics(t, func() {
-			ct.StageN("stage", 2, func(require.TestingT) {})
+			ct.StageN("stage", 2, func(test.ConcT) {})
 		})
 	})
 
@@ -165,20 +166,56 @@ func TestConcurrentT_StageN(t *testing.T) {
 		var created sync.WaitGroup
 		created.Add(1)
 
-		go ct.StageN("stage", 2, func(require.TestingT) {
+		go ct.StageN("stage", 2, func(test.ConcT) {
 			created.Done()
 		})
 
 		created.Wait()
 		assert.Panics(t, func() {
-			ct.StageN("stage", 3, func(require.TestingT) {})
+			ct.StageN("stage", 3, func(test.ConcT) {})
 		})
 	})
 
 	t.Run("panic", func(t *testing.T) {
 		test.AssertFatal(t, func(t test.T) {
 			ct := test.NewConcurrent(t)
-			ct.Stage("stage", func(require.TestingT) { panic(nil) })
+			ct.Stage("stage", func(test.ConcT) { panic(nil) })
+		})
+	})
+}
+
+func TestConcurrentT_Barrier(t *testing.T) {
+	const N = 64
+	const M = 32
+
+	t.Run("happy", func(t *testing.T) {
+		ct := test.NewConcurrent(t)
+
+		for i := 0; i < N; i++ {
+			go ct.StageN("loop", N, func(t test.ConcT) {
+				for j := 0; j < M; j++ {
+					t.BarrierN(fmt.Sprintf("barrier %d", j), N)
+				}
+			})
+		}
+		ct.Wait("loop")
+	})
+
+	t.Run("fail", func(t *testing.T) {
+		test.AssertFatal(t, func(t test.T) {
+			ct := test.NewConcurrent(t)
+
+			for i := 0; i < N; i++ {
+				i := i
+				go ct.StageN("loop", N, func(t test.ConcT) {
+					if i == N/2 {
+						t.FailBarrierN("barrier", N)
+					} else {
+						t.BarrierN("barrier", N)
+					}
+				})
+			}
+			ct.Wait("loop")
 		})
 	})
 }

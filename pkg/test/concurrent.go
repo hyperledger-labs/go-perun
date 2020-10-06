@@ -26,6 +26,56 @@ import (
 	"perun.network/go-perun/pkg/sync/atomic"
 )
 
+// ConcT is a testing object used by ConcurrentT stages. It can access the
+// parent ConcurrentT's barrier and wait functions. This way, it can wait for
+// sibling stages and barriers under the same parent ConcurrentT.
+type ConcT struct {
+	require.TestingT // The stage's T object.
+
+	ct *ConcurrentT // The parent ConcurrenT object.
+}
+
+// Wait waits for a sibling stage or barrier to terminate.
+// See ConcurrentT.Wait.
+func (t ConcT) Wait(names ...string) {
+	t.ct.Wait(names...)
+}
+
+// Barrier creates a barrier visible to all sibling stages.
+// See ConcurrentT.Barrier.
+func (t ConcT) Barrier(name string) {
+	t.ct.Barrier(name)
+}
+
+// FailBarrier marks a barrier visible to all sibling stages as failed.
+// See ConcurrentT.FailBarrier.
+func (t ConcT) FailBarrier(name string) {
+	defer t.ct.FailBarrier(name)
+	t.FailNow()
+}
+
+// BarrierN creates a barrier visible to all sibling stages.
+// See ConcurrentT.BarrierN.
+func (t ConcT) BarrierN(name string, n int) {
+	fail := true
+	defer func() {
+		if fail {
+			t.FailNow()
+		}
+	}()
+	t.ct.BarrierN(name, n)
+	fail = false
+}
+
+// FailBarrierN marks a barrier visible to all sibling stages as failed.
+// See ConcurrentT.FailBarrierN.
+func (t ConcT) FailBarrierN(name string, n int) {
+	defer t.ct.FailBarrierN(name, n)
+	t.FailNow()
+}
+
+var _ require.TestingT = (*stage)(nil)
+
 // stage is a single stage of execution in a concurrent test.
 type stage struct {
 	name      string      // The stage's name.
@@ -121,7 +171,7 @@ func (t *ConcurrentT) getStage(name string) *stage {
 }
 
 // Wait waits until the stages and barriers with the requested names terminate.
-// If any stage fails, terminates the current goroutine.
+// If any stage or barrier fails, terminates the current goroutine or test.
 func (t *ConcurrentT) Wait(names ...string) {
 	if len(names) == 0 {
 		panic("Wait(): called with 0 names")
@@ -155,11 +205,12 @@ func (t *ConcurrentT) FailNow() {
 // fn must not spawn any goroutines or pass along the T object to goroutines
 // that call T.Fatal. To achieve this, make other goroutines call
 // ConcurrentT.StageN() instead.
-func (t *ConcurrentT) StageN(name string, goroutines int, fn func(require.TestingT)) {
+func (t *ConcurrentT) StageN(name string, goroutines int, fn func(ConcT)) {
 	stage := t.spawnStage(name, goroutines)
 
+	stageT := ConcT{TestingT: stage, ct: t}
 	abort := CheckAbort(func() {
-		fn(stage)
+		fn(stageT)
 	})
 
 	if abort != nil {
@@ -186,7 +237,7 @@ func shouldPrintStack(stack string) bool {
 
 // Stage creates a named execution stage.
 // It is a shorthand notation for StageN(name, 1, fn).
-func (t *ConcurrentT) Stage(name string, fn func(require.TestingT)) {
+func (t *ConcurrentT) Stage(name string, fn func(ConcT)) {
 	t.StageN(name, 1, fn)
 }
 
