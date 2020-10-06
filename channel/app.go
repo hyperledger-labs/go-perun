@@ -103,15 +103,14 @@ type (
 	// to be known at the point of decoding.
 	Action = perunio.Encoder
 
-	// AppBackend provides functionality to create an App from an Address.
-	// The AppBackend needs to be implemented for every state channel application.
-	AppBackend interface {
-		// AppFromDefinition creates an app from its defining address. It is
+	// AppResolver provides functionality to create an App from an Address.
+	// The AppResolver needs to be implemented for every state channel application.
+	AppResolver interface {
+		// Resolve creates an app from its defining address. It is
 		// possible that multiple apps are in use, which is why creation happens
-		// over a central AppFromDefinition function.  One possible implementation
-		// is that the app is just read from an app registry, mapping addresses to
-		// apps.
-		AppFromDefinition(wallet.Address) (App, error)
+		// over a central Resolve function. This function is intended to resolve
+		// app definitions coming in on the wire.
+		Resolve(wallet.Address) (App, error)
 	}
 )
 
@@ -125,31 +124,6 @@ func IsStateApp(app App) bool {
 func IsActionApp(app App) bool {
 	_, ok := app.(ActionApp)
 	return ok
-}
-
-// appBackend stores the AppBackend globally for the channel package.
-var appBackend AppBackend = &MockAppBackend{}
-
-// isAppBackendSet whether the appBackend was already set with `SetAppBackend`.
-var isAppBackendSet bool
-
-// SetAppBackend sets the channel package's app backend. This is more specific
-// than the blockchain backend, so it has to be set separately.
-// The app backend is set to the MockAppBackend by default. Because the MockApp is in
-// package channel, we cannot set it through the usual init.go idiom.
-// The app backend can be changed once by another app (by a SetAppBackend call
-// of the app package's init() function).
-func SetAppBackend(b AppBackend) {
-	if isAppBackendSet {
-		panic("app backend already set")
-	}
-	isAppBackendSet = true
-	appBackend = b
-}
-
-// AppFromDefinition is a global wrapper call to the app backend function.
-func AppFromDefinition(def wallet.Address) (App, error) {
-	return appBackend.AppFromDefinition(def)
 }
 
 // OptAppEnc makes an optional App value encodable.
@@ -184,6 +158,24 @@ func (d OptAppDec) Decode(r io.Reader) (err error) {
 	if err != nil {
 		return errors.WithMessage(err, "decode app address")
 	}
-	*d.App, err = AppFromDefinition(appDef)
+	*d.App, err = Resolve(appDef)
 	return errors.WithMessage(err, "resolve app")
+}
+
+// AppShouldEqual compares two Apps for equality.
+func AppShouldEqual(expected, actual App) error {
+	if IsNoApp(expected) && IsNoApp(actual) {
+		return nil
+	}
+
+	if !IsNoApp(expected) && IsNoApp(actual) ||
+		IsNoApp(expected) && !IsNoApp(actual) {
+		return errors.New("(non-)nil App definitions")
+	}
+
+	if !expected.Def().Equals(actual.Def()) {
+		return errors.New("different App definitions")
+	}
+
+	return nil
 }

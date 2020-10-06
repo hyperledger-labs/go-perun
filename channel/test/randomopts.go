@@ -51,6 +51,11 @@ func WithAppData(data channel.Data) RandomOpt {
 	return RandomOpt{"appData": data}
 }
 
+// WithAppRandomizer sets the `AppRandomizer` that should be used.
+func WithAppRandomizer(randomizer AppRandomizer) RandomOpt {
+	return RandomOpt{"appRandomizer": randomizer}
+}
+
 // WithAppDef sets the `AppDef` that should be used.
 func WithAppDef(appDef wallet.Address) RandomOpt {
 	return RandomOpt{"appDef": appDef}
@@ -218,6 +223,15 @@ func (o RandomOpt) AppData() channel.Data {
 		return nil
 	}
 	return o["appData"].(channel.Data)
+}
+
+// AppRandomizer returns the `AppRandomizer` value of the `RandomOpt`.
+// If not present, returns the default appRandomizer.
+func (o RandomOpt) AppRandomizer() AppRandomizer {
+	if _, ok := o["appRandomizer"]; !ok {
+		return appRandomizer
+	}
+	return o["appRandomizer"].(AppRandomizer)
 }
 
 // AppDef returns the `AppDef` value of the `RandomOpt`.

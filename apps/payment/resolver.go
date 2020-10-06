@@ -12,18 +12,17 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package channel
+package payment
 
 import (
+	"perun.network/go-perun/channel"
 	"perun.network/go-perun/wallet"
 )
 
-// MockAppBackend is the backend for a mock app.
-type MockAppBackend struct{}
+// Resolver is the payment app resolver.
+type Resolver struct{}
 
-var _ AppBackend = &MockAppBackend{}
-
-// AppFromDefinition creates a new MockApp with the provided address.
-func (MockAppBackend) AppFromDefinition(addr wallet.Address) (App, error) {
-	return NewMockApp(addr), nil
+// Resolve returns a payment app with the given definition.
+func (b *Resolver) Resolve(def wallet.Address) (channel.App, error) {
+	return &App{def}, nil
 }

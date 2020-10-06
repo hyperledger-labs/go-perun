@@ -41,11 +41,13 @@ func TestHappyAliceBob(t *testing.T) {
 			InitBals:    [2]*big.Int{big.NewInt(100), big.NewInt(100)},
 			NumPayments: [2]int{2, 2},
 			TxAmounts:   [2]*big.Int{big.NewInt(5), big.NewInt(3)},
-			App:         client.WithApp(payment.NewApp(), payment.Data()),
+			App:         client.WithoutApp(),
 		}
 
 		if i == 1 {
-			cfg.App = client.WithoutApp()
+			cfg.App = client.WithApp(
+				chtest.NewRandomAppAndData(rng, chtest.WithAppRandomizer(new(payment.Randomizer))),
+			)
 		}
 		executeTwoPartyTest(roles, cfg)
 	}

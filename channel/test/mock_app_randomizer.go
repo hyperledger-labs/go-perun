@@ -21,9 +21,8 @@ import (
 	"perun.network/go-perun/wallet/test"
 )
 
-// MockAppRandomizer implements the appRandomizer interface.
-type MockAppRandomizer struct {
-}
+// MockAppRandomizer implements the AppRandomizer interface.
+type MockAppRandomizer struct{}
 
 // NewRandomApp creates a new MockApp with a random address.
 func (MockAppRandomizer) NewRandomApp(rng *rand.Rand) channel.App {

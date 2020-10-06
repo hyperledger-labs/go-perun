@@ -37,7 +37,7 @@ func TestChannelProposalReq_NilArgs(t *testing.T) {
 	c := clienttest.NewRandomChannelProposal(
 		rng,
 		client.WithNonceFrom(rng),
-		client.WithApp(test.NewRandomApp(rng), test.NewRandomData(rng)))
+		client.WithApp(test.NewRandomAppAndData(rng)))
 
 	err := c.Encode(nil)
 	require.Error(t, err)
@@ -53,7 +53,7 @@ func TestChannelProposalReqSerialization(t *testing.T) {
 	for i := 0; i < 8; i++ {
 		var app client.ProposalOpts
 		if i&1 == 0 {
-			app = client.WithApp(test.NewRandomApp(rng), test.NewRandomData(rng))
+			app = client.WithApp(test.NewRandomAppAndData(rng))
 		}
 
 		m := clienttest.NewRandomChannelProposal(rng, client.WithNonceFrom(rng), app)
@@ -98,9 +98,7 @@ func TestChannelProposalReqProposalID(t *testing.T) {
 	assert.NotEqual(t, original.ChallengeDuration, fake.ChallengeDuration)
 	assert.NotEqual(t, original.NonceShare, fake.NonceShare)
 	assert.NotEqual(t, original.ParticipantAddr, fake.ParticipantAddr)
-	// TODO: while using the payment app in channel tests, they all have the same
-	// address. Fixed in #266
-	// assert.NotEqual(t, original.App, fake.App)
+	assert.NotEqual(t, original.App, fake.App)
 
 	c0 := original
 	c0.ChallengeDuration = fake.ChallengeDuration
@@ -114,14 +112,13 @@ func TestChannelProposalReqProposalID(t *testing.T) {
 	c2.ParticipantAddr = fake.ParticipantAddr
 	assert.Equal(t, s, c2.ProposalID())
 
-	// TODO: #266
-	//c3 := original
-	//c3.AppDef = fake.AppDef
-	//assert.NotEqual(t, s, c3.ProposalID())
+	c3 := original
+	c3.App = fake.App
+	assert.NotEqual(t, s, c3.ProposalID())
 
-	//c4 := original
-	//c4.InitData = fake.InitData
-	//assert.NotEqual(t, s, c4.ProposalID())
+	c4 := original
+	c4.InitData = fake.InitData
+	assert.NotEqual(t, s, c4.ProposalID())
 
 	c5 := original
 	c5.InitBals = fake.InitBals

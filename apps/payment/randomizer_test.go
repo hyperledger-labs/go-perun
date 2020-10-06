@@ -22,20 +22,16 @@ import (
 	_ "perun.network/go-perun/backend/sim" // backend init
 	"perun.network/go-perun/channel"
 	pkgtest "perun.network/go-perun/pkg/test"
-	"perun.network/go-perun/wallet/test"
 )
 
 func TestRandomizer(t *testing.T) {
 	rng := pkgtest.Prng(t)
-	if backend.def == nil {
-		SetAppDef(test.NewRandomAddress(rng))
-		// Reset app def during cleanup in case this test runs before TestBackend,
-		// which assumes the app def to not be set yet.
-		t.Cleanup(func() { backend.def = nil })
-	}
 
 	r := new(Randomizer)
 	app := r.NewRandomApp(rng)
-	assert.True(t, app.Def().Equals(AppDef()))
-	assert.True(t, channel.IsNoData(r.NewRandomData(rng)))
+	channel.RegisterApp(app)
+	regApp, err := channel.Resolve(app.Def())
+	assert.NoError(t, err)
+	assert.True(t, app.Def().Equals(regApp.Def()))
+	assert.True(t, IsData(r.NewRandomData(rng)))
 }

@@ -139,3 +139,13 @@ func (a MockApp) execMockOp(op *MockOp) error {
 		panic("MockOp: unhandled switch case")
 	}
 }
+
+// MockAppResolver resolves every given `wallet.Address` to a `mockApp`.
+type MockAppResolver struct{}
+
+var _ AppResolver = &MockAppResolver{}
+
+// Resolve creates an app from its defining address.
+func (m *MockAppResolver) Resolve(addr wallet.Address) (App, error) {
+	return NewMockApp(addr), nil
+}

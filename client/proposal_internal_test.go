@@ -96,8 +96,7 @@ func NewRandomBaseChannelProposalReqNumParts(rng *rand.Rand, numPeers int) BaseC
 	alloc := channeltest.NewRandomAllocation(rng, channeltest.WithNumParts(numPeers))
 	participantAddr := wallettest.NewRandomAddress(rng)
 	peers := wiretest.NewRandomAddresses(rng, numPeers)
-	app := channeltest.NewRandomApp(rng)
-	data := channeltest.NewRandomData(rng)
+	app, data := channeltest.NewRandomAppAndData(rng)
 	return makeBaseChannelProposal(
 		rng.Uint64(),
 		participantAddr,

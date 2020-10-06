@@ -26,39 +26,26 @@ import (
 	"perun.network/go-perun/wallet/test"
 )
 
-func TestBackend(t *testing.T) {
+func TestResolver(t *testing.T) {
 	pkgtest.OnlyOnce(t)
 
 	rng := pkgtest.Prng(t)
 	assert, require := assert.New(t), require.New(t)
 
-	require.NotNil(backend, "init() should have initialized the backend")
-
 	def := test.NewRandomAddress(rng)
+	channel.RegisterAppResolver(def.Equals, &Resolver{})
 
-	assert.Panics(func() { AppFromDefinition(def) })
-	assert.Panics(func() { AppDef() })
-
-	require.NotPanics(func() { SetAppDef(def) })
-	assert.Equal(def, AppDef())
-	assert.Equal(def, backend.def)
-	assert.Panics(func() { AppFromDefinition(nil) })
-
-	app, err := AppFromDefinition(test.NewRandomAddress(rng))
-	assert.Error(err)
-	assert.Nil(app)
-
-	app, err = AppFromDefinition(def)
+	app, err := channel.Resolve(def)
 	assert.NoError(err)
 	require.NotNil(app)
-	assert.Equal(&App{def}, app)
+	assert.True(def.Equals(app.Def()))
 }
 
-func TestNoData(t *testing.T) {
+func TestData(t *testing.T) {
 	assert := assert.New(t)
 
 	assert.NotPanics(func() {
-		data := channel.NoData()
+		data := Data()
 		assert.Nil(data.Encode(nil))
 	})
 
@@ -67,10 +54,10 @@ func TestNoData(t *testing.T) {
 		data, err := app.DecodeData(nil)
 		assert.NoError(err)
 		assert.NotNil(data)
-		assert.True(channel.IsNoData(data))
+		assert.True(IsData(data))
 	})
 
-	data := channel.NoData()
+	data := Data()
 	clone := data.Clone()
 	assert.IsType(data, clone)
 }

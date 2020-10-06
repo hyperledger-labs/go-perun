@@ -132,8 +132,8 @@ func (s *State) Equal(t *State) error {
 	if s.Version != t.Version {
 		return errors.New("different Versions")
 	}
-	if !s.App.Def().Equals(t.App.Def()) {
-		return errors.New("different App definitions")
+	if err := AppShouldEqual(s.App, t.App); err != nil {
+		return err
 	}
 	if err := s.Allocation.Equal(&t.Allocation); err != nil {
 		return errors.WithMessage(err, "different Allocations")

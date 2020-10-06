@@ -30,22 +30,29 @@ import (
 
 func TestPersistencePetraRobert(t *testing.T) {
 	rng := test.Prng(t)
-	setups := NewSetupsPersistence(t, rng, []string{"Petra", "Robert"})
-	roles := [2]ctest.Executer{
-		ctest.NewPetra(setups[0], t),
-		ctest.NewRobert(setups[1], t),
-	}
+	for i := 0; i < 2; i++ {
+		setups := NewSetupsPersistence(t, rng, []string{"Petra", "Robert"})
+		roles := [2]ctest.Executer{
+			ctest.NewPetra(setups[0], t),
+			ctest.NewRobert(setups[1], t),
+		}
 
-	cfg := ctest.ExecConfig{
-		PeerAddrs:   [2]wire.Address{setups[0].Identity.Address(), setups[1].Identity.Address()},
-		Asset:       chtest.NewRandomAsset(rng),
-		InitBals:    [2]*big.Int{big.NewInt(100), big.NewInt(100)},
-		NumPayments: [2]int{2, 2},
-		TxAmounts:   [2]*big.Int{big.NewInt(5), big.NewInt(3)},
-		App:         client.WithApp(payment.NewApp(), payment.Data()),
-	}
+		cfg := ctest.ExecConfig{
+			PeerAddrs:   [2]wire.Address{setups[0].Identity.Address(), setups[1].Identity.Address()},
+			Asset:       chtest.NewRandomAsset(rng),
+			InitBals:    [2]*big.Int{big.NewInt(100), big.NewInt(100)},
+			NumPayments: [2]int{2, 2},
+			TxAmounts:   [2]*big.Int{big.NewInt(5), big.NewInt(3)},
+			App:         client.WithoutApp(),
+		}
 
-	executeTwoPartyTest(roles, cfg)
+		if i == 1 {
+			cfg.App = client.WithApp(
+				chtest.NewRandomAppAndData(rng, chtest.WithAppRandomizer(new(payment.Randomizer))),
+			)
+		}
+		executeTwoPartyTest(roles, cfg)
+	}
 }
 
 func NewSetupsPersistence(t *testing.T, rng *rand.Rand, names []string) []ctest.RoleSetup {

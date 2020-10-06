@@ -34,7 +34,7 @@ type UnlockedAccount func() (wallet.Account, error)
 // Setup provides all objects needed for the generic tests.
 type Setup struct {
 	UnlockedAccount UnlockedAccount // provides an account that is ready to sign
-	//Address tests
+	// Address tests
 	AddressBytes []byte         // a valid nonzero address not in the wallet
 	Backend      wallet.Backend // backend implementation
 	// Signature tests

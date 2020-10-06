@@ -1,4 +1,4 @@
-// Copyright 2019 - See NOTICE file for copyright holders.
+// Copyright 2020 - See NOTICE file for copyright holders.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,31 +12,27 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package channel
+package channel_test
 
 import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-
-	"perun.network/go-perun/pkg/test"
+	"perun.network/go-perun/channel"
+	"perun.network/go-perun/channel/test"
+	pkgtest "perun.network/go-perun/pkg/test"
 )
 
-func TestAppBackendSet(t *testing.T) {
-	test.OnlyOnce(t)
+func TestAppShouldEqual(t *testing.T) {
+	rng := pkgtest.Prng(t)
+	app1 := test.NewRandomApp(rng)
+	app2 := test.NewRandomApp(rng)
+	napp := channel.NoApp()
 
-	assert.NotNil(t, appBackend, "appBackend should be default initialized")
-	assert.False(t, isAppBackendSet, "isAppBackendSet should be defaulted to false")
-
-	old := appBackend
-	assert.NotPanics(t, func() { SetAppBackend(&MockAppBackend{}) }, "first SetAppBackend() should work")
-	assert.True(t, isAppBackendSet, "isAppBackendSet should be true")
-	assert.NotNil(t, appBackend, "appBackend should not be nil")
-	assert.False(t, old == appBackend, "appBackend should have changed")
-
-	old = appBackend
-	assert.Panics(t, func() { SetAppBackend(&MockAppBackend{}) }, "second SetAppBackend() should panic")
-	assert.True(t, isAppBackendSet, "isAppBackendSet should be true")
-	assert.NotNil(t, appBackend, "appBackend should not be nil")
-	assert.True(t, old == appBackend, "appBackend should not have changed")
+	assert.EqualError(t, channel.AppShouldEqual(app1, app2), "different App definitions")
+	assert.EqualError(t, channel.AppShouldEqual(app2, app1), "different App definitions")
+	assert.NoError(t, channel.AppShouldEqual(app1, app1))
+	assert.EqualError(t, channel.AppShouldEqual(app1, napp), "(non-)nil App definitions")
+	assert.EqualError(t, channel.AppShouldEqual(napp, app1), "(non-)nil App definitions")
+	assert.NoError(t, channel.AppShouldEqual(napp, napp))
 }
