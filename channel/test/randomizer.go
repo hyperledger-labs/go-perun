@@ -228,12 +228,14 @@ func NewRandomBal(rng *rand.Rand, opts ...RandomOpt) channel.Bal {
 		max = new(big.Int).Rsh(MaxBalance, 30) // 2^98
 	}
 
-	bal, err := crand.Int(rng, max)
+	// rng(max - min + 1)
+	bal, err := crand.Int(rng, new(big.Int).Add(new(big.Int).Sub(max, min), big.NewInt(1)))
 	if err != nil {
 		panic(fmt.Sprintf("Error creating random big.Int: %v", err))
 	}
-	// rng(max) + (max - min) + 1
-	return new(big.Int).Add(new(big.Int).Add(bal, big.NewInt(1)), new(big.Int).Sub(max, min))
+
+	// min + rng(max - min + 1)
+	return new(big.Int).Add(min, bal)
 }
 
 // NewRandomBals generates new random `channel.Bal`s.
