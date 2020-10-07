@@ -252,7 +252,7 @@ func (h *acceptAllPropHandler) HandleProposal(req client.ChannelProposal, res *c
 
 	part := h.r.setup.Wallet.NewRandomAccount(h.rng).Address()
 	h.r.log.Debugf("Accepting with participant: %v", part)
-	acc := req.Proposal().NewChannelProposalAcc(part, client.WithNonceFrom(h.rng))
+	acc := req.Base().NewChannelProposalAcc(part, client.WithNonceFrom(h.rng))
 	ch, err := res.Accept(ctx, acc)
 	h.chans <- channelAndError{ch, err}
 }

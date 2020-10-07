@@ -35,15 +35,15 @@ func TestClient_validTwoPartyProposal(t *testing.T) {
 		address: wallettest.NewRandomAddress(rng),
 	}
 	validProp := NewRandomBaseChannelProposalReqNumParts(rng, 2)
-	validProp.Proposal().PeerAddrs[0] = c.address // set us as the proposer
-	peerAddr := validProp.Proposal().PeerAddrs[1] // peer at 1 as receiver
+	validProp.Base().PeerAddrs[0] = c.address // set us as the proposer
+	peerAddr := validProp.Base().PeerAddrs[1] // peer at 1 as receiver
 	require.False(t, peerAddr.Equals(c.address))
-	require.Len(t, validProp.Proposal().PeerAddrs, 2)
+	require.Len(t, validProp.Base().PeerAddrs, 2)
 
 	validProp3Peers := NewRandomBaseChannelProposalReqNumParts(rng, 3)
 	invalidProp := BaseChannelProposal{}
-	*invalidProp.Proposal() = *validProp.Proposal() // shallow copy
-	invalidProp.Proposal().ChallengeDuration = 0    // invalidate
+	*invalidProp.Base() = *validProp.Base()  // shallow copy
+	invalidProp.Base().ChallengeDuration = 0 // invalidate
 
 	tests := []struct {
 		prop     BaseChannelProposal

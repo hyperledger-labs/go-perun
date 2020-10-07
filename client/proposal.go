@@ -86,7 +86,7 @@ func (r *ProposalResponder) Accept(ctx context.Context, acc *ChannelProposalAcc)
 		log.Panic("multiple calls on proposal responder")
 	}
 
-	return r.client.handleChannelProposalAcc(ctx, r.peer, r.req.Proposal(), acc)
+	return r.client.handleChannelProposalAcc(ctx, r.peer, r.req.Base(), acc)
 }
 
 // Reject lets the user signal that they reject the channel proposal.
@@ -122,8 +122,8 @@ func (c *Client) ProposeChannel(ctx context.Context, req ChannelProposal) (*Chan
 	}
 
 	// 1. check valid proposal
-	peer := req.Proposal().PeerAddrs[proposeeIdx]
-	if err := c.validTwoPartyProposal(req.Proposal(), proposerIdx, peer); err != nil {
+	peer := req.Base().PeerAddrs[proposeeIdx]
+	if err := c.validTwoPartyProposal(req.Base(), proposerIdx, peer); err != nil {
 		return nil, errors.WithMessage(err, "invalid channel proposal")
 	}
 
@@ -134,7 +134,7 @@ func (c *Client) ProposeChannel(ctx context.Context, req ChannelProposal) (*Chan
 	}
 
 	// 3. Create channel controller, fund channel, and return the controller
-	return c.setupChannel(ctx, req.Proposal(), params, proposerIdx)
+	return c.setupChannel(ctx, req.Base(), params, proposerIdx)
 }
 
 // handleChannelProposal implements the receiving side of the (currently)
@@ -144,13 +144,13 @@ func (c *Client) ProposeChannel(ctx context.Context, req ChannelProposal) (*Chan
 // This handler is dispatched from the Client.Handle routine.
 func (c *Client) handleChannelProposal(
 	handler ProposalHandler, p wire.Address, req ChannelProposal) {
-	if err := c.validTwoPartyProposal(req.Proposal(), proposeeIdx, p); err != nil {
+	if err := c.validTwoPartyProposal(req.Base(), proposeeIdx, p); err != nil {
 		c.logPeer(p).Debugf("received invalid channel proposal: %v", err)
 		return
 	}
 
 	c.logPeer(p).Trace("calling proposal handler")
-	responder := &ProposalResponder{client: c, peer: p, req: req.Proposal()}
+	responder := &ProposalResponder{client: c, peer: p, req: req.Base()}
 	handler.HandleProposal(req, responder)
 	// control flow continues in responder.Accept/Reject
 }
@@ -200,7 +200,7 @@ func (c *Client) exchangeTwoPartyProposal(
 	ctx context.Context,
 	proposal ChannelProposal,
 ) (*channel.Params, error) {
-	propBase := proposal.Proposal()
+	propBase := proposal.Base()
 	peer := propBase.PeerAddrs[proposeeIdx]
 
 	// enables caching of incoming version 0 signatures before sending any message

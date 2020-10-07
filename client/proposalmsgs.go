@@ -63,8 +63,8 @@ type (
 		wire.Msg
 		perunio.Decoder
 
-		// Proposal returns the channel proposal's common values.
-		Proposal() *BaseChannelProposal
+		// Base returns the channel proposal's common values.
+		Base() *BaseChannelProposal
 	}
 
 	// BaseChannelProposal contains all data necessary to propose a new
@@ -111,8 +111,8 @@ func makeBaseChannelProposal(
 	}
 }
 
-// Proposal returns the channel proposal's common values.
-func (p *BaseChannelProposal) Proposal() *BaseChannelProposal {
+// Base returns the channel proposal's common values.
+func (p *BaseChannelProposal) Base() *BaseChannelProposal {
 	return p
 }
 
