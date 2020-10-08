@@ -280,7 +280,7 @@ func (r *role) GoHandle(rng *rand.Rand) (h *acceptAllPropHandler, wait func()) {
 
 const challengeDuration = 60
 
-func (r *role) LedgerChannelProposal(rng *rand.Rand, cfg ExecConfig) client.ChannelProposal {
+func (r *role) LedgerChannelProposal(rng *rand.Rand, cfg ExecConfig) *client.LedgerChannelProposal {
 	if !cfg.App().SetsApp() {
 		r.log.Panic("Invalid ExecConfig: App does not specify an app.")
 	}
