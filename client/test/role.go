@@ -18,6 +18,7 @@ package test
 import (
 	"context"
 	"errors"
+	"io"
 	"math/big"
 	"math/rand"
 	"sync"
@@ -28,6 +29,7 @@ import (
 	"perun.network/go-perun/channel/persistence"
 	"perun.network/go-perun/client"
 	"perun.network/go-perun/log"
+	"perun.network/go-perun/wallet"
 	wallettest "perun.network/go-perun/wallet/test"
 	"perun.network/go-perun/wire"
 )
@@ -300,6 +302,28 @@ func (r *role) LedgerChannelProposal(rng *rand.Rand, cfg ExecConfig) *client.Led
 		cfg.App())
 }
 
+func (r *role) SubChannelProposal(
+	rng io.Reader,
+	cfg ExecConfig,
+	parent *client.Channel,
+	initBals *channel.Allocation,
+	app client.ProposalOpts,
+) *client.SubChannelProposal {
+	if !cfg.App().SetsApp() {
+		r.log.Panic("Invalid ExecConfig: App does not specify an app.")
+	}
+	cfgPeerAddrs := cfg.PeerAddrs()
+	return client.NewSubChannelProposal(
+		parent.ID(),
+		challengeDuration,
+		parent.Params().Parts[parent.Idx()],
+		initBals,
+		cfgPeerAddrs[:],
+		client.WithNonceFrom(rng),
+		app,
+	)
+}
+
 // AcceptAllPropHandler returns a ProposalHandler that accepts all requests to
 // this Role. The paymentChannel is saved to the Role's state upon acceptal. The
 // rng is used to generate a new random account for accepting the proposal.
@@ -317,7 +341,22 @@ func (h *acceptAllPropHandler) HandleProposal(req client.ChannelProposal, res *c
 	ctx, cancel := context.WithTimeout(context.Background(), h.r.setup.Timeout)
 	defer cancel()
 
-	part := h.r.setup.Wallet.NewRandomAccount(h.rng).Address()
+	var part wallet.Address
+	switch req.Type() {
+	case wire.LedgerChannelProposal:
+		part = h.r.setup.Wallet.NewRandomAccount(h.rng).Address()
+
+	case wire.SubChannelProposal:
+		parent, ok := h.r.chans.get(req.(*client.SubChannelProposal).Parent)
+		if !ok {
+			panic("parent channel not found")
+		}
+		part = parent.Params().Parts[parent.Idx()]
+
+	default:
+		panic("invalid proposal type")
+	}
+
 	h.r.log.Debugf("Accepting with participant: %v", part)
 	acc := req.Base().NewChannelProposalAcc(part, client.WithNonceFrom(h.rng))
 	ch, err := res.Accept(ctx, acc)

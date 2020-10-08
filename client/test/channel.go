@@ -16,6 +16,7 @@ package test
 
 import (
 	"context"
+	"io"
 	"math/big"
 	"time"
 
@@ -57,6 +58,44 @@ func newPaymentChannel(ch *client.Channel, r *role) *paymentChannel {
 		res:     make(chan handlerRes),
 		bals:    channel.CloneBals(stateBals(ch.State())),
 	}
+}
+
+func (ch *paymentChannel) openSubChannel(
+	rng io.Reader,
+	cfg ExecConfig,
+	initBals []*big.Int,
+	app client.ProposalOpts,
+) *paymentChannel {
+	initAlloc := channel.Allocation{
+		Assets:   []channel.Asset{cfg.Asset()},
+		Balances: [][]channel.Bal{[]*big.Int{initBals[0], initBals[1]}},
+	}
+
+	prop := ch.r.SubChannelProposal(rng, cfg, ch.Channel, &initAlloc, app)
+	subchannel, err := ch.r.ProposeChannel(prop)
+	assert.NoError(ch.r.t, err)
+	ch.r.log.Infof("New subchannel opened: %v", subchannel.Channel)
+
+	for i, bal := range initBals {
+		ch.bals[i].Sub(ch.bals[i], bal)
+	}
+
+	return subchannel
+}
+
+func (ch *paymentChannel) acceptSubchannel(
+	propHandler *acceptAllPropHandler,
+	initBals []*big.Int,
+) *paymentChannel {
+	subchannel, err := propHandler.Next()
+	assert.NoError(ch.r.t, err)
+	ch.r.log.Infof("New subchannel opened: %v", subchannel.Channel)
+
+	for i, bal := range initBals {
+		ch.bals[i].Sub(ch.bals[i], bal)
+	}
+
+	return subchannel
 }
 
 func (ch *paymentChannel) sendUpdate(update func(*channel.State) error, desc string) {
@@ -131,17 +170,36 @@ func (ch *paymentChannel) recvFinal() {
 }
 
 func (ch *paymentChannel) settle() {
-	ctx, cancel := context.WithTimeout(context.Background(), ch.r.timeout)
-	defer cancel()
-	assert.NoError(ch.r.t, ch.Settle(ctx))
-	ch.assertBals(ch.State())
+	ch.settleImpl(false)
 }
 
 func (ch *paymentChannel) settleSecondary() {
+	ch.settleImpl(true)
+}
+
+func (ch *paymentChannel) settleImpl(secondary bool) {
 	ctx, cancel := context.WithTimeout(context.Background(), ch.r.timeout)
 	defer cancel()
-	assert.NoError(ch.r.t, ch.SettleSecondary(ctx))
+
+	var err error
+	if secondary {
+		err = ch.SettleSecondary(ctx)
+	} else {
+		err = ch.Settle(ctx)
+	}
+	assert.NoError(ch.r.t, err)
 	ch.assertBals(ch.State())
+
+	if ch.IsSubChannel() {
+		// Track parent channel's balances.
+		parentChannel, ok := ch.r.chans.get(ch.Parent().ID())
+		assert.True(ch.r.t, ok, "parent channel not found")
+
+		for i, bal := range ch.bals {
+			parentBal := parentChannel.bals[i]
+			parentBal.Add(parentBal, bal)
+		}
+	}
 }
 
 // The payment channel is its own update handler.
