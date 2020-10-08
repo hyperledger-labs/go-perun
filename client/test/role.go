@@ -36,7 +36,7 @@ type (
 	// A Role is a client.Client together with a protocol execution path.
 	role struct {
 		*client.Client
-		chans   map[channel.ID]*paymentChannel
+		chans   *channelMap
 		newChan func(*paymentChannel) // new channel callback
 		setup   RoleSetup
 		// we use the Client as Closer
@@ -45,6 +45,11 @@ type (
 		t         *testing.T
 		numStages int
 		stages    Stages
+	}
+
+	channelMap struct {
+		entries map[channel.ID]*paymentChannel
+		sync.RWMutex
 	}
 
 	// RoleSetup contains the injectables for setting up the client.
@@ -127,7 +132,7 @@ func (c *BaseExecConfig) App() client.ProposalOpts {
 // makeRole creates a client for the given setup and wraps it into a Role.
 func makeRole(setup RoleSetup, t *testing.T, numStages int) (r role) {
 	r = role{
-		chans:     make(map[channel.ID]*paymentChannel),
+		chans:     &channelMap{entries: make(map[channel.ID]*paymentChannel)},
 		setup:     setup,
 		timeout:   setup.Timeout,
 		t:         t,
@@ -147,7 +152,7 @@ func (r *role) setClient(cl *client.Client) {
 	}
 	cl.OnNewChannel(func(_ch *client.Channel) {
 		ch := newPaymentChannel(_ch, r)
-		r.chans[ch.ID()] = ch
+		r.chans.add(ch)
 		if r.newChan != nil {
 			r.newChan(ch) // forward callback
 		}
@@ -155,6 +160,19 @@ func (r *role) setClient(cl *client.Client) {
 	r.Client = cl
 	// Append role field to client logger and set role logger to client logger.
 	r.log = log.AppendField(cl, "role", r.setup.Name)
+}
+
+func (chs *channelMap) get(ch channel.ID) (_ch *paymentChannel, ok bool) {
+	chs.RLock()
+	defer chs.RUnlock()
+	_ch, ok = chs.entries[ch]
+	return
+}
+
+func (chs *channelMap) add(ch *paymentChannel) {
+	chs.Lock()
+	defer chs.Unlock()
+	chs.entries[ch.ID()] = ch
 }
 
 func (r *role) OnNewChannel(callback func(ch *paymentChannel)) {
@@ -217,7 +235,11 @@ func (r *role) ProposeChannel(req client.ChannelProposal) (*paymentChannel, erro
 		return nil, err
 	}
 	// Client.OnNewChannel callback adds paymentChannel wrapper to the chans map
-	return r.chans[_ch.ID()], nil
+	ch, ok := r.chans.get(_ch.ID())
+	if !ok {
+		return ch, errors.New("channel not found")
+	}
+	return ch, nil
 }
 
 type (
@@ -312,7 +334,11 @@ func (h *acceptAllPropHandler) Next() (*paymentChannel, error) {
 			return nil, ce.err
 		}
 		// Client.OnNewChannel callback adds paymentChannel wrapper to the chans map
-		return h.r.chans[ce.channel.ID()], nil
+		ch, ok := h.r.chans.get(ce.channel.ID())
+		if !ok {
+			return ch, errors.New("channel not found")
+		}
+		return ch, nil
 	case <-time.After(h.r.setup.Timeout):
 		return nil, errors.New("timeout passed")
 	}
@@ -324,7 +350,7 @@ func (r *role) UpdateHandler() *roleUpdateHandler { return (*roleUpdateHandler)(
 
 // HandleUpdate implements the Role as its own UpdateHandler.
 func (h *roleUpdateHandler) HandleUpdate(up client.ChannelUpdate, res *client.UpdateResponder) {
-	ch, ok := h.chans[up.State.ID]
+	ch, ok := h.chans.get(up.State.ID)
 	if !ok {
 		h.t.Errorf("unknown channel: %v", up.State.ID)
 		ctx, cancel := context.WithTimeout(context.Background(), h.setup.Timeout)
