@@ -47,7 +47,7 @@ func testConcludeFinal(t *testing.T, numParts int) {
 	ct := pkgtest.NewConcurrent(t)
 	for i, funder := range s.Funders {
 		i, funder := i, funder
-		go ct.StageN("funding loop", numParts, func(rt require.TestingT) {
+		go ct.StageN("funding loop", numParts, func(rt pkgtest.ConcT) {
 			req := channel.FundingReq{
 				Params: params,
 				State:  state,
@@ -65,7 +65,7 @@ func testConcludeFinal(t *testing.T, numParts int) {
 	initiator := int(rng.Int31n(int32(numParts))) // pick a random initiator
 	for i := 0; i < numParts; i++ {
 		i := i
-		go ct.StageN("register", numParts, func(r require.TestingT) {
+		go ct.StageN("register", numParts, func(t pkgtest.ConcT) {
 			req := channel.AdjudicatorReq{
 				Params:    params,
 				Acc:       s.Accs[i],
@@ -77,13 +77,13 @@ func testConcludeFinal(t *testing.T, numParts int) {
 				_, err := s.Adjs[i].Register(ctx, req)
 				return err
 			})
-			require.NoError(r, err, "Withdrawing should succeed")
+			require.NoError(t, err, "Withdrawing should succeed")
 			if !req.Secondary {
 				// The Initiator must send a TX.
-				require.Equal(r, diff, 1)
+				require.Equal(t, diff, 1)
 			} else {
 				// Everyone else must NOT send a TX.
-				require.Equal(r, diff, 0)
+				require.Equal(t, diff, 0)
 			}
 		})
 	}

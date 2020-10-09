@@ -160,7 +160,7 @@ func TestRegistry_Get(t *testing.T) {
 		a, b := newPipeConnPair()
 		ctx, cancel := context.WithTimeout(context.Background(), timeout)
 		defer cancel()
-		go ct.Stage("receiver", func(t require.TestingT) {
+		go ct.Stage("receiver", func(t test.ConcT) {
 			dialer.put(a)
 			ExchangeAddrsPassive(ctx, peerID, b)
 			_, err := b.Recv()

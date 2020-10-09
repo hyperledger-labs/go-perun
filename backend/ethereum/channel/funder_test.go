@@ -149,7 +149,7 @@ func testFundingTimeout(t *testing.T, faultyPeer, peers int) {
 	for i, funder := range funders {
 		sleepTime := time.Duration(rng.Int63n(10) + 1)
 		i, funder := i, funder
-		go ct.StageN("funding loop", peers, func(rt require.TestingT) {
+		go ct.StageN("funding loop", peers, func(rt pkgtest.ConcT) {
 			// Faulty peer does not fund the channel.
 			if i == faultyPeer {
 				return
@@ -198,7 +198,7 @@ func testFunderFunding(t *testing.T, n int) {
 	for i, funder := range funders {
 		sleepTime := time.Duration(rng.Int63n(10) + 1)
 		i, funder := i, funder
-		go ct.StageN("funding", n, func(rt require.TestingT) {
+		go ct.StageN("funding", n, func(rt pkgtest.ConcT) {
 			time.Sleep(sleepTime * time.Millisecond)
 			req := channel.FundingReq{
 				Params: params,

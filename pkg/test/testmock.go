@@ -14,6 +14,8 @@
 
 package test
 
+import "runtime"
+
 type (
 	// T is part of the interface that testing.T implements. Receive this type
 	// instead of *testing.T if you want to test your tests with the Tester.
@@ -55,9 +57,10 @@ func (t *testerT) Errorf(string, ...interface{}) {
 
 func (t *testerT) FailNow() {
 	t.failNowCalled = true
-	// panic() to stop execution in the test, as would be the case in a test where
-	// Fatal is called. The panic is recovered in the Assert... methods.
-	panic("testerT.FailNow()")
+	// runtime.Goexit() to stop execution in the test, as would be the case in
+	// a test where Fatal is called. The Goexit is stopped in the Assert...
+	// methods.
+	runtime.Goexit()
 }
 
 func (t *testerT) Helper() {}
@@ -132,16 +135,9 @@ func (t *Tester) assert(check func(*testerT), fn func(T)) {
 	tt := new(testerT)
 	defer check(tt)
 
-	panicked := true
-	defer func() {
-		// only recover panic from FailNow().
-		if panicked && tt.failNowCalled {
-			recover()
-		}
-	}()
-
-	fn(tt) // call the test with the testerT to record calls.
-	panicked = false
+	if CheckGoexit(func() { fn(tt) }) && !tt.failNowCalled {
+		runtime.Goexit()
+	}
 }
 
 // AssertFatal checks that the passed function fn calls T.FailNow() on the T

@@ -22,13 +22,14 @@ import (
 
 func TestConcurrentT_Wait(t *testing.T) {
 	t.Run("failed stage", func(t *testing.T) {
-		ct := NewConcurrent(t)
-		s := ct.spawnStage("stage", 1)
-		s.failed.Set()
-		s.pass()
+		AssertFatal(t, func(t T) {
+			ct := NewConcurrent(t)
+			s := ct.spawnStage("stage", 1)
+			s.failed.Set()
+			s.pass()
 
-		assert.True(t, CheckGoexit(func() { ct.Wait("stage") }),
-			"Waiting for a failed stage must call runtime.Goexit.")
+			ct.Wait("stage")
+		})
 	})
 }
 

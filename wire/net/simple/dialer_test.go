@@ -76,7 +76,7 @@ func TestDialer_Dial(t *testing.T) {
 			Recipient: laddr,
 			Msg:       wire.NewPingMsg()}
 		ct := test.NewConcurrent(t)
-		go ct.Stage("accept", func(rt require.TestingT) {
+		go ct.Stage("accept", func(rt test.ConcT) {
 			conn, err := l.Accept()
 			assert.NoError(t, err)
 			require.NotNil(rt, conn)
@@ -86,7 +86,7 @@ func TestDialer_Dial(t *testing.T) {
 			assert.Equal(t, re, e)
 		})
 
-		ct.Stage("dial", func(rt require.TestingT) {
+		ct.Stage("dial", func(rt test.ConcT) {
 			ctxtest.AssertTerminates(t, timeout, func() {
 				conn, err := d.Dial(context.Background(), laddr)
 				assert.NoError(t, err)

@@ -17,6 +17,7 @@ package test
 import (
 	"runtime"
 	"strconv"
+	"strings"
 	"sync"
 	stdatomic "sync/atomic"
 
@@ -24,6 +25,56 @@ import (
 
 	"perun.network/go-perun/pkg/sync/atomic"
 )
+
+// ConcT is a testing object used by ConcurrentT stages. It can access the
+// parent ConcurrentT's barrier and wait functions. This way, it can wait for
+// sibling stages and barriers under the same parent ConcurrentT.
+type ConcT struct {
+	require.TestingT // The stage's T object.
+
+	ct *ConcurrentT // The parent ConcurrenT object.
+}
+
+// Wait waits for a sibling stage or barrier to terminate.
+// See ConcurrentT.Wait.
+func (t ConcT) Wait(names ...string) {
+	t.ct.Wait(names...)
+}
+
+// Barrier creates a barrier visible to all sibling stages.
+// See ConcurrentT.Barrier.
+func (t ConcT) Barrier(name string) {
+	t.ct.Barrier(name)
+}
+
+// FailBarrier marks a barrier visible to all sibling stages as failed.
+// See ConcurrentT.FailBarrier.
+func (t ConcT) FailBarrier(name string) {
+	defer t.ct.FailBarrier(name)
+	t.FailNow()
+}
+
+// BarrierN creates a barrier visible to all sibling stages.
+// See ConcurrentT.BarrierN.
+func (t ConcT) BarrierN(name string, n int) {
+	fail := true
+	defer func() {
+		if fail {
+			t.FailNow()
+		}
+	}()
+	t.ct.BarrierN(name, n)
+	fail = false
+}
+
+// FailBarrierN marks a barrier visible to all sibling stages as failed.
+// See ConcurrentT.FailBarrierN.
+func (t ConcT) FailBarrierN(name string, n int) {
+	defer t.ct.FailBarrierN(name, n)
+	t.FailNow()
+}
+
+var _ require.TestingT = (*stage)(nil)
 
 // stage is a single stage of execution in a concurrent test.
 type stage struct {
@@ -71,7 +122,7 @@ func (s *stage) pass() {
 // FailNow marks the stage as failed and terminates the goroutine.
 func (s *stage) FailNow() {
 	s.failed.Set()
-	s.wg.Done()
+	defer s.wg.Done()
 	s.ct.FailNow()
 }
 
@@ -119,8 +170,8 @@ func (t *ConcurrentT) getStage(name string) *stage {
 	return s
 }
 
-// Wait waits until the stages with the requested names terminate.
-// If any stage fails, terminates the current goroutine.
+// Wait waits until the stages and barriers with the requested names terminate.
+// If any stage or barrier fails, terminates the current goroutine or test.
 func (t *ConcurrentT) Wait(names ...string) {
 	if len(names) == 0 {
 		panic("Wait(): called with 0 names")
@@ -128,7 +179,7 @@ func (t *ConcurrentT) Wait(names ...string) {
 
 	for _, name := range names {
 		if !t.getStage(name).wait() {
-			runtime.Goexit()
+			t.FailNow()
 		}
 	}
 }
@@ -154,31 +205,65 @@ func (t *ConcurrentT) FailNow() {
 // fn must not spawn any goroutines or pass along the T object to goroutines
 // that call T.Fatal. To achieve this, make other goroutines call
 // ConcurrentT.StageN() instead.
-func (t *ConcurrentT) StageN(name string, goroutines int, fn func(require.TestingT)) {
+func (t *ConcurrentT) StageN(name string, goroutines int, fn func(ConcT)) {
 	stage := t.spawnStage(name, goroutines)
-	aborted := true
-	// Detect whether fn terminates via panic() or direct calls to
-	// runtime.Goexit(). Mark the stage as done if it is not yet marked. Call
-	// FailNow() on the test.
-	defer func() {
-		if aborted {
-			if stage.failed.TrySet() {
-				defer stage.wg.Done()
-			}
-			t.FailNow()
+
+	stageT := ConcT{TestingT: stage, ct: t}
+	abort := CheckAbort(func() {
+		fn(stageT)
+	})
+
+	if abort != nil {
+		// Fail the stage, if it had not been marked as such, yet.
+		if stage.failed.TrySet() {
+			defer stage.wg.Done()
 		}
-	}()
-
-	fn(stage)
-
-	aborted = false
+		// If it is a panic or Goexit from certain contexts, print stack trace.
+		if _, ok := abort.(*Panic); ok || shouldPrintStack(abort.Stack()) {
+			print("\n", abort.String())
+		}
+		t.FailNow()
+	}
 
 	stage.pass()
 	t.Wait(name)
 }
 
+func shouldPrintStack(stack string) bool {
+	// Ignore goroutines that terminate in Wait() because that's a controlled
+	// shutdown of the test and not an error.
+	return !strings.Contains(stack, "(*ConcurrentT).Wait(")
+}
+
 // Stage creates a named execution stage.
 // It is a shorthand notation for StageN(name, 1, fn).
-func (t *ConcurrentT) Stage(name string, fn func(require.TestingT)) {
+func (t *ConcurrentT) Stage(name string, fn func(ConcT)) {
 	t.StageN(name, 1, fn)
+}
+
+// BarrierN creates a barrier that can be waited on by other goroutines using
+// Wait(). After n calls to BarrierN have been made, all waiting goroutines
+// continue. Similar to Stage and StageN, all calls to the same barrier must
+// share the same n and there must be at most n calls to BarrierN or
+// FailBarrierN for each barrier name.
+func (t *ConcurrentT) BarrierN(name string, n int) {
+	t.spawnStage(name, n).pass()
+	t.Wait(name)
+}
+
+// FailBarrier marks a barrier as failed. It terminates the current test and
+// all goroutines waiting for the barrier.
+func (t *ConcurrentT) FailBarrierN(name string, n int) {
+	t.spawnStage(name, n).FailNow()
+}
+
+// Barrier is a shorthand notation for Barrier(name, 1).
+func (t *ConcurrentT) Barrier(name string) {
+	t.spawnStage(name, 1).pass()
+}
+
+// FailBarrier creates a synchronisation point and marks it as failed, so that
+// waiting goroutines will terminate.
+func (t *ConcurrentT) FailBarrier(name string) {
+	t.spawnStage(name, 1).FailNow()
 }
