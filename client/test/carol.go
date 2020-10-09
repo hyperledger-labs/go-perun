@@ -37,9 +37,10 @@ func (r *Carol) Execute(cfg ExecConfig) {
 	r.Responder.Execute(cfg, r.exec)
 }
 
-func (r *Carol) exec(cfg ExecConfig, ch *paymentChannel) {
+func (r *Carol) exec(_cfg ExecConfig, ch *paymentChannel) {
+	cfg := _cfg.(*MalloryCarolExecConfig)
 	assert := assert.New(r.t)
-	_, them := r.Idxs(cfg.PeerAddrs)
+	_, them := r.Idxs(cfg.PeerAddrs())
 
 	// start watcher
 	watcher := make(chan error)

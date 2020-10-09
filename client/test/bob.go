@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package test // nolint: dupl
+package test
 
 import (
 	"fmt"
@@ -34,8 +34,9 @@ func (r *Bob) Execute(cfg ExecConfig) {
 	r.Responder.Execute(cfg, r.exec)
 }
 
-func (r *Bob) exec(cfg ExecConfig, ch *paymentChannel) {
-	we, them := r.Idxs(cfg.PeerAddrs)
+func (r *Bob) exec(_cfg ExecConfig, ch *paymentChannel) {
+	cfg := _cfg.(*AliceBobExecConfig)
+	we, them := r.Idxs(cfg.PeerAddrs())
 
 	// 1st stage - channel controller set up
 	r.waitStage()

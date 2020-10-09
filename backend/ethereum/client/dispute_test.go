@@ -66,13 +66,15 @@ func TestDisputeMalloryCarol(t *testing.T) {
 	stages := role[A].EnableStages()
 	role[B].SetStages(stages)
 
-	execConfig := clienttest.ExecConfig{
-		PeerAddrs:   [2]wire.Address{s.Accs[A].Address(), s.Accs[B].Address()},
-		InitBals:    [2]*big.Int{big.NewInt(100), big.NewInt(1)},
-		Asset:       (*wallet.Address)(&s.Asset),
+	execConfig := &clienttest.MalloryCarolExecConfig{
+		BaseExecConfig: clienttest.MakeBaseExecConfig(
+			[2]wire.Address{setup[A].Identity.Address(), setup[B].Identity.Address()},
+			(*wallet.Address)(&s.Asset),
+			[2]*big.Int{big.NewInt(100), big.NewInt(1)},
+			client.WithApp(chtest.NewRandomAppAndData(rng)),
+		),
 		NumPayments: [2]int{5, 0},
 		TxAmounts:   [2]*big.Int{big.NewInt(20), big.NewInt(0)},
-		App:         client.WithApp(chtest.NewRandomAppAndData(rng)),
 	}
 
 	var wg sync.WaitGroup
@@ -91,8 +93,8 @@ func TestDisputeMalloryCarol(t *testing.T) {
 	netTransfer := big.NewInt(int64(execConfig.NumPayments[A])*execConfig.TxAmounts[A].Int64() -
 		int64(execConfig.NumPayments[B])*execConfig.TxAmounts[B].Int64())
 	finalBal := [2]*big.Int{
-		new(big.Int).Sub(execConfig.InitBals[A], netTransfer),
-		new(big.Int).Add(execConfig.InitBals[B], netTransfer)}
+		new(big.Int).Sub(execConfig.InitBals()[A], netTransfer),
+		new(big.Int).Add(execConfig.InitBals()[B], netTransfer)}
 	// reset context timeout
 	ctx, cancel := context.WithTimeout(context.Background(), defaultTimeout)
 	defer cancel()

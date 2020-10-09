@@ -60,13 +60,19 @@ type (
 	}
 
 	// ExecConfig contains additional config parameters for the tests.
-	ExecConfig struct {
-		PeerAddrs   [2]wire.Address     // must match the RoleSetup.Identity's
-		Asset       channel.Asset       // single Asset to use in this channel
-		InitBals    [2]*big.Int         // channel deposit of each role
-		NumPayments [2]int              // how many updates each role sends
-		TxAmounts   [2]*big.Int         // amounts that are to be sent by each role
-		App         client.ProposalOpts // must be either WithApp or WithoutApp
+	ExecConfig interface {
+		PeerAddrs() [2]wire.Address // must match the RoleSetup.Identity's
+		Asset() channel.Asset       // single Asset to use in this channel
+		InitBals() [2]*big.Int      // channel deposit of each role
+		App() client.ProposalOpts   // must be either WithApp or WithoutApp
+	}
+
+	// BaseExecConfig contains base config parameters.
+	BaseExecConfig struct {
+		peerAddrs [2]wire.Address     // must match the RoleSetup.Identity's
+		asset     channel.Asset       // single Asset to use in this channel
+		initBals  [2]*big.Int         // channel deposit of each role
+		app       client.ProposalOpts // must be either WithApp or WithoutApp
 	}
 
 	// An Executer is a Role that can execute a protocol.
@@ -82,6 +88,41 @@ type (
 	// Stages are used to synchronize multiple roles.
 	Stages = []sync.WaitGroup
 )
+
+// MakeBaseExecConfig creates a new BaseExecConfig.
+func MakeBaseExecConfig(
+	peerAddrs [2]wire.Address,
+	asset channel.Asset,
+	initBals [2]*big.Int,
+	app client.ProposalOpts,
+) BaseExecConfig {
+	return BaseExecConfig{
+		peerAddrs: peerAddrs,
+		asset:     asset,
+		initBals:  initBals,
+		app:       app,
+	}
+}
+
+// PeerAddrs returns the peer addresses.
+func (c *BaseExecConfig) PeerAddrs() [2]wire.Address {
+	return c.peerAddrs
+}
+
+// Asset returns the asset.
+func (c *BaseExecConfig) Asset() channel.Asset {
+	return c.asset
+}
+
+// InitBals returns the initial balances.
+func (c *BaseExecConfig) InitBals() [2]*big.Int {
+	return c.initBals
+}
+
+// App returns the app.
+func (c *BaseExecConfig) App() client.ProposalOpts {
+	return c.app
+}
 
 // makeRole creates a client for the given setup and wraps it into a Role.
 func makeRole(setup RoleSetup, t *testing.T, numStages int) (r role) {
@@ -215,22 +256,26 @@ func (r *role) GoHandle(rng *rand.Rand) (h *acceptAllPropHandler, wait func()) {
 	}
 }
 
-func (r *role) LedgerChannelProposal(rng *rand.Rand, cfg *ExecConfig) client.ChannelProposal {
-	if !cfg.App.SetsApp() {
+const challengeDuration = 60
+
+func (r *role) LedgerChannelProposal(rng *rand.Rand, cfg ExecConfig) client.ChannelProposal {
+	if !cfg.App().SetsApp() {
 		r.log.Panic("Invalid ExecConfig: App does not specify an app.")
 	}
 
+	cfgInitBals := cfg.InitBals()
 	initBals := &channel.Allocation{
-		Assets:   []channel.Asset{cfg.Asset},
-		Balances: channel.Balances{cfg.InitBals[:]},
+		Assets:   []channel.Asset{cfg.Asset()},
+		Balances: channel.Balances{cfgInitBals[:]},
 	}
+	cfgPeerAddrs := cfg.PeerAddrs()
 	return client.NewLedgerChannelProposal(
-		60, // 60 sec
+		challengeDuration,
 		r.setup.Wallet.NewRandomAccount(rng).Address(),
 		initBals,
-		cfg.PeerAddrs[:],
+		cfgPeerAddrs[:],
 		client.WithNonceFrom(rng),
-		cfg.App)
+		cfg.App())
 }
 
 // AcceptAllPropHandler returns a ProposalHandler that accepts all requests to
