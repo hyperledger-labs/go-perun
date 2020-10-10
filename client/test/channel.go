@@ -59,7 +59,7 @@ func newPaymentChannel(ch *client.Channel, r *role) *paymentChannel {
 	}
 }
 
-func (ch *paymentChannel) sendUpdate(update func(*channel.State), desc string) {
+func (ch *paymentChannel) sendUpdate(update func(*channel.State) error, desc string) {
 	ch.log.Debugf("Sending update: %s", desc)
 	ctx, cancel := context.WithTimeout(context.Background(), ch.r.timeout)
 	defer cancel()
@@ -71,9 +71,12 @@ func (ch *paymentChannel) sendUpdate(update func(*channel.State), desc string) {
 
 func (ch *paymentChannel) sendTransfer(amount channel.Bal, desc string) {
 	ch.sendUpdate(
-		func(state *channel.State) {
+		func(state *channel.State) error {
 			transferBal(stateBals(state), ch.Idx(), amount)
-		}, desc)
+			return nil
+		},
+		desc,
+	)
 
 	transferBal(ch.bals, ch.Idx(), amount)
 	ch.assertBals(ch.State())
@@ -115,8 +118,9 @@ func (ch *paymentChannel) assertBals(state *channel.State) {
 }
 
 func (ch *paymentChannel) sendFinal() {
-	ch.sendUpdate(func(state *channel.State) {
+	ch.sendUpdate(func(state *channel.State) error {
 		state.IsFinal = true
+		return nil
 	}, "final")
 	assert.True(ch.r.t, ch.State().IsFinal)
 }

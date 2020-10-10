@@ -122,6 +122,7 @@ const (
 	Shutdown
 	AuthResponse
 	LedgerChannelProposal
+	SubChannelProposal
 	ChannelProposalAcc
 	ChannelProposalRej
 	ChannelUpdate
@@ -137,6 +138,7 @@ var typeNames = map[Type]string{
 	Shutdown:              "Shutdown",
 	AuthResponse:          "AuthResponse",
 	LedgerChannelProposal: "LedgerChannelProposal",
+	SubChannelProposal:    "SubChannelProposal",
 	ChannelProposalAcc:    "ChannelProposalAcc",
 	ChannelProposalRej:    "ChannelProposalRej",
 	ChannelUpdate:         "ChannelUpdate",

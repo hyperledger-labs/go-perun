@@ -79,7 +79,7 @@ func TestClient_validTwoPartyProposal(t *testing.T) {
 	}
 
 	for i, tt := range tests {
-		valid := c.validTwoPartyProposal(&tt.prop, tt.ourIdx, tt.peerAddr)
+		valid := c.validTwoPartyProposal(&LedgerChannelProposal{tt.prop}, tt.ourIdx, tt.peerAddr)
 		if tt.valid && valid != nil {
 			t.Errorf("[%d] Exptected proposal to be valid but got: %v", i, valid)
 		} else if !tt.valid && valid == nil {

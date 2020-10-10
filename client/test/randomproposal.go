@@ -24,18 +24,30 @@ import (
 	wiretest "perun.network/go-perun/wire/test"
 )
 
-// NewRandomChannelProposal creates a random channel proposal with the supplied
+// NewRandomLedgerChannelProposal creates a random channel proposal with the supplied
 // options. Number of participants is fixed to 2.
-func NewRandomChannelProposal(rng *rand.Rand, opts ...client.ProposalOpts) client.ChannelProposal {
-	return NewRandomChannelProposalBy(rng, wallettest.NewRandomAddress(rng), opts...)
+func NewRandomLedgerChannelProposal(rng *rand.Rand, opts ...client.ProposalOpts) *client.LedgerChannelProposal {
+	return NewRandomLedgerChannelProposalBy(rng, wallettest.NewRandomAddress(rng), opts...)
 }
 
-// NewRandomChannelProposalBy creates a random channel proposal with the
+// NewRandomLedgerChannelProposalBy creates a random channel proposal with the
 // supplied options and proposer. Number of participants is fixed to 2.
-func NewRandomChannelProposalBy(rng *rand.Rand, proposer wallet.Address, opts ...client.ProposalOpts) client.ChannelProposal {
+func NewRandomLedgerChannelProposalBy(rng *rand.Rand, proposer wallet.Address, opts ...client.ProposalOpts) *client.LedgerChannelProposal {
 	return client.NewLedgerChannelProposal(
 		rng.Uint64(),
 		proposer,
+		channeltest.NewRandomAllocation(rng, channeltest.WithNumParts(2)),
+		wiretest.NewRandomAddresses(rng, 2),
+		opts...)
+}
+
+// NewRandomSubChannelProposal creates a random subchannel proposal with the
+// supplied options. Number of participants is fixed to 2.
+func NewRandomSubChannelProposal(rng *rand.Rand, opts ...client.ProposalOpts) *client.SubChannelProposal {
+	return client.NewSubChannelProposal(
+		channeltest.NewRandomChannelID(rng),
+		rng.Uint64(),
+		wallettest.NewRandomAddress(rng),
 		channeltest.NewRandomAllocation(rng, channeltest.WithNumParts(2)),
 		wiretest.NewRandomAddresses(rng, 2),
 		opts...)

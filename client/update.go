@@ -121,18 +121,16 @@ func (c *Channel) Update(ctx context.Context, next *channel.State) (err error) {
 	}
 	defer c.machMtx.Unlock()
 
-	up := ChannelUpdate{
-		State:    next,
-		ActorIdx: c.machine.Idx(),
-	}
-	if err := c.validTwoPartyUpdate(up, c.machine.Idx()); err != nil {
+	if err := c.validTwoPartyUpdateState(next); err != nil {
 		return err
 	}
-	return c.update(ctx, up)
+
+	return c.update(ctx, next)
 }
 
 // Like Update, but assumes channel locked and update validated.
-func (c *Channel) update(ctx context.Context, up ChannelUpdate) (err error) {
+func (c *Channel) update(ctx context.Context, next *channel.State) (err error) {
+	up := makeChannelUpdate(next, c.machine.Idx())
 	if err = c.machine.Update(ctx, up.State, up.ActorIdx); err != nil {
 		return errors.WithMessage(err, "updating machine")
 	}
@@ -192,7 +190,7 @@ func (c *Channel) update(ctx context.Context, up ChannelUpdate) (err error) {
 //
 // Returns nil if all peers accept the update. If any runtime error occurs or
 // any peer rejects the update, an error is returned.
-func (c *Channel) UpdateBy(ctx context.Context, update func(*channel.State)) (err error) {
+func (c *Channel) UpdateBy(ctx context.Context, update func(*channel.State) error) (err error) {
 	if ctx == nil {
 		return errors.New("context must not be nil")
 	}
@@ -203,22 +201,28 @@ func (c *Channel) UpdateBy(ctx context.Context, update func(*channel.State)) (er
 	}
 	defer c.machMtx.Unlock()
 
-	// apply update
-	next := c.machine.State().Clone()
-	update(next)
-	next.Version++
+	return c.updateBy(ctx,
+		func(state *channel.State) error {
+			// apply update
+			if err := update(state); err != nil {
+				return err
+			}
 
-	// validate
-	up := ChannelUpdate{
-		State:    next,
-		ActorIdx: c.machine.Idx(),
-	}
-	if err := c.validTwoPartyUpdate(up, c.machine.Idx()); err != nil {
+			// validate
+			return c.validTwoPartyUpdateState(state)
+		},
+	)
+}
+
+// Like UpdateBy, but assumes channel locked and update validated.
+func (c *Channel) updateBy(ctx context.Context, update func(*channel.State) error) (err error) {
+	state := c.machine.State().Clone()
+	if err := update(state); err != nil {
 		return err
 	}
+	state.Version++
 
-	// update machine state
-	return c.update(ctx, up)
+	return c.update(ctx, state)
 }
 
 // handleUpdateReq is called by the controller on incoming channel update
@@ -226,15 +230,28 @@ func (c *Channel) UpdateBy(ctx context.Context, update func(*channel.State)) (er
 func (c *Channel) handleUpdateReq(
 	pidx channel.Index,
 	req *msgChannelUpdate,
-	uh UpdateHandler) {
+	uh UpdateHandler,
+) {
+	c.machMtx.Lock() // Lock machine while update is in progress.
+	defer c.machMtx.Unlock()
+
+	responder := &UpdateResponder{channel: c, pidx: pidx, req: req}
+
+	if ui, ok := c.subChannelFundings.Filter(req.ChannelUpdate); ok {
+		ui.HandleUpdate(req.ChannelUpdate, responder)
+		return
+	}
+
+	if ui, ok := c.subChannelWithdrawals.Filter(req.ChannelUpdate); ok {
+		ui.HandleUpdate(req.ChannelUpdate, responder)
+		return
+	}
+
 	if err := c.validTwoPartyUpdate(req.ChannelUpdate, pidx); err != nil {
 		// TODO: how to handle invalid updates? Just drop and ignore them?
 		c.logPeer(pidx).Warnf("invalid update received: %v", err)
 		return
 	}
-
-	c.machMtx.Lock() // Lock machine while update is in progress.
-	defer c.machMtx.Unlock()
 
 	if err := c.machine.CheckUpdate(req.State, req.ActorIdx, req.Sig, pidx); err != nil {
 		// TODO: how to handle invalid updates? Just drop and ignore them?
@@ -242,7 +259,6 @@ func (c *Channel) handleUpdateReq(
 		return
 	}
 
-	responder := &UpdateResponder{channel: c, pidx: pidx, req: req}
 	uh.HandleUpdate(req.ChannelUpdate, responder)
 }
 
@@ -281,6 +297,11 @@ func (c *Channel) handleUpdateAcc(
 	sig, err = c.machine.Sig(ctx)
 	if err != nil {
 		return errors.WithMessage(err, "signing updated state")
+	}
+
+	// If subchannel is final, register settlement update at parent channel.
+	if c.IsSubChannel() && req.ChannelUpdate.State.IsFinal {
+		c.Parent().registerSubChannelSettlement(c.ID(), req.ChannelUpdate.State.Balances)
 	}
 
 	msgUpAcc := &msgChannelUpdateAcc{
@@ -349,15 +370,27 @@ func (c *Channel) OnUpdate(cb func(from, to *channel.State)) {
 
 // validTwoPartyUpdate performs additional protocol-dependent checks on the
 // proposed update that go beyond the machine's checks:
-// * actor and signer must be the same
-// * no locked sub-allocations.
+// * Actor and signer must be the same.
+// * Sub-allocations do not change.
 func (c *Channel) validTwoPartyUpdate(up ChannelUpdate, sigIdx channel.Index) error {
 	if up.ActorIdx != sigIdx {
 		return errors.Errorf(
 			"Currently, only update proposals with the proposing peer as actor are allowed.")
 	}
-	if len(up.State.Locked) > 0 {
-		return errors.New("no locked sub-allocations allowed")
+	if err := channel.SubAllocsAssertEqual(c.machine.State().Locked, up.State.Locked); err != nil {
+		return errors.WithMessage(err, "sub-allocation changed")
 	}
 	return nil
+}
+
+func (c *Channel) validTwoPartyUpdateState(next *channel.State) error {
+	up := makeChannelUpdate(next, c.machine.Idx())
+	return c.validTwoPartyUpdate(up, c.machine.Idx())
+}
+
+func makeChannelUpdate(next *channel.State, actor channel.Index) ChannelUpdate {
+	return ChannelUpdate{
+		State:    next,
+		ActorIdx: actor,
+	}
 }
