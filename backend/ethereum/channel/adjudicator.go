@@ -81,7 +81,7 @@ func (a *Adjudicator) callConclude(ctx context.Context, req channel.AdjudicatorR
 		state adjudicator.ChannelState,
 		_ [][]byte,
 	) (*types.Transaction, error) {
-		return a.contract.Conclude(opts, params, state)
+		return a.contract.Conclude(opts, params, state, []adjudicator.ChannelState{})
 	}
 	return a.call(ctx, req, conclude)
 }
