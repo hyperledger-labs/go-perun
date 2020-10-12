@@ -27,7 +27,6 @@ import (
 	"perun.network/go-perun/backend/ethereum/channel/test"
 	"perun.network/go-perun/backend/ethereum/wallet"
 	ethwtest "perun.network/go-perun/backend/ethereum/wallet/test"
-	chtest "perun.network/go-perun/channel/test"
 	"perun.network/go-perun/client"
 	clienttest "perun.network/go-perun/client/test"
 	"perun.network/go-perun/log"
@@ -71,7 +70,7 @@ func TestDisputeMalloryCarol(t *testing.T) {
 			[2]wire.Address{setup[A].Identity.Address(), setup[B].Identity.Address()},
 			(*wallet.Address)(&s.Asset),
 			[2]*big.Int{big.NewInt(100), big.NewInt(1)},
-			client.WithApp(chtest.NewRandomAppAndData(rng)),
+			client.WithoutApp(),
 		),
 		NumPayments: [2]int{5, 0},
 		TxAmounts:   [2]*big.Int{big.NewInt(20), big.NewInt(0)},

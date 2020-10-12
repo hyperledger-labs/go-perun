@@ -245,7 +245,7 @@ func TestWithdrawNonFinal(t *testing.T) {
 	// create test setup
 	s := test.NewSetup(t, rng, 1)
 	// create valid state and params
-	params, state := channeltest.NewRandomParamsAndState(rng, channeltest.WithChallengeDuration(60), channeltest.WithParts(s.Parts...), channeltest.WithAssets((*ethchannel.Asset)(&s.Asset)), channeltest.WithIsFinal(false))
+	params, state := channeltest.NewRandomParamsAndState(rng, channeltest.WithChallengeDuration(60), channeltest.WithParts(s.Parts...), channeltest.WithAssets((*ethchannel.Asset)(&s.Asset)), channeltest.WithIsFinal(false), channeltest.WithoutApp())
 
 	ctx, cancel := context.WithTimeout(context.Background(), defaultTxTimeout)
 	defer cancel()
