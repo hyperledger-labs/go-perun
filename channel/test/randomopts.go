@@ -43,7 +43,16 @@ func WithAllocation(alloc *channel.Allocation) RandomOpt {
 // WithApp sets the `App` that should be used.
 // Also defines `WithDef`.
 func WithApp(app channel.App) RandomOpt {
-	return RandomOpt{"app": app, "appDef": app.Def()}
+	var appDef wallet.Address
+	if !channel.IsNoApp(app) {
+		appDef = app.Def()
+	}
+	return RandomOpt{"app": app, "appDef": appDef}
+}
+
+// WithoutApp configures a NoApp and NoData.
+func WithoutApp() RandomOpt {
+	return RandomOpt{"app": channel.NoApp(), "appDef": nil, "appData": channel.NoData()}
 }
 
 // WithAppData sets the `AppData` that should be used.
