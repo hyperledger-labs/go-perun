@@ -114,6 +114,13 @@ func (c *Channel) Update(ctx context.Context, next *channel.State) (err error) {
 	if ctx == nil {
 		return errors.New("context must not be nil")
 	}
+
+	// Lock machine while update is in progress.
+	if !c.machMtx.TryLockCtx(ctx) {
+		return errors.Errorf("locking machine mutex in time: %v", ctx.Err())
+	}
+	defer c.machMtx.Unlock()
+
 	up := ChannelUpdate{
 		State:    next,
 		ActorIdx: c.machine.Idx(),
@@ -121,12 +128,11 @@ func (c *Channel) Update(ctx context.Context, next *channel.State) (err error) {
 	if err := c.validTwoPartyUpdate(up, c.machine.Idx()); err != nil {
 		return err
 	}
-	// Lock machine while update is in progress.
-	if !c.machMtx.TryLockCtx(ctx) {
-		return errors.Errorf("locking machine mutex in time: %v", ctx.Err())
-	}
-	defer c.machMtx.Unlock()
+	return c.update(ctx, up)
+}
 
+// Like Update, but assumes channel locked and update validated.
+func (c *Channel) update(ctx context.Context, up ChannelUpdate) (err error) {
 	if err = c.machine.Update(ctx, up.State, up.ActorIdx); err != nil {
 		return errors.WithMessage(err, "updating machine")
 	}
@@ -186,11 +192,32 @@ func (c *Channel) Update(ctx context.Context, next *channel.State) (err error) {
 // Returns nil if all peers accept the update. If any runtime error occurs or
 // any peer rejects the update, an error is returned.
 func (c *Channel) UpdateBy(ctx context.Context, update func(*channel.State)) (err error) {
-	state := c.State().Clone()
-	update(state)
-	state.Version++
+	if ctx == nil {
+		return errors.New("context must not be nil")
+	}
 
-	return c.Update(ctx, state)
+	// Lock machine while update is in progress.
+	if !c.machMtx.TryLockCtx(ctx) {
+		return errors.Errorf("locking machine mutex in time: %v", ctx.Err())
+	}
+	defer c.machMtx.Unlock()
+
+	// apply update
+	next := c.machine.State().Clone()
+	update(next)
+	next.Version++
+
+	// validate
+	up := ChannelUpdate{
+		State:    next,
+		ActorIdx: c.machine.Idx(),
+	}
+	if err := c.validTwoPartyUpdate(up, c.machine.Idx()); err != nil {
+		return err
+	}
+
+	// update machine state
+	return c.update(ctx, up)
 }
 
 // handleUpdateReq is called by the controller on incoming channel update
