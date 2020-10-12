@@ -35,6 +35,11 @@ func init() {
 			m := LedgerChannelProposal{}
 			return &m, m.Decode(r)
 		})
+	wire.RegisterDecoder(wire.SubChannelProposal,
+		func(r io.Reader) (wire.Msg, error) {
+			m := SubChannelProposal{}
+			return &m, m.Decode(r)
+		})
 	wire.RegisterDecoder(wire.ChannelProposalAcc,
 		func(r io.Reader) (wire.Msg, error) {
 			var m ChannelProposalAcc
@@ -63,14 +68,14 @@ type (
 		wire.Msg
 		perunio.Decoder
 
-		// Proposal returns the channel proposal's common values.
-		Proposal() *BaseChannelProposal
+		// Base returns the channel proposal's common values.
+		Base() *BaseChannelProposal
 	}
 
 	// BaseChannelProposal contains all data necessary to propose a new
 	// channel to a given set of peers. It is also sent over the wire.
 	//
-	// ChannelProposal implements the channel proposal messages from the
+	// BaseChannelProposal implements the channel proposal messages from the
 	// Multi-Party Channel Proposal Protocol (MPCPP).
 	BaseChannelProposal struct {
 		ChallengeDuration uint64              // Dispute challenge duration.
@@ -82,10 +87,15 @@ type (
 		PeerAddrs         []wire.Address      // Participants' wire addresses.
 	}
 
-	// LedgerChannelProposal is a channel proposal for ledger channels and has no
-	// additional values beyond a BaseChannelProposal.
+	// LedgerChannelProposal is a channel proposal for ledger channels.
 	LedgerChannelProposal struct {
 		BaseChannelProposal
+	}
+
+	// SubChannelProposal is a channel proposal for subchannels.
+	SubChannelProposal struct {
+		BaseChannelProposal
+		Parent channel.ID
 	}
 )
 
@@ -111,12 +121,12 @@ func makeBaseChannelProposal(
 	}
 }
 
-// Proposal returns the channel proposal's common values.
-func (p *BaseChannelProposal) Proposal() *BaseChannelProposal {
+// Base returns the channel proposal's common values.
+func (p *BaseChannelProposal) Base() *BaseChannelProposal {
 	return p
 }
 
-// Encode encodes the ChannelProposalReq into an io.writer.
+// Encode encodes the BaseChannelProposal into an io.Writer.
 func (p *BaseChannelProposal) Encode(w io.Writer) error {
 	if w == nil {
 		return errors.New("writer must not be nil")
@@ -169,7 +179,7 @@ func (o OptAppAndDataDec) Decode(r io.Reader) (err error) {
 	return err
 }
 
-// Decode decodes a ChannelProposalRequest from an io.Reader.
+// Decode decodes a BaseChannelProposal from an io.Reader.
 func (p *BaseChannelProposal) Decode(r io.Reader) (err error) {
 	if r == nil {
 		return errors.New("reader must not be nil")
@@ -210,6 +220,16 @@ func (p *BaseChannelProposal) Decode(r io.Reader) (err error) {
 	}
 
 	return nil
+}
+
+// Encode encodes the SubChannelProposal into an io.Writer.
+func (p *SubChannelProposal) Encode(w io.Writer) error {
+	return perunio.Encode(w, &p.BaseChannelProposal, p.Parent)
+}
+
+// Decode decodes a SubChannelProposal from an io.Reader.
+func (p *SubChannelProposal) Decode(r io.Reader) (err error) {
+	return perunio.Decode(r, &p.BaseChannelProposal, &p.Parent)
 }
 
 // ProposalID returns the identifier of this channel proposal request as
@@ -299,9 +319,35 @@ func NewLedgerChannelProposal(
 			opts...)}
 }
 
-// Type returns wire.ChannelProposal.
+// Type returns wire.LedgerChannelProposal.
 func (LedgerChannelProposal) Type() wire.Type {
 	return wire.LedgerChannelProposal
+}
+
+// NewSubChannelProposal creates a subchannel proposal and applies the
+// supplied options. For more information, see ProposalOpts.
+func NewSubChannelProposal(
+	parent channel.ID,
+	challengeDuration uint64,
+	participantAddr wallet.Address,
+	initBals *channel.Allocation,
+	peerAddrs []wire.Address,
+	opts ...ProposalOpts,
+) *SubChannelProposal {
+	return &SubChannelProposal{
+		BaseChannelProposal: makeBaseChannelProposal(
+			challengeDuration,
+			participantAddr,
+			initBals,
+			peerAddrs,
+			opts...),
+		Parent: parent,
+	}
+}
+
+// Type returns wire.SubChannelProposal.
+func (SubChannelProposal) Type() wire.Type {
+	return wire.SubChannelProposal
 }
 
 // ChannelProposalAcc contains all data for a response to a channel proposal

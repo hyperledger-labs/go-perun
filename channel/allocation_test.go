@@ -17,6 +17,7 @@ package channel_test
 import (
 	"io"
 	"math/big"
+	"math/rand"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -64,6 +65,101 @@ func TestAllocationNumParts(t *testing.T) {
 	}
 }
 
+func randomBalancesWithMismatchingNumAssets(rng *rand.Rand, rngBase int) (b1, b2 channel.Balances) {
+	numParts := 2 + rng.Intn(rngBase)
+
+	randomNumAssets := func() int {
+		return 1 + rng.Intn(rngBase)
+	}
+	numAssets1 := randomNumAssets()
+	numAssets2 := randomNumAssets()
+	for numAssets2 == numAssets1 {
+		numAssets2 = randomNumAssets()
+	}
+
+	b1 = test.NewRandomBalances(rng, test.WithNumAssets(numAssets1), test.WithNumParts(numParts))
+	b2 = test.NewRandomBalances(rng, test.WithNumAssets(numAssets2), test.WithNumParts(numParts))
+
+	return
+}
+
+func randomBalancesWithMismatchingNumParts(rng *rand.Rand, rngBase int) (b1, b2 channel.Balances) {
+	numAssets := 1 + rng.Intn(rngBase)
+
+	randomNumParts := func() int {
+		return 2 + rng.Intn(rngBase)
+	}
+	numParts1 := randomNumParts()
+	numParts2 := randomNumParts()
+	for numParts2 == numParts1 {
+		numParts2 = randomNumParts()
+	}
+
+	b1 = test.NewRandomBalances(rng, test.WithNumAssets(numAssets), test.WithNumParts(numParts1))
+	b2 = test.NewRandomBalances(rng, test.WithNumAssets(numAssets), test.WithNumParts(numParts2))
+
+	return
+}
+
+func TestBalancesEqualAndAssertEqual(t *testing.T) {
+	assert := assert.New(t)
+	rng := pkgtest.Prng(t)
+	const rngBase = 10
+
+	t.Run("fails with mismatching number of assets", func(t *testing.T) {
+		b1, b2 := randomBalancesWithMismatchingNumAssets(rng, rngBase)
+		assert.False(b1.Equal(b2))
+		assert.Error(b1.AssertEqual(b2))
+	})
+
+	t.Run("fails with mismatching number of parts", func(t *testing.T) {
+		b1, b2 := randomBalancesWithMismatchingNumParts(rng, rngBase)
+		assert.False(b1.Equal(b2))
+		assert.Error(b1.AssertEqual(b2))
+	})
+
+	t.Run("compares correctly", func(t *testing.T) {
+		numAssets := 1 + rng.Intn(rngBase)
+		numParts := 2 + rng.Intn(rngBase)
+
+		b1 := test.NewRandomBalances(rng, test.WithNumAssets(numAssets), test.WithNumParts(numParts), test.WithBalancesInRange(big.NewInt(0), big.NewInt(rngBase)))
+		b2 := test.NewRandomBalances(rng, test.WithNumAssets(numAssets), test.WithNumParts(numParts), test.WithBalancesInRange(big.NewInt(rngBase), big.NewInt(2*rngBase)))
+
+		assert.False(b1.Equal(b2))
+		assert.Error(b1.AssertEqual(b2))
+
+		assert.True(b1.Equal(b1))
+		assert.NoError(b1.AssertEqual(b1))
+	})
+}
+
+func TestBalancesGreaterOrEqual(t *testing.T) {
+	assert := assert.New(t)
+	rng := pkgtest.Prng(t)
+	const rngBase = 10
+
+	t.Run("fails with mismatching number of assets", func(t *testing.T) {
+		b1, b2 := randomBalancesWithMismatchingNumAssets(rng, rngBase)
+		assert.Error(b1.AssertGreaterOrEqual(b2))
+	})
+
+	t.Run("fails with mismatching number of parts", func(t *testing.T) {
+		b1, b2 := randomBalancesWithMismatchingNumParts(rng, rngBase)
+		assert.Error(b1.AssertGreaterOrEqual(b2))
+	})
+
+	t.Run("compares correctly", func(t *testing.T) {
+		numAssets := 1 + rng.Intn(rngBase)
+		numParts := 2 + rng.Intn(rngBase)
+
+		b1 := test.NewRandomBalances(rng, test.WithNumAssets(numAssets), test.WithNumParts(numParts), test.WithBalancesInRange(big.NewInt(0), big.NewInt(rngBase)))
+		b2 := test.NewRandomBalances(rng, test.WithNumAssets(numAssets), test.WithNumParts(numParts), test.WithBalancesInRange(big.NewInt(rngBase), big.NewInt(2*rngBase)))
+
+		assert.Error(b1.AssertGreaterOrEqual(b2))
+		assert.NoError(b2.AssertGreaterOrEqual(b1))
+	})
+}
+
 func TestBalancesEqualSum(t *testing.T) {
 	rng := pkgtest.Prng(t)
 	for i := 0; i < 10; i++ {
@@ -81,6 +177,56 @@ func TestBalancesEqualSum(t *testing.T) {
 		require.NoError(t, err)
 		assert.True(t, ok)
 	}
+}
+
+func TestBalancesAdd(t *testing.T) {
+	testBalancesOperation(
+		t,
+		func(b1, b2 channel.Balances) channel.Balances { return b1.Add(b2) },
+		func(b1, b2 channel.Bal) channel.Bal { return new(big.Int).Add(b1, b2) },
+	)
+}
+
+func TestBalancesSub(t *testing.T) {
+	testBalancesOperation(
+		t,
+		func(b1, b2 channel.Balances) channel.Balances { return b1.Sub(b2) },
+		func(b1, b2 channel.Bal) channel.Bal { return new(big.Int).Sub(b1, b2) },
+	)
+}
+
+func testBalancesOperation(t *testing.T, op func(channel.Balances, channel.Balances) channel.Balances, elementOp func(channel.Bal, channel.Bal) channel.Bal) {
+	assert := assert.New(t)
+	rng := pkgtest.Prng(t)
+	const rngBase = 10
+
+	t.Run("fails with mismatching number of assets", func(t *testing.T) {
+		b1, b2 := randomBalancesWithMismatchingNumAssets(rng, rngBase)
+		assert.Panics(func() { op(b1, b2) })
+	})
+
+	t.Run("fails with mismatching number of parts", func(t *testing.T) {
+		b1, b2 := randomBalancesWithMismatchingNumParts(rng, rngBase)
+		assert.Panics(func() { op(b1, b2) })
+	})
+
+	t.Run("calculates correctly", func(t *testing.T) {
+		numAssets := 1 + rng.Intn(rngBase)
+		numParts := 2 + rng.Intn(rngBase)
+
+		b1 := test.NewRandomBalances(rng, test.WithNumAssets(numAssets), test.WithNumParts(numParts))
+		b2 := test.NewRandomBalances(rng, test.WithNumAssets(numAssets), test.WithNumParts(numParts))
+
+		b0 := op(b1, b2)
+
+		for a := range b0 {
+			for u := range b0[a] {
+				expected := elementOp(b1[a][u], b2[a][u])
+				got := b0[a][u]
+				assert.Zero(got.Cmp(expected), "value mismatch at index [%d, %d]: expected %v, got %v", a, u, expected, got)
+			}
+		}
+	})
 }
 
 type balancesDec struct {
@@ -428,4 +574,22 @@ func TestSuballocSerialization(t *testing.T) {
 	}
 
 	iotest.GenericSerializerTest(t, ss...)
+}
+
+func TestRemoveSubAlloc(t *testing.T) {
+	assert := assert.New(t)
+	rng := pkgtest.Prng(t)
+
+	alloc := test.NewRandomAllocation(rng, test.WithNumLocked(3))
+	lenBefore := len(alloc.Locked)
+	subAlloc := alloc.Locked[rng.Intn(lenBefore)]
+
+	require.NoError(t, alloc.RemoveSubAlloc(subAlloc), "removing contained element should not fail")
+
+	assert.Equal(lenBefore-1, len(alloc.Locked), "length should decrease by 1")
+
+	_, ok := alloc.SubAlloc(subAlloc.ID)
+	assert.False(ok, "element should not be found after removal") // this could potentially fail because duplicates are currently not removed
+
+	assert.Error(alloc.RemoveSubAlloc(subAlloc), "removing not-contained element should fail")
 }

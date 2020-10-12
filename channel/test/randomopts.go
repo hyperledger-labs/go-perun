@@ -77,7 +77,7 @@ func WithBalances(balances ...[]channel.Bal) RandomOpt {
 	return opt
 }
 
-// WithBalancesInRange sets the range within which balances are randomly generated.
+// WithBalancesInRange sets the range within which balances are randomly generated to [min, max].
 func WithBalancesInRange(min, max channel.Bal) RandomOpt {
 	return RandomOpt{"balanceRange": []channel.Bal{min, max}}
 }

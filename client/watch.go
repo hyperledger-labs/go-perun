@@ -131,6 +131,9 @@ func (c *Channel) settleLocked(ctx context.Context, secondary bool) error {
 //
 // The caller is expected to have locked the channel mutex.
 func (c *Channel) settle(ctx context.Context, secondary bool) error {
+	if c.IsSubChannel() {
+		return c.subChannelSettleOptimistic(ctx)
+	}
 	ver, reg := c.machine.State().Version, c.machine.Registered()
 	// If the machine is at least in phase Registered, reg shouldn't be nil. We
 	// still catch this case to be future proof.
@@ -166,7 +169,7 @@ func (c *Channel) settle(ctx context.Context, secondary bool) error {
 	return nil
 }
 
-// register calls Regsiter on the adjudicator with the current channel state and
+// register calls Register on the adjudicator with the current channel state and
 // progresses the machine phases. When successful, the resulting RegisteredEvent
 // is saved to the phase machine.
 //

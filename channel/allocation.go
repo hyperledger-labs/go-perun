@@ -16,6 +16,7 @@ package channel
 
 import (
 	"io"
+	"log"
 	"math/big"
 
 	perunio "perun.network/go-perun/pkg/io"
@@ -68,8 +69,8 @@ type (
 		Assets []Asset
 		// Balances is the allocation of assets to the Params.Parts
 		Balances
-		// Locked is the locked allocation to sub-app-channels. It is allowed to be
-		// nil, in which case there's nothing locked.
+		// Locked describes the funds locked in subchannels. There is one entry
+		// per subchannel.
 		Locked []SubAlloc
 	}
 
@@ -143,6 +144,86 @@ func (b Balances) Clone() Balances {
 		clone[i] = CloneBals(pa)
 	}
 	return clone
+}
+
+// Equal returns whether the two balances are equal.
+func (b Balances) Equal(bals Balances) bool {
+	return b.AssertEqual(bals) == nil
+}
+
+// AssertEqual returns an error if the two balances are not equal.
+func (b Balances) AssertEqual(bals Balances) error {
+	if len(bals) != len(b) {
+		return errors.New("outer length mismatch")
+	}
+	for i := range bals {
+		if len(bals[i]) != len(b[i]) {
+			return errors.Errorf("inner length mismatch at index %d", i)
+		}
+		for j := range bals[i] {
+			if bals[i][j].Cmp(b[i][j]) != 0 {
+				return errors.Errorf("value mismatch at position [%d, %d]", i, j)
+			}
+		}
+	}
+
+	return nil
+}
+
+// AssertGreaterOrEqual returns whether each entry of b is greater or equal to
+// the corresponding entry of bals.
+func (b Balances) AssertGreaterOrEqual(bals Balances) error {
+	if len(bals) != len(b) {
+		return errors.New("outer length mismatch")
+	}
+	for i := range bals {
+		if len(bals[i]) != len(b[i]) {
+			return errors.Errorf("inner length mismatch at index %d", i)
+		}
+		for j := range bals[i] {
+			if b[i][j].Cmp(bals[i][j]) < 0 {
+				return errors.Errorf("value not greater or equal at position [%d, %d]", i, j)
+			}
+		}
+	}
+
+	return nil
+}
+
+// Add returns the sum b + a. It panics if the dimensions do not match.
+func (b Balances) Add(a Balances) Balances {
+	return b.operate(
+		a,
+		func(b1, b2 Bal) Bal { return new(big.Int).Add(b1, b2) },
+	)
+}
+
+// Sub returns the difference b - a. It panics if the dimensions do not match.
+func (b Balances) Sub(a Balances) Balances {
+	return b.operate(
+		a,
+		func(b1, b2 Bal) Bal { return new(big.Int).Sub(b1, b2) },
+	)
+}
+
+// operate returns op(b, a). It panics if the dimensions do not match.
+func (b Balances) operate(a Balances, op func(Bal, Bal) Bal) Balances {
+	if len(a) != len(b) {
+		log.Panic("outer length mismatch")
+	}
+
+	c := make([][]Bal, len(a))
+	for i := range a {
+		if len(a[i]) != len(b[i]) {
+			log.Panicf("inner length mismatch at index %d", i)
+		}
+		c[i] = make([]Bal, len(a[i]))
+		for j := range a[i] {
+			c[i][j] = op(b[i][j], a[i][j])
+		}
+	}
+
+	return c
 }
 
 // Encode encodes this allocation into an io.Writer.
@@ -345,45 +426,78 @@ func (b Balances) Sum() []Bal {
 	return totals
 }
 
-// Equal returns whether two `Allocation` objects are equal.
+// NewSubAlloc creates a new sub-allocation.
+func NewSubAlloc(id ID, bals []Bal) *SubAlloc {
+	return &SubAlloc{ID: id, Bals: bals}
+}
+
+// SubAlloc tries to return the sub-allocation for the given subchannel.
+// The second return value indicates success.
+func (a Allocation) SubAlloc(subchannel ID) (subAlloc SubAlloc, ok bool) {
+	for _, subAlloc = range a.Locked {
+		if subAlloc.ID == subchannel {
+			ok = true
+			return
+		}
+	}
+	ok = false
+	return
+}
+
+// AddSubAlloc adds the given sub-allocation.
+func (a *Allocation) AddSubAlloc(subAlloc SubAlloc) {
+	a.Locked = append(a.Locked, subAlloc)
+}
+
+// RemoveSubAlloc removes the given sub-allocation.
+func (a *Allocation) RemoveSubAlloc(subAlloc SubAlloc) error {
+	for i := range a.Locked {
+		if subAlloc.Equal(&a.Locked[i]) == nil {
+			// remove element at index i
+			b := a.Locked
+			copy(b[i:], b[i+1:])
+			b[len(b)-1] = SubAlloc{}
+			a.Locked = b[:len(b)-1]
+			return nil
+		}
+	}
+	return errors.New("not found")
+}
+
+// Equal returns nil if the `Allocation` objects are equal and an error if they
+// are not equal.
 func (a *Allocation) Equal(b *Allocation) error {
 	if a == b {
 		return nil
 	}
 	// Compare Assets
-	if len(a.Assets) != len(b.Assets) {
-		return errors.New("different number of assets")
+	if err := AssetsAssertEqual(a.Assets, b.Assets); err != nil {
+		return errors.WithMessage(err, "comparing assets")
 	}
-	for i, asset := range a.Assets {
-		if ok, err := perunio.EqualEncoding(asset, b.Assets[i]); err != nil {
-			return errors.WithMessagef(err, "comparing asset[%d] encoding", i)
-		} else if !ok {
-			return errors.Errorf("different asset[%d]", i)
-		}
-	}
+
 	// Compare Balances
-	if len(a.Balances) != len(b.Balances) {
-		return errors.New("different number of balances")
+	if err := a.Balances.AssertEqual(b.Balances); err != nil {
+		return errors.WithMessage(err, "comparing balances")
 	}
-	for i, bals := range a.Balances {
-		if len(bals) != len(b.Balances[i]) {
-			return errors.Errorf("different number of parts for %d'th balances", i)
-		}
-		for j, bal := range bals {
-			if bal.Cmp(b.Balances[i][j]) != 0 {
-				return errors.Errorf("different balance[%d][%d]", i, j)
-			}
-		}
-	}
+
 	// Compare Locked
-	if len(a.Locked) != len(b.Locked) {
-		return errors.New("different number of sub allocations")
+	return errors.WithMessage(SubAllocsAssertEqual(a.Locked, b.Locked), "comparing sub-allocations")
+}
+
+// AssetsAssertEqual returns an error if the given assets are not equal.
+func AssetsAssertEqual(a []Asset, b []Asset) error {
+	if len(a) != len(b) {
+		return errors.New("length mismatch")
 	}
-	for i, locked := range a.Locked {
-		if err := locked.Equal(&b.Locked[i]); err != nil {
-			return errors.WithMessagef(err, "different sub allocation[%d]", i)
+
+	for i, asset := range a {
+		if ok, err := perunio.EqualEncoding(asset, b[i]); err != nil {
+			return errors.WithMessagef(err, "comparing encoding at index %d", i)
+		} else if !ok {
+			return errors.Errorf("value mismatch at index %d", i)
 		}
 	}
+
 	return nil
 }
 
@@ -447,7 +561,8 @@ func (s *SubAlloc) Decode(r io.Reader) error {
 	return s.Valid()
 }
 
-// Equal returns whether two `SubAlloc` objects are equal.
+// Equal returns nil if the `SubAlloc` objects are equal and an error if they
+// are not equal.
 func (s *SubAlloc) Equal(t *SubAlloc) error {
 	if s == t {
 		return nil
@@ -455,13 +570,40 @@ func (s *SubAlloc) Equal(t *SubAlloc) error {
 	if s.ID != t.ID {
 		return errors.New("different ID")
 	}
-	if len(s.Bals) != len(t.Bals) {
-		return errors.New("different number of bals")
+	if !s.BalancesEqual(t.Bals) {
+		return errors.New("balances unequal")
+	}
+	return nil
+}
+
+// BalancesEqual returns whether balances b equal s.Bals.
+func (s *SubAlloc) BalancesEqual(b []Bal) bool {
+	if len(s.Bals) != len(b) {
+		return false
 	}
 	for i, bal := range s.Bals {
-		if bal.Cmp(t.Bals[i]) != 0 {
-			return errors.Errorf("different balance[%d]", i)
+		if bal.Cmp(b[i]) != 0 {
+			return false
+		}
+	}
+	return true
+}
+
+// SubAllocsAssertEqual asserts that the two sub-allocations are equal. If they
+// are unequal, an error with additional information is thrown.
+func SubAllocsAssertEqual(a []SubAlloc, b []SubAlloc) error {
+	if len(a) != len(b) {
+		return errors.New("length mismatch")
+	}
+	for i := range a {
+		if a[i].Equal(&b[i]) != nil {
+			return errors.Errorf("value mismatch at index %d", i)
 		}
 	}
 	return nil
+}
+
+// SubAllocsEqual returns whether the two sub-allocations are equal.
+func SubAllocsEqual(a []SubAlloc, b []SubAlloc) bool {
+	return SubAllocsAssertEqual(a, b) == nil
 }

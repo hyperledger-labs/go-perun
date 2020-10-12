@@ -41,6 +41,10 @@ type Channel struct {
 	onUpdate    func(from, to *channel.State)
 	adjudicator channel.Adjudicator
 	wallet      wallet.Wallet
+
+	parent                *Channel
+	subChannelFundings    *updateInterceptors // awaited subchannel funding updates
+	subChannelWithdrawals *updateInterceptors // awaited subchannel settlement updates
 }
 
 // newChannel is internally used by the Client to create a new channel
@@ -86,12 +90,14 @@ func (c *Client) channelFromMachine(machine *channel.StateMachine, peers ...wire
 
 	conn.SetLog(logger)
 	return &Channel{
-		OnCloser:    conn,
-		Embedding:   log.MakeEmbedding(logger),
-		conn:        conn,
-		machine:     pmachine,
-		adjudicator: c.adjudicator,
-		wallet:      c.wallet,
+		OnCloser:              conn,
+		Embedding:             log.MakeEmbedding(logger),
+		conn:                  conn,
+		machine:               pmachine,
+		adjudicator:           c.adjudicator,
+		wallet:                c.wallet,
+		subChannelFundings:    newUpdateInterceptors(),
+		subChannelWithdrawals: newUpdateInterceptors(),
 	}, nil
 }
 
@@ -150,6 +156,11 @@ func (c *Channel) Phase() channel.Phase {
 // of the channel participants.
 func (c *Channel) Peers() []wire.Address {
 	return c.conn.Peers()
+}
+
+// Parent returns the parent channel. Can be nil.
+func (c *Channel) Parent() *Channel {
+	return c.parent
 }
 
 // init brings the state machine into the InitSigning phase. It is not callable

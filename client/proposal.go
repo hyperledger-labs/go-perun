@@ -50,7 +50,7 @@ type (
 	ProposalResponder struct {
 		client *Client
 		peer   wire.Address
-		req    *BaseChannelProposal
+		req    ChannelProposal
 		called atomic.Bool
 	}
 )
@@ -86,7 +86,7 @@ func (r *ProposalResponder) Accept(ctx context.Context, acc *ChannelProposalAcc)
 		log.Panic("multiple calls on proposal responder")
 	}
 
-	return r.client.handleChannelProposalAcc(ctx, r.peer, r.req.Proposal(), acc)
+	return r.client.handleChannelProposalAcc(ctx, r.peer, r.req, acc)
 }
 
 // Reject lets the user signal that they reject the channel proposal.
@@ -116,25 +116,25 @@ func (r *ProposalResponder) Reject(ctx context.Context, reason string) error {
 // After the channel got successfully created, the user is required to start the
 // channel watcher with Channel.Watch() on the returned channel
 // controller.
-func (c *Client) ProposeChannel(ctx context.Context, req ChannelProposal) (*Channel, error) {
-	if ctx == nil || req == nil {
+func (c *Client) ProposeChannel(ctx context.Context, prop ChannelProposal) (*Channel, error) {
+	if ctx == nil {
 		c.log.Panic("invalid nil argument")
 	}
 
-	// 1. check valid proposal
-	peer := req.Proposal().PeerAddrs[proposeeIdx]
-	if err := c.validTwoPartyProposal(req.Proposal(), proposerIdx, peer); err != nil {
+	// 1. validate input
+	peer := prop.Base().PeerAddrs[proposeeIdx]
+	if err := c.validTwoPartyProposal(prop, proposerIdx, peer); err != nil {
 		return nil, errors.WithMessage(err, "invalid channel proposal")
 	}
 
-	// 2. send proposal and wait for response, create params
-	params, err := c.exchangeTwoPartyProposal(ctx, req)
+	// 2. send proposal, wait for response, create channel object
+	ch, err := c.proposeTwoPartyChannel(ctx, prop)
 	if err != nil {
-		return nil, errors.WithMessage(err, "sending proposal")
+		return nil, errors.WithMessage(err, "channel proposal")
 	}
 
-	// 3. Create channel controller, fund channel, and return the controller
-	return c.setupChannel(ctx, req.Proposal(), params, proposerIdx)
+	// 3. fund
+	return ch, c.fundChannel(ctx, ch, prop)
 }
 
 // handleChannelProposal implements the receiving side of the (currently)
@@ -144,20 +144,37 @@ func (c *Client) ProposeChannel(ctx context.Context, req ChannelProposal) (*Chan
 // This handler is dispatched from the Client.Handle routine.
 func (c *Client) handleChannelProposal(
 	handler ProposalHandler, p wire.Address, req ChannelProposal) {
-	if err := c.validTwoPartyProposal(req.Proposal(), proposeeIdx, p); err != nil {
+	if err := c.validTwoPartyProposal(req, proposeeIdx, p); err != nil {
 		c.logPeer(p).Debugf("received invalid channel proposal: %v", err)
 		return
 	}
 
 	c.logPeer(p).Trace("calling proposal handler")
-	responder := &ProposalResponder{client: c, peer: p, req: req.Proposal()}
+	responder := &ProposalResponder{client: c, peer: p, req: req}
 	handler.HandleProposal(req, responder)
 	// control flow continues in responder.Accept/Reject
 }
 
 func (c *Client) handleChannelProposalAcc(
 	ctx context.Context, p wire.Address,
-	req *BaseChannelProposal, acc *ChannelProposalAcc,
+	prop ChannelProposal, acc *ChannelProposalAcc,
+) (ch *Channel, err error) {
+	if err := c.validChannelProposalAcc(prop, acc); err != nil {
+		return ch, errors.WithMessage(err, "validating channel proposal acceptance")
+	}
+
+	if ch, err = c.acceptChannelProposal(ctx, prop, p, acc); err != nil {
+		return ch, errors.WithMessage(err, "accept channel proposal")
+	}
+
+	return ch, c.fundChannel(ctx, ch, prop)
+}
+
+func (c *Client) acceptChannelProposal(
+	ctx context.Context,
+	prop ChannelProposal,
+	p wire.Address,
+	acc *ChannelProposalAcc,
 ) (*Channel, error) {
 	if acc == nil {
 		c.logPeer(p).Error("user passed nil ChannelProposalAcc")
@@ -174,16 +191,15 @@ func (c *Client) handleChannelProposalAcc(
 		return nil, errors.WithMessage(err, "sending proposal acceptance")
 	}
 
-	params := finalizeCPP(req, acc)
-	return c.setupChannel(ctx, req, params, proposeeIdx)
+	return c.completeCPP(ctx, prop, acc, proposeeIdx)
 }
 
 func (c *Client) handleChannelProposalRej(
 	ctx context.Context, p wire.Address,
-	req *BaseChannelProposal, reason string,
+	req ChannelProposal, reason string,
 ) error {
 	msgReject := &ChannelProposalRej{
-		ProposalID: req.ProposalID(),
+		ProposalID: req.Base().ProposalID(),
 		Reason:     reason,
 	}
 	if err := c.conn.pubMsg(ctx, msgReject, p); err != nil {
@@ -193,14 +209,14 @@ func (c *Client) handleChannelProposalRej(
 	return nil
 }
 
-// exchangeTwoPartyProposal implements the multi-party channel proposal
+// proposeTwoPartyChannel implements the multi-party channel proposal
 // protocol for the two-party case. It returns the agreed upon channel
 // parameters.
-func (c *Client) exchangeTwoPartyProposal(
+func (c *Client) proposeTwoPartyChannel(
 	ctx context.Context,
 	proposal ChannelProposal,
-) (*channel.Params, error) {
-	propBase := proposal.Proposal()
+) (*Channel, error) {
+	propBase := proposal.Base()
 	peer := propBase.PeerAddrs[proposeeIdx]
 
 	// enables caching of incoming version 0 signatures before sending any message
@@ -236,7 +252,12 @@ func (c *Client) exchangeTwoPartyProposal(
 	}
 
 	acc := env.Msg.(*ChannelProposalAcc) // this is safe because of predicate isResponse
-	return finalizeCPP(propBase, acc), nil
+
+	if err := c.validChannelProposalAcc(proposal, acc); err != nil {
+		return nil, errors.WithMessage(err, "validating channel proposal acceptance")
+	}
+
+	return c.completeCPP(ctx, proposal, acc, proposerIdx)
 }
 
 // validTwoPartyProposal checks that the proposal is valid in the two-party
@@ -244,36 +265,87 @@ func (c *Client) exchangeTwoPartyProposal(
 // the receiver to have index 1. The generic validity of the proposal is also
 // checked.
 func (c *Client) validTwoPartyProposal(
-	proposal *BaseChannelProposal,
+	proposal ChannelProposal,
 	ourIdx int,
 	peerAddr wallet.Address,
 ) error {
-	if err := proposal.Valid(); err != nil {
+	base := proposal.Base()
+	if err := base.Valid(); err != nil {
 		return err
 	}
 
-	if len(proposal.PeerAddrs) != 2 {
-		return errors.Errorf("exptected 2 peers, got %d", len(proposal.PeerAddrs))
+	if len(base.PeerAddrs) != 2 {
+		return errors.Errorf("exptected 2 peers, got %d", len(proposal.Base().PeerAddrs))
 	}
 
 	peerIdx := ourIdx ^ 1
 	// In the 2PCPP, the proposer is expected to have index 0
-	if !proposal.PeerAddrs[peerIdx].Equals(peerAddr) {
+	if !base.PeerAddrs[peerIdx].Equals(peerAddr) {
 		return errors.Errorf("remote peer doesn't have peer index %d", peerIdx)
 	}
 
 	// In the 2PCPP, the receiver is expected to have index 1
-	if !proposal.PeerAddrs[ourIdx].Equals(c.address) {
+	if !base.PeerAddrs[ourIdx].Equals(c.address) {
 		return errors.Errorf("we don't have peer index %d", ourIdx)
+	}
+
+	if proposal.Type() == wire.SubChannelProposal {
+		if err := c.validSubChannelProposal(proposal.(*SubChannelProposal)); err != nil {
+			return errors.WithMessage(err, "validate subchannel proposal")
+		}
 	}
 
 	return nil
 }
 
-func finalizeCPP(prop *BaseChannelProposal, acc *ChannelProposalAcc) *channel.Params {
-	nonce := calcNonce(nonceShares(prop.NonceShare, acc.NonceShare))
-	parts := participants(prop.ParticipantAddr, acc.ParticipantAddr)
-	return channel.NewParamsUnsafe(prop.ChallengeDuration, parts, prop.App, nonce)
+func (c *Client) validSubChannelProposal(proposal *SubChannelProposal) error {
+	parent, ok := c.channels.Get(proposal.Parent)
+	if !ok {
+		return errors.New("parent channel does not exist")
+	}
+
+	base := proposal.Base()
+
+	if base.ParticipantAddr.Cmp(parent.Params().Parts[proposerIdx]) != 0 {
+		return errors.New("sub-channel proposer must equal parent channel proposer")
+	}
+
+	for i, peer := range parent.Peers() {
+		if peer != base.PeerAddrs[i] {
+			return errors.New("peers do not match")
+		}
+	}
+
+	if err := channel.AssetsAssertEqual(parent.State().Assets, base.InitBals.Assets); err != nil {
+		return errors.WithMessage(err, "parent channel and sub-channel assets do not match")
+	}
+
+	if err := parent.State().Balances.AssertGreaterOrEqual(base.InitBals.Balances); err != nil {
+		return errors.WithMessage(err, "insufficient funds")
+	}
+
+	return nil
+}
+
+func (c *Client) validChannelProposalAcc(
+	proposal ChannelProposal,
+	response *ChannelProposalAcc,
+) error {
+	if proposal.Type() == wire.SubChannelProposal {
+		subProp := proposal.(*SubChannelProposal)
+
+		parent, ok := c.channels.Get(subProp.Parent)
+		if !ok {
+			return errors.New("parent channel does not exist")
+		}
+
+		// check that responder wallet address in sub-channel equals responder wallet address in parent channel
+		if response.ParticipantAddr.Cmp(parent.Params().Parts[proposeeIdx]) != 0 {
+			return errors.New("sub-channel responder must equal parent channel responder")
+		}
+	}
+
+	return nil
 }
 
 func participants(proposer, proposee wallet.Address) []wallet.Address {
@@ -302,11 +374,9 @@ func calcNonce(nonceShares []NonceShare) channel.Nonce {
 	return channel.NonceFromBytes(hasher.Sum(nil))
 }
 
-// setupChannel sets up a new channel controller for the given proposal and
-// params, using the wallet to unlock the account for our participant.
-//
-// The initial state with signatures is exchanged. The channel will be funded
-// and if successful, the channel controller is returned.
+// completeCPP completes the channel proposal protocol and sets up a new channel
+// controller. The initial state with signatures is exchanged using the wallet
+// to unlock the account for our participant.
 //
 // It does not perform a validity check on the proposal, so make sure to only
 // pass valid proposals.
@@ -314,61 +384,126 @@ func calcNonce(nonceShares []NonceShare) channel.Nonce {
 // It is important that the passed context does not cancel before twice the
 // ChallengeDuration has passed (at least for real blockchain backends with wall
 // time), or the channel cannot be settled if a peer times out funding.
-func (c *Client) setupChannel(
+func (c *Client) completeCPP(
 	ctx context.Context,
-	prop *BaseChannelProposal,
-	params *channel.Params,
-	idx channel.Index, // our index
+	prop ChannelProposal,
+	acc *ChannelProposalAcc,
+	partIdx channel.Index,
 ) (*Channel, error) {
+	nonce := calcNonce(nonceShares(prop.Base().NonceShare, acc.NonceShare))
+	parts := participants(prop.Base().ParticipantAddr, acc.ParticipantAddr)
+	params := channel.NewParamsUnsafe(prop.Base().ChallengeDuration, parts, prop.Base().App, nonce)
+
 	if c.channels.Has(params.ID()) {
 		return nil, errors.New("channel already exists")
 	}
 
-	acc, err := c.wallet.Unlock(params.Parts[idx])
+	account, err := c.wallet.Unlock(params.Parts[partIdx])
 	if err != nil {
 		return nil, errors.WithMessage(err, "unlocking account")
 	}
 
-	ch, err := c.newChannel(acc, prop.PeerAddrs, *params)
+	ch, err := c.newChannel(account, prop.Base().PeerAddrs, *params)
 	if err != nil {
 		return nil, err
 	}
 
-	if err := c.pr.ChannelCreated(ctx, ch.machine, prop.PeerAddrs); err != nil {
+	if prop.Type() == wire.SubChannelProposal {
+		parentChannelID := prop.(*SubChannelProposal).Parent
+		parentChannel, ok := c.channels.Get(parentChannelID)
+		if !ok {
+			return ch, errors.New("referenced parent channel not found")
+		}
+
+		ch.parent = parentChannel
+
+		// if subchannel proposal receiver, setup register funding update
+		if partIdx == proposeeIdx {
+			parentChannel.registerSubChannelFunding(ch.ID(), prop.Base().InitBals.Sum())
+		}
+	}
+
+	if err := c.pr.ChannelCreated(ctx, ch.machine, prop.Base().PeerAddrs); err != nil {
 		return ch, errors.WithMessage(err, "persisting new channel")
 	}
 
-	if err := ch.init(ctx, prop.InitBals, prop.InitData); err != nil {
+	if err := ch.init(ctx, prop.Base().InitBals, prop.Base().InitData); err != nil {
 		return ch, errors.WithMessage(err, "setting initial bals and data")
 	}
 	if err := ch.initExchangeSigsAndEnable(ctx); err != nil {
 		return ch, errors.WithMessage(err, "exchanging initial sigs and enabling state")
 	}
 
+	return ch, nil
+}
+
+func (c *Client) fundChannel(ctx context.Context, ch *Channel, prop ChannelProposal) error {
+	switch prop.Type() {
+	case wire.LedgerChannelProposal:
+		err := c.fundLedgerChannel(ctx, ch)
+		return errors.WithMessage(err, "funding ledger channel")
+	case wire.SubChannelProposal:
+		err := c.fundSubchannel(ctx, prop.(*SubChannelProposal), ch)
+		return errors.WithMessage(err, "funding subchannel")
+	}
+	c.log.Panicf("invalid channel proposal type %T", prop)
+	return nil
+}
+
+func (c *Client) completeFunding(ctx context.Context, ch *Channel) error {
+	params := ch.Params()
+	if err := ch.machine.SetFunded(ctx); err != nil {
+		return errors.WithMessage(err, "error in SetFunded()")
+	}
+	if !c.channels.Put(params.ID(), ch) {
+		return errors.New("channel already exists")
+	}
+	c.wallet.IncrementUsage(params.Parts[ch.machine.Idx()])
+	return nil
+}
+
+func (c *Client) fundLedgerChannel(ctx context.Context, ch *Channel) (err error) {
 	if err = c.funder.Fund(ctx,
 		channel.FundingReq{
-			Params: params,
+			Params: ch.Params(),
 			State:  ch.machine.State(), // initial state
 			Idx:    ch.machine.Idx(),
 		}); channel.IsFundingTimeoutError(err) {
 		ch.Log().Warnf("Peers timed out funding channel(%v); settling...", err)
 		serr := ch.Settle(ctx)
-		return ch, errors.WithMessagef(err,
+		return errors.WithMessagef(err,
 			"peers timed out funding (subsequent settlement error: %v)", serr)
 	} else if err != nil { // other runtime error
 		ch.Log().Warnf("error while funding channel: %v", err)
-		return ch, errors.WithMessage(err, "error while funding channel")
+		return errors.WithMessage(err, "error while funding channel")
 	}
 
-	if err := ch.machine.SetFunded(ctx); err != nil {
-		return ch, errors.WithMessage(err, "error in SetFunded()")
-	}
-	if !c.channels.Put(params.ID(), ch) {
-		return ch, errors.New("channel already exists")
-	}
-	c.wallet.IncrementUsage(acc.Address())
+	return c.completeFunding(ctx, ch)
+}
 
-	return ch, nil
+func (c *Client) fundSubchannel(ctx context.Context, prop *SubChannelProposal, subChannel *Channel) (err error) {
+	//@seb: implement this functionality in subchannel funder?
+
+	parentChannel, ok := c.channels.Get(prop.Parent)
+	if !ok {
+		return errors.New("referenced parent channel not found")
+	}
+
+	switch subChannel.Idx() {
+	case proposerIdx:
+		if err := parentChannel.fundSubChannel(ctx, subChannel.ID(), prop.InitBals); err != nil {
+			return errors.WithMessage(err, "parent channel update failed")
+		}
+
+	case proposeeIdx:
+		if err := parentChannel.awaitSubChannelFunding(ctx, subChannel.ID()); err != nil {
+			return errors.WithMessage(err, "await subchannel funding update")
+		}
+	default:
+		return errors.New("invalid participant index")
+	}
+
+	return c.completeFunding(ctx, subChannel)
 }
 
 // enableVer0Cache enables caching of incoming version 0 signatures.

@@ -34,7 +34,7 @@ import (
 
 func TestChannelProposalReq_NilArgs(t *testing.T) {
 	rng := pkgtest.Prng(t)
-	c := clienttest.NewRandomChannelProposal(
+	c := clienttest.NewRandomLedgerChannelProposal(
 		rng,
 		client.WithNonceFrom(rng),
 		client.WithApp(test.NewRandomAppAndData(rng)))
@@ -56,7 +56,7 @@ func TestChannelProposalReqSerialization(t *testing.T) {
 			app = client.WithApp(test.NewRandomAppAndData(rng))
 		}
 
-		m := clienttest.NewRandomChannelProposal(rng, client.WithNonceFrom(rng), app)
+		m := clienttest.NewRandomLedgerChannelProposal(rng, client.WithNonceFrom(rng), app)
 		wire.TestMsg(t, m)
 	}
 }
@@ -148,6 +148,14 @@ func TestChannelProposalRejSerialization(t *testing.T) {
 			Reason:     newRandomString(rng, 16, 16),
 		}
 		wire.TestMsg(t, m)
+	}
+}
+
+func TestSubChannelProposalSerialization(t *testing.T) {
+	rng := pkgtest.Prng(t)
+	const repeatRandomizedTest = 16
+	for i := 0; i < repeatRandomizedTest; i++ {
+		wire.TestMsg(t, clienttest.NewRandomSubChannelProposal(rng))
 	}
 }
 
