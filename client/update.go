@@ -186,8 +186,9 @@ func (c *Channel) update(ctx context.Context, up ChannelUpdate) (err error) {
 	return c.enableNotifyUpdate(ctx)
 }
 
-// UpdateBy updates the channel state using the update function and proposes the new state
-// to all other channel participants.
+// UpdateBy updates the channel state using the update function and proposes the
+// new state to all other channel participants. The update function must not
+// update the version counter.
 //
 // Returns nil if all peers accept the update. If any runtime error occurs or
 // any peer rejects the update, an error is returned.
