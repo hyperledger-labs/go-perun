@@ -12,27 +12,83 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package channel
+package channel_test
 
 import (
-	"encoding/hex"
+	"context"
 	"io"
-	"math/big"
 	"math/rand"
 	"testing"
+	"time"
 
-	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
-	"perun.network/go-perun/backend/ethereum/wallet"
+	"perun.network/go-perun/backend/ethereum/bindings/adjudicator"
+	"perun.network/go-perun/backend/ethereum/channel"
+	ethchanneltest "perun.network/go-perun/backend/ethereum/channel/test"
 	ethwallettest "perun.network/go-perun/backend/ethereum/wallet/test"
-	"perun.network/go-perun/channel"
 	"perun.network/go-perun/channel/test"
 	iotest "perun.network/go-perun/pkg/io/test"
 	pkgtest "perun.network/go-perun/pkg/test"
 	perunwallet "perun.network/go-perun/wallet"
 	wallettest "perun.network/go-perun/wallet/test"
 )
+
+func TestAdjudicator_PureFunctions(t *testing.T) {
+	rng := pkgtest.Prng(t)
+	s := ethchanneltest.NewSimSetup(rng)
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	defer cancel()
+	adj, err := channel.DeployAdjudicator(ctx, *s.CB, s.TxSender.Account)
+	require.NoError(t, err)
+	contr, err := adjudicator.NewAdjudicator(adj, *s.CB)
+	require.NoError(t, err)
+	opts := &bind.CallOpts{Context: ctx}
+
+	t.Run("testCalcID", func(t *testing.T) {
+		testCalcID(t, rng, contr, opts)
+	})
+	t.Run("testHashState", func(t *testing.T) {
+		testHashState(t, rng, contr, opts)
+	})
+}
+
+func testCalcID(t *testing.T, rng *rand.Rand, contr *adjudicator.
+	Adjudicator, opts *bind.CallOpts) {
+	for i := 0; i < 100; i++ {
+		params := test.NewRandomParams(rng)
+		ethParams := channel.ToEthParams(params)
+		ethId, err := contr.ChannelID(opts, ethParams)
+		require.NoError(t, err)
+		chID := channel.CalcID(params)
+
+		require.NoError(t, err)
+		require.Equal(t, chID, ethId)
+	}
+
+	assert.Panics(t, func() {
+		channel.CalcID(nil)
+	})
+}
+
+func testHashState(t *testing.T, rng *rand.Rand, contr *adjudicator.Adjudicator, opts *bind.CallOpts) {
+	for i := 0; i < 100; i++ {
+		state := test.NewRandomParams(rng)
+		ethState := channel.ToEthParams(state)
+		ethId, err := contr.ChannelID(opts, ethState)
+		require.NoError(t, err)
+		chID := channel.CalcID(state)
+
+		require.NoError(t, err)
+		require.Equal(t, chID, ethId)
+	}
+
+	assert.Panics(t, func() {
+		channel.HashState(nil)
+	})
+}
 
 func TestGenericTests(t *testing.T) {
 	setup := newChannelSetup(pkgtest.Prng(t))
@@ -58,57 +114,9 @@ func newChannelSetup(rng *rand.Rand) *test.Setup {
 	}
 }
 
-
-func TestChannelID(t *testing.T) {
-	tests := []struct {
-		name        string
-		aliceAddr   string
-		bobAddr     string
-		appAddr     string
-		challengDur uint64
-		nonceStr    string
-		channelID   string
-	}{
-		{"Test case 1",
-			"0xf17f52151EbEF6C7334FAD080c5704D77216b732",
-			"0xC5fdf4076b8F3A5357c5E395ab970B5B54098Fef",
-			"0x9FBDa871d559710256a2502A2517b794B482Db40",
-			uint64(60),
-			"B0B0FACE",
-			"f27b90711d11d10a155fc8ba0eed1ffbf449cf3730d88c0cb77b98f61750ab34"},
-		{"Test case 2",
-			"0x0000000000000000000000000000000000000000",
-			"0x0000000000000000000000000000000000000000",
-			"0x0000000000000000000000000000000000000000",
-			uint64(0),
-			"0",
-			"c8ac0e8f7eeea864a050a8626dfa0ffb916f43c90bc6b2ba68df6ed063c952e2"},
-	}
-	for _, _tt := range tests {
-		tt := _tt
-		t.Run(tt.name, func(t *testing.T) {
-			nonce, ok := new(big.Int).SetString(tt.nonceStr, 16)
-			assert.True(t, ok, "Setting the nonce should not fail")
-			alice := newAddressFromString(tt.aliceAddr)
-			bob := newAddressFromString(tt.bobAddr)
-			app := newAddressFromString(tt.appAddr)
-			params := channel.Params{
-				ChallengeDuration: tt.challengDur,
-				Nonce:             nonce,
-				Parts:             []perunwallet.Address{alice, bob},
-				App:               channel.NewMockApp(app),
-			}
-			cID := channel.CalcID(&params)
-			preCalc, err := hex.DecodeString(tt.channelID)
-			assert.NoError(t, err, "Decoding the channelID should not error")
-			assert.Equal(t, preCalc, cID[:], "ChannelID should match the testcase")
-		})
-	}
-}
-
 func TestAssetSerialization(t *testing.T) {
 	rng := pkgtest.Prng(t)
-	var asset Asset = ethwallettest.NewRandomAddress(rng)
+	asset := ethwallettest.NewRandomAddress(rng)
 	reader, writer := io.Pipe()
 	done := make(chan struct{})
 
@@ -117,10 +125,14 @@ func TestAssetSerialization(t *testing.T) {
 		assert.NoError(t, asset.Encode(writer))
 	}()
 
-	asset2, err := DecodeAsset(reader)
+	backend := new(channel.Backend)
+	asset2, err := backend.DecodeAsset(reader)
 	assert.NoError(t, err, "Decode asset should not produce error")
 	assert.Equal(t, &asset, asset2, "Decode asset should return the initial asset")
 	<-done
 
-	iotest.GenericSerializerTest(t, &asset)
+	for i := 0; i < 10; i++ {
+		asset := ethwallettest.NewRandomAddress(rng)
+		iotest.GenericSerializerTest(t, &asset)
+	}
 }
