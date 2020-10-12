@@ -32,7 +32,7 @@ func NewResponder(setup RoleSetup, t *testing.T, numStages int) *Responder {
 }
 
 // Execute executes the Responder protocol.
-func (r *Responder) Execute(cfg ExecConfig, exec func(ExecConfig, *paymentChannel)) {
+func (r *Responder) Execute(cfg ExecConfig, exec func(ExecConfig, *paymentChannel, *acceptAllPropHandler)) {
 	rng := pkgtest.Prng(r.t, "responder")
 	assert := assert.New(r.t)
 
@@ -49,7 +49,7 @@ func (r *Responder) Execute(cfg ExecConfig, exec func(ExecConfig, *paymentChanne
 
 	r.log.Infof("New Channel opened: %v", ch.Channel)
 
-	exec(cfg, ch)
+	exec(cfg, ch, propHandler)
 
 	assert.NoError(ch.Close())
 	assert.NoError(r.Close())

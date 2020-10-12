@@ -18,6 +18,7 @@ package test
 import (
 	"context"
 	"errors"
+	"io"
 	"math/big"
 	"math/rand"
 	"sync"
@@ -28,6 +29,7 @@ import (
 	"perun.network/go-perun/channel/persistence"
 	"perun.network/go-perun/client"
 	"perun.network/go-perun/log"
+	"perun.network/go-perun/wallet"
 	wallettest "perun.network/go-perun/wallet/test"
 	"perun.network/go-perun/wire"
 )
@@ -36,7 +38,7 @@ type (
 	// A Role is a client.Client together with a protocol execution path.
 	role struct {
 		*client.Client
-		chans   map[channel.ID]*paymentChannel
+		chans   *channelMap
 		newChan func(*paymentChannel) // new channel callback
 		setup   RoleSetup
 		// we use the Client as Closer
@@ -45,6 +47,11 @@ type (
 		t         *testing.T
 		numStages int
 		stages    Stages
+	}
+
+	channelMap struct {
+		entries map[channel.ID]*paymentChannel
+		sync.RWMutex
 	}
 
 	// RoleSetup contains the injectables for setting up the client.
@@ -60,13 +67,19 @@ type (
 	}
 
 	// ExecConfig contains additional config parameters for the tests.
-	ExecConfig struct {
-		PeerAddrs   [2]wire.Address     // must match the RoleSetup.Identity's
-		Asset       channel.Asset       // single Asset to use in this channel
-		InitBals    [2]*big.Int         // channel deposit of each role
-		NumPayments [2]int              // how many updates each role sends
-		TxAmounts   [2]*big.Int         // amounts that are to be sent by each role
-		App         client.ProposalOpts // must be either WithApp or WithoutApp
+	ExecConfig interface {
+		PeerAddrs() [2]wire.Address // must match the RoleSetup.Identity's
+		Asset() channel.Asset       // single Asset to use in this channel
+		InitBals() [2]*big.Int      // channel deposit of each role
+		App() client.ProposalOpts   // must be either WithApp or WithoutApp
+	}
+
+	// BaseExecConfig contains base config parameters.
+	BaseExecConfig struct {
+		peerAddrs [2]wire.Address     // must match the RoleSetup.Identity's
+		asset     channel.Asset       // single Asset to use in this channel
+		initBals  [2]*big.Int         // channel deposit of each role
+		app       client.ProposalOpts // must be either WithApp or WithoutApp
 	}
 
 	// An Executer is a Role that can execute a protocol.
@@ -83,10 +96,45 @@ type (
 	Stages = []sync.WaitGroup
 )
 
+// MakeBaseExecConfig creates a new BaseExecConfig.
+func MakeBaseExecConfig(
+	peerAddrs [2]wire.Address,
+	asset channel.Asset,
+	initBals [2]*big.Int,
+	app client.ProposalOpts,
+) BaseExecConfig {
+	return BaseExecConfig{
+		peerAddrs: peerAddrs,
+		asset:     asset,
+		initBals:  initBals,
+		app:       app,
+	}
+}
+
+// PeerAddrs returns the peer addresses.
+func (c *BaseExecConfig) PeerAddrs() [2]wire.Address {
+	return c.peerAddrs
+}
+
+// Asset returns the asset.
+func (c *BaseExecConfig) Asset() channel.Asset {
+	return c.asset
+}
+
+// InitBals returns the initial balances.
+func (c *BaseExecConfig) InitBals() [2]*big.Int {
+	return c.initBals
+}
+
+// App returns the app.
+func (c *BaseExecConfig) App() client.ProposalOpts {
+	return c.app
+}
+
 // makeRole creates a client for the given setup and wraps it into a Role.
 func makeRole(setup RoleSetup, t *testing.T, numStages int) (r role) {
 	r = role{
-		chans:     make(map[channel.ID]*paymentChannel),
+		chans:     &channelMap{entries: make(map[channel.ID]*paymentChannel)},
 		setup:     setup,
 		timeout:   setup.Timeout,
 		t:         t,
@@ -106,7 +154,7 @@ func (r *role) setClient(cl *client.Client) {
 	}
 	cl.OnNewChannel(func(_ch *client.Channel) {
 		ch := newPaymentChannel(_ch, r)
-		r.chans[ch.ID()] = ch
+		r.chans.add(ch)
 		if r.newChan != nil {
 			r.newChan(ch) // forward callback
 		}
@@ -114,6 +162,19 @@ func (r *role) setClient(cl *client.Client) {
 	r.Client = cl
 	// Append role field to client logger and set role logger to client logger.
 	r.log = log.AppendField(cl, "role", r.setup.Name)
+}
+
+func (chs *channelMap) get(ch channel.ID) (_ch *paymentChannel, ok bool) {
+	chs.RLock()
+	defer chs.RUnlock()
+	_ch, ok = chs.entries[ch]
+	return
+}
+
+func (chs *channelMap) add(ch *paymentChannel) {
+	chs.Lock()
+	defer chs.Unlock()
+	chs.entries[ch.ID()] = ch
 }
 
 func (r *role) OnNewChannel(callback func(ch *paymentChannel)) {
@@ -176,7 +237,11 @@ func (r *role) ProposeChannel(req client.ChannelProposal) (*paymentChannel, erro
 		return nil, err
 	}
 	// Client.OnNewChannel callback adds paymentChannel wrapper to the chans map
-	return r.chans[_ch.ID()], nil
+	ch, ok := r.chans.get(_ch.ID())
+	if !ok {
+		return ch, errors.New("channel not found")
+	}
+	return ch, nil
 }
 
 type (
@@ -215,22 +280,48 @@ func (r *role) GoHandle(rng *rand.Rand) (h *acceptAllPropHandler, wait func()) {
 	}
 }
 
-func (r *role) LedgerChannelProposal(rng *rand.Rand, cfg *ExecConfig) client.ChannelProposal {
-	if !cfg.App.SetsApp() {
+const challengeDuration = 60
+
+func (r *role) LedgerChannelProposal(rng *rand.Rand, cfg ExecConfig) *client.LedgerChannelProposal {
+	if !cfg.App().SetsApp() {
 		r.log.Panic("Invalid ExecConfig: App does not specify an app.")
 	}
 
+	cfgInitBals := cfg.InitBals()
 	initBals := &channel.Allocation{
-		Assets:   []channel.Asset{cfg.Asset},
-		Balances: channel.Balances{cfg.InitBals[:]},
+		Assets:   []channel.Asset{cfg.Asset()},
+		Balances: channel.Balances{cfgInitBals[:]},
 	}
+	cfgPeerAddrs := cfg.PeerAddrs()
 	return client.NewLedgerChannelProposal(
-		60, // 60 sec
+		challengeDuration,
 		r.setup.Wallet.NewRandomAccount(rng).Address(),
 		initBals,
-		cfg.PeerAddrs[:],
+		cfgPeerAddrs[:],
 		client.WithNonceFrom(rng),
-		cfg.App)
+		cfg.App())
+}
+
+func (r *role) SubChannelProposal(
+	rng io.Reader,
+	cfg ExecConfig,
+	parent *client.Channel,
+	initBals *channel.Allocation,
+	app client.ProposalOpts,
+) *client.SubChannelProposal {
+	if !cfg.App().SetsApp() {
+		r.log.Panic("Invalid ExecConfig: App does not specify an app.")
+	}
+	cfgPeerAddrs := cfg.PeerAddrs()
+	return client.NewSubChannelProposal(
+		parent.ID(),
+		challengeDuration,
+		parent.Params().Parts[parent.Idx()],
+		initBals,
+		cfgPeerAddrs[:],
+		client.WithNonceFrom(rng),
+		app,
+	)
 }
 
 // AcceptAllPropHandler returns a ProposalHandler that accepts all requests to
@@ -250,7 +341,22 @@ func (h *acceptAllPropHandler) HandleProposal(req client.ChannelProposal, res *c
 	ctx, cancel := context.WithTimeout(context.Background(), h.r.setup.Timeout)
 	defer cancel()
 
-	part := h.r.setup.Wallet.NewRandomAccount(h.rng).Address()
+	var part wallet.Address
+	switch req.Type() {
+	case wire.LedgerChannelProposal:
+		part = h.r.setup.Wallet.NewRandomAccount(h.rng).Address()
+
+	case wire.SubChannelProposal:
+		parent, ok := h.r.chans.get(req.(*client.SubChannelProposal).Parent)
+		if !ok {
+			panic("parent channel not found")
+		}
+		part = parent.Params().Parts[parent.Idx()]
+
+	default:
+		panic("invalid proposal type")
+	}
+
 	h.r.log.Debugf("Accepting with participant: %v", part)
 	acc := req.Base().NewChannelProposalAcc(part, client.WithNonceFrom(h.rng))
 	ch, err := res.Accept(ctx, acc)
@@ -267,7 +373,11 @@ func (h *acceptAllPropHandler) Next() (*paymentChannel, error) {
 			return nil, ce.err
 		}
 		// Client.OnNewChannel callback adds paymentChannel wrapper to the chans map
-		return h.r.chans[ce.channel.ID()], nil
+		ch, ok := h.r.chans.get(ce.channel.ID())
+		if !ok {
+			return ch, errors.New("channel not found")
+		}
+		return ch, nil
 	case <-time.After(h.r.setup.Timeout):
 		return nil, errors.New("timeout passed")
 	}
@@ -279,7 +389,7 @@ func (r *role) UpdateHandler() *roleUpdateHandler { return (*roleUpdateHandler)(
 
 // HandleUpdate implements the Role as its own UpdateHandler.
 func (h *roleUpdateHandler) HandleUpdate(up client.ChannelUpdate, res *client.UpdateResponder) {
-	ch, ok := h.chans[up.State.ID]
+	ch, ok := h.chans.get(up.State.ID)
 	if !ok {
 		h.t.Errorf("unknown channel: %v", up.State.ID)
 		ctx, cancel := context.WithTimeout(context.Background(), h.setup.Timeout)

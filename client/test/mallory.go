@@ -17,6 +17,7 @@ package test
 import (
 	"context"
 	"fmt"
+	"math/big"
 	"testing"
 	"time"
 
@@ -24,6 +25,13 @@ import (
 
 	"perun.network/go-perun/client"
 )
+
+// MalloryCarolExecConfig contains config parameters for Mallory and Carol test.
+type MalloryCarolExecConfig struct {
+	BaseExecConfig
+	NumPayments [2]int      // how many payments each role sends
+	TxAmounts   [2]*big.Int // amounts that are to be sent/requested by each role
+}
 
 // Mallory is a test client role. She proposes the new channel.
 type Mallory struct {
@@ -40,9 +48,10 @@ func (r *Mallory) Execute(cfg ExecConfig) {
 	r.Proposer.Execute(cfg, r.exec)
 }
 
-func (r *Mallory) exec(cfg ExecConfig, ch *paymentChannel) {
+func (r *Mallory) exec(_cfg ExecConfig, ch *paymentChannel) {
+	cfg := _cfg.(*MalloryCarolExecConfig)
 	assert := assert.New(r.t)
-	we, _ := r.Idxs(cfg.PeerAddrs)
+	we, _ := r.Idxs(cfg.PeerAddrs())
 	// AdjudicatorReq for version 0
 	req0 := client.NewTestChannel(ch.Channel).AdjudicatorReq()
 

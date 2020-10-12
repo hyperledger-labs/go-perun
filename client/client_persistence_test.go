@@ -37,20 +37,24 @@ func TestPersistencePetraRobert(t *testing.T) {
 			ctest.NewRobert(setups[1], t),
 		}
 
-		cfg := ctest.ExecConfig{
-			PeerAddrs:   [2]wire.Address{setups[0].Identity.Address(), setups[1].Identity.Address()},
-			Asset:       chtest.NewRandomAsset(rng),
-			InitBals:    [2]*big.Int{big.NewInt(100), big.NewInt(100)},
-			NumPayments: [2]int{2, 2},
-			TxAmounts:   [2]*big.Int{big.NewInt(5), big.NewInt(3)},
-			App:         client.WithoutApp(),
-		}
-
+		app := client.WithoutApp()
 		if i == 1 {
-			cfg.App = client.WithApp(
+			app = client.WithApp(
 				chtest.NewRandomAppAndData(rng, chtest.WithAppRandomizer(new(payment.Randomizer))),
 			)
 		}
+
+		cfg := &ctest.PetraRobertExecConfig{
+			BaseExecConfig: ctest.MakeBaseExecConfig(
+				[2]wire.Address{setups[0].Identity.Address(), setups[1].Identity.Address()},
+				chtest.NewRandomAsset(rng),
+				[2]*big.Int{big.NewInt(100), big.NewInt(100)},
+				app,
+			),
+			NumPayments: [2]int{2, 2},
+			TxAmounts:   [2]*big.Int{big.NewInt(5), big.NewInt(3)},
+		}
+
 		executeTwoPartyTest(roles, cfg)
 	}
 }

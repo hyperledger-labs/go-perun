@@ -251,7 +251,7 @@ func (t *ConcurrentT) BarrierN(name string, n int) {
 	t.Wait(name)
 }
 
-// FailBarrier marks a barrier as failed. It terminates the current test and
+// FailBarrierN marks a barrier as failed. It terminates the current test and
 // all goroutines waiting for the barrier.
 func (t *ConcurrentT) FailBarrierN(name string, n int) {
 	t.spawnStage(name, n).FailNow()

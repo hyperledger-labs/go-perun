@@ -28,6 +28,13 @@ import (
 )
 
 type (
+	// PetraRobertExecConfig contains config parameters for Petra and Robert test.
+	PetraRobertExecConfig struct {
+		BaseExecConfig
+		NumPayments [2]int
+		TxAmounts   [2]*big.Int
+	}
+
 	multiClientRole struct {
 		role
 	}
@@ -68,7 +75,7 @@ func (r *Petra) Execute(cfg ExecConfig) {
 	assrt := assert.New(r.t)
 	rng := test.Prng(r.t, "petra")
 
-	prop := r.LedgerChannelProposal(rng, &cfg)
+	prop := r.LedgerChannelProposal(rng, cfg)
 	ch, err := r.ProposeChannel(prop)
 	assrt.NoError(err)
 	assrt.NotNil(ch)
@@ -93,7 +100,7 @@ func (r *Petra) Execute(cfg ExecConfig) {
 	wait() // Handle return
 	r.waitStage()
 
-	r.assertPersistedPeerAndChannel(&cfg, ch.State())
+	r.assertPersistedPeerAndChannel(cfg, ch.State())
 
 	// 4. Restart clients and let them sync channels
 	r.ReplaceClient()
@@ -156,7 +163,7 @@ func (r *Robert) Execute(cfg ExecConfig) {
 	waitHandler()
 	r.waitStage()
 
-	r.assertPersistedPeerAndChannel(&cfg, ch.State())
+	r.assertPersistedPeerAndChannel(cfg, ch.State())
 
 	// 4. Restart clients and let them sync channels
 	r.ReplaceClient()
@@ -187,11 +194,11 @@ func (r *Robert) Execute(cfg ExecConfig) {
 	assrt.NoError(r.Close())
 }
 
-func (r *multiClientRole) assertPersistedPeerAndChannel(cfg *ExecConfig, state *channel.State) {
+func (r *multiClientRole) assertPersistedPeerAndChannel(cfg ExecConfig, state *channel.State) {
 	assrt := assert.New(r.t)
-	_, them := r.Idxs(cfg.PeerAddrs)
+	_, them := r.Idxs(cfg.PeerAddrs())
 	ps, err := r.setup.PR.ActivePeers(nil) // it should be a test persister, so no context needed
-	peerAddr := cfg.PeerAddrs[them]
+	peerAddr := cfg.PeerAddrs()[them]
 	assrt.NoError(err)
 	assrt.Contains(ps, peerAddr)
 	if len(ps) == 0 {

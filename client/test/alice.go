@@ -12,12 +12,21 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package test // nolint: dupl
+package test
 
 import (
 	"fmt"
+	"math/big"
 	"testing"
 )
+
+// AliceBobExecConfig contains config parameters for Alice and Bob test.
+type AliceBobExecConfig struct {
+	BaseExecConfig
+	NumPayments [2]int      // how many payments each role sends
+	NumRequests [2]int      // how many requests each role sends
+	TxAmounts   [2]*big.Int // amounts that are to be sent/requested by each role
+}
 
 // Alice is a Proposer. She proposes the new channel.
 type Alice struct {
@@ -34,8 +43,9 @@ func (r *Alice) Execute(cfg ExecConfig) {
 	r.Proposer.Execute(cfg, r.exec)
 }
 
-func (r *Alice) exec(cfg ExecConfig, ch *paymentChannel) {
-	we, them := r.Idxs(cfg.PeerAddrs)
+func (r *Alice) exec(_cfg ExecConfig, ch *paymentChannel) {
+	cfg := _cfg.(*AliceBobExecConfig)
+	we, them := r.Idxs(cfg.PeerAddrs())
 	// 1st stage - channel controller set up
 	r.waitStage()
 

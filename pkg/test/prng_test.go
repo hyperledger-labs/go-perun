@@ -16,6 +16,7 @@ package test
 
 import (
 	"os"
+	"runtime"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -78,6 +79,11 @@ func TestGenRootSeed(t *testing.T) {
 	// Seb promised to buy a beer crate if this test ever fails
 	// in any pipeline (as long as the root seed is time.Now().UnixNano()).
 	t.Run("Root-Changes", func(t *testing.T) {
+		// We've seen the test failing on darwin due to insufficient time resolution.
+		// Therefore, we skip the test on that platform.
+		if runtime.GOOS == "darwin" {
+			t.Skip()
+		}
 		assert.NotEqual(t, genRootSeed(), genRootSeed())
 	})
 	t.Run("Root-Environment", testRootEnv)
