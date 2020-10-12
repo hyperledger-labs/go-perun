@@ -100,8 +100,8 @@ type adjFunc = func(
 // call calls the given contract function `fn` with the data from `req`.
 // `fn` should be a method of `a.contract`, like `a.contract.Register`.
 func (a *Adjudicator) call(ctx context.Context, req channel.AdjudicatorReq, fn adjFunc) error {
-	ethParams := channelParamsToEthParams(req.Params)
-	ethState := channelStateToEthState(req.Tx.State)
+	ethParams := ToEthParams(req.Params)
+	ethState := ToEthState(req.Tx.State)
 	tx, err := func() (*types.Transaction, error) {
 		if !a.mu.TryLockCtx(ctx) {
 			return nil, errors.Wrap(ctx.Err(), "context canceled while acquiring tx lock")

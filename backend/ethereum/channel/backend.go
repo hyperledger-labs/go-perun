@@ -72,7 +72,7 @@ func (*Backend) DecodeAsset(r io.Reader) (channel.Asset, error) {
 
 // CalcID calculates the channelID as needed by the ethereum smart contracts.
 func CalcID(p *channel.Params) (id channel.ID) {
-	params := channelParamsToEthParams(p)
+	params := ToEthParams(p)
 	bytes, err := encodeParams(&params)
 	if err != nil {
 		log.Panicf("could not encode parameters: %v", err)
@@ -83,7 +83,7 @@ func CalcID(p *channel.Params) (id channel.ID) {
 
 // Sign signs the channel state as needed by the ethereum smart contracts.
 func Sign(acc wallet.Account, p *channel.Params, s *channel.State) (wallet.Sig, error) {
-	state := channelStateToEthState(s)
+	state := ToEthState(s)
 	enc, err := encodeState(&state)
 	if err != nil {
 		return nil, errors.WithMessage(err, "encoding state")
@@ -96,7 +96,7 @@ func Verify(addr wallet.Address, p *channel.Params, s *channel.State, sig wallet
 	if err := s.Valid(); err != nil {
 		return false, errors.WithMessage(err, "invalid state")
 	}
-	state := channelStateToEthState(s)
+	state := ToEthState(s)
 	enc, err := encodeState(&state)
 	if err != nil {
 		return false, errors.WithMessage(err, "encoding state")
@@ -110,8 +110,8 @@ func DecodeAsset(r io.Reader) (channel.Asset, error) {
 	return &asset, asset.Decode(r)
 }
 
-// channelParamsToEthParams converts a channel.Params to a ChannelParams struct.
-func channelParamsToEthParams(p *channel.Params) adjudicator.ChannelParams {
+// ToEthParams converts a channel.Params to a ChannelParams struct.
+func ToEthParams(p *channel.Params) adjudicator.ChannelParams {
 	var app common.Address
 	if p.App != nil {
 		app = ethwallet.AsEthAddr(p.App.Def())
@@ -125,8 +125,8 @@ func channelParamsToEthParams(p *channel.Params) adjudicator.ChannelParams {
 	}
 }
 
-// channelStateToEthState converts a channel.State to a ChannelState struct.
-func channelStateToEthState(s *channel.State) adjudicator.ChannelState {
+// ToEthState converts a channel.State to a ChannelState struct.
+func ToEthState(s *channel.State) adjudicator.ChannelState {
 	locked := make([]adjudicator.ChannelSubAlloc, len(s.Locked))
 	for i, sub := range s.Locked {
 		locked[i] = adjudicator.ChannelSubAlloc{ID: sub.ID, Balances: sub.Bals}

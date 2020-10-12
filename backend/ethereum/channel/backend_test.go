@@ -58,10 +58,6 @@ func newChannelSetup(rng *rand.Rand) *test.Setup {
 	}
 }
 
-func newAddressFromString(s string) *wallet.Address {
-	addr := wallet.Address(common.HexToAddress(s))
-	return &addr
-}
 
 func TestChannelID(t *testing.T) {
 	tests := []struct {

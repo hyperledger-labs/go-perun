@@ -15,7 +15,6 @@
 package channel
 
 import (
-	"bytes"
 	"context"
 	stderrors "errors"
 	"math/big"
@@ -172,21 +171,8 @@ func errorReason(ctx context.Context, b *ContractBackend, tx *types.Transaction,
 	if err != nil {
 		return "", errors.Wrap(err, "CallContract")
 	}
-	return unpackError(res)
-}
-
-// Keccak256("Error(string)")[:4].
-var errorSig = []byte{0x08, 0xc3, 0x79, 0xa0}
-
-func unpackError(result []byte) (string, error) {
-	if len(result) < 4 || !bytes.Equal(result[:4], errorSig) {
-		return "<tx result not Error(string)>", errors.New("TX result not of type Error(string)")
-	}
-	vs, err := abi.Arguments{{Type: abiString}}.UnpackValues(result[4:])
-	if err != nil {
-		return "<invalid tx result>", errors.Wrap(err, "unpacking revert reason")
-	}
-	return vs[0].(string), nil
+	reason, err := abi.UnpackRevert(res)
+	return reason, errors.Wrap(err, "unpacking revert reason")
 }
 
 // ContractBytecodeError signals invalid bytecode at given address, such as incorrect or no code.
