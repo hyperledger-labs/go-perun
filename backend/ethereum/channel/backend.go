@@ -19,11 +19,13 @@ import (
 	"io"
 	"log"
 	"math/big"
+	"strings"
+
+	"github.com/pkg/errors"
 
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
-	"github.com/pkg/errors"
 
 	"perun.network/go-perun/backend/ethereum/bindings/adjudicator"
 	ethwallet "perun.network/go-perun/backend/ethereum/wallet"
@@ -35,17 +37,33 @@ var (
 	// compile time check that we implement the channel backend interface.
 	_ channel.Backend = new(Backend)
 	// Definition of ABI datatypes.
-	abiUint256, _       = abi.NewType("uint256", "", nil)
-	abiUint256Arr, _    = abi.NewType("uint256[]", "", nil)
-	abiUint256ArrArr, _ = abi.NewType("uint256[][]", "", nil)
-	abiAddress, _       = abi.NewType("address", "", nil)
-	abiAddressArr, _    = abi.NewType("address[]", "", nil)
-	abiBytes, _         = abi.NewType("bytes", "", nil)
-	abiBytes32, _       = abi.NewType("bytes32", "", nil)
-	abiUint64, _        = abi.NewType("uint64", "", nil)
-	abiBool, _          = abi.NewType("bool", "", nil)
-	abiString, _        = abi.NewType("string", "", nil)
+	abiUint256, _ = abi.NewType("uint256", "", nil)
+	abiAddress, _ = abi.NewType("address", "", nil)
+	abiBytes32, _ = abi.NewType("bytes32", "", nil)
+	abiParams     abi.Type
+	abiState      abi.Type
 )
+
+func init() {
+	// The ABI type parser is unable to parse the correct params and state types,
+	// therefore we fetch them from the function signatures.
+	adj, err := abi.JSON(strings.NewReader(adjudicator.AdjudicatorABI))
+	if err != nil {
+		panic("decoding ABI json")
+	}
+	// Get the Params type.
+	chID, ok := adj.Methods["channelID"]
+	if !ok || len(chID.Inputs) != 1 {
+		panic("channelID not found")
+	}
+	abiParams = chID.Inputs[0].Type
+	// Get the State type.
+	hashState, ok := adj.Methods["hashState"]
+	if !ok || len(hashState.Inputs) != 1 {
+		panic("hashState not found")
+	}
+	abiState = hashState.Inputs[0].Type
+}
 
 // Backend implements the interface defined in channel/Backend.go.
 type Backend struct{}
@@ -72,8 +90,8 @@ func (*Backend) DecodeAsset(r io.Reader) (channel.Asset, error) {
 
 // CalcID calculates the channelID as needed by the ethereum smart contracts.
 func CalcID(p *channel.Params) (id channel.ID) {
-	params := channelParamsToEthParams(p)
-	bytes, err := encodeParams(&params)
+	params := ToEthParams(p)
+	bytes, err := EncodeParams(&params)
 	if err != nil {
 		log.Panicf("could not encode parameters: %v", err)
 	}
@@ -81,10 +99,20 @@ func CalcID(p *channel.Params) (id channel.ID) {
 	return crypto.Keccak256Hash(bytes)
 }
 
+// HashState calculates the hash of a state as needed by the ethereum smart contracts.
+func HashState(s *channel.State) (id channel.ID) {
+	state := ToEthState(s)
+	bytes, err := EncodeState(&state)
+	if err != nil {
+		log.Panicf("could not encode parameters: %v", err)
+	}
+	return crypto.Keccak256Hash(bytes)
+}
+
 // Sign signs the channel state as needed by the ethereum smart contracts.
 func Sign(acc wallet.Account, p *channel.Params, s *channel.State) (wallet.Sig, error) {
-	state := channelStateToEthState(s)
-	enc, err := encodeState(&state)
+	state := ToEthState(s)
+	enc, err := EncodeState(&state)
 	if err != nil {
 		return nil, errors.WithMessage(err, "encoding state")
 	}
@@ -96,8 +124,8 @@ func Verify(addr wallet.Address, p *channel.Params, s *channel.State, sig wallet
 	if err := s.Valid(); err != nil {
 		return false, errors.WithMessage(err, "invalid state")
 	}
-	state := channelStateToEthState(s)
-	enc, err := encodeState(&state)
+	state := ToEthState(s)
+	enc, err := EncodeState(&state)
 	if err != nil {
 		return false, errors.WithMessage(err, "encoding state")
 	}
@@ -110,10 +138,10 @@ func DecodeAsset(r io.Reader) (channel.Asset, error) {
 	return &asset, asset.Decode(r)
 }
 
-// channelParamsToEthParams converts a channel.Params to a ChannelParams struct.
-func channelParamsToEthParams(p *channel.Params) adjudicator.ChannelParams {
+// ToEthParams converts a channel.Params to a ChannelParams struct.
+func ToEthParams(p *channel.Params) adjudicator.ChannelParams {
 	var app common.Address
-	if p.App != nil {
+	if p.App != nil && !channel.IsNoApp(p.App) {
 		app = ethwallet.AsEthAddr(p.App.Def())
 	}
 
@@ -125,8 +153,8 @@ func channelParamsToEthParams(p *channel.Params) adjudicator.ChannelParams {
 	}
 }
 
-// channelStateToEthState converts a channel.State to a ChannelState struct.
-func channelStateToEthState(s *channel.State) adjudicator.ChannelState {
+// ToEthState converts a channel.State to a ChannelState struct.
+func ToEthState(s *channel.State) adjudicator.ChannelState {
 	locked := make([]adjudicator.ChannelSubAlloc, len(s.Locked))
 	for i, sub := range s.Locked {
 		locked[i] = adjudicator.ChannelSubAlloc{ID: sub.ID, Balances: sub.Bals}
@@ -153,80 +181,17 @@ func channelStateToEthState(s *channel.State) adjudicator.ChannelState {
 	}
 }
 
-// encodeParams encodes the parameters as with abi.encode() in the smart contracts.
-func encodeParams(params *adjudicator.ChannelParams) ([]byte, error) {
-	args := abi.Arguments{
-		{Type: abiUint256},
-		{Type: abiUint256},
-		{Type: abiAddress},
-		{Type: abiAddressArr},
-	}
-	enc, err := args.Pack(
-		params.ChallengeDuration,
-		params.Nonce,
-		params.App,
-		params.Participants,
-	)
+// EncodeParams encodes the parameters as with abi.encode() in the smart contracts.
+func EncodeParams(params *adjudicator.ChannelParams) ([]byte, error) {
+	args := abi.Arguments{{Type: abiParams}}
+	enc, err := args.Pack(*params)
 	return enc, errors.WithStack(err)
 }
 
-// encodeState encodes the state as with abi.encode() in the smart contracts.
-func encodeState(state *adjudicator.ChannelState) ([]byte, error) {
-	args := abi.Arguments{
-		{Type: abiBytes32},
-		{Type: abiUint64},
-		{Type: abiBytes},
-		{Type: abiBytes},
-		{Type: abiBool},
-	}
-	alloc, err := encodeAllocation(&state.Outcome)
-	if err != nil {
-		return nil, err
-	}
-	enc, err := args.Pack(
-		state.ChannelID,
-		state.Version,
-		alloc,
-		state.AppData,
-		state.IsFinal,
-	)
-	return enc, errors.WithStack(err)
-}
-
-// encodeAllocation encodes the allocation as with abi.encode() in the smart contracts.
-func encodeAllocation(alloc *adjudicator.ChannelAllocation) ([]byte, error) {
-	args := abi.Arguments{
-		{Type: abiAddressArr},
-		{Type: abiUint256ArrArr},
-		{Type: abiBytes},
-	}
-	// nolint:prealloc
-	var subAllocs []byte
-	for i := range alloc.Locked {
-		subAlloc, err := encodeSubAlloc(&alloc.Locked[i])
-		if err != nil {
-			return nil, err
-		}
-		subAllocs = append(subAllocs, subAlloc...)
-	}
-	enc, err := args.Pack(
-		alloc.Assets,
-		alloc.Balances,
-		subAllocs,
-	)
-	return enc, errors.WithStack(err)
-}
-
-// encodeSubAlloc encodes the suballoc as with abi.encode() in the smart contracts.
-func encodeSubAlloc(sub *adjudicator.ChannelSubAlloc) ([]byte, error) {
-	args := abi.Arguments{
-		{Type: abiBytes32},
-		{Type: abiUint256Arr},
-	}
-	enc, err := args.Pack(
-		sub.ID,
-		sub.Balances,
-	)
+// EncodeState encodes the state as with abi.encode() in the smart contracts.
+func EncodeState(state *adjudicator.ChannelState) ([]byte, error) {
+	args := abi.Arguments{{Type: abiState}}
+	enc, err := args.Pack(*state)
 	return enc, errors.WithStack(err)
 }
 
