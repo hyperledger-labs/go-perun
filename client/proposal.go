@@ -311,7 +311,7 @@ func (c *Client) validSubChannelProposal(proposal *SubChannelProposal) error {
 	}
 
 	for i, peer := range parent.Peers() {
-		if peer != base.PeerAddrs[i] {
+		if !peer.Equals(base.PeerAddrs[i]) {
 			return errors.New("peers do not match")
 		}
 	}
