@@ -50,11 +50,7 @@ func GenericTransactorTest(t *testing.T, setup TransactorSetup) {
 
 		txHash := signer.Hash(rawTx).Bytes()
 		v, r, s := signedTx.RawSignatureValues()
-		sig := append(r.Bytes(), s.Bytes()...)
-		sig = append(sig, v.Bytes()...)
-		sig[64] -= 27
-
-		pk, err := crypto.SigToPub(txHash, sig)
+		pk, err := crypto.SigToPub(txHash, sigFromRSV(r, s, v))
 		require.NoError(t, err)
 		addr := crypto.PubkeyToAddress(*pk)
 		assert.Equal(t, setup.ValidAcc.Address.Bytes(), addr.Bytes())
@@ -75,4 +71,12 @@ func GenericTransactorTest(t *testing.T, setup TransactorSetup) {
 		_, err = transactOpts.Signer(signer, setup.MissingAcc.Address, rawTx)
 		assert.Error(t, err)
 	})
+}
+
+func sigFromRSV(r, s, v *big.Int) []byte {
+	sig := make([]byte, 65)
+	copy(sig[32-len(r.Bytes()):32], r.Bytes())
+	copy(sig[64-len(s.Bytes()):64], s.Bytes())
+	sig[64] = v.Bytes()[0] - 27
+	return sig
 }
