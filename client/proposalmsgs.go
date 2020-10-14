@@ -349,6 +349,9 @@ func NewSubChannelProposal(
 	initBals *channel.Allocation,
 	opts ...ProposalOpts,
 ) (prop *SubChannelProposal, err error) {
+	if union(opts...).isFundingAgreement() {
+		return nil, errors.New("Sub-Channels currently do not support funding agreements")
+	}
 	prop = &SubChannelProposal{Parent: parent}
 	prop.BaseChannelProposal, err = makeBaseChannelProposal(
 		challengeDuration,
