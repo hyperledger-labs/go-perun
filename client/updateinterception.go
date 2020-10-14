@@ -51,13 +51,15 @@ func (ui *updateInterceptor) HandleUpdate(u ChannelUpdate, r *UpdateResponder) {
 }
 
 func (ui *updateInterceptor) Accept(ctx context.Context) error {
-	ur := <-ui.update
-
-	if err := ur.responder.Accept(ctx); err != nil {
-		return err
+	select {
+	case ur := <-ui.update:
+		if err := ur.responder.Accept(ctx); err != nil {
+			return err
+		}
+		ui.response <- struct{}{}
+	case <-ctx.Done():
+		return ctx.Err()
 	}
-
-	ui.response <- struct{}{}
 
 	return nil
 }
