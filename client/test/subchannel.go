@@ -34,8 +34,8 @@ type SusieTimExecConfig struct {
 	TxAmount           *big.Int            // transaction amount
 }
 
-// NewSusieTimeExecConfig creates a new object from the given parameters.
-func NewSusieTimeExecConfig(
+// NewSusieTimExecConfig creates a new object from the given parameters.
+func NewSusieTimExecConfig(
 	base BaseExecConfig,
 	numSubChannels int,
 	numSubSubChannels int,
@@ -76,19 +76,19 @@ func (r *Susie) exec(_cfg ExecConfig, ledgerChannel *paymentChannel) {
 	r.waitStage()
 
 	// stage 2 - open subchannels
-	openSubchannel := func(parentChannel *paymentChannel, funds []*big.Int, app client.ProposalOpts) *paymentChannel {
+	openSubChannel := func(parentChannel *paymentChannel, funds []*big.Int, app client.ProposalOpts) *paymentChannel {
 		return parentChannel.openSubChannel(rng, cfg, funds, app)
 	}
 
 	var subChannels []*paymentChannel
 	for i := 0; i < len(cfg.SubChannelFunds); i++ {
-		c := openSubchannel(ledgerChannel, cfg.SubChannelFunds[i][:], cfg.App())
+		c := openSubChannel(ledgerChannel, cfg.SubChannelFunds[i][:], cfg.App())
 		subChannels = append(subChannels, c)
 	}
 
 	var subSubChannels []*paymentChannel
 	for i := 0; i < len(cfg.SubSubChannelFunds); i++ {
-		c := openSubchannel(subChannels[0], cfg.SubSubChannelFunds[i][:], cfg.LeafChannelApp)
+		c := openSubChannel(subChannels[0], cfg.SubSubChannelFunds[i][:], cfg.LeafChannelApp)
 		subSubChannels = append(subSubChannels, c)
 	}
 
@@ -119,9 +119,10 @@ func (r *Susie) exec(_cfg ExecConfig, ledgerChannel *paymentChannel) {
 	}
 
 	for i, ch := range subChannels {
-		if i > 0 {
-			finalizeAndSettle(ch)
+		if i == 0 {
+			continue
 		}
+		finalizeAndSettle(ch)
 	}
 
 	r.waitStage()
@@ -211,9 +212,10 @@ func (r *Tim) exec(_cfg ExecConfig, ledgerChannel *paymentChannel, propHandler *
 	}
 
 	for i, ch := range subChannels {
-		if i > 0 {
-			finalizeAndSettle(ch)
+		if i == 0 {
+			continue
 		}
+		finalizeAndSettle(ch)
 	}
 
 	r.waitStage()

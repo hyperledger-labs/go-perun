@@ -35,7 +35,7 @@ func TestHappySusieTim(t *testing.T) {
 		ctest.NewTim(setups[1], t),
 	}
 
-	cfg := ctest.NewSusieTimeExecConfig(
+	cfg := ctest.NewSusieTimExecConfig(
 		ctest.MakeBaseExecConfig(
 			[2]wire.Address{setups[0].Identity.Address(), setups[1].Identity.Address()},
 			chtest.NewRandomAsset(rng),
