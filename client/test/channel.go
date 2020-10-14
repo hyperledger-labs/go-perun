@@ -165,8 +165,9 @@ func (ch *paymentChannel) sendFinal() {
 }
 
 func (ch *paymentChannel) recvFinal() {
-	ch.recvUpdate(true, "final")
-	assert.True(ch.r.t, ch.State().IsFinal)
+	state := ch.recvUpdate(true, "final")
+	assert.NotNil(ch.r.t, state)
+	assert.True(ch.r.t, state.IsFinal)
 }
 
 func (ch *paymentChannel) settle() {
