@@ -390,9 +390,10 @@ func (c *Client) completeCPP(
 	acc *ChannelProposalAcc,
 	partIdx channel.Index,
 ) (*Channel, error) {
-	nonce := calcNonce(nonceShares(prop.Base().NonceShare, acc.NonceShare))
-	parts := participants(prop.Base().ParticipantAddr, acc.ParticipantAddr)
-	params := channel.NewParamsUnsafe(prop.Base().ChallengeDuration, parts, prop.Base().App, nonce)
+	propBase := prop.Base()
+	nonce := calcNonce(nonceShares(propBase.NonceShare, acc.NonceShare))
+	parts := participants(propBase.ParticipantAddr, acc.ParticipantAddr)
+	params := channel.NewParamsUnsafe(propBase.ChallengeDuration, parts, propBase.App, nonce)
 
 	if c.channels.Has(params.ID()) {
 		return nil, errors.New("channel already exists")
@@ -403,7 +404,7 @@ func (c *Client) completeCPP(
 		return nil, errors.WithMessage(err, "unlocking account")
 	}
 
-	ch, err := c.newChannel(account, prop.Base().PeerAddrs, *params)
+	ch, err := c.newChannel(account, propBase.PeerAddrs, *params)
 	if err != nil {
 		return nil, err
 	}
@@ -419,15 +420,15 @@ func (c *Client) completeCPP(
 
 		// if subchannel proposal receiver, setup register funding update
 		if partIdx == proposeeIdx {
-			parentChannel.registerSubChannelFunding(ch.ID(), prop.Base().InitBals.Sum())
+			parentChannel.registerSubChannelFunding(ch.ID(), propBase.InitBals.Sum())
 		}
 	}
 
-	if err := c.pr.ChannelCreated(ctx, ch.machine, prop.Base().PeerAddrs); err != nil {
+	if err := c.pr.ChannelCreated(ctx, ch.machine, propBase.PeerAddrs); err != nil {
 		return ch, errors.WithMessage(err, "persisting new channel")
 	}
 
-	if err := ch.init(ctx, prop.Base().InitBals, prop.Base().InitData); err != nil {
+	if err := ch.init(ctx, propBase.InitBals, propBase.InitData); err != nil {
 		return ch, errors.WithMessage(err, "setting initial bals and data")
 	}
 	if err := ch.initExchangeSigsAndEnable(ctx); err != nil {
