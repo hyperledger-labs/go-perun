@@ -47,13 +47,17 @@ func TestChannelProposalReq_NilArgs(t *testing.T) {
 
 func TestChannelProposalReqSerialization(t *testing.T) {
 	rng := pkgtest.Prng(t)
-	for i := 0; i < 8; i++ {
+	for i := 0; i < 16; i++ {
 		var app client.ProposalOpts
 		if i&1 == 0 {
 			app = client.WithApp(test.NewRandomAppAndData(rng))
 		}
-
-		m := clienttest.NewRandomLedgerChannelProposal(rng, client.WithNonceFrom(rng), app)
+		var m wire.Msg
+		if i&2 == 0 {
+			m = clienttest.NewRandomLedgerChannelProposal(rng, client.WithNonceFrom(rng), app)
+		} else {
+			m = clienttest.NewRandomSubChannelProposal(rng, client.WithNonceFrom(rng), app)
+		}
 		wire.TestMsg(t, m)
 	}
 }
@@ -125,13 +129,22 @@ func TestSubChannelProposalReqProposalID(t *testing.T) {
 
 func TestChannelProposalAccSerialization(t *testing.T) {
 	rng := pkgtest.Prng(t)
-	for i := 0; i < 16; i++ {
-		proposal := clienttest.NewRandomLedgerChannelProposal(rng)
-		m := proposal.Accept(
-			wallettest.NewRandomAddress(rng),
-			client.WithNonceFrom(rng))
-		wire.TestMsg(t, m)
-	}
+	t.Run("ledger channel", func(t *testing.T) {
+		for i := 0; i < 16; i++ {
+			proposal := clienttest.NewRandomLedgerChannelProposal(rng)
+			m := proposal.Accept(
+				wallettest.NewRandomAddress(rng),
+				client.WithNonceFrom(rng))
+			wire.TestMsg(t, m)
+		}
+	})
+	t.Run("sub channel", func(t *testing.T) {
+		for i := 0; i < 16; i++ {
+			proposal := clienttest.NewRandomSubChannelProposal(rng)
+			m := proposal.Accept(client.WithNonceFrom(rng))
+			wire.TestMsg(t, m)
+		}
+	})
 }
 
 func TestChannelProposalRejSerialization(t *testing.T) {
