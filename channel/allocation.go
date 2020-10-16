@@ -22,6 +22,7 @@ import (
 	perunio "perun.network/go-perun/pkg/io"
 	perunbig "perun.network/go-perun/pkg/math/big"
 
+	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/pkg/errors"
 )
 
@@ -48,7 +49,7 @@ const MaxNumSubAllocations = 1024
 
 // MaxBalance is the maximum amount of funds per asset that a user can possess.
 // It is set to 2 ^ 256 - 1.
-var MaxBalance = new(big.Int).Sub(new(big.Int).Lsh(big.NewInt(1), 256), big.NewInt(1))
+var MaxBalance = abi.MaxUint256
 
 // Allocation and associated types.
 type (
