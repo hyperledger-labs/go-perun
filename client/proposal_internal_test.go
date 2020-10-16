@@ -109,11 +109,16 @@ func NewRandomBaseChannelProposal(rng *rand.Rand, opts ...channeltest.RandomOpt)
 	}
 	alloc := channeltest.NewRandomAllocation(rng, channeltest.WithNumParts(opt.NumParts(rng)))
 	app, data := channeltest.NewRandomAppAndData(rng)
-	return makeBaseChannelProposal(
+	prop, err := makeBaseChannelProposal(
 		rng.Uint64(),
 		alloc,
 		WithNonceFrom(rng),
 		WithApp(app, data))
+
+	if err != nil {
+		panic("Error generating random channel proposal: " + err.Error())
+	}
+	return prop
 }
 
 func NewRandomLedgerChannelProposal(rng *rand.Rand, opts ...channeltest.RandomOpt) *LedgerChannelProposal {

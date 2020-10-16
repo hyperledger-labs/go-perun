@@ -197,7 +197,7 @@ func (r *role) EnableStages() Stages {
 // calling EnableStages().
 func (r *role) SetStages(st Stages) {
 	if len(st) != r.numStages {
-		panic("number of stages don't match")
+		r.log.Panic("number of stages don't match")
 	}
 
 	r.stages = st
@@ -292,13 +292,17 @@ func (r *role) LedgerChannelProposal(rng *rand.Rand, cfg ExecConfig) *client.Led
 		Balances: channel.Balances{cfgInitBals[:]},
 	}
 	cfgPeerAddrs := cfg.Peers()
-	return client.NewLedgerChannelProposal(
+	prop, err := client.NewLedgerChannelProposal(
 		challengeDuration,
 		r.setup.Wallet.NewRandomAccount(rng).Address(),
 		initBals,
 		cfgPeerAddrs[:],
 		client.WithNonceFrom(rng),
 		cfg.App())
+	if err != nil {
+		r.log.Panic("Error generating random channel proposal: " + err.Error())
+	}
+	return prop
 }
 
 func (r *role) SubChannelProposal(
@@ -311,13 +315,17 @@ func (r *role) SubChannelProposal(
 	if !cfg.App().SetsApp() {
 		r.log.Panic("Invalid ExecConfig: App does not specify an app.")
 	}
-	return client.NewSubChannelProposal(
+	prop, err := client.NewSubChannelProposal(
 		parent.ID(),
 		challengeDuration,
 		initBals,
 		client.WithNonceFrom(rng),
 		app,
 	)
+	if err != nil {
+		r.log.Panic("Error generating random sub-channel proposal: " + err.Error())
+	}
+	return prop
 }
 
 // AcceptAllPropHandler returns a ProposalHandler that accepts all requests to

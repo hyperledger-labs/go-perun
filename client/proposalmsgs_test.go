@@ -29,20 +29,24 @@ import (
 	"perun.network/go-perun/wire"
 )
 
-func TestChannelProposalReq_NilArgs(t *testing.T) {
+func TestNewLedgerChannelProposal(t *testing.T) {
 	rng := pkgtest.Prng(t)
-	c := clienttest.NewRandomLedgerChannelProposal(
-		rng,
-		client.WithNonceFrom(rng),
-		client.WithApp(test.NewRandomAppAndData(rng)))
+	base := clienttest.NewRandomLedgerChannelProposal(rng)
 
-	err := c.Encode(nil)
-	require.Error(t, err)
-	assert.Contains(t, err.Error(), "writer")
+	// Without FundingAgreement it uses InitBals.
+	prop, err := client.NewLedgerChannelProposal(base.ChallengeDuration, base.Participant, base.InitBals, base.Peers)
+	require.NoError(t, err)
+	assert.Equal(t, base.InitBals.Balances, prop.FundingAgreement)
 
-	err = c.Decode(nil)
-	require.Error(t, err)
-	assert.Contains(t, err.Error(), "reader")
+	// FundingAgreements number of assets do not match InitBals.
+	agreement := test.NewRandomBalances(rng, test.WithNumAssets(len(base.InitBals.Assets)+1))
+	_, err = client.NewLedgerChannelProposal(base.ChallengeDuration, base.Participant, base.InitBals, base.Peers, client.WithFundingAgreement(agreement))
+	assert.EqualError(t, err, "comparing FundingAgreement and initial balances sum: dimension mismatch")
+
+	// FundingAgreements sum do not match InitBals sum.
+	agreement = test.NewRandomBalances(rng, test.WithNumAssets(len(base.InitBals.Assets)))
+	_, err = client.NewLedgerChannelProposal(base.ChallengeDuration, base.Participant, base.InitBals, base.Peers, client.WithFundingAgreement(agreement))
+	assert.EqualError(t, err, "FundingAgreement and initial balances differ")
 }
 
 func TestChannelProposalReqSerialization(t *testing.T) {
@@ -56,7 +60,9 @@ func TestChannelProposalReqSerialization(t *testing.T) {
 		if i&2 == 0 {
 			m = clienttest.NewRandomLedgerChannelProposal(rng, client.WithNonceFrom(rng), app)
 		} else {
-			m = clienttest.NewRandomSubChannelProposal(rng, client.WithNonceFrom(rng), app)
+			var err error
+			m, err = clienttest.NewRandomSubChannelProposal(rng, client.WithNonceFrom(rng), app)
+			require.NoError(t, err)
 		}
 		wire.TestMsg(t, m)
 	}
@@ -103,9 +109,11 @@ func TestLedgerChannelProposalReqProposalID(t *testing.T) {
 
 func TestSubChannelProposalReqProposalID(t *testing.T) {
 	rng := pkgtest.Prng(t)
-	original := *clienttest.NewRandomSubChannelProposal(rng)
+	original, err := clienttest.NewRandomSubChannelProposal(rng)
+	require.NoError(t, err)
 	s := original.ProposalID()
-	fake := *clienttest.NewRandomSubChannelProposal(rng)
+	fake, err := clienttest.NewRandomSubChannelProposal(rng)
+	require.NoError(t, err)
 
 	assert.NotEqual(t, original.ChallengeDuration, fake.ChallengeDuration)
 	assert.NotEqual(t, original.NonceShare, fake.NonceShare)
@@ -140,7 +148,9 @@ func TestChannelProposalAccSerialization(t *testing.T) {
 	})
 	t.Run("sub channel", func(t *testing.T) {
 		for i := 0; i < 16; i++ {
-			proposal := clienttest.NewRandomSubChannelProposal(rng)
+			var err error
+			proposal, err := clienttest.NewRandomSubChannelProposal(rng)
+			require.NoError(t, err)
 			m := proposal.Accept(client.WithNonceFrom(rng))
 			wire.TestMsg(t, m)
 		}
@@ -162,7 +172,9 @@ func TestSubChannelProposalSerialization(t *testing.T) {
 	rng := pkgtest.Prng(t)
 	const repeatRandomizedTest = 16
 	for i := 0; i < repeatRandomizedTest; i++ {
-		wire.TestMsg(t, clienttest.NewRandomSubChannelProposal(rng))
+		prop, err := clienttest.NewRandomSubChannelProposal(rng)
+		require.NoError(t, err)
+		wire.TestMsg(t, prop)
 	}
 }
 
