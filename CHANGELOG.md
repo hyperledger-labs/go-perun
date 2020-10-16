@@ -6,9 +6,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.5.0] Europa - 2020-10-17 [:warning:]
+The Sub-Channels release, enabling fully generalized state channels.
+
+### Added
+- Sub-Channels: run app-channels inside parent (ledger) channels.
+- Special `NoApp` for channels without app. Skips force-execution phase in
+  disputes.
+- Optimized `Channel.SettleSecondary` settlement method for the responding
+  settler during optimistic channel settlements. Avoids wasting gas by not
+  sending unnecessary transactions.
+- `ErrorGatherer` type to `pkg/errors` package for errors accumulation.
+- Transactor abstraction to allow different wallet implementations for
+  transaction sending in Ethereum backend.
+- App registry so that multiple apps can be used in a single program instance.
+
 ### Changed
- - `channel.Update` to accept a `channel.State` instead of `channel.ChannelUpdate`.
+- `channel.Update` to accept a `channel.State` instead of `channel.ChannelUpdate`.
   This simplifies the usage.
+- Contracts updated to handle sub-channels.
+- Contracts now have distinct dispute and force-execution phases.
+- Channel proposal protocol now uses shared nonce from all channel peers.
+
+### Fixed
+- Channel peers persistence in key-value persistence backend.
+
 ## [0.4.0] Despina - 2020-07-23 [:warning:]
 Introduced a wire messaging abstraction. License changed to Apache 2.0.
 
@@ -141,7 +163,8 @@ Initial release.
 
 [:warning:]: #:warning:
 
-[Unreleased]: https://github.com/perun-network/go-perun/compare/v0.4.0...HEAD
+[Unreleased]: https://github.com/perun-network/go-perun/compare/v0.5.0...HEAD
+[0.5.0]: https://github.com/perun-network/go-perun/compare/v0.4.0...v0.5.0
 [0.4.0]: https://github.com/perun-network/go-perun/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/perun-network/go-perun/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/perun-network/go-perun/compare/v0.1.0...v0.2.0
