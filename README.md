@@ -53,16 +53,15 @@ and on [go-perun's pkg.go.dev site](https://pkg.go.dev/perun.network/go-perun).
 
 ## Features
 
-_go-perun_ currently supports all features needed for two party payment channels.
-The following features are currently provided:
-* Two-party ledger state channels
+_go-perun_ currently supports all features needed for generalized two-party state channels.
+The following features are provided:
+* Generalized two-party state channels, including app/sub-channels
 * Cooperatively settling
-* Ledger channel disputes
+* Channel disputes
 * Dispute watchtower
 * Data persistence
 
 The following features are planned for future releases:
-* Generalized two-party ledger channels (sub-channels)
 * Virtual two-party channels (direct dispute)
 * Virtual two-party channels (indirect dispute)
 * Multi-party ledger channels
@@ -77,7 +76,7 @@ The Ethereum smart contracts can be found in our [contracts-eth](https://github.
 
 **Logging and networking** capabilities can also be injected by the user.
 A default [logrus](https://github.com/sirupsen/logrus) implementation of the `log.Logger` interface can be set using `log/logrus.Set`.
-The Perun framework relies on a user-injected `wire.Bus` for inter-peer communication.  
+The Perun framework relies on a user-injected `wire.Bus` for inter-peer communication.
 _go-perun_ ships with the `wire/net.Bus` implementation for TCP and Unix sockets.
 
 **Data persistence** can be enabled to continuously persist new states and signatures.
@@ -129,9 +128,9 @@ func main() {
 	// propose a new channel
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Minute)
 	defer cancel()
-	ch, err := c.ProposeChannel(ctx, &client.ChannelProposal{
+	ch, err := c.ProposeChannel(ctx, client.NewLedgerChannelProposal(
 		// details of channel proposal, like peers, app, initial balances, challenge duration...
-	})
+	))
 	if err != nil { /* handle error */ }
 
 	// start watchtower
@@ -141,8 +140,8 @@ func main() {
 	}()
 
 	// send a channel update request to the other channel peer(s)
-	err = ch.Update(ctx, client.ChannelUpdate{
-		// details of channel update: new State, actor index, ...
+	err = ch.UpdateBy(ctx, func(s *channel.State) error {
+		// update state s, e.g., moving funds or changing app data
 	})
 	if err != nil { /* handle error */ }
 
@@ -161,7 +160,7 @@ We thank the German Federal Ministry of Education and Research (BMBF) for their 
 
 ## Copyright
 
-Copyright 2020 - See [NOTICE file](NOTICE) for copyright holders.  
+Copyright 2020 - See [NOTICE file](NOTICE) for copyright holders.
 Use of the source code is governed by the Apache 2.0 license that can be found in the [LICENSE file](LICENSE).
 
 Contact us at [info@perun.network](mailto:info@perun.network).
