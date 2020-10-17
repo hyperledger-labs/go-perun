@@ -48,7 +48,7 @@ func TestGatherer_Failed(t *testing.T) {
 func TestGatherer_Go_and_Wait(t *testing.T) {
 	g := errors.NewGatherer()
 
-	const timeout = 10 * time.Millisecond
+	const timeout = 100 * time.Millisecond
 
 	g.Go(func() error {
 		time.Sleep(timeout)
