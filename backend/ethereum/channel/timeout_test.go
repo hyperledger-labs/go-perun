@@ -40,9 +40,14 @@ func TestBlockTimeout_IsElapsed(t *testing.T) {
 }
 
 func TestBlockTimeout_Wait(t *testing.T) {
-	const timeout = 1 * time.Second
+	const (
+		ctxTimeout   = 1 * time.Second   // context timeout per commit
+		blockTimeout = 100               // in sec
+		numBlocks    = blockTimeout / 10 // Commit() advances by 10 sec
+	)
+
 	sb := test.NewSimulatedBackend()
-	bt := ethchannel.NewBlockTimeout(sb, 100)
+	bt := ethchannel.NewBlockTimeout(sb, blockTimeout)
 
 	t.Run("cancelWait", func(t *testing.T) {
 		ctx, cancel := context.WithCancel(context.Background())
@@ -55,20 +60,20 @@ func TestBlockTimeout_Wait(t *testing.T) {
 		select {
 		case err := <-wait:
 			assert.Error(t, err)
-		case <-time.After(timeout):
+		case <-time.After(ctxTimeout):
 			t.Error("expected Wait to return")
 		}
 	})
 
 	t.Run("normalWait", func(t *testing.T) {
-		ctx, cancel := context.WithTimeout(context.Background(), timeout)
+		ctx, cancel := context.WithTimeout(context.Background(), 10*ctxTimeout)
 		defer cancel()
 		wait := make(chan error)
 		go func() {
 			wait <- bt.Wait(ctx)
 		}()
 
-		for i := 0; i < 10; i++ {
+		for i := 0; i < numBlocks; i++ {
 			select {
 			case err := <-wait:
 				t.Error("Wait returned before timeout with error", err)
@@ -79,7 +84,7 @@ func TestBlockTimeout_Wait(t *testing.T) {
 		select {
 		case err := <-wait:
 			assert.NoError(t, err)
-		case <-time.After(timeout):
+		case <-time.After(10 * ctxTimeout):
 			t.Error("expected Wait to return after timeout is reached")
 		}
 	})
