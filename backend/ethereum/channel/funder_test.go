@@ -169,7 +169,7 @@ func testFundingTimeout(t *testing.T, faultyPeer, peers int) {
 		})
 	}
 
-	time.Sleep(100 * time.Millisecond) // give all funders enough time to fund
+	time.Sleep(1 * time.Second) // give all funders enough time to fund
 	// Hackily extract SimulatedBackend from funder
 	sb, ok := funders[0].ContractInterface.(*test.SimulatedBackend)
 	require.True(t, ok)
