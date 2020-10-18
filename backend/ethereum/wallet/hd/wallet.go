@@ -101,7 +101,7 @@ func (w *Wallet) newAccount() (*Account, error) {
 	w.numDerivedAccs++
 	return &Account{
 		wallet:  w.wallet,
-		account: acc,
+		Account: acc,
 	}, nil
 }
 
@@ -117,7 +117,7 @@ func (w *Wallet) Unlock(addr wallet.Address) (wallet.Account, error) {
 	}
 	return &Account{
 		wallet:  w.wallet,
-		account: acc,
+		Account: acc,
 	}, nil
 }
 

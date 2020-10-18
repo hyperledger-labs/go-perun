@@ -26,18 +26,18 @@ import (
 // Account represents an account held in the HD wallet.
 type Account struct {
 	wallet  accounts.Wallet
-	account accounts.Account
+	Account accounts.Account
 }
 
 // Address returns the address of this account.
 func (a *Account) Address() wallet.Address {
-	return ethwallet.AsWalletAddr(a.account.Address)
+	return ethwallet.AsWalletAddr(a.Account.Address)
 }
 
 // SignData is used to sign data with this account.
 func (a *Account) SignData(data []byte) ([]byte, error) {
 	hash := crypto.Keccak256(data)
-	sig, err := a.wallet.SignText(a.account, hash)
+	sig, err := a.wallet.SignText(a.Account, hash)
 	if err != nil {
 		return nil, errors.Wrap(err, "SignText")
 	}
@@ -49,6 +49,6 @@ func (a *Account) SignData(data []byte) ([]byte, error) {
 func NewAccountFromEth(wallet accounts.Wallet, account accounts.Account) *Account {
 	return &Account{
 		wallet:  wallet,
-		account: account,
+		Account: account,
 	}
 }
