@@ -113,7 +113,7 @@ func DecodeAsset(r io.Reader) (channel.Asset, error) {
 // channelParamsToEthParams converts a channel.Params to a ChannelParams struct.
 func channelParamsToEthParams(p *channel.Params) adjudicator.ChannelParams {
 	var app common.Address
-	if p.App != nil {
+	if p.App != nil && !channel.IsNoApp(p.App) {
 		app = ethwallet.AsEthAddr(p.App.Def())
 	}
 
