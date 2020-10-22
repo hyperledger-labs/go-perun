@@ -49,7 +49,8 @@ func (t *Transactor) NewTransactor(account accounts.Account) (*bind.TransactOpts
 	}, nil
 }
 
-// NewTransactor returns a backend that can make TransactOpts for accounts contained in the given HD wallet.
-func NewTransactor(w *Wallet) *Transactor {
-	return &Transactor{wallet: w.wallet}
+// NewTransactor returns a backend that can make TransactOpts for accounts
+// contained in the given ethereum wallet.
+func NewTransactor(w accounts.Wallet) *Transactor {
+	return &Transactor{wallet: w}
 }

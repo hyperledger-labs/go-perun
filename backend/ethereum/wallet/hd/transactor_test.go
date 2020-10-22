@@ -57,7 +57,7 @@ func newTransactorSetup(t require.TestingT, prng *rand.Rand) test.TransactorSetu
 	require.NotNil(t, validAcc)
 
 	return test.TransactorSetup{
-		Tr:         hd.NewTransactor(hdWallet),
+		Tr:         hd.NewTransactor(hdWallet.Wallet()),
 		ValidAcc:   accounts.Account{Address: wallet.AsEthAddr(validAcc.Address())},
 		MissingAcc: accounts.Account{Address: common.HexToAddress(missingAddr)},
 	}

@@ -73,6 +73,11 @@ func (w *Wallet) deriveAccounts(numUsedAccs uint) (err error) {
 	return errors.WithMessage(err, "deriving keys")
 }
 
+// Wallet returns the underlying ethereum wallet.
+func (w *Wallet) Wallet() accounts.Wallet {
+	return w.wallet
+}
+
 // Contains checks whether this wallet contains the account corresponding to the given address.
 func (w *Wallet) Contains(addr common.Address) bool {
 	return w.wallet.Contains(accounts.Account{Address: addr})
