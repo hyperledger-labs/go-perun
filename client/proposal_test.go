@@ -22,6 +22,6 @@ import (
 
 func TestProposalResponder_Accept_Nil(t *testing.T) {
 	p := new(ProposalResponder)
-	_, err := p.Accept(nil, new(ChannelProposalAcc))
+	_, err := p.Accept(nil, new(LedgerChannelProposalAcc))
 	assert.Error(t, err, "context")
 }

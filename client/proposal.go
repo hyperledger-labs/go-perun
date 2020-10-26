@@ -77,7 +77,7 @@ func (f ProposalHandlerFunc) HandleProposal(p ChannelProposal, r *ProposalRespon
 //
 // After the channel got successfully created, the user is required to start the
 // channel watcher with Channel.Watch() on the returned channel controller.
-func (r *ProposalResponder) Accept(ctx context.Context, acc *ChannelProposalAcc) (*Channel, error) {
+func (r *ProposalResponder) Accept(ctx context.Context, acc ChannelProposalAccept) (*Channel, error) {
 	if ctx == nil {
 		return nil, errors.New("context must not be nil")
 	}
@@ -157,7 +157,7 @@ func (c *Client) handleChannelProposal(
 
 func (c *Client) handleChannelProposalAcc(
 	ctx context.Context, p wire.Address,
-	prop ChannelProposal, acc *ChannelProposalAcc,
+	prop ChannelProposal, acc ChannelProposalAccept,
 ) (ch *Channel, err error) {
 	if err := c.validChannelProposalAcc(prop, acc); err != nil {
 		return ch, errors.WithMessage(err, "validating channel proposal acceptance")
@@ -174,7 +174,7 @@ func (c *Client) acceptChannelProposal(
 	ctx context.Context,
 	prop ChannelProposal,
 	p wire.Address,
-	acc *ChannelProposalAcc,
+	acc ChannelProposalAccept,
 ) (*Channel, error) {
 	if acc == nil {
 		c.logPeer(p).Error("user passed nil ChannelProposalAcc")
@@ -226,8 +226,8 @@ func (c *Client) proposeTwoPartyChannel(
 
 	proposalID := propBase.ProposalID()
 	isResponse := func(e *wire.Envelope) bool {
-		return (e.Msg.Type() == wire.ChannelProposalAcc &&
-			e.Msg.(*ChannelProposalAcc).ProposalID == proposalID) ||
+		acc, isAcc := e.Msg.(ChannelProposalAccept)
+		return (isAcc && acc.Base().ProposalID == proposalID) ||
 			(e.Msg.Type() == wire.ChannelProposalRej &&
 				e.Msg.(*ChannelProposalRej).ProposalID == proposalID)
 	}
@@ -251,7 +251,7 @@ func (c *Client) proposeTwoPartyChannel(
 		return nil, errors.Errorf("channel proposal rejected: %v", rej.Reason)
 	}
 
-	acc := env.Msg.(*ChannelProposalAcc) // this is safe because of predicate isResponse
+	acc := env.Msg.(ChannelProposalAccept) // this is safe because of predicate isResponse
 
 	if err := c.validChannelProposalAcc(proposal, acc); err != nil {
 		return nil, errors.WithMessage(err, "validating channel proposal acceptance")
@@ -306,10 +306,6 @@ func (c *Client) validSubChannelProposal(proposal *SubChannelProposal) error {
 
 	base := proposal.Base()
 
-	if base.ParticipantAddr.Cmp(parent.Params().Parts[proposerIdx]) != 0 {
-		return errors.New("sub-channel proposer must equal parent channel proposer")
-	}
-
 	for i, peer := range parent.Peers() {
 		if !peer.Equals(base.PeerAddrs[i]) {
 			return errors.New("peers do not match")
@@ -329,19 +325,14 @@ func (c *Client) validSubChannelProposal(proposal *SubChannelProposal) error {
 
 func (c *Client) validChannelProposalAcc(
 	proposal ChannelProposal,
-	response *ChannelProposalAcc,
+	response ChannelProposalAccept,
 ) error {
 	if proposal.Type() == wire.SubChannelProposal {
 		subProp := proposal.(*SubChannelProposal)
 
-		parent, ok := c.channels.Get(subProp.Parent)
+		_, ok := c.channels.Get(subProp.Parent)
 		if !ok {
 			return errors.New("parent channel does not exist")
-		}
-
-		// check that responder wallet address in sub-channel equals responder wallet address in parent channel
-		if response.ParticipantAddr.Cmp(parent.Params().Parts[proposeeIdx]) != 0 {
-			return errors.New("sub-channel responder must equal parent channel responder")
 		}
 	}
 
@@ -387,13 +378,15 @@ func calcNonce(nonceShares []NonceShare) channel.Nonce {
 func (c *Client) completeCPP(
 	ctx context.Context,
 	prop ChannelProposal,
-	acc *ChannelProposalAcc,
+	acc ChannelProposalAccept,
 	partIdx channel.Index,
 ) (*Channel, error) {
 	propBase := prop.Base()
-	nonce := calcNonce(nonceShares(propBase.NonceShare, acc.NonceShare))
-	parts := participants(propBase.ParticipantAddr, acc.ParticipantAddr)
-	params := channel.NewParamsUnsafe(propBase.ChallengeDuration, parts, propBase.App, nonce)
+	params := channel.NewParamsUnsafe(
+		propBase.ChallengeDuration,
+		c.mpcppParts(prop, acc),
+		propBase.App,
+		calcNonce(nonceShares(propBase.NonceShare, acc.Base().NonceShare)))
 
 	if c.channels.Has(params.ID()) {
 		return nil, errors.New("channel already exists")
@@ -436,6 +429,28 @@ func (c *Client) completeCPP(
 	}
 
 	return ch, nil
+}
+
+// mpcppParts returns a proposed channel's participant addresses.
+func (c *Client) mpcppParts(
+	prop ChannelProposal,
+	acc ChannelProposalAccept,
+) (parts []wallet.Address) {
+	switch p := prop.(type) {
+	case *LedgerChannelProposal:
+		parts = participants(
+			p.Participant,
+			acc.(*LedgerChannelProposalAcc).Participant)
+	case *SubChannelProposal:
+		ch, ok := c.channels.Get(p.Parent)
+		if !ok {
+			c.log.Panic("unknown parent channel ID")
+		}
+		parts = ch.Params().Parts
+	default:
+		c.log.Panicf("unhandled %T", p)
+	}
+	return
 }
 
 func (c *Client) fundChannel(ctx context.Context, ch *Channel, prop ChannelProposal) error {

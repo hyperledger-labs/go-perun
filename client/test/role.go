@@ -29,7 +29,6 @@ import (
 	"perun.network/go-perun/channel/persistence"
 	"perun.network/go-perun/client"
 	"perun.network/go-perun/log"
-	"perun.network/go-perun/wallet"
 	wallettest "perun.network/go-perun/wallet/test"
 	"perun.network/go-perun/wire"
 )
@@ -76,10 +75,10 @@ type (
 
 	// BaseExecConfig contains base config parameters.
 	BaseExecConfig struct {
-		peerAddrs [2]wire.Address     // must match the RoleSetup.Identity's
-		asset     channel.Asset       // single Asset to use in this channel
-		initBals  [2]*big.Int         // channel deposit of each role
-		app       client.ProposalOpts // must be either WithApp or WithoutApp
+		peers    [2]wire.Address     // must match the RoleSetup.Identity's
+		asset    channel.Asset       // single Asset to use in this channel
+		initBals [2]*big.Int         // channel deposit of each role
+		app      client.ProposalOpts // must be either WithApp or WithoutApp
 	}
 
 	// An Executer is a Role that can execute a protocol.
@@ -98,22 +97,22 @@ type (
 
 // MakeBaseExecConfig creates a new BaseExecConfig.
 func MakeBaseExecConfig(
-	peerAddrs [2]wire.Address,
+	peers [2]wire.Address,
 	asset channel.Asset,
 	initBals [2]*big.Int,
 	app client.ProposalOpts,
 ) BaseExecConfig {
 	return BaseExecConfig{
-		peerAddrs: peerAddrs,
-		asset:     asset,
-		initBals:  initBals,
-		app:       app,
+		peers:    peers,
+		asset:    asset,
+		initBals: initBals,
+		app:      app,
 	}
 }
 
 // PeerAddrs returns the peer addresses.
 func (c *BaseExecConfig) PeerAddrs() [2]wire.Address {
-	return c.peerAddrs
+	return c.peers
 }
 
 // Asset returns the asset.
@@ -316,7 +315,6 @@ func (r *role) SubChannelProposal(
 	return client.NewSubChannelProposal(
 		parent.ID(),
 		challengeDuration,
-		parent.Params().Parts[parent.Idx()],
 		initBals,
 		cfgPeerAddrs[:],
 		client.WithNonceFrom(rng),
@@ -341,24 +339,22 @@ func (h *acceptAllPropHandler) HandleProposal(req client.ChannelProposal, res *c
 	ctx, cancel := context.WithTimeout(context.Background(), h.r.setup.Timeout)
 	defer cancel()
 
-	var part wallet.Address
+	var acc client.ChannelProposalAccept
 	switch req.Type() {
 	case wire.LedgerChannelProposal:
-		part = h.r.setup.Wallet.NewRandomAccount(h.rng).Address()
-
+		lacc := req.(*client.LedgerChannelProposal).Accept(
+			h.r.setup.Wallet.NewRandomAccount(h.rng).Address(),
+			client.WithNonceFrom(h.rng))
+		acc = lacc
+		h.r.log.Debugf("Accepting with participant: %v", lacc.Participant)
 	case wire.SubChannelProposal:
-		parent, ok := h.r.chans.get(req.(*client.SubChannelProposal).Parent)
-		if !ok {
-			panic("parent channel not found")
-		}
-		part = parent.Params().Parts[parent.Idx()]
-
+		sreq := req.(*client.SubChannelProposal)
+		acc = sreq.Accept(client.WithNonceFrom(h.rng))
+		h.r.log.Debug("Accepting sub-channel proposal")
 	default:
 		panic("invalid proposal type")
 	}
 
-	h.r.log.Debugf("Accepting with participant: %v", part)
-	acc := req.Base().NewChannelProposalAcc(part, client.WithNonceFrom(h.rng))
 	ch, err := res.Accept(ctx, acc)
 	h.chans <- channelAndError{ch, err}
 }

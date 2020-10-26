@@ -34,19 +34,19 @@ func TestClient_validTwoPartyProposal(t *testing.T) {
 	c := &Client{
 		address: wallettest.NewRandomAddress(rng),
 	}
-	validProp := NewRandomBaseChannelProposalReqNumParts(rng, 2)
+	validProp := NewRandomLedgerChannelProposal(rng, channeltest.WithNumParts(2))
 	validProp.Base().PeerAddrs[0] = c.address // set us as the proposer
 	peerAddr := validProp.Base().PeerAddrs[1] // peer at 1 as receiver
 	require.False(t, peerAddr.Equals(c.address))
 	require.Len(t, validProp.Base().PeerAddrs, 2)
 
-	validProp3Peers := NewRandomBaseChannelProposalReqNumParts(rng, 3)
-	invalidProp := BaseChannelProposal{}
-	*invalidProp.Base() = *validProp.Base()  // shallow copy
+	validProp3Peers := NewRandomLedgerChannelProposal(rng, channeltest.WithNumParts(3))
+	invalidProp := &LedgerChannelProposal{}
+	*invalidProp = *validProp                // shallow copy
 	invalidProp.Base().ChallengeDuration = 0 // invalidate
 
 	tests := []struct {
-		prop     BaseChannelProposal
+		prop     *LedgerChannelProposal
 		ourIdx   int
 		peerAddr wallet.Address
 		valid    bool
@@ -79,7 +79,7 @@ func TestClient_validTwoPartyProposal(t *testing.T) {
 	}
 
 	for i, tt := range tests {
-		valid := c.validTwoPartyProposal(&LedgerChannelProposal{tt.prop}, tt.ourIdx, tt.peerAddr)
+		valid := c.validTwoPartyProposal(tt.prop, tt.ourIdx, tt.peerAddr)
 		if tt.valid && valid != nil {
 			t.Errorf("[%d] Exptected proposal to be valid but got: %v", i, valid)
 		} else if !tt.valid && valid == nil {
@@ -88,20 +88,30 @@ func TestClient_validTwoPartyProposal(t *testing.T) {
 	}
 }
 
-func NewRandomBaseChannelProposalReq(rng *rand.Rand) BaseChannelProposal {
-	return NewRandomBaseChannelProposalReqNumParts(rng, rng.Intn(10)+2)
-}
+func NewRandomBaseChannelProposal(rng *rand.Rand, opts ...channeltest.RandomOpt) BaseChannelProposal {
+	var opt channeltest.RandomOpt
+	if len(opts) != 0 {
+		opt = opts[0].Append(opts[1:]...)
+	} else {
+		opt = make(channeltest.RandomOpt)
+	}
+	alloc := channeltest.NewRandomAllocation(rng, channeltest.WithNumParts(opt.NumParts(rng)))
+	peers := wiretest.NewRandomAddresses(rng, opt.NumParts(rng))
 
-func NewRandomBaseChannelProposalReqNumParts(rng *rand.Rand, numPeers int) BaseChannelProposal {
-	alloc := channeltest.NewRandomAllocation(rng, channeltest.WithNumParts(numPeers))
-	participantAddr := wallettest.NewRandomAddress(rng)
-	peers := wiretest.NewRandomAddresses(rng, numPeers)
 	app, data := channeltest.NewRandomAppAndData(rng)
 	return makeBaseChannelProposal(
 		rng.Uint64(),
-		participantAddr,
 		alloc,
 		peers,
 		WithNonceFrom(rng),
 		WithApp(app, data))
+}
+
+func NewRandomLedgerChannelProposal(rng *rand.Rand, opts ...channeltest.RandomOpt) *LedgerChannelProposal {
+	opt := make(channeltest.RandomOpt).Append(opts...)
+	base := NewRandomBaseChannelProposal(rng, opt)
+	return &LedgerChannelProposal{
+		BaseChannelProposal: base,
+		Participant:         wallettest.NewRandomAddress(rng),
+	}
 }

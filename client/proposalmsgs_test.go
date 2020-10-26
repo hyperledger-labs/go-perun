@@ -66,14 +66,14 @@ func TestChannelProposalReqDecode_CheckMaxNumParts(t *testing.T) {
 	assert := assert.New(t)
 
 	rng := pkgtest.Prng(t)
-	c := client.NewRandomBaseChannelProposalReq(rng)
+	c := client.NewRandomBaseChannelProposal(rng)
 	buffer := new(bytes.Buffer)
 
 	// reimplementation of ChannelProposalReq.Encode modified to create the
 	// maximum number of participants possible with the encoding
 	require.NoError(io.Encode(buffer, c.ChallengeDuration, c.NonceShare))
 	require.NoError(
-		io.Encode(buffer, c.ParticipantAddr, client.OptAppAndDataEnc{c.App, c.InitData}, c.InitBals))
+		io.Encode(buffer, client.OptAppAndDataEnc{c.App, c.InitData}, c.InitBals))
 
 	numParts := int32(channel.MaxNumParts + 1)
 	require.NoError(io.Encode(buffer, numParts))
@@ -91,13 +91,12 @@ func TestChannelProposalReqDecode_CheckMaxNumParts(t *testing.T) {
 
 func TestChannelProposalReqProposalID(t *testing.T) {
 	rng := pkgtest.Prng(t)
-	original := client.NewRandomBaseChannelProposalReq(rng)
+	original := client.NewRandomBaseChannelProposal(rng)
 	s := original.ProposalID()
-	fake := client.NewRandomBaseChannelProposalReq(rng)
+	fake := client.NewRandomBaseChannelProposal(rng)
 
 	assert.NotEqual(t, original.ChallengeDuration, fake.ChallengeDuration)
 	assert.NotEqual(t, original.NonceShare, fake.NonceShare)
-	assert.NotEqual(t, original.ParticipantAddr, fake.ParticipantAddr)
 	assert.NotEqual(t, original.App, fake.App)
 
 	c0 := original
@@ -107,10 +106,6 @@ func TestChannelProposalReqProposalID(t *testing.T) {
 	c1 := original
 	c1.NonceShare = fake.NonceShare
 	assert.NotEqual(t, s, c1.ProposalID())
-
-	c2 := original
-	c2.ParticipantAddr = fake.ParticipantAddr
-	assert.Equal(t, s, c2.ProposalID())
 
 	c3 := original
 	c3.App = fake.App
@@ -132,10 +127,10 @@ func TestChannelProposalReqProposalID(t *testing.T) {
 func TestChannelProposalAccSerialization(t *testing.T) {
 	rng := pkgtest.Prng(t)
 	for i := 0; i < 16; i++ {
-		m := &client.ChannelProposalAcc{
-			ProposalID:      newRandomProposalID(rng),
-			ParticipantAddr: wallettest.NewRandomAddress(rng),
-		}
+		proposal := clienttest.NewRandomLedgerChannelProposal(rng)
+		m := proposal.Accept(
+			wallettest.NewRandomAddress(rng),
+			client.WithNonceFrom(rng))
 		wire.TestMsg(t, m)
 	}
 }
