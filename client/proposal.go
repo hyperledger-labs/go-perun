@@ -199,7 +199,7 @@ func (c *Client) handleChannelProposalRej(
 	req ChannelProposal, reason string,
 ) error {
 	msgReject := &ChannelProposalRej{
-		ProposalID: req.Base().ProposalID(),
+		ProposalID: req.ProposalID(),
 		Reason:     reason,
 	}
 	if err := c.conn.pubMsg(ctx, msgReject, p); err != nil {
@@ -216,15 +216,14 @@ func (c *Client) proposeTwoPartyChannel(
 	ctx context.Context,
 	proposal ChannelProposal,
 ) (*Channel, error) {
-	propBase := proposal.Base()
-	peer := propBase.PeerAddrs[proposeeIdx]
+	peer := proposal.Base().PeerAddrs[proposeeIdx]
 
 	// enables caching of incoming version 0 signatures before sending any message
 	// that might trigger a fast peer to send those. We don't know the channel id
 	// yet so the cache predicate is coarser than the later subscription.
 	enableVer0Cache(ctx, c.conn)
 
-	proposalID := propBase.ProposalID()
+	proposalID := proposal.ProposalID()
 	isResponse := func(e *wire.Envelope) bool {
 		acc, isAcc := e.Msg.(ChannelProposalAccept)
 		return (isAcc && acc.Base().ProposalID == proposalID) ||

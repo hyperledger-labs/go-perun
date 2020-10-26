@@ -59,16 +59,16 @@ func init() {
 
 func newHasher() hash.Hash { return sha3.New256() }
 
-// ProposalID uniquely identifies the channel proposal as
-// specified by the Channel Proposal Protocol (CPP).
+// ProposalID uniquely identifies the channel proposal as  specified by the
+// Channel Proposal Protocol (CPP).
 type ProposalID = [32]byte
 
 // NonceShare is used to cooperatively calculate a channel's nonce.
 type NonceShare = [32]byte
 
 type (
-	// ChannelProposal is the interface that describes all channel proposal message
-	// types.
+	// ChannelProposal is the interface that describes all channel proposal
+	// message types.
 	ChannelProposal interface {
 		wire.Msg
 		perunio.Decoder
@@ -82,6 +82,9 @@ type (
 
 		// Valid checks whether a channel proposal is valid.
 		Valid() error
+
+		// ProposalID calculates the proposal's unique identifier.
+		ProposalID() ProposalID
 	}
 
 	// BaseChannelProposal contains all data necessary to propose a new
@@ -93,7 +96,7 @@ type (
 		ChallengeDuration uint64              // Dispute challenge duration.
 		NonceShare        NonceShare          // Proposer's channel nonce share.
 		App               channel.App         // App definition, or nil.
-		InitData          channel.Data        // Initial App data, or nil (if App nil).
+		InitData          channel.Data        // Initial App data.
 		InitBals          *channel.Allocation // Initial balances.
 		PeerAddrs         []wire.Address      // Participants' wire addresses.
 	}
@@ -231,33 +234,6 @@ func (p *BaseChannelProposal) Decode(r io.Reader) (err error) {
 	return nil
 }
 
-// ProposalID returns the identifier of this channel proposal request as
-// specified by the Channel Proposal Protocol (CPP).
-func (p *BaseChannelProposal) ProposalID() (propID ProposalID) {
-	hasher := newHasher()
-	if err := perunio.Encode(hasher, p.NonceShare); err != nil {
-		log.Panicf("proposal ID nonce encoding: %v", err)
-	}
-
-	for _, p := range p.PeerAddrs {
-		if err := perunio.Encode(hasher, p); err != nil {
-			log.Panicf("proposal ID participant encoding: %v", err)
-		}
-	}
-
-	if err := perunio.Encode(
-		hasher,
-		p.ChallengeDuration,
-		p.InitBals,
-		OptAppAndDataEnc{p.App, p.InitData},
-	); err != nil {
-		log.Panicf("proposal ID data encoding error: %v", err)
-	}
-
-	copy(propID[:], hasher.Sum(nil))
-	return
-}
-
 // Valid checks that the channel proposal is valid:
 // * InitBals must not be nil
 // * ValidateProposalParameters returns nil
@@ -328,6 +304,19 @@ func (LedgerChannelProposal) Type() wire.Type {
 	return wire.LedgerChannelProposal
 }
 
+// ProposalID returns the identifier of this channel proposal request.
+func (p LedgerChannelProposal) ProposalID() (propID ProposalID) {
+	hasher := newHasher()
+	if err := perunio.Encode(hasher,
+		p.Base(),
+		p.Participant); err != nil {
+		log.Panicf("proposal ID nonce encoding: %v", err)
+	}
+
+	copy(propID[:], hasher.Sum(nil))
+	return
+}
+
 // Encode encodes a ledger channel proposal.
 func (p LedgerChannelProposal) Encode(w io.Writer) error {
 	return perunio.Encode(w, p.BaseChannelProposal, p.Participant)
@@ -368,6 +357,19 @@ func NewSubChannelProposal(
 			opts...),
 		Parent: parent,
 	}
+}
+
+// ProposalID returns the identifier of this channel proposal request.
+func (p SubChannelProposal) ProposalID() (propID ProposalID) {
+	hasher := newHasher()
+	if err := perunio.Encode(hasher,
+		p.Base(),
+		p.Parent); err != nil {
+		log.Panicf("proposal ID nonce encoding: %v", err)
+	}
+
+	copy(propID[:], hasher.Sum(nil))
+	return
 }
 
 // Encode encodes the SubChannelProposal into an io.Writer.

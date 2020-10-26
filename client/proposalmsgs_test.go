@@ -89,11 +89,11 @@ func TestChannelProposalReqDecode_CheckMaxNumParts(t *testing.T) {
 	assert.Contains(err.Error(), "participants")
 }
 
-func TestChannelProposalReqProposalID(t *testing.T) {
+func TestLedgerChannelProposalReqProposalID(t *testing.T) {
 	rng := pkgtest.Prng(t)
-	original := client.NewRandomBaseChannelProposal(rng)
+	original := *client.NewRandomLedgerChannelProposal(rng)
 	s := original.ProposalID()
-	fake := client.NewRandomBaseChannelProposal(rng)
+	fake := *client.NewRandomLedgerChannelProposal(rng)
 
 	assert.NotEqual(t, original.ChallengeDuration, fake.ChallengeDuration)
 	assert.NotEqual(t, original.NonceShare, fake.NonceShare)
@@ -106,6 +106,10 @@ func TestChannelProposalReqProposalID(t *testing.T) {
 	c1 := original
 	c1.NonceShare = fake.NonceShare
 	assert.NotEqual(t, s, c1.ProposalID())
+
+	c2 := original
+	c2.Participant = fake.Participant
+	assert.NotEqual(t, s, c2.ProposalID())
 
 	c3 := original
 	c3.App = fake.App
@@ -122,6 +126,32 @@ func TestChannelProposalReqProposalID(t *testing.T) {
 	c6 := original
 	c6.PeerAddrs = fake.PeerAddrs
 	assert.NotEqual(t, s, c6.ProposalID())
+}
+
+func TestSubChannelProposalReqProposalID(t *testing.T) {
+	rng := pkgtest.Prng(t)
+	original := *clienttest.NewRandomSubChannelProposal(rng)
+	s := original.ProposalID()
+	fake := *clienttest.NewRandomSubChannelProposal(rng)
+
+	assert.NotEqual(t, original.ChallengeDuration, fake.ChallengeDuration)
+	assert.NotEqual(t, original.NonceShare, fake.NonceShare)
+
+	c0 := original
+	c0.ChallengeDuration = fake.ChallengeDuration
+	assert.NotEqual(t, s, c0.ProposalID())
+
+	c1 := original
+	c1.NonceShare = fake.NonceShare
+	assert.NotEqual(t, s, c1.ProposalID())
+
+	c2 := original
+	c2.Parent = fake.Parent
+	assert.NotEqual(t, s, c2.ProposalID())
+
+	c3 := original
+	c3.InitBals = fake.InitBals
+	assert.NotEqual(t, s, c3.ProposalID())
 }
 
 func TestChannelProposalAccSerialization(t *testing.T) {
