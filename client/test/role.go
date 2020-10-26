@@ -67,10 +67,10 @@ type (
 
 	// ExecConfig contains additional config parameters for the tests.
 	ExecConfig interface {
-		PeerAddrs() [2]wire.Address // must match the RoleSetup.Identity's
-		Asset() channel.Asset       // single Asset to use in this channel
-		InitBals() [2]*big.Int      // channel deposit of each role
-		App() client.ProposalOpts   // must be either WithApp or WithoutApp
+		Peers() [2]wire.Address   // must match the RoleSetup.Identity's
+		Asset() channel.Asset     // single Asset to use in this channel
+		InitBals() [2]*big.Int    // channel deposit of each role
+		App() client.ProposalOpts // must be either WithApp or WithoutApp
 	}
 
 	// BaseExecConfig contains base config parameters.
@@ -110,8 +110,8 @@ func MakeBaseExecConfig(
 	}
 }
 
-// PeerAddrs returns the peer addresses.
-func (c *BaseExecConfig) PeerAddrs() [2]wire.Address {
+// Peers returns the peer addresses.
+func (c *BaseExecConfig) Peers() [2]wire.Address {
 	return c.peers
 }
 
@@ -291,7 +291,7 @@ func (r *role) LedgerChannelProposal(rng *rand.Rand, cfg ExecConfig) *client.Led
 		Assets:   []channel.Asset{cfg.Asset()},
 		Balances: channel.Balances{cfgInitBals[:]},
 	}
-	cfgPeerAddrs := cfg.PeerAddrs()
+	cfgPeerAddrs := cfg.Peers()
 	return client.NewLedgerChannelProposal(
 		challengeDuration,
 		r.setup.Wallet.NewRandomAccount(rng).Address(),
@@ -311,12 +311,10 @@ func (r *role) SubChannelProposal(
 	if !cfg.App().SetsApp() {
 		r.log.Panic("Invalid ExecConfig: App does not specify an app.")
 	}
-	cfgPeerAddrs := cfg.PeerAddrs()
 	return client.NewSubChannelProposal(
 		parent.ID(),
 		challengeDuration,
 		initBals,
-		cfgPeerAddrs[:],
 		client.WithNonceFrom(rng),
 		app,
 	)

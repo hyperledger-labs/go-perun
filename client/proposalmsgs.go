@@ -98,13 +98,13 @@ type (
 		App               channel.App         // App definition, or nil.
 		InitData          channel.Data        // Initial App data.
 		InitBals          *channel.Allocation // Initial balances.
-		PeerAddrs         []wire.Address      // Participants' wire addresses.
 	}
 
 	// LedgerChannelProposal is a channel proposal for ledger channels.
 	LedgerChannelProposal struct {
 		BaseChannelProposal
 		Participant wallet.Address // Proposer's address in the channel.
+		Peers       []wire.Address // Participants' wire addresses.
 	}
 
 	// SubChannelProposal is a channel proposal for subchannels.
@@ -114,12 +114,29 @@ type (
 	}
 )
 
+// proposalPeers returns the wire addresses of a proposed channel's
+// participants.
+func (c *Client) proposalPeers(p ChannelProposal) (peers []wire.Address) {
+	switch prop := p.(type) {
+	case *LedgerChannelProposal:
+		peers = prop.Peers
+	case *SubChannelProposal:
+		ch, ok := c.channels.Get(prop.Parent)
+		if !ok {
+			c.log.Panic("ProposalPeers: invalid parent channel")
+		}
+		peers = ch.Peers()
+	default:
+		c.log.Panicf("ProposalPeers: unhandled proposal type %T")
+	}
+	return
+}
+
 // makeBaseChannelProposal creates a BaseChannelProposal and applies the supplied
 // options. For more information, see ProposalOpts.
 func makeBaseChannelProposal(
 	challengeDuration uint64,
 	initBals *channel.Allocation,
-	peers []wire.Address,
 	opts ...ProposalOpts,
 ) BaseChannelProposal {
 	opt := union(opts...)
@@ -130,13 +147,17 @@ func makeBaseChannelProposal(
 		App:               opt.App(),
 		InitData:          opt.AppData(),
 		InitBals:          initBals,
-		PeerAddrs:         peers,
 	}
 }
 
 // Base returns the channel proposal's common values.
 func (p *BaseChannelProposal) Base() *BaseChannelProposal {
 	return p
+}
+
+// NumPeers returns the number of peers in a channel.
+func (p BaseChannelProposal) NumPeers() int {
+	return len(p.InitBals.Balances[0])
 }
 
 // Encode encodes the BaseChannelProposal into an io.Writer.
@@ -149,21 +170,7 @@ func (p BaseChannelProposal) Encode(w io.Writer) error {
 		return err
 	}
 
-	if err := perunio.Encode(w, OptAppAndDataEnc{p.App, p.InitData}, p.InitBals); err != nil {
-		return err
-	}
-
-	if len(p.PeerAddrs) > channel.MaxNumParts {
-		return errors.Errorf(
-			"expected maximum number of participants %d, got %d",
-			channel.MaxNumParts, len(p.PeerAddrs))
-	}
-
-	numParts := int32(len(p.PeerAddrs))
-	if err := perunio.Encode(w, numParts); err != nil {
-		return err
-	}
-	return wire.Addresses(p.PeerAddrs).Encode(w)
+	return perunio.Encode(w, OptAppAndDataEnc{p.App, p.InitData}, p.InitBals)
 }
 
 // OptAppAndDataEnc makes an optional pair of App definition and Data encodable.
@@ -206,32 +213,7 @@ func (p *BaseChannelProposal) Decode(r io.Reader) (err error) {
 		p.InitBals = new(channel.Allocation)
 	}
 
-	if err := perunio.Decode(r,
-		OptAppAndDataDec{&p.App, &p.InitData},
-		p.InitBals); err != nil {
-		return err
-	}
-
-	var numParts int32
-	if err := perunio.Decode(r, &numParts); err != nil {
-		return err
-	}
-	if numParts < 2 {
-		return errors.Errorf(
-			"expected at least 2 participants, got %d", numParts)
-	}
-	if numParts > channel.MaxNumParts {
-		return errors.Errorf(
-			"expected at most %d participants, got %d",
-			channel.MaxNumParts, numParts)
-	}
-
-	p.PeerAddrs = make([]wire.Address, numParts)
-	if err := wire.Addresses(p.PeerAddrs).Decode(r); err != nil {
-		return err
-	}
-
-	return nil
+	return perunio.Decode(r, OptAppAndDataDec{&p.App, &p.InitData}, p.InitBals)
 }
 
 // Valid checks that the channel proposal is valid:
@@ -239,21 +221,17 @@ func (p *BaseChannelProposal) Decode(r io.Reader) (err error) {
 // * ValidateProposalParameters returns nil
 // * InitBals are valid
 // * No locked sub-allocations
-// * InitBals match the dimension of Parts
 // * non-zero ChallengeDuration.
 func (p *BaseChannelProposal) Valid() error {
-	// nolint: gocritic
 	if p.InitBals == nil {
 		return errors.New("invalid nil fields")
 	} else if err := channel.ValidateProposalParameters(
-		p.ChallengeDuration, len(p.PeerAddrs), p.App); err != nil {
+		p.ChallengeDuration, p.NumPeers(), p.App); err != nil {
 		return errors.WithMessage(err, "invalid channel parameters")
 	} else if err := p.InitBals.Valid(); err != nil {
 		return err
 	} else if len(p.InitBals.Locked) != 0 {
 		return errors.New("initial allocation cannot have locked funds")
-	} else if len(p.InitBals.Balances[0]) != len(p.PeerAddrs) {
-		return errors.New("wrong dimension of initial balances")
 	}
 	return nil
 }
@@ -294,9 +272,9 @@ func NewLedgerChannelProposal(
 		BaseChannelProposal: makeBaseChannelProposal(
 			challengeDuration,
 			initBals,
-			peers,
 			opts...),
-		Participant: participant}
+		Participant: participant,
+		Peers:       peers}
 }
 
 // Type returns wire.LedgerChannelProposal.
@@ -309,7 +287,8 @@ func (p LedgerChannelProposal) ProposalID() (propID ProposalID) {
 	hasher := newHasher()
 	if err := perunio.Encode(hasher,
 		p.Base(),
-		p.Participant); err != nil {
+		p.Participant,
+		wire.Addresses(p.Peers)); err != nil {
 		log.Panicf("proposal ID nonce encoding: %v", err)
 	}
 
@@ -319,14 +298,34 @@ func (p LedgerChannelProposal) ProposalID() (propID ProposalID) {
 
 // Encode encodes a ledger channel proposal.
 func (p LedgerChannelProposal) Encode(w io.Writer) error {
-	return perunio.Encode(w, p.BaseChannelProposal, p.Participant)
+	if err := p.assertValidNumParts(); err != nil {
+		return err
+	}
+	return perunio.Encode(w,
+		p.BaseChannelProposal,
+		p.Participant,
+		wire.AddressesWithLen(p.Peers))
 }
 
 // Decode decodes a ledger channel proposal.
 func (p *LedgerChannelProposal) Decode(r io.Reader) error {
-	return perunio.Decode(r,
+	err := perunio.Decode(r,
 		&p.BaseChannelProposal,
-		wallet.AddressDec{Addr: &p.Participant})
+		wallet.AddressDec{Addr: &p.Participant},
+		(*wire.AddressesWithLen)(&p.Peers))
+	if err != nil {
+		return err
+	}
+
+	return p.assertValidNumParts()
+}
+
+func (p LedgerChannelProposal) assertValidNumParts() error {
+	if len(p.Peers) < 2 || len(p.Peers) > channel.MaxNumParts {
+		return errors.Errorf("expected 2-%d participants, got %d",
+			channel.MaxNumParts, len(p.Peers))
+	}
+	return nil
 }
 
 // Valid checks whether the participant address is nil.
@@ -346,14 +345,12 @@ func NewSubChannelProposal(
 	parent channel.ID,
 	challengeDuration uint64,
 	initBals *channel.Allocation,
-	peers []wire.Address,
 	opts ...ProposalOpts,
 ) *SubChannelProposal {
 	return &SubChannelProposal{
 		BaseChannelProposal: makeBaseChannelProposal(
 			challengeDuration,
 			initBals,
-			peers,
 			opts...),
 		Parent: parent,
 	}
@@ -392,13 +389,14 @@ func (SubChannelProposal) Type() wire.Type {
 func (p SubChannelProposal) Accept(
 	nonceShare ProposalOpts,
 ) *SubChannelProposalAcc {
+	propID := p.ProposalID()
 	if !nonceShare.isNonce() {
-		log.WithField("proposal", p.ProposalID()).
+		log.WithField("proposal", propID).
 			Panic("SubChannelProposal.Accept: nonceShare has no configured nonce")
 	}
 	return &SubChannelProposalAcc{
 		BaseChannelProposalAcc: makeBaseChannelProposalAcc(
-			p.ProposalID(), nonceShare.nonce()),
+			propID, nonceShare.nonce()),
 	}
 }
 

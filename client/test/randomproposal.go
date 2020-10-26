@@ -48,6 +48,5 @@ func NewRandomSubChannelProposal(rng *rand.Rand, opts ...client.ProposalOpts) *c
 		channeltest.NewRandomChannelID(rng),
 		rng.Uint64(),
 		channeltest.NewRandomAllocation(rng, channeltest.WithNumParts(2)),
-		wiretest.NewRandomAddresses(rng, 2),
 		opts...)
 }

@@ -36,7 +36,7 @@ func (r *Bob) Execute(cfg ExecConfig) {
 
 func (r *Bob) exec(_cfg ExecConfig, ch *paymentChannel, propHandler *acceptAllPropHandler) {
 	cfg := _cfg.(*AliceBobExecConfig)
-	we, them := r.Idxs(cfg.PeerAddrs())
+	we, them := r.Idxs(cfg.Peers())
 
 	// 1st stage - channel controller set up
 	r.waitStage()

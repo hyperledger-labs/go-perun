@@ -15,6 +15,7 @@
 package client
 
 import (
+	"bytes"
 	"context"
 
 	"github.com/pkg/errors"
@@ -122,7 +123,7 @@ func (c *Client) ProposeChannel(ctx context.Context, prop ChannelProposal) (*Cha
 	}
 
 	// 1. validate input
-	peer := prop.Base().PeerAddrs[proposeeIdx]
+	peer := c.proposalPeers(prop)[proposeeIdx]
 	if err := c.validTwoPartyProposal(prop, proposerIdx, peer); err != nil {
 		return nil, errors.WithMessage(err, "invalid channel proposal")
 	}
@@ -216,7 +217,7 @@ func (c *Client) proposeTwoPartyChannel(
 	ctx context.Context,
 	proposal ChannelProposal,
 ) (*Channel, error) {
-	peer := proposal.Base().PeerAddrs[proposeeIdx]
+	peer := c.proposalPeers(proposal)[proposeeIdx]
 
 	// enables caching of incoming version 0 signatures before sending any message
 	// that might trigger a fast peer to send those. We don't know the channel id
@@ -273,18 +274,23 @@ func (c *Client) validTwoPartyProposal(
 		return err
 	}
 
-	if len(base.PeerAddrs) != 2 {
-		return errors.Errorf("exptected 2 peers, got %d", len(proposal.Base().PeerAddrs))
+	peers := c.proposalPeers(proposal)
+	if proposal.Base().NumPeers() != len(peers) {
+		return errors.Errorf("participants (%d) and peers (%d) dimension mismatch",
+			proposal.Base().NumPeers(), len(peers))
+	}
+	if len(peers) != 2 {
+		return errors.Errorf("expected 2 peers, got %d", len(peers))
 	}
 
 	peerIdx := ourIdx ^ 1
 	// In the 2PCPP, the proposer is expected to have index 0
-	if !base.PeerAddrs[peerIdx].Equals(peerAddr) {
+	if !peers[peerIdx].Equals(peerAddr) {
 		return errors.Errorf("remote peer doesn't have peer index %d", peerIdx)
 	}
 
 	// In the 2PCPP, the receiver is expected to have index 1
-	if !base.PeerAddrs[ourIdx].Equals(c.address) {
+	if !peers[ourIdx].Equals(c.address) {
 		return errors.Errorf("we don't have peer index %d", ourIdx)
 	}
 
@@ -305,12 +311,6 @@ func (c *Client) validSubChannelProposal(proposal *SubChannelProposal) error {
 
 	base := proposal.Base()
 
-	for i, peer := range parent.Peers() {
-		if !peer.Equals(base.PeerAddrs[i]) {
-			return errors.New("peers do not match")
-		}
-	}
-
 	if err := channel.AssetsAssertEqual(parent.State().Assets, base.InitBals.Assets); err != nil {
 		return errors.WithMessage(err, "parent channel and sub-channel assets do not match")
 	}
@@ -326,6 +326,16 @@ func (c *Client) validChannelProposalAcc(
 	proposal ChannelProposal,
 	response ChannelProposalAccept,
 ) error {
+	if !proposal.Matches(response) {
+		return errors.Errorf("Received invalid accept message %T to proposal %T", response, proposal)
+	}
+
+	propID := proposal.ProposalID()
+	accID := response.Base().ProposalID
+	if !bytes.Equal(propID[:], accID[:]) {
+		return errors.Errorf("mismatched proposal ID %b and accept ID %b", propID, accID)
+	}
+
 	if proposal.Type() == wire.SubChannelProposal {
 		subProp := proposal.(*SubChannelProposal)
 
@@ -396,7 +406,8 @@ func (c *Client) completeCPP(
 		return nil, errors.WithMessage(err, "unlocking account")
 	}
 
-	ch, err := c.newChannel(account, propBase.PeerAddrs, *params)
+	peers := c.proposalPeers(prop)
+	ch, err := c.newChannel(account, peers, *params)
 	if err != nil {
 		return nil, err
 	}
@@ -416,7 +427,7 @@ func (c *Client) completeCPP(
 		}
 	}
 
-	if err := c.pr.ChannelCreated(ctx, ch.machine, propBase.PeerAddrs); err != nil {
+	if err := c.pr.ChannelCreated(ctx, ch.machine, peers); err != nil {
 		return ch, errors.WithMessage(err, "persisting new channel")
 	}
 

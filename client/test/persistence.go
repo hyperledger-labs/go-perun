@@ -196,9 +196,9 @@ func (r *Robert) Execute(cfg ExecConfig) {
 
 func (r *multiClientRole) assertPersistedPeerAndChannel(cfg ExecConfig, state *channel.State) {
 	assrt := assert.New(r.t)
-	_, them := r.Idxs(cfg.PeerAddrs())
+	_, them := r.Idxs(cfg.Peers())
 	ps, err := r.setup.PR.ActivePeers(nil) // it should be a test persister, so no context needed
-	peerAddr := cfg.PeerAddrs()[them]
+	peerAddr := cfg.Peers()[them]
 	assrt.NoError(err)
 	assrt.Contains(ps, peerAddr)
 	if len(ps) == 0 {

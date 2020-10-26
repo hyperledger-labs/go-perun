@@ -20,10 +20,12 @@ import (
 
 	"github.com/stretchr/testify/require"
 
+	"perun.network/go-perun/channel"
 	channeltest "perun.network/go-perun/channel/test"
 	pkgtest "perun.network/go-perun/pkg/test"
 	"perun.network/go-perun/wallet"
 	wallettest "perun.network/go-perun/wallet/test"
+	"perun.network/go-perun/wire"
 	wiretest "perun.network/go-perun/wire/test"
 )
 
@@ -35,10 +37,10 @@ func TestClient_validTwoPartyProposal(t *testing.T) {
 		address: wallettest.NewRandomAddress(rng),
 	}
 	validProp := NewRandomLedgerChannelProposal(rng, channeltest.WithNumParts(2))
-	validProp.Base().PeerAddrs[0] = c.address // set us as the proposer
-	peerAddr := validProp.Base().PeerAddrs[1] // peer at 1 as receiver
+	validProp.Peers[0] = c.address // set us as the proposer
+	peerAddr := validProp.Peers[1] // peer at 1 as receiver
 	require.False(t, peerAddr.Equals(c.address))
-	require.Len(t, validProp.Base().PeerAddrs, 2)
+	require.Len(t, validProp.Peers, 2)
 
 	validProp3Peers := NewRandomLedgerChannelProposal(rng, channeltest.WithNumParts(3))
 	invalidProp := &LedgerChannelProposal{}
@@ -88,6 +90,16 @@ func TestClient_validTwoPartyProposal(t *testing.T) {
 	}
 }
 
+func TestChannelProposal_assertValidNumParts(t *testing.T) {
+	require := require.New(t)
+
+	rng := pkgtest.Prng(t)
+	c := NewRandomLedgerChannelProposal(rng)
+	require.NoError(c.assertValidNumParts())
+	c.Peers = make([]wire.Address, channel.MaxNumParts+1)
+	require.Error(c.assertValidNumParts())
+}
+
 func NewRandomBaseChannelProposal(rng *rand.Rand, opts ...channeltest.RandomOpt) BaseChannelProposal {
 	var opt channeltest.RandomOpt
 	if len(opts) != 0 {
@@ -96,13 +108,10 @@ func NewRandomBaseChannelProposal(rng *rand.Rand, opts ...channeltest.RandomOpt)
 		opt = make(channeltest.RandomOpt)
 	}
 	alloc := channeltest.NewRandomAllocation(rng, channeltest.WithNumParts(opt.NumParts(rng)))
-	peers := wiretest.NewRandomAddresses(rng, opt.NumParts(rng))
-
 	app, data := channeltest.NewRandomAppAndData(rng)
 	return makeBaseChannelProposal(
 		rng.Uint64(),
 		alloc,
-		peers,
 		WithNonceFrom(rng),
 		WithApp(app, data))
 }
@@ -110,8 +119,10 @@ func NewRandomBaseChannelProposal(rng *rand.Rand, opts ...channeltest.RandomOpt)
 func NewRandomLedgerChannelProposal(rng *rand.Rand, opts ...channeltest.RandomOpt) *LedgerChannelProposal {
 	opt := make(channeltest.RandomOpt).Append(opts...)
 	base := NewRandomBaseChannelProposal(rng, opt)
+	peers := wiretest.NewRandomAddresses(rng, opt.NumParts(rng))
 	return &LedgerChannelProposal{
 		BaseChannelProposal: base,
 		Participant:         wallettest.NewRandomAddress(rng),
+		Peers:               peers,
 	}
 }

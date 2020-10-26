@@ -15,18 +15,15 @@
 package client_test
 
 import (
-	"bytes"
 	"math/rand"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"perun.network/go-perun/channel"
 	"perun.network/go-perun/channel/test"
 	"perun.network/go-perun/client"
 	clienttest "perun.network/go-perun/client/test"
-	"perun.network/go-perun/pkg/io"
 	pkgtest "perun.network/go-perun/pkg/test"
 	wallettest "perun.network/go-perun/wallet/test"
 	"perun.network/go-perun/wire"
@@ -59,34 +56,6 @@ func TestChannelProposalReqSerialization(t *testing.T) {
 		m := clienttest.NewRandomLedgerChannelProposal(rng, client.WithNonceFrom(rng), app)
 		wire.TestMsg(t, m)
 	}
-}
-
-func TestChannelProposalReqDecode_CheckMaxNumParts(t *testing.T) {
-	require := require.New(t)
-	assert := assert.New(t)
-
-	rng := pkgtest.Prng(t)
-	c := client.NewRandomBaseChannelProposal(rng)
-	buffer := new(bytes.Buffer)
-
-	// reimplementation of ChannelProposalReq.Encode modified to create the
-	// maximum number of participants possible with the encoding
-	require.NoError(io.Encode(buffer, c.ChallengeDuration, c.NonceShare))
-	require.NoError(
-		io.Encode(buffer, client.OptAppAndDataEnc{c.App, c.InitData}, c.InitBals))
-
-	numParts := int32(channel.MaxNumParts + 1)
-	require.NoError(io.Encode(buffer, numParts))
-
-	for i := 0; i < int(numParts); i++ {
-		require.NoError(wallettest.NewRandomAddress(rng).Encode(buffer))
-	}
-	// end of ChannelProposalReq.Encode clone
-
-	d := client.LedgerChannelProposal{}
-	err := d.Decode(buffer)
-	require.Error(err)
-	assert.Contains(err.Error(), "participants")
 }
 
 func TestLedgerChannelProposalReqProposalID(t *testing.T) {
@@ -124,7 +93,7 @@ func TestLedgerChannelProposalReqProposalID(t *testing.T) {
 	assert.NotEqual(t, s, c5.ProposalID())
 
 	c6 := original
-	c6.PeerAddrs = fake.PeerAddrs
+	c6.Peers = fake.Peers
 	assert.NotEqual(t, s, c6.ProposalID())
 }
 
