@@ -55,7 +55,7 @@ func TestPersistencePetraRobert(t *testing.T) {
 			TxAmounts:   [2]*big.Int{big.NewInt(5), big.NewInt(3)},
 		}
 
-		executeTwoPartyTest(roles, cfg)
+		executeTwoPartyTest(t, roles, cfg)
 	}
 }
 
