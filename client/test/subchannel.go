@@ -162,7 +162,7 @@ func (r *Tim) Execute(cfg ExecConfig) {
 	r.Responder.Execute(cfg, r.exec)
 }
 
-func (r *Tim) exec(_cfg ExecConfig, ledgerChannel *paymentChannel, propHandler *acceptAllPropHandler) {
+func (r *Tim) exec(_cfg ExecConfig, ledgerChannel *paymentChannel, propHandler *acceptNextPropHandler) {
 	cfg := _cfg.(*SusieTimExecConfig)
 
 	// 1st stage - channel controller set up

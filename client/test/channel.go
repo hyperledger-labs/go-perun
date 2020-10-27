@@ -84,7 +84,7 @@ func (ch *paymentChannel) openSubChannel(
 }
 
 func (ch *paymentChannel) acceptSubchannel(
-	propHandler *acceptAllPropHandler,
+	propHandler *acceptNextPropHandler,
 	initBals []*big.Int,
 ) *paymentChannel {
 	subchannel, err := propHandler.Next()
