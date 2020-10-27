@@ -151,7 +151,7 @@ func (a *Adjudicator) callAssetWithdraw(ctx context.Context, request channel.Adj
 		return err
 	}
 
-	return errors.WithMessage(a.confirmTransaction(ctx, tx, a.txSender), "mining transaction")
+	return errors.WithMessage(a.ConfirmTransaction(ctx, tx, a.txSender), "mining transaction")
 }
 
 func (a *Adjudicator) newWithdrawalAuth(request channel.AdjudicatorReq, asset assetHolder) (assets.AssetHolderWithdrawalAuth, []byte, error) {

@@ -36,7 +36,7 @@ type ERC20Depositor struct {
 const ERC20DepositorTXGasLimit = 100000
 
 // Deposit returns the transactions for despositing Ethereum or an error otherwise.
-func (d *ERC20Depositor) Deposit(ctx context.Context, req DepositReq) ([]*types.Transaction, error) {
+func (d *ERC20Depositor) Deposit(ctx context.Context, req DepositReq) (types.Transactions, error) {
 	// Bind a `AssetHolderERC20` instance.
 	assetholder, err := assets.NewAssetHolderERC20(common.Address(req.Asset), req.CB)
 	if err != nil {

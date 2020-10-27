@@ -78,7 +78,7 @@ func (s *SimulatedBackend) SendTransaction(ctx context.Context, tx *types.Transa
 	return nil
 }
 
-// FundAddress funds a given address with 10 eth from a faucet.
+// FundAddress funds a given address with `test.MaxBalance` eth from a faucet.
 func (s *SimulatedBackend) FundAddress(ctx context.Context, addr common.Address) {
 	nonce, err := s.PendingNonceAt(context.Background(), s.faucetAddr)
 	if err != nil {
