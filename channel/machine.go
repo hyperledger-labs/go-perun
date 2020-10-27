@@ -472,7 +472,7 @@ func (m *machine) validTransition(to *State) error {
 	}
 
 	if m.currentTX.Version+1 != to.Version {
-		return newError("version must increase by one")
+		return newError(fmt.Sprintf("expected version %d, got version %d", m.currentTX.Version+1, to.Version))
 	}
 
 	if err := to.Allocation.Valid(); err != nil {
