@@ -52,3 +52,8 @@ func (d *ETHDepositor) Deposit(ctx context.Context, req DepositReq) ([]*types.Tr
 	tx, err := contract.Deposit(opts, req.FundingID, req.Balance)
 	return []*types.Transaction{tx}, errors.WithMessage(err, "AssetHolderETH depositing")
 }
+
+// NumTX returns 1 since it only does Deposit.
+func (*ETHDepositor) NumTX() uint32 {
+	return 1
+}

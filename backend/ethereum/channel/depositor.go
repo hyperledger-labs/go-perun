@@ -32,6 +32,9 @@ type (
 		// `abi/bind.WaitMined` can be used to await their success.
 		// When one of the TX fails, the status of the following ones is ignored.
 		Deposit(context.Context, DepositReq) ([]*types.Transaction, error)
+
+		// NumTX returns how many transactions a `Deposit` call needs.
+		NumTX() uint32
 	}
 
 	// DepositReq contains all necessary data for a `Depositor` to deposit funds.

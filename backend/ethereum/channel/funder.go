@@ -336,3 +336,15 @@ func FundingIDs(channelID channel.ID, participants ...perunwallet.Address) [][32
 	}
 	return ids
 }
+
+// NumTX returns how many Transactions are needed for the funding request.
+func (f *Funder) NumTX(req channel.FundingReq) (sum uint32, err error) {
+	for _, a := range req.State.Assets {
+		depositor, ok := f.depositors[*a.(*Asset)]
+		if !ok {
+			return 0, errors.Errorf("could not find Depositor for asset #%d", a)
+		}
+		sum += depositor.NumTX()
+	}
+	return
+}

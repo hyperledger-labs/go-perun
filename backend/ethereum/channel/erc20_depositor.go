@@ -64,3 +64,8 @@ func (d *ERC20Depositor) Deposit(ctx context.Context, req DepositReq) ([]*types.
 	tx2, err := assetholder.Deposit(opts, req.FundingID, req.Balance)
 	return []*types.Transaction{tx1, tx2}, errors.WithMessage(err, "AssetHolderERC20 depositing")
 }
+
+// NumTX returns 2 since it does IncreaseAllowance and Deposit.
+func (*ERC20Depositor) NumTX() uint32 {
+	return 2
+}
