@@ -15,18 +15,15 @@
 package client_test
 
 import (
-	"bytes"
 	"math/rand"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"perun.network/go-perun/channel"
 	"perun.network/go-perun/channel/test"
 	"perun.network/go-perun/client"
 	clienttest "perun.network/go-perun/client/test"
-	"perun.network/go-perun/pkg/io"
 	pkgtest "perun.network/go-perun/pkg/test"
 	wallettest "perun.network/go-perun/wallet/test"
 	"perun.network/go-perun/wire"
@@ -50,54 +47,29 @@ func TestChannelProposalReq_NilArgs(t *testing.T) {
 
 func TestChannelProposalReqSerialization(t *testing.T) {
 	rng := pkgtest.Prng(t)
-	for i := 0; i < 8; i++ {
+	for i := 0; i < 16; i++ {
 		var app client.ProposalOpts
 		if i&1 == 0 {
 			app = client.WithApp(test.NewRandomAppAndData(rng))
 		}
-
-		m := clienttest.NewRandomLedgerChannelProposal(rng, client.WithNonceFrom(rng), app)
+		var m wire.Msg
+		if i&2 == 0 {
+			m = clienttest.NewRandomLedgerChannelProposal(rng, client.WithNonceFrom(rng), app)
+		} else {
+			m = clienttest.NewRandomSubChannelProposal(rng, client.WithNonceFrom(rng), app)
+		}
 		wire.TestMsg(t, m)
 	}
 }
 
-func TestChannelProposalReqDecode_CheckMaxNumParts(t *testing.T) {
-	require := require.New(t)
-	assert := assert.New(t)
-
+func TestLedgerChannelProposalReqProposalID(t *testing.T) {
 	rng := pkgtest.Prng(t)
-	c := client.NewRandomBaseChannelProposalReq(rng)
-	buffer := new(bytes.Buffer)
-
-	// reimplementation of ChannelProposalReq.Encode modified to create the
-	// maximum number of participants possible with the encoding
-	require.NoError(io.Encode(buffer, c.ChallengeDuration, c.NonceShare))
-	require.NoError(
-		io.Encode(buffer, c.ParticipantAddr, client.OptAppAndDataEnc{c.App, c.InitData}, c.InitBals))
-
-	numParts := int32(channel.MaxNumParts + 1)
-	require.NoError(io.Encode(buffer, numParts))
-
-	for i := 0; i < int(numParts); i++ {
-		require.NoError(wallettest.NewRandomAddress(rng).Encode(buffer))
-	}
-	// end of ChannelProposalReq.Encode clone
-
-	d := client.LedgerChannelProposal{}
-	err := d.Decode(buffer)
-	require.Error(err)
-	assert.Contains(err.Error(), "participants")
-}
-
-func TestChannelProposalReqProposalID(t *testing.T) {
-	rng := pkgtest.Prng(t)
-	original := client.NewRandomBaseChannelProposalReq(rng)
+	original := *client.NewRandomLedgerChannelProposal(rng)
 	s := original.ProposalID()
-	fake := client.NewRandomBaseChannelProposalReq(rng)
+	fake := *client.NewRandomLedgerChannelProposal(rng)
 
 	assert.NotEqual(t, original.ChallengeDuration, fake.ChallengeDuration)
 	assert.NotEqual(t, original.NonceShare, fake.NonceShare)
-	assert.NotEqual(t, original.ParticipantAddr, fake.ParticipantAddr)
 	assert.NotEqual(t, original.App, fake.App)
 
 	c0 := original
@@ -109,8 +81,8 @@ func TestChannelProposalReqProposalID(t *testing.T) {
 	assert.NotEqual(t, s, c1.ProposalID())
 
 	c2 := original
-	c2.ParticipantAddr = fake.ParticipantAddr
-	assert.Equal(t, s, c2.ProposalID())
+	c2.Participant = fake.Participant
+	assert.NotEqual(t, s, c2.ProposalID())
 
 	c3 := original
 	c3.App = fake.App
@@ -125,19 +97,54 @@ func TestChannelProposalReqProposalID(t *testing.T) {
 	assert.NotEqual(t, s, c5.ProposalID())
 
 	c6 := original
-	c6.PeerAddrs = fake.PeerAddrs
+	c6.Peers = fake.Peers
 	assert.NotEqual(t, s, c6.ProposalID())
+}
+
+func TestSubChannelProposalReqProposalID(t *testing.T) {
+	rng := pkgtest.Prng(t)
+	original := *clienttest.NewRandomSubChannelProposal(rng)
+	s := original.ProposalID()
+	fake := *clienttest.NewRandomSubChannelProposal(rng)
+
+	assert.NotEqual(t, original.ChallengeDuration, fake.ChallengeDuration)
+	assert.NotEqual(t, original.NonceShare, fake.NonceShare)
+
+	c0 := original
+	c0.ChallengeDuration = fake.ChallengeDuration
+	assert.NotEqual(t, s, c0.ProposalID())
+
+	c1 := original
+	c1.NonceShare = fake.NonceShare
+	assert.NotEqual(t, s, c1.ProposalID())
+
+	c2 := original
+	c2.Parent = fake.Parent
+	assert.NotEqual(t, s, c2.ProposalID())
+
+	c3 := original
+	c3.InitBals = fake.InitBals
+	assert.NotEqual(t, s, c3.ProposalID())
 }
 
 func TestChannelProposalAccSerialization(t *testing.T) {
 	rng := pkgtest.Prng(t)
-	for i := 0; i < 16; i++ {
-		m := &client.ChannelProposalAcc{
-			ProposalID:      newRandomProposalID(rng),
-			ParticipantAddr: wallettest.NewRandomAddress(rng),
+	t.Run("ledger channel", func(t *testing.T) {
+		for i := 0; i < 16; i++ {
+			proposal := clienttest.NewRandomLedgerChannelProposal(rng)
+			m := proposal.Accept(
+				wallettest.NewRandomAddress(rng),
+				client.WithNonceFrom(rng))
+			wire.TestMsg(t, m)
 		}
-		wire.TestMsg(t, m)
-	}
+	})
+	t.Run("sub channel", func(t *testing.T) {
+		for i := 0; i < 16; i++ {
+			proposal := clienttest.NewRandomSubChannelProposal(rng)
+			m := proposal.Accept(client.WithNonceFrom(rng))
+			wire.TestMsg(t, m)
+		}
+	})
 }
 
 func TestChannelProposalRejSerialization(t *testing.T) {

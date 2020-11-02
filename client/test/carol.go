@@ -40,7 +40,7 @@ func (r *Carol) Execute(cfg ExecConfig) {
 func (r *Carol) exec(_cfg ExecConfig, ch *paymentChannel, propHandler *acceptAllPropHandler) {
 	cfg := _cfg.(*MalloryCarolExecConfig)
 	assert := assert.New(r.t)
-	_, them := r.Idxs(cfg.PeerAddrs())
+	_, them := r.Idxs(cfg.Peers())
 
 	// start watcher
 	watcher := make(chan error)

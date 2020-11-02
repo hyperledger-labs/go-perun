@@ -51,7 +51,7 @@ func (r *Mallory) Execute(cfg ExecConfig) {
 func (r *Mallory) exec(_cfg ExecConfig, ch *paymentChannel) {
 	cfg := _cfg.(*MalloryCarolExecConfig)
 	assert := assert.New(r.t)
-	we, _ := r.Idxs(cfg.PeerAddrs())
+	we, _ := r.Idxs(cfg.Peers())
 	// AdjudicatorReq for version 0
 	req0 := client.NewTestChannel(ch.Channel).AdjudicatorReq()
 
