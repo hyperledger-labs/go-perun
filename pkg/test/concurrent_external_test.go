@@ -219,3 +219,61 @@ func TestConcurrentT_Barrier(t *testing.T) {
 		})
 	})
 }
+
+func TestConcurrentT_PropagateBarrierFail(t *testing.T) {
+	t.Run("FailBarrier causes other barrier to fail", func(t *testing.T) {
+		ctxtest.AssertTerminatesQuickly(t, func() {
+			test.AssertFatal(t, func(t test.T) {
+				ct := test.NewConcurrent(t)
+				go ct.FailBarrier("a")
+				ct.BarrierN("b", 1000)
+			})
+		})
+	})
+
+	t.Run("Failed stage causes barrier to fail", func(t *testing.T) {
+		ctxtest.AssertTerminatesQuickly(t, func() {
+			test.AssertFatal(t, func(t test.T) {
+				ct := test.NewConcurrent(t)
+				go ct.Stage("a", func(t test.ConcT) {
+					t.FailNow()
+				})
+				ct.BarrierN("b", 1000)
+			})
+		})
+	})
+
+	t.Run("FailNow causes Wait to fail", func(t *testing.T) {
+		executed := false
+		ctxtest.AssertTerminatesQuickly(t, func() {
+			test.AssertFatal(t, func(t test.T) {
+				ct := test.NewConcurrent(t)
+				go ct.Stage("a", func(t test.ConcT) {
+					t.FailNow()
+				})
+				ct.Wait("b")
+				executed = true
+			})
+		})
+		require.False(t, executed, "Wait() must call Goexit() on failure")
+	})
+
+	t.Run("FailNow must cause Barrier to fail", func(t *testing.T) {
+		executed := false
+		ctxtest.AssertTerminatesQuickly(t, func() {
+			test.AssertFatal(t, func(t test.T) {
+				ct := test.NewConcurrent(t)
+				go ct.Stage("a", func(t test.ConcT) {
+					t.BarrierN("c", 2)
+					executed = true
+				})
+				go ct.Stage("b", func(t test.ConcT) {
+					t.FailNow()
+					t.BarrierN("c", 2)
+				})
+				ct.Wait("a", "b")
+			})
+		})
+		require.False(t, executed, "Wait() must call Goexit() on failure")
+	})
+}
