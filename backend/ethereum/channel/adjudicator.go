@@ -123,7 +123,7 @@ func (a *Adjudicator) call(ctx context.Context, req channel.AdjudicatorReq, fn a
 		return err
 	}
 
-	return errors.WithMessage(a.confirmTransaction(ctx, tx, a.txSender), "mining transaction")
+	return errors.WithMessage(a.ConfirmTransaction(ctx, tx, a.txSender), "mining transaction")
 }
 
 // ValidateAdjudicator checks if the bytecode at given address is correct.

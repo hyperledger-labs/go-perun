@@ -16,6 +16,7 @@ package channel_test
 
 import (
 	"context"
+	"math/big"
 	"math/rand"
 	"testing"
 	"time"
@@ -30,12 +31,17 @@ import (
 	"perun.network/go-perun/backend/ethereum/bindings/assets"
 	ethchannel "perun.network/go-perun/backend/ethereum/channel"
 	"perun.network/go-perun/backend/ethereum/channel/test"
+	ethwallet "perun.network/go-perun/backend/ethereum/wallet"
 	"perun.network/go-perun/backend/ethereum/wallet/keystore"
 	"perun.network/go-perun/channel"
 	channeltest "perun.network/go-perun/channel/test"
 	pkgtest "perun.network/go-perun/pkg/test"
 	"perun.network/go-perun/wallet"
 	wallettest "perun.network/go-perun/wallet/test"
+)
+
+const (
+	txGasLimit = 100000
 )
 
 func TestFunder_OneForAllFunding(t *testing.T) {
@@ -75,7 +81,9 @@ func testFunderOneForAllFunding(t *testing.T, n int) {
 			})
 			require.NoError(rt, err)
 			if i == richy {
-				assert.Lenf(rt, agreement, diff, "%d transactions should have been sent", len(agreement))
+				numTx, err := funders[i].NumTX(*req)
+				require.NoError(t, err)
+				assert.Equal(rt, int(numTx), diff, "%d transactions should have been sent", numTx)
 			} else {
 				assert.Zero(rt, diff, "Nonce should stay the same")
 			}
@@ -109,11 +117,13 @@ func testFunderCrossOverFunding(t *testing.T, n int) {
 		i, funder := i, funder
 		go ct.StageN("funding", n, func(rt pkgtest.ConcT) {
 			req := channel.NewFundingReq(params, &channel.State{Allocation: *alloc}, channel.Index(i), agreement)
+			numTx, err := funders[0].NumTX(*req)
+			require.NoError(t, err)
 			diff, err := test.NonceDiff(parts[i], funder, func() error {
 				return funder.Fund(ctx, *req)
 			})
 			require.NoError(rt, err, "funding should succeed")
-			assert.Lenf(rt, agreement, diff, "%d transactions should have been sent", len(agreement))
+			assert.Equal(rt, int(numTx), diff, "%d transactions should have been sent", numTx)
 		})
 	}
 
@@ -160,7 +170,9 @@ func testFunderZeroBalance(t *testing.T, n int) {
 			if i%2 == 0 {
 				assert.Zero(rt, diff, "Nonce should stay the same")
 			} else {
-				assert.Lenf(rt, agreement, diff, "%d transactions should have been sent", len(agreement))
+				numTx, err := funders[i].NumTX(*req)
+				require.NoError(t, err)
+				assert.Equal(rt, int(numTx), diff, "%d transactions should have been sent", numTx)
 			}
 		})
 	}
@@ -169,7 +181,7 @@ func testFunderZeroBalance(t *testing.T, n int) {
 	assert.NoError(t, compareOnChainAlloc(ctx, params, agreement, alloc.Assets, &funders[0].ContractBackend))
 }
 
-func TestFunder_Fund(t *testing.T) {
+func TestFunder_Multiple(t *testing.T) {
 	rng := pkgtest.Prng(t)
 	ctx, cancel := context.WithTimeout(context.Background(), defaultTxTimeout)
 	defer cancel()
@@ -178,28 +190,32 @@ func TestFunder_Fund(t *testing.T) {
 	assert.Panics(t, func() { funders[0].Fund(ctx, channel.FundingReq{}) }, "Funding with invalid funding req should fail")
 	// Test funding without assets
 	req := channel.NewFundingReq(&channel.Params{}, &channel.State{}, 0, make(channel.Balances, 0))
-	assert.NoError(t, funders[0].Fund(ctx, *req), "Funding with no assets should succeed")
+	require.NoError(t, funders[0].Fund(ctx, *req), "Funding with no assets should succeed")
 	// Test with valid request
 	req = channel.NewFundingReq(params, &channel.State{Allocation: *alloc}, 0,
 		alloc.Balances)
 
 	t.Run("Funding idempotence", func(t *testing.T) {
-		for i := 0; i < 10; i++ {
-			nonce := 0
+		for i := 0; i < 1; i++ {
+			var err error
+			numTx := uint32(0)
 			if i == 0 {
-				nonce = len(alloc.Assets)
+				numTx, err = funders[0].NumTX(*req)
+				require.NoError(t, err)
 			}
 			diff, err := test.NonceDiff(parts[0], funders[0], func() error {
 				return funders[0].Fund(ctx, *req)
 			})
-			require.NoError(t, err, "Subsequent Fund calls should not modify the nonce")
-			assert.Equal(t, nonce, diff)
+			require.NoError(t, err)
+			assert.Equal(t, int(numTx), diff, "Nonce should increase")
 		}
 	})
 	// Test already closed context
 	cancel()
 	assert.Error(t, funders[0].Fund(ctx, *req), "funding with already cancelled context should fail")
 	// Check result balances
+	ctx, cancel = context.WithTimeout(context.Background(), time.Second)
+	defer cancel()
 	assert.NoError(t, compareOnChainAlloc(ctx, params, alloc.Balances, alloc.Assets, &funders[0].ContractBackend))
 }
 
@@ -252,7 +268,8 @@ func testFundingTimeout(t *testing.T, faultyPeer, n int) {
 		})
 	}
 
-	time.Sleep(time.Duration(n) * 100 * time.Millisecond) // give all funders enough time to fund
+	// Give each funder `numAssets * numPeers * 200` ms time to fund.
+	time.Sleep(time.Duration(n*len(alloc.Balances)) * 200 * time.Millisecond)
 	// Hackily extract SimulatedBackend from funder
 	sb, ok := funders[0].ContractInterface.(*test.SimulatedBackend)
 	require.True(t, ok)
@@ -310,28 +327,35 @@ func newNFunders(
 
 	deployAccount := &ksWallet.NewRandomAccount(rng).(*keystore.Account).Account
 	simBackend.FundAddress(ctx, deployAccount.Address)
-	contractBackend := ethchannel.NewContractBackend(simBackend, keystore.NewTransactor(*ksWallet))
+	tokenAcc := &ksWallet.NewRandomAccount(rng).(*keystore.Account).Account
+	simBackend.FundAddress(ctx, tokenAcc.Address)
+	cb := ethchannel.NewContractBackend(simBackend, keystore.NewTransactor(*ksWallet))
 
 	// Deploy ETHAssetholder
-	assetAddr1, err := ethchannel.DeployETHAssetholder(ctx, contractBackend, deployAccount.Address, *deployAccount)
+	assetAddr1, err := ethchannel.DeployETHAssetholder(ctx, cb, deployAccount.Address, *deployAccount)
 	require.NoError(t, err, "Deployment should succeed")
-	t.Logf("asset holder #1 address is %v", assetAddr1)
+	t.Logf("asset holder #1 address is %s", assetAddr1.Hex())
 	asset1 := ethchannel.Asset(assetAddr1)
-	// Deploy ETHAssetholder TODO: Change to ERC20 when available.
-	assetAddr2, err := ethchannel.DeployETHAssetholder(ctx, contractBackend, deployAccount.Address, *deployAccount)
+	// Deploy PerunToken + ETHAssetholder.
+
+	token, err := ethchannel.DeployPerunToken(ctx, cb, *deployAccount, []common.Address{tokenAcc.Address}, channeltest.MaxBalance)
 	require.NoError(t, err, "Deployment should succeed")
-	t.Logf("asset holder #2 address is %v", assetAddr2)
+	assetAddr2, err := ethchannel.DeployERC20Assetholder(ctx, cb, common.Address{}, token, *deployAccount)
+	require.NoError(t, err, "Deployment should succeed")
+	t.Logf("asset holder #2 address is %s", assetAddr2.Hex())
 	asset2 := ethchannel.Asset(assetAddr2)
 
 	parts = make([]wallet.Address, n)
 	funders = make([]*ethchannel.Funder, n)
-	for i := 0; i < n; i++ {
-		acc := ksWallet.NewRandomAccount(rng).(*keystore.Account)
-		simBackend.FundAddress(ctx, acc.Account.Address)
-		parts[i] = acc.Address()
-		cb := ethchannel.NewContractBackend(simBackend, keystore.NewTransactor(*ksWallet))
-		accounts := map[ethchannel.Asset]accounts.Account{asset1: acc.Account, asset2: acc.Account}
-		depositors := map[ethchannel.Asset]ethchannel.Depositor{asset1: new(ethchannel.ETHDepositor), asset2: new(ethchannel.ETHDepositor)}
+	for i := range parts {
+		acc := ksWallet.NewRandomAccount(rng).(*keystore.Account).Account
+		parts[i] = ethwallet.AsWalletAddr(acc.Address)
+
+		simBackend.FundAddress(ctx, ethwallet.AsEthAddr(parts[i]))
+		fundERC20(ctx, cb, *tokenAcc, ethwallet.AsEthAddr(parts[i]), token, asset2)
+
+		accounts := map[ethchannel.Asset]accounts.Account{asset1: acc, asset2: acc}
+		depositors := map[ethchannel.Asset]ethchannel.Depositor{asset1: new(ethchannel.ETHDepositor), asset2: &ethchannel.ERC20Depositor{Token: token}}
 		funders[i] = ethchannel.NewFunder(cb, accounts, depositors)
 	}
 
@@ -340,6 +364,25 @@ func newNFunders(
 	params = channeltest.NewRandomParams(rng, channeltest.WithParts(parts...), channeltest.WithChallengeDuration(uint64(n)*40))
 	allocation = channeltest.NewRandomAllocation(rng, channeltest.WithNumParts(n), channeltest.WithAssets((*ethchannel.Asset)(&assetAddr1), (*ethchannel.Asset)(&assetAddr2)))
 	return
+}
+
+// fundERC20 funds `to` with ERC20 tokens from account `from`.
+func fundERC20(ctx context.Context, cb ethchannel.ContractBackend, from accounts.Account, to common.Address, token common.Address, asset ethchannel.Asset) error {
+	contract, err := assets.NewERC20(token, cb)
+	if err != nil {
+		return errors.WithMessagef(err, "binding AssetHolderERC20 contract at: %v", asset)
+	}
+	// Transfer.
+	opts, err := cb.NewTransactor(ctx, nil, txGasLimit, from)
+	if err != nil {
+		return errors.WithMessagef(err, "creating transactor for asset: %v", asset)
+	}
+	amount := new(big.Int).Rsh(channeltest.MaxBalance, 10)
+	tx, err := contract.Transfer(opts, to, amount)
+	if err != nil {
+		return errors.WithMessage(err, "transferring tokens")
+	}
+	return cb.ConfirmTransaction(ctx, tx, from)
 }
 
 // compareOnChainAlloc returns error if `alloc` differs from the on-chain allocation.

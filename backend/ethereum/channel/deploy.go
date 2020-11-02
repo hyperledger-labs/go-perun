@@ -30,41 +30,54 @@ import (
 
 const deployGasLimit = 6600000
 
+// DeployPerunToken deploys a new PerunToken contract.
+func DeployPerunToken(ctx context.Context, backend ContractBackend, deployer accounts.Account, initAccs []common.Address, initBals *big.Int) (common.Address, error) {
+	return deployContract(ctx, backend, deployer, "PerunToken",
+		func(auth *bind.TransactOpts, cb ContractBackend) (common.Address, *types.Transaction, error) {
+			addr, tx, _, err := assets.DeployPerunToken(auth, backend, initAccs, initBals)
+			return addr, tx, err
+		})
+}
+
 // DeployETHAssetholder deploys a new ETHAssetHolder contract.
 func DeployETHAssetholder(ctx context.Context, backend ContractBackend, adjudicatorAddr common.Address, deployer accounts.Account) (common.Address, error) {
-	auth, err := backend.NewTransactor(ctx, big.NewInt(0), deployGasLimit, deployer)
-	if err != nil {
-		return common.Address{}, errors.WithMessage(err, "could not create transactor")
-	}
-	addr, tx, _, err := assets.DeployAssetHolderETH(auth, backend, adjudicatorAddr)
-	if err != nil {
-		return common.Address{}, errors.WithMessage(err, "could not create transaction")
-	}
-	if err := confirmDeployment(ctx, backend, tx); err != nil {
-		return common.Address{}, errors.WithMessage(err, "deploying ethassetholder")
-	}
-	log.Infof("Successfully deployed AssetHolderETH at %v.", addr.Hex())
-	return addr, nil
+	return deployContract(ctx, backend, deployer, "ETHAssetHolder",
+		func(auth *bind.TransactOpts, cb ContractBackend) (common.Address, *types.Transaction, error) {
+			addr, tx, _, err := assets.DeployAssetHolderETH(auth, cb, adjudicatorAddr)
+			return addr, tx, err
+		})
+}
+
+// DeployERC20Assetholder deploys a new ERC20AssetHolder contract.
+func DeployERC20Assetholder(ctx context.Context, backend ContractBackend, adjudicatorAddr common.Address, tokenAddr common.Address, deployer accounts.Account) (common.Address, error) {
+	return deployContract(ctx, backend, deployer, "ERC20AssetHolder",
+		func(auth *bind.TransactOpts, cb ContractBackend) (common.Address, *types.Transaction, error) {
+			addr, tx, _, err := assets.DeployAssetHolderERC20(auth, backend, adjudicatorAddr, tokenAddr)
+			return addr, tx, err
+		})
 }
 
 // DeployAdjudicator deploys a new Adjudicator contract.
 func DeployAdjudicator(ctx context.Context, backend ContractBackend, deployer accounts.Account) (common.Address, error) {
-	auth, err := backend.NewTransactor(ctx, big.NewInt(0), deployGasLimit, deployer)
-	if err != nil {
-		return common.Address{}, errors.WithMessage(err, "could not create transactor")
-	}
-	addr, tx, _, err := adjudicator.DeployAdjudicator(auth, backend)
-	if err != nil {
-		return common.Address{}, errors.WithMessage(err, "could not create transaction")
-	}
-	if err = confirmDeployment(ctx, backend, tx); err != nil {
-		return common.Address{}, errors.WithMessage(err, "deploying adjudicator")
-	}
-	log.Infof("Successfully deployed Adjudicator at %v.", addr.Hex())
-	return addr, nil
+	return deployContract(ctx, backend, deployer, "Adjudicator",
+		func(auth *bind.TransactOpts, cb ContractBackend) (common.Address, *types.Transaction, error) {
+			addr, tx, _, err := adjudicator.DeployAdjudicator(auth, backend)
+			return addr, tx, err
+		})
 }
 
-func confirmDeployment(ctx context.Context, backend ContractBackend, tx *types.Transaction) error {
-	_, err := bind.WaitDeployed(ctx, backend, tx)
-	return errors.Wrap(err, "could not execute transaction")
+func deployContract(ctx context.Context, cb ContractBackend, deployer accounts.Account, name string, f func(*bind.TransactOpts, ContractBackend) (common.Address, *types.Transaction, error)) (common.Address, error) {
+	auth, err := cb.NewTransactor(ctx, big.NewInt(0), deployGasLimit, deployer)
+	if err != nil {
+		return common.Address{}, errors.WithMessage(err, "creating transactor")
+	}
+	addr, tx, err := f(auth, cb)
+	if err != nil {
+		return common.Address{}, errors.WithMessage(err, "creating transaction")
+	}
+	if _, err := bind.WaitDeployed(ctx, cb, tx); err != nil {
+		return common.Address{}, errors.Wrapf(err, "deploying %s", name)
+	}
+	log.Infof("Deployed %s at %v.", name, addr.Hex())
+	return addr, nil
 }

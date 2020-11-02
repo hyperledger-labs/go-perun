@@ -97,7 +97,7 @@ func (f *Funder) Fund(ctx context.Context, request channel.FundingReq) error {
 	for a, asset := range request.State.Assets {
 		for i, tx := range txs[a] {
 			acc := f.accounts[*asset.(*Asset)]
-			if err := f.confirmTransaction(ctx, tx, acc); err != nil {
+			if err := f.ConfirmTransaction(ctx, tx, acc); err != nil {
 				return errors.WithMessagef(err, "sending %dth funding TX for asset %d", i, a)
 			}
 			f.log.Debugf("Mined TX: %v", tx.Hash().Hex())
@@ -335,4 +335,16 @@ func FundingIDs(channelID channel.ID, participants ...perunwallet.Address) [][32
 		ids[idx] = crypto.Keccak256Hash(bytes)
 	}
 	return ids
+}
+
+// NumTX returns how many Transactions are needed for the funding request.
+func (f *Funder) NumTX(req channel.FundingReq) (sum uint32, err error) {
+	for _, a := range req.State.Assets {
+		depositor, ok := f.depositors[*a.(*Asset)]
+		if !ok {
+			return 0, errors.Errorf("could not find Depositor for asset #%d", a)
+		}
+		sum += depositor.NumTX()
+	}
+	return
 }

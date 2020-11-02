@@ -28,27 +28,29 @@ import (
 // It has no state and is therefore completely reusable.
 type ETHDepositor struct{}
 
-// Ensure that `ETHDepositor` implements interface `Depositor`.
-var _ Depositor = (*ETHDepositor)(nil)
-
 // ETHDepositorGasLimit is the limit of Gas that an `ETHDepositor` will spend
 // when depositing funds. It is set to 50000.
 // A `Deposit` call uses ~47kGas on average.
 const ETHDepositorGasLimit = 50000
 
 // Deposit returns the transactions for despositing Ethereum or an error otherwise.
-func (d *ETHDepositor) Deposit(ctx context.Context, req DepositReq) ([]*types.Transaction, error) {
+func (d *ETHDepositor) Deposit(ctx context.Context, req DepositReq) (types.Transactions, error) {
 	// Bind an `AssetHolderETH` instance. Using `AssetHolder` is also possible
 	// since we only use the interface functions here.
 	contract, err := assets.NewAssetHolderETH(common.Address(req.Asset), req.CB)
 	if err != nil {
-		return nil, errors.WithMessagef(err, "binding AssetHolderETH contract at: %v", req.Asset)
+		return nil, errors.WithMessagef(err, "binding AssetHolderETH contract at: %x", req.Asset)
 	}
 	opts, err := req.CB.NewTransactor(ctx, req.Balance, ETHDepositorGasLimit, req.Account)
 	if err != nil {
-		return nil, errors.WithMessagef(err, "creating transactor for asset: %v", req.Asset)
+		return nil, errors.WithMessagef(err, "creating transactor for asset: %x", req.Asset)
 	}
 
 	tx, err := contract.Deposit(opts, req.FundingID, req.Balance)
 	return []*types.Transaction{tx}, errors.WithMessage(err, "AssetHolderETH depositing")
+}
+
+// NumTX returns 1 since it only does Deposit.
+func (*ETHDepositor) NumTX() uint32 {
+	return 1
 }

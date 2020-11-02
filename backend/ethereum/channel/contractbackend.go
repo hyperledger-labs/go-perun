@@ -133,7 +133,8 @@ func (c *ContractBackend) NewTransactor(ctx context.Context, valueWei *big.Int, 
 	return auth, nil
 }
 
-func (c *ContractBackend) confirmTransaction(ctx context.Context, tx *types.Transaction, acc accounts.Account) error {
+// ConfirmTransaction returns whether a transaction was mined successfully or not.
+func (c *ContractBackend) ConfirmTransaction(ctx context.Context, tx *types.Transaction, acc accounts.Account) error {
 	receipt, err := bind.WaitMined(ctx, c, tx)
 	if err != nil {
 		return errors.Wrap(err, "sending transaction")
@@ -141,7 +142,13 @@ func (c *ContractBackend) confirmTransaction(ctx context.Context, tx *types.Tran
 	if receipt.Status == types.ReceiptStatusFailed {
 		reason, err := errorReason(ctx, c, tx, receipt.BlockNumber, acc)
 		if err != nil {
-			log.Warn("TX failed; error determining reason: ", err)
+			log.Error("TX failed; error determining reason: ", err)
+			// There is no way in ethereum to really decide this, but since we
+			// do it in the error case only, it should be fine.
+			// The limit of 1000 was determined by trial-and-error.
+			if receipt.GasUsed+1000 > tx.Gas() {
+				log.WithFields(log.Fields{"Used": receipt.GasUsed, "Limit": tx.Gas()}).Warn("TX could be out of gas")
+			}
 		} else {
 			log.Warn("TX failed with reason: ", reason)
 		}
