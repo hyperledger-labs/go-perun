@@ -466,7 +466,7 @@ func (c *Client) mpcppParts(
 func (c *Client) fundChannel(ctx context.Context, ch *Channel, prop ChannelProposal) error {
 	switch prop.Type() {
 	case wire.LedgerChannelProposal:
-		err := c.fundLedgerChannel(ctx, ch)
+		err := c.fundLedgerChannel(ctx, ch, prop.Base().FundingAgreement)
 		return errors.WithMessage(err, "funding ledger channel")
 	case wire.SubChannelProposal:
 		err := c.fundSubchannel(ctx, prop.(*SubChannelProposal), ch)
@@ -488,13 +488,14 @@ func (c *Client) completeFunding(ctx context.Context, ch *Channel) error {
 	return nil
 }
 
-func (c *Client) fundLedgerChannel(ctx context.Context, ch *Channel) (err error) {
+func (c *Client) fundLedgerChannel(ctx context.Context, ch *Channel, agreement channel.Balances) (err error) {
 	if err = c.funder.Fund(ctx,
-		channel.FundingReq{
-			Params: ch.Params(),
-			State:  ch.machine.State(), // initial state
-			Idx:    ch.machine.Idx(),
-		}); channel.IsFundingTimeoutError(err) {
+		*channel.NewFundingReq(
+			ch.Params(),
+			ch.machine.State(), // initial state
+			ch.machine.Idx(),
+			agreement,
+		)); channel.IsFundingTimeoutError(err) {
 		ch.Log().Warnf("Peers timed out funding channel(%v); settling...", err)
 		serr := ch.Settle(ctx)
 		return errors.WithMessagef(err,

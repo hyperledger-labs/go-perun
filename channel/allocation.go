@@ -22,6 +22,7 @@ import (
 	perunio "perun.network/go-perun/pkg/io"
 	perunbig "perun.network/go-perun/pkg/math/big"
 
+	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/pkg/errors"
 )
 
@@ -48,7 +49,7 @@ const MaxNumSubAllocations = 1024
 
 // MaxBalance is the maximum amount of funds per asset that a user can possess.
 // It is set to 2 ^ 256 - 1.
-var MaxBalance = new(big.Int).Sub(new(big.Int).Lsh(big.NewInt(1), 256), big.NewInt(1))
+var MaxBalance = abi.MaxUint256
 
 // Allocation and associated types.
 type (
@@ -96,6 +97,7 @@ type (
 )
 
 var _ perunio.Serializer = (*Allocation)(nil)
+var _ perunio.Serializer = (*Balances)(nil)
 var _ perunbig.Summer = (*Allocation)(nil)
 var _ perunbig.Summer = (*Balances)(nil)
 
@@ -277,7 +279,7 @@ func (a *Allocation) Decode(r io.Reader) error {
 		a.Assets[i] = asset
 	}
 	// decode participant allocations
-	if err := perunio.Decode(r, a.Balances.Decoder(numAssets, numParts)); err != nil {
+	if err := perunio.Decode(r, &a.Balances); err != nil {
 		return errors.WithMessage(err, "decoding balances")
 	}
 	// decode locked allocations
@@ -292,29 +294,25 @@ func (a *Allocation) Decode(r io.Reader) error {
 	return a.Valid()
 }
 
-type balancesDec struct {
-	bals                *Balances
-	numAssets, numParts Index
-}
-
-// Decoder returns an `io.Decoder` that can be used with our en/decode pattern.
-func (b *Balances) Decoder(numAssets, numParts Index) perunio.Decoder {
-	return &balancesDec{
-		bals:      b,
-		numAssets: numAssets,
-		numParts:  numParts,
+// Decode decodes a Balances from an io.Reader.
+func (b *Balances) Decode(r io.Reader) error {
+	var numAssets, numParts Index
+	if err := perunio.Decode(r, &numAssets, &numParts); err != nil {
+		return errors.WithMessage(err, "decoding dimensions")
 	}
-}
+	if numAssets > MaxNumAssets {
+		return errors.Errorf("expected maximum number of assets %d, got %d", MaxNumAssets, numAssets)
+	}
+	if numParts > MaxNumParts {
+		return errors.Errorf("expected maximum number of parts %d, got %d", MaxNumParts, numParts)
+	}
 
-// Decodes the `bals` field of the receiver with the set `numAssets`
-// and `numarts`.
-func (b *balancesDec) Decode(r io.Reader) error {
-	*b.bals = make(Balances, b.numAssets)
-	for i := range *b.bals {
-		(*b.bals)[i] = make([]Bal, b.numParts)
-		for j := range (*b.bals)[i] {
-			(*b.bals)[i][j] = new(big.Int)
-			if err := perunio.Decode(r, &(*b.bals)[i][j]); err != nil {
+	*b = make(Balances, numAssets)
+	for i := range *b {
+		(*b)[i] = make([]Bal, numParts)
+		for j := range (*b)[i] {
+			(*b)[i][j] = new(big.Int)
+			if err := perunio.Decode(r, &(*b)[i][j]); err != nil {
 				return errors.WithMessagef(
 					err, "decoding balance of asset %d of participant %d", i, j)
 			}
@@ -325,6 +323,22 @@ func (b *balancesDec) Decode(r io.Reader) error {
 
 // Encode encodes these balances into an io.Writer.
 func (b Balances) Encode(w io.Writer) error {
+	numAssets := len(b)
+	numParts := 0
+
+	if numAssets > 0 {
+		numParts = len(b[0])
+	}
+	if numAssets > MaxNumAssets {
+		return errors.Errorf("expected maximum number of assets %d, got %d", MaxNumAssets, numAssets)
+	}
+	if numParts > MaxNumParts {
+		return errors.Errorf("expected maximum number of parts %d, got %d", MaxNumParts, numParts)
+	}
+
+	if err := perunio.Encode(w, Index(numAssets), Index(numParts)); err != nil {
+		return errors.WithMessage(err, "encoding dimensions")
+	}
 	for i := range b {
 		for j := range b[i] {
 			if err := perunio.Encode(w, b[i][j]); err != nil {

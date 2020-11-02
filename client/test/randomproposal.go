@@ -33,17 +33,21 @@ func NewRandomLedgerChannelProposal(rng *rand.Rand, opts ...client.ProposalOpts)
 // NewRandomLedgerChannelProposalBy creates a random channel proposal with the
 // supplied options and proposer. Number of participants is fixed to 2.
 func NewRandomLedgerChannelProposalBy(rng *rand.Rand, proposer wallet.Address, opts ...client.ProposalOpts) *client.LedgerChannelProposal {
-	return client.NewLedgerChannelProposal(
+	prop, err := client.NewLedgerChannelProposal(
 		rng.Uint64(),
 		proposer,
 		channeltest.NewRandomAllocation(rng, channeltest.WithNumParts(2)),
 		wiretest.NewRandomAddresses(rng, 2),
 		opts...)
+	if err != nil {
+		panic("Error generating random channel proposal: " + err.Error())
+	}
+	return prop
 }
 
 // NewRandomSubChannelProposal creates a random subchannel proposal with the
 // supplied options. Number of participants is fixed to 2.
-func NewRandomSubChannelProposal(rng *rand.Rand, opts ...client.ProposalOpts) *client.SubChannelProposal {
+func NewRandomSubChannelProposal(rng *rand.Rand, opts ...client.ProposalOpts) (*client.SubChannelProposal, error) {
 	return client.NewSubChannelProposal(
 		channeltest.NewRandomChannelID(rng),
 		rng.Uint64(),

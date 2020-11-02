@@ -27,7 +27,7 @@ import (
 // NoData is set, and a random nonce share is generated.
 type ProposalOpts map[string]interface{}
 
-var optNames = struct{ nonce, app, appData string }{nonce: "nonce", app: "app", appData: "appData"}
+var optNames = struct{ nonce, app, appData, fundingAgreement string }{nonce: "nonce", app: "app", appData: "appData", fundingAgreement: "fundingAgreement"}
 
 // App returns the option's configured app.
 func (o ProposalOpts) App() channel.App {
@@ -49,6 +49,21 @@ func (o ProposalOpts) AppData() channel.Data {
 func (o ProposalOpts) SetsApp() bool {
 	_, ok := o[optNames.app]
 	return ok
+}
+
+func (o ProposalOpts) isFundingAgreement() bool {
+	_, ok := o[optNames.fundingAgreement]
+	return ok
+}
+
+// fundingAgreement returns the funding-agreement that was set by
+// `WithFundingAgreement` and panics otherwise.
+func (o ProposalOpts) fundingAgreement() channel.Balances {
+	a, ok := o[optNames.fundingAgreement]
+	if !ok {
+		panic("Option FundingAgreement not set")
+	}
+	return a.(channel.Balances)
 }
 
 // nonce returns the option's configured nonce share, or a random nonce share.
@@ -79,6 +94,11 @@ func union(opts ...ProposalOpts) ProposalOpts {
 		}
 	}
 	return ret
+}
+
+// WithFundingAgreement configures a fixed funding agreement.
+func WithFundingAgreement(alloc channel.Balances) ProposalOpts {
+	return ProposalOpts{optNames.fundingAgreement: alloc}
 }
 
 // WithNonce configures a fixed nonce share.

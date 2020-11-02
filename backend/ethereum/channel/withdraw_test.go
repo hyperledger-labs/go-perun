@@ -16,7 +16,6 @@ package channel_test
 
 import (
 	"context"
-	"math/big"
 	"sync"
 	"testing"
 	"time"
@@ -59,12 +58,8 @@ func withdrawMultipleConcurrentFinal(t *testing.T, numParts int, parallel bool) 
 		i, funder := i, funder
 		go ct.StageN("funding loop", numParts, func(rt pkgtest.ConcT) {
 			time.Sleep(sleepTime * time.Millisecond)
-			req := channel.FundingReq{
-				Params: params,
-				State:  state,
-				Idx:    channel.Index(i),
-			}
-			require.NoError(rt, funder.Fund(fundingCtx, req), "funding should succeed")
+			req := channel.NewFundingReq(params, state, channel.Index(i), state.Balances)
+			require.NoError(rt, funder.Fund(fundingCtx, *req), "funding should succeed")
 		})
 	}
 	ct.Wait("funding loop")
@@ -113,12 +108,9 @@ func withdrawMultipleConcurrentFinal(t *testing.T, numParts int, parallel bool) 
 }
 
 func TestWithdrawZeroBalance(t *testing.T) {
-	t.Run("1 Participant", func(t *testing.T) {
-		testWithdrawZeroBalance(t, 1)
-	})
-	t.Run("2 Participant", func(t *testing.T) {
-		testWithdrawZeroBalance(t, 2)
-	})
+	t.Run("1 Participant", func(t *testing.T) { testWithdrawZeroBalance(t, 1) })
+	t.Run("2 Participant", func(t *testing.T) { testWithdrawZeroBalance(t, 2) })
+	t.Run("5 Participant", func(t *testing.T) { testWithdrawZeroBalance(t, 5) })
 }
 
 // shouldFunders decides who should fund. 1 indicates funding, 0 indicates skipping.
@@ -127,12 +119,14 @@ func testWithdrawZeroBalance(t *testing.T, n int) {
 	s := test.NewSetup(t, rng, n)
 	// create valid state and params
 	params, state := channeltest.NewRandomParamsAndState(rng, channeltest.WithParts(s.Parts...), channeltest.WithAssets((*ethchannel.Asset)(&s.Asset)), channeltest.WithIsFinal(true))
+	agreement := state.Balances.Clone()
 
 	for i := range params.Parts {
 		if i%2 == 0 {
-			state.Allocation.Balances[0][i].Set(big.NewInt(0))
+			state.Balances[0][i].SetInt64(0)
+			agreement[0][i].SetInt64(0)
 		} // is != 0 otherwise
-		t.Logf("Part: %d ShouldFund: %t Bal: %v", i, i%2 == 1, state.Allocation.Balances[0][i])
+		t.Logf("Part: %d ShouldFund: %t Bal: %v", i, i%2 == 1, state.Balances[0][i])
 	}
 
 	// fund
@@ -140,12 +134,8 @@ func testWithdrawZeroBalance(t *testing.T, n int) {
 	for i, funder := range s.Funders {
 		i, funder := i, funder
 		go ct.StageN("funding loop", n, func(rt pkgtest.ConcT) {
-			req := channel.FundingReq{
-				Params: params,
-				State:  state,
-				Idx:    channel.Index(i),
-			}
-			require.NoError(rt, funder.Fund(context.Background(), req), "funding should succeed")
+			req := channel.NewFundingReq(params, state, channel.Index(i), agreement)
+			require.NoError(rt, funder.Fund(context.Background(), *req), "funding should succeed")
 		})
 	}
 	ct.Wait("funding loop")
@@ -174,7 +164,7 @@ func testWithdrawZeroBalance(t *testing.T, n int) {
 		if i%2 == 0 {
 			assert.Zero(t, diff, "Nonce should stay the same")
 		} else {
-			assert.Equal(t, int(1), diff, "Nonce should increase by 1")
+			assert.Equal(t, 1, diff, "Nonce should increase by 1")
 		}
 	}
 	assertHoldingsZero(context.Background(), t, s.CB, params, state.Assets)
@@ -190,12 +180,8 @@ func TestWithdraw(t *testing.T) {
 	fundingCtx, funCancel := context.WithTimeout(context.Background(), defaultTxTimeout)
 	defer funCancel()
 	// fund the contract
-	fundingReq := channel.FundingReq{
-		Params: params,
-		State:  state,
-		Idx:    channel.Index(0),
-	}
-	require.NoError(t, s.Funders[0].Fund(fundingCtx, fundingReq), "funding should succeed")
+	fundingReq := channel.NewFundingReq(params, state, channel.Index(0), state.Balances)
+	require.NoError(t, s.Funders[0].Fund(fundingCtx, *fundingReq), "funding should succeed")
 	req := channel.AdjudicatorReq{
 		Params: params,
 		Acc:    s.Accs[0],
@@ -249,12 +235,8 @@ func TestWithdrawNonFinal(t *testing.T) {
 
 	ctx, cancel := context.WithTimeout(context.Background(), defaultTxTimeout)
 	defer cancel()
-	fundingReq := channel.FundingReq{
-		Params: params,
-		State:  state,
-		Idx:    channel.Index(0),
-	}
-	require.NoError(t, s.Funders[0].Fund(ctx, fundingReq), "funding should succeed")
+	fundingReq := channel.NewFundingReq(params, state, channel.Index(0), state.Balances)
+	require.NoError(t, s.Funders[0].Fund(ctx, *fundingReq), "funding should succeed")
 
 	req := channel.AdjudicatorReq{
 		Params: params,

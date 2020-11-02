@@ -15,7 +15,6 @@
 package channel_test
 
 import (
-	"io"
 	"math/big"
 	"math/rand"
 	"testing"
@@ -229,30 +228,12 @@ func testBalancesOperation(t *testing.T, op func(channel.Balances, channel.Balan
 	})
 }
 
-type balancesDec struct {
-	b                   channel.Balances
-	numAssets, numParts channel.Index
-}
-
-func (b *balancesDec) Decode(r io.Reader) error {
-	if err := perunio.Decode(r, &b.numAssets, &b.numParts); err != nil {
-		return err
-	}
-	// Need two calls, since otherwise numAsset and numParts are already bound.
-	return b.b.Decoder(b.numAssets, b.numParts).Decode(r)
-}
-
-func (b balancesDec) Encode(w io.Writer) error {
-	return perunio.Encode(w, b.numAssets, b.numParts, b.b)
-}
-
 func TestBalancesSerialization(t *testing.T) {
 	rng := pkgtest.Prng(t)
 	for n := 0; n < 10; n++ {
 		alloc := test.NewRandomAllocation(rng)
 		if alloc.Valid() == nil {
-			dec := &balancesDec{alloc.Balances, channel.Index(len(alloc.Assets)), channel.Index(alloc.NumParts())}
-			iotest.GenericSerializerTest(t, dec)
+			iotest.GenericSerializerTest(t, alloc)
 		}
 	}
 }

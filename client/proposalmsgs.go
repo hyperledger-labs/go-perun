@@ -25,6 +25,7 @@ import (
 	"perun.network/go-perun/channel"
 	"perun.network/go-perun/log"
 	perunio "perun.network/go-perun/pkg/io"
+	perunbig "perun.network/go-perun/pkg/math/big"
 	"perun.network/go-perun/wallet"
 	"perun.network/go-perun/wire"
 )
@@ -98,6 +99,7 @@ type (
 		App               channel.App         // App definition, or nil.
 		InitData          channel.Data        // Initial App data.
 		InitBals          *channel.Allocation // Initial balances.
+		FundingAgreement  channel.Balances    // Possibly different funding agreement from initial state's balances.
 	}
 
 	// LedgerChannelProposal is a channel proposal for ledger channels.
@@ -138,8 +140,18 @@ func makeBaseChannelProposal(
 	challengeDuration uint64,
 	initBals *channel.Allocation,
 	opts ...ProposalOpts,
-) BaseChannelProposal {
+) (BaseChannelProposal, error) {
 	opt := union(opts...)
+
+	fundingAgreement := initBals.Balances
+	if opt.isFundingAgreement() {
+		fundingAgreement = opt.fundingAgreement()
+		if equal, err := perunbig.EqualSum(initBals.Balances, fundingAgreement); err != nil {
+			return BaseChannelProposal{}, errors.WithMessage(err, "comparing FundingAgreement and initial balances sum")
+		} else if !equal {
+			return BaseChannelProposal{}, errors.New("FundingAgreement and initial balances differ")
+		}
+	}
 
 	return BaseChannelProposal{
 		ChallengeDuration: challengeDuration,
@@ -147,7 +159,8 @@ func makeBaseChannelProposal(
 		App:               opt.App(),
 		InitData:          opt.AppData(),
 		InitBals:          initBals,
-	}
+		FundingAgreement:  fundingAgreement,
+	}, nil
 }
 
 // Base returns the channel proposal's common values.
@@ -162,15 +175,9 @@ func (p BaseChannelProposal) NumPeers() int {
 
 // Encode encodes the BaseChannelProposal into an io.Writer.
 func (p BaseChannelProposal) Encode(w io.Writer) error {
-	if w == nil {
-		return errors.New("writer must not be nil")
-	}
-
-	if err := perunio.Encode(w, p.ChallengeDuration, p.NonceShare); err != nil {
-		return err
-	}
-
-	return perunio.Encode(w, OptAppAndDataEnc{p.App, p.InitData}, p.InitBals)
+	return perunio.Encode(w,
+		p.ChallengeDuration, p.NonceShare,
+		OptAppAndDataEnc{p.App, p.InitData}, p.InitBals, p.FundingAgreement)
 }
 
 // OptAppAndDataEnc makes an optional pair of App definition and Data encodable.
@@ -201,19 +208,12 @@ func (o OptAppAndDataDec) Decode(r io.Reader) (err error) {
 
 // Decode decodes a BaseChannelProposal from an io.Reader.
 func (p *BaseChannelProposal) Decode(r io.Reader) (err error) {
-	if r == nil {
-		return errors.New("reader must not be nil")
-	}
-
-	if err := perunio.Decode(r, &p.ChallengeDuration, &p.NonceShare); err != nil {
-		return err
-	}
-
 	if p.InitBals == nil {
 		p.InitBals = new(channel.Allocation)
 	}
 
-	return perunio.Decode(r, OptAppAndDataDec{&p.App, &p.InitData}, p.InitBals)
+	return perunio.Decode(r, &p.ChallengeDuration, &p.NonceShare,
+		OptAppAndDataDec{&p.App, &p.InitData}, p.InitBals, &p.FundingAgreement)
 }
 
 // Valid checks that the channel proposal is valid:
@@ -267,14 +267,16 @@ func NewLedgerChannelProposal(
 	initBals *channel.Allocation,
 	peers []wire.Address,
 	opts ...ProposalOpts,
-) *LedgerChannelProposal {
-	return &LedgerChannelProposal{
-		BaseChannelProposal: makeBaseChannelProposal(
-			challengeDuration,
-			initBals,
-			opts...),
+) (prop *LedgerChannelProposal, err error) {
+	prop = &LedgerChannelProposal{
 		Participant: participant,
-		Peers:       peers}
+		Peers:       peers,
+	}
+	prop.BaseChannelProposal, err = makeBaseChannelProposal(
+		challengeDuration,
+		initBals,
+		opts...)
+	return
 }
 
 // Type returns wire.LedgerChannelProposal.
@@ -346,14 +348,16 @@ func NewSubChannelProposal(
 	challengeDuration uint64,
 	initBals *channel.Allocation,
 	opts ...ProposalOpts,
-) *SubChannelProposal {
-	return &SubChannelProposal{
-		BaseChannelProposal: makeBaseChannelProposal(
-			challengeDuration,
-			initBals,
-			opts...),
-		Parent: parent,
+) (prop *SubChannelProposal, err error) {
+	if union(opts...).isFundingAgreement() {
+		return nil, errors.New("Sub-Channels currently do not support funding agreements")
 	}
+	prop = &SubChannelProposal{Parent: parent}
+	prop.BaseChannelProposal, err = makeBaseChannelProposal(
+		challengeDuration,
+		initBals,
+		opts...)
+	return
 }
 
 // ProposalID returns the identifier of this channel proposal request.

@@ -17,12 +17,12 @@ package channel
 import (
 	"context"
 	"math/big"
-	"sync"
 
 	"github.com/ethereum/go-ethereum/accounts"
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/pkg/errors"
 
@@ -31,6 +31,7 @@ import (
 	"perun.network/go-perun/channel"
 	"perun.network/go-perun/log"
 	pcontext "perun.network/go-perun/pkg/context"
+	perror "perun.network/go-perun/pkg/errors"
 	perunwallet "perun.network/go-perun/wallet"
 )
 
@@ -89,120 +90,121 @@ func (f *Funder) Fund(ctx context.Context, request channel.FundingReq) error {
 		cancel() // cancel funding context on funding timeout
 	}()
 
-	fundingIDs := FundingIDs(channelID, request.Params.Parts...)
+	// Fund each asset, saving the TX in `txs` and the errors in `errg`.
+	txs, errg := f.fundAssets(ctx, channelID, request)
 
-	errChan := make(chan error, len(request.State.Assets))
-	errs := make([]*channel.AssetFundingError, len(request.State.Assets))
-	var wg sync.WaitGroup
-	wg.Add(len(request.State.Assets))
-	for index, perunAsset := range request.State.Assets {
-		go func(index channel.Index, perunAsset channel.Asset) {
-			defer wg.Done()
-			asset := *perunAsset.(*Asset)
-			if err := f.fundAsset(ctx, request, index, asset, fundingIDs, errs); err != nil {
-				f.log.WithField("asset", asset).WithError(err).Error("Could not fund asset")
-				errChan <- errors.WithMessage(err, "fund asset")
+	// Wait for the TXs to be mined.
+	for a, asset := range request.State.Assets {
+		for i, tx := range txs[a] {
+			acc := f.accounts[*asset.(*Asset)]
+			if err := f.confirmTransaction(ctx, tx, acc); err != nil {
+				return errors.WithMessagef(err, "sending %dth funding TX for asset %d", i, a)
 			}
-		}(channel.Index(index), perunAsset)
-	}
-	wg.Wait()
-	close(errChan)
-	if err := <-errChan; err != nil {
-		return err
-	}
-
-	prunedErrs := errs[:0]
-	for _, e := range errs {
-		if e != nil {
-			prunedErrs = append(prunedErrs, e)
+			f.log.Debugf("Mined TX: %v", tx.Hash().Hex())
 		}
 	}
-	return channel.NewFundingTimeoutError(prunedErrs)
+
+	// Wait for the funding events or timeout.
+	var fundingErrs []*channel.AssetFundingError
+	var nonFundingErrg perror.Gatherer
+	for _, err := range perror.Causes(errg.Wait()) {
+		if channel.IsAssetFundingError(err) && err != nil {
+			fundingErrs = append(fundingErrs, err.(*channel.AssetFundingError))
+		} else if err != nil {
+			nonFundingErrg.Add(err)
+		}
+	}
+	// Prioritize funding errors over other errors.
+	if len(fundingErrs) != 0 {
+		return channel.NewFundingTimeoutError(fundingErrs)
+	}
+	return nonFundingErrg.Err()
 }
 
-func (f *Funder) fundAsset(ctx context.Context, request channel.FundingReq, assetIndex channel.Index, asset Asset, fundingIDs [][32]byte, errs []*channel.AssetFundingError) error {
-	contract, err := f.bindContract(asset, assetIndex)
-	if err != nil {
-		return errors.Wrap(err, "connecting to contracts")
+// fundAssets funds each asset of the funding agreement in the `req`.
+// Sends the transactions and returns them. Wait on the returned gatherer
+// to ensure that all `funding` events were received.
+func (f *Funder) fundAssets(ctx context.Context, channelID channel.ID, req channel.FundingReq) ([]types.Transactions, *perror.Gatherer) {
+	txs := make([]types.Transactions, len(req.State.Assets))
+	errg := perror.NewGatherer()
+	fundingIDs := FundingIDs(channelID, req.Params.Parts...)
+
+	for index, asset := range req.State.Assets {
+		// Bind contract.
+		contract := f.bindContract(*asset.(*Asset), channel.Index(index))
+		// Wait for the funding event.
+		errg.Go(func() error {
+			return f.waitForFundingConfirmation(ctx, req, contract, fundingIDs)
+		})
+
+		// Send the funding TX.
+		tx, err := f.sendFundingTx(ctx, req, contract, fundingIDs[req.Idx])
+		if err != nil {
+			f.log.WithField("asset", asset).WithError(err).Error("Could not fund asset")
+			errg.Add(errors.WithMessage(err, "funding asset"))
+			continue
+		}
+		txs[index] = tx
 	}
+	return txs, errg
+}
 
-	// start watching for deposit events, also including past ones
-	confirmation := make(chan error)
-	go func() {
-		confirmation <- f.waitForFundingConfirmation(ctx, request, contract, fundingIDs)
-	}()
-
-	bal := request.State.Balances[assetIndex][request.Idx]
-	if bal.Sign() <= 0 {
+// sendFundingTx sends and returns the TXs that are needed to fulfill the
+// funding request. It is idempotent.
+func (f *Funder) sendFundingTx(ctx context.Context, request channel.FundingReq, contract assetHolder, fundingID [32]byte) (txs []*types.Transaction, fatal error) {
+	bal := request.Agreement[contract.assetIndex][request.Idx]
+	// nolint: gocritic
+	if bal == nil || bal.Sign() <= 0 {
 		f.log.WithFields(log.Fields{"channel": request.Params.ID(), "idx": request.Idx}).Debug("Skipped zero funding.")
-	} else if alreadyFunded, err := checkFunded(ctx, request, contract, fundingIDs[request.Idx]); err != nil {
-		return errors.WithMessage(err, "checking funded")
+	} else if alreadyFunded, err := checkFunded(ctx, bal, contract, fundingID); err != nil {
+		return nil, errors.WithMessage(err, "checking funded")
 	} else if alreadyFunded {
 		f.log.WithFields(log.Fields{"channel": request.Params.ID(), "idx": request.Idx}).Debug("Skipped second funding.")
-	} else if err := f.deposit(ctx, bal, asset, fundingIDs[request.Idx]); err != nil {
-		return errors.WithMessage(err, "depositing funds")
+	} else {
+		return f.deposit(ctx, bal, wallet.Address(*contract.Address), fundingID)
 	}
-
-	err = <-confirmation
-	if channel.IsAssetFundingError(err) {
-		errs[assetIndex] = err.(*channel.AssetFundingError)
-	} else if err != nil {
-		return err
-	}
-	return nil
+	return nil, nil
 }
 
 // deposit deposits funds for one funding-ID by calling the associated Depositor.
 // Returns an error if no matching Depositor or Account could be found.
-func (f *Funder) deposit(ctx context.Context, bal *big.Int, asset Asset, fundingID [32]byte) error {
+func (f *Funder) deposit(ctx context.Context, bal *big.Int, asset Asset, fundingID [32]byte) (types.Transactions, error) {
 	depositor, ok := f.depositors[asset]
 	if !ok {
-		return errors.Errorf("could not find Depositor for asset #%d", asset)
+		return nil, errors.Errorf("could not find Depositor for asset #%d", asset)
 	}
 	acc, ok := f.accounts[asset]
 	if !ok {
-		return errors.Errorf("could not find account for asset #%d", asset)
+		return nil, errors.Errorf("could not find account for asset #%d", asset)
 	}
 
-	dReq := NewDepositReq(bal, f.ContractBackend, asset, acc, fundingID)
-	txs, err := depositor.Deposit(ctx, *dReq)
-	if err != nil {
-		return errors.WithMessage(err, "Depositor.deposit")
-	}
-
-	for i, tx := range txs {
-		if err := f.confirmTransaction(ctx, tx, acc); err != nil {
-			return errors.WithMessagef(err, "sending %dth Depositor-tx", i)
-		}
-		f.log.Debugf("Mined TX: %v", tx.Hash().Hex())
-	}
-	return nil
+	return depositor.Deposit(ctx, *NewDepositReq(bal, f.ContractBackend, asset, acc, fundingID))
 }
 
-// checkFunded returns whether the funding for `request` was already complete.
-func checkFunded(ctx context.Context, request channel.FundingReq, asset assetHolder, partID [32]byte) (bool, error) {
-	iter, err := filterFunds(ctx, asset, partID)
+// checkFunded returns whether `fundingID` holds at least `amount` funds.
+func checkFunded(ctx context.Context, amount *big.Int, asset assetHolder, fundingID [32]byte) (bool, error) {
+	iter, err := filterFunds(ctx, asset, fundingID)
 	if err != nil {
 		return false, errors.WithMessagef(err, "filtering old Funding events for asset %d", asset.assetIndex)
 	}
 	// nolint:errcheck
 	defer iter.Close()
 
-	amount := new(big.Int).Set(request.State.Balances[asset.assetIndex][request.Idx])
+	left := new(big.Int).Set(amount)
 	for iter.Next() {
-		amount.Sub(amount, iter.Event.Amount)
+		left.Sub(left, iter.Event.Amount)
 	}
-	return amount.Sign() != 1, iter.Error()
+	return left.Sign() != 1, errors.Wrap(iter.Error(), "iterator")
 }
 
-func (f *Funder) bindContract(asset Asset, assetIndex channel.Index) (assetHolder, error) {
+func (f *Funder) bindContract(asset Asset, assetIndex channel.Index) assetHolder {
 	// Decode and set the asset address.
 	assetAddr := common.Address(asset)
 	ctr, err := assets.NewAssetHolder(assetAddr, f)
 	if err != nil {
-		return assetHolder{}, errors.Wrapf(err, "connecting to assetholder")
+		f.log.Panic("Invalid AssetHolder ABI definition.")
 	}
-	return assetHolder{ctr, &assetAddr, assetIndex}, nil
+	return assetHolder{ctr, &assetAddr, assetIndex}
 }
 
 func filterFunds(ctx context.Context, asset assetHolder, fundingIDs ...[32]byte) (*assets.AssetHolderDepositedIterator, error) {
@@ -220,7 +222,8 @@ func filterFunds(ctx context.Context, asset assetHolder, fundingIDs ...[32]byte)
 }
 
 // waitForFundingConfirmation waits for the confirmation events on the blockchain that
-// both we and all peers successfully funded the channel.
+// both we and all peers successfully funded the channel for the specified asset
+// according to the funding agreement.
 // nolint: funlen
 func (f *Funder) waitForFundingConfirmation(ctx context.Context, request channel.FundingReq, asset assetHolder, fundingIDs [][32]byte) error {
 	deposited := make(chan *assets.AssetHolderDeposited)
@@ -255,37 +258,36 @@ func (f *Funder) waitForFundingConfirmation(ctx context.Context, request channel
 		}
 	}()
 
-	allocation := request.State.Allocation.Clone()
+	// The allocation that all participants agreed on.
+	agreement := request.Agreement.Clone()[asset.assetIndex]
 	// Count how many zero balance funding requests are there
-	N := len(request.Params.Parts) - countZeroBalances(&allocation, asset.assetIndex)
+	N := len(request.Params.Parts) - countZeroBalances(agreement)
 
 	// Wait for all non-zero funding requests
 	for N > 0 {
 		select {
 		case event := <-deposited:
 			log := f.log.WithField("fundingID", event.FundingID)
-			log.Debugf("peer[%d] Received event with amount %v", request.Idx, event.Amount)
 
 			// Calculate the position in the participant array.
 			idx := getPartIdx(event.FundingID, fundingIDs)
 
-			amount := allocation.Balances[asset.assetIndex][idx]
+			amount := agreement[idx]
 			if amount.Sign() == 0 {
 				continue // ignore double events
 			}
-
-			log.Debugf("Deposited event received for asset %d and participant %d", asset.assetIndex, idx)
 
 			amount.Sub(amount, event.Amount)
 			if amount.Sign() != 1 {
 				// participant funded successfully
 				N--
-				allocation.Balances[asset.assetIndex][idx].SetUint64(0)
+				agreement[idx].SetUint64(0)
 			}
+			log.Debugf("peer[%d]: got: %v, remaining for [%d,%d] = %v. N: %d", request.Idx, event.Amount, asset.assetIndex, idx, amount, N)
 
 		case <-ctx.Done():
 			var indices []channel.Index
-			for k, bals := range allocation.Balances[asset.assetIndex] {
+			for k, bals := range agreement {
 				if bals.Sign() == 1 {
 					indices = append(indices, channel.Index(k))
 				}
@@ -310,8 +312,8 @@ func getPartIdx(partID [32]byte, fundingIDs [][32]byte) int {
 	return -1
 }
 
-func countZeroBalances(alloc *channel.Allocation, assetIndex channel.Index) (n int) {
-	for _, part := range alloc.Balances[assetIndex] {
+func countZeroBalances(bals []channel.Bal) (n int) {
+	for _, part := range bals {
 		if part.Sign() == 0 {
 			n++
 		}

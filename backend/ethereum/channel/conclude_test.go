@@ -48,12 +48,8 @@ func testConcludeFinal(t *testing.T, numParts int) {
 	for i, funder := range s.Funders {
 		i, funder := i, funder
 		go ct.StageN("funding loop", numParts, func(rt pkgtest.ConcT) {
-			req := channel.FundingReq{
-				Params: params,
-				State:  state,
-				Idx:    channel.Index(i),
-			}
-			require.NoError(rt, funder.Fund(fundingCtx, req), "funding should succeed")
+			req := channel.NewFundingReq(params, state, channel.Index(i), state.Balances)
+			require.NoError(rt, funder.Fund(fundingCtx, *req), "funding should succeed")
 		})
 	}
 	ct.Wait("funding loop")

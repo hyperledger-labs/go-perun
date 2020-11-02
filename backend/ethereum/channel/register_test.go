@@ -58,12 +58,8 @@ func registerMultipleConcurrent(t *testing.T, numParts int, parallel bool) {
 		i, funder := i, funder
 		go ct.StageN("funding loop", numParts, func(rt pkgtest.ConcT) {
 			time.Sleep(sleepTime * time.Millisecond)
-			req := channel.FundingReq{
-				Params: params,
-				State:  state,
-				Idx:    channel.Index(i),
-			}
-			require.NoError(rt, funder.Fund(fundingCtx, req), "funding should succeed")
+			req := channel.NewFundingReq(params, state, channel.Index(i), state.Balances)
+			require.NoError(rt, funder.Fund(fundingCtx, *req), "funding should succeed")
 		})
 	}
 	ct.Wait("funding loop")
@@ -122,12 +118,8 @@ func TestRegister_FinalState(t *testing.T) {
 	fundingCtx, funCancel := context.WithTimeout(context.Background(), defaultTxTimeout)
 	defer funCancel()
 	// fund the contract
-	reqFund := channel.FundingReq{
-		Params: params,
-		State:  state,
-		Idx:    channel.Index(0),
-	}
-	require.NoError(t, s.Funders[0].Fund(fundingCtx, reqFund), "funding should succeed")
+	reqFund := channel.NewFundingReq(params, state, channel.Index(0), state.Balances)
+	require.NoError(t, s.Funders[0].Fund(fundingCtx, *reqFund), "funding should succeed")
 	// Now test the register function
 	ctx, cancel := context.WithTimeout(context.Background(), defaultTxTimeout)
 	defer cancel()
@@ -155,12 +147,8 @@ func TestRegister_CancelledContext(t *testing.T) {
 	fundingCtx, funCancel := context.WithTimeout(context.Background(), defaultTxTimeout)
 	defer funCancel()
 	// fund the contract
-	reqFund := channel.FundingReq{
-		Params: params,
-		State:  state,
-		Idx:    channel.Index(0),
-	}
-	require.NoError(t, s.Funders[0].Fund(fundingCtx, reqFund), "funding should succeed")
+	reqFund := channel.NewFundingReq(params, state, channel.Index(0), state.Balances)
+	require.NoError(t, s.Funders[0].Fund(fundingCtx, *reqFund), "funding should succeed")
 	// Now test the register function
 	ctx, cancel := context.WithTimeout(context.Background(), defaultTxTimeout)
 	// directly cancel timeout

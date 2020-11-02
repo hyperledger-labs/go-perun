@@ -39,9 +39,10 @@ type (
 
 	// A FundingReq bundles all data needed to fund a channel.
 	FundingReq struct {
-		Params *Params
-		State  *State
-		Idx    Index // our index
+		Params    *Params
+		State     *State
+		Idx       Index    // our index
+		Agreement Balances // FundingAgreement from the channel proposal.
 	}
 
 	// A FundingTimeoutError indicates that some peers failed funding some assets in time.
@@ -55,6 +56,17 @@ type (
 		TimedOutPeers []Index // Indices of the peers who failed to fund in time
 	}
 )
+
+// NewFundingReq returns a new FundingReq. The Agreement and initial balances
+// have to sum to the same total, for each asset.
+func NewFundingReq(params *Params, state *State, idx Index, agreement Balances) *FundingReq {
+	return &FundingReq{
+		Params:    params,
+		State:     state,
+		Idx:       idx,
+		Agreement: agreement,
+	}
+}
 
 // NewFundingTimeoutError creates a new FundingTimeoutError.
 func NewFundingTimeoutError(fundingErrs []*AssetFundingError) error {
