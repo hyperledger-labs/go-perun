@@ -17,7 +17,7 @@ package client_test
 import (
 	"context"
 	"math/rand"
-	"sync"
+	"testing"
 	"time"
 
 	"perun.network/go-perun/channel"
@@ -27,28 +27,40 @@ import (
 	"perun.network/go-perun/wire"
 )
 
-func executeTwoPartyTest(role [2]ctest.Executer, cfg ctest.ExecConfig) {
+const twoPartyTestTimeout = 10 * time.Second
+const roleOperationTimeout = 1 * time.Second
+
+func executeTwoPartyTest(t *testing.T, role [2]ctest.Executer, cfg ctest.ExecConfig) {
 	log.Info("Starting two-party test")
 
 	// enable stages synchronization
 	stages := role[0].EnableStages()
 	role[1].SetStages(stages)
 
-	var wg sync.WaitGroup
-	wg.Add(2)
-	for i := 0; i < 2; i++ {
+	numClients := len(role)
+	done := make(chan struct{}, numClients)
+
+	// start clients
+	for i := 0; i < numClients; i++ {
 		go func(i int) {
-			defer wg.Done()
 			log.Infof("Executing role %d", i)
 			role[i].Execute(cfg)
+			done <- struct{}{} // signal client done
 		}(i)
 	}
 
-	wg.Wait()
+	// wait for clients to finish or timeout
+	timeout := time.After(twoPartyTestTimeout)
+	for clientsRunning := numClients; clientsRunning > 0; clientsRunning-- {
+		select {
+		case <-done: // wait for client done signal
+		case <-timeout:
+			t.Fatal("twoPartyTest timeout")
+		}
+	}
+
 	log.Info("Two-party test done")
 }
-
-var defaultTimeout = 1 * time.Second
 
 func NewSetups(rng *rand.Rand, names []string) []ctest.RoleSetup {
 	var (
@@ -66,7 +78,7 @@ func NewSetups(rng *rand.Rand, names []string) []ctest.RoleSetup {
 			Funder:      &logFunder{log.WithField("role", names[i])},
 			Adjudicator: &logAdjudicator{log.WithField("role", names[i])},
 			Wallet:      wtest.NewWallet(),
-			Timeout:     defaultTimeout,
+			Timeout:     roleOperationTimeout,
 		}
 	}
 

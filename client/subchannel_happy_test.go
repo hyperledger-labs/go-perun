@@ -59,5 +59,5 @@ func TestHappySusieTim(t *testing.T) {
 		big.NewInt(1),
 	)
 
-	executeTwoPartyTest(roles, cfg)
+	executeTwoPartyTest(t, roles, cfg)
 }

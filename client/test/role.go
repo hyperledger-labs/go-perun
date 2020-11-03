@@ -244,28 +244,23 @@ func (r *role) ProposeChannel(req client.ChannelProposal) (*paymentChannel, erro
 }
 
 type (
-	// acceptAllPropHandler is a channel proposal handler that accepts all channel
-	// requests. It generates a random account for each channel.
-	// Each accepted channel is put on the chans go channel.
-	acceptAllPropHandler struct {
+	acceptNextPropHandler struct {
 		r     *role
-		chans chan channelAndError
+		props chan proposalAndResponder
 		rng   *rand.Rand
 	}
 
-	// channelAndError bundles the return parameters of ProposalResponder.Accept
-	// to be able to send them over a channel.
-	channelAndError struct {
-		channel *client.Channel
-		err     error
+	proposalAndResponder struct {
+		prop client.ChannelProposal
+		res  *client.ProposalResponder
 	}
 )
 
 // GoHandle starts the handler routine on the current client and returns a
 // wait() function with which it can be waited for the handler routine to stop.
-func (r *role) GoHandle(rng *rand.Rand) (h *acceptAllPropHandler, wait func()) {
+func (r *role) GoHandle(rng *rand.Rand) (h *acceptNextPropHandler, wait func()) {
 	done := make(chan struct{})
-	propHandler := r.AcceptAllPropHandler(rng)
+	propHandler := r.acceptNextPropHandler(rng)
 	go func() {
 		defer close(done)
 		r.log.Info("Starting request handler.")
@@ -328,61 +323,63 @@ func (r *role) SubChannelProposal(
 	return prop
 }
 
-// AcceptAllPropHandler returns a ProposalHandler that accepts all requests to
-// this Role. The paymentChannel is saved to the Role's state upon acceptal. The
-// rng is used to generate a new random account for accepting the proposal.
-// Next can be called on the handler to wait for the next incoming proposal.
-func (r *role) AcceptAllPropHandler(rng *rand.Rand) *acceptAllPropHandler {
-	return &acceptAllPropHandler{
+func (r *role) acceptNextPropHandler(rng *rand.Rand) *acceptNextPropHandler {
+	return &acceptNextPropHandler{
 		r:     r,
-		chans: make(chan channelAndError),
+		props: make(chan proposalAndResponder),
 		rng:   rng,
 	}
 }
 
-func (h *acceptAllPropHandler) HandleProposal(req client.ChannelProposal, res *client.ProposalResponder) {
-	h.r.log.Infof("Accepting incoming channel request: %v", req)
+func (h *acceptNextPropHandler) HandleProposal(prop client.ChannelProposal, res *client.ProposalResponder) {
+	select {
+	case h.props <- proposalAndResponder{prop, res}:
+	case <-time.After(h.r.setup.Timeout):
+		h.r.t.Error("proposal response timeout") // Should be fatal, but cannot do this in go routine
+	}
+}
+
+func (h *acceptNextPropHandler) Next() (*paymentChannel, error) {
+	var prop client.ChannelProposal
+	var res *client.ProposalResponder
+
+	select {
+	case pr := <-h.props:
+		prop = pr.prop
+		res = pr.res
+	case <-time.After(h.r.setup.Timeout):
+		return nil, errors.New("timeout passed")
+	}
+
+	h.r.log.Infof("Accepting incoming channel request: %v", prop)
 	ctx, cancel := context.WithTimeout(context.Background(), h.r.setup.Timeout)
 	defer cancel()
 
 	var acc client.ChannelProposalAccept
-	switch req.Type() {
-	case wire.LedgerChannelProposal:
-		lacc := req.(*client.LedgerChannelProposal).Accept(
-			h.r.setup.Wallet.NewRandomAccount(h.rng).Address(),
-			client.WithNonceFrom(h.rng))
-		acc = lacc
-		h.r.log.Debugf("Accepting with participant: %v", lacc.Participant)
-	case wire.SubChannelProposal:
-		sreq := req.(*client.SubChannelProposal)
-		acc = sreq.Accept(client.WithNonceFrom(h.rng))
+	switch p := prop.(type) {
+	case *client.LedgerChannelProposal:
+		part := h.r.setup.Wallet.NewRandomAccount(h.rng).Address()
+		acc = p.Accept(part, client.WithNonceFrom(h.rng))
+		h.r.log.Debugf("Accepting ledger channel proposal with participant: %v", part)
+
+	case *client.SubChannelProposal:
+		acc = p.Accept(client.WithNonceFrom(h.rng))
 		h.r.log.Debug("Accepting sub-channel proposal")
+
 	default:
 		panic("invalid proposal type")
 	}
 
 	ch, err := res.Accept(ctx, acc)
-	h.chans <- channelAndError{ch, err}
-}
-
-// Next waits for the next incoming proposal. If the next proposal does not come
-// in within one timeout period as specified in the Role's setup, it return nil
-// and an error.
-func (h *acceptAllPropHandler) Next() (*paymentChannel, error) {
-	select {
-	case ce := <-h.chans:
-		if ce.err != nil {
-			return nil, ce.err
-		}
-		// Client.OnNewChannel callback adds paymentChannel wrapper to the chans map
-		ch, ok := h.r.chans.get(ce.channel.ID())
-		if !ok {
-			return ch, errors.New("channel not found")
-		}
-		return ch, nil
-	case <-time.After(h.r.setup.Timeout):
-		return nil, errors.New("timeout passed")
+	if err != nil {
+		return nil, err
 	}
+	// Client.OnNewChannel callback adds paymentChannel wrapper to the chans map
+	payCh, ok := h.r.chans.get(ch.ID())
+	if !ok {
+		panic("channel not found")
+	}
+	return payCh, nil
 }
 
 type roleUpdateHandler role

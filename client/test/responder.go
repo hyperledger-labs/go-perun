@@ -32,7 +32,7 @@ func NewResponder(setup RoleSetup, t *testing.T, numStages int) *Responder {
 }
 
 // Execute executes the Responder protocol.
-func (r *Responder) Execute(cfg ExecConfig, exec func(ExecConfig, *paymentChannel, *acceptAllPropHandler)) {
+func (r *Responder) Execute(cfg ExecConfig, exec func(ExecConfig, *paymentChannel, *acceptNextPropHandler)) {
 	rng := pkgtest.Prng(r.t, "responder")
 	assert := assert.New(r.t)
 
