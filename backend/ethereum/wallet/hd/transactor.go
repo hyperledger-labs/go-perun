@@ -15,8 +15,6 @@
 package hd
 
 import (
-	"math/big"
-
 	"github.com/ethereum/go-ethereum/accounts"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
@@ -26,13 +24,17 @@ import (
 
 // Transactor can be used to make TransactOpts for accounts stored in a HD wallet.
 type Transactor struct {
-	wallet accounts.Wallet
+	Wallet accounts.Wallet
+}
+
+type hashSigner interface {
+	SignHash(account accounts.Account, hash []byte) ([]byte, error)
 }
 
 // NewTransactor returns a TransactOpts for the given account. It errors if the account is
 // not contained in the wallet used for initializing transactor backend.
 func (t *Transactor) NewTransactor(account accounts.Account) (*bind.TransactOpts, error) {
-	if !t.wallet.Contains(account) {
+	if !t.Wallet.Contains(account) {
 		return nil, errors.New("account not found in wallet")
 	}
 	return &bind.TransactOpts{
@@ -41,10 +43,23 @@ func (t *Transactor) NewTransactor(account accounts.Account) (*bind.TransactOpts
 			if address != account.Address {
 				return nil, errors.New("not authorized to sign this account")
 			}
-			// Last parameter (chainID) is only relevant when making EIP155 compliant signatures.
-			// Since we use only non EIP155 signatures, set this to zero value.
-			// For more details, see here (https://github.com/ethereum/EIPs/blob/master/EIPS/eip-155.md).
-			return t.wallet.SignTx(account, tx, big.NewInt(0))
+
+			hs, ok := t.Wallet.(hashSigner)
+			if !ok {
+				// signer.Hash returns the hash of the tx according to the chain
+				// configuration but the accounts.Wallet interface only contains methods
+				// SignData and SignText, which also do hashing. So there's no way to
+				// properly sign a transaction with a Wallet that doesn't have the
+				// SignHash method, if the tx needs to be signed according to EIP155
+				// rules. So in this case, use the Wallet's SignTx method.
+				return t.Wallet.SignTx(account, tx, tx.ChainId())
+			}
+
+			signature, err := hs.SignHash(account, signer.Hash(tx).Bytes())
+			if err != nil {
+				return nil, err
+			}
+			return tx.WithSignature(signer, signature)
 		},
 	}, nil
 }
@@ -52,5 +67,5 @@ func (t *Transactor) NewTransactor(account accounts.Account) (*bind.TransactOpts
 // NewTransactor returns a backend that can make TransactOpts for accounts
 // contained in the given ethereum wallet.
 func NewTransactor(w accounts.Wallet) *Transactor {
-	return &Transactor{wallet: w}
+	return &Transactor{Wallet: w}
 }

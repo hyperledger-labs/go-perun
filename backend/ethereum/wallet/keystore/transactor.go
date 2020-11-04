@@ -23,20 +23,20 @@ import (
 
 // Transactor can be used to make TransactOpts for accounts stored in a keystore.
 type Transactor struct {
-	ks *keystore.KeyStore
+	Ks *keystore.KeyStore
 }
 
 // NewTransactor returns a TransactOpts for the given account. It errors if the account is
 // not contained in the keystore used for initializing transactOpts backend.
 func (t *Transactor) NewTransactor(account accounts.Account) (*bind.TransactOpts, error) {
-	if !t.ks.HasAddress(account.Address) {
+	if !t.Ks.HasAddress(account.Address) {
 		return nil, errors.New("the wallet does not contain the keys for the given account")
 	}
-	tr, err := bind.NewKeyStoreTransactor(t.ks, account)
+	tr, err := bind.NewKeyStoreTransactor(t.Ks, account)
 	return tr, errors.WithStack(err)
 }
 
 // NewTransactor returns a backend that can make TransactOpts for accounts contained in the given keystore.
 func NewTransactor(w Wallet) *Transactor {
-	return &Transactor{ks: w.Ks}
+	return &Transactor{Ks: w.Ks}
 }

@@ -16,6 +16,7 @@ package test
 
 import (
 	"math/big"
+	"math/rand"
 	"testing"
 
 	"github.com/ethereum/go-ethereum/accounts"
@@ -35,22 +36,38 @@ type TransactorSetup struct {
 	MissingAcc accounts.Account // wallet should not contain key corresponding to this account.
 }
 
-// GenericTransactorTest provides generic transactor tests.
-func GenericTransactorTest(t *testing.T, setup TransactorSetup) {
+// GenericLegacyTransactorTest tests that a transactor works with Frontier and
+// Homestead signers.
+func GenericLegacyTransactorTest(t *testing.T, rng *rand.Rand, s TransactorSetup) {
+	// Both can only deal with chainID == 0.
+	GenericSignerTest(t, rng, s, &types.FrontierSigner{}, 0)
+	GenericSignerTest(t, rng, s, &types.HomesteadSigner{}, 0)
+}
+
+// GenericEIP155TransactorTest tests that a transactor works with EIP155 signers.
+func GenericEIP155TransactorTest(t *testing.T, rng *rand.Rand, s TransactorSetup) {
+	id := rng.Int63() // Any id will work.
+	GenericSignerTest(t, rng, s, types.NewEIP155Signer(big.NewInt(id)), id)
+}
+
+// GenericSignerTest tests that a transactor produces the correct signatures
+// for the passed signer.
+func GenericSignerTest(t *testing.T, rng *rand.Rand, setup TransactorSetup, signer types.Signer, chainID int64) {
+	data := make([]byte, rng.Int31n(100)+1)
+	rng.Read(data)
+
 	t.Run("happy", func(t *testing.T) {
 		transactOpts, err := setup.Tr.NewTransactor(setup.ValidAcc)
 		require.NoError(t, err)
-
-		data := []byte("some random tx data")
 		rawTx := types.NewTransaction(uint64(1), common.Address{}, big.NewInt(1), uint64(1), big.NewInt(1), data)
-		signer := types.HomesteadSigner{}
 		signedTx, err := transactOpts.Signer(signer, setup.ValidAcc.Address, rawTx)
 		assert.NoError(t, err)
-		assert.NotNil(t, signedTx)
+		require.NotNil(t, signedTx)
 
 		txHash := signer.Hash(rawTx).Bytes()
 		v, r, s := signedTx.RawSignatureValues()
-		pk, err := crypto.SigToPub(txHash, sigFromRSV(r, s, v))
+		sig := sigFromRSV(t, r, s, v, chainID)
+		pk, err := crypto.SigToPub(txHash, sig)
 		require.NoError(t, err)
 		addr := crypto.PubkeyToAddress(*pk)
 		assert.Equal(t, setup.ValidAcc.Address.Bytes(), addr.Bytes())
@@ -65,18 +82,23 @@ func GenericTransactorTest(t *testing.T, setup TransactorSetup) {
 		transactOpts, err := setup.Tr.NewTransactor(setup.ValidAcc)
 		require.NoError(t, err)
 
-		data := []byte("some random tx data")
 		rawTx := types.NewTransaction(uint64(1), common.Address{}, big.NewInt(1), uint64(1), big.NewInt(1), data)
-		signer := types.HomesteadSigner{}
 		_, err = transactOpts.Signer(signer, setup.MissingAcc.Address, rawTx)
 		assert.Error(t, err)
 	})
 }
 
-func sigFromRSV(r, s, v *big.Int) []byte {
+func sigFromRSV(t *testing.T, r, s, _v *big.Int, chainID int64) []byte {
 	sig := make([]byte, 65)
 	copy(sig[32-len(r.Bytes()):32], r.Bytes())
 	copy(sig[64-len(s.Bytes()):64], s.Bytes())
-	sig[64] = v.Bytes()[0] - 27
+	v := byte(_v.Uint64()) // Needed for chain ids > 110.
+
+	if chainID == 0 {
+		sig[64] = v - 27
+	} else {
+		sig[64] = v - byte(chainID*2+35) // Underflow is ok here.
+	}
+	require.Contains(t, []byte{0, 1}, sig[64], "Invalid v")
 	return sig
 }
