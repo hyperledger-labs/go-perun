@@ -35,7 +35,9 @@ const randomAddr = "0x1"
 
 func TestTxOptsBackend(t *testing.T) {
 	prng := pkgtest.Prng(t)
-	ethchanneltest.GenericTransactorTest(t, newTransactorSetup(t, prng))
+	s := newTransactorSetup(t, prng)
+	ethchanneltest.GenericEIP155TransactorTest(t, prng, s)
+	ethchanneltest.GenericLegacyTransactorTest(t, prng, s)
 }
 
 func newTransactorSetup(t require.TestingT, prng *rand.Rand) ethchanneltest.TransactorSetup {
