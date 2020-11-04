@@ -24,7 +24,7 @@ import (
 
 // Transactor can be used to make TransactOpts for accounts stored in a HD wallet.
 type Transactor struct {
-	wallet accounts.Wallet
+	Wallet accounts.Wallet
 }
 
 type hashSigner interface {
@@ -34,7 +34,7 @@ type hashSigner interface {
 // NewTransactor returns a TransactOpts for the given account. It errors if the account is
 // not contained in the wallet used for initializing transactor backend.
 func (t *Transactor) NewTransactor(account accounts.Account) (*bind.TransactOpts, error) {
-	if !t.wallet.Contains(account) {
+	if !t.Wallet.Contains(account) {
 		return nil, errors.New("account not found in wallet")
 	}
 	return &bind.TransactOpts{
@@ -44,7 +44,7 @@ func (t *Transactor) NewTransactor(account accounts.Account) (*bind.TransactOpts
 				return nil, errors.New("not authorized to sign this account")
 			}
 
-			hs, ok := t.wallet.(hashSigner)
+			hs, ok := t.Wallet.(hashSigner)
 			if !ok {
 				// signer.Hash returns the hash of the tx according to the chain
 				// configuration but the accounts.Wallet interface only contains methods
@@ -52,7 +52,7 @@ func (t *Transactor) NewTransactor(account accounts.Account) (*bind.TransactOpts
 				// properly sign a transaction with a Wallet that doesn't have the
 				// SignHash method, if the tx needs to be signed according to EIP155
 				// rules. So in this case, use the Wallet's SignTx method.
-				return t.wallet.SignTx(account, tx, tx.ChainId())
+				return t.Wallet.SignTx(account, tx, tx.ChainId())
 			}
 
 			signature, err := hs.SignHash(account, signer.Hash(tx).Bytes())
@@ -67,5 +67,5 @@ func (t *Transactor) NewTransactor(account accounts.Account) (*bind.TransactOpts
 // NewTransactor returns a backend that can make TransactOpts for accounts
 // contained in the given ethereum wallet.
 func NewTransactor(w accounts.Wallet) *Transactor {
-	return &Transactor{wallet: w}
+	return &Transactor{Wallet: w}
 }
