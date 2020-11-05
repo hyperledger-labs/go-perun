@@ -144,5 +144,5 @@ func TestStateMachine(t *testing.T) {
 	// Set Withdrawn
 	err = sm.SetWithdrawn(nil)
 	require.NoError(err)
-	tpr.AssertEqual(csm)
+	tpr.AssertNotExists(csm.ID())
 }

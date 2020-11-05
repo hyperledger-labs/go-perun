@@ -81,7 +81,7 @@ func (m StateMachine) SetWithdrawn(ctx context.Context) error {
 	if err := m.StateMachine.SetWithdrawn(); err != nil {
 		return err
 	}
-	return errors.WithMessage(m.pr.PhaseChanged(ctx, m.StateMachine), "Persister.PhaseChanged")
+	return errors.WithMessage(m.pr.ChannelRemoved(ctx, m.ID()), "Persister.ChannelRemoved")
 }
 
 // Init calls Init on the channel.StateMachine and then persists the changed
