@@ -6,6 +6,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.5.2] European Ecstasy - 2020-11-05 [:warning:]
+ERC20 and Funding Agreement support and many test fixes.
+
+### Added
+- Funding agreement support: when proposing channels, the proposer can now
+  optionally suggest to reallocate the funding responsibilities among the
+  participants so that it differs from the initial channel allocation.
+- ERC20 support.
+- A context-aware `WaitGroup` implementation to `pkg/sync`.
+
+### Changed
+- The `eth/wallet/hd.Transactor` to use the correct `types.Signer` if the
+  `Wallet` has a correct `SignHash` method.
+- The Go version to 1.15.
+
+### Fixed
+- Many timeouts in tests that made slow CI pipelines fail.
+- A bug in the Concurrent Tester.
+- The `Client` role tests to not deadlock so easily.
+
 ## [0.5.0] Europa - 2020-10-17 [:warning:]
 The Sub-Channels release, enabling fully generalized state channels.
 
@@ -163,7 +183,8 @@ Initial release.
 
 [:warning:]: #:warning:
 
-[Unreleased]: https://github.com/perun-network/go-perun/compare/v0.5.0...HEAD
+[Unreleased]: https://github.com/perun-network/go-perun/compare/v0.5.2...HEAD
+[0.5.2]: https://github.com/perun-network/go-perun/compare/v0.5.0...v0.5.2
 [0.5.0]: https://github.com/perun-network/go-perun/compare/v0.4.0...v0.5.0
 [0.4.0]: https://github.com/perun-network/go-perun/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/perun-network/go-perun/compare/v0.2.0...v0.3.0
