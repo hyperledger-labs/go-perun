@@ -18,11 +18,12 @@ import (
 	"runtime"
 	"strconv"
 	"strings"
-	"sync"
+	stdsync "sync"
 	stdatomic "sync/atomic"
 
 	"github.com/stretchr/testify/require"
 
+	"perun.network/go-perun/pkg/sync"
 	"perun.network/go-perun/pkg/sync/atomic"
 )
 
@@ -80,7 +81,7 @@ var _ require.TestingT = (*stage)(nil)
 type stage struct {
 	name      string      // The stage's name.
 	failed    atomic.Bool // Whether a stage failed.
-	spawnOnce sync.Once
+	spawnOnce stdsync.Once
 
 	wg    sync.WaitGroup // Stage barrier.
 	wgN   int            // Used to detect spawn() calls with wrong N.
@@ -89,12 +90,6 @@ type stage struct {
 	require.TestingT // The stage's test object.
 
 	ct *ConcurrentT // The concurrent testing object.
-}
-
-// wait waits until a stage is terminated and then returns whether it succeeded.
-func (s *stage) wait() bool {
-	s.wg.Wait()
-	return !s.failed.IsSet()
 }
 
 // spawn sets up a stage when it is spawned.
@@ -134,6 +129,7 @@ type ConcurrentT struct {
 	failNowMutex sync.Mutex
 	t            require.TestingT
 	failed       bool
+	failedCh     chan struct{}
 
 	mutex  sync.Mutex
 	stages map[string]*stage
@@ -142,8 +138,9 @@ type ConcurrentT struct {
 // NewConcurrent creates a new concurrent testing object.
 func NewConcurrent(t require.TestingT) *ConcurrentT {
 	return &ConcurrentT{
-		t:      t,
-		stages: make(map[string]*stage),
+		t:        t,
+		stages:   make(map[string]*stage),
+		failedCh: make(chan struct{}),
 	}
 }
 
@@ -178,8 +175,14 @@ func (t *ConcurrentT) Wait(names ...string) {
 	}
 
 	for _, name := range names {
-		if !t.getStage(name).wait() {
-			t.FailNow()
+		stage := t.getStage(name)
+		select {
+		case <-stage.wg.WaitCh():
+			if stage.failed.IsSet() {
+				t.FailNow()
+			}
+		case <-t.failedCh:
+			runtime.Goexit()
 		}
 	}
 }
@@ -190,6 +193,7 @@ func (t *ConcurrentT) FailNow() {
 	defer t.failNowMutex.Unlock()
 	if !t.failed {
 		t.failed = true
+		defer close(t.failedCh)
 		t.t.FailNow()
 	} else {
 		runtime.Goexit()
