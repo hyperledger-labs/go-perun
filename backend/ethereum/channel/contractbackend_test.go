@@ -16,18 +16,15 @@ package channel_test
 
 import (
 	"context"
-	"fmt"
 	"testing"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"perun.network/go-perun/backend/ethereum/bindings/adjudicator"
 	ethchannel "perun.network/go-perun/backend/ethereum/channel"
 	"perun.network/go-perun/backend/ethereum/channel/test"
 	ethwallet "perun.network/go-perun/backend/ethereum/wallet"
-	ethwallettest "perun.network/go-perun/backend/ethereum/wallet/test"
 	pkgtest "perun.network/go-perun/pkg/test"
 	"perun.network/go-perun/wallet"
 )
@@ -102,30 +99,4 @@ func Test_NewWatchOpts(t *testing.T) {
 	require.NoError(t, err, "Creating watchopts on valid ContractBackend should succeed")
 	assert.Equal(t, context.WithValue(context.Background(), &key, "bar"), watchOpts.Context, "context should be set")
 	assert.Equal(t, uint64(1), *watchOpts.Start, "startblock should be 1")
-}
-
-func TestFetchCodeAtAddr(t *testing.T) {
-	// Test setup
-	rng := pkgtest.Prng(t)
-	s := test.NewSimSetup(rng)
-
-	t.Run("no_code", func(t *testing.T) {
-		ctx, cancel := context.WithTimeout(context.Background(), defaultTxTimeout)
-		defer cancel()
-		randomAddr := (common.Address)(ethwallettest.NewRandomAddress(rng))
-		t.Logf("address with no contract code - %v", randomAddr)
-		code, err := ethchannel.FetchCodeAtAddr(ctx, *s.CB, randomAddr)
-		require.True(t, ethchannel.IsContractBytecodeError(err))
-		require.Nil(t, code)
-	})
-	t.Run("valid_bytecode", func(t *testing.T) {
-		ctx, cancel := context.WithTimeout(context.Background(), defaultTxTimeout)
-		defer cancel()
-		adjudicatorAddr, err := ethchannel.DeployAdjudicator(ctx, *s.CB, s.TxSender.Account)
-		require.NoError(t, err)
-		t.Logf("contract deployed at address - %v", adjudicatorAddr)
-		code, err := ethchannel.FetchCodeAtAddr(ctx, *s.CB, adjudicatorAddr)
-		require.NoError(t, err)
-		require.Equal(t, fmt.Sprintf("%x", code), adjudicator.AdjudicatorBinRuntime)
-	})
 }

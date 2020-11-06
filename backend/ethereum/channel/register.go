@@ -61,7 +61,7 @@ func (a *Adjudicator) registerNonFinal(ctx context.Context, req channel.Adjudica
 
 	// call register if there was no past event
 	if !sub.hasPast() {
-		if err := a.callRegister(ctx, req); IsTxFailedError(err) {
+		if err := a.callRegister(ctx, req); IsErrTxFailed(err) {
 			a.log.Warn("Calling register failed, waiting for event anyways...")
 		} else if err != nil {
 			return nil, errors.WithMessage(err, "calling register")
@@ -79,7 +79,7 @@ func (a *Adjudicator) registerNonFinal(ctx context.Context, req channel.Adjudica
 		}
 
 		if req.Tx.Version > s.Version {
-			if err := a.callRefute(ctx, req); IsTxFailedError(err) {
+			if err := a.callRefute(ctx, req); IsErrTxFailed(err) {
 				a.log.Warn("Calling refute failed, waiting for event anyways...")
 			} else if err != nil {
 				return nil, errors.WithMessage(err, "calling refute")

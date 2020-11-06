@@ -16,7 +16,7 @@ package channel
 
 import (
 	"context"
-	"fmt"
+	"encoding/hex"
 
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
@@ -35,19 +35,20 @@ var _ channel.Asset = new(Asset)
 // ValidateAssetHolderETH checks if the bytecode at given addresses are correct,
 // and if the adjudicator address is correctly set in the asset holder contract.
 // Returns a ContractBytecodeError if the bytecode at given address is invalid.
-// This error can be checked with IsContractBytecodeError() function.
-func ValidateAssetHolderETH(ctx context.Context, backend ContractBackend, assetHolderETH, adjudicatorAddr common.Address) error {
-	code, err := FetchCodeAtAddr(ctx, backend, assetHolderETH)
+// This error can be checked with function IsErrInvalidContractCode.
+func ValidateAssetHolderETH(ctx context.Context,
+	backend bind.ContractBackend, assetHolderETH, adjudicatorAddr common.Address) error {
+	code, err := backend.CodeAt(ctx, assetHolderETH, nil)
 	if err != nil {
-		return errors.WithMessage(err, "fetching asset holder contract")
+		return errors.Wrap(err, "fetching AssetHolderETH")
 	}
-	if fmt.Sprintf("%x", code) != assets.AssetHolderETHBinRuntime {
-		return errors.WithMessage(ContractBytecodeError, "incorrect asset holder contract")
+	if hex.EncodeToString(code) != assets.AssetHolderETHBinRuntime {
+		return errors.Wrap(ErrInvalidContractCode, "incorrect AssetHolderETH code")
 	}
 
 	assetHolder, err := assets.NewAssetHolderETH(assetHolderETH, backend)
 	if err != nil {
-		return errors.New("could not create a new instance of asset holder contract")
+		return errors.Wrap(err, "binding AssetHolderETH")
 	}
 	opts := bind.CallOpts{
 		Pending: false,
@@ -55,8 +56,8 @@ func ValidateAssetHolderETH(ctx context.Context, backend ContractBackend, assetH
 	}
 	if addrSetInContract, err := assetHolder.Adjudicator(&opts); err != nil {
 		return errors.Wrap(err, "fetching adjudicator address set in asset holder contract")
-	} else if addrSetInContract.Hex() != adjudicatorAddr.Hex() {
-		return errors.WithMessage(ContractBytecodeError, "incorrect adjudicator address in contract")
+	} else if addrSetInContract != adjudicatorAddr {
+		return errors.Wrap(ErrInvalidContractCode, "incorrect adjudicator code")
 	}
 
 	return ValidateAdjudicator(ctx, backend, adjudicatorAddr)

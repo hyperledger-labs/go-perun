@@ -37,7 +37,7 @@ func TestValidateAssetHolderETH(t *testing.T) {
 		randomAddr2 := (common.Address)(ethwallettest.NewRandomAddress(rng))
 		ctx, cancel := context.WithTimeout(context.Background(), defaultTxTimeout)
 		defer cancel()
-		require.True(t, ethchannel.IsContractBytecodeError(ethchannel.ValidateAssetHolderETH(ctx, *s.CB, randomAddr1, randomAddr2)))
+		require.True(t, ethchannel.IsErrInvalidContractCode(ethchannel.ValidateAssetHolderETH(ctx, *s.CB, randomAddr1, randomAddr2)))
 	})
 	t.Run("incorrect_asset_code", func(t *testing.T) {
 		randomAddr1 := (common.Address)(ethwallettest.NewRandomAddress(rng))
@@ -45,7 +45,7 @@ func TestValidateAssetHolderETH(t *testing.T) {
 		defer cancel()
 		incorrectCodeAddr, err := ethchannel.DeployAdjudicator(ctx, *s.CB, s.TxSender.Account)
 		require.NoError(t, err)
-		require.True(t, ethchannel.IsContractBytecodeError(ethchannel.ValidateAssetHolderETH(ctx, *s.CB, incorrectCodeAddr, randomAddr1)))
+		require.True(t, ethchannel.IsErrInvalidContractCode(ethchannel.ValidateAssetHolderETH(ctx, *s.CB, incorrectCodeAddr, randomAddr1)))
 	})
 	t.Run("incorrect_adj_addr", func(t *testing.T) {
 		adjAddrToSet := (common.Address)(ethwallettest.NewRandomAddress(rng))
@@ -55,7 +55,7 @@ func TestValidateAssetHolderETH(t *testing.T) {
 		assetHolderAddr, err := ethchannel.DeployETHAssetholder(ctx, *s.CB, adjAddrToSet, s.TxSender.Account)
 		require.NoError(t, err)
 		t.Logf("assetholder address is %v", assetHolderAddr)
-		require.True(t, ethchannel.IsContractBytecodeError(ethchannel.ValidateAssetHolderETH(ctx, *s.CB, assetHolderAddr, adjAddrToExpect)))
+		require.True(t, ethchannel.IsErrInvalidContractCode(ethchannel.ValidateAssetHolderETH(ctx, *s.CB, assetHolderAddr, adjAddrToExpect)))
 	})
 	t.Run("all_correct", func(t *testing.T) {
 		ctx, cancel := context.WithTimeout(context.Background(), defaultTxTimeout)

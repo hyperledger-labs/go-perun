@@ -71,7 +71,7 @@ func (a *Adjudicator) ensureConcluded(ctx context.Context, req channel.Adjudicat
 	} else {
 		err = errors.WithMessage(a.callConclude(ctx, req), "calling conclude")
 	}
-	if IsTxFailedError(err) {
+	if IsErrTxFailed(err) {
 		a.log.Warn("Calling conclude(Final) failed, waiting for event anyways...")
 	} else if err != nil {
 		return err
