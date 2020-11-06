@@ -160,6 +160,12 @@ func (pr *PersistRestorer) AssertEqual(s channel.Source) {
 	assert.Equal(s.Phase(), ch.PhaseV, "Phase mismatch")
 }
 
+// AssertNotExists asserts that a channel with the given ID does not exist.
+func (pr *PersistRestorer) AssertNotExists(id channel.ID) {
+	_, ok := pr.get(id)
+	assert.Falsef(pr.t, ok, "channel shouldn't exist: %x", id)
+}
+
 // get is a mutexed access to the Channel stored at the given id.
 // Since persister access is guaranteed to be single-threaded per channel, it
 // makes sense for the Persister implementation methods to use this getter to

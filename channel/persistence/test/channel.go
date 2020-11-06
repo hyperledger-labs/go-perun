@@ -222,13 +222,6 @@ func (c *Channel) SetWithdrawing(t require.TestingT) {
 // SetWithdrawn calls SetWithdrawn on the state machine and then checks the persistence.
 func (c *Channel) SetWithdrawn(t require.TestingT) {
 	require.NoError(t, c.StateMachine.SetWithdrawn(c.ctx))
-	c.AssertPersisted(c.ctx, t)
-}
-
-// Settle removes the channels data from the db and checks whether it really was
-// removed from said db or not.
-func (c *Channel) Settle(t require.TestingT) {
-	c.pr.ChannelRemoved(c.ctx, c.ID())
 	rc, err := c.pr.RestoreChannel(c.ctx, c.ID())
 	require.Error(t, err, "restoring of a non-existing channel")
 	require.Nil(t, rc, "restoring of a non-existing channel")
