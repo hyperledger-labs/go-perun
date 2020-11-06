@@ -129,6 +129,7 @@ func (c *ContractBackend) NewTransactor(ctx context.Context, valueWei *big.Int, 
 	auth.Value = valueWei    // in wei
 	auth.GasLimit = gasLimit // in units
 	auth.GasPrice = gasPrice
+	auth.Context = ctx // reuse query context as transactor context
 
 	return auth, nil
 }
