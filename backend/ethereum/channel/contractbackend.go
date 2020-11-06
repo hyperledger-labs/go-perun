@@ -106,30 +106,21 @@ func (c *ContractBackend) pastOffsetBlockNum(ctx context.Context) (uint64, error
 	return h.Number.Uint64() - startBlockOffset, nil
 }
 
-// NewTransactor returns bind.TransactOpts with the current nonce, suggested gas
-// price and account of the ContractBackend. The gasLimit and value in wei are
-// taken from the parameters.
-func (c *ContractBackend) NewTransactor(ctx context.Context, valueWei *big.Int, gasLimit uint64, acc accounts.Account) (*bind.TransactOpts, error) {
-	nonce, err := c.PendingNonceAt(ctx, acc.Address)
-	if err != nil {
-		return nil, errors.Wrap(err, "querying pending nonce")
-	}
-
-	gasPrice, err := c.SuggestGasPrice(ctx)
-	if err != nil {
-		return nil, errors.Wrap(err, "querying suggested gas price")
-	}
-
+// NewTransactor returns bind.TransactOpts with the context, gas limit and
+// account set as specified, using the ContractBackend's Transactor.
+//
+// The gas price and nonce are not set and will be set by go-ethereum
+// automatically when not manually specified by the caller. The caller must also
+// set the value manually afterwards if it should be different from 0.
+func (c *ContractBackend) NewTransactor(ctx context.Context, gasLimit uint64,
+	acc accounts.Account) (*bind.TransactOpts, error) {
 	auth, err := c.tr.NewTransactor(acc)
 	if err != nil {
 		return nil, errors.WithMessage(err, "creating transactor")
 	}
 
-	auth.Nonce = new(big.Int).SetUint64(nonce)
-	auth.Value = valueWei    // in wei
-	auth.GasLimit = gasLimit // in units
-	auth.GasPrice = gasPrice
-	auth.Context = ctx // reuse query context as transactor context
+	auth.GasLimit = gasLimit
+	auth.Context = ctx
 
 	return auth, nil
 }

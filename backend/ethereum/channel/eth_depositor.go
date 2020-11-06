@@ -41,10 +41,11 @@ func (d *ETHDepositor) Deposit(ctx context.Context, req DepositReq) (types.Trans
 	if err != nil {
 		return nil, errors.WithMessagef(err, "binding AssetHolderETH contract at: %x", req.Asset)
 	}
-	opts, err := req.CB.NewTransactor(ctx, req.Balance, ETHDepositorGasLimit, req.Account)
+	opts, err := req.CB.NewTransactor(ctx, ETHDepositorGasLimit, req.Account)
 	if err != nil {
 		return nil, errors.WithMessagef(err, "creating transactor for asset: %x", req.Asset)
 	}
+	opts.Value = req.Balance
 
 	tx, err := contract.Deposit(opts, req.FundingID, req.Balance)
 	return []*types.Transaction{tx}, errors.WithMessage(err, "AssetHolderETH depositing")

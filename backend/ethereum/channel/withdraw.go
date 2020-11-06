@@ -16,7 +16,6 @@ package channel
 
 import (
 	"context"
-	"math/big"
 
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/common"
@@ -135,7 +134,7 @@ func (a *Adjudicator) callAssetWithdraw(ctx context.Context, request channel.Adj
 			return nil, errors.Wrap(ctx.Err(), "context canceled while acquiring tx lock")
 		}
 		defer a.mu.Unlock()
-		trans, err := a.NewTransactor(ctx, big.NewInt(0), GasLimit, a.txSender)
+		trans, err := a.NewTransactor(ctx, GasLimit, a.txSender)
 		if err != nil {
 			return nil, errors.WithMessagef(err, "creating transactor for asset %d", asset.assetIndex)
 		}

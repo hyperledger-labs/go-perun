@@ -48,7 +48,7 @@ func (d *ERC20Depositor) Deposit(ctx context.Context, req DepositReq) (types.Tra
 		return nil, errors.WithMessagef(err, "binding ERC20 contract at: %x", d.Token)
 	}
 	// Increase the allowance.
-	opts, err := req.CB.NewTransactor(ctx, nil /*Don't send ETH*/, ERC20DepositorTXGasLimit, req.Account)
+	opts, err := req.CB.NewTransactor(ctx, ERC20DepositorTXGasLimit, req.Account)
 	if err != nil {
 		return nil, errors.WithMessagef(err, "creating transactor for asset: %x", req.Asset)
 	}
@@ -57,7 +57,7 @@ func (d *ERC20Depositor) Deposit(ctx context.Context, req DepositReq) (types.Tra
 		return nil, errors.WithMessagef(err, "increasing allowance for asset: %x", req.Asset)
 	}
 	// Deposit.
-	opts, err = req.CB.NewTransactor(ctx, nil /*Don't send ETH*/, ERC20DepositorTXGasLimit, req.Account)
+	opts, err = req.CB.NewTransactor(ctx, ERC20DepositorTXGasLimit, req.Account)
 	if err != nil {
 		return nil, errors.WithMessagef(err, "creating transactor for asset: %x", req.Asset)
 	}
