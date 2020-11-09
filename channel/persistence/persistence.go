@@ -120,17 +120,19 @@ type (
 	}
 
 	// Channel holds all data that is necessary to restore a channel controller
-	// and additionally the related peers for this channel.
+	// and additionally the related peers for this channel. If the channel is a
+	// sub-channel, also holds the parent channel's ID.
 	Channel struct {
 		chSource
 		PeersV []wire.Address
+		Parent *channel.ID
 	}
 )
 
 var _ channel.Source = (*Channel)(nil)
 
 // CloneSource creates a new Channel object whose fields are clones of the data
-// coming from Source s. Returned `PeersV` are `nil`.
+// coming from Source s.
 func CloneSource(s channel.Source) channel.Source {
 	return &chSource{
 		IdxV:       s.Idx(),
@@ -142,15 +144,18 @@ func CloneSource(s channel.Source) channel.Source {
 }
 
 // NewChannel creates a new Channel object whose fields are initialized.
+// The peers and parent field are unset.
 func NewChannel() *Channel {
 	return &Channel{
 		chSource{ParamsV: new(channel.Params)},
 		nil,
+		nil,
 	}
 }
 
-// FromSource creates a new Channel object from given `channel.Source` and peers.
-func FromSource(s channel.Source, ps []wire.Address) *Channel {
+// FromSource creates a new Channel object from given `channel.Source`, the
+// channel's network peers, and the parent channel ID, if it exists.
+func FromSource(s channel.Source, ps []wire.Address, parent *channel.ID) *Channel {
 	return &Channel{
 		chSource{
 			IdxV:       s.Idx(),
@@ -160,6 +165,7 @@ func FromSource(s channel.Source, ps []wire.Address) *Channel {
 			PhaseV:     s.Phase(),
 		},
 		ps,
+		parent,
 	}
 }
 

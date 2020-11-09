@@ -66,7 +66,7 @@ func (pr *PersistRestorer) ChannelCreated(
 		return errors.Errorf("channel already persisted: %x", id)
 	}
 
-	pr.chans[id] = persistence.FromSource(source, peers)
+	pr.chans[id] = persistence.FromSource(source, peers, nil)
 	pr.pcs.Add(id, peers...)
 	return nil
 }
