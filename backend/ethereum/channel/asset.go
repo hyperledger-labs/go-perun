@@ -32,23 +32,41 @@ type Asset = wallet.Address
 
 var _ channel.Asset = new(Asset)
 
-// ValidateAssetHolderETH checks if the bytecode at given addresses are correct,
-// and if the adjudicator address is correctly set in the asset holder contract.
-// Returns a ContractBytecodeError if the bytecode at given address is invalid.
-// This error can be checked with function IsErrInvalidContractCode.
+// ValidateAssetHolderETH checks if the bytecodes at the given addresses are
+// correct and if the adjudicator address is correctly set in the asset holder
+// contract. Returns a ContractBytecodeError if the bytecode at the given
+// address is invalid. This error can be checked with function
+// IsErrInvalidContractCode.
 func ValidateAssetHolderETH(ctx context.Context,
-	backend bind.ContractBackend, assetHolderETH, adjudicatorAddr common.Address) error {
-	code, err := backend.CodeAt(ctx, assetHolderETH, nil)
+	backend bind.ContractBackend, assetHolderETH, adjudicator common.Address) error {
+	return validateAssetHolder(ctx, backend, assetHolderETH, adjudicator,
+		assets.AssetHolderETHBinRuntime)
+}
+
+// ValidateAssetHolderERC20 checks if the bytecodes at the given addresses are
+// correct and if the adjudicator address is correctly set in the asset holder
+// contract. Returns a ContractBytecodeError if the bytecode at the given
+// address is invalid. This error can be checked with function
+// IsErrInvalidContractCode.
+func ValidateAssetHolderERC20(ctx context.Context,
+	backend bind.ContractBackend, assetHolderERC20, adjudicator, token common.Address) error {
+	return validateAssetHolder(ctx, backend, assetHolderERC20, adjudicator,
+		assets.AssetHolderERC20BinRuntimeFor(token))
+}
+
+func validateAssetHolder(ctx context.Context,
+	backend bind.ContractBackend, assetHolderAddr, adjudicatorAddr common.Address, bytecode string) error {
+	code, err := backend.CodeAt(ctx, assetHolderAddr, nil)
 	if err != nil {
-		return errors.Wrap(err, "fetching AssetHolderETH")
+		return errors.Wrap(err, "fetching AssetHolder code")
 	}
-	if hex.EncodeToString(code) != assets.AssetHolderETHBinRuntime {
-		return errors.Wrap(ErrInvalidContractCode, "incorrect AssetHolderETH code")
+	if hex.EncodeToString(code) != bytecode {
+		return errors.Wrap(ErrInvalidContractCode, "incorrect AssetHolder code")
 	}
 
-	assetHolder, err := assets.NewAssetHolderETH(assetHolderETH, backend)
+	assetHolder, err := assets.NewAssetHolder(assetHolderAddr, backend)
 	if err != nil {
-		return errors.Wrap(err, "binding AssetHolderETH")
+		return errors.Wrap(err, "binding AssetHolder")
 	}
 	opts := bind.CallOpts{
 		Pending: false,
