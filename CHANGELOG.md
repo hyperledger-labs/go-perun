@@ -6,6 +6,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- `ContractBackend.NewTransactor` to set the correct context and also removed
+  the `value` parameter.
+
 ## [0.5.2] European Ecstasy - 2020-11-05 [:warning:]
 ERC20 and Funding Agreement support and many test fixes.
 
