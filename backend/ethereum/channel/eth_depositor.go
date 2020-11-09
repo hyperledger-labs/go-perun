@@ -29,11 +29,12 @@ import (
 type ETHDepositor struct{}
 
 // ETHDepositorGasLimit is the limit of Gas that an `ETHDepositor` will spend
-// when depositing funds. It is set to 50000.
+// when depositing funds.
 // A `Deposit` call uses ~47kGas on average.
 const ETHDepositorGasLimit = 50000
 
-// Deposit returns the transactions for despositing Ethereum or an error otherwise.
+// Deposit deposits ether into the ETH AssetHolder specified at the requests's
+// asset address.
 func (d *ETHDepositor) Deposit(ctx context.Context, req DepositReq) (types.Transactions, error) {
 	// Bind an `AssetHolderETH` instance. Using `AssetHolder` is also possible
 	// since we only use the interface functions here.
