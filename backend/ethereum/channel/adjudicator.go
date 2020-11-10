@@ -16,7 +16,6 @@ package channel
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/ethereum/go-ethereum/accounts"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
@@ -127,14 +126,8 @@ func (a *Adjudicator) call(ctx context.Context, req channel.AdjudicatorReq, fn a
 
 // ValidateAdjudicator checks if the bytecode at given address is correct.
 // Returns a ContractBytecodeError if the bytecode at given address is invalid.
-// This error can be checked with IsContractBytecodeError() function.
-func ValidateAdjudicator(ctx context.Context, backend ContractBackend, adjudicatorAddr common.Address) error {
-	code, err := FetchCodeAtAddr(ctx, backend, adjudicatorAddr)
-	if err != nil {
-		return errors.WithMessage(err, "fetching adjudicator contract")
-	}
-	if fmt.Sprintf("%x", code) != adjudicator.AdjudicatorBinRuntime {
-		return errors.WithMessage(ContractBytecodeError, "incorrect adjudicator contract")
-	}
-	return nil
+// This error can be checked with function IsErrInvalidContractCode.
+func ValidateAdjudicator(ctx context.Context,
+	backend bind.ContractCaller, adjudicatorAddr common.Address) error {
+	return validateContract(ctx, backend, adjudicatorAddr, adjudicator.AdjudicatorBinRuntime)
 }

@@ -16,7 +16,7 @@ package channel
 
 import (
 	"context"
-	"fmt"
+	"encoding/hex"
 
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
@@ -32,22 +32,37 @@ type Asset = wallet.Address
 
 var _ channel.Asset = new(Asset)
 
-// ValidateAssetHolderETH checks if the bytecode at given addresses are correct,
-// and if the adjudicator address is correctly set in the asset holder contract.
-// Returns a ContractBytecodeError if the bytecode at given address is invalid.
-// This error can be checked with IsContractBytecodeError() function.
-func ValidateAssetHolderETH(ctx context.Context, backend ContractBackend, assetHolderETH, adjudicatorAddr common.Address) error {
-	code, err := FetchCodeAtAddr(ctx, backend, assetHolderETH)
-	if err != nil {
-		return errors.WithMessage(err, "fetching asset holder contract")
-	}
-	if fmt.Sprintf("%x", code) != assets.AssetHolderETHBinRuntime {
-		return errors.WithMessage(ContractBytecodeError, "incorrect asset holder contract")
+// ValidateAssetHolderETH checks if the bytecodes at the given addresses are
+// correct and if the adjudicator address is correctly set in the asset holder
+// contract. Returns a ContractBytecodeError if the bytecode at the given
+// address is invalid. This error can be checked with function
+// IsErrInvalidContractCode.
+func ValidateAssetHolderETH(ctx context.Context,
+	backend bind.ContractBackend, assetHolderETH, adjudicator common.Address) error {
+	return validateAssetHolder(ctx, backend, assetHolderETH, adjudicator,
+		assets.AssetHolderETHBinRuntime)
+}
+
+// ValidateAssetHolderERC20 checks if the bytecodes at the given addresses are
+// correct and if the adjudicator address is correctly set in the asset holder
+// contract. Returns a ContractBytecodeError if the bytecode at the given
+// address is invalid. This error can be checked with function
+// IsErrInvalidContractCode.
+func ValidateAssetHolderERC20(ctx context.Context,
+	backend bind.ContractBackend, assetHolderERC20, adjudicator, token common.Address) error {
+	return validateAssetHolder(ctx, backend, assetHolderERC20, adjudicator,
+		assets.AssetHolderERC20BinRuntimeFor(token))
+}
+
+func validateAssetHolder(ctx context.Context,
+	backend bind.ContractBackend, assetHolderAddr, adjudicatorAddr common.Address, bytecode string) error {
+	if err := validateContract(ctx, backend, assetHolderAddr, bytecode); err != nil {
+		return errors.WithMessage(err, "validating asset holder")
 	}
 
-	assetHolder, err := assets.NewAssetHolderETH(assetHolderETH, backend)
+	assetHolder, err := assets.NewAssetHolder(assetHolderAddr, backend)
 	if err != nil {
-		return errors.New("could not create a new instance of asset holder contract")
+		return errors.Wrap(err, "binding AssetHolder")
 	}
 	opts := bind.CallOpts{
 		Pending: false,
@@ -55,9 +70,22 @@ func ValidateAssetHolderETH(ctx context.Context, backend ContractBackend, assetH
 	}
 	if addrSetInContract, err := assetHolder.Adjudicator(&opts); err != nil {
 		return errors.Wrap(err, "fetching adjudicator address set in asset holder contract")
-	} else if addrSetInContract.Hex() != adjudicatorAddr.Hex() {
-		return errors.WithMessage(ContractBytecodeError, "incorrect adjudicator address in contract")
+	} else if addrSetInContract != adjudicatorAddr {
+		return errors.Wrap(ErrInvalidContractCode, "incorrect adjudicator code")
 	}
 
-	return ValidateAdjudicator(ctx, backend, adjudicatorAddr)
+	return errors.WithMessage(ValidateAdjudicator(ctx, backend, adjudicatorAddr),
+		"validating Adjudicator")
+}
+
+func validateContract(ctx context.Context,
+	backend bind.ContractCaller, contract common.Address, bytecode string) error {
+	code, err := backend.CodeAt(ctx, contract, nil)
+	if err != nil {
+		return errors.Wrap(err, "fetching contract code")
+	}
+	if hex.EncodeToString(code) != bytecode {
+		return errors.Wrap(ErrInvalidContractCode, "incorrect contract code")
+	}
+	return nil
 }

@@ -23,7 +23,6 @@ import (
 	"github.com/ethereum/go-ethereum/accounts"
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
-	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/pkg/errors"
 
@@ -144,17 +143,17 @@ func (c *ContractBackend) ConfirmTransaction(ctx context.Context, tx *types.Tran
 		} else {
 			log.Warn("TX failed with reason: ", reason)
 		}
-		return errors.WithStack(ErrorTxFailed)
+		return errors.WithStack(ErrTxFailed)
 	}
 	return nil
 }
 
-// ErrorTxFailed signals a failed, i.e., reverted, transaction.
-var ErrorTxFailed = stderrors.New("transaction failed")
+// ErrTxFailed signals a failed, i.e., reverted, transaction.
+var ErrTxFailed = stderrors.New("transaction failed")
 
-// IsTxFailedError returns whether the cause of the error was a failed transaction.
-func IsTxFailedError(err error) bool {
-	return errors.Cause(err) == ErrorTxFailed
+// IsErrTxFailed returns whether the cause of the error was a failed transaction.
+func IsErrTxFailed(err error) bool {
+	return errors.Cause(err) == ErrTxFailed
 }
 
 func errorReason(ctx context.Context, b *ContractBackend, tx *types.Transaction, blockNum *big.Int, acc accounts.Account) (string, error) {
@@ -174,25 +173,10 @@ func errorReason(ctx context.Context, b *ContractBackend, tx *types.Transaction,
 	return reason, errors.Wrap(err, "unpacking revert reason")
 }
 
-// ContractBytecodeError signals invalid bytecode at given address, such as incorrect or no code.
-// nolint:stylecheck
-var ContractBytecodeError = stderrors.New("invalid bytecode at address")
+// ErrInvalidContractCode signals invalid bytecode at given address, such as incorrect or no code.
+var ErrInvalidContractCode = stderrors.New("invalid bytecode at address")
 
-// IsContractBytecodeError returns whether the cause of the error was a invalid bytecode.
-func IsContractBytecodeError(err error) bool {
-	return errors.Cause(err) == ContractBytecodeError
-}
-
-// FetchCodeAtAddr reads the bytecode at given address.
-// Returns a ContractBytecodeError when there is no bytecode at given address.
-// This error can be checked with IsContractBytecodeError() function.
-func FetchCodeAtAddr(ctx context.Context, backend ContractBackend, contractAddr common.Address) ([]byte, error) {
-	code, err := backend.CodeAt(ctx, contractAddr, nil)
-	if err != nil {
-		return nil, err
-	}
-	if len(code) == 0 {
-		return nil, errors.WithMessage(ContractBytecodeError, "no code")
-	}
-	return code, nil
+// IsErrInvalidContractCode returns whether the cause of the error was a invalid bytecode.
+func IsErrInvalidContractCode(err error) bool {
+	return errors.Cause(err) == ErrInvalidContractCode
 }

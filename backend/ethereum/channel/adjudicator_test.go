@@ -97,7 +97,7 @@ func TestValidateAdjudicator(t *testing.T) {
 		randomAddr := (common.Address)(ethwallettest.NewRandomAddress(rng))
 		ctx, cancel := context.WithTimeout(context.Background(), defaultTxTimeout)
 		defer cancel()
-		require.True(t, ethchannel.IsContractBytecodeError(ethchannel.ValidateAdjudicator(ctx, *s.CB, randomAddr)))
+		require.True(t, ethchannel.IsErrInvalidContractCode(ethchannel.ValidateAdjudicator(ctx, *s.CB, randomAddr)))
 	})
 	t.Run("incorrect_adj_code", func(t *testing.T) {
 		randomAddr := (common.Address)(ethwallettest.NewRandomAddress(rng))
@@ -105,7 +105,7 @@ func TestValidateAdjudicator(t *testing.T) {
 		defer cancel()
 		incorrectCodeAddr, err := ethchannel.DeployETHAssetholder(ctx, *s.CB, randomAddr, s.TxSender.Account)
 		require.NoError(t, err)
-		require.True(t, ethchannel.IsContractBytecodeError(ethchannel.ValidateAdjudicator(ctx, *s.CB, incorrectCodeAddr)))
+		require.True(t, ethchannel.IsErrInvalidContractCode(ethchannel.ValidateAdjudicator(ctx, *s.CB, incorrectCodeAddr)))
 	})
 	t.Run("correct_adj_code", func(t *testing.T) {
 		ctx, cancel := context.WithTimeout(context.Background(), defaultTxTimeout)
