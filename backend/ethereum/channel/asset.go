@@ -56,12 +56,8 @@ func ValidateAssetHolderERC20(ctx context.Context,
 
 func validateAssetHolder(ctx context.Context,
 	backend bind.ContractBackend, assetHolderAddr, adjudicatorAddr common.Address, bytecode string) error {
-	code, err := backend.CodeAt(ctx, assetHolderAddr, nil)
-	if err != nil {
-		return errors.Wrap(err, "fetching AssetHolder code")
-	}
-	if hex.EncodeToString(code) != bytecode {
-		return errors.Wrap(ErrInvalidContractCode, "incorrect AssetHolder code")
+	if err := validateContract(ctx, backend, assetHolderAddr, bytecode); err != nil {
+		return errors.WithMessage(err, "validating asset holder")
 	}
 
 	assetHolder, err := assets.NewAssetHolder(assetHolderAddr, backend)
@@ -78,5 +74,18 @@ func validateAssetHolder(ctx context.Context,
 		return errors.Wrap(ErrInvalidContractCode, "incorrect adjudicator code")
 	}
 
-	return ValidateAdjudicator(ctx, backend, adjudicatorAddr)
+	return errors.WithMessage(ValidateAdjudicator(ctx, backend, adjudicatorAddr),
+		"validating Adjudicator")
+}
+
+func validateContract(ctx context.Context,
+	backend bind.ContractCaller, contract common.Address, bytecode string) error {
+	code, err := backend.CodeAt(ctx, contract, nil)
+	if err != nil {
+		return errors.Wrap(err, "fetching contract code")
+	}
+	if hex.EncodeToString(code) != bytecode {
+		return errors.Wrap(ErrInvalidContractCode, "incorrect contract code")
+	}
+	return nil
 }

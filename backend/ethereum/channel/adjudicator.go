@@ -16,7 +16,6 @@ package channel
 
 import (
 	"context"
-	"encoding/hex"
 
 	"github.com/ethereum/go-ethereum/accounts"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
@@ -130,12 +129,5 @@ func (a *Adjudicator) call(ctx context.Context, req channel.AdjudicatorReq, fn a
 // This error can be checked with function IsErrInvalidContractCode.
 func ValidateAdjudicator(ctx context.Context,
 	backend bind.ContractCaller, adjudicatorAddr common.Address) error {
-	code, err := backend.CodeAt(ctx, adjudicatorAddr, nil)
-	if err != nil {
-		return errors.Wrap(err, "fetching adjudicator code")
-	}
-	if hex.EncodeToString(code) != adjudicator.AdjudicatorBinRuntime {
-		return errors.Wrap(ErrInvalidContractCode, "incorrect adjudicator code")
-	}
-	return nil
+	return validateContract(ctx, backend, adjudicatorAddr, adjudicator.AdjudicatorBinRuntime)
 }
