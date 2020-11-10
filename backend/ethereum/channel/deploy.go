@@ -23,6 +23,7 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/pkg/errors"
+
 	"perun.network/go-perun/backend/ethereum/bindings/adjudicator"
 	"perun.network/go-perun/backend/ethereum/bindings/assets"
 	"perun.network/go-perun/log"
@@ -67,7 +68,7 @@ func DeployAdjudicator(ctx context.Context, backend ContractBackend, deployer ac
 }
 
 func deployContract(ctx context.Context, cb ContractBackend, deployer accounts.Account, name string, f func(*bind.TransactOpts, ContractBackend) (common.Address, *types.Transaction, error)) (common.Address, error) {
-	auth, err := cb.NewTransactor(ctx, big.NewInt(0), deployGasLimit, deployer)
+	auth, err := cb.NewTransactor(ctx, deployGasLimit, deployer)
 	if err != nil {
 		return common.Address{}, errors.WithMessage(err, "creating transactor")
 	}

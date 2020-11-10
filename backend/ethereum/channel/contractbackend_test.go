@@ -17,7 +17,6 @@ package channel_test
 import (
 	"context"
 	"fmt"
-	"math/big"
 	"testing"
 
 	"github.com/ethereum/go-ethereum/common"
@@ -72,22 +71,20 @@ func Test_NewTransactor(t *testing.T) {
 	tests := []struct {
 		name     string
 		ctx      context.Context
-		value    *big.Int
 		gasLimit uint64
 	}{
-		{"Test without context", nil, big.NewInt(0), uint64(0)},
-		{"Test valid transactor", ctx, big.NewInt(0), uint64(0)},
-		{"Test valid transactor", ctx, big.NewInt(1220), uint64(12345)},
+		{"Test without context", nil, uint64(0)},
+		{"Test valid transactor", ctx, uint64(0)},
+		{"Test valid transactor", ctx, uint64(12345)},
 	}
 	for _, _tt := range tests {
 		tt := _tt
 		t.Run(tt.name, func(t *testing.T) {
-			transactor, err := s.CB.NewTransactor(tt.ctx, tt.value, tt.gasLimit, s.TxSender.Account)
+			transactor, err := s.CB.NewTransactor(tt.ctx, tt.gasLimit, s.TxSender.Account)
 			assert.NoError(t, err, "Creating Transactor should succeed")
 			assert.Equal(t, s.TxSender.Account.Address, transactor.From, "Transactor address not properly set")
+			assert.Equal(t, tt.ctx, transactor.Context, "Context not set properly")
 			assert.Equal(t, tt.gasLimit, transactor.GasLimit, "Gas limit not set properly")
-			assert.Equal(t, tt.value, transactor.Value, "Transaction value not set properly")
-			assert.Equal(t, big.NewInt(1), transactor.GasPrice, "Invalid gas price")
 		})
 	}
 }

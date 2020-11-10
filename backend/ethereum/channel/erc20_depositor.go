@@ -31,11 +31,12 @@ type ERC20Depositor struct {
 }
 
 // ERC20DepositorTXGasLimit is the limit of Gas that an `ERC20Depositor` will
-// spend per transaction when depositing funds. It is set to 100k.
+// spend per transaction when depositing funds.
 // An `IncreaseAllowance` uses ~45kGas and a `Deposit` call ~84kGas on average.
 const ERC20DepositorTXGasLimit = 100000
 
-// Deposit returns the transactions for despositing Ethereum or an error otherwise.
+// Deposit deposits ERC20 tokens into the ERC20 AssetHolder specified at the
+// requests's asset address.
 func (d *ERC20Depositor) Deposit(ctx context.Context, req DepositReq) (types.Transactions, error) {
 	// Bind a `AssetHolderERC20` instance.
 	assetholder, err := assets.NewAssetHolderERC20(common.Address(req.Asset), req.CB)
@@ -48,7 +49,7 @@ func (d *ERC20Depositor) Deposit(ctx context.Context, req DepositReq) (types.Tra
 		return nil, errors.WithMessagef(err, "binding ERC20 contract at: %x", d.Token)
 	}
 	// Increase the allowance.
-	opts, err := req.CB.NewTransactor(ctx, nil /*Don't send ETH*/, ERC20DepositorTXGasLimit, req.Account)
+	opts, err := req.CB.NewTransactor(ctx, ERC20DepositorTXGasLimit, req.Account)
 	if err != nil {
 		return nil, errors.WithMessagef(err, "creating transactor for asset: %x", req.Asset)
 	}
@@ -57,7 +58,7 @@ func (d *ERC20Depositor) Deposit(ctx context.Context, req DepositReq) (types.Tra
 		return nil, errors.WithMessagef(err, "increasing allowance for asset: %x", req.Asset)
 	}
 	// Deposit.
-	opts, err = req.CB.NewTransactor(ctx, nil /*Don't send ETH*/, ERC20DepositorTXGasLimit, req.Account)
+	opts, err = req.CB.NewTransactor(ctx, ERC20DepositorTXGasLimit, req.Account)
 	if err != nil {
 		return nil, errors.WithMessagef(err, "creating transactor for asset: %x", req.Asset)
 	}

@@ -29,11 +29,12 @@ import (
 type ETHDepositor struct{}
 
 // ETHDepositorGasLimit is the limit of Gas that an `ETHDepositor` will spend
-// when depositing funds. It is set to 50000.
+// when depositing funds.
 // A `Deposit` call uses ~47kGas on average.
 const ETHDepositorGasLimit = 50000
 
-// Deposit returns the transactions for despositing Ethereum or an error otherwise.
+// Deposit deposits ether into the ETH AssetHolder specified at the requests's
+// asset address.
 func (d *ETHDepositor) Deposit(ctx context.Context, req DepositReq) (types.Transactions, error) {
 	// Bind an `AssetHolderETH` instance. Using `AssetHolder` is also possible
 	// since we only use the interface functions here.
@@ -41,10 +42,11 @@ func (d *ETHDepositor) Deposit(ctx context.Context, req DepositReq) (types.Trans
 	if err != nil {
 		return nil, errors.WithMessagef(err, "binding AssetHolderETH contract at: %x", req.Asset)
 	}
-	opts, err := req.CB.NewTransactor(ctx, req.Balance, ETHDepositorGasLimit, req.Account)
+	opts, err := req.CB.NewTransactor(ctx, ETHDepositorGasLimit, req.Account)
 	if err != nil {
 		return nil, errors.WithMessagef(err, "creating transactor for asset: %x", req.Asset)
 	}
+	opts.Value = req.Balance
 
 	tx, err := contract.Deposit(opts, req.FundingID, req.Balance)
 	return []*types.Transaction{tx}, errors.WithMessage(err, "AssetHolderETH depositing")

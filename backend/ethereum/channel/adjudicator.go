@@ -17,7 +17,6 @@ package channel
 import (
 	"context"
 	"fmt"
-	"math/big"
 
 	"github.com/ethereum/go-ethereum/accounts"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
@@ -108,7 +107,7 @@ func (a *Adjudicator) call(ctx context.Context, req channel.AdjudicatorReq, fn a
 		}
 		defer a.mu.Unlock()
 
-		trans, err := a.NewTransactor(ctx, big.NewInt(0), GasLimit, a.txSender)
+		trans, err := a.NewTransactor(ctx, GasLimit, a.txSender)
 		if err != nil {
 			return nil, errors.WithMessage(err, "creating transactor")
 		}

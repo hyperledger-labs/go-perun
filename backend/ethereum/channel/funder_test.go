@@ -373,7 +373,7 @@ func fundERC20(ctx context.Context, cb ethchannel.ContractBackend, from accounts
 		return errors.WithMessagef(err, "binding AssetHolderERC20 contract at: %v", asset)
 	}
 	// Transfer.
-	opts, err := cb.NewTransactor(ctx, nil, txGasLimit, from)
+	opts, err := cb.NewTransactor(ctx, txGasLimit, from)
 	if err != nil {
 		return errors.WithMessagef(err, "creating transactor for asset: %v", asset)
 	}
