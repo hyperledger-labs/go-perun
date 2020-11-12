@@ -36,3 +36,17 @@ func TestIsContextError(t *testing.T) {
 
 	assert.False(t, pcontext.IsContextError(errors.New("no context error")))
 }
+
+func TestIsDone(t *testing.T) {
+	assert.False(t, pcontext.IsDone(context.Background()))
+
+	ctx, cancel := context.WithCancel(context.Background())
+	assert.False(t, pcontext.IsDone(ctx))
+	cancel()
+	assert.True(t, pcontext.IsDone(ctx))
+
+	// context that immediately times out
+	ctx, cancel = context.WithTimeout(context.Background(), 0)
+	defer cancel()
+	assert.True(t, pcontext.IsDone(ctx))
+}

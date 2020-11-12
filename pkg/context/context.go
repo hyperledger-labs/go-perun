@@ -28,3 +28,13 @@ func IsContextError(err error) bool {
 	err = errors.Cause(err)
 	return err == context.Canceled || err == context.DeadlineExceeded
 }
+
+// IsDone returns whether ctx is done.
+func IsDone(ctx interface{ Done() <-chan struct{} }) bool {
+	select {
+	case <-ctx.Done():
+		return true
+	default:
+		return false
+	}
+}
