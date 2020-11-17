@@ -59,12 +59,17 @@ func (d *DummyAdjudicator) Register(context.Context, channel.AdjudicatorReq) (*c
 	return nil, errors.New("DummyAdjudicator.Register called")
 }
 
+func (d *DummyAdjudicator) Progress(context.Context, channel.ProgressReq) error {
+	d.t.Error("DummyAdjudicator.Register called")
+	return errors.New("DummyAdjudicator.Progress called")
+}
+
 func (d *DummyAdjudicator) Withdraw(context.Context, channel.AdjudicatorReq) error {
 	d.t.Error("DummyAdjudicator.Withdraw called")
 	return errors.New("DummyAdjudicator.Withdraw called")
 }
 
-func (d *DummyAdjudicator) SubscribeRegistered(context.Context, *channel.Params) (channel.RegisteredSubscription, error) {
+func (d *DummyAdjudicator) Subscribe(context.Context, *channel.Params) (channel.AdjudicatorSubscription, error) {
 	d.t.Error("DummyAdjudicator.SubscribeRegistered called")
 	return nil, errors.New("DummyAdjudicator.SubscribeRegistered called")
 }
