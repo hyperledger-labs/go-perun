@@ -124,6 +124,13 @@ func (a *Adjudicator) call(ctx context.Context, req channel.AdjudicatorReq, fn a
 	return errors.WithMessage(a.ConfirmTransaction(ctx, tx, a.txSender), "mining transaction")
 }
 
+// Progress will call progress on the Adjudicator contract in the future. Right
+// now, it panics.
+func (a *Adjudicator) Progress(context.Context, channel.ProgressReq) error {
+	a.log.Panic("Progressed not implemented yet")
+	return nil
+}
+
 // ValidateAdjudicator checks if the bytecode at given address is correct.
 // Returns a ContractBytecodeError if the bytecode at given address is invalid.
 // This error can be checked with function IsErrInvalidContractCode.
