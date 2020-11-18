@@ -138,11 +138,8 @@ func GenericPersistRestorerTest(
 
 				ch.SetRegistering(t)
 
-				ch.SetRegistered(t, &channel.RegisteredEvent{
-					ID:      ch.ID(),
-					Version: statef.Version,
-					Timeout: new(channel.ElapsedTimeout),
-				})
+				ch.SetRegistered(t,
+					channel.NewRegisteredEvent(ch.ID(), new(channel.ElapsedTimeout), statef.Version))
 
 				ch.SetWithdrawing(t)
 

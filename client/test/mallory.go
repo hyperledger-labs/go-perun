@@ -23,6 +23,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
+	"perun.network/go-perun/channel"
 	"perun.network/go-perun/client"
 )
 
@@ -78,15 +79,17 @@ func (r *Mallory) exec(_cfg ExecConfig, ch *paymentChannel) {
 	// within the challenge duration, Carol should refute.
 	subCtx, subCancel := context.WithTimeout(context.Background(), r.timeout+challengeDuration)
 	defer subCancel()
-	sub, err := r.setup.Adjudicator.SubscribeRegistered(subCtx, ch.Params())
+	sub, err := r.setup.Adjudicator.Subscribe(subCtx, ch.Params())
 	assert.NoError(err)
 
 	// 3rd stage - wait until Carol has refuted
 	r.waitStage()
 
-	assert.True(reg0.Timeout.IsElapsed(subCtx),
+	assert.True(reg0.Timeout().IsElapsed(subCtx),
 		"Carol's refutation should already have progressed past the timeout.")
-	reg := sub.Next() // should be event caused by Carol's refutation.
+	event := sub.Next() // should be event caused by Carol's refutation.
+	reg, ok := event.(*channel.RegisteredEvent)
+	assert.True(ok)
 	assert.NoError(sub.Close())
 	assert.NoError(sub.Err())
 	assert.NotNil(reg)
@@ -96,7 +99,7 @@ func (r *Mallory) exec(_cfg ExecConfig, ch *paymentChannel) {
 		waitCtx, waitCancel := context.WithTimeout(context.Background(), r.timeout+challengeDuration)
 		defer waitCancel()
 		// refutation increased the timeout.
-		assert.NoError(reg.Timeout.Wait(waitCtx))
+		assert.NoError(reg.Timeout().Wait(waitCtx))
 	}
 
 	wdCtx, wdCancel := context.WithTimeout(context.Background(), r.timeout)

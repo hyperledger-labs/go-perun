@@ -25,6 +25,7 @@ import (
 
 	ethchannel "perun.network/go-perun/backend/ethereum/channel"
 	"perun.network/go-perun/channel"
+	"perun.network/go-perun/log"
 )
 
 // A SimAdjudicator is an Adjudicator for simulated backends. Its Register
@@ -57,9 +58,9 @@ func (a *SimAdjudicator) Register(ctx context.Context, req channel.AdjudicatorRe
 		return reg, err
 	}
 
-	switch t := reg.Timeout.(type) {
+	switch t := reg.Timeout().(type) {
 	case *ethchannel.BlockTimeout:
-		reg.Timeout = block2SimTimeout(a.sb, t)
+		reg.TimeoutV = block2SimTimeout(a.sb, t)
 	case *channel.ElapsedTimeout: // leave as is
 	case nil: // leave as is
 	default:
@@ -70,8 +71,8 @@ func (a *SimAdjudicator) Register(ctx context.Context, req channel.AdjudicatorRe
 
 // SubscribeRegistered returns a RegisteredEvent subscription on the simulated
 // blockchain backend.
-func (a *SimAdjudicator) SubscribeRegistered(ctx context.Context, params *channel.Params) (channel.RegisteredSubscription, error) {
-	sub, err := a.Adjudicator.SubscribeRegistered(ctx, params)
+func (a *SimAdjudicator) Subscribe(ctx context.Context, params *channel.Params) (channel.AdjudicatorSubscription, error) {
+	sub, err := a.Adjudicator.Subscribe(ctx, params)
 	if err != nil {
 		return nil, err
 	}
@@ -90,13 +91,26 @@ type SimRegisteredSub struct {
 
 // Next calls Next on the underlying subscription, converting the TimeTimeout to
 // a SimTimeout.
-func (r *SimRegisteredSub) Next() *channel.RegisteredEvent {
-	reg := r.RegisteredSub.Next()
-	if reg == nil {
+func (r *SimRegisteredSub) Next() channel.AdjudicatorEvent {
+	switch ev := r.RegisteredSub.Next().(type) {
+	case nil:
 		return nil
+	case *channel.RegisteredEvent:
+		if ev == nil {
+			return nil
+		}
+		ev.TimeoutV = block2SimTimeout(r.sb, ev.Timeout().(*ethchannel.BlockTimeout))
+		return ev
+	case *channel.ProgressedEvent:
+		if ev == nil {
+			return nil
+		}
+		ev.TimeoutV = block2SimTimeout(r.sb, ev.Timeout().(*ethchannel.BlockTimeout))
+		return ev
+	default:
+		log.Panicf("unknown AdjudicatorEvent type: %t", ev)
+		return nil // never reached
 	}
-	reg.Timeout = block2SimTimeout(r.sb, reg.Timeout.(*ethchannel.BlockTimeout))
-	return reg
 }
 
 func block2SimTimeout(sb *SimulatedBackend, t *ethchannel.BlockTimeout) *SimTimeout {

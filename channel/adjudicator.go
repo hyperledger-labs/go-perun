@@ -25,20 +25,21 @@ import (
 )
 
 type (
-	// An Adjudicator represents an adjudicator contract on the blockchain. It
-	// has methods for state registration and withdrawal of channel funds.
-	// A channel state needs to be registered before the concluded state can be
-	// withdrawn after a possible timeout.
+	// An Adjudicator represents an adjudicator contract on the blockchain. It has
+	// methods for state registration, progression and withdrawal of channel
+	// funds. A channel state needs to be registered before it can be progressed
+	// or withdrawn. No-App channels skip the force-execution phase and can be
+	// withdrawn directly after the refutation phase has finished. Channels in a
+	// final state can directly be withdrawn after registration.
 	//
-	// Furthermore, it has a method for subscribing to RegisteredEvents. Those
-	// events might be triggered by a Register call on the adjudicator from any
-	// channel participant.
+	// Furthermore, an Adjudicator has a method for subscribing to
+	// AdjudicatorEvents. Those events might be triggered by a Register or
+	// Progress call on the adjudicator from any channel participant.
 	Adjudicator interface {
 		// Register should register the given channel state on-chain. It must be
 		// taken into account that a peer might already have registered the same or
 		// even an old state for the same channel. If registration was successful,
-		// it should return the timeout when withdrawal can be initiated with
-		// Withdraw.
+		// it should return the timeout when the refutation phase will end.
 		Register(context.Context, AdjudicatorReq) (*RegisteredEvent, error)
 
 		// Withdraw should conclude and withdraw the registered state, so that the
@@ -47,12 +48,18 @@ type (
 		// account that a peer might already have concluded the same channel.
 		Withdraw(context.Context, AdjudicatorReq) error
 
-		// SubscribeRegistered returns a RegisteredEvent subscription. The
-		// subscription should be a subscription of the newest past as well as
-		// future events. The subscription should only be valid within the given
-		// context: If the context is canceled, its Next method should return nil
-		// and Err should return the context's error.
-		SubscribeRegistered(context.Context, *Params) (RegisteredSubscription, error)
+		// Progress should try to progress an on-chain registered state to the new
+		// state given in ProgressReq. The Transaction field only needs to
+		// contain the state, the signatures can be nil, since the old state is
+		// already registered on the adjudicator.
+		Progress(context.Context, ProgressReq) error
+
+		// Subscribe returns an AdjudicatorEvent subscription.
+		//
+		// The context should only be used to establish the subscription. The
+		// framework will call Close on the subscription once the respective channel
+		// controller shuts down.
+		Subscribe(context.Context, *Params) (AdjudicatorSubscription, error)
 	}
 
 	// An AdjudicatorReq collects all necessary information to make calls to the
@@ -66,16 +73,68 @@ type (
 		Params    *Params
 		Acc       wallet.Account
 		Tx        Transaction
-		Idx       Index
-		Secondary bool
+		Idx       Index // Always the own index
+		Secondary bool  // Optimized secondary call protocol
+	}
+
+	// A ProgressReq collects all necessary information to do a progress call to
+	// the adjudicator.
+	ProgressReq struct {
+		AdjudicatorReq            // Tx should refer to the currently registered state
+		NewState       *State     // New state to progress into
+		Sig            wallet.Sig // Own signature on the new state
+	}
+
+	// An AdjudicatorSubscription is a subscription to AdjudicatorEvents for a
+	// specific channel. The subscription should also return the most recent past
+	// event, if there is any. It should skip all Registered events and only
+	// return the most recent Progressed event if the channel already got progressed.
+	//
+	// The usage of the subscription should be similar to that of an iterator.
+	// Next calls should block until a new event is generated (or the first past
+	// event has been found). If the subscription is closed or an error is
+	// produced, Next should return nil and Err should tell the possible error.
+	AdjudicatorSubscription interface {
+		// Next returns the most recent past or next future event. If the subscription is
+		// closed or any other error occurs, it should return nil.
+		Next() AdjudicatorEvent
+
+		// Err returns the error status of the subscription. After Next returns nil,
+		// Err should be checked for an error.
+		Err() error
+
+		// Close closes the subscription. Any call to Next should immediately return
+		// nil.
+		Close() error
+	}
+
+	// An AdjudicatorEvent is any event that an on-chain adjudicator call might
+	// cause, currently either a Registered or Progressed event.
+	// The type of the event should be checked with a type switch.
+	AdjudicatorEvent interface {
+		ID() ID
+		Timeout() Timeout
+	}
+
+	// An AdjudicatorEventBase implements the AdjudicatorEvent interface. It can
+	// be embedded to implement an AdjudicatorEvent.
+	AdjudicatorEventBase struct {
+		IDV      ID      // Channel ID
+		TimeoutV Timeout // Current phase timeout
+	}
+
+	// ProgressedEvent is the abstract event that signals an on-chain progression.
+	ProgressedEvent struct {
+		AdjudicatorEventBase        // Channel ID and ForceExec phase timeout
+		State                *State // State that was progressed into
+		Idx                  Index  // Index of the participant who progressed
 	}
 
 	// RegisteredEvent is the abstract event that signals a successful state
 	// registration on the blockchain.
 	RegisteredEvent struct {
-		ID      ID      // Channel ID
-		Version uint64  // Registered version.
-		Timeout Timeout // Timeout when the event can be concluded or progressed
+		AdjudicatorEventBase        // Channel ID and Refutation phase timeout
+		Version              uint64 // Registered version
 	}
 
 	// A Timeout is an abstract timeout of a channel dispute. A timeout can be
@@ -89,29 +148,36 @@ type (
 		// should return immediately with the context's error.
 		Wait(context.Context) error
 	}
-
-	// A RegisteredSubscription is a subscription to RegisteredEvents for a
-	// specific channel. The subscription should also return the newest past
-	// RegisteredEvent, if there is any.
-	//
-	// The usage of the subscription should be similar to that of an iterator.
-	// Next calls should block until a new event is generated (or the first past
-	// event has been found). If the channel is closed or an error is produced,
-	// Next should return nil and Err should tell the possible error.
-	RegisteredSubscription interface {
-		// Next returns the newest past or next future event. If the subscription is
-		// closed or any other error occurs, it should return nil.
-		Next() *RegisteredEvent
-
-		// Err returns the error status of the subscription. After Next returns nil,
-		// Err should be checked for an error.
-		Err() error
-
-		// Close closes the subscription. Any call to Next should immediately return
-		// nil.
-		Close() error
-	}
 )
+
+// ID returns the channel ID.
+func (b AdjudicatorEventBase) ID() ID { return b.IDV }
+
+// Timeout returns the phase timeout.
+func (b AdjudicatorEventBase) Timeout() Timeout { return b.TimeoutV }
+
+// NewRegisteredEvent creates a new RegisteredEvent.
+func NewRegisteredEvent(id ID, timeout Timeout, version uint64) *RegisteredEvent {
+	return &RegisteredEvent{
+		AdjudicatorEventBase: AdjudicatorEventBase{
+			IDV:      id,
+			TimeoutV: timeout,
+		},
+		Version: version,
+	}
+}
+
+// NewProgressedEvent creates a new ProgressedEvent.
+func NewProgressedEvent(id ID, timeout Timeout, state *State, idx Index) *ProgressedEvent {
+	return &ProgressedEvent{
+		AdjudicatorEventBase: AdjudicatorEventBase{
+			IDV:      id,
+			TimeoutV: timeout,
+		},
+		State: state,
+		Idx:   idx,
+	}
+}
 
 // ElapsedTimeout is a Timeout that is always elapsed.
 type ElapsedTimeout struct{}

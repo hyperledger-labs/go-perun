@@ -43,15 +43,15 @@ func (a *Adjudicator) registerFinal(ctx context.Context, req channel.Adjudicator
 		return nil, errors.WithMessage(err, "ensuring Concluded")
 	}
 
-	return &channel.RegisteredEvent{
-		ID:      req.Params.ID(),
-		Timeout: new(channel.ElapsedTimeout), // concludeFinal skips registration
-		Version: req.Tx.Version,
-	}, nil
+	return channel.NewRegisteredEvent(
+		req.Params.ID(),
+		new(channel.ElapsedTimeout), // concludeFinal skips registration
+		req.Tx.Version,
+	), nil
 }
 
 func (a *Adjudicator) registerNonFinal(ctx context.Context, req channel.AdjudicatorReq) (*channel.RegisteredEvent, error) {
-	_sub, err := a.SubscribeRegistered(ctx, req.Params)
+	_sub, err := a.Subscribe(ctx, req.Params)
 	if err != nil {
 		return nil, err
 	}
@@ -71,27 +71,31 @@ func (a *Adjudicator) registerNonFinal(ctx context.Context, req channel.Adjudica
 	// iterate over state registrations and call refute until correct version got
 	// registered.
 	for {
-		s := sub.Next()
-		if s == nil {
+		switch ev := sub.Next().(type) {
+		case nil:
 			// the subscription error might be nil, so to ensure a non-nil error, we
 			// create a new one.
 			return nil, errors.Errorf("subscription closed with error %v", sub.Err())
-		}
 
-		if req.Tx.Version > s.Version {
-			if err := a.callRefute(ctx, req); IsErrTxFailed(err) {
-				a.log.Warn("Calling refute failed, waiting for event anyways...")
-			} else if err != nil {
-				return nil, errors.WithMessage(err, "calling refute")
+		case *channel.RegisteredEvent:
+			if req.Tx.Version > ev.Version {
+				if err := a.callRefute(ctx, req); IsErrTxFailed(err) {
+					a.log.Warn("Calling refute failed, waiting for event anyways...")
+				} else if err != nil {
+					return nil, errors.WithMessage(err, "calling refute")
+				}
+				continue // wait for next event
 			}
-			continue // wait for next event
+			return ev, nil // version matches, we're done
+
+		case *channel.ProgressedEvent:
+			return nil, errors.New("refutation phase already finished")
 		}
-		return s, nil // version matches, we're done
 	}
 }
 
-// SubscribeRegistered returns a new subscription to registered events.
-func (a *Adjudicator) SubscribeRegistered(ctx context.Context, params *channel.Params) (channel.RegisteredSubscription, error) {
+// Subscribe returns a new AdjudicatorSubscription to adjudicator events.
+func (a *Adjudicator) Subscribe(ctx context.Context, params *channel.Params) (channel.AdjudicatorSubscription, error) {
 	stored := make(chan *adjudicator.AdjudicatorStored)
 	sub, iter, err := a.filterWatchStored(ctx, stored, params)
 	if err != nil {
@@ -179,7 +183,7 @@ evloop:
 			select {
 			// drain next-channel on new event
 			case current := <-r.next:
-				currentTimeout := current.Timeout.(*BlockTimeout)
+				currentTimeout := current.Timeout().(*BlockTimeout)
 				// if newer version or same version and newer timeout, replace
 				if current.Version < next.Version ||
 					current.Version == next.Version && currentTimeout.Time < next.Timeout {
@@ -209,8 +213,12 @@ evloop:
 // is closed. If the subscription is closed, Next immediately returns nil.
 // If there was a past event when the subscription was set up, the first call to
 // Next will return it.
-func (r *RegisteredSub) Next() *channel.RegisteredEvent {
-	return <-r.next
+func (r *RegisteredSub) Next() channel.AdjudicatorEvent {
+	reg := <-r.next
+	if reg == nil {
+		return nil // otherwise we get (*RegisteredEvent)(nil)
+	}
+	return reg
 }
 
 // Close closes this subscription. Any pending calls to Next will return nil.
@@ -229,9 +237,9 @@ func (r *RegisteredSub) storedToRegisteredEvent(event *adjudicator.AdjudicatorSt
 	if event == nil {
 		return nil
 	}
-	return &channel.RegisteredEvent{
-		ID:      event.ChannelID,
-		Version: event.Version,
-		Timeout: NewBlockTimeout(r.cr, event.Timeout),
-	}
+	return channel.NewRegisteredEvent(
+		event.ChannelID,
+		NewBlockTimeout(r.cr, event.Timeout),
+		event.Version,
+	)
 }

@@ -34,27 +34,35 @@ func (c *Channel) Watch() error {
 	defer log.Info("Watcher returned.")
 
 	ctx := c.Ctx()
-	sub, err := c.adjudicator.SubscribeRegistered(ctx, c.Params())
+	sub, err := c.adjudicator.Subscribe(ctx, c.Params())
 	if err != nil {
 		return errors.WithMessage(err, "subscribing to RegisteredEvents")
 	}
-	// nolint:errcheck
-	defer sub.Close()
-	// nolint:errcheck,gosec
-	c.OnCloseAlways(func() { sub.Close() })
+	closeSub := func() {
+		if err := sub.Close; err != nil {
+			c.Log().Warnf("Error closing adjudicator subscription: %v", err)
+		}
+	}
+	defer closeSub()
+	c.OnCloseAlways(closeSub)
 
 	// Wait for on-chain event
-	reg := sub.Next()
-	log.Infof("New RegisteredEvent: %v", reg)
-	if reg == nil {
+	event := sub.Next()
+	log.Infof("New AdjudicatorEvent: %v", event)
+	switch ev := event.(type) {
+	case nil:
 		err := sub.Err() // err might be nil if subscription got orderly closed
 		log.Debugf("Subscription closed: %v", err)
 		return errors.WithMessage(err, "subscription closed")
+	case *channel.RegisteredEvent:
+		return errors.WithMessage(
+			c.handleRegisteredEvent(ctx, ev),
+			"handling RegisteredEvent")
+	case *channel.ProgressedEvent:
+		c.Log().Panic("Progressed event handling not implemented yet")
 	}
 
-	return errors.WithMessage(
-		c.handleRegisteredEvent(ctx, reg),
-		"handling RegisteredEvent")
+	return errors.New("unexpect return")
 }
 
 // handleRegisteredEvent stores the passed RegisteredEvent to the machine and
@@ -147,7 +155,7 @@ func (c *Channel) settle(ctx context.Context, secondary bool) error {
 		c.Log().Info("Channel state registered.")
 	}
 
-	if reg = c.machine.Registered(); !reg.Timeout.IsElapsed(ctx) {
+	if reg = c.machine.Registered(); !reg.Timeout().IsElapsed(ctx) {
 		if c.machine.State().IsFinal {
 			c.Log().Warnf(
 				"Unexpected withdrawal timeout while settling final state. Waiting until %v.",
@@ -156,7 +164,7 @@ func (c *Channel) settle(ctx context.Context, secondary bool) error {
 			c.Log().Infof("Waiting until %v for withdrawal.", reg.Timeout)
 		}
 
-		if err := reg.Timeout.Wait(ctx); err != nil {
+		if err := reg.Timeout().Wait(ctx); err != nil {
 			return errors.WithMessage(err, "waiting for timeout")
 		}
 	}
