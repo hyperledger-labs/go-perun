@@ -95,6 +95,41 @@ type (
 	Stages = []sync.WaitGroup
 )
 
+const twoPartyTestTimeout = 10 * time.Second
+
+// ExecuteTwoPartyTest executes the specified client test.
+func ExecuteTwoPartyTest(t *testing.T, role [2]Executer, cfg ExecConfig) {
+	log.Info("Starting two-party test")
+
+	// enable stages synchronization
+	stages := role[0].EnableStages()
+	role[1].SetStages(stages)
+
+	numClients := len(role)
+	done := make(chan struct{}, numClients)
+
+	// start clients
+	for i := 0; i < numClients; i++ {
+		go func(i int) {
+			log.Infof("Executing role %d", i)
+			role[i].Execute(cfg)
+			done <- struct{}{} // signal client done
+		}(i)
+	}
+
+	// wait for clients to finish or timeout
+	timeout := time.After(twoPartyTestTimeout)
+	for clientsRunning := numClients; clientsRunning > 0; clientsRunning-- {
+		select {
+		case <-done: // wait for client done signal
+		case <-timeout:
+			t.Fatal("twoPartyTest timeout")
+		}
+	}
+
+	log.Info("Two-party test done")
+}
+
 // MakeBaseExecConfig creates a new BaseExecConfig.
 func MakeBaseExecConfig(
 	peers [2]wire.Address,

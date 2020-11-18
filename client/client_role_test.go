@@ -17,7 +17,6 @@ package client_test
 import (
 	"context"
 	"math/rand"
-	"testing"
 	"time"
 
 	"perun.network/go-perun/channel"
@@ -27,40 +26,7 @@ import (
 	"perun.network/go-perun/wire"
 )
 
-const twoPartyTestTimeout = 10 * time.Second
 const roleOperationTimeout = 1 * time.Second
-
-func executeTwoPartyTest(t *testing.T, role [2]ctest.Executer, cfg ctest.ExecConfig) {
-	log.Info("Starting two-party test")
-
-	// enable stages synchronization
-	stages := role[0].EnableStages()
-	role[1].SetStages(stages)
-
-	numClients := len(role)
-	done := make(chan struct{}, numClients)
-
-	// start clients
-	for i := 0; i < numClients; i++ {
-		go func(i int) {
-			log.Infof("Executing role %d", i)
-			role[i].Execute(cfg)
-			done <- struct{}{} // signal client done
-		}(i)
-	}
-
-	// wait for clients to finish or timeout
-	timeout := time.After(twoPartyTestTimeout)
-	for clientsRunning := numClients; clientsRunning > 0; clientsRunning-- {
-		select {
-		case <-done: // wait for client done signal
-		case <-timeout:
-			t.Fatal("twoPartyTest timeout")
-		}
-	}
-
-	log.Info("Two-party test done")
-}
 
 func NewSetups(rng *rand.Rand, names []string) []ctest.RoleSetup {
 	var (
