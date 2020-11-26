@@ -138,10 +138,21 @@ func (c *Channel) settleLocked(ctx context.Context, secondary bool) error {
 // assumed to be the initiator of the settlement process.
 //
 // The caller is expected to have locked the channel mutex.
-func (c *Channel) settle(ctx context.Context, secondary bool) error {
+func (c *Channel) settle(ctx context.Context, secondary bool) (err error) {
 	if c.IsSubChannel() {
-		return c.subChannelSettleOptimistic(ctx)
+		err = c.subChannelSettleOptimistic(ctx)
+	} else {
+		err = c.ledgerChannelSettle(ctx, secondary)
 	}
+	if err != nil {
+		return err
+	}
+	c.Log().Info("Withdrawal successful.")
+	c.wallet.DecrementUsage(c.machine.Account().Address())
+	return nil
+}
+
+func (c *Channel) ledgerChannelSettle(ctx context.Context, secondary bool) error {
 	ver, reg := c.machine.State().Version, c.machine.Registered()
 	// If the machine is at least in phase Registered, reg shouldn't be nil. We
 	// still catch this case to be future proof.
@@ -169,12 +180,7 @@ func (c *Channel) settle(ctx context.Context, secondary bool) error {
 		}
 	}
 
-	if err := c.withdraw(ctx, secondary); err != nil {
-		return errors.WithMessage(err, "withdrawing")
-	}
-	c.Log().Info("Withdrawal successful.")
-	c.wallet.DecrementUsage(c.machine.Account().Address())
-	return nil
+	return errors.WithMessage(c.withdraw(ctx, secondary), "withdrawing")
 }
 
 // register calls Register on the adjudicator with the current channel state and
