@@ -8,9 +8,9 @@ ERR=0
 # Loop over all subdirectories not starting with a . and alias them $pkg.
 for pkg in $(find $1 -mindepth 1 -type d ! -path '*/\.*'); do
 	# Count the vanity imports in the $pkg folder.
-	numImports="$(find $pkg -maxdepth 1 -type f -name '*.go' -print0 | xargs -0 egrep -ho '^package [a-z_]+ // import ".*$' | wc -l)"
+	numImports="$(find $pkg -maxdepth 1 -type f -name '*.go' -print0 | xargs -0 egrep -ho '^package [a-z0-9_]+ // import ".*$' | wc -l)"
 	# Count how many non _test package definitions (eg. package my_test) the $pkg folder contains.
-	numNonTestPackages="$(find $pkg -maxdepth 1 -type f -name '*.go' -print0 | xargs -0 egrep -ho '^package [a-z_]+' | egrep -v '_test' | wc -l)"
+	numNonTestPackages="$(find $pkg -maxdepth 1 -type f -name '*.go' -print0 | xargs -0 egrep -ho '^package [a-z0-9_]+' | egrep -v '_test' | wc -l)"
 
 	# _test packages are allowed to not have a vanity import path.
 	# So if the directory contains a non-_test package, there must be an import path.
