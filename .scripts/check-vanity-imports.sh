@@ -1,5 +1,6 @@
 #!/bin/bash
-set -e
+
+ERR=0
 
 # Call with working directory, eg: .scripts/check-vanity-imports.sh $PWD
 [ "$#" -ne 1 ] && (echo "Need working directory as first argument" && exit 1)
@@ -15,12 +16,14 @@ for pkg in $(find $1 -mindepth 1 -type d ! -path '*/\.*'); do
 	# So if the directory contains a non-_test package, there must be an import path.
 	if [ $numImports -eq 0 ] && [ $numNonTestPackages -gt 0 ]; then
 		echo "Package is missing vanity import path: $pkg"
-		exit 1
+		ERR=1
 	# Here we check that the whole folder does not have more than one vanity
 	# import. This implies that _test packages do not have import paths when
 	# they are in the same folder as a non _test package.
 	elif [ $numImports -gt 1 ]; then
 		echo "Package has more than one vanity import path: $pkg"
-		exit 1
+		ERR=1
 	fi
 done
+
+exit $ERR
