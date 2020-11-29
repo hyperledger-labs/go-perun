@@ -76,4 +76,7 @@ generate "AssetHolderERC20" "assetholdererc20"
 # Tokens
 generate "PerunToken" "peruntoken"
 
+# Applications
+generate "TrivialApp" "trivialapp"
+
 echo "Generated bindings"
