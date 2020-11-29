@@ -26,7 +26,7 @@ import (
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/pkg/errors"
 
-	"perun.network/go-perun/backend/ethereum/bindings/assets"
+	"perun.network/go-perun/backend/ethereum/bindings/assetholder"
 	"perun.network/go-perun/backend/ethereum/wallet"
 	"perun.network/go-perun/channel"
 	"perun.network/go-perun/log"
@@ -36,7 +36,7 @@ import (
 )
 
 type assetHolder struct {
-	*assets.AssetHolder
+	*assetholder.AssetHolder
 	*common.Address
 	assetIndex channel.Index
 }
@@ -200,14 +200,14 @@ func checkFunded(ctx context.Context, amount *big.Int, asset assetHolder, fundin
 func (f *Funder) bindContract(asset Asset, assetIndex channel.Index) assetHolder {
 	// Decode and set the asset address.
 	assetAddr := common.Address(asset)
-	ctr, err := assets.NewAssetHolder(assetAddr, f)
+	ctr, err := assetholder.NewAssetHolder(assetAddr, f)
 	if err != nil {
 		f.log.Panic("Invalid AssetHolder ABI definition.")
 	}
 	return assetHolder{ctr, &assetAddr, assetIndex}
 }
 
-func filterFunds(ctx context.Context, asset assetHolder, fundingIDs ...[32]byte) (*assets.AssetHolderDepositedIterator, error) {
+func filterFunds(ctx context.Context, asset assetHolder, fundingIDs ...[32]byte) (*assetholder.AssetHolderDepositedIterator, error) {
 	// Filter
 	filterOpts := bind.FilterOpts{
 		Start:   uint64(1),
@@ -226,7 +226,7 @@ func filterFunds(ctx context.Context, asset assetHolder, fundingIDs ...[32]byte)
 // according to the funding agreement.
 // nolint: funlen
 func (f *Funder) waitForFundingConfirmation(ctx context.Context, request channel.FundingReq, asset assetHolder, fundingIDs [][32]byte) error {
-	deposited := make(chan *assets.AssetHolderDeposited)
+	deposited := make(chan *assetholder.AssetHolderDeposited)
 	// Watch new events
 	watchOpts, err := f.NewWatchOpts(ctx)
 	if err != nil {

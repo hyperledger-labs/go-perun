@@ -28,7 +28,8 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"perun.network/go-perun/backend/ethereum/bindings/assets"
+	"perun.network/go-perun/backend/ethereum/bindings/assetholder"
+	"perun.network/go-perun/backend/ethereum/bindings/peruntoken"
 	ethchannel "perun.network/go-perun/backend/ethereum/channel"
 	"perun.network/go-perun/backend/ethereum/channel/test"
 	ethwallet "perun.network/go-perun/backend/ethereum/wallet"
@@ -368,7 +369,7 @@ func newNFunders(
 
 // fundERC20 funds `to` with ERC20 tokens from account `from`.
 func fundERC20(ctx context.Context, cb ethchannel.ContractBackend, from accounts.Account, to common.Address, token common.Address, asset ethchannel.Asset) error {
-	contract, err := assets.NewERC20(token, cb)
+	contract, err := peruntoken.NewERC20(token, cb)
 	if err != nil {
 		return errors.WithMessagef(err, "binding AssetHolderERC20 contract at: %v", asset)
 	}
@@ -408,7 +409,7 @@ func getOnChainAllocation(ctx context.Context, cb *ethchannel.ContractBackend, p
 
 	for k, asset := range _assets {
 		alloc[k] = make([]channel.Bal, len(params.Parts))
-		contract, err := assets.NewAssetHolder(common.Address(*asset.(*ethchannel.Asset)), cb)
+		contract, err := assetholder.NewAssetHolder(common.Address(*asset.(*ethchannel.Asset)), cb)
 		if err != nil {
 			return nil, err
 		}

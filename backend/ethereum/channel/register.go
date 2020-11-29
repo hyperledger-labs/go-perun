@@ -96,7 +96,7 @@ func (a *Adjudicator) registerNonFinal(ctx context.Context, req channel.Adjudica
 
 // Subscribe returns a new AdjudicatorSubscription to adjudicator events.
 func (a *Adjudicator) Subscribe(ctx context.Context, params *channel.Params) (channel.AdjudicatorSubscription, error) {
-	stored := make(chan *adjudicator.AdjudicatorStored)
+	stored := make(chan *adjudicator.AdjudicatorChannelUpdate)
 	sub, iter, err := a.filterWatchStored(ctx, stored, params)
 	if err != nil {
 		return nil, errors.WithMessage(err, "filter/watch Stored event")
@@ -113,7 +113,7 @@ func (a *Adjudicator) Subscribe(ctx context.Context, params *channel.Params) (ch
 	go rsub.updateNext(stored)
 
 	// find past event, if any
-	var ev *adjudicator.AdjudicatorStored
+	var ev *adjudicator.AdjudicatorChannelUpdate
 	for iter.Next() {
 		ev = iter.Event // fast-forward to newest event
 	}
@@ -133,7 +133,7 @@ func (a *Adjudicator) Subscribe(ctx context.Context, params *channel.Params) (ch
 }
 
 // filterWatchStored sets up a filter and a subscription on Stored events.
-func (a *Adjudicator) filterWatchStored(ctx context.Context, stored chan *adjudicator.AdjudicatorStored, params *channel.Params) (sub event.Subscription, iter *adjudicator.AdjudicatorStoredIterator, err error) {
+func (a *Adjudicator) filterWatchStored(ctx context.Context, stored chan *adjudicator.AdjudicatorChannelUpdate, params *channel.Params) (sub event.Subscription, iter *adjudicator.AdjudicatorChannelUpdateIterator, err error) {
 	defer func() {
 		if err != nil && sub != nil {
 			sub.Unsubscribe()
@@ -144,7 +144,7 @@ func (a *Adjudicator) filterWatchStored(ctx context.Context, stored chan *adjudi
 	if err != nil {
 		return nil, nil, errors.WithMessage(err, "creating watchopts")
 	}
-	sub, err = a.contract.WatchStored(watchOpts, stored, []channel.ID{params.ID()})
+	sub, err = a.contract.WatchChannelUpdate(watchOpts, stored, []channel.ID{params.ID()})
 	if err != nil {
 		return nil, nil, errors.Wrapf(err, "watching stored events")
 	}
@@ -154,7 +154,7 @@ func (a *Adjudicator) filterWatchStored(ctx context.Context, stored chan *adjudi
 	if err != nil {
 		return nil, nil, errors.WithMessage(err, "creating filter opts")
 	}
-	iter, err = a.contract.FilterStored(filterOpts, []channel.ID{params.ID()})
+	iter, err = a.contract.FilterChannelUpdate(filterOpts, []channel.ID{params.ID()})
 	if err != nil {
 		return nil, nil, errors.Wrap(err, "filtering stored events")
 	}
@@ -175,7 +175,7 @@ func (r *RegisteredSub) hasPast() bool {
 	return r.past
 }
 
-func (r *RegisteredSub) updateNext(events chan *adjudicator.AdjudicatorStored) {
+func (r *RegisteredSub) updateNext(events chan *adjudicator.AdjudicatorChannelUpdate) {
 evloop:
 	for {
 		select {
@@ -233,7 +233,7 @@ func (r *RegisteredSub) Err() error {
 	return <-r.err
 }
 
-func (r *RegisteredSub) storedToRegisteredEvent(event *adjudicator.AdjudicatorStored) *channel.RegisteredEvent {
+func (r *RegisteredSub) storedToRegisteredEvent(event *adjudicator.AdjudicatorChannelUpdate) *channel.RegisteredEvent {
 	if event == nil {
 		return nil
 	}

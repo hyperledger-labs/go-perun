@@ -20,8 +20,7 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/pkg/errors"
-
-	"perun.network/go-perun/backend/ethereum/bindings/assets"
+	"perun.network/go-perun/backend/ethereum/bindings/assetholdereth"
 )
 
 // ETHDepositor deposits funds into the `AssetHolderETH` contract.
@@ -38,7 +37,7 @@ const ETHDepositorGasLimit = 50000
 func (d *ETHDepositor) Deposit(ctx context.Context, req DepositReq) (types.Transactions, error) {
 	// Bind an `AssetHolderETH` instance. Using `AssetHolder` is also possible
 	// since we only use the interface functions here.
-	contract, err := assets.NewAssetHolderETH(common.Address(req.Asset), req.CB)
+	contract, err := assetholdereth.NewAssetHolderETH(common.Address(req.Asset), req.CB)
 	if err != nil {
 		return nil, errors.WithMessagef(err, "binding AssetHolderETH contract at: %x", req.Asset)
 	}
