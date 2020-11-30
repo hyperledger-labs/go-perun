@@ -124,11 +124,12 @@ func (c *ContractBackend) NewTransactor(ctx context.Context, gasLimit uint64,
 	return auth, nil
 }
 
-// ConfirmTransaction returns whether a transaction was mined successfully or not.
-func (c *ContractBackend) ConfirmTransaction(ctx context.Context, tx *types.Transaction, acc accounts.Account) error {
+// ConfirmTransaction returns whether a transaction was mined successfully or not
+// and the receipt if it could be retrieved.
+func (c *ContractBackend) ConfirmTransaction(ctx context.Context, tx *types.Transaction, acc accounts.Account) (*types.Receipt, error) {
 	receipt, err := bind.WaitMined(ctx, c, tx)
 	if err != nil {
-		return errors.Wrap(err, "sending transaction")
+		return nil, errors.Wrap(err, "sending transaction")
 	}
 	if receipt.Status == types.ReceiptStatusFailed {
 		reason, err := errorReason(ctx, c, tx, receipt.BlockNumber, acc)
@@ -143,9 +144,9 @@ func (c *ContractBackend) ConfirmTransaction(ctx context.Context, tx *types.Tran
 		} else {
 			log.Warn("TX failed with reason: ", reason)
 		}
-		return errors.WithStack(ErrTxFailed)
+		return receipt, errors.WithStack(ErrTxFailed)
 	}
-	return nil
+	return receipt, nil
 }
 
 // ErrTxFailed signals a failed, i.e., reverted, transaction.

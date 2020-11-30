@@ -97,7 +97,7 @@ func (f *Funder) Fund(ctx context.Context, request channel.FundingReq) error {
 	for a, asset := range request.State.Assets {
 		for i, tx := range txs[a] {
 			acc := f.accounts[*asset.(*Asset)]
-			if err := f.ConfirmTransaction(ctx, tx, acc); err != nil {
+			if _, err := f.ConfirmTransaction(ctx, tx, acc); err != nil {
 				return errors.WithMessagef(err, "sending %dth funding TX for asset %d", i, a)
 			}
 			f.log.Debugf("Mined TX: %v", tx.Hash().Hex())
