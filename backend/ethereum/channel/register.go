@@ -87,6 +87,17 @@ func (a *Adjudicator) registerNonFinal(ctx context.Context, req channel.Adjudica
 
 		case *channel.ProgressedEvent:
 			return nil, errors.New("refutation phase already finished")
+
+		case *channel.ConcludedEvent:
+			if req.Tx.Version > ev.Version() {
+				if err := a.callRefute(ctx, req); IsErrTxFailed(err) {
+					a.log.Warn("Calling refute failed, waiting for event anyways...")
+				} else if err != nil {
+					return nil, errors.WithMessage(err, "calling refute")
+				}
+				continue // wait for next event
+			}
+			return channel.NewRegisteredEvent(ev.ID(), ev.Timeout(), ev.Version()), nil // version matches, we're done
 		}
 	}
 }

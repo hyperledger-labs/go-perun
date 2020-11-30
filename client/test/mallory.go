@@ -88,11 +88,21 @@ func (r *Mallory) exec(_cfg ExecConfig, ch *paymentChannel) {
 	assert.True(reg0.Timeout().IsElapsed(subCtx),
 		"Carol's refutation should already have progressed past the timeout.")
 	event := sub.Next() // should be event caused by Carol's refutation.
-	reg, ok := event.(*channel.RegisteredEvent)
+
+	// Should be either RegisteredEvent or ConcludedEvent
+	var (
+		reg channel.AdjudicatorEvent
+		ok  bool
+	)
+	reg, ok = event.(*channel.RegisteredEvent)
+	if !ok {
+		reg, ok = event.(*channel.ConcludedEvent)
+	}
 	assert.True(ok)
+	assert.NotNil(reg)
+
 	assert.NoError(sub.Close())
 	assert.NoError(sub.Err())
-	assert.NotNil(reg)
 	r.log.Debugln("<Registered> refuted: ", reg)
 	if reg != nil {
 		assert.Equal(ch.State().Version, reg.Version(), "expected refutation with current version")

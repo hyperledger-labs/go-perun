@@ -69,7 +69,7 @@ func (a *SimAdjudicator) Register(ctx context.Context, req channel.AdjudicatorRe
 	return reg, nil
 }
 
-// SubscribeRegistered returns a RegisteredEvent subscription on the simulated
+// Subscribe returns a RegisteredEvent subscription on the simulated
 // blockchain backend.
 func (a *SimAdjudicator) Subscribe(ctx context.Context, params *channel.Params) (channel.AdjudicatorSubscription, error) {
 	sub, err := a.Adjudicator.Subscribe(ctx, params)
@@ -102,6 +102,12 @@ func (r *SimRegisteredSub) Next() channel.AdjudicatorEvent {
 		ev.TimeoutV = block2SimTimeout(r.sb, ev.Timeout().(*ethchannel.BlockTimeout))
 		return ev
 	case *channel.ProgressedEvent:
+		if ev == nil {
+			return nil
+		}
+		ev.TimeoutV = block2SimTimeout(r.sb, ev.Timeout().(*ethchannel.BlockTimeout))
+		return ev
+	case *channel.ConcludedEvent:
 		if ev == nil {
 			return nil
 		}

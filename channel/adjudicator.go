@@ -140,6 +140,11 @@ type (
 		AdjudicatorEventBase // Channel ID and Refutation phase timeout
 	}
 
+	// ConcludedEvent signals channel conclusion.
+	ConcludedEvent struct {
+		AdjudicatorEventBase
+	}
+
 	// A Timeout is an abstract timeout of a channel dispute. A timeout can be
 	// elapsed and it can be waited on it to elapse.
 	Timeout interface {
