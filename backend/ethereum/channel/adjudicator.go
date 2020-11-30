@@ -16,6 +16,7 @@ package channel
 
 import (
 	"context"
+	"math/big"
 
 	"github.com/ethereum/go-ethereum/accounts"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
@@ -61,6 +62,22 @@ func NewAdjudicator(backend ContractBackend, contract common.Address, receiver c
 		txSender:        txSender,
 		log:             log.WithField("txSender", txSender.Address),
 	}
+}
+
+// Progress progresses a channel state on-chain.
+func (a *Adjudicator) Progress(ctx context.Context, req channel.ProgressReq) error {
+	ethNewState := ToEthState(req.NewState)
+	ethActorIndex := big.NewInt(int64(req.Idx))
+
+	conclude := func(
+		opts *bind.TransactOpts,
+		params adjudicator.ChannelParams,
+		state adjudicator.ChannelState,
+		_ [][]byte,
+	) (*types.Transaction, error) {
+		return a.contract.Progress(opts, params, state, ethNewState, ethActorIndex, req.Sig)
+	}
+	return a.call(ctx, req.AdjudicatorReq, conclude)
 }
 
 func (a *Adjudicator) callRegister(ctx context.Context, req channel.AdjudicatorReq) error {
@@ -125,13 +142,6 @@ func (a *Adjudicator) call(ctx context.Context, req channel.AdjudicatorReq, fn a
 
 	_, err = a.ConfirmTransaction(ctx, tx, a.txSender)
 	return errors.WithMessage(err, "mining transaction")
-}
-
-// Progress will call progress on the Adjudicator contract in the future. Right
-// now, it panics.
-func (a *Adjudicator) Progress(context.Context, channel.ProgressReq) error {
-	a.log.Panic("Progressed not implemented yet")
-	return nil
 }
 
 // ValidateAdjudicator checks if the bytecode at given address is correct.
