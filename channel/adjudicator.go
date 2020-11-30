@@ -116,6 +116,7 @@ type (
 	AdjudicatorEvent interface {
 		ID() ID
 		Timeout() Timeout
+		Version() uint64
 	}
 
 	// An AdjudicatorEventBase implements the AdjudicatorEvent interface. It can
@@ -123,6 +124,7 @@ type (
 	AdjudicatorEventBase struct {
 		IDV      ID      // Channel ID
 		TimeoutV Timeout // Current phase timeout
+		VersionV uint64  // Registered version
 	}
 
 	// ProgressedEvent is the abstract event that signals an on-chain progression.
@@ -135,8 +137,7 @@ type (
 	// RegisteredEvent is the abstract event that signals a successful state
 	// registration on the blockchain.
 	RegisteredEvent struct {
-		AdjudicatorEventBase        // Channel ID and Refutation phase timeout
-		Version              uint64 // Registered version
+		AdjudicatorEventBase // Channel ID and Refutation phase timeout
 	}
 
 	// A Timeout is an abstract timeout of a channel dispute. A timeout can be
@@ -161,14 +162,17 @@ func (b AdjudicatorEventBase) ID() ID { return b.IDV }
 // Timeout returns the phase timeout.
 func (b AdjudicatorEventBase) Timeout() Timeout { return b.TimeoutV }
 
+// Version returns the channel version.
+func (b AdjudicatorEventBase) Version() uint64 { return b.VersionV }
+
 // NewRegisteredEvent creates a new RegisteredEvent.
 func NewRegisteredEvent(id ID, timeout Timeout, version uint64) *RegisteredEvent {
 	return &RegisteredEvent{
 		AdjudicatorEventBase: AdjudicatorEventBase{
 			IDV:      id,
 			TimeoutV: timeout,
+			VersionV: version,
 		},
-		Version: version,
 	}
 }
 
@@ -178,6 +182,7 @@ func NewProgressedEvent(id ID, timeout Timeout, state *State, idx Index) *Progre
 		AdjudicatorEventBase: AdjudicatorEventBase{
 			IDV:      id,
 			TimeoutV: timeout,
+			VersionV: state.Version,
 		},
 		State: state,
 		Idx:   idx,

@@ -379,7 +379,7 @@ func (m *machine) SetRegistered(reg *RegisteredEvent) error {
 		return m.phaseErrorf(m.selfTransition(), "can only register after init phases")
 	}
 
-	if m.registered == nil || reg.Version > m.registered.Version {
+	if m.registered == nil || reg.Version() > m.registered.Version() {
 		m.registered = reg
 	}
 	m.setPhase(Registered)

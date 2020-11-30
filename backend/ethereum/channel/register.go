@@ -78,7 +78,7 @@ func (a *Adjudicator) registerNonFinal(ctx context.Context, req channel.Adjudica
 			return nil, errors.Errorf("subscription closed with error %v", sub.Err())
 
 		case *channel.RegisteredEvent:
-			if req.Tx.Version > ev.Version {
+			if req.Tx.Version > ev.Version() {
 				if err := a.callRefute(ctx, req); IsErrTxFailed(err) {
 					a.log.Warn("Calling refute failed, waiting for event anyways...")
 				} else if err != nil {
@@ -185,8 +185,8 @@ evloop:
 			case current := <-r.next:
 				currentTimeout := current.Timeout().(*BlockTimeout)
 				// if newer version or same version and newer timeout, replace
-				if current.Version < next.Version ||
-					current.Version == next.Version && currentTimeout.Time < next.Timeout {
+				if current.Version() < next.Version ||
+					current.Version() == next.Version && currentTimeout.Time < next.Timeout {
 					r.next <- r.storedToRegisteredEvent(next)
 				} else { // otherwise, reuse old
 					r.next <- current

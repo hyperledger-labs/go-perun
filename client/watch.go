@@ -156,9 +156,9 @@ func (c *Channel) ledgerChannelSettle(ctx context.Context, secondary bool) error
 	ver, reg := c.machine.State().Version, c.machine.Registered()
 	// If the machine is at least in phase Registered, reg shouldn't be nil. We
 	// still catch this case to be future proof.
-	if c.machine.Phase() < channel.Registered || reg == nil || reg.Version < ver {
-		if reg != nil && reg.Version < ver {
-			c.Log().Warnf("Lower version %d (< %d) registered, refuting...", reg.Version, ver)
+	if c.machine.Phase() < channel.Registered || reg == nil || reg.Version() < ver {
+		if reg != nil && reg.Version() < ver {
+			c.Log().Warnf("Lower version %d (< %d) registered, refuting...", reg.Version(), ver)
 		}
 		if err := c.register(ctx); err != nil {
 			return errors.WithMessage(err, "registering")
@@ -197,9 +197,9 @@ func (c *Channel) register(ctx context.Context) error {
 	if err != nil {
 		return errors.WithMessage(err, "calling Register")
 	}
-	if ver := c.machine.State().Version; reg.Version != ver {
+	if ver := c.machine.State().Version; reg.Version() != ver {
 		return errors.Errorf(
-			"unexpected version %d registered, expected %d", reg.Version, ver)
+			"unexpected version %d registered, expected %d", reg.Version(), ver)
 	}
 
 	return c.machine.SetRegistered(ctx, reg)

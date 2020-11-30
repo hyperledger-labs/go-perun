@@ -95,7 +95,7 @@ func (r *Mallory) exec(_cfg ExecConfig, ch *paymentChannel) {
 	assert.NotNil(reg)
 	r.log.Debugln("<Registered> refuted: ", reg)
 	if reg != nil {
-		assert.Equal(ch.State().Version, reg.Version, "expected refutation with current version")
+		assert.Equal(ch.State().Version, reg.Version(), "expected refutation with current version")
 		waitCtx, waitCancel := context.WithTimeout(context.Background(), r.timeout+challengeDuration)
 		defer waitCancel()
 		// refutation increased the timeout.
