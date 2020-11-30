@@ -166,6 +166,15 @@ func NewProgressReq(ar AdjudicatorReq, newState *State, sig wallet.Sig) *Progres
 	return &ProgressReq{ar, newState, sig}
 }
 
+// NewAdjudicatorEventBase creates a new AdjudicatorEventBase object.
+func NewAdjudicatorEventBase(c ID, t Timeout, v uint64) *AdjudicatorEventBase {
+	return &AdjudicatorEventBase{
+		IDV:      c,
+		TimeoutV: t,
+		VersionV: v,
+	}
+}
+
 // ID returns the channel ID.
 func (b AdjudicatorEventBase) ID() ID { return b.IDV }
 

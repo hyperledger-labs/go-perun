@@ -16,11 +16,14 @@ package channel
 
 import (
 	"context"
+	"math/big"
 
 	"github.com/ethereum/go-ethereum"
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/event"
 	"github.com/pkg/errors"
 	"perun.network/go-perun/backend/ethereum/bindings/adjudicator"
+	"perun.network/go-perun/backend/ethereum/wallet"
 	"perun.network/go-perun/channel"
 )
 
@@ -35,12 +38,12 @@ func (a *Adjudicator) Subscribe(ctx context.Context, params *channel.Params) (ch
 	rsub := &RegisteredSub{
 		cr:   a.ContractInterface,
 		sub:  sub,
-		next: make(chan *channel.RegisteredEvent, 1),
+		next: make(chan channel.AdjudicatorEvent, 1),
 		err:  make(chan error, 1),
 	}
 
 	// Start event updater routine
-	go rsub.updateNext(events)
+	go rsub.updateNext(ctx, events, a)
 
 	// find past event, if any
 	var ev *adjudicator.AdjudicatorChannelUpdate
@@ -96,7 +99,7 @@ func (a *Adjudicator) filterWatch(ctx context.Context, events chan *adjudicator.
 type RegisteredSub struct {
 	cr   ethereum.ChainReader          // chain reader to read block time
 	sub  event.Subscription            // Event subscription
-	next chan *channel.RegisteredEvent // Registered event sink
+	next chan channel.AdjudicatorEvent // Event sink
 	err  chan error                    // error from subscription
 	past bool                          // whether there was a past event when the subscription was created
 }
@@ -105,7 +108,7 @@ func (r *RegisteredSub) hasPast() bool {
 	return r.past
 }
 
-func (r *RegisteredSub) updateNext(events chan *adjudicator.AdjudicatorChannelUpdate) {
+func (r *RegisteredSub) updateNext(ctx context.Context, events chan *adjudicator.AdjudicatorChannelUpdate, a *Adjudicator) {
 evloop:
 	for {
 		select {
@@ -115,14 +118,25 @@ evloop:
 			case current := <-r.next:
 				currentTimeout := current.Timeout().(*BlockTimeout)
 				// if newer version or same version and newer timeout, replace
-				if current.Version() < next.Version ||
-					current.Version() == next.Version && currentTimeout.Time < next.Timeout {
-					r.next <- r.toRegisteredEvent(next)
+				if current.Version() < next.Version || current.Version() == next.Version && currentTimeout.Time < next.Timeout {
+					e, err := a.convertEvent(ctx, next)
+					if err != nil {
+						r.err <- err
+						break evloop
+					}
+
+					r.next <- e
 				} else { // otherwise, reuse old
 					r.next <- current
 				}
 			default: // next-channel is empty
-				r.next <- r.toRegisteredEvent(next)
+				e, err := a.convertEvent(ctx, next)
+				if err != nil {
+					r.err <- err
+					break evloop
+				}
+
+				r.next <- e
 			}
 		case err := <-r.sub.Err():
 			r.err <- err
@@ -163,13 +177,62 @@ func (r *RegisteredSub) Err() error {
 	return <-r.err
 }
 
-func (r *RegisteredSub) toRegisteredEvent(event *adjudicator.AdjudicatorChannelUpdate) *channel.RegisteredEvent {
-	if event == nil {
-		return nil
+func (a *Adjudicator) convertEvent(ctx context.Context, e *adjudicator.AdjudicatorChannelUpdate) (channel.AdjudicatorEvent, error) {
+	base := channel.NewAdjudicatorEventBase(e.ChannelID, NewBlockTimeout(a.ContractInterface, e.Timeout), e.Version)
+	switch e.Phase {
+	case phaseDispute:
+		return &channel.RegisteredEvent{AdjudicatorEventBase: *base}, nil
+
+	case phaseForceExec:
+		args, err := a.fetchProgressCallData(ctx, e.Raw.TxHash)
+		if err != nil {
+			return nil, errors.WithMessage(err, "fetching call data")
+		}
+		app, err := channel.Resolve(wallet.AsWalletAddr(args.Params.App))
+		if err != nil {
+			return nil, errors.WithMessage(err, "resolving app")
+		}
+		newState := FromEthState(app, &args.State)
+		return &channel.ProgressedEvent{
+			AdjudicatorEventBase: *base,
+			State:                &newState,
+			Idx:                  channel.Index(args.ActorIdx.Uint64()),
+		}, nil
+
+	case phaseConcluded:
+		return &channel.ConcludedEvent{AdjudicatorEventBase: *base}, nil
+
+	default:
+		panic("unknown phase")
 	}
-	return channel.NewRegisteredEvent(
-		event.ChannelID,
-		NewBlockTimeout(r.cr, event.Timeout),
-		event.Version,
-	)
+}
+
+type progressCallData struct {
+	Params   adjudicator.ChannelParams
+	StateOld adjudicator.ChannelState
+	State    adjudicator.ChannelState
+	ActorIdx *big.Int
+	Sig      []byte
+}
+
+func (a *Adjudicator) fetchProgressCallData(ctx context.Context, txHash common.Hash) (*progressCallData, error) {
+	tx, _, err := a.ContractBackend.TransactionByHash(ctx, txHash)
+	if err != nil {
+		return nil, errors.WithMessage(err, "getting transaction")
+	}
+
+	argsData := tx.Data()[len(abiProgress.ID):]
+
+	argsI, err := abiProgress.Inputs.UnpackValues(argsData)
+	if err != nil {
+		return nil, errors.WithMessage(err, "unpacking")
+	}
+
+	var args progressCallData
+	err = abiProgress.Inputs.Copy(&args, argsI)
+	if err != nil {
+		return nil, errors.WithMessage(err, "copying into struct")
+	}
+
+	return &args, nil
 }
