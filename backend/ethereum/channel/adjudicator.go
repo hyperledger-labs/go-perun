@@ -121,7 +121,8 @@ func (a *Adjudicator) call(ctx context.Context, req channel.AdjudicatorReq, fn a
 		return err
 	}
 
-	return errors.WithMessage(a.ConfirmTransaction(ctx, tx, a.txSender), "mining transaction")
+	_, err = a.ConfirmTransaction(ctx, tx, a.txSender)
+	return errors.WithMessage(err, "mining transaction")
 }
 
 // Progress will call progress on the Adjudicator contract in the future. Right

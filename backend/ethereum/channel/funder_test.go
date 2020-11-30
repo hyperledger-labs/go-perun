@@ -382,7 +382,8 @@ func fundERC20(ctx context.Context, cb ethchannel.ContractBackend, from accounts
 	if err != nil {
 		return errors.WithMessage(err, "transferring tokens")
 	}
-	return cb.ConfirmTransaction(ctx, tx, from)
+	_, err = cb.ConfirmTransaction(ctx, tx, from)
+	return err
 }
 
 // compareOnChainAlloc returns error if `alloc` differs from the on-chain allocation.
