@@ -20,6 +20,7 @@ import (
 	"time"
 
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -34,18 +35,25 @@ import (
 
 const defaultTxTimeout = 2 * time.Second
 
-func signState(t *testing.T, accounts []*keystore.Account, params *channel.Params, state *channel.State) channel.Transaction {
-	// Sign valid state.
+func testSignState(t *testing.T, accounts []*keystore.Account, params *channel.Params, state *channel.State) channel.Transaction {
+	tx, err := signState(accounts, params, state)
+	assert.NoError(t, err, "Sign should not return error")
+	return tx
+}
+
+func signState(accounts []*keystore.Account, params *channel.Params, state *channel.State) (channel.Transaction, error) {
 	sigs := make([][]byte, len(accounts))
 	for i := range accounts {
 		sig, err := channel.Sign(accounts[i], params, state)
-		assert.NoError(t, err, "Sign should not return error")
+		if err != nil {
+			return channel.Transaction{}, errors.WithMessagef(err, "signing with account %d", i)
+		}
 		sigs[i] = sig
 	}
 	return channel.Transaction{
 		State: state,
 		Sigs:  sigs,
-	}
+	}, nil
 }
 
 func TestSubscribeRegistered(t *testing.T) {
@@ -66,7 +74,7 @@ func TestSubscribeRegistered(t *testing.T) {
 	reqFund := channel.NewFundingReq(params, state, channel.Index(0), state.Balances)
 	require.NoError(t, s.Funders[0].Fund(txCtx, *reqFund), "funding should succeed")
 	// Now test the register function
-	tx := signState(t, s.Accs, params, state)
+	tx := testSignState(t, s.Accs, params, state)
 	req := channel.AdjudicatorReq{
 		Params: params,
 		Acc:    s.Accs[0],

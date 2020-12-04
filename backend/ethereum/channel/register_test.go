@@ -76,7 +76,7 @@ func registerMultipleConcurrent(t *testing.T, numParts int, parallel bool) {
 		sleepDuration := time.Duration(rng.Int63n(10)+1) * time.Millisecond
 		// manipulate the state
 		state.Version = uint64(int(state.Version) + i)
-		tx := signState(t, s.Accs, params, state)
+		tx := testSignState(t, s.Accs, params, state)
 		reg := func(i int, tx channel.Transaction) {
 			if parallel {
 				defer wg.Done()
@@ -123,7 +123,7 @@ func TestRegister_FinalState(t *testing.T) {
 	// Now test the register function
 	ctx, cancel := context.WithTimeout(context.Background(), defaultTxTimeout)
 	defer cancel()
-	tx := signState(t, s.Accs, params, state)
+	tx := testSignState(t, s.Accs, params, state)
 	req := channel.AdjudicatorReq{
 		Params: params,
 		Acc:    s.Accs[0],
@@ -153,7 +153,7 @@ func TestRegister_CancelledContext(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), defaultTxTimeout)
 	// directly cancel timeout
 	cancel()
-	tx := signState(t, s.Accs, params, state)
+	tx := testSignState(t, s.Accs, params, state)
 	req := channel.AdjudicatorReq{
 		Params: params,
 		Acc:    s.Accs[0],

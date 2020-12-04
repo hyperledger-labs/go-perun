@@ -71,16 +71,18 @@ func (a *Adjudicator) callRefute(ctx context.Context, req channel.AdjudicatorReq
 	return a.call(ctx, req, a.contract.Refute)
 }
 
-func (a *Adjudicator) callConclude(ctx context.Context, req channel.AdjudicatorReq) error {
-	// Wrapped call to Conclude, ignoring sig
+func (a *Adjudicator) callConclude(ctx context.Context, req channel.AdjudicatorReq, subStates channel.StateMap) error {
+	ethSubStates := toEthSubStates(req.Tx.State, subStates)
+
 	conclude := func(
 		opts *bind.TransactOpts,
 		params adjudicator.ChannelParams,
 		state adjudicator.ChannelState,
 		_ [][]byte,
 	) (*types.Transaction, error) {
-		return a.contract.Conclude(opts, params, state, []adjudicator.ChannelState{})
+		return a.contract.Conclude(opts, params, state, ethSubStates)
 	}
+
 	return a.call(ctx, req, conclude)
 }
 
@@ -138,4 +140,20 @@ func (a *Adjudicator) Progress(context.Context, channel.ProgressReq) error {
 func ValidateAdjudicator(ctx context.Context,
 	backend bind.ContractCaller, adjudicatorAddr common.Address) error {
 	return validateContract(ctx, backend, adjudicatorAddr, adjudicator.AdjudicatorBinRuntime)
+}
+
+// toEthSubStates generates a channel tree in depth-first order.
+func toEthSubStates(state *channel.State, subStates channel.StateMap) (ethSubStates []adjudicator.ChannelState) {
+	for _, subAlloc := range state.Locked {
+		subState, ok := subStates[subAlloc.ID]
+		if !ok {
+			log.Panic("sub-state not found")
+		}
+		ethSubStates = append(ethSubStates, ToEthState(subState))
+		if len(subState.Locked) > 0 {
+			_subSubStates := toEthSubStates(subState, subStates)
+			ethSubStates = append(ethSubStates, _subSubStates...)
+		}
+	}
+	return
 }

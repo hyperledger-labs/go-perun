@@ -39,7 +39,7 @@ func (a *Adjudicator) Register(ctx context.Context, req channel.AdjudicatorReq) 
 func (a *Adjudicator) registerFinal(ctx context.Context, req channel.AdjudicatorReq) (*channel.RegisteredEvent, error) {
 	// In the case of final states, we already call concludeFinal on the
 	// adjudicator. Method ensureConcluded calls concludeFinal for final states.
-	if err := a.ensureConcluded(ctx, req); err != nil {
+	if err := a.ensureConcluded(ctx, req, nil); err != nil {
 		return nil, errors.WithMessage(err, "ensuring Concluded")
 	}
 
