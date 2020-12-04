@@ -46,7 +46,9 @@ type (
 		// final outcome is set on the asset holders and funds are withdrawn
 		// (dependent on the architecture of the contracts). It must be taken into
 		// account that a peer might already have concluded the same channel.
-		Withdraw(context.Context, AdjudicatorReq) error
+		// If the channel has locked funds in sub-channels, the states of the
+		// corresponding sub-channels need to be supplied additionally.
+		Withdraw(context.Context, AdjudicatorReq, StateMap) error
 
 		// Progress should try to progress an on-chain registered state to the new
 		// state given in ProgressReq. The Transaction field only needs to
@@ -148,6 +150,9 @@ type (
 		// should return immediately with the context's error.
 		Wait(context.Context) error
 	}
+
+	// StateMap represents a channel state tree.
+	StateMap map[ID]*State
 )
 
 // ID returns the channel ID.
@@ -210,4 +215,16 @@ func (t *TimeTimeout) Wait(ctx context.Context) error {
 // String returns the timeout's date and time string.
 func (t *TimeTimeout) String() string {
 	return fmt.Sprintf("<Timeout: %v>", t.Time)
+}
+
+// MakeStateMap creates a new StateMap object.
+func MakeStateMap() StateMap {
+	return make(map[ID]*State)
+}
+
+// Add adds the given states to the state map.
+func (m StateMap) Add(states ...*State) {
+	for _, s := range states {
+		m[s.ID] = s
+	}
 }

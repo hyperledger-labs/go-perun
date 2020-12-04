@@ -210,7 +210,7 @@ func (c *Channel) withdraw(ctx context.Context, secondary bool) error {
 
 	req := c.machine.AdjudicatorReq()
 	req.Secondary = secondary
-	if err := c.adjudicator.Withdraw(ctx, req); err != nil {
+	if err := c.adjudicator.Withdraw(ctx, req, nil); err != nil {
 		return errors.WithMessage(err, "calling Withdraw")
 	}
 
