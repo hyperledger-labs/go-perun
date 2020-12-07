@@ -65,7 +65,7 @@ func withdrawMultipleConcurrentFinal(t *testing.T, numParts int, parallel bool) 
 	ct.Wait("funding loop")
 	// manipulate the state
 	state.IsFinal = true
-	tx := signState(t, s.Accs, params, state)
+	tx := testSignState(t, s.Accs, params, state)
 
 	// Now test the withdraw function
 	ctx, cancel := context.WithTimeout(context.Background(), defaultTxTimeout)
@@ -86,7 +86,7 @@ func withdrawMultipleConcurrentFinal(t *testing.T, numParts int, parallel bool) 
 					Idx:    channel.Index(i),
 					Tx:     tx,
 				}
-				err := s.Adjs[i].Withdraw(ctx, req)
+				err := s.Adjs[i].Withdraw(ctx, req, nil)
 				assert.NoError(t, err, "Withdrawing should succeed")
 			}(i)
 		}
@@ -100,7 +100,7 @@ func withdrawMultipleConcurrentFinal(t *testing.T, numParts int, parallel bool) 
 				Idx:    channel.Index(i),
 				Tx:     tx,
 			}
-			err := s.Adjs[i].Withdraw(ctx, req)
+			err := s.Adjs[i].Withdraw(ctx, req, nil)
 			assert.NoError(t, err, "Withdrawing should succeed")
 		}
 	}
@@ -144,7 +144,7 @@ func testWithdrawZeroBalance(t *testing.T, n int) {
 	req := channel.AdjudicatorReq{
 		Params: params,
 		Acc:    s.Accs[0],
-		Tx:     signState(t, s.Accs, params, state),
+		Tx:     testSignState(t, s.Accs, params, state),
 		Idx:    0,
 	}
 	_, err := s.Adjs[0].Register(context.Background(), req)
@@ -158,7 +158,7 @@ func testWithdrawZeroBalance(t *testing.T, n int) {
 		req.Idx = channel.Index(i)
 		// check that the nonce stays the same for zero balance withdrawals
 		diff, err := test.NonceDiff(s.Accs[i].Address(), adj, func() error {
-			return adj.Withdraw(context.Background(), req)
+			return adj.Withdraw(context.Background(), req, nil)
 		})
 		require.NoError(t, err)
 		if i%2 == 0 {
@@ -191,8 +191,8 @@ func TestWithdraw(t *testing.T) {
 	testWithdraw := func(t *testing.T, shouldWork bool) {
 		ctx, cancel := context.WithTimeout(context.Background(), 100*time.Millisecond)
 		defer cancel()
-		req.Tx = signState(t, s.Accs, params, state)
-		err := s.Adjs[0].Withdraw(ctx, req)
+		req.Tx = testSignState(t, s.Accs, params, state)
+		err := s.Adjs[0].Withdraw(ctx, req, nil)
 
 		if shouldWork {
 			assert.NoError(t, err, "Withdrawing should work")
@@ -242,7 +242,7 @@ func TestWithdrawNonFinal(t *testing.T) {
 		Params: params,
 		Acc:    s.Accs[0],
 		Idx:    0,
-		Tx:     signState(t, s.Accs, params, state),
+		Tx:     testSignState(t, s.Accs, params, state),
 	}
 	reg, err := s.Adjs[0].Register(ctx, req)
 	require.NoError(t, err)
@@ -251,7 +251,7 @@ func TestWithdrawNonFinal(t *testing.T) {
 		"registering non-final state should have non-elapsed timeout")
 	assert.NoError(reg.Timeout().Wait(ctx))
 	assert.True(reg.Timeout().IsElapsed(ctx), "timeout should have elapsed after Wait()")
-	assert.NoError(s.Adjs[0].Withdraw(ctx, req),
+	assert.NoError(s.Adjs[0].Withdraw(ctx, req, nil),
 		"withdrawing should succeed after waiting for timeout")
 }
 

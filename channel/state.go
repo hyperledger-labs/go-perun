@@ -148,3 +148,9 @@ func (s *State) Equal(t *State) error {
 	}
 	return nil
 }
+
+// ToSubAlloc creates a SubAlloc from the state that can be added to the
+// parent channel's locked funds.
+func (s *State) ToSubAlloc() *SubAlloc {
+	return NewSubAlloc(s.ID, s.Allocation.Sum())
+}

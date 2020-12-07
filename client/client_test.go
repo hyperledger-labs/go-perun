@@ -64,7 +64,7 @@ func (d *DummyAdjudicator) Progress(context.Context, channel.ProgressReq) error 
 	return errors.New("DummyAdjudicator.Progress called")
 }
 
-func (d *DummyAdjudicator) Withdraw(context.Context, channel.AdjudicatorReq) error {
+func (d *DummyAdjudicator) Withdraw(context.Context, channel.AdjudicatorReq, channel.StateMap) error {
 	d.t.Error("DummyAdjudicator.Withdraw called")
 	return errors.New("DummyAdjudicator.Withdraw called")
 }
