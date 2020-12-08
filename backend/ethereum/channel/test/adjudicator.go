@@ -50,25 +50,6 @@ func NewSimAdjudicator(backend ethchannel.ContractBackend, contract common.Addre
 	}
 }
 
-// Register calls Register on the Adjudicator, returning a
-// *channel.RegisteredEvent with a SimTimeout or ElapsedTimeout.
-func (a *SimAdjudicator) Register(ctx context.Context, req channel.AdjudicatorReq) (*channel.RegisteredEvent, error) {
-	reg, err := a.Adjudicator.Register(ctx, req)
-	if err != nil {
-		return reg, err
-	}
-
-	switch t := reg.Timeout().(type) {
-	case *ethchannel.BlockTimeout:
-		reg.TimeoutV = block2SimTimeout(a.sb, t)
-	case *channel.ElapsedTimeout: // leave as is
-	case nil: // leave as is
-	default:
-		panic("invalid timeout type from embedded Adjudicator")
-	}
-	return reg, nil
-}
-
 // Subscribe returns a RegisteredEvent subscription on the simulated
 // blockchain backend.
 func (a *SimAdjudicator) Subscribe(ctx context.Context, params *channel.Params) (channel.AdjudicatorSubscription, error) {

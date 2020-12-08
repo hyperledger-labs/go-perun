@@ -73,6 +73,11 @@ func TestSubscribeRegistered(t *testing.T) {
 	// fund the contract
 	reqFund := channel.NewFundingReq(params, state, channel.Index(0), state.Balances)
 	require.NoError(t, s.Funders[0].Fund(txCtx, *reqFund), "funding should succeed")
+	// create subscription
+	adj := s.Adjs[0]
+	sub, err := adj.Subscribe(ctx, params)
+	require.NoError(t, err)
+	defer sub.Close()
 	// Now test the register function
 	tx := testSignState(t, s.Accs, params, state)
 	req := channel.AdjudicatorReq{
@@ -81,14 +86,14 @@ func TestSubscribeRegistered(t *testing.T) {
 		Idx:    channel.Index(0),
 		Tx:     tx,
 	}
-	event, err := s.Adjs[0].Register(txCtx, req)
-	assert.NoError(t, err, "Registering state should succeed")
+	assert.NoError(t, adj.Register(txCtx, req), "Registering state should succeed")
+	event := sub.Next()
 	assert.Equal(t, event, registered.Next(), "Events should be equal")
 	assert.NoError(t, registered.Close(), "Closing event channel should not error")
 	assert.Nil(t, registered.Next(), "Next on closed channel should produce nil")
 	assert.NoError(t, registered.Err(), "Closing should produce no error")
 	// Setup a new subscription
-	registered2, err := s.Adjs[0].Subscribe(ctx, params)
+	registered2, err := adj.Subscribe(ctx, params)
 	assert.NoError(t, err, "registering two subscriptions should not fail")
 	assert.Equal(t, event, registered2.Next(), "Events should be equal")
 	assert.NoError(t, registered2.Close(), "Closing event channel should not error")

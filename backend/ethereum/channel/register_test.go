@@ -83,14 +83,20 @@ func registerMultipleConcurrent(t *testing.T, numParts int, parallel bool) {
 				<-startBarrier
 				time.Sleep(sleepDuration)
 			}
+			// create subscription
+			adj := s.Adjs[i]
+			sub, err := adj.Subscribe(ctx, params)
+			require.NoError(t, err)
+			defer sub.Close()
+			// register
 			req := channel.AdjudicatorReq{
 				Params: params,
 				Acc:    s.Accs[i],
 				Idx:    channel.Index(i),
 				Tx:     tx,
 			}
-			event, err := s.Adjs[i].Register(ctx, req)
-			assert.NoError(t, err, "Registering should succeed")
+			assert.NoError(t, adj.Register(ctx, req), "Registering should succeed")
+			event := sub.Next()
 			assert.NotEqual(t, event, &channel.RegisteredEvent{}, "registering should return valid event")
 			assert.False(t, event.Timeout().IsElapsed(ctx),
 				"registering non-final state should return unelapsed timeout")
@@ -123,6 +129,12 @@ func TestRegister_FinalState(t *testing.T) {
 	// Now test the register function
 	ctx, cancel := context.WithTimeout(context.Background(), defaultTxTimeout)
 	defer cancel()
+	// create subscription
+	adj := s.Adjs[0]
+	sub, err := adj.Subscribe(ctx, params)
+	require.NoError(t, err)
+	defer sub.Close()
+	// register
 	tx := testSignState(t, s.Accs, params, state)
 	req := channel.AdjudicatorReq{
 		Params: params,
@@ -130,8 +142,8 @@ func TestRegister_FinalState(t *testing.T) {
 		Idx:    channel.Index(0),
 		Tx:     tx,
 	}
-	event, err := s.Adjs[0].Register(ctx, req)
-	assert.NoError(t, err, "Registering final state should succeed")
+	assert.NoError(t, adj.Register(ctx, req), "Registering final state should succeed")
+	event := sub.Next()
 	assert.NotEqual(t, event, &channel.RegisteredEvent{}, "registering should return valid event")
 	assert.True(t, event.Timeout().IsElapsed(ctx), "registering final state should return elapsed timeout")
 	t.Logf("Peer[%d] registered successful", 0)
@@ -153,6 +165,12 @@ func TestRegister_CancelledContext(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), defaultTxTimeout)
 	// directly cancel timeout
 	cancel()
+	// create subscription
+	adj := s.Adjs[0]
+	sub, err := adj.Subscribe(ctx, params)
+	require.NoError(t, err)
+	defer sub.Close()
+	// register
 	tx := testSignState(t, s.Accs, params, state)
 	req := channel.AdjudicatorReq{
 		Params: params,
@@ -160,7 +178,5 @@ func TestRegister_CancelledContext(t *testing.T) {
 		Idx:    channel.Index(0),
 		Tx:     tx,
 	}
-	event, err := s.Adjs[0].Register(ctx, req)
-	assert.Error(t, err, "Registering with canceled context should error")
-	assert.Nil(t, event, "should not produce valid event")
+	assert.Error(t, adj.Register(ctx, req), "Registering with canceled context should error")
 }

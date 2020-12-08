@@ -104,7 +104,8 @@ type RegisteredSub struct {
 	past bool                          // whether there was a past event when the subscription was created
 }
 
-func (r *RegisteredSub) hasPast() bool {
+// HasPast indicates whether there was a past event when the subscription was created.
+func (r *RegisteredSub) HasPast() bool {
 	return r.past
 }
 
