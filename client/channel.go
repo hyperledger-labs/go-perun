@@ -42,7 +42,7 @@ type Channel struct {
 	adjudicator channel.Adjudicator
 	wallet      wallet.Wallet
 
-	parent                *Channel
+	parent                *Channel            // must be nil for ledger channel
 	subChannelFundings    *updateInterceptors // awaited subchannel funding updates
 	subChannelWithdrawals *updateInterceptors // awaited subchannel settlement updates
 }
@@ -163,6 +163,11 @@ func (c *Channel) Peers() []wire.Address {
 // Parent returns the parent channel. Can be nil.
 func (c *Channel) Parent() *Channel {
 	return c.parent
+}
+
+// HasApp returns whether the channel has an app.
+func (c *Channel) HasApp() bool {
+	return !channel.IsNoApp(c.State().App)
 }
 
 // init brings the state machine into the InitSigning phase. It is not callable

@@ -22,6 +22,11 @@ import (
 	"perun.network/go-perun/channel"
 )
 
+// IsLedgerChannel returns whether the channel is a ledger channel.
+func (c *Channel) IsLedgerChannel() bool {
+	return c.Parent() == nil
+}
+
 // IsSubChannel returns whether the channel is a sub-channel.
 func (c *Channel) IsSubChannel() bool {
 	return c.Parent() != nil
