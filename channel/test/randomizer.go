@@ -20,6 +20,7 @@ import (
 	"log"
 	"math/big"
 	"math/rand"
+	"time"
 
 	"perun.network/go-perun/channel"
 	"perun.network/go-perun/wallet"
@@ -315,4 +316,11 @@ func ShuffleBalances(rng *rand.Rand, b channel.Balances) channel.Balances {
 		})
 	}
 	return ret
+}
+
+// NewRandomTimeout creates a new random timeout object.
+func NewRandomTimeout(rng *rand.Rand) channel.Timeout {
+	return &channel.TimeTimeout{
+		Time: time.Unix(rng.Int63(), rng.Int63()),
+	}
 }

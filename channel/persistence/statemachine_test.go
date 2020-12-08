@@ -127,8 +127,21 @@ func TestStateMachine(t *testing.T) {
 	tpr.AssertEqual(csm)
 
 	// Set Registered
-	reg := channel.NewRegisteredEvent(csm.ID(), new(channel.ElapsedTimeout), statef.Version)
-	err = sm.SetRegistered(nil, reg)
+	err = sm.SetRegistered(nil)
+	require.NoError(err)
+	tpr.AssertEqual(csm)
+
+	// Set Progressing
+	s := ctest.NewRandomState(rng)
+	err = sm.SetProgressing(nil, s)
+	require.NoError(err)
+	tpr.AssertEqual(csm)
+
+	// Set Progressed
+	timeout := ctest.NewRandomTimeout(rng)
+	idx := channel.Index(rng.Intn(s.NumParts()))
+	e := channel.NewProgressedEvent(s.ID, timeout, s, idx)
+	err = sm.SetProgressed(nil, e)
 	require.NoError(err)
 	tpr.AssertEqual(csm)
 

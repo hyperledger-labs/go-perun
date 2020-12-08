@@ -59,11 +59,29 @@ func (m StateMachine) SetRegistering(ctx context.Context) error {
 
 // SetRegistered calls SetRegistered on the channel.StateMachine and then
 // persists the changed phase.
-func (m StateMachine) SetRegistered(ctx context.Context, reg *channel.RegisteredEvent) error {
-	if err := m.StateMachine.SetRegistered(reg); err != nil {
+func (m StateMachine) SetRegistered(ctx context.Context) error {
+	if err := m.StateMachine.SetRegistered(); err != nil {
 		return err
 	}
 	return errors.WithMessage(m.pr.PhaseChanged(ctx, m.StateMachine), "Persister.PhaseChanged")
+}
+
+// SetProgressing calls SetProgressing on the channel.StateMachine and then
+// persists the changed state.
+func (m StateMachine) SetProgressing(ctx context.Context, s *channel.State) error {
+	if err := m.StateMachine.SetProgressing(s); err != nil {
+		return err
+	}
+	return errors.WithMessage(m.pr.Staged(ctx, m.StateMachine), "Persister.Staged")
+}
+
+// SetProgressed calls SetProgressed on the channel.StateMachine and then
+// persists the changed state.
+func (m StateMachine) SetProgressed(ctx context.Context, e *channel.ProgressedEvent) error {
+	if err := m.StateMachine.SetProgressed(e); err != nil {
+		return err
+	}
+	return errors.WithMessage(m.pr.Enabled(ctx, m.StateMachine), "Persister.Enabled")
 }
 
 // SetWithdrawing calls SetWithdrawing on the channel.StateMachine and then

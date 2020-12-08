@@ -218,8 +218,8 @@ func (c *Channel) SetRegistering(t require.TestingT) {
 }
 
 // SetRegistered calls SetRegistered on the state machine and then checks the persistence.
-func (c *Channel) SetRegistered(t require.TestingT, r *channel.RegisteredEvent) {
-	require.NoError(t, c.StateMachine.SetRegistered(c.ctx, r))
+func (c *Channel) SetRegistered(t require.TestingT) {
+	require.NoError(t, c.StateMachine.SetRegistered(c.ctx))
 	c.AssertPersisted(c.ctx, t)
 }
 

@@ -17,6 +17,7 @@ package client_test
 import (
 	"context"
 	"math/rand"
+	"sync"
 	"time"
 
 	"perun.network/go-perun/channel"
@@ -42,7 +43,7 @@ func NewSetups(rng *rand.Rand, names []string) []ctest.RoleSetup {
 			Identity:    acc,
 			Bus:         bus,
 			Funder:      &logFunder{log.WithField("role", names[i])},
-			Adjudicator: &logAdjudicator{log.WithField("role", names[i])},
+			Adjudicator: &logAdjudicator{log.WithField("role", names[i]), sync.RWMutex{}, nil},
 			Wallet:      wtest.NewWallet(),
 			Timeout:     roleOperationTimeout,
 		}
@@ -57,7 +58,9 @@ type (
 	}
 
 	logAdjudicator struct {
-		log log.Logger
+		log         log.Logger
+		mu          sync.RWMutex
+		latestEvent channel.AdjudicatorEvent
 	}
 )
 
@@ -68,15 +71,23 @@ func (f *logFunder) Fund(_ context.Context, req channel.FundingReq) error {
 
 func (a *logAdjudicator) Register(_ context.Context, req channel.AdjudicatorReq) (*channel.RegisteredEvent, error) {
 	a.log.Infof("Register: %v", req)
-	return channel.NewRegisteredEvent(
+	e := channel.NewRegisteredEvent(
 		req.Params.ID(),
 		&channel.ElapsedTimeout{},
 		req.Tx.Version,
-	), nil
+	)
+	a.setEvent(e)
+	return e, nil
 }
 
 func (a *logAdjudicator) Progress(_ context.Context, req channel.ProgressReq) error {
 	a.log.Infof("Progress: %v", req)
+	a.setEvent(channel.NewProgressedEvent(
+		req.Params.ID(),
+		&channel.ElapsedTimeout{},
+		req.NewState.Clone(),
+		req.Idx,
+	))
 	return nil
 }
 
@@ -87,5 +98,29 @@ func (a *logAdjudicator) Withdraw(_ context.Context, req channel.AdjudicatorReq,
 
 func (a *logAdjudicator) Subscribe(_ context.Context, params *channel.Params) (channel.AdjudicatorSubscription, error) {
 	a.log.Infof("SubscribeRegistered: %v", params)
-	return nil, nil
+	return &simSubscription{a}, nil
+}
+
+func (a *logAdjudicator) setEvent(e channel.AdjudicatorEvent) {
+	a.mu.Lock()
+	defer a.mu.Unlock()
+	a.latestEvent = e
+}
+
+type simSubscription struct {
+	a *logAdjudicator
+}
+
+func (s *simSubscription) Next() channel.AdjudicatorEvent {
+	s.a.mu.RLock()
+	defer s.a.mu.RUnlock()
+	return s.a.latestEvent
+}
+
+func (s *simSubscription) Close() error {
+	return nil
+}
+
+func (s *simSubscription) Err() error {
+	return nil
 }

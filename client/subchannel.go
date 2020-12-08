@@ -59,7 +59,7 @@ func (c *Channel) subChannelSettleOptimistic(ctx context.Context) error {
 		return errors.New("not final")
 	}
 
-	if err := c.machine.SetRegistered(ctx, nil); err != nil {
+	if err := c.machine.SetRegistered(ctx); err != nil {
 		return errors.WithMessage(err, "SetRegistered")
 	}
 	if err := c.machine.SetWithdrawing(ctx); err != nil {

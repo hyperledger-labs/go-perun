@@ -64,6 +64,8 @@ const (
 	Final
 	Registering
 	Registered
+	Progressing
+	Progressed
 	Withdrawing
 	Withdrawn
 	LastPhase = Withdrawn
@@ -79,6 +81,8 @@ func (p Phase) String() string {
 		"Final",
 		"Registering",
 		"Registered",
+		"Progressing",
+		"Progressed",
 		"Withdrawing",
 		"Withdrawn",
 	}[p]
@@ -98,7 +102,7 @@ func (t PhaseTransition) String() string {
 	return fmt.Sprintf("%v->%v", t.From, t.To)
 }
 
-var signingPhases = []Phase{InitSigning, Signing}
+var signingPhases = []Phase{InitSigning, Signing, Progressing}
 
 // A machine is the channel pushdown automaton that handles phase transitions.
 // It checks for correct signatures and valid phase transitions.
@@ -116,9 +120,6 @@ type machine struct {
 	stagingTX Transaction
 	currentTX Transaction
 	prevTXs   []Transaction
-
-	// currently registered event, if any
-	registered *RegisteredEvent
 
 	// logger embedding
 	log.Embedding
@@ -285,11 +286,7 @@ func (m *machine) AddSig(idx Index, sig wallet.Sig) error {
 
 // setStaging sets the given phase and state as staging state.
 func (m *machine) setStaging(phase Phase, state *State) {
-	m.stagingTX = Transaction{
-		State: state,
-		Sigs:  make([]wallet.Sig, m.N()),
-	}
-
+	m.stagingTX = *m.newTransaction(state)
 	m.setPhase(phase)
 }
 
@@ -333,21 +330,22 @@ func (m *machine) enableStaged(expected PhaseTransition) error {
 	if err := m.expect(expected); err != nil {
 		return errors.WithMessage(err, "no staging phase")
 	}
+
+	// Assert that we transition to phase Final iff state.IsFinal.
 	if (expected.To == Final) != m.stagingTX.State.IsFinal {
 		return m.phaseErrorf(expected, "State.IsFinal and target phase don't match")
 	}
 
+	// Assert that all signatures are present.
 	for i, sig := range m.stagingTX.Sigs {
 		if sig == nil {
 			return m.phaseErrorf(expected, "signature %d missing from staging TX", i)
 		}
 	}
 
-	m.prevTXs = append(m.prevTXs, m.currentTX) // push current to previous
-	m.currentTX = m.stagingTX                  // promote staging to current
-	m.stagingTX = Transaction{}                // clear staging
-
 	m.setPhase(expected.To)
+	m.addTx(&m.stagingTX)
+
 	return nil
 }
 
@@ -374,29 +372,38 @@ func (m *machine) SetRegistering() error {
 // gets stored in the machine to record the timeout and registered version.
 // This phase can be reached after the initial phases are done, i.e., when
 // there's at least one state with signatures.
-func (m *machine) SetRegistered(reg *RegisteredEvent) error {
+func (m *machine) SetRegistered() error {
 	if m.phase < Funding {
 		return m.phaseErrorf(m.selfTransition(), "can only register after init phases")
 	}
 
-	if m.registered == nil || reg.Version() > m.registered.Version() {
-		m.registered = reg
-	}
 	m.setPhase(Registered)
 	return nil
 }
 
-// Registered returns the currently registered event (timeout and version), if
-// any, or nil.
-func (m *machine) Registered() *RegisteredEvent {
-	return m.registered
+// SetProgressing sets the machine phase to Progressing and the staging state to
+// the given state.
+func (m *machine) SetProgressing(state *State) error {
+	if !inPhase(m.phase, []Phase{Registered, Progressed}) {
+		return m.phaseErrorf(m.selfTransition(), "can only progress when registered or progressed")
+	}
+	m.setStaging(Progressing, state)
+	return nil
+}
+
+// SetProgressed sets the machine phase to Progressed and the current state to
+// the state specified in the given ProgressedEvent.
+func (m *machine) SetProgressed(e *ProgressedEvent) error {
+	m.forceState(Progressed, e.State)
+	return nil
 }
 
 // SetWithdrawing sets the state machine to the Withdrawing phase. The current
 // state was registered on-chain and funds withdrawal is in progress.
-// This phase can only be reached from the Registered or Withdrawing phase.
+// This phase can only be reached from phase Acting, Registered, Progressed, or
+// Withdrawing.
 func (m *machine) SetWithdrawing() error {
-	if !inPhase(m.phase, []Phase{Registered, Withdrawing}) {
+	if !inPhase(m.phase, []Phase{Acting, Registered, Progressed, Withdrawing}) {
 		return m.phaseErrorf(m.selfTransition(), "can only withdraw after registering")
 	}
 	m.setPhase(Withdrawing)
@@ -436,6 +443,9 @@ var validPhaseTransitions = map[PhaseTransition]struct{}{
 	{Final, Registered}:       {},
 	{Registering, Registered}: {},
 	{Registered, Withdrawing}: {},
+	{Registered, Progressed}:  {},
+	{Progressing, Progressed}: {},
+	{Progressed, Withdrawing}: {},
 	{Withdrawing, Withdrawn}:  {},
 }
 
@@ -518,4 +528,26 @@ func (m *machine) Clone() *machine {
 		prevTXs:   prevTXs,
 		Embedding: m.Embedding,
 	}
+}
+
+func (m *machine) IsRegistered() bool {
+	return m.phase >= Registered
+}
+
+func (m *machine) newTransaction(s *State) *Transaction {
+	return &Transaction{
+		State: s,
+		Sigs:  make([]wallet.Sig, m.N()),
+	}
+}
+
+func (m *machine) addTx(tx *Transaction) {
+	m.prevTXs = append(m.prevTXs, m.currentTX) // push current to previous
+	m.currentTX = *tx                          // promote staging to current
+	m.stagingTX = Transaction{}                // clear staging
+}
+
+func (m *machine) forceState(p Phase, s *State) {
+	m.setPhase(p)
+	m.addTx(m.newTransaction(s))
 }
