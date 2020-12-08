@@ -69,7 +69,7 @@ func (f *logFunder) Fund(_ context.Context, req channel.FundingReq) error {
 	return nil
 }
 
-func (a *logAdjudicator) Register(_ context.Context, req channel.AdjudicatorReq) (*channel.RegisteredEvent, error) {
+func (a *logAdjudicator) Register(_ context.Context, req channel.AdjudicatorReq) error {
 	a.log.Infof("Register: %v", req)
 	e := channel.NewRegisteredEvent(
 		req.Params.ID(),
@@ -77,7 +77,7 @@ func (a *logAdjudicator) Register(_ context.Context, req channel.AdjudicatorReq)
 		req.Tx.Version,
 	)
 	a.setEvent(e)
-	return e, nil
+	return nil
 }
 
 func (a *logAdjudicator) Progress(_ context.Context, req channel.ProgressReq) error {

@@ -193,16 +193,11 @@ func (c *Channel) SettleWithSubchannels(ctx context.Context, subStates channel.S
 // The caller is expected to have locked the channel mutex.
 func (c *Channel) register(ctx context.Context) error {
 	if err := c.machine.SetRegistering(ctx); err != nil {
-		return err
+		return errors.WithMessage(err, "setting the machine phase")
 	}
 
-	reg, err := c.adjudicator.Register(ctx, c.machine.AdjudicatorReq())
-	if err != nil {
+	if err := c.adjudicator.Register(ctx, c.machine.AdjudicatorReq()); err != nil {
 		return errors.WithMessage(err, "calling Register")
-	}
-	if ver := c.machine.State().Version; reg.Version() != ver {
-		return errors.Errorf(
-			"unexpected version %d registered, expected %d", reg.Version(), ver)
 	}
 
 	return c.machine.SetRegistered(ctx)

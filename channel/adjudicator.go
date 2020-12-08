@@ -38,9 +38,8 @@ type (
 	Adjudicator interface {
 		// Register should register the given channel state on-chain. It must be
 		// taken into account that a peer might already have registered the same or
-		// even an old state for the same channel. If registration was successful,
-		// it should return the timeout when the refutation phase will end.
-		Register(context.Context, AdjudicatorReq) (*RegisteredEvent, error)
+		// even an old state for the same channel.
+		Register(context.Context, AdjudicatorReq) error
 
 		// Withdraw should conclude and withdraw the registered state, so that the
 		// final outcome is set on the asset holders and funds are withdrawn
