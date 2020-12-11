@@ -51,7 +51,7 @@ func NewClient(ctx context.Context, t *testing.T, rng *rand.Rand, pr persistence
 
 // NewChannel creates a new channel with the supplied peer as the other
 // participant. The client's participant index is randomly chosen.
-func (c *Client) NewChannel(t require.TestingT, p wire.Address) *Channel {
+func (c *Client) NewChannel(t require.TestingT, p wire.Address, parent *Channel) *Channel {
 	idx := c.rng.Intn(2)
 	peers := make([]wire.Address, 2)
 	peers[idx] = c.addr
@@ -63,6 +63,7 @@ func (c *Client) NewChannel(t require.TestingT, p wire.Address) *Channel {
 		c.pr,
 		channel.Index(idx),
 		peers,
+		parent,
 		c.rng)
 }
 
@@ -90,10 +91,17 @@ func GenericPersistRestorerTest(
 	peers := wtest.NewRandomAddresses(rng, numPeers)
 
 	channels := make([]map[channel.ID]*Channel, numPeers)
+	var prevCh *Channel
 	for p := 0; p < numPeers; p++ {
 		channels[p] = make(map[channel.ID]*Channel)
 		for i := 0; i < numChans; i++ {
-			ch := c.NewChannel(t, peers[p])
+			var parent *Channel = nil
+			// Every second channel is set to have a parent.
+			if i&1 == 1 {
+				parent = prevCh
+			}
+			ch := c.NewChannel(t, peers[p], parent)
+			prevCh = ch
 			channels[p][ch.ID()] = ch
 			t.Logf("created channel %d for peer %d", i, p)
 		}
