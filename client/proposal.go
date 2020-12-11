@@ -406,25 +406,24 @@ func (c *Client) completeCPP(
 		return nil, errors.WithMessage(err, "unlocking account")
 	}
 
+	var parent *Channel
+	if prop.Type() == wire.SubChannelProposal {
+		parentChannelID := prop.(*SubChannelProposal).Parent
+		var ok bool
+		if parent, ok = c.channels.Get(parentChannelID); !ok {
+			return nil, errors.New("referenced parent channel not found")
+		}
+	}
+
 	peers := c.proposalPeers(prop)
-	ch, err := c.newChannel(account, peers, *params)
+	ch, err := c.newChannel(account, parent, peers, *params)
 	if err != nil {
 		return nil, err
 	}
 
-	if prop.Type() == wire.SubChannelProposal {
-		parentChannelID := prop.(*SubChannelProposal).Parent
-		parentChannel, ok := c.channels.Get(parentChannelID)
-		if !ok {
-			return ch, errors.New("referenced parent channel not found")
-		}
-
-		ch.parent = parentChannel
-
-		// if subchannel proposal receiver, setup register funding update
-		if partIdx == proposeeIdx {
-			parentChannel.registerSubChannelFunding(ch.ID(), propBase.InitBals.Sum())
-		}
+	// If subchannel proposal receiver, setup register funding update.
+	if prop.Type() == wire.SubChannelProposal && partIdx == proposeeIdx {
+		parent.registerSubChannelFunding(ch.ID(), propBase.InitBals.Sum())
 	}
 
 	if err := c.pr.ChannelCreated(ctx, ch.machine, peers); err != nil {
