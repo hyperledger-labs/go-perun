@@ -21,7 +21,7 @@ import (
 	psync "perun.network/go-perun/pkg/sync"
 )
 
-// ChanRegistry is a registry for channels.
+// chanRegistry is a registry for channels.
 // You can safely look up channels via their ID and concurrently modify the
 // registry. Always initialize instances of this type with MakeChanRegistry().
 type chanRegistry struct {
