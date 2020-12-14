@@ -40,10 +40,10 @@ func (a *Adjudicator) ensureConcluded(ctx context.Context, req channel.Adjudicat
 	if err != nil {
 		return errors.WithMessage(err, "creating watchOpts")
 	}
-	concluded := make(chan *adjudicator.AdjudicatorConcluded)
-	sub, err := a.contract.WatchConcluded(watchOpts, concluded, [][32]byte{req.Params.ID()})
+	events := make(chan *adjudicator.AdjudicatorChannelUpdate)
+	sub, err := a.contract.WatchChannelUpdate(watchOpts, events, [][32]byte{req.Params.ID()})
 	if err != nil {
-		return errors.Wrap(err, "WatchConcluded failed")
+		return errors.Wrap(err, "creating subscription failed")
 	}
 	defer sub.Unsubscribe()
 
@@ -57,7 +57,7 @@ func (a *Adjudicator) ensureConcluded(ctx context.Context, req channel.Adjudicat
 	// the other party to send the transaction first for secondaryWaitBlocks many
 	// blocks.
 	if req.Tx.IsFinal && req.Secondary {
-		isConcluded, err := waitConcludedForNBlocks(ctx, a, sub, concluded, secondaryWaitBlocks)
+		isConcluded, err := waitConcludedForNBlocks(ctx, a, sub, events, secondaryWaitBlocks)
 		if err != nil {
 			return err
 		} else if isConcluded {
@@ -78,7 +78,7 @@ func (a *Adjudicator) ensureConcluded(ctx context.Context, req channel.Adjudicat
 	}
 
 	select {
-	case <-concluded:
+	case <-events:
 		return nil
 	case <-ctx.Done():
 		return errors.Wrap(ctx.Err(), "context cancelled")
@@ -96,7 +96,7 @@ func (a *Adjudicator) ensureConcluded(ctx context.Context, req channel.Adjudicat
 func waitConcludedForNBlocks(ctx context.Context,
 	cr ethereum.ChainReader,
 	sub ethereum.Subscription,
-	concluded chan *adjudicator.AdjudicatorConcluded,
+	concluded chan *adjudicator.AdjudicatorChannelUpdate,
 	numBlocks int,
 ) (bool, error) {
 	h := make(chan *types.Header)
@@ -108,8 +108,10 @@ func waitConcludedForNBlocks(ctx context.Context,
 	for i := 0; i < numBlocks; i++ {
 		select {
 		case <-h: // do nothing, wait another block
-		case <-concluded: // other participant performed transaction
-			return true, nil
+		case e := <-concluded: // other participant performed transaction
+			if e.Phase == phaseConcluded {
+				return true, nil
+			}
 		case <-ctx.Done():
 			return false, errors.Wrap(ctx.Err(), "context cancelled")
 		case err = <-hsub.Err():
@@ -127,14 +129,18 @@ func (a *Adjudicator) filterConcluded(ctx context.Context, channelID channel.ID)
 	if err != nil {
 		return false, err
 	}
-	iter, err := a.contract.FilterConcluded(filterOpts, [][32]byte{channelID})
+	iter, err := a.contract.FilterChannelUpdate(filterOpts, [][32]byte{channelID})
 	if err != nil {
 		return false, errors.Wrap(err, "creating iterator")
 	}
 
-	if !iter.Next() {
-		return false, errors.Wrap(iter.Error(), "iterating")
+	found := false
+	for iter.Next() {
+		if iter.Event.Phase == phaseConcluded {
+			found = true
+			break
+		}
 	}
-	// Event found
-	return true, nil
+
+	return found, nil
 }

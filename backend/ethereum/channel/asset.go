@@ -17,12 +17,15 @@ package channel
 import (
 	"context"
 	"encoding/hex"
+	"strings"
 
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/pkg/errors"
 
-	"perun.network/go-perun/backend/ethereum/bindings/assets"
+	"perun.network/go-perun/backend/ethereum/bindings/assetholder"
+	"perun.network/go-perun/backend/ethereum/bindings/assetholdererc20"
+	"perun.network/go-perun/backend/ethereum/bindings/assetholdereth"
 	"perun.network/go-perun/backend/ethereum/wallet"
 	"perun.network/go-perun/channel"
 )
@@ -40,7 +43,7 @@ var _ channel.Asset = new(Asset)
 func ValidateAssetHolderETH(ctx context.Context,
 	backend bind.ContractBackend, assetHolderETH, adjudicator common.Address) error {
 	return validateAssetHolder(ctx, backend, assetHolderETH, adjudicator,
-		assets.AssetHolderETHBinRuntime)
+		assetholdereth.AssetHolderETHBinRuntime)
 }
 
 // ValidateAssetHolderERC20 checks if the bytecodes at the given addresses are
@@ -51,7 +54,7 @@ func ValidateAssetHolderETH(ctx context.Context,
 func ValidateAssetHolderERC20(ctx context.Context,
 	backend bind.ContractBackend, assetHolderERC20, adjudicator, token common.Address) error {
 	return validateAssetHolder(ctx, backend, assetHolderERC20, adjudicator,
-		assets.AssetHolderERC20BinRuntimeFor(token))
+		assetHolderERC20BinRuntimeFor(token))
 }
 
 func validateAssetHolder(ctx context.Context,
@@ -60,7 +63,7 @@ func validateAssetHolder(ctx context.Context,
 		return errors.WithMessage(err, "validating asset holder")
 	}
 
-	assetHolder, err := assets.NewAssetHolder(assetHolderAddr, backend)
+	assetHolder, err := assetholder.NewAssetHolder(assetHolderAddr, backend)
 	if err != nil {
 		return errors.Wrap(err, "binding AssetHolder")
 	}
@@ -88,4 +91,14 @@ func validateContract(ctx context.Context,
 		return errors.Wrap(ErrInvalidContractCode, "incorrect contract code")
 	}
 	return nil
+}
+
+func assetHolderERC20BinRuntimeFor(token common.Address) string {
+	// runtimePlaceholder indicates constructor variables in runtime binary code.
+	const runtimePlaceholder = "7f0000000000000000000000000000000000000000000000000000000000000000"
+
+	tokenHex := hex.EncodeToString(token[:])
+	return strings.ReplaceAll(assetholdererc20.AssetHolderERC20BinRuntime,
+		runtimePlaceholder,
+		runtimePlaceholder[:len(runtimePlaceholder)-len(tokenHex)]+tokenHex)
 }

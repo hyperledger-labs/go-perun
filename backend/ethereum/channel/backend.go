@@ -33,6 +33,12 @@ import (
 	"perun.network/go-perun/wallet"
 )
 
+const (
+	phaseDispute   = iota //nolint:deadcode,varcheck
+	phaseForceExec        //nolint:deadcode,varcheck
+	phaseConcluded
+)
+
 var (
 	// compile time check that we implement the channel backend interface.
 	_ channel.Backend = new(Backend)

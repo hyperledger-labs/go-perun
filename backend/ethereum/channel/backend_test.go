@@ -55,8 +55,7 @@ func TestAdjudicator_PureFunctions(t *testing.T) {
 	})
 }
 
-func testCalcID(t *testing.T, rng *rand.Rand, contr *adjudicator.
-	Adjudicator, opts *bind.CallOpts) {
+func testCalcID(t *testing.T, rng *rand.Rand, contr *adjudicator.Adjudicator, opts *bind.CallOpts) {
 	for i := 0; i < 100; i++ {
 		params := test.NewRandomParams(rng)
 		ethParams := channel.ToEthParams(params)

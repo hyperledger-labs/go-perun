@@ -20,8 +20,8 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/pkg/errors"
-
-	"perun.network/go-perun/backend/ethereum/bindings/assets"
+	"perun.network/go-perun/backend/ethereum/bindings/assetholdererc20"
+	"perun.network/go-perun/backend/ethereum/bindings/peruntoken"
 )
 
 // ERC20Depositor deposits tokens into the `AssetHolderERC20` contract.
@@ -39,12 +39,12 @@ const ERC20DepositorTXGasLimit = 100000
 // requests's asset address.
 func (d *ERC20Depositor) Deposit(ctx context.Context, req DepositReq) (types.Transactions, error) {
 	// Bind a `AssetHolderERC20` instance.
-	assetholder, err := assets.NewAssetHolderERC20(common.Address(req.Asset), req.CB)
+	assetholder, err := assetholdererc20.NewAssetHolderERC20(common.Address(req.Asset), req.CB)
 	if err != nil {
 		return nil, errors.WithMessagef(err, "binding AssetHolderERC20 contract at: %x", req.Asset)
 	}
 	// Bind an `ERC20` instance.
-	token, err := assets.NewERC20(d.Token, req.CB)
+	token, err := peruntoken.NewERC20(d.Token, req.CB)
 	if err != nil {
 		return nil, errors.WithMessagef(err, "binding ERC20 contract at: %x", d.Token)
 	}

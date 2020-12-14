@@ -23,7 +23,7 @@ import (
 	"github.com/pkg/errors"
 	"golang.org/x/sync/errgroup"
 
-	"perun.network/go-perun/backend/ethereum/bindings/assets"
+	"perun.network/go-perun/backend/ethereum/bindings/assetholder"
 	"perun.network/go-perun/backend/ethereum/wallet"
 	"perun.network/go-perun/channel"
 	"perun.network/go-perun/log"
@@ -56,7 +56,7 @@ func (a *Adjudicator) ensureWithdrawn(ctx context.Context, req channel.Adjudicat
 				return errors.WithMessage(err, "creating watchOpts")
 			}
 			fundingID := FundingIDs(req.Params.ID(), req.Params.Parts[req.Idx])[0]
-			withdrawn := make(chan *assets.AssetHolderWithdrawn)
+			withdrawn := make(chan *assetholder.AssetHolderWithdrawn)
 			contract, err := bindAssetHolder(a.ContractBackend, asset, channel.Index(index))
 			if err != nil {
 				return errors.WithMessage(err, "connecting asset holder")
@@ -97,7 +97,7 @@ func (a *Adjudicator) ensureWithdrawn(ctx context.Context, req channel.Adjudicat
 func bindAssetHolder(backend ContractBackend, asset channel.Asset, assetIndex channel.Index) (assetHolder, error) {
 	// Decode and set the asset address.
 	assetAddr := common.Address(*asset.(*Asset))
-	ctr, err := assets.NewAssetHolder(assetAddr, backend)
+	ctr, err := assetholder.NewAssetHolder(assetAddr, backend)
 	if err != nil {
 		return assetHolder{}, errors.Wrap(err, "connecting to assetholder")
 	}
@@ -153,8 +153,8 @@ func (a *Adjudicator) callAssetWithdraw(ctx context.Context, request channel.Adj
 	return errors.WithMessage(err, "mining transaction")
 }
 
-func (a *Adjudicator) newWithdrawalAuth(request channel.AdjudicatorReq, asset assetHolder) (assets.AssetHolderWithdrawalAuth, []byte, error) {
-	auth := assets.AssetHolderWithdrawalAuth{
+func (a *Adjudicator) newWithdrawalAuth(request channel.AdjudicatorReq, asset assetHolder) (assetholder.AssetHolderWithdrawalAuth, []byte, error) {
+	auth := assetholder.AssetHolderWithdrawalAuth{
 		ChannelID:   request.Params.ID(),
 		Participant: wallet.AsEthAddr(request.Acc.Address()),
 		Receiver:    a.Receiver,
@@ -162,14 +162,14 @@ func (a *Adjudicator) newWithdrawalAuth(request channel.AdjudicatorReq, asset as
 	}
 	enc, err := encodeAssetHolderWithdrawalAuth(auth)
 	if err != nil {
-		return assets.AssetHolderWithdrawalAuth{}, nil, errors.WithMessage(err, "encoding withdrawal auth")
+		return assetholder.AssetHolderWithdrawalAuth{}, nil, errors.WithMessage(err, "encoding withdrawal auth")
 	}
 
 	sig, err := request.Acc.SignData(enc)
 	return auth, sig, errors.WithMessage(err, "sign data")
 }
 
-func encodeAssetHolderWithdrawalAuth(auth assets.AssetHolderWithdrawalAuth) ([]byte, error) {
+func encodeAssetHolderWithdrawalAuth(auth assetholder.AssetHolderWithdrawalAuth) ([]byte, error) {
 	// encodeAssetHolderWithdrawalAuth encodes the AssetHolderWithdrawalAuth as with abi.encode() in the smart contracts.
 	args := abi.Arguments{
 		{Type: abiBytes32},

@@ -68,7 +68,7 @@ func (a *Adjudicator) callRegister(ctx context.Context, req channel.AdjudicatorR
 }
 
 func (a *Adjudicator) callRefute(ctx context.Context, req channel.AdjudicatorReq) error {
-	return a.call(ctx, req, a.contract.Refute)
+	return a.call(ctx, req, a.contract.Register)
 }
 
 func (a *Adjudicator) callConclude(ctx context.Context, req channel.AdjudicatorReq, subStates channel.StateMap) error {
