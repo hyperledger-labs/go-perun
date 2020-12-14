@@ -52,13 +52,13 @@ func (c *Channel) Watch(h AdjudicatorEventHandler) error {
 	for e := sub.Next(); e != nil; e = sub.Next() {
 		log.Infof("event %v", e)
 
-		switch e := e.(type) {
-		case *channel.RegisteredEvent:
-			// Update machine phase
-			if err := c.setMachinePhase(ctx, e); err != nil {
-				return errors.WithMessage(err, "setting phase registered")
-			}
+		// Update machine phase
+		if err := c.setMachinePhase(ctx, e); err != nil {
+			return errors.WithMessage(err, "setting machine phase")
+		}
 
+		// Special handling of RegisteredEvent
+		if e, ok := e.(*channel.RegisteredEvent); ok {
 			// Assert backend version not greater than local version.
 			if e.Version() > c.State().Version {
 				// If the implementation works as intended, this should never happen.
@@ -71,28 +71,14 @@ func (c *Channel) Watch(h AdjudicatorEventHandler) error {
 					return errors.WithMessage(err, "registering")
 				}
 			}
-
-			// Notify handler
-			go h.HandleAdjudicatorEvent(e)
-
-		case *channel.ProgressedEvent:
-			// Update machine phase
-			if err := c.setMachinePhase(ctx, e); err != nil {
-				return errors.WithMessage(err, "setting phase progressed")
-			}
-
-			// Notify handler
-			go h.HandleAdjudicatorEvent(e)
 		}
+
+		// Notify handler
+		go h.HandleAdjudicatorEvent(e)
 	}
 
 	log.Debugf("Subscription closed: %v", sub.Err())
-
-	if err := sub.Err(); err != nil {
-		return errors.WithMessage(err, "subscription closed")
-	}
-
-	return nil
+	return errors.WithMessage(sub.Err(), "subscription closed")
 }
 
 // Register registers the channel on the adjudicator.
@@ -133,11 +119,7 @@ func (c *Channel) ProgressBy(ctx context.Context, update func(*channel.State)) e
 
 	// Create and send request
 	pr := channel.NewProgressReq(ar, state, sig)
-	if err := c.adjudicator.Progress(ctx, *pr); err != nil {
-		return errors.WithMessage(err, "progressing")
-	}
-
-	return nil
+	return errors.WithMessage(c.adjudicator.Progress(ctx, *pr), "progressing")
 }
 
 // Settle concludes a channel and withdraws the funds.
@@ -215,6 +197,8 @@ func (c *Channel) setMachinePhase(ctx context.Context, e channel.AdjudicatorEven
 		err = c.machine.SetRegistered(ctx)
 	case *channel.ProgressedEvent:
 		err = c.machine.SetProgressed(ctx, e)
+	case *channel.ConcludedEvent:
+		// Do nothing as there is currently no corresponding phase in the channel machine.
 	default:
 		c.Log().Panic("unsupported event type")
 	}
