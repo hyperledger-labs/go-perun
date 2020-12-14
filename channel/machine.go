@@ -66,6 +66,7 @@ const (
 	Registered
 	Withdrawing
 	Withdrawn
+	LastPhase = Withdrawn
 )
 
 func (p Phase) String() string {
