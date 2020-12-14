@@ -24,7 +24,22 @@ import (
 	"perun.network/go-perun/wire"
 )
 
+type channelFromSourceSig = func(*Client, *persistence.Channel, *Channel, ...wire.Address) (*Channel, error)
+
+// clientChannelFromSource is the production behaviour of reconstructChannel.
+// During testing, it is replaced by a simpler function that needs much less
+// setup code.
+func clientChannelFromSource(
+	c *Client,
+	ch *persistence.Channel,
+	parent *Channel,
+	peers ...wire.Address,
+) (*Channel, error) {
+	return c.channelFromSource(ch, parent, peers...)
+}
+
 func (c *Client) reconstructChannel(
+	channelFromSource channelFromSourceSig,
 	pch *persistence.Channel,
 	db map[channel.ID]*persistence.Channel,
 	chans map[channel.ID]*Channel,
@@ -36,12 +51,13 @@ func (c *Client) reconstructChannel(
 	var parent *Channel
 	if pch.Parent != nil {
 		parent = c.reconstructChannel(
+			channelFromSource,
 			db[*pch.Parent],
 			db,
 			chans)
 	}
 
-	ch, err := c.channelFromSource(pch, parent, pch.PeersV...)
+	ch, err := channelFromSource(c, pch, parent, pch.PeersV...)
 	if err != nil {
 		c.logChan(pch.ID()).Panicf("Reconstruct channel: %v", err)
 	}
@@ -62,7 +78,6 @@ func (c *Client) restorePeerChannels(ctx context.Context, p wire.Address) (err e
 	}()
 
 	db := make(map[channel.ID]*persistence.Channel)
-	chs := make(map[channel.ID]*Channel)
 
 	// Serially restore channels. We might change this to parallel restoring once
 	// we initiate the sync protocol from here again.
@@ -70,8 +85,21 @@ func (c *Client) restorePeerChannels(ctx context.Context, p wire.Address) (err e
 		chdata := it.Channel()
 		db[chdata.ID()] = chdata
 	}
+
+	if err := it.Close(); err != nil {
+		return err
+	}
+
+	c.restoreChannelCollection(db, clientChannelFromSource)
+	return nil
+}
+
+func (c *Client) restoreChannelCollection(
+	db map[channel.ID]*persistence.Channel,
+	channelFromSource channelFromSourceSig) {
+	chs := make(map[channel.ID]*Channel)
 	for _, pch := range db {
-		ch := c.reconstructChannel(pch, db, chs)
+		ch := c.reconstructChannel(channelFromSource, pch, db, chs)
 		log := c.logChan(ch.ID())
 		log.Debug("Restoring channel...")
 
@@ -91,5 +119,4 @@ func (c *Client) restorePeerChannels(ctx context.Context, p wire.Address) (err e
 		}
 		log.Info("Channel restored.")
 	}
-	return nil
 }
