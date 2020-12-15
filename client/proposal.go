@@ -407,10 +407,11 @@ func (c *Client) completeCPP(
 	}
 
 	var parent *Channel
+	var parentChannelID *channel.ID
 	if prop.Type() == wire.SubChannelProposal {
-		parentChannelID := prop.(*SubChannelProposal).Parent
+		parentChannelID = &prop.(*SubChannelProposal).Parent
 		var ok bool
-		if parent, ok = c.channels.Get(parentChannelID); !ok {
+		if parent, ok = c.channels.Get(*parentChannelID); !ok {
 			return nil, errors.New("referenced parent channel not found")
 		}
 	}
@@ -426,7 +427,7 @@ func (c *Client) completeCPP(
 		parent.registerSubChannelFunding(ch.ID(), propBase.InitBals.Sum())
 	}
 
-	if err := c.pr.ChannelCreated(ctx, ch.machine, peers); err != nil {
+	if err := c.pr.ChannelCreated(ctx, ch.machine, peers, parentChannelID); err != nil {
 		return ch, errors.WithMessage(err, "persisting new channel")
 	}
 

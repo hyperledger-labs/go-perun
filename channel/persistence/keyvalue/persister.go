@@ -32,7 +32,7 @@ import (
 )
 
 // ChannelCreated inserts a channel into the database.
-func (pr *PersistRestorer) ChannelCreated(_ context.Context, s channel.Source, peers []wire.Address) error {
+func (pr *PersistRestorer) ChannelCreated(_ context.Context, s channel.Source, peers []wire.Address, parent *channel.ID) error {
 	db := pr.channelDB(s.ID()).NewBatch()
 	// Write the channel data in the "Channel" table.
 	numParts := len(s.Params().Parts)
@@ -40,6 +40,10 @@ func (pr *PersistRestorer) ChannelCreated(_ context.Context, s channel.Source, p
 		sigKeys(numParts)...)
 	if err := dbPutSource(db, s, keys...); err != nil {
 		return err
+	}
+
+	if err := dbPut(db, "parent", optChannelIDEnc{parent}); err != nil {
+		return errors.WithMessage(err, "putting parent ID")
 	}
 
 	// Write peers in the "Channel" table.

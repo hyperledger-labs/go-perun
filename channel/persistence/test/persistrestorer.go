@@ -56,7 +56,7 @@ func NewPersistRestorer(t *testing.T) *PersistRestorer {
 
 // ChannelCreated fully persists all of the source's data.
 func (pr *PersistRestorer) ChannelCreated(
-	_ context.Context, source channel.Source, peers []wire.Address) error {
+	_ context.Context, source channel.Source, peers []wire.Address, parent *channel.ID) error {
 	pr.mu.Lock()
 	defer pr.mu.Unlock()
 
@@ -66,7 +66,7 @@ func (pr *PersistRestorer) ChannelCreated(
 		return errors.Errorf("channel already persisted: %x", id)
 	}
 
-	pr.chans[id] = persistence.FromSource(source, peers, nil)
+	pr.chans[id] = persistence.FromSource(source, peers, parent)
 	pr.pcs.Add(id, peers...)
 	return nil
 }

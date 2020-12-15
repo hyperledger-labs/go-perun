@@ -54,6 +54,13 @@ func (c *Channel) subChannelSettleOptimistic(ctx context.Context) error {
 		return errors.New("not final")
 	}
 
+	if err := c.machine.SetRegistered(ctx, nil); err != nil {
+		return errors.WithMessage(err, "SetRegistered")
+	}
+	if err := c.machine.SetWithdrawing(ctx); err != nil {
+		return errors.WithMessage(err, "SetWithdrawing")
+	}
+
 	switch c.Idx() {
 	case proposerIdx:
 		err := c.Parent().withdrawSubChannel(ctx, c)
@@ -65,7 +72,7 @@ func (c *Channel) subChannelSettleOptimistic(ctx context.Context) error {
 		c.Log().Panic("invalid participant index")
 	}
 
-	return nil
+	return errors.WithMessage(c.machine.SetWithdrawn(ctx), "SetWithdrawn")
 }
 
 // withdrawSubChannel updates c so that the sub-channel allocation for
@@ -78,7 +85,7 @@ func (c *Channel) withdrawSubChannel(ctx context.Context, sub *Channel) error {
 	}
 	defer c.machMtx.Unlock()
 
-	return c.updateBy(ctx, func(parentState *channel.State) error {
+	err := c.updateBy(ctx, func(parentState *channel.State) error {
 		subAlloc, ok := parentState.SubAlloc(sub.ID())
 		if !ok {
 			c.Log().Panicf("sub-allocation %x not found", subAlloc.ID)
@@ -102,6 +109,8 @@ func (c *Channel) withdrawSubChannel(ctx context.Context, sub *Channel) error {
 
 		return nil
 	})
+
+	return errors.WithMessage(err, "update parent channel")
 }
 
 func (c *Channel) registerSubChannelFunding(id channel.ID, alloc []channel.Bal) {
