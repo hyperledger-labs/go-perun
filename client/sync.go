@@ -27,61 +27,6 @@ import (
 
 var syncReplyTimeout = 10 * time.Second
 
-func (c *Client) restorePeerChannels(ctx context.Context, p wire.Address) (err error) {
-	it, err := c.pr.RestorePeer(p)
-	if err != nil {
-		return errors.WithMessagef(err, "restoring channels for peer: %v", err)
-	}
-	defer func() {
-		if cerr := it.Close(); cerr != nil {
-			err = errors.WithMessagef(err, "(error closing iterator: %v)", cerr)
-		}
-	}()
-
-	// Serially restore channels. We might change this to parallel restoring once
-	// we initiate the sync protocol from here again.
-	for it.Next(ctx) {
-		chdata := it.Channel()
-		if err := c.restoreChannel(p, chdata); err != nil {
-			return errors.WithMessage(err, "restoring channel")
-		}
-	}
-	return nil
-}
-
-func (c *Client) restoreChannel(p wire.Address, chdata *persistence.Channel) error {
-	log := c.logChan(chdata.ID())
-	log.Debug("Restoring channel...")
-
-	// TODO:
-	// Send outgoing channel sync request and receive possibly newer channel data.
-	// Incoming sync requests are handled by handleSyncMsg which is called from
-	// the client's request loop.
-
-	// TODO: read peers from chdata when available
-	peers := make([]wire.Address, 2)
-	peers[chdata.IdxV] = c.address
-	peers[chdata.IdxV^1] = p
-
-	// Create the channel's controller.
-	ch, err := c.channelFromSource(chdata, peers...)
-	if err != nil {
-		return errors.WithMessage(err, "creating channel controller")
-	}
-
-	// Putting the channel into the channel registry will call the
-	// OnNewChannel callback so that the user can deal with the restored
-	// channel.
-	if !c.channels.Put(chdata.ID(), ch) {
-		log.Warn("Channel already present, closing restored channel.")
-		// If the channel already existed, close this one.
-		// nolint:errcheck,gosec
-		ch.Close()
-	}
-	log.Info("Channel restored.")
-	return nil
-}
-
 // handleSyncMsg is the passive incoming sync message handler. If the channel
 // exists, it just sends the current channel data to the requester. If the
 // own channel is in the Signing phase, the ongoing update is discarded so that

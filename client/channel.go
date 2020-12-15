@@ -51,6 +51,7 @@ type Channel struct {
 // controller after the channel proposal protocol ran successfully.
 func (c *Client) newChannel(
 	acc wallet.Account,
+	parent *Channel,
 	peers []wire.Address,
 	params channel.Params,
 ) (*Channel, error) {
@@ -58,11 +59,11 @@ func (c *Client) newChannel(
 	if err != nil {
 		return nil, errors.WithMessage(err, "creating state machine")
 	}
-	return c.channelFromMachine(machine, peers...)
+	return c.channelFromMachine(machine, parent, peers...)
 }
 
 // channelFromSource is used to create a channel controller from restored data.
-func (c *Client) channelFromSource(s channel.Source, peers ...wire.Address) (*Channel, error) {
+func (c *Client) channelFromSource(s channel.Source, parent *Channel, peers ...wire.Address) (*Channel, error) {
 	acc, err := c.wallet.Unlock(s.Params().Parts[s.Idx()])
 	if err != nil {
 		return nil, errors.WithMessage(err, "unlocking account for channel")
@@ -73,11 +74,11 @@ func (c *Client) channelFromSource(s channel.Source, peers ...wire.Address) (*Ch
 		return nil, errors.WithMessage(err, "restoring state machine")
 	}
 
-	return c.channelFromMachine(machine, peers...)
+	return c.channelFromMachine(machine, parent, peers...)
 }
 
 // channelFromMachine creates a channel controller around the passed state machine.
-func (c *Client) channelFromMachine(machine *channel.StateMachine, peers ...wire.Address) (*Channel, error) {
+func (c *Client) channelFromMachine(machine *channel.StateMachine, parent *Channel, peers ...wire.Address) (*Channel, error) {
 	logger := c.logChan(machine.ID())
 	machine.SetLog(logger) // client logger has more fields
 	pmachine := persistence.FromStateMachine(machine, c.pr)
@@ -90,6 +91,7 @@ func (c *Client) channelFromMachine(machine *channel.StateMachine, peers ...wire
 
 	conn.SetLog(logger)
 	return &Channel{
+		parent:                parent,
 		OnCloser:              conn,
 		Embedding:             log.MakeEmbedding(logger),
 		conn:                  conn,
