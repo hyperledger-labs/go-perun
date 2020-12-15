@@ -32,7 +32,7 @@ type nonPersistRestorer struct{}
 
 // Persister implementation
 
-func (nonPersistRestorer) ChannelCreated(context.Context, channel.Source, []wire.Address) error {
+func (nonPersistRestorer) ChannelCreated(context.Context, channel.Source, []wire.Address, *channel.ID) error {
 	return nil
 }
 func (nonPersistRestorer) ChannelRemoved(context.Context, channel.ID) error              { return nil }

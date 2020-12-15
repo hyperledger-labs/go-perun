@@ -33,6 +33,7 @@ import (
 type Channel struct {
 	accounts []wallet.Account
 	peers    []wire.Address
+	parent   *channel.ID
 	*persistence.StateMachine
 
 	pr  persistence.PersistRestorer
@@ -67,7 +68,7 @@ func NewRandomChannel(
 		ctx:          ctx,
 	}
 
-	require.NoError(t, pr.ChannelCreated(ctx, c.StateMachine, c.peers))
+	require.NoError(t, pr.ChannelCreated(ctx, c.StateMachine, c.peers, c.parent))
 	c.AssertPersisted(ctx, t)
 	return
 }
@@ -93,6 +94,7 @@ func (c *Channel) AssertPersisted(ctx context.Context, t require.TestingT) {
 	require.NotNil(t, ch)
 	c.RequireEqual(t, ch)
 	requireEqualPeers(t, c.peers, ch.PeersV)
+	require.Equal(t, c.parent, ch.Parent)
 }
 
 // RequireEqual asserts that the channel is equal to the provided channel state.

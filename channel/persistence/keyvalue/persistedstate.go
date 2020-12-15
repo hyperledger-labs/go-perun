@@ -43,3 +43,30 @@ func (s *PersistedState) Decode(r io.Reader) error {
 	*s.State = new(channel.State)
 	return (*s.State).Decode(r)
 }
+
+type optChannelIDEnc struct {
+	ID *channel.ID
+}
+type optChannelIDDec struct {
+	ID **channel.ID
+}
+
+func (id optChannelIDEnc) Encode(w io.Writer) error {
+	if id.ID != nil {
+		return perunio.Encode(w, true, *id.ID)
+	}
+	return perunio.Encode(w, false)
+}
+
+func (id optChannelIDDec) Decode(r io.Reader) error {
+	var exists bool
+	if err := perunio.Decode(r, &exists); err != nil {
+		return err
+	}
+	if exists {
+		*id.ID = new(channel.ID)
+		return perunio.Decode(r, *id.ID)
+	}
+	*id.ID = nil
+	return nil
+}

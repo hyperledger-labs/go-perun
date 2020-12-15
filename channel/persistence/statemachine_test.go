@@ -46,7 +46,7 @@ func TestStateMachine(t *testing.T) {
 	sm := persistence.FromStateMachine(csm, tpr)
 
 	// Newly created channel
-	tpr.ChannelCreated(nil, &sm, nil) // nil peers since we only test StateMachine
+	tpr.ChannelCreated(nil, &sm, nil, nil) // nil peers since we only test StateMachine
 	tpr.AssertEqual(csm)
 
 	// Init state

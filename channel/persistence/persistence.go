@@ -33,8 +33,9 @@ type (
 		// before funding it. This should fully persist all of the source's data.
 		// The current state will be the fully signed version 0 state. The staging
 		// state will be empty. The passed peers are the channel network peers,
-		// which should also be persisted.
-		ChannelCreated(ctx context.Context, source channel.Source, peers []wire.Address) error
+		// which should also be persisted. The parent field is the parent
+		// channel's ID, or nil, if it is a ledger channel.
+		ChannelCreated(ctx context.Context, source channel.Source, peers []wire.Address, parent *channel.ID) error
 
 		// ChannelRemoved is called by the client when a channel is removed because
 		// it has been successfully settled and its data is no longer needed. All

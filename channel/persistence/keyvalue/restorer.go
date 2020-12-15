@@ -188,6 +188,7 @@ func (i *ChannelIterator) Next(context.Context) bool {
 	if !i.decodeNext("current", &i.ch.CurrentTXV, allowEnd) ||
 		!i.decodeNext("index", &i.ch.IdxV, noOpts) ||
 		!i.decodeNext("params", i.ch.ParamsV, noOpts) ||
+		!i.decodeNext("parent", optChannelIDDec{&i.ch.Parent}, noOpts) ||
 		!i.decodeNext("peers", (*wire.AddressesWithLen)(&i.ch.PeersV), noOpts) ||
 		!i.decodeNext("phase", &i.ch.PhaseV, noOpts) {
 		return false
