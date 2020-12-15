@@ -50,20 +50,11 @@ func (c *Channel) fundSubChannel(ctx context.Context, id channel.ID, alloc *chan
 	})
 }
 
-func (c *Channel) subChannelSettleOptimistic(ctx context.Context) error {
+func (c *Channel) withdrawIntoParent(ctx context.Context) error {
 	if !c.IsSubChannel() {
 		c.Log().Panic("not a sub-channel")
-	}
-
-	if !c.machine.State().IsFinal {
+	} else if !c.machine.State().IsFinal {
 		return errors.New("not final")
-	}
-
-	if err := c.machine.SetRegistered(ctx); err != nil {
-		return errors.WithMessage(err, "SetRegistered")
-	}
-	if err := c.machine.SetWithdrawing(ctx); err != nil {
-		return errors.WithMessage(err, "SetWithdrawing")
 	}
 
 	switch c.Idx() {
@@ -77,7 +68,7 @@ func (c *Channel) subChannelSettleOptimistic(ctx context.Context) error {
 		c.Log().Panic("invalid participant index")
 	}
 
-	return errors.WithMessage(c.machine.SetWithdrawn(ctx), "SetWithdrawn")
+	return nil
 }
 
 // withdrawSubChannel updates c so that the sub-channel allocation for

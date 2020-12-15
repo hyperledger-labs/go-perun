@@ -156,6 +156,11 @@ type (
 	StateMap map[ID]*State
 )
 
+// NewProgressReq creates a new ProgressReq object.
+func NewProgressReq(ar AdjudicatorReq, newState *State, sig wallet.Sig) *ProgressReq {
+	return &ProgressReq{ar, newState, sig}
+}
+
 // ID returns the channel ID.
 func (b AdjudicatorEventBase) ID() ID { return b.IDV }
 

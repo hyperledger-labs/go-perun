@@ -223,3 +223,7 @@ func (c *Channel) initExchangeSigsAndEnable(ctx context.Context) error {
 
 	return errors.WithMessage(<-send, "sending initial signature")
 }
+
+func (c *Channel) hasLockedFunds() bool {
+	return len(c.machine.State().Locked) > 0
+}

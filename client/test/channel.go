@@ -179,22 +179,20 @@ func (ch *paymentChannel) settleSecondary() {
 }
 
 func (ch *paymentChannel) settleImpl(secondary bool) {
+	assert := assert.New(ch.r.t)
+
 	ctx, cancel := context.WithTimeout(context.Background(), ch.r.timeout)
 	defer cancel()
 
-	var err error
-	if secondary {
-		err = ch.SettleSecondary(ctx)
-	} else {
-		err = ch.Settle(ctx)
-	}
-	assert.NoError(ch.r.t, err)
+	assert.NoError(ch.Register(ctx))
+
+	assert.NoError(ch.Settle(ctx, secondary))
 	ch.assertBals(ch.State())
 
 	if ch.IsSubChannel() {
 		// Track parent channel's balances.
 		parentChannel, ok := ch.r.chans.get(ch.Parent().ID())
-		assert.True(ch.r.t, ok, "parent channel not found")
+		assert.True(ok, "parent channel not found")
 
 		for i, bal := range ch.bals {
 			parentBal := parentChannel.bals[i]
