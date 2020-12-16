@@ -38,9 +38,8 @@ type (
 	Adjudicator interface {
 		// Register should register the given channel state on-chain. It must be
 		// taken into account that a peer might already have registered the same or
-		// even an old state for the same channel. If registration was successful,
-		// it should return the timeout when the refutation phase will end.
-		Register(context.Context, AdjudicatorReq) (*RegisteredEvent, error)
+		// even an old state for the same channel.
+		Register(context.Context, AdjudicatorReq) error
 
 		// Withdraw should conclude and withdraw the registered state, so that the
 		// final outcome is set on the asset holders and funds are withdrawn
@@ -116,6 +115,7 @@ type (
 	AdjudicatorEvent interface {
 		ID() ID
 		Timeout() Timeout
+		Version() uint64
 	}
 
 	// An AdjudicatorEventBase implements the AdjudicatorEvent interface. It can
@@ -123,6 +123,7 @@ type (
 	AdjudicatorEventBase struct {
 		IDV      ID      // Channel ID
 		TimeoutV Timeout // Current phase timeout
+		VersionV uint64  // Registered version
 	}
 
 	// ProgressedEvent is the abstract event that signals an on-chain progression.
@@ -135,8 +136,12 @@ type (
 	// RegisteredEvent is the abstract event that signals a successful state
 	// registration on the blockchain.
 	RegisteredEvent struct {
-		AdjudicatorEventBase        // Channel ID and Refutation phase timeout
-		Version              uint64 // Registered version
+		AdjudicatorEventBase // Channel ID and Refutation phase timeout
+	}
+
+	// ConcludedEvent signals channel conclusion.
+	ConcludedEvent struct {
+		AdjudicatorEventBase
 	}
 
 	// A Timeout is an abstract timeout of a channel dispute. A timeout can be
@@ -155,11 +160,28 @@ type (
 	StateMap map[ID]*State
 )
 
+// NewProgressReq creates a new ProgressReq object.
+func NewProgressReq(ar AdjudicatorReq, newState *State, sig wallet.Sig) *ProgressReq {
+	return &ProgressReq{ar, newState, sig}
+}
+
+// NewAdjudicatorEventBase creates a new AdjudicatorEventBase object.
+func NewAdjudicatorEventBase(c ID, t Timeout, v uint64) *AdjudicatorEventBase {
+	return &AdjudicatorEventBase{
+		IDV:      c,
+		TimeoutV: t,
+		VersionV: v,
+	}
+}
+
 // ID returns the channel ID.
 func (b AdjudicatorEventBase) ID() ID { return b.IDV }
 
 // Timeout returns the phase timeout.
 func (b AdjudicatorEventBase) Timeout() Timeout { return b.TimeoutV }
+
+// Version returns the channel version.
+func (b AdjudicatorEventBase) Version() uint64 { return b.VersionV }
 
 // NewRegisteredEvent creates a new RegisteredEvent.
 func NewRegisteredEvent(id ID, timeout Timeout, version uint64) *RegisteredEvent {
@@ -167,8 +189,8 @@ func NewRegisteredEvent(id ID, timeout Timeout, version uint64) *RegisteredEvent
 		AdjudicatorEventBase: AdjudicatorEventBase{
 			IDV:      id,
 			TimeoutV: timeout,
+			VersionV: version,
 		},
-		Version: version,
 	}
 }
 
@@ -178,6 +200,7 @@ func NewProgressedEvent(id ID, timeout Timeout, state *State, idx Index) *Progre
 		AdjudicatorEventBase: AdjudicatorEventBase{
 			IDV:      id,
 			TimeoutV: timeout,
+			VersionV: state.Version,
 		},
 		State: state,
 		Idx:   idx,

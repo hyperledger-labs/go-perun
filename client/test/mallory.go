@@ -23,7 +23,6 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"perun.network/go-perun/channel"
 	"perun.network/go-perun/client"
 )
 
@@ -71,10 +70,7 @@ func (r *Mallory) exec(_cfg ExecConfig, ch *paymentChannel) {
 	regCtx, regCancel := context.WithTimeout(context.Background(), r.timeout)
 	defer regCancel()
 	r.log.Debug("Registering version 0 state.")
-	reg0, err := r.setup.Adjudicator.Register(regCtx, req0)
-	assert.NoError(err)
-	assert.NotNil(reg0)
-	r.log.Debugln("<Registered> ver 0: ", reg0)
+	assert.NoError(r.setup.Adjudicator.Register(regCtx, req0))
 
 	// within the challenge duration, Carol should refute.
 	subCtx, subCancel := context.WithTimeout(context.Background(), r.timeout+challengeDuration)
@@ -85,22 +81,19 @@ func (r *Mallory) exec(_cfg ExecConfig, ch *paymentChannel) {
 	// 3rd stage - wait until Carol has refuted
 	r.waitStage()
 
-	assert.True(reg0.Timeout().IsElapsed(subCtx),
-		"Carol's refutation should already have progressed past the timeout.")
 	event := sub.Next() // should be event caused by Carol's refutation.
-	reg, ok := event.(*channel.RegisteredEvent)
-	assert.True(ok)
+	assert.NotNil(event)
+	assert.True(event.Timeout().IsElapsed(subCtx),
+		"Carol's refutation should already have progressed past the timeout.")
+
 	assert.NoError(sub.Close())
 	assert.NoError(sub.Err())
-	assert.NotNil(reg)
-	r.log.Debugln("<Registered> refuted: ", reg)
-	if reg != nil {
-		assert.Equal(ch.State().Version, reg.Version, "expected refutation with current version")
-		waitCtx, waitCancel := context.WithTimeout(context.Background(), r.timeout+challengeDuration)
-		defer waitCancel()
-		// refutation increased the timeout.
-		assert.NoError(reg.Timeout().Wait(waitCtx))
-	}
+	r.log.Debugln("<Registered> refuted: ", event)
+	assert.Equal(ch.State().Version, event.Version(), "expected refutation with current version")
+	waitCtx, waitCancel := context.WithTimeout(context.Background(), r.timeout+challengeDuration)
+	defer waitCancel()
+	// refutation increased the timeout.
+	assert.NoError(event.Timeout().Wait(waitCtx))
 
 	wdCtx, wdCancel := context.WithTimeout(context.Background(), r.timeout)
 	defer wdCancel()

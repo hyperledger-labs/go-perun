@@ -17,7 +17,6 @@ package client_test
 import (
 	"context"
 	"math/big"
-	"sync"
 	"testing"
 
 	"github.com/ethereum/go-ethereum/common"
@@ -61,9 +60,6 @@ func TestDisputeMalloryCarol(t *testing.T) {
 
 	role[A] = clienttest.NewMallory(setup[A], t)
 	role[B] = clienttest.NewCarol(setup[B], t)
-	// enable stages synchronization
-	stages := role[A].EnableStages()
-	role[B].SetStages(stages)
 
 	execConfig := &clienttest.MalloryCarolExecConfig{
 		BaseExecConfig: clienttest.MakeBaseExecConfig(
@@ -76,17 +72,7 @@ func TestDisputeMalloryCarol(t *testing.T) {
 		TxAmounts:   [2]*big.Int{big.NewInt(20), big.NewInt(0)},
 	}
 
-	var wg sync.WaitGroup
-	wg.Add(2)
-	for i := 0; i < 2; i++ {
-		go func(i int) {
-			defer wg.Done()
-			log.Infof("Starting %s.Execute", name[i])
-			role[i].Execute(execConfig)
-		}(i)
-	}
-
-	wg.Wait()
+	clienttest.ExecuteTwoPartyTest(t, role, execConfig)
 
 	// Assert correct final balances
 	netTransfer := big.NewInt(int64(execConfig.NumPayments[A])*execConfig.TxAmounts[A].Int64() -

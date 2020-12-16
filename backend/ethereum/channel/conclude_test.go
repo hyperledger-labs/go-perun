@@ -78,8 +78,7 @@ func testConcludeFinal(t *testing.T, numParts int) {
 				Secondary: (i != initiator),
 			}
 			diff, err := test.NonceDiff(s.Accs[i].Address(), s.Adjs[i], func() error {
-				_, err := s.Adjs[i].Register(ctx, req)
-				return err
+				return s.Adjs[i].Register(ctx, req)
 			})
 			require.NoError(t, err, "Withdrawing should succeed")
 			if !req.Secondary {
@@ -220,7 +219,7 @@ func register(ctx context.Context, adj *test.SimAdjudicator, accounts []*keystor
 			Secondary: false,
 		}
 
-		if _, err := adj.Register(ctx, req); err != nil {
+		if err := adj.Register(ctx, req); err != nil {
 			return err
 		}
 	}

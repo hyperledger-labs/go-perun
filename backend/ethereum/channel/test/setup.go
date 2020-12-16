@@ -93,8 +93,6 @@ func NewSetup(t *testing.T, rng *rand.Rand, n int) *Setup {
 	require.NoError(t, err)
 	s.Asset, err = ethchannel.DeployETHAssetholder(ctx, *s.CB, adjudicator, s.TxSender.Account)
 	require.NoError(t, err)
-	t.Logf("asset holder address is %v", s.Asset)
-	t.Logf("adjudicator address is %v", adjudicator)
 	asset := ethchannel.Asset(s.Asset)
 
 	ksWallet := wallettest.RandomWallet().(*keystore.Wallet)

@@ -34,8 +34,8 @@ import (
 )
 
 const (
-	phaseDispute   = iota //nolint:deadcode,varcheck
-	phaseForceExec        //nolint:deadcode,varcheck
+	phaseDispute = iota
+	phaseForceExec
 	phaseConcluded
 )
 
@@ -48,6 +48,7 @@ var (
 	abiBytes32, _ = abi.NewType("bytes32", "", nil)
 	abiParams     abi.Type
 	abiState      abi.Type
+	abiProgress   abi.Method
 )
 
 func init() {
@@ -69,6 +70,10 @@ func init() {
 		panic("hashState not found")
 	}
 	abiState = hashState.Inputs[0].Type
+
+	if abiProgress, ok = adj.Methods["progress"]; !ok {
+		panic("Could not find method progress in adjudicator contract.")
+	}
 }
 
 // Backend implements the interface defined in channel/Backend.go.
@@ -218,4 +223,42 @@ func pwToCommonAddresses(addr []wallet.Address) []common.Address {
 		cAddrs[i] = ethwallet.AsEthAddr(part)
 	}
 	return cAddrs
+}
+
+// FromEthState converts a ChannelState to a channel.State struct.
+func FromEthState(app channel.App, s *adjudicator.ChannelState) channel.State {
+	locked := make([]channel.SubAlloc, len(s.Outcome.Locked))
+	for i, sub := range s.Outcome.Locked {
+		locked[i] = channel.SubAlloc{ID: sub.ID, Bals: sub.Balances}
+	}
+	alloc := channel.Allocation{
+		Assets:   fromEthAssets(s.Outcome.Assets),
+		Balances: s.Outcome.Balances,
+		Locked:   locked,
+	}
+	// Check allocation dimensions
+	if len(alloc.Assets) != len(alloc.Balances) || len(s.Outcome.Balances) != len(alloc.Balances) {
+		log.Panic("invalid allocation dimensions")
+	}
+
+	data, err := app.DecodeData(bytes.NewReader(s.AppData))
+	if err != nil {
+		log.Panicf("decoding app data: %v", err)
+	}
+
+	return channel.State{
+		ID:         s.ChannelID,
+		Version:    s.Version,
+		Allocation: alloc,
+		Data:       data,
+		IsFinal:    s.IsFinal,
+	}
+}
+
+func fromEthAssets(assets []common.Address) []channel.Asset {
+	_assets := make([]channel.Asset, len(assets))
+	for i, a := range assets {
+		_assets[i] = ethwallet.AsWalletAddr(a)
+	}
+	return _assets
 }

@@ -147,8 +147,7 @@ func testWithdrawZeroBalance(t *testing.T, n int) {
 		Tx:     testSignState(t, s.Accs, params, state),
 		Idx:    0,
 	}
-	_, err := s.Adjs[0].Register(context.Background(), req)
-	require.NoError(t, err)
+	require.NoError(t, s.Adjs[0].Register(context.Background(), req))
 	// we don't need to wait for a timeout since we registered a final state
 
 	// withdraw
@@ -238,20 +237,27 @@ func TestWithdrawNonFinal(t *testing.T) {
 	fundingReq := channel.NewFundingReq(params, state, channel.Index(0), state.Balances)
 	require.NoError(t, s.Funders[0].Fund(ctx, *fundingReq), "funding should succeed")
 
+	// create subscription
+	adj := s.Adjs[0]
+	sub, err := adj.Subscribe(ctx, params)
+	require.NoError(t, err)
+	defer sub.Close()
+
+	// register
 	req := channel.AdjudicatorReq{
 		Params: params,
 		Acc:    s.Accs[0],
 		Idx:    0,
 		Tx:     testSignState(t, s.Accs, params, state),
 	}
-	reg, err := s.Adjs[0].Register(ctx, req)
-	require.NoError(t, err)
+	require.NoError(t, adj.Register(ctx, req))
+	reg := sub.Next()
 	t.Log("Registered ", reg)
 	assert.False(reg.Timeout().IsElapsed(ctx),
 		"registering non-final state should have non-elapsed timeout")
 	assert.NoError(reg.Timeout().Wait(ctx))
 	assert.True(reg.Timeout().IsElapsed(ctx), "timeout should have elapsed after Wait()")
-	assert.NoError(s.Adjs[0].Withdraw(ctx, req, nil),
+	assert.NoError(adj.Withdraw(ctx, req, nil),
 		"withdrawing should succeed after waiting for timeout")
 }
 
