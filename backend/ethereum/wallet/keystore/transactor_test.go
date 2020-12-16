@@ -15,14 +15,16 @@
 package keystore_test
 
 import (
+	"math/big"
 	"math/rand"
 	"testing"
 
 	"github.com/ethereum/go-ethereum/accounts"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/stretchr/testify/require"
 
-	ethchanneltest "perun.network/go-perun/backend/ethereum/channel/test"
+	"perun.network/go-perun/backend/ethereum/channel/test"
 	"perun.network/go-perun/backend/ethereum/wallet"
 	"perun.network/go-perun/backend/ethereum/wallet/keystore"
 	_ "perun.network/go-perun/backend/ethereum/wallet/test"
@@ -34,18 +36,48 @@ import (
 const randomAddr = "0x1"
 
 func TestTxOptsBackend(t *testing.T) {
-	prng := pkgtest.Prng(t)
-	s := newTransactorSetup(t, prng)
-	ethchanneltest.GenericEIP155TransactorTest(t, prng, s)
-	ethchanneltest.GenericLegacyTransactorTest(t, prng, s)
+	rng := pkgtest.Prng(t)
+	chainID := rng.Int63()
+
+	tests := []struct {
+		title   string
+		signer  types.Signer
+		chainID int64
+	}{
+		{
+			title:   "FrontierSigner",
+			signer:  &types.FrontierSigner{},
+			chainID: 0,
+		},
+		{
+			title:   "HomesteadSigner",
+			signer:  &types.HomesteadSigner{},
+			chainID: 0,
+		},
+		{
+			title:   "EIP155Signer",
+			signer:  types.NewEIP155Signer(big.NewInt(chainID)),
+			chainID: chainID,
+		},
+	}
+
+	for _, _t := range tests {
+		_t := _t
+		t.Run(_t.title, func(t *testing.T) {
+			s := newTransactorSetup(t, rng, _t.signer, _t.chainID)
+			test.GenericSignerTest(t, rng, s)
+		})
+	}
 }
 
-func newTransactorSetup(t require.TestingT, prng *rand.Rand) ethchanneltest.TransactorSetup {
+func newTransactorSetup(t require.TestingT, prng *rand.Rand, signer types.Signer, chainID int64) test.TransactorSetup {
 	ksWallet, ok := wallettest.RandomWallet().(*keystore.Wallet)
 	require.Truef(t, ok, "random wallet in wallettest should be a keystore wallet")
 	acc := wallettest.NewRandomAccount(prng)
-	return ethchanneltest.TransactorSetup{
-		Tr:         keystore.NewTransactor(*ksWallet),
+	return test.TransactorSetup{
+		Signer:     signer,
+		ChainID:    chainID,
+		Tr:         keystore.NewTransactor(*ksWallet, signer),
 		ValidAcc:   accounts.Account{Address: wallet.AsEthAddr(acc.Address())},
 		MissingAcc: accounts.Account{Address: common.HexToAddress(randomAddr)},
 	}

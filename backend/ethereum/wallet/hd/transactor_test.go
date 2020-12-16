@@ -23,7 +23,6 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	hdwallet "github.com/miguelmota/go-ethereum-hdwallet"
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"perun.network/go-perun/backend/ethereum/channel/test"
@@ -38,24 +37,58 @@ const missingAddr = "0x1"
 // noSignHash is used to hide the SignHash function of the embedded wallet.
 type noSignHash struct {
 	*hdwallet.Wallet
-	SignTxCalled bool
 }
 
 func TestTransactor(t *testing.T) {
 	rng := pkgtest.Prng(t)
-	// The normal transactor should be able to deal with all signers.
-	s := newTransactorSetup(t, rng, false)
-	test.GenericLegacyTransactorTest(t, rng, s)
-	test.GenericEIP155TransactorTest(t, rng, s)
+	chainID := rng.Int63()
 
-	// The noSignHasher should only work with Frontier and Homestead.
-	s = newTransactorSetup(t, rng, true)
-	test.GenericLegacyTransactorTest(t, rng, s)
-	assert.True(t, s.Tr.(*hd.Transactor).Wallet.(*noSignHash).SignTxCalled)
+	tests := []struct {
+		title        string
+		signer       types.Signer
+		chainID      int64
+		hideSignHash bool
+	}{
+		{
+			title:   "FrontierSigner",
+			signer:  &types.FrontierSigner{},
+			chainID: 0,
+		},
+		{
+			title:   "HomesteadSigner",
+			signer:  &types.HomesteadSigner{},
+			chainID: 0,
+		},
+		{
+			title:        "FrontierSigner (hideSignHash)",
+			signer:       &types.FrontierSigner{},
+			chainID:      0,
+			hideSignHash: true,
+		},
+		{
+			title:        "HomesteadSigner (hideSignHash)",
+			signer:       &types.HomesteadSigner{},
+			chainID:      0,
+			hideSignHash: true,
+		},
+		{
+			title:   "EIP155Signer",
+			signer:  types.NewEIP155Signer(big.NewInt(chainID)),
+			chainID: chainID,
+		},
+	}
+
+	for _, _t := range tests {
+		_t := _t
+		t.Run(_t.title, func(t *testing.T) {
+			s := newTransactorSetup(t, rng, _t.hideSignHash, _t.signer, _t.chainID)
+			test.GenericSignerTest(t, rng, s)
+		})
+	}
 }
 
 // nolint:interfacer // rand.Rand is preferred over io.Reader here.
-func newTransactorSetup(t *testing.T, prng *rand.Rand, hideSignHash bool) test.TransactorSetup {
+func newTransactorSetup(t *testing.T, prng *rand.Rand, hideSignHash bool, signer types.Signer, chainID int64) test.TransactorSetup {
 	walletSeed := make([]byte, 20)
 	prng.Read(walletSeed)
 	mnemonic, err := hdwallet.NewMnemonicFromEntropy(walletSeed)
@@ -67,7 +100,7 @@ func newTransactorSetup(t *testing.T, prng *rand.Rand, hideSignHash bool) test.T
 
 	var wrappedWallet accounts.Wallet = rawHDWallet
 	if hideSignHash {
-		wrappedWallet = &noSignHash{rawHDWallet, false}
+		wrappedWallet = &noSignHash{rawHDWallet}
 	}
 	hdWallet, err := hd.NewWallet(wrappedWallet, hd.DefaultRootDerivationPath.String(), 0)
 	require.NoError(t, err)
@@ -78,7 +111,9 @@ func newTransactorSetup(t *testing.T, prng *rand.Rand, hideSignHash bool) test.T
 	require.NotNil(t, validAcc)
 
 	return test.TransactorSetup{
-		Tr:         hd.NewTransactor(hdWallet.Wallet()),
+		Signer:     signer,
+		ChainID:    chainID,
+		Tr:         hd.NewTransactor(hdWallet.Wallet(), signer),
 		ValidAcc:   accounts.Account{Address: wallet.AsEthAddr(validAcc.Address())},
 		MissingAcc: accounts.Account{Address: common.HexToAddress(missingAddr)},
 	}
@@ -86,10 +121,4 @@ func newTransactorSetup(t *testing.T, prng *rand.Rand, hideSignHash bool) test.T
 
 // SignHash hides the public SignHash.
 func (*noSignHash) SignHash() {
-}
-
-// SignTx calls SignTx of the embedded wallet and sets SignTxCalled to true.
-func (n *noSignHash) SignTx(account accounts.Account, tx *types.Transaction, chainID *big.Int) (*types.Transaction, error) {
-	n.SignTxCalled = true
-	return n.Wallet.SignTx(account, tx, chainID)
 }

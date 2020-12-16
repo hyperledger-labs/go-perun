@@ -6,9 +6,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.6.0] Fenrir - 2020-12-18 [:warning:]
+Support for on-chain progression of app channels.
+
+### Added
+- On-chain progression: The channel watcher is now interactive and informs the client when a channel has been registered on-chain. If the channel has a defined app logic with a valid state transition logic, clients can individually progress the app state on-chain according to the defined state transition logic by calling `ProgressBy` on the channel object.
+- Settle with sub-channel disputes: Ledger channels can now be settled with funds locked in disputed sub-channels if the corresponding sub-channels have been registered and the disputes have been resolved on-chain.
+
 ### Changed
-- `ContractBackend.NewTransactor` to set the correct context and also removed
-  the `value` parameter.
+- The channel watcher logic changed. The channel watcher now takes as input an event handler which gets notified about on-chain channel events. Before, the watcher automatically settled a channel in case of a dispute. Now, the watcher will automatically detect if an old state has been registered, refute with the most recent one, and notify the user. If the channel has a defined application logic, the user can further progress the channel on-chain. It is within the responsibility of the framework user to finally settle the channel and withdraw the funds.
+- The channel settling logic changed. Before, a call to `Settle` on a channel object automatically registered the channel, concluded it, and withdrew the funds. Now, to accomodate on-chain progression functionality, the user must call `Register` independetly before being able to settle the channel. Afterwards, for app channels, the user has the opportunity to  progress the channel state on-chain by calling `ProgressBy`. Finally, the user can settle the channel by calling `Settle`.
+- `ContractBackend.NewTransactor` now sets the context on `TransactOpts`. Furthermore, parameter `value` has been removed.
+
+### Fixed
+- Persistence: Sub-channels are now persisted and restored properly.
 
 ## [0.5.2] European Ecstasy - 2020-11-05 [:warning:]
 ERC20 and Funding Agreement support and many test fixes.
@@ -187,7 +198,8 @@ Initial release.
 
 [:warning:]: #:warning:
 
-[Unreleased]: https://github.com/perun-network/go-perun/compare/v0.5.2...HEAD
+[Unreleased]: https://github.com/perun-network/go-perun/compare/v0.6.0...HEAD
+[0.6.0]: https://github.com/perun-network/go-perun/compare/v0.5.2...v0.6.0
 [0.5.2]: https://github.com/perun-network/go-perun/compare/v0.5.0...v0.5.2
 [0.5.0]: https://github.com/perun-network/go-perun/compare/v0.4.0...v0.5.0
 [0.4.0]: https://github.com/perun-network/go-perun/compare/v0.3.0...v0.4.0

@@ -18,12 +18,15 @@ import (
 	"github.com/ethereum/go-ethereum/accounts"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/accounts/keystore"
+	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/pkg/errors"
 )
 
 // Transactor can be used to make TransactOpts for accounts stored in a keystore.
 type Transactor struct {
-	Ks *keystore.KeyStore
+	Ks     *keystore.KeyStore
+	Signer types.Signer
 }
 
 // NewTransactor returns a TransactOpts for the given account. It errors if the account is
@@ -32,11 +35,23 @@ func (t *Transactor) NewTransactor(account accounts.Account) (*bind.TransactOpts
 	if !t.Ks.HasAddress(account.Address) {
 		return nil, errors.New("the wallet does not contain the keys for the given account")
 	}
-	tr, err := bind.NewKeyStoreTransactor(t.Ks, account)
-	return tr, errors.WithStack(err)
+	return &bind.TransactOpts{
+		From: account.Address,
+		Signer: func(address common.Address, tx *types.Transaction) (*types.Transaction, error) {
+			keystore, signer := t.Ks, t.Signer
+			if address != account.Address {
+				return nil, bind.ErrNotAuthorized
+			}
+			signature, err := keystore.SignHash(account, signer.Hash(tx).Bytes())
+			if err != nil {
+				return nil, err
+			}
+			return tx.WithSignature(signer, signature)
+		},
+	}, nil
 }
 
 // NewTransactor returns a backend that can make TransactOpts for accounts contained in the given keystore.
-func NewTransactor(w Wallet) *Transactor {
-	return &Transactor{Ks: w.Ks}
+func NewTransactor(w Wallet, s types.Signer) *Transactor {
+	return &Transactor{Ks: w.Ks, Signer: s}
 }
