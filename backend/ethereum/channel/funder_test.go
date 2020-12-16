@@ -24,6 +24,7 @@ import (
 	"github.com/ethereum/go-ethereum/accounts"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -330,7 +331,7 @@ func newNFunders(
 	simBackend.FundAddress(ctx, deployAccount.Address)
 	tokenAcc := &ksWallet.NewRandomAccount(rng).(*keystore.Account).Account
 	simBackend.FundAddress(ctx, tokenAcc.Address)
-	cb := ethchannel.NewContractBackend(simBackend, keystore.NewTransactor(*ksWallet))
+	cb := ethchannel.NewContractBackend(simBackend, keystore.NewTransactor(*ksWallet, types.NewEIP155Signer(big.NewInt(1337))))
 
 	// Deploy ETHAssetholder
 	assetAddr1, err := ethchannel.DeployETHAssetholder(ctx, cb, deployAccount.Address, *deployAccount)

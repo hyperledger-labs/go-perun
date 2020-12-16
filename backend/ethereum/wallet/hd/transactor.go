@@ -25,6 +25,7 @@ import (
 // Transactor can be used to make TransactOpts for accounts stored in a HD wallet.
 type Transactor struct {
 	Wallet accounts.Wallet
+	Signer types.Signer
 }
 
 type hashSigner interface {
@@ -39,7 +40,7 @@ func (t *Transactor) NewTransactor(account accounts.Account) (*bind.TransactOpts
 	}
 	return &bind.TransactOpts{
 		From: account.Address,
-		Signer: func(signer types.Signer, address common.Address, tx *types.Transaction) (*types.Transaction, error) {
+		Signer: func(address common.Address, tx *types.Transaction) (*types.Transaction, error) {
 			if address != account.Address {
 				return nil, errors.New("not authorized to sign this account")
 			}
@@ -55,17 +56,17 @@ func (t *Transactor) NewTransactor(account accounts.Account) (*bind.TransactOpts
 				return t.Wallet.SignTx(account, tx, tx.ChainId())
 			}
 
-			signature, err := hs.SignHash(account, signer.Hash(tx).Bytes())
+			signature, err := hs.SignHash(account, t.Signer.Hash(tx).Bytes())
 			if err != nil {
 				return nil, err
 			}
-			return tx.WithSignature(signer, signature)
+			return tx.WithSignature(t.Signer, signature)
 		},
 	}, nil
 }
 
 // NewTransactor returns a backend that can make TransactOpts for accounts
 // contained in the given ethereum wallet.
-func NewTransactor(w accounts.Wallet) *Transactor {
-	return &Transactor{Wallet: w}
+func NewTransactor(w accounts.Wallet, signer types.Signer) *Transactor {
+	return &Transactor{Wallet: w, Signer: signer}
 }

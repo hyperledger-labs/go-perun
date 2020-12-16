@@ -31,28 +31,18 @@ import (
 
 // TransactorSetup holds the setup for running generic tests on a transactor implementation.
 type TransactorSetup struct {
+	Signer     types.Signer
+	ChainID    int64
 	Tr         channel.Transactor
 	ValidAcc   accounts.Account // wallet should contain key corresponding to this account.
 	MissingAcc accounts.Account // wallet should not contain key corresponding to this account.
 }
 
-// GenericLegacyTransactorTest tests that a transactor works with Frontier and
-// Homestead signers.
-func GenericLegacyTransactorTest(t *testing.T, rng *rand.Rand, s TransactorSetup) {
-	// Both can only deal with chainID == 0.
-	GenericSignerTest(t, rng, s, &types.FrontierSigner{}, 0)
-	GenericSignerTest(t, rng, s, &types.HomesteadSigner{}, 0)
-}
-
-// GenericEIP155TransactorTest tests that a transactor works with EIP155 signers.
-func GenericEIP155TransactorTest(t *testing.T, rng *rand.Rand, s TransactorSetup) {
-	id := rng.Int63() // Any id will work.
-	GenericSignerTest(t, rng, s, types.NewEIP155Signer(big.NewInt(id)), id)
-}
-
 // GenericSignerTest tests that a transactor produces the correct signatures
 // for the passed signer.
-func GenericSignerTest(t *testing.T, rng *rand.Rand, setup TransactorSetup, signer types.Signer, chainID int64) {
+func GenericSignerTest(t *testing.T, rng *rand.Rand, setup TransactorSetup) {
+	signer := setup.Signer
+	chainID := setup.ChainID
 	data := make([]byte, rng.Int31n(100)+1)
 	rng.Read(data)
 
@@ -60,7 +50,7 @@ func GenericSignerTest(t *testing.T, rng *rand.Rand, setup TransactorSetup, sign
 		transactOpts, err := setup.Tr.NewTransactor(setup.ValidAcc)
 		require.NoError(t, err)
 		rawTx := types.NewTransaction(uint64(1), common.Address{}, big.NewInt(1), uint64(1), big.NewInt(1), data)
-		signedTx, err := transactOpts.Signer(signer, setup.ValidAcc.Address, rawTx)
+		signedTx, err := transactOpts.Signer(setup.ValidAcc.Address, rawTx)
 		assert.NoError(t, err)
 		require.NotNil(t, signedTx)
 
@@ -83,7 +73,7 @@ func GenericSignerTest(t *testing.T, rng *rand.Rand, setup TransactorSetup, sign
 		require.NoError(t, err)
 
 		rawTx := types.NewTransaction(uint64(1), common.Address{}, big.NewInt(1), uint64(1), big.NewInt(1), data)
-		_, err = transactOpts.Signer(signer, setup.MissingAcc.Address, rawTx)
+		_, err = transactOpts.Signer(setup.MissingAcc.Address, rawTx)
 		assert.Error(t, err)
 	})
 }
