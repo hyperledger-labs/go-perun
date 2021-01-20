@@ -106,7 +106,7 @@ func (f *Funder) Fund(ctx context.Context, request channel.FundingReq) error {
 
 	// Wait for the funding events or timeout.
 	var fundingErrs []*channel.AssetFundingError
-	var nonFundingErrg perror.Gatherer
+	nonFundingErrg := perror.NewGatherer()
 	for _, err := range perror.Causes(errg.Wait()) {
 		if channel.IsAssetFundingError(err) && err != nil {
 			fundingErrs = append(fundingErrs, err.(*channel.AssetFundingError))
