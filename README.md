@@ -27,7 +27,7 @@ The authors take no responsibility for any loss of digital assets or other damag
 
 ## Getting Started
 
-Running _go-perun_ requires a working Go distribution (version 1.14 or higher).
+Running _go-perun_ requires a working Go distribution (version 1.15 or higher).
 ```sh
 # Clone the repository into a directory of your choice
 git clone https://github.com/perun-network/go-perun.git
@@ -160,7 +160,7 @@ We thank the German Federal Ministry of Education and Research (BMBF) for their 
 
 ## Copyright
 
-Copyright 2020 - See [NOTICE file](NOTICE) for copyright holders.
+Copyright 2021 - See [NOTICE file](NOTICE) for copyright holders.
 Use of the source code is governed by the Apache 2.0 license that can be found in the [LICENSE file](LICENSE).
 
 Contact us at [info@perun.network](mailto:info@perun.network).
