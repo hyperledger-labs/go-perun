@@ -21,7 +21,7 @@ They are blockchain-agnostic and only rely on a blockchain's capability to execu
 
 _go-perun_ is still alpha software.
 It should not be used in production.
-The [current release](https://github.com/perun-network/go-perun/releases) is not intended to have any practical use, and should only give potential users a general impression and invite feedback.
+The purpose of the [current release](https://github.com/perun-network/go-perun/releases) is to give potential users a general impression and to invite feedback.
 The authors take no responsibility for any loss of digital assets or other damage caused by the use of this software.
 **Do not use this software with real funds**.
 
@@ -45,6 +45,10 @@ import "perun.network/go-perun/client"
 
 _go-perun_ implements the core state channel protocol in a blockchain-agnostic fashion by following the dependency inversion principle.
 For this reason, a blockchain backend has to be chosen and blockchain-specific initializations need to be executed at program startup.
+
+### Tutorial
+
+The [walkthrough tutorial](http://tutorial.perun.network) describes how _go-perun_ is used to build a simple micro-payment application on top of Ethereum.
 
 ### Documentation
 
@@ -155,7 +159,7 @@ Go mobile wrappers for <img src="https://developer.android.com/images/brand/Andr
 
 ## Funding
 
-This project is currently being developed by a group of dedicated hackers at the Applied Cryptography research group at Technische Universität Darmstadt, Germany.
+This project has been started at the Chair of Applied Cryptography at Technische Universität Darmstadt, Germany, and is currently developed and maintained by a group of dedicated hackers from PolyCrypt GmbH.
 We thank the German Federal Ministry of Education and Research (BMBF) for their funding through the StartUpSecure grants program as well as the German Science Foundation (DFG), the Foundation for Polish Science (FNP) and the Ethereum Foundation for their support in the research that preceded this implementation.
 
 ## Copyright
