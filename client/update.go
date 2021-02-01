@@ -109,7 +109,6 @@ func (r *UpdateResponder) Reject(ctx context.Context, reason string) error {
 //
 // Returns nil if all peers accept the update. If any runtime error occurs or
 // any peer rejects the update, an error is returned.
-// nolint: funlen
 func (c *Channel) Update(ctx context.Context, next *channel.State) (err error) {
 	if ctx == nil {
 		return errors.New("context must not be nil")
