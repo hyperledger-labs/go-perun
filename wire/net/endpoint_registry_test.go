@@ -1,4 +1,4 @@
-// Copyright 2019 - See NOTICE file for copyright holders.
+// Copyright 2021 - See NOTICE file for copyright holders.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -216,17 +216,20 @@ func TestRegistry_authenticatedDial(t *testing.T) {
 	})
 
 	t.Run("dial success, ExchangeAddrs imposter", func(t *testing.T) {
+		ct := test.NewConcurrent(t)
 		ctx, cancel := context.WithTimeout(context.Background(), timeout)
 		defer cancel()
 		a, b := newPipeConnPair()
-		go func() {
+		go ct.Stage("passive", func(rt test.ConcT) {
 			d.put(a)
-			ExchangeAddrsPassive(ctx, wallettest.NewRandomAccount(rng), b)
-		}()
+			_, err := ExchangeAddrsPassive(ctx, wallettest.NewRandomAccount(rng), b)
+			require.True(rt, IsAuthenticationError(err))
+		})
 		de, created := r.getOrCreateDialingEndpoint(remoteAddr)
 		e, err := r.authenticatedDial(ctx, remoteAddr, de, created)
 		assert.Error(t, err)
 		assert.Nil(t, e)
+		ct.Wait("passive")
 	})
 
 	t.Run("dial success, ExchangeAddrs success", func(t *testing.T) {

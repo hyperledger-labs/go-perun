@@ -1,4 +1,4 @@
-// Copyright 2020 - See NOTICE file for copyright holders.
+// Copyright 2021 - See NOTICE file for copyright holders.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -16,12 +16,39 @@ package net
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/pkg/errors"
 
 	pkg "perun.network/go-perun/pkg/context"
 	"perun.network/go-perun/wire"
 )
+
+// AuthenticationError describes an error which occures when the ExchangeAddrs
+// protcol fails because it got a different Address than expected.
+type AuthenticationError struct {
+	Sender, Receiver, Own wire.Address
+}
+
+// NewAuthenticationError creates a new AuthenticationError.
+func NewAuthenticationError(sender, receiver, own wire.Address, msg string) error {
+	return errors.Wrap(&AuthenticationError{
+		Sender:   sender,
+		Receiver: receiver,
+		Own:      own,
+	}, msg)
+}
+
+func (e *AuthenticationError) Error() string {
+	return fmt.Sprintf("failed authentication (Sender: %v, Receiver: %v, Own: %v)", e.Sender, e.Receiver, e.Own)
+}
+
+// IsAuthenticationError returns true if the error was a AuthenticationError.
+func IsAuthenticationError(err error) bool {
+	cause := errors.Cause(err)
+	_, ok := cause.(*AuthenticationError)
+	return ok
+}
 
 // ExchangeAddrsActive executes the active role of the address exchange
 // protocol. It is executed by the person that dials.
@@ -49,7 +76,7 @@ func ExchangeAddrsActive(ctx context.Context, id wire.Account, peer wire.Address
 			err = errors.Errorf("expected AuthResponse wire msg, got %v", e.Msg.Type())
 		} else if !e.Recipient.Equals(id.Address()) &&
 			!e.Sender.Equals(peer) {
-			err = errors.Errorf("unmatched response sender or recipient")
+			err = NewAuthenticationError(e.Sender, e.Recipient, id.Address(), "unmatched response sender or recipient")
 		}
 	})
 
@@ -74,7 +101,7 @@ func ExchangeAddrsPassive(ctx context.Context, id wire.Account, conn Conn) (wire
 		} else if _, ok := e.Msg.(*wire.AuthResponseMsg); !ok {
 			err = errors.Errorf("expected AuthResponse wire msg, got %v", e.Msg.Type())
 		} else if !e.Recipient.Equals(id.Address()) {
-			err = errors.Errorf("unmatched response sender or recipient")
+			err = NewAuthenticationError(e.Sender, e.Recipient, id.Address(), "unmatched response sender or recipient")
 		}
 		if err != nil {
 			return
