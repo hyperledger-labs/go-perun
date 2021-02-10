@@ -1,6 +1,6 @@
-#!/bin/sh
+#!/usr/bin/env sh
 
-# Copyright 2020 - See NOTICE file for copyright holders.
+# Copyright 2021 - See NOTICE file for copyright holders.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -16,47 +16,39 @@
 
 set -e
 
-ABIGEN=abigen
-SOLC=solc
+# Define ABIGEN and SOLC default values.
+ABIGEN="${ABIGEN-abigen}"
+SOLC="${SOLC-solc}"
 
-# Download solc.
-if [ `uname` == "Linux" ]; then
-    # GNU Linux
-    wget -nc "https://github.com/ethereum/solidity/releases/download/v0.7.4/solc-static-linux"
-    chmod +x solc-static-linux
-    SOLC=./solc-static-linux
-
-elif [ `uname` == "Darwin" ]; then
-    # Mac OSX
-    curl -L "https://github.com/ethereum/solidity/releases/download/v0.7.4/solc-macos" -o solc-macos
-    chmod +x solc-macos
-    SOLC=./solc-macos
-
-else
-    # Unsupported
-    echo "Unsupported operating system: `uname`. Exiting."
+if ! $ABIGEN --version
+then
+    echo "Please install abigen v1.9.25+ or the environment varables AGIBEN."
     exit 1
 fi
 
-echo "Exec 'git submodule update --init --recursive' once after cloning."
-echo "Ensure that the newest version of abigen is installed."
+if ! $SOLC --version
+then
+    echo "Please install abigen v0.7.4 or the environment varables SOLC."
+    exit 1
+fi
+
+echo "Please ensure that the repository was cloned with submodules: 'git submodule update --init --recursive'."
 
 # Generates optimized golang bindings and runtime binaries for sol contracts.
 # $1  solidity file path, relative to ../contracts/contracts/.
 # $2  golang package name.
-function generate() {
+generate() {
     FILE=$1; PKG=$2; CONTRACT=$FILE
-    echo "generate package $PKG"
+    echo "Generating $PKG bindings..."
 
-    mkdir -p $PKG
+    rm -r $PKG
+    mkdir $PKG
 
-    # generate abi
+    # Generate bindings
     $ABIGEN --pkg $PKG --sol ../contracts/contracts/$FILE.sol --out $PKG/$FILE.go --solc $SOLC
 
-    # generate go bindings
-    $SOLC --bin-runtime --optimize --allow-paths *, ../contracts/contracts/$FILE.sol --overwrite -o $PKG/
-
-    # generate binary runtime
+    # Generate binary runtime
+    $SOLC --bin-runtime --optimize --allow-paths ../contracts/vendor, ../contracts/contracts/$FILE.sol -o $PKG/
     BIN_RUNTIME=`cat ${PKG}/${CONTRACT}.bin-runtime`
     OUT_FILE="$PKG/${CONTRACT}BinRuntime.go"
     echo "package $PKG // import \"perun.network/go-perun/backend/ethereum/bindings/$PKG\"" > $OUT_FILE
@@ -79,4 +71,4 @@ generate "PerunToken" "peruntoken"
 # Applications
 generate "TrivialApp" "trivialapp"
 
-echo "Generated bindings"
+echo "Bindings generated successfully."
