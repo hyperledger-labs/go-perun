@@ -1,4 +1,4 @@
-// Copyright 2020 - See NOTICE file for copyright holders.
+// Copyright 2021 - See NOTICE file for copyright holders.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -17,6 +17,7 @@ package net
 import (
 	"context"
 	"sync"
+	"time"
 
 	"github.com/pkg/errors"
 
@@ -32,6 +33,15 @@ type Bus struct {
 	recvs    map[wallet.AddrKey]wire.Consumer
 	mutex    sync.RWMutex // Protects reg, recv.
 }
+
+const (
+	// PublishAttempts defines how many attempts a Bus.Publish call can take
+	// to succeed.
+	PublishAttempts = 3
+	// PublishCooldown defines how long should be waited before Bus.Publish is
+	// called again in case it failed.
+	PublishCooldown = 3 * time.Second
+)
 
 // NewBus creates a new network bus. The dialer and listener are used to
 // establish new connections internally, while id is this node's identity.
@@ -66,21 +76,30 @@ func (b *Bus) SubscribeClient(c wire.Consumer, addr wire.Address) error {
 // communication channel to the recipient using the bus' dialer. Only returns
 // when the context is aborted or the envelope was sent successfully.
 func (b *Bus) Publish(ctx context.Context, e *wire.Envelope) (err error) {
-	for {
+	for attempt := 1; attempt <= PublishAttempts; attempt++ {
+		log.Tracef("Bus.Publish attempt: %d/%d", attempt, PublishAttempts)
 		var ep *Endpoint
 		if ep, err = b.reg.Get(ctx, e.Recipient); err == nil {
 			if err = ep.Send(ctx, e); err == nil {
 				return nil
 			}
 		}
+		log.WithError(err).Warn("Publishing failed.")
+
+		// Authentication errors are not retried.
+		if IsAuthenticationError(err) {
+			return err
+		}
+
 		select {
 		case <-ctx.Done():
 			return errors.WithMessagef(err, "publishing %T envelope", e.Msg)
 		case <-b.ctx().Done():
 			return errors.Errorf("publishing %T envelope: Bus closed", e.Msg)
-		default:
+		case <-time.After(PublishCooldown):
 		}
 	}
+	return
 }
 
 // Close closes the bus and terminates its goroutines.
