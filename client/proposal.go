@@ -17,6 +17,7 @@ package client
 import (
 	"bytes"
 	"context"
+	"fmt"
 
 	"github.com/pkg/errors"
 
@@ -53,6 +54,12 @@ type (
 		peer   wire.Address
 		req    ChannelProposal
 		called atomic.Bool
+	}
+
+	// PeerRejectedProposalError indicates the channel proposal has been
+	// rejected by the peer.
+	PeerRejectedProposalError struct {
+		reason string // Reason sent by the peer for the rejection.
 	}
 )
 
@@ -117,6 +124,9 @@ func (r *ProposalResponder) Reject(ctx context.Context, reason string) error {
 // After the channel got successfully created, the user is required to start the
 // channel watcher with Channel.Watch() on the returned channel
 // controller.
+//
+// If the channel is rejected by the peer, this function returns a
+// PeerRejectedProposalError.
 func (c *Client) ProposeChannel(ctx context.Context, prop ChannelProposal) (*Channel, error) {
 	if ctx == nil {
 		c.log.Panic("invalid nil argument")
@@ -248,7 +258,7 @@ func (c *Client) proposeTwoPartyChannel(
 		return nil, errors.WithMessage(err, "receiving proposal response")
 	}
 	if rej, ok := env.Msg.(*ChannelProposalRej); ok {
-		return nil, errors.Errorf("channel proposal rejected: %v", rej.Reason)
+		return nil, errors.WithStack(PeerRejectedProposalError{rej.Reason})
 	}
 
 	acc := env.Msg.(ChannelProposalAccept) // this is safe because of predicate isResponse
@@ -536,4 +546,9 @@ func enableVer0Cache(ctx context.Context, c wire.Cacher) {
 		return m.Msg.Type() == wire.ChannelUpdateAcc &&
 			m.Msg.(*msgChannelUpdateAcc).Version == 0
 	})
+}
+
+// Error implements the error interface.
+func (e PeerRejectedProposalError) Error() string {
+	return fmt.Sprintf("channel proposal rejected: %s", e.reason)
 }
