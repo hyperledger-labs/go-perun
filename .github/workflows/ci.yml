@@ -1,0 +1,47 @@
+name: Go
+
+on:
+  push:
+    branches:
+      - dev
+      - master
+    tags:
+  pull_request:
+  release:
+
+jobs:
+  build:
+    name: CI
+    runs-on: ubuntu-latest
+    steps:
+    - name: Set up Go 1.x
+      uses: actions/setup-go@v2
+      with:
+        go-version: ^1.15
+
+    - name: Checkout
+      uses: actions/checkout@v2
+      with:
+        fetch-depth: 0
+
+    - name: Copyright notice
+      run: |
+        .scripts/check-copyright-notice.sh
+        .scripts/check-notice-authors.sh origin/master
+
+    - name: Dependencies
+      run: |
+        go get -v -t -d ./...
+        docker pull golangci/golangci-lint:v1.27
+    
+    - name: Vanity import
+      run: .scripts/check-vanity-imports.sh $GITHUB_WORKSPACE
+
+    - name: Vetting
+      run: docker run --rm -v $GITHUB_WORKSPACE:/app -w /app golangci/golangci-lint:v1.27 golangci-lint run
+
+    - name: Unit Tests
+      run: go test -timeout 60s ./...
+
+    - name: Unit Race Tests
+      run: go test -timeout 120s -race -gcflags=all=-d=checkptr=0 ./...
