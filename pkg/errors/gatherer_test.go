@@ -112,3 +112,36 @@ func TestAccumulatedError_StackTrace(t *testing.T) {
 	g.Add(pkgerrors.New("2"))
 	assert.NotNil(t, g.Err().(stackTracer).StackTrace())
 }
+
+func TestGatherer_OnFail(t *testing.T) {
+	var (
+		assert  = assert.New(t)
+		g       = errors.NewGatherer()
+		called  bool
+		called2 bool
+	)
+
+	g.OnFail(func() {
+		select {
+		case <-g.Failed():
+		case <-time.After(time.Second):
+			assert.Fail("Failed not closed before OnFail hooks are executed")
+		}
+
+		called = true
+		assert.False(called2)
+	})
+
+	g.OnFail(func() {
+		assert.True(called)
+		called2 = true
+	})
+
+	g.Add(nil)
+	assert.False(called)
+	assert.False(called2)
+
+	g.Add(stderrors.New("error"))
+	assert.True(called)
+	assert.True(called2)
+}

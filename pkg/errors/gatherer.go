@@ -35,7 +35,8 @@ type Gatherer struct {
 	errs  accumulatedError
 	wg    sync.WaitGroup
 
-	failed chan struct{} // Closed when an error has occurred.
+	onFails []func()
+	failed  chan struct{} // Closed when an error has occurred.
 }
 
 // Failed returns a channel that is closed when an error occurs.
@@ -56,8 +57,14 @@ func (g *Gatherer) Add(err error) {
 
 	select {
 	case <-g.failed:
+		return
 	default:
-		close(g.failed)
+	}
+
+	close(g.failed)
+
+	for _, fn := range g.onFails {
+		fn()
 	}
 }
 
@@ -85,6 +92,15 @@ func (g *Gatherer) Err() error {
 		return nil
 	}
 	return g.errs
+}
+
+// OnFail adds fn to the list of functions that are executed right after any
+// non-nil error is added with Add (or any routine started with Go failed). The
+// functions are guaranteed to be executed in the order that they were added.
+//
+// The channel returned by Failed is closed before those functions are executed.
+func (g *Gatherer) OnFail(fn func()) {
+	g.onFails = append(g.onFails, fn)
 }
 
 // stackTracer is taken from the github.com/pkg/errors documentation.
