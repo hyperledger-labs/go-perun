@@ -125,8 +125,9 @@ func (r *ProposalResponder) Reject(ctx context.Context, reason string) error {
 // channel watcher with Channel.Watch() on the returned channel
 // controller.
 //
-// If the channel is rejected by the peer, this function returns a
-// PeerRejectedProposalError.
+// If the channel is rejected by the peer, PeerRejectedProposalError is
+// returned. If any of the participants do not fund the channel in time,
+// FundingTimeoutError is returned.
 func (c *Client) ProposeChannel(ctx context.Context, prop ChannelProposal) (*Channel, error) {
 	if ctx == nil {
 		c.log.Panic("invalid nil argument")
