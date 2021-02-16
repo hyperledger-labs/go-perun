@@ -17,11 +17,32 @@ package client
 import (
 	"testing"
 
+	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestProposalResponder_Accept_Nil(t *testing.T) {
 	p := new(ProposalResponder)
 	_, err := p.Accept(nil, new(LedgerChannelProposalAcc))
 	assert.Error(t, err, "context")
+}
+
+func TestPeerRejectedProposalError(t *testing.T) {
+	reason := "some-random-reason"
+	var err error = errors.WithStack(PeerRejectedProposalError{reason})
+	t.Run("direct_error", func(t *testing.T) {
+		peerRejectedProposalError := PeerRejectedProposalError{}
+		gotPeerRejectedError := errors.As(err, &peerRejectedProposalError)
+		require.True(t, gotPeerRejectedError)
+		assert.Equal(t, reason, peerRejectedProposalError.reason)
+	})
+
+	t.Run("wrapped_error", func(t *testing.T) {
+		wrappedError := errors.WithMessage(err, "some higher level error")
+		peerRejectedError := PeerRejectedProposalError{}
+		gotPeerRejectedError := errors.As(wrappedError, &peerRejectedError)
+		require.True(t, gotPeerRejectedError)
+		assert.Equal(t, reason, peerRejectedError.reason)
+	})
 }
