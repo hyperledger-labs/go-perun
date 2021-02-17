@@ -6,9 +6,21 @@
     - merge_requests
 
 stages:
+  - bindings
   - vetting
   - tests
 
+variables:
+  GIT_SUBMODULE_STRATEGY: recursive
+
+bindings:
+  <<: *only-default
+  stage: bindings
+  image: perunnetwork/solc-abigen
+  script: 
+    - cd backend/ethereum/bindings
+    - ./generate.sh
+    
 code_quality:
   <<: *only-default
   stage: vetting
