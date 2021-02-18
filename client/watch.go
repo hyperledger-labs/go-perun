@@ -77,8 +77,9 @@ func (c *Channel) Watch(h AdjudicatorEventHandler) error {
 		go h.HandleAdjudicatorEvent(e)
 	}
 
-	log.Debugf("Subscription closed: %v", sub.Err())
-	return errors.WithMessage(sub.Err(), "subscription closed")
+	err = sub.Err()
+	log.Debugf("Subscription closed: %v", err)
+	return errors.WithMessage(err, "subscription closed")
 }
 
 // Register registers the channel on the adjudicator.
