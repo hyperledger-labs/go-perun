@@ -85,11 +85,11 @@ func TestUnlock(t *testing.T) {
 
 	missingAddr := common.BytesToAddress(setup.AddressBytes)
 	_, err := hdWallet.Unlock(ethwallet.AsWalletAddr(missingAddr))
-	assert.Error(t, err, "should not error on unlocking missing address")
+	assert.Error(t, err, "should error on unlocking missing address")
 
 	validAcc, _ := setup.UnlockedAccount()
 	acc, err := hdWallet.Unlock(validAcc.Address())
-	assert.NoError(t, err, "should not error on unlocking missing address")
+	assert.NoError(t, err, "should not error on unlocking valid address")
 	assert.NotNil(t, acc, "account should be non nil when error is nil")
 }
 
