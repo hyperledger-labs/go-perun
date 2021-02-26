@@ -25,17 +25,19 @@ exit_code=0
 # Call with an ancestor whereas all commits newer than the ancestor are checked.
 base="$1"
 if [ -z "$base" ]; then
-    commits="$(git rev-list --reverse HEAD)"
+    commits="$(git rev-list --no-merges --reverse HEAD)"
 else
-    commits="$(git rev-list --reverse $base..HEAD)"
+    commits="$(git rev-list --no-merges --reverse $base..HEAD)"
 fi
 
+echo "Current commit: $(git rev-parse HEAD)"
 # Authors found in commits and NOTICE.
 declare -A known_authors
 # Authors found only in commits but not NOTICE file.
 declare -A assumed_authors
 
 for c in $commits; do
+    echo "Checking commit: $c"
     author=$(git show -s --format='%an <%ae>' $c)
     # Check Signed-Off-By message
     if ! git show -s --format='%B' $c | grep -wq "Signed-off-by: $author"; then
