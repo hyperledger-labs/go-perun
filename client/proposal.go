@@ -18,6 +18,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"sync"
 
 	"github.com/pkg/errors"
 
@@ -140,13 +141,16 @@ func (c *Client) ProposeChannel(ctx context.Context, prop ChannelProposal) (*Cha
 	}
 
 	// 2. send proposal, wait for response, create channel object
+	c.enableVer1Cache() // cache version 1 updates until channel is opened
 	ch, err := c.proposeTwoPartyChannel(ctx, prop)
 	if err != nil {
 		return nil, errors.WithMessage(err, "channel proposal")
 	}
 
 	// 3. fund
-	return ch, c.fundChannel(ctx, ch, prop)
+	fundingErr := c.fundChannel(ctx, ch, prop)
+	c.releaseVer1Cache() // replay cached version 1 updates
+	return ch, fundingErr
 }
 
 // handleChannelProposal implements the receiving side of the (currently)
@@ -175,11 +179,15 @@ func (c *Client) handleChannelProposalAcc(
 		return ch, errors.WithMessage(err, "validating channel proposal acceptance")
 	}
 
+	c.enableVer1Cache() // cache version 1 updates
+
 	if ch, err = c.acceptChannelProposal(ctx, prop, p, acc); err != nil {
 		return ch, errors.WithMessage(err, "accept channel proposal")
 	}
 
-	return ch, c.fundChannel(ctx, ch, prop)
+	fundingErr := c.fundChannel(ctx, ch, prop)
+	c.releaseVer1Cache() // replay cached version 1 updates
+	return ch, fundingErr
 }
 
 func (c *Client) acceptChannelProposal(
@@ -547,6 +555,40 @@ func enableVer0Cache(ctx context.Context, c wire.Cacher) {
 		return m.Msg.Type() == wire.ChannelUpdateAcc &&
 			m.Msg.(*msgChannelUpdateAcc).Version == 0
 	})
+}
+
+func (c *Client) enableVer1Cache() {
+	c.log.Trace("Enabling version 1 cache")
+
+	c.version1Cache.mu.Lock()
+	defer c.version1Cache.mu.Unlock()
+
+	c.version1Cache.enabled++
+}
+
+func (c *Client) releaseVer1Cache() {
+	c.log.Trace("Releasing version 1 cache")
+
+	c.version1Cache.mu.Lock()
+	defer c.version1Cache.mu.Unlock()
+
+	c.version1Cache.enabled--
+	for _, u := range c.version1Cache.cache {
+		go c.handleChannelUpdate(u.uh, u.p, u.m)
+	}
+	c.version1Cache.cache = nil
+}
+
+type version1Cache struct {
+	mu      sync.Mutex
+	enabled uint // counter to support concurrent channel openings
+	cache   []cachedUpdate
+}
+
+type cachedUpdate struct {
+	uh UpdateHandler
+	p  wire.Address
+	m  *msgChannelUpdate
 }
 
 // Error implements the error interface.
