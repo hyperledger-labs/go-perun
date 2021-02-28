@@ -36,6 +36,10 @@ func (r *Proposer) Execute(cfg ExecConfig, exec func(ExecConfig, *paymentChannel
 	rng := pkgtest.Prng(r.t, "proposer")
 	assert := assert.New(r.t)
 
+	// ignore proposal handler since Proposer doesn't accept any incoming channels
+	_, wait := r.GoHandle(rng)
+	defer wait()
+
 	prop := r.LedgerChannelProposal(rng, cfg)
 	ch, err := r.ProposeChannel(prop)
 	assert.NoError(err)
@@ -44,10 +48,6 @@ func (r *Proposer) Execute(cfg ExecConfig, exec func(ExecConfig, *paymentChannel
 		return
 	}
 	r.log.Infof("New Channel opened: %v", ch.Channel)
-
-	// ignore proposal handler since Proposer doesn't accept any incoming channels
-	_, wait := r.GoHandle(rng)
-	defer wait()
 
 	exec(cfg, ch)
 
