@@ -5,9 +5,9 @@
 <h4 align="center">Perun Blockchain-Agnostic State Channels Framework</h4>
 
 <p align="center">
-  <a href="https://goreportcard.com/report/github.com/perun-network/go-perun"><img src="https://goreportcard.com/badge/github.com/perun-network/go-perun" alt="Go report: A+"></a>
+  <a href="https://goreportcard.com/report/github.com/hyperledger-labs/go-perun"><img src="https://goreportcard.com/badge/github.com/hyperledger-labs/go-perun" alt="Go report: A+"></a>
   <a href="https://www.apache.org/licenses/LICENSE-2.0.txt"><img src="https://img.shields.io/badge/license-Apache%202-blue" alt="License: Apache 2.0"></a>
-  <a href="https://travis-ci.org/perun-network/go-perun"><img src="https://travis-ci.org/perun-network/go-perun.svg?branch=dev" alt="TravisCI build status"></a>
+  <a href="https://github.com/hyperledger-labs/go-perun/actions/workflows/ci.yml"><img src="https://github.com/hyperledger-labs/go-perun/actions/workflows/ci.yml/badge.svg" alt="TravisCI build status"></a>
   <a href="https://pkg.go.dev/perun.network/go-perun?status.svg"> <img src="https://img.shields.io/badge/go.dev-reference-007d9c?logo=go&logoColor=white" alt="pkg.go.dev docs"></a>
 </p>
 
@@ -21,7 +21,7 @@ They are blockchain-agnostic and only rely on a blockchain's capability to execu
 
 _go-perun_ is still alpha software.
 It should not be used in production.
-The purpose of the [current release](https://github.com/perun-network/go-perun/releases) is to give potential users a general impression and to invite feedback.
+The purpose of the [current release](https://github.com/hyperledger-labs/go-perun/releases) is to give potential users a general impression and to invite feedback.
 The authors take no responsibility for any loss of digital assets or other damage caused by the use of this software.
 **Do not use this software with real funds**.
 
@@ -30,7 +30,7 @@ The authors take no responsibility for any loss of digital assets or other damag
 Running _go-perun_ requires a working Go distribution (version 1.15 or higher).
 ```sh
 # Clone the repository into a directory of your choice
-git clone https://github.com/perun-network/go-perun.git
+git clone https://github.com/hyperledger-labs/go-perun.git
 # Or directly download it with go
 # go get -d perun.network/go-perun
 cd go-perun
@@ -52,7 +52,7 @@ The [walkthrough tutorial](http://tutorial.perun.network) describes how _go-peru
 
 ### Documentation
 
-More in-depth documentation can be found in the [github wiki pages](https://github.com/perun-network/go-perun/wiki)
+More in-depth documentation can be found [here](https://labs.hyperledger.org/perun-doc/)
 and on [go-perun's pkg.go.dev site](https://pkg.go.dev/perun.network/go-perun).
 
 ## Features
@@ -76,7 +76,7 @@ The following features are planned for future releases:
 
 There are multiple **blockchain backends** available as part of the current release: Ethereum (`backend/ethereum`), and a simulated, ideal blockchain backend (`backend/sim`).
 A backend is automatically initialized when its top-level package `backend/<name>` is imported.
-The Ethereum smart contracts can be found in our [contracts-eth](https://github.com/perun-network/contracts-eth) repository.
+The Ethereum smart contracts can be found in the [contracts-eth](https://github.com/hyperledger-labs/perun-eth-contracts/) repository.
 
 **Logging and networking** capabilities can also be injected by the user.
 A default [logrus](https://github.com/sirupsen/logrus) implementation of the `log.Logger` interface can be set using `log/logrus.Set`.

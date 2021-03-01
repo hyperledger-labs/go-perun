@@ -14,5 +14,5 @@
 
 // Package apps contains Go implementations of apps that are distributed with
 // go-perun. Their Ethereum Solidity counterparts are found in repository
-// https://github.com/perun-network/contracts-eth.
+// https://github.com/hyperledger-labs/perun-eth-contracts.
 package apps // import "perun.network/go-perun/apps"
