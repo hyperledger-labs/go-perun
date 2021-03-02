@@ -26,7 +26,7 @@ type Bob struct {
 
 // NewBob creates a new Responder that executes the Bob protocol.
 func NewBob(setup RoleSetup, t *testing.T) *Bob {
-	return &Bob{Responder: *NewResponder(setup, t, 4)}
+	return &Bob{Responder: *NewResponder(setup, t, 3)}
 }
 
 // Execute executes the Bob protocol.
@@ -37,9 +37,6 @@ func (r *Bob) Execute(cfg ExecConfig) {
 func (r *Bob) exec(_cfg ExecConfig, ch *paymentChannel, propHandler *acceptNextPropHandler) {
 	cfg := _cfg.(*AliceBobExecConfig)
 	we, them := r.Idxs(cfg.Peers())
-
-	// 1st stage - channel controller set up
-	r.waitStage()
 
 	// 1st Bob sends some updates to Alice
 	for i := 0; i < cfg.NumPayments[we]; i++ {

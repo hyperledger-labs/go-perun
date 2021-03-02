@@ -38,11 +38,21 @@ func NewSetups(rng *rand.Rand, names []string) []ctest.RoleSetup {
 
 	for i := 0; i < n; i++ {
 		acc := wtest.NewRandomAccount(rng)
+
+		// The use of a delayed funder simulates that channel participants may
+		// receive their funding confirmation at different times.
+		var funder channel.Funder
+		if i == 0 {
+			funder = &logFunderWithDelay{log.WithField("role", names[i])}
+		} else {
+			funder = &logFunder{log.WithField("role", names[i])}
+		}
+
 		setup[i] = ctest.RoleSetup{
 			Name:        names[i],
 			Identity:    acc,
 			Bus:         bus,
-			Funder:      &logFunder{log.WithField("role", names[i])},
+			Funder:      funder,
 			Adjudicator: &logAdjudicator{log.WithField("role", names[i]), sync.RWMutex{}, nil},
 			Wallet:      wtest.NewWallet(),
 			Timeout:     roleOperationTimeout,
@@ -57,6 +67,10 @@ type (
 		log log.Logger
 	}
 
+	logFunderWithDelay struct {
+		log log.Logger
+	}
+
 	logAdjudicator struct {
 		log         log.Logger
 		mu          sync.RWMutex
@@ -65,6 +79,12 @@ type (
 )
 
 func (f *logFunder) Fund(_ context.Context, req channel.FundingReq) error {
+	f.log.Infof("Funding: %v", req)
+	return nil
+}
+
+func (f *logFunderWithDelay) Fund(_ context.Context, req channel.FundingReq) error {
+	time.Sleep(100 * time.Millisecond)
 	f.log.Infof("Funding: %v", req)
 	return nil
 }

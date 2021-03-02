@@ -34,11 +34,29 @@ import (
 func (c *Client) handleChannelUpdate(uh UpdateHandler, p wire.Address, m *msgChannelUpdate) {
 	ch, ok := c.channels.Get(m.ID())
 	if !ok {
-		c.logChan(m.ID()).WithField("peer", p).Error("received update for unknown channel")
+		if !c.cacheVersion1Update(uh, p, m) {
+			c.logChan(m.ID()).WithField("peer", p).Error("received update for unknown channel")
+		}
 		return
 	}
 	pidx := ch.Idx() ^ 1
 	ch.handleUpdateReq(pidx, m, uh)
+}
+
+func (c *Client) cacheVersion1Update(uh UpdateHandler, p wire.Address, m *msgChannelUpdate) bool {
+	c.version1Cache.mu.Lock()
+	defer c.version1Cache.mu.Unlock()
+
+	if !(m.State.Version == 1 && c.version1Cache.enabled > 0) {
+		return false
+	}
+
+	c.version1Cache.cache = append(c.version1Cache.cache, cachedUpdate{
+		uh: uh,
+		p:  p,
+		m:  m,
+	})
+	return true
 }
 
 type (
