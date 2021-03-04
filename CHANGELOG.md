@@ -146,13 +146,10 @@ Added direct disputes and watcher for two-party ledger channels, much polishing
 - Ledger state channel disputes and watcher.
 - `channel.Adjudicator` interface and Ethereum implementation for registering
   channel states and withdrawing concluded channels.
-- [Ethereum contracts](https://github.com/perun-network/contracts-eth) for disputes
-- Public [Github wiki](https://github.com/perun-network/go-perun/wiki)
+- [Ethereum contracts](https://github.com/hyperledger-labs/perun-eth-contracts/) for disputes
 - [Godoc](https://pkg.go.dev/perun.network/go-perun)
 - Changelog
-- [TravisCI](https://travis-ci.org/perun-network)
-- [goreportcard](https://goreportcard.com/report/github.com/perun-network/go-perun)
-- [codeclimate](https://codeclimate.com/github/perun-network/go-perun)
+- [goreportcard](https://goreportcard.com/report/github.com/hyperledger-labs/go-perun)
 - TCP and unix socket `peer.Dialer` and `Listener` implementations.
 - `Eventually` tester in `pkg/test` to repeatedly run tests until they
   succeed.
@@ -198,11 +195,11 @@ Initial release.
 
 [:warning:]: #:warning:
 
-[Unreleased]: https://github.com/perun-network/go-perun/compare/v0.6.0...HEAD
-[0.6.0]: https://github.com/perun-network/go-perun/compare/v0.5.2...v0.6.0
-[0.5.2]: https://github.com/perun-network/go-perun/compare/v0.5.0...v0.5.2
-[0.5.0]: https://github.com/perun-network/go-perun/compare/v0.4.0...v0.5.0
-[0.4.0]: https://github.com/perun-network/go-perun/compare/v0.3.0...v0.4.0
-[0.3.0]: https://github.com/perun-network/go-perun/compare/v0.2.0...v0.3.0
-[0.2.0]: https://github.com/perun-network/go-perun/compare/v0.1.0...v0.2.0
-[0.1.0]: https://github.com/perun-network/go-perun/releases/v0.1.0
+[Unreleased]: https://github.com/hyperledger-labs/go-perun/compare/v0.6.0...HEAD
+[0.6.0]: https://github.com/hyperledger-labs/go-perun/compare/v0.5.2...v0.6.0
+[0.5.2]: https://github.com/hyperledger-labs/go-perun/compare/v0.5.0...v0.5.2
+[0.5.0]: https://github.com/hyperledger-labs/go-perun/compare/v0.4.0...v0.5.0
+[0.4.0]: https://github.com/hyperledger-labs/go-perun/compare/v0.3.0...v0.4.0
+[0.3.0]: https://github.com/hyperledger-labs/go-perun/compare/v0.2.0...v0.3.0
+[0.2.0]: https://github.com/hyperledger-labs/go-perun/compare/v0.1.0...v0.2.0
+[0.1.0]: https://github.com/hyperledger-labs/go-perun/releases/v0.1.0
