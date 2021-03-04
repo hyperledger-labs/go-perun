@@ -21,6 +21,7 @@ import (
 
 	"perun.network/go-perun/channel"
 	"perun.network/go-perun/log"
+	pcontext "perun.network/go-perun/pkg/context"
 	"perun.network/go-perun/pkg/sync/atomic"
 	"perun.network/go-perun/wallet"
 	"perun.network/go-perun/wire"
@@ -93,6 +94,10 @@ type (
 		req     *msgChannelUpdate
 		called  atomic.Bool
 	}
+
+	// RequestTimedOutError indicates that a peer has not responded within the
+	// expected time period.
+	RequestTimedOutError string
 )
 
 // HandleUpdate calls the update handler function.
@@ -125,8 +130,9 @@ func (r *UpdateResponder) Reject(ctx context.Context, reason string) error {
 // Update proposes the `next` state to all channel participants.
 // `next` should not be modified while this function runs.
 //
-// Returns nil if all peers accept the update. If any runtime error occurs or
-// any peer rejects the update, an error is returned.
+// Returns nil if all peers accept the update. Returns RequestTimedOutError if
+// any peer did not respond before the context expires or is cancelled. Returns
+// an error if any runtime error occurs or any peer rejects the update.
 func (c *Channel) Update(ctx context.Context, next *channel.State) (err error) {
 	if ctx == nil {
 		return errors.New("context must not be nil")
@@ -185,6 +191,10 @@ func (c *Channel) update(ctx context.Context, next *channel.State) (err error) {
 
 	pidx, res, err := resRecv.Next(ctx)
 	if err != nil {
+		if pcontext.IsContextError(err) {
+			err = newRequestTimedOutError("channel update", err.Error())
+			return err
+		}
 		return errors.WithMessage(err, "receiving update response")
 	}
 	c.Log().Tracef("Received update response (%T): %v", res, res)
@@ -205,8 +215,9 @@ func (c *Channel) update(ctx context.Context, next *channel.State) (err error) {
 // new state to all other channel participants. The update function must not
 // update the version counter.
 //
-// Returns nil if all peers accept the update. If any runtime error occurs or
-// any peer rejects the update, an error is returned.
+// Returns nil if all peers accept the update. Returns RequestTimedOutError if
+// any peer did not respond before the context expires or is cancelled. Returns
+// an error if any runtime error occurs or any peer rejects the update.
 func (c *Channel) UpdateBy(ctx context.Context, update func(*channel.State) error) (err error) {
 	if ctx == nil {
 		return errors.New("context must not be nil")
@@ -410,4 +421,13 @@ func makeChannelUpdate(next *channel.State, actor channel.Index) ChannelUpdate {
 		State:    next,
 		ActorIdx: actor,
 	}
+}
+
+// Error implements error interface for RequestTimedOutError.
+func (e RequestTimedOutError) Error() string {
+	return string(e)
+}
+
+func newRequestTimedOutError(requestType, msg string) error {
+	return errors.Wrap(RequestTimedOutError("peer did not respond to the "+requestType), msg)
 }

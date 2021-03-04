@@ -24,6 +24,7 @@ import (
 
 	"perun.network/go-perun/channel"
 	"perun.network/go-perun/log"
+	pcontext "perun.network/go-perun/pkg/context"
 	"perun.network/go-perun/pkg/io"
 	"perun.network/go-perun/pkg/sync/atomic"
 	"perun.network/go-perun/wallet"
@@ -126,9 +127,10 @@ func (r *ProposalResponder) Reject(ctx context.Context, reason string) error {
 // channel watcher with Channel.Watch() on the returned channel
 // controller.
 //
-// If the channel is rejected by the peer, PeerRejectedProposalError is
-// returned. If any of the participants do not fund the channel in time,
-// FundingTimeoutError is returned.
+// Returns PeerRejectedProposalError if the channel is rejected by the peer.
+// Returns RequestTimedOutError if the peer did not respond before the context
+// expires or is cancelled. Returns FundingTimeoutError if any of the
+// participants do not fund the channel in time.
 func (c *Client) ProposeChannel(ctx context.Context, prop ChannelProposal) (*Channel, error) {
 	if ctx == nil {
 		c.log.Panic("invalid nil argument")
@@ -264,6 +266,9 @@ func (c *Client) proposeTwoPartyChannel(
 
 	env, err := receiver.Next(ctx)
 	if err != nil {
+		if pcontext.IsContextError(err) {
+			return nil, newRequestTimedOutError("channel proposal", err.Error())
+		}
 		return nil, errors.WithMessage(err, "receiving proposal response")
 	}
 	if rej, ok := env.Msg.(*ChannelProposalRej); ok {
