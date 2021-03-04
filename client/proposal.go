@@ -58,10 +58,11 @@ type (
 		called atomic.Bool
 	}
 
-	// PeerRejectedProposalError indicates the channel proposal has been
+	// PeerRejectedError indicates the channel proposal or channel update was
 	// rejected by the peer.
-	PeerRejectedProposalError struct {
-		reason string // Reason sent by the peer for the rejection.
+	PeerRejectedError struct {
+		ItemType string // ItemType indicates the type of item rejected (channel proposal or channel update).
+		Reason   string // Reason sent by the peer for the rejection.
 	}
 )
 
@@ -272,7 +273,7 @@ func (c *Client) proposeTwoPartyChannel(
 		return nil, errors.WithMessage(err, "receiving proposal response")
 	}
 	if rej, ok := env.Msg.(*ChannelProposalRej); ok {
-		return nil, errors.WithStack(PeerRejectedProposalError{rej.Reason})
+		return nil, newPeerRejectedError("channel proposal", rej.Reason)
 	}
 
 	acc := env.Msg.(ChannelProposalAccept) // this is safe because of predicate isResponse
@@ -597,6 +598,10 @@ type cachedUpdate struct {
 }
 
 // Error implements the error interface.
-func (e PeerRejectedProposalError) Error() string {
-	return fmt.Sprintf("channel proposal rejected: %s", e.reason)
+func (e PeerRejectedError) Error() string {
+	return fmt.Sprintf("%s rejected by peer: %s", e.ItemType, e.Reason)
+}
+
+func newPeerRejectedError(rejectedItemType, reason string) error {
+	return errors.WithStack(PeerRejectedError{rejectedItemType, reason})
 }
