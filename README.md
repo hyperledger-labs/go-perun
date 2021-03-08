@@ -19,11 +19,10 @@ They are blockchain-agnostic and only rely on a blockchain's capability to execu
 
 ## Security Disclaimer
 
-_go-perun_ is still alpha software.
-It should not be used in production.
-The purpose of the [current release](https://github.com/hyperledger-labs/go-perun/releases) is to give potential users a general impression and to invite feedback.
-The authors take no responsibility for any loss of digital assets or other damage caused by the use of this software.
 **Do not use this software with real funds**.
+
+_go-perun_ is still in development.
+The authors take no responsibility for any loss of digital assets or other damage caused by the use of this software.
 
 ## Getting Started
 
