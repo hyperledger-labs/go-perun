@@ -69,18 +69,20 @@ func (w *Wallet) NewRandomAccount(prng *rand.Rand) wallet.Account {
 	if err != nil {
 		log.Panicf("Creating account: %v", err)
 	}
+
 	w.mutex.Lock()
 	defer w.mutex.Unlock()
 
 	addr := crypto.PubkeyToAddress(privateKey.PublicKey)
-	if !w.contains(addr) {
-		acc := Account{
-			Account: accounts.Account{Address: addr},
-			key:     privateKey,
-		}
-		w.accounts[addr] = &acc
-		return &acc
+	if w.contains(addr) {
+		log.Panicf("Randomly generated account already exists: %v", addr)
 	}
+
+	acc := Account{
+		Account: accounts.Account{Address: addr},
+		key:     privateKey,
+	}
+	w.accounts[addr] = &acc
 	return w.accounts[addr]
 }
 

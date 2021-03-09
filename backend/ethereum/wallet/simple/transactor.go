@@ -20,6 +20,8 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/pkg/errors"
+
+	ethwallet "perun.network/go-perun/backend/ethereum/wallet"
 )
 
 // Transactor can be used to make TransactOpts for accounts stored in a wallet.
@@ -31,12 +33,12 @@ type Transactor struct {
 // NewTransactor returns a TransactOpts for the given account. It errors if the
 // account is not contained in the wallet of the transactor factory.
 func (t *Transactor) NewTransactor(account accounts.Account) (*bind.TransactOpts, error) {
-	t.mutex.RLock()
-	defer t.mutex.RUnlock()
-	acc, ok := t.Wallet.accounts[account.Address]
-	if !ok {
-		return nil, errors.New("account not found in wallet")
+	walletAcc, err := t.Wallet.Unlock(ethwallet.AsWalletAddr(account.Address))
+	if err != nil {
+		return nil, err
 	}
+	acc := walletAcc.(*Account)
+
 	return &bind.TransactOpts{
 		From: account.Address,
 		Signer: func(address common.Address, tx *types.Transaction) (*types.Transaction, error) {
