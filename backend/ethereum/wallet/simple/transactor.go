@@ -22,15 +22,15 @@ import (
 	"github.com/pkg/errors"
 )
 
-// TransactorFactory can be used to make TransactOpts for accounts stored in a wallet.
-type TransactorFactory struct {
+// Transactor can be used to make TransactOpts for accounts stored in a wallet.
+type Transactor struct {
 	*Wallet
 	types.Signer
 }
 
 // NewTransactor returns a TransactOpts for the given account. It errors if the
 // account is not contained in the wallet of the transactor factory.
-func (t *TransactorFactory) NewTransactor(account accounts.Account) (*bind.TransactOpts, error) {
+func (t *Transactor) NewTransactor(account accounts.Account) (*bind.TransactOpts, error) {
 	t.mutex.RLock()
 	defer t.mutex.RUnlock()
 	acc, ok := t.Wallet.accounts[account.Address]
@@ -53,8 +53,8 @@ func (t *TransactorFactory) NewTransactor(account accounts.Account) (*bind.Trans
 	}, nil
 }
 
-// NewTransactor returns a TransactorFactory that can make TransactOpts for
+// NewTransactor returns a Transactor that can make TransactOpts for
 // accounts contained in the given simple wallet.
-func NewTransactor(w *Wallet, signer types.Signer) *TransactorFactory {
-	return &TransactorFactory{Wallet: w, Signer: signer}
+func NewTransactor(w *Wallet, signer types.Signer) *Transactor {
+	return &Transactor{Wallet: w, Signer: signer}
 }
