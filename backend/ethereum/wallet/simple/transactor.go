@@ -20,21 +20,25 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/pkg/errors"
+
+	ethwallet "perun.network/go-perun/backend/ethereum/wallet"
 )
 
-// TransactorFactory can be used to make TransactOpts for Accounts stored in a wallet.
-type TransactorFactory struct {
+// Transactor can be used to make TransactOpts for accounts stored in a wallet.
+type Transactor struct {
 	*Wallet
 	types.Signer
 }
 
 // NewTransactor returns a TransactOpts for the given account. It errors if the
 // account is not contained in the wallet of the transactor factory.
-func (t *TransactorFactory) NewTransactor(account accounts.Account) (*bind.TransactOpts, error) {
-	acc, ok := t.Wallet.Accounts[account.Address]
-	if !ok {
-		return nil, errors.New("account not found in wallet")
+func (t *Transactor) NewTransactor(account accounts.Account) (*bind.TransactOpts, error) {
+	walletAcc, err := t.Wallet.Unlock(ethwallet.AsWalletAddr(account.Address))
+	if err != nil {
+		return nil, err
 	}
+	acc := walletAcc.(*Account)
+
 	return &bind.TransactOpts{
 		From: account.Address,
 		Signer: func(address common.Address, tx *types.Transaction) (*types.Transaction, error) {
@@ -51,8 +55,8 @@ func (t *TransactorFactory) NewTransactor(account accounts.Account) (*bind.Trans
 	}, nil
 }
 
-// NewTransactor returns a TransactorFactory that can make TransactOpts for
+// NewTransactor returns a Transactor that can make TransactOpts for
 // accounts contained in the given simple wallet.
-func NewTransactor(w *Wallet, signer types.Signer) *TransactorFactory {
-	return &TransactorFactory{Wallet: w, Signer: signer}
+func NewTransactor(w *Wallet, signer types.Signer) *Transactor {
+	return &Transactor{Wallet: w, Signer: signer}
 }

@@ -17,6 +17,7 @@ package simple
 import (
 	"crypto/ecdsa"
 	"math/rand"
+	"sync"
 
 	"github.com/ethereum/go-ethereum/accounts"
 	"github.com/ethereum/go-ethereum/common"
@@ -31,24 +32,33 @@ import (
 
 var _ wallet.Wallet = (*Wallet)(nil)
 
-// Wallet is a simple wallet.Wallet implementation holding a map of all included Accounts.
+// Wallet is a simple wallet.Wallet implementation holding a map of all included accounts.
 type Wallet struct {
-	Accounts map[common.Address]*Account
+	accounts map[common.Address]*Account
+	mutex    sync.RWMutex
 }
 
-// NewWallet creates a new Wallet with Accounts corresponding to the privateKeys.
+// NewWallet creates a new Wallet with accounts corresponding to the privateKeys.
 func NewWallet(privateKeys ...*ecdsa.PrivateKey) *Wallet {
 	accs := make(map[common.Address]*Account)
 	for _, key := range privateKeys {
 		addr := crypto.PubkeyToAddress(key.PublicKey)
 		accs[addr] = createAccount(key)
 	}
-	return &Wallet{Accounts: accs}
+	return &Wallet{accounts: accs}
 }
 
 // Contains checks whether this wallet contains the account corresponding to the given address.
 func (w *Wallet) Contains(addr common.Address) bool {
-	_, ok := w.Accounts[addr]
+	w.mutex.RLock()
+	defer w.mutex.RUnlock()
+	return w.contains(addr)
+}
+
+// contains checks whether this wallet contains the account corresponding to the
+// given address. Assumes that the mutex is locked.
+func (w *Wallet) contains(addr common.Address) bool {
+	_, ok := w.accounts[addr]
 	return ok
 }
 
@@ -60,16 +70,20 @@ func (w *Wallet) NewRandomAccount(prng *rand.Rand) wallet.Account {
 		log.Panicf("Creating account: %v", err)
 	}
 
+	w.mutex.Lock()
+	defer w.mutex.Unlock()
+
 	addr := crypto.PubkeyToAddress(privateKey.PublicKey)
-	if !w.Contains(addr) {
-		acc := Account{
-			Account: accounts.Account{Address: addr},
-			key:     privateKey,
-		}
-		w.Accounts[addr] = &acc
-		return &acc
+	if w.contains(addr) {
+		log.Panicf("Randomly generated account already exists: %v", addr)
 	}
-	return w.Accounts[addr]
+
+	acc := Account{
+		Account: accounts.Account{Address: addr},
+		key:     privateKey,
+	}
+	w.accounts[addr] = &acc
+	return w.accounts[addr]
 }
 
 // Unlock returns the account corresponding to the given address if the wallet
@@ -79,7 +93,9 @@ func (w *Wallet) Unlock(address wallet.Address) (wallet.Account, error) {
 		return nil, errors.New("address must be ethwallet.Address")
 	}
 
-	if acc, ok := w.Accounts[ethwallet.AsEthAddr(address)]; ok {
+	w.mutex.RLock()
+	defer w.mutex.RUnlock()
+	if acc, ok := w.accounts[ethwallet.AsEthAddr(address)]; ok {
 		return acc, nil
 	}
 	return nil, errors.New("account not found in wallet")
