@@ -17,6 +17,7 @@ package client
 import (
 	"testing"
 
+	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -41,4 +42,20 @@ func TestChannel_Update_NilArgs(t *testing.T) {
 	err := new(Channel).Update(nil, new(channel.State))
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "context")
+}
+
+func TestRequestTimedOutError(t *testing.T) {
+	var err error = newRequestTimedOutError("", "")
+	requestTimedOutError := RequestTimedOutError("")
+
+	t.Run("direct_error", func(t *testing.T) {
+		gotRequestTimedOutError := errors.As(err, &requestTimedOutError)
+		require.True(t, gotRequestTimedOutError)
+	})
+
+	t.Run("wrapped_error", func(t *testing.T) {
+		wrappedError := errors.WithMessage(err, "some higher level error")
+		gotRequestTimedOutError := errors.As(wrappedError, &requestTimedOutError)
+		require.True(t, gotRequestTimedOutError)
+	})
 }
