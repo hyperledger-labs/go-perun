@@ -30,19 +30,21 @@ func TestProposalResponder_Accept_Nil(t *testing.T) {
 
 func TestPeerRejectedProposalError(t *testing.T) {
 	reason := "some-random-reason"
-	var err error = errors.WithStack(PeerRejectedProposalError{reason})
+	var err error = newPeerRejectedError("update", reason)
 	t.Run("direct_error", func(t *testing.T) {
-		peerRejectedProposalError := PeerRejectedProposalError{}
+		peerRejectedProposalError := PeerRejectedError{}
 		gotPeerRejectedError := errors.As(err, &peerRejectedProposalError)
 		require.True(t, gotPeerRejectedError)
-		assert.Equal(t, reason, peerRejectedProposalError.reason)
+		assert.Equal(t, reason, peerRejectedProposalError.Reason)
+		assert.Contains(t, err.Error(), reason)
 	})
 
 	t.Run("wrapped_error", func(t *testing.T) {
 		wrappedError := errors.WithMessage(err, "some higher level error")
-		peerRejectedError := PeerRejectedProposalError{}
+		peerRejectedError := PeerRejectedError{}
 		gotPeerRejectedError := errors.As(wrappedError, &peerRejectedError)
 		require.True(t, gotPeerRejectedError)
-		assert.Equal(t, reason, peerRejectedError.reason)
+		assert.Equal(t, reason, peerRejectedError.Reason)
+		assert.Contains(t, err.Error(), reason)
 	})
 }

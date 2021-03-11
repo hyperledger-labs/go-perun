@@ -200,7 +200,7 @@ func (c *Channel) update(ctx context.Context, next *channel.State) (err error) {
 	c.Log().Tracef("Received update response (%T): %v", res, res)
 
 	if rej, ok := res.(*msgChannelUpdateRej); ok {
-		return errors.Errorf("update rejected: %s", rej.Reason)
+		return newPeerRejectedError("channel update", rej.Reason)
 	}
 
 	acc := res.(*msgChannelUpdateAcc) // safe by predicate of the updateResRecv
