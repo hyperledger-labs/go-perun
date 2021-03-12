@@ -30,11 +30,14 @@ import (
 	"perun.network/go-perun/backend/ethereum/bindings/peruntoken"
 	"perun.network/go-perun/backend/ethereum/bindings/trivialapp"
 	"perun.network/go-perun/log"
+	pcontext "perun.network/go-perun/pkg/context"
 )
 
 const deployGasLimit = 6600000
 
 // DeployPerunToken deploys a new PerunToken contract.
+// Returns txTimedOutError if the context is cancelled or if the context
+// deadline is exceeded when waiting for the transaction to be mined.
 func DeployPerunToken(ctx context.Context, backend ContractBackend, deployer accounts.Account, initAccs []common.Address, initBals *big.Int) (common.Address, error) {
 	return deployContract(ctx, backend, deployer, "PerunToken",
 		func(auth *bind.TransactOpts, cb ContractBackend) (common.Address, *types.Transaction, error) {
@@ -44,6 +47,8 @@ func DeployPerunToken(ctx context.Context, backend ContractBackend, deployer acc
 }
 
 // DeployETHAssetholder deploys a new ETHAssetHolder contract.
+// Returns txTimedOutError if the context is cancelled or if the context
+// deadline is exceeded when waiting for the transaction to be mined.
 func DeployETHAssetholder(ctx context.Context, backend ContractBackend, adjudicatorAddr common.Address, deployer accounts.Account) (common.Address, error) {
 	return deployContract(ctx, backend, deployer, "ETHAssetHolder",
 		func(auth *bind.TransactOpts, cb ContractBackend) (common.Address, *types.Transaction, error) {
@@ -53,6 +58,8 @@ func DeployETHAssetholder(ctx context.Context, backend ContractBackend, adjudica
 }
 
 // DeployERC20Assetholder deploys a new ERC20AssetHolder contract.
+// Returns txTimedOutError if the context is cancelled or if the context
+// deadline is exceeded when waiting for the transaction to be mined.
 func DeployERC20Assetholder(ctx context.Context, backend ContractBackend, adjudicatorAddr common.Address, tokenAddr common.Address, deployer accounts.Account) (common.Address, error) {
 	return deployContract(ctx, backend, deployer, "ERC20AssetHolder",
 		func(auth *bind.TransactOpts, cb ContractBackend) (common.Address, *types.Transaction, error) {
@@ -62,6 +69,8 @@ func DeployERC20Assetholder(ctx context.Context, backend ContractBackend, adjudi
 }
 
 // DeployAdjudicator deploys a new Adjudicator contract.
+// Returns txTimedOutError if the context is cancelled or if the context
+// deadline is exceeded when waiting for the transaction to be mined.
 func DeployAdjudicator(ctx context.Context, backend ContractBackend, deployer accounts.Account) (common.Address, error) {
 	return deployContract(ctx, backend, deployer, "Adjudicator",
 		func(auth *bind.TransactOpts, cb ContractBackend) (common.Address, *types.Transaction, error) {
@@ -71,6 +80,8 @@ func DeployAdjudicator(ctx context.Context, backend ContractBackend, deployer ac
 }
 
 // DeployTrivialApp deploys a new TrivialApp contract.
+// Returns txTimedOutError if the context is cancelled or if the context
+// deadline is exceeded when waiting for the transaction to be mined.
 func DeployTrivialApp(ctx context.Context, backend ContractBackend, deployer accounts.Account) (common.Address, error) {
 	return deployContract(ctx, backend, deployer, "TrivialApp",
 		func(auth *bind.TransactOpts, cb ContractBackend) (common.Address, *types.Transaction, error) {
@@ -79,6 +90,8 @@ func DeployTrivialApp(ctx context.Context, backend ContractBackend, deployer acc
 		})
 }
 
+// Returns txTimedOutError if the context is cancelled or if the context
+// deadline is exceeded when waiting for the transaction to be mined.
 func deployContract(ctx context.Context, cb ContractBackend, deployer accounts.Account, name string, f func(*bind.TransactOpts, ContractBackend) (common.Address, *types.Transaction, error)) (common.Address, error) {
 	auth, err := cb.NewTransactor(ctx, deployGasLimit, deployer)
 	if err != nil {
@@ -89,6 +102,9 @@ func deployContract(ctx context.Context, cb ContractBackend, deployer accounts.A
 		return common.Address{}, errors.WithMessage(err, "creating transaction")
 	}
 	if _, err := bind.WaitDeployed(ctx, cb, tx); err != nil {
+		if pcontext.IsContextError(err) {
+			return common.Address{}, errors.WithStack(errTxTimedOut)
+		}
 		return common.Address{}, errors.Wrapf(err, "deploying %s", name)
 	}
 	log.Infof("Deployed %s at %v.", name, addr.Hex())

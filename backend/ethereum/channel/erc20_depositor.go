@@ -20,6 +20,7 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/pkg/errors"
+
 	"perun.network/go-perun/backend/ethereum/bindings/assetholdererc20"
 	"perun.network/go-perun/backend/ethereum/bindings/peruntoken"
 )

@@ -26,6 +26,7 @@ import (
 
 	"perun.network/go-perun/backend/ethereum/bindings/adjudicator"
 	"perun.network/go-perun/channel"
+	"perun.network/go-perun/client"
 	"perun.network/go-perun/log"
 	psync "perun.network/go-perun/pkg/sync"
 )
@@ -77,11 +78,11 @@ func (a *Adjudicator) Progress(ctx context.Context, req channel.ProgressReq) err
 	) (*types.Transaction, error) {
 		return a.contract.Progress(opts, params, state, ethNewState, ethActorIndex, req.Sig)
 	}
-	return a.call(ctx, req.AdjudicatorReq, progress)
+	return a.call(ctx, req.AdjudicatorReq, progress, Progress)
 }
 
 func (a *Adjudicator) callRegister(ctx context.Context, req channel.AdjudicatorReq) error {
-	return a.call(ctx, req, a.contract.Register)
+	return a.call(ctx, req, a.contract.Register, Register)
 }
 
 func (a *Adjudicator) callConclude(ctx context.Context, req channel.AdjudicatorReq, subStates channel.StateMap) error {
@@ -96,11 +97,11 @@ func (a *Adjudicator) callConclude(ctx context.Context, req channel.AdjudicatorR
 		return a.contract.Conclude(opts, params, state, ethSubStates)
 	}
 
-	return a.call(ctx, req, conclude)
+	return a.call(ctx, req, conclude, Conclude)
 }
 
 func (a *Adjudicator) callConcludeFinal(ctx context.Context, req channel.AdjudicatorReq) error {
-	return a.call(ctx, req, a.contract.ConcludeFinal)
+	return a.call(ctx, req, a.contract.ConcludeFinal, ConcludeFinal)
 }
 
 type adjFunc = func(
@@ -112,7 +113,8 @@ type adjFunc = func(
 
 // call calls the given contract function `fn` with the data from `req`.
 // `fn` should be a method of `a.contract`, like `a.contract.Register`.
-func (a *Adjudicator) call(ctx context.Context, req channel.AdjudicatorReq, fn adjFunc) error {
+// `txType` should be one of the valid transaction types defined in the client package.
+func (a *Adjudicator) call(ctx context.Context, req channel.AdjudicatorReq, fn adjFunc, txType OnChainTxType) error {
 	ethParams := ToEthParams(req.Params)
 	ethState := ToEthState(req.Tx.State)
 	tx, err := func() (*types.Transaction, error) {
@@ -137,6 +139,9 @@ func (a *Adjudicator) call(ctx context.Context, req channel.AdjudicatorReq, fn a
 	}
 
 	_, err = a.ConfirmTransaction(ctx, tx, a.txSender)
+	if errors.Is(err, errTxTimedOut) {
+		err = client.NewTxTimedoutError(txType.String(), tx.Hash().Hex(), err.Error())
+	}
 	return errors.WithMessage(err, "mining transaction")
 }
 
