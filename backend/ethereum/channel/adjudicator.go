@@ -69,7 +69,7 @@ func (a *Adjudicator) Progress(ctx context.Context, req channel.ProgressReq) err
 	ethNewState := ToEthState(req.NewState)
 	ethActorIndex := big.NewInt(int64(req.Idx))
 
-	conclude := func(
+	progress := func(
 		opts *bind.TransactOpts,
 		params adjudicator.ChannelParams,
 		state adjudicator.ChannelState,
@@ -77,7 +77,7 @@ func (a *Adjudicator) Progress(ctx context.Context, req channel.ProgressReq) err
 	) (*types.Transaction, error) {
 		return a.contract.Progress(opts, params, state, ethNewState, ethActorIndex, req.Sig)
 	}
-	return a.call(ctx, req.AdjudicatorReq, conclude)
+	return a.call(ctx, req.AdjudicatorReq, progress)
 }
 
 func (a *Adjudicator) callRegister(ctx context.Context, req channel.AdjudicatorReq) error {
