@@ -29,6 +29,7 @@ import (
 	"perun.network/go-perun/backend/ethereum/bindings/assetholder"
 	"perun.network/go-perun/backend/ethereum/wallet"
 	"perun.network/go-perun/channel"
+	"perun.network/go-perun/client"
 	"perun.network/go-perun/log"
 	pcontext "perun.network/go-perun/pkg/context"
 	perror "perun.network/go-perun/pkg/errors"
@@ -98,6 +99,9 @@ func (f *Funder) Fund(ctx context.Context, request channel.FundingReq) error {
 		for i, tx := range txs[a] {
 			acc := f.accounts[*asset.(*Asset)]
 			if _, err := f.ConfirmTransaction(ctx, tx, acc); err != nil {
+				if errors.Is(err, errTxTimedOut) {
+					err = client.NewTxTimedoutError(Fund.String(), tx.Hash().Hex(), err.Error())
+				}
 				return errors.WithMessagef(err, "sending %dth funding TX for asset %d", i, a)
 			}
 			f.log.Debugf("Mined TX: %v", tx.Hash().Hex())

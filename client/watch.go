@@ -33,6 +33,9 @@ type AdjudicatorEventHandler interface {
 // The routine takes care that if an old state is registered, the on-chain state
 // is refuted with the most recent event available. In such a case, the handler
 // may receive multiple registered events in short succession.
+//
+// Returns TxTimedoutError when watcher refutes with the most recent state and
+// the program times out waiting for a transaction to be mined.
 func (c *Channel) Watch(h AdjudicatorEventHandler) error {
 	log := c.Log().WithField("proc", "watcher")
 	defer log.Info("Watcher returned.")
@@ -83,6 +86,9 @@ func (c *Channel) Watch(h AdjudicatorEventHandler) error {
 }
 
 // Register registers the channel on the adjudicator.
+//
+// Returns TxTimedoutError when the program times out waiting for a transaction
+// to be mined.
 func (c *Channel) Register(ctx context.Context) error {
 	// Lock channel machine.
 	if !c.machMtx.TryLockCtx(ctx) {
@@ -94,6 +100,9 @@ func (c *Channel) Register(ctx context.Context) error {
 }
 
 // ProgressBy progresses the channel state in the adjudicator backend.
+//
+// Returns TxTimedoutError when the program times out waiting for a transaction
+// to be mined.
 func (c *Channel) ProgressBy(ctx context.Context, update func(*channel.State)) error {
 	// Lock machine
 	if !c.machMtx.TryLockCtx(ctx) {
@@ -124,6 +133,9 @@ func (c *Channel) ProgressBy(ctx context.Context, update func(*channel.State)) e
 }
 
 // Settle concludes a channel and withdraws the funds.
+//
+// Returns TxTimedoutError when the program times out waiting for a transaction
+// to be mined.
 func (c *Channel) Settle(ctx context.Context, secondary bool) error {
 	return c.SettleWithSubchannels(ctx, nil, secondary)
 }
@@ -132,6 +144,9 @@ func (c *Channel) Settle(ctx context.Context, secondary bool) error {
 //
 // If the channel is a ledger channel with locked funds, additionally subStates
 // can be supplied to also conclude the corresponding sub-channels.
+//
+// Returns TxTimedoutError when the program times out waiting for a transaction
+// to be mined.
 func (c *Channel) SettleWithSubchannels(ctx context.Context, subStates channel.StateMap, secondary bool) error {
 	// Lock channel machine.
 	if !c.machMtx.TryLockCtx(ctx) {

@@ -132,6 +132,8 @@ func (r *ProposalResponder) Reject(ctx context.Context, reason string) error {
 // Returns RequestTimedOutError if the peer did not respond before the context
 // expires or is cancelled. Returns FundingTimeoutError if any of the
 // participants do not fund the channel in time.
+// Returns TxTimedoutError when the program times out waiting for a transaction
+// to be mined.
 func (c *Client) ProposeChannel(ctx context.Context, prop ChannelProposal) (*Channel, error) {
 	if ctx == nil {
 		c.log.Panic("invalid nil argument")

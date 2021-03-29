@@ -27,6 +27,7 @@ import (
 	"github.com/pkg/errors"
 
 	"perun.network/go-perun/log"
+	pcontext "perun.network/go-perun/pkg/context"
 )
 
 // How many blocks we query into the past for events.
@@ -34,6 +35,11 @@ const startBlockOffset = 100
 
 // GasLimit is the max amount of gas we want to send per transaction.
 const GasLimit = 500000
+
+// errTxTimedOut is an internal named error that with an empty message.
+// Because calling function is expected to check for this error and
+// create a TxTimedoutError with additional context.
+var errTxTimedOut = errors.New("")
 
 // ContractInterface provides all functions needed by an ethereum backend.
 // Both test.SimulatedBackend and ethclient.Client implement this interface.
@@ -126,9 +132,14 @@ func (c *ContractBackend) NewTransactor(ctx context.Context, gasLimit uint64,
 
 // ConfirmTransaction returns whether a transaction was mined successfully or not
 // and the receipt if it could be retrieved.
+// Returns txTimedOutError if the context is cancelled or if the context
+// deadline is exceeded when waiting for the transaction to be mined.
 func (c *ContractBackend) ConfirmTransaction(ctx context.Context, tx *types.Transaction, acc accounts.Account) (*types.Receipt, error) {
 	receipt, err := bind.WaitMined(ctx, c, tx)
 	if err != nil {
+		if pcontext.IsContextError(err) {
+			return nil, errors.WithStack(errTxTimedOut)
+		}
 		return nil, errors.Wrap(err, "sending transaction")
 	}
 	if receipt.Status == types.ReceiptStatusFailed {

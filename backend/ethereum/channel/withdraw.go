@@ -26,6 +26,7 @@ import (
 	"perun.network/go-perun/backend/ethereum/bindings/assetholder"
 	"perun.network/go-perun/backend/ethereum/wallet"
 	"perun.network/go-perun/channel"
+	"perun.network/go-perun/client"
 	"perun.network/go-perun/log"
 )
 
@@ -150,6 +151,9 @@ func (a *Adjudicator) callAssetWithdraw(ctx context.Context, request channel.Adj
 		return err
 	}
 	_, err = a.ConfirmTransaction(ctx, tx, a.txSender)
+	if errors.Is(err, errTxTimedOut) {
+		err = client.NewTxTimedoutError(Withdraw.String(), tx.Hash().Hex(), err.Error())
+	}
 	return errors.WithMessage(err, "mining transaction")
 }
 
