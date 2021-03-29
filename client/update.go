@@ -1,4 +1,4 @@
-// Copyright 2019 - See NOTICE file for copyright holders.
+// Copyright 2021 - See NOTICE file for copyright holders.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -74,14 +74,16 @@ type (
 	// from other channel participants.
 	UpdateHandler interface {
 		// HandleUpdate is the user callback called by the channel controller on an
-		// incoming update request.
-		HandleUpdate(ChannelUpdate, *UpdateResponder)
+		// incoming update request. The first argument contains the current state
+		// of the channel before the update is applied. Clone it if you want to
+		// modify it.
+		HandleUpdate(*channel.State, ChannelUpdate, *UpdateResponder)
 	}
 
 	// UpdateHandlerFunc is an adapter type to allow the use of functions as
 	// update handlers. UpdateHandlerFunc(f) is an UpdateHandler that calls
 	// f when HandleUpdate is called.
-	UpdateHandlerFunc func(ChannelUpdate, *UpdateResponder)
+	UpdateHandlerFunc func(*channel.State, ChannelUpdate, *UpdateResponder)
 
 	// The UpdateResponder allows the user to react to the incoming channel update
 	// request. If the user wants to accept the update, Accept() should be called,
@@ -101,7 +103,9 @@ type (
 )
 
 // HandleUpdate calls the update handler function.
-func (f UpdateHandlerFunc) HandleUpdate(u ChannelUpdate, r *UpdateResponder) { f(u, r) }
+func (f UpdateHandlerFunc) HandleUpdate(s *channel.State, u ChannelUpdate, r *UpdateResponder) {
+	f(s, u, r)
+}
 
 // Accept lets the user signal that they want to accept the channel update.
 func (r *UpdateResponder) Accept(ctx context.Context) error {
@@ -287,7 +291,7 @@ func (c *Channel) handleUpdateReq(
 		return
 	}
 
-	uh.HandleUpdate(req.ChannelUpdate, responder)
+	uh.HandleUpdate(c.machine.State(), req.ChannelUpdate, responder)
 }
 
 func (c *Channel) handleUpdateAcc(

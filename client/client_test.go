@@ -1,4 +1,4 @@
-// Copyright 2019 - See NOTICE file for copyright holders.
+// Copyright 2021 - See NOTICE file for copyright holders.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -90,7 +90,7 @@ func TestClient_Handle_NilArgs(t *testing.T) {
 	c, err := New(wtest.NewRandomAddress(rng), &DummyBus{t}, &DummyFunder{t}, &DummyAdjudicator{t}, wtest.RandomWallet())
 	require.NoError(t, err)
 
-	dummyUH := UpdateHandlerFunc(func(ChannelUpdate, *UpdateResponder) {})
+	dummyUH := UpdateHandlerFunc(func(*channel.State, ChannelUpdate, *UpdateResponder) {})
 	assert.Panics(t, func() { c.Handle(nil, dummyUH) })
 	dummyPH := ProposalHandlerFunc(func(ChannelProposal, *ProposalResponder) {})
 	assert.Panics(t, func() { c.Handle(dummyPH, nil) })
