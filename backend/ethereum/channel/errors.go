@@ -14,6 +14,14 @@
 
 package channel
 
+import (
+	"strings"
+
+	"github.com/pkg/errors"
+
+	"perun.network/go-perun/client"
+)
+
 type (
 	// OnChainTxType defines the type of on-chain transaction function names that
 	// can be returned in TxTimeoutError.
@@ -48,4 +56,18 @@ var onChainTxTypeNames = [...]string{
 
 func (t OnChainTxType) String() string {
 	return onChainTxTypeNames[t]
+}
+
+func isChainNotReachableError(err error) bool {
+	if err != nil && strings.Contains(err.Error(), "connection refused") {
+		return true
+	}
+	return false
+}
+
+func checkIsChainNotReachableError(err error) error {
+	if isChainNotReachableError(err) {
+		return client.NewChainNotReachableError(err)
+	}
+	return errors.WithStack(err)
 }

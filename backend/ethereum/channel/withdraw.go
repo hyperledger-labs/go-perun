@@ -64,7 +64,8 @@ func (a *Adjudicator) ensureWithdrawn(ctx context.Context, req channel.Adjudicat
 			}
 			sub, err := contract.WatchWithdrawn(watchOpts, withdrawn, [][32]byte{fundingID})
 			if err != nil {
-				return errors.Wrap(err, "WatchWithdrawn failed")
+				err = checkIsChainNotReachableError(err)
+				return errors.WithMessage(err, "WatchWithdrawn failed")
 			}
 			defer sub.Unsubscribe()
 
@@ -87,11 +88,11 @@ func (a *Adjudicator) ensureWithdrawn(ctx context.Context, req channel.Adjudicat
 			case <-ctx.Done():
 				return errors.Wrap(ctx.Err(), "context cancelled")
 			case err = <-sub.Err():
+				err = checkIsChainNotReachableError(err)
 				return errors.Wrap(err, "subscription error")
 			}
 		})
 	}
-
 	return g.Wait()
 }
 
@@ -113,13 +114,15 @@ func (a *Adjudicator) filterWithdrawn(ctx context.Context, fundingID [32]byte, a
 	}
 	iter, err := asset.FilterWithdrawn(filterOpts, [][32]byte{fundingID})
 	if err != nil {
-		return false, errors.Wrap(err, "creating iterator")
+		err = checkIsChainNotReachableError(err)
+		return false, errors.WithMessage(err, "creating iterator")
 	}
 	// nolint:errcheck
 	defer iter.Close()
 
 	if !iter.Next() {
-		return false, errors.Wrap(iter.Error(), "iterating")
+		err = checkIsChainNotReachableError(iter.Error())
+		return false, errors.WithMessage(err, "iterating")
 	}
 	// Event found
 	return true, nil
@@ -142,7 +145,8 @@ func (a *Adjudicator) callAssetWithdraw(ctx context.Context, request channel.Adj
 
 		tx, err := asset.Withdraw(trans, auth, sig)
 		if err != nil {
-			return nil, errors.Wrapf(err, "withdrawing asset %d", asset.assetIndex)
+			err = checkIsChainNotReachableError(err)
+			return nil, errors.WithMessagef(err, "withdrawing asset %d", asset.assetIndex)
 		}
 		log.Debugf("Sent transaction %v", tx.Hash().Hex())
 		return tx, nil
@@ -151,7 +155,7 @@ func (a *Adjudicator) callAssetWithdraw(ctx context.Context, request channel.Adj
 		return err
 	}
 	_, err = a.ConfirmTransaction(ctx, tx, a.txSender)
-	if errors.Is(err, errTxTimedOut) {
+	if err != nil && errors.Is(err, errTxTimedOut) {
 		err = client.NewTxTimedoutError(Withdraw.String(), tx.Hash().Hex(), err.Error())
 	}
 	return errors.WithMessage(err, "mining transaction")

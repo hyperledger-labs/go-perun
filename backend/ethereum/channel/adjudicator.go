@@ -129,7 +129,8 @@ func (a *Adjudicator) call(ctx context.Context, req channel.AdjudicatorReq, fn a
 		}
 		tx, err := fn(trans, ethParams, ethState, req.Tx.Sigs)
 		if err != nil {
-			return nil, errors.Wrap(err, "calling adjudicator function")
+			err = checkIsChainNotReachableError(err)
+			return nil, errors.WithMessage(err, "calling adjudicator function")
 		}
 		log.Debugf("Sent transaction %v", tx.Hash().Hex())
 		return tx, nil

@@ -42,12 +42,12 @@ func (d *ERC20Depositor) Deposit(ctx context.Context, req DepositReq) (types.Tra
 	// Bind a `AssetHolderERC20` instance.
 	assetholder, err := assetholdererc20.NewAssetHolderERC20(common.Address(req.Asset), req.CB)
 	if err != nil {
-		return nil, errors.WithMessagef(err, "binding AssetHolderERC20 contract at: %x", req.Asset)
+		return nil, errors.Wrapf(err, "binding AssetHolderERC20 contract at: %x", req.Asset)
 	}
 	// Bind an `ERC20` instance.
 	token, err := peruntoken.NewERC20(d.Token, req.CB)
 	if err != nil {
-		return nil, errors.WithMessagef(err, "binding ERC20 contract at: %x", d.Token)
+		return nil, errors.Wrapf(err, "binding ERC20 contract at: %x", d.Token)
 	}
 	// Increase the allowance.
 	opts, err := req.CB.NewTransactor(ctx, ERC20DepositorTXGasLimit, req.Account)
@@ -56,6 +56,7 @@ func (d *ERC20Depositor) Deposit(ctx context.Context, req DepositReq) (types.Tra
 	}
 	tx1, err := token.IncreaseAllowance(opts, common.Address(req.Asset), req.Balance)
 	if err != nil {
+		err = checkIsChainNotReachableError(err)
 		return nil, errors.WithMessagef(err, "increasing allowance for asset: %x", req.Asset)
 	}
 	// Deposit.
@@ -64,6 +65,7 @@ func (d *ERC20Depositor) Deposit(ctx context.Context, req DepositReq) (types.Tra
 		return nil, errors.WithMessagef(err, "creating transactor for asset: %x", req.Asset)
 	}
 	tx2, err := assetholder.Deposit(opts, req.FundingID, req.Balance)
+	err = checkIsChainNotReachableError(err)
 	return []*types.Transaction{tx1, tx2}, errors.WithMessage(err, "AssetHolderERC20 depositing")
 }
 

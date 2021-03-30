@@ -22,6 +22,7 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/event"
 	"github.com/pkg/errors"
+
 	"perun.network/go-perun/backend/ethereum/bindings/adjudicator"
 	"perun.network/go-perun/backend/ethereum/wallet"
 	"perun.network/go-perun/channel"
@@ -53,8 +54,9 @@ func (a *Adjudicator) Subscribe(ctx context.Context, params *channel.Params) (ch
 	// nolint:errcheck,gosec,gosec
 	iter.Close()
 	if err := iter.Error(); err != nil {
+		err = checkIsChainNotReachableError(err)
 		sub.Unsubscribe()
-		return nil, errors.Wrap(err, "event iterator")
+		return nil, errors.WithMessage(err, "event iterator")
 	}
 	// Pass non-nil past event to updater
 	if ev != nil {
@@ -79,7 +81,8 @@ func (a *Adjudicator) filterWatch(ctx context.Context, events chan *adjudicator.
 	}
 	sub, err = a.contract.WatchChannelUpdate(watchOpts, events, []channel.ID{params.ID()})
 	if err != nil {
-		return nil, nil, errors.Wrapf(err, "watching events")
+		err = checkIsChainNotReachableError(err)
+		return nil, nil, errors.WithMessagef(err, "watching events")
 	}
 
 	// Filter old Events
@@ -89,7 +92,8 @@ func (a *Adjudicator) filterWatch(ctx context.Context, events chan *adjudicator.
 	}
 	iter, err = a.contract.FilterChannelUpdate(filterOpts, []channel.ID{params.ID()})
 	if err != nil {
-		return nil, nil, errors.Wrap(err, "filtering events")
+		err = checkIsChainNotReachableError(err)
+		return nil, nil, errors.WithMessage(err, "filtering events")
 	}
 
 	return sub, iter, nil
@@ -140,7 +144,7 @@ evloop:
 				r.next <- e
 			}
 		case err := <-r.sub.Err():
-			r.err <- err
+			r.err <- checkIsChainNotReachableError(err)
 			break evloop
 		}
 	}
@@ -219,6 +223,7 @@ type progressCallData struct {
 func (a *Adjudicator) fetchProgressCallData(ctx context.Context, txHash common.Hash) (*progressCallData, error) {
 	tx, _, err := a.ContractBackend.TransactionByHash(ctx, txHash)
 	if err != nil {
+		err = checkIsChainNotReachableError(err)
 		return nil, errors.WithMessage(err, "getting transaction")
 	}
 

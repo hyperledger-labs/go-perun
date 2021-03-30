@@ -49,7 +49,8 @@ func NewBlockTimeoutDuration(
 	ctx context.Context, cr ethereum.ChainReader, duration uint64) (*BlockTimeout, error) {
 	h, err := cr.HeaderByNumber(ctx, nil)
 	if err != nil {
-		return nil, errors.Wrap(err, "getting latest header")
+		err = checkIsChainNotReachableError(err)
+		return nil, errors.WithMessage(err, "getting latest header")
 	}
 	return NewBlockTimeout(cr, h.Time+duration), nil
 }
@@ -73,7 +74,8 @@ func (t *BlockTimeout) Wait(ctx context.Context) error {
 	headers := make(chan *types.Header)
 	sub, err := t.cr.SubscribeNewHead(ctx, headers)
 	if err != nil {
-		return errors.Wrap(err, "subscribing to new heads")
+		err = checkIsChainNotReachableError(err)
+		return errors.WithMessage(err, "subscribing to new heads")
 	}
 	defer sub.Unsubscribe()
 
@@ -85,7 +87,8 @@ func (t *BlockTimeout) Wait(ctx context.Context) error {
 			}
 		case err := <-sub.Err():
 			if err != nil {
-				return errors.Wrap(err, "sub done")
+				err = checkIsChainNotReachableError(err)
+				return errors.WithMessage(err, "sub done")
 			}
 			// make sure we return a non-nil error if the timeout hasn't passed yet
 			return errors.New("sub done before timeout")
