@@ -88,6 +88,11 @@ func (f ProposalHandlerFunc) HandleProposal(p ChannelProposal, r *ProposalRespon
 //
 // After the channel got successfully created, the user is required to start the
 // channel watcher with Channel.Watch() on the returned channel controller.
+//
+// Returns TxTimedoutError when the program times out waiting for a transaction
+// to be mined.
+// Returns ChainNotReachableError if the connection to the blockchain network
+// fails when sending a transaction to / reading from the blockchain.
 func (r *ProposalResponder) Accept(ctx context.Context, acc ChannelProposalAccept) (*Channel, error) {
 	if ctx == nil {
 		return nil, errors.New("context must not be nil")
@@ -130,10 +135,13 @@ func (r *ProposalResponder) Reject(ctx context.Context, reason string) error {
 //
 // Returns PeerRejectedProposalError if the channel is rejected by the peer.
 // Returns RequestTimedOutError if the peer did not respond before the context
-// expires or is cancelled. Returns FundingTimeoutError if any of the
-// participants do not fund the channel in time.
+// expires or is cancelled.
+// Returns FundingTimeoutError if any of the participants do not fund the
+// channel in time.
 // Returns TxTimedoutError when the program times out waiting for a transaction
 // to be mined.
+// Returns ChainNotReachableError if the connection to the blockchain network
+// fails when sending a transaction to / reading from the blockchain.
 func (c *Client) ProposeChannel(ctx context.Context, prop ChannelProposal) (*Channel, error) {
 	if ctx == nil {
 		c.log.Panic("invalid nil argument")
