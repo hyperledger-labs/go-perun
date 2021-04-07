@@ -1,4 +1,4 @@
-// Copyright 2019 - See NOTICE file for copyright holders.
+// Copyright 2021 - See NOTICE file for copyright holders.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -139,6 +139,7 @@ func (c *Channel) Params() *channel.Params {
 
 // State returns the current state.
 // Clone it if you want to modify it.
+// Can not be called from an update handler.
 func (c *Channel) State() *channel.State {
 	c.machMtx.Lock()
 	defer c.machMtx.Unlock()
@@ -147,6 +148,7 @@ func (c *Channel) State() *channel.State {
 }
 
 // Phase returns the current phase of the channel state machine.
+// Can not be called from an update handler.
 func (c *Channel) Phase() channel.Phase {
 	c.machMtx.Lock()
 	defer c.machMtx.Unlock()
