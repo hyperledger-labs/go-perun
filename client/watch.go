@@ -36,6 +36,8 @@ type AdjudicatorEventHandler interface {
 //
 // Returns TxTimedoutError when watcher refutes with the most recent state and
 // the program times out waiting for a transaction to be mined.
+// Returns ChainNotReachableError if the connection to the blockchain network
+// fails when sending a transaction to / reading from the blockchain.
 func (c *Channel) Watch(h AdjudicatorEventHandler) error {
 	log := c.Log().WithField("proc", "watcher")
 	defer log.Info("Watcher returned.")
@@ -89,6 +91,8 @@ func (c *Channel) Watch(h AdjudicatorEventHandler) error {
 //
 // Returns TxTimedoutError when the program times out waiting for a transaction
 // to be mined.
+// Returns ChainNotReachableError if the connection to the blockchain network
+// fails when sending a transaction to / reading from the blockchain.
 func (c *Channel) Register(ctx context.Context) error {
 	// Lock channel machine.
 	if !c.machMtx.TryLockCtx(ctx) {
@@ -103,6 +107,8 @@ func (c *Channel) Register(ctx context.Context) error {
 //
 // Returns TxTimedoutError when the program times out waiting for a transaction
 // to be mined.
+// Returns ChainNotReachableError if the connection to the blockchain network
+// fails when sending a transaction to / reading from the blockchain.
 func (c *Channel) ProgressBy(ctx context.Context, update func(*channel.State)) error {
 	// Lock machine
 	if !c.machMtx.TryLockCtx(ctx) {
@@ -136,6 +142,8 @@ func (c *Channel) ProgressBy(ctx context.Context, update func(*channel.State)) e
 //
 // Returns TxTimedoutError when the program times out waiting for a transaction
 // to be mined.
+// Returns ChainNotReachableError if the connection to the blockchain network
+// fails when sending a transaction to / reading from the blockchain.
 func (c *Channel) Settle(ctx context.Context, secondary bool) error {
 	return c.SettleWithSubchannels(ctx, nil, secondary)
 }
@@ -147,6 +155,8 @@ func (c *Channel) Settle(ctx context.Context, secondary bool) error {
 //
 // Returns TxTimedoutError when the program times out waiting for a transaction
 // to be mined.
+// Returns ChainNotReachableError if the connection to the blockchain network
+// fails when sending a transaction to / reading from the blockchain.
 func (c *Channel) SettleWithSubchannels(ctx context.Context, subStates channel.StateMap, secondary bool) error {
 	// Lock channel machine.
 	if !c.machMtx.TryLockCtx(ctx) {

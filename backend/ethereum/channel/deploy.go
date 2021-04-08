@@ -16,6 +16,7 @@ package channel
 
 import (
 	"context"
+	"fmt"
 	"math/big"
 
 	"github.com/ethereum/go-ethereum/accounts"
@@ -29,6 +30,7 @@ import (
 	"perun.network/go-perun/backend/ethereum/bindings/assetholdereth"
 	"perun.network/go-perun/backend/ethereum/bindings/peruntoken"
 	"perun.network/go-perun/backend/ethereum/bindings/trivialapp"
+	"perun.network/go-perun/client"
 	"perun.network/go-perun/log"
 	pcontext "perun.network/go-perun/pkg/context"
 )
@@ -99,13 +101,20 @@ func deployContract(ctx context.Context, cb ContractBackend, deployer accounts.A
 	}
 	addr, tx, err := f(auth, cb)
 	if err != nil {
+		err = checkIsChainNotReachableError(err)
 		return common.Address{}, errors.WithMessage(err, "creating transaction")
 	}
 	if _, err := bind.WaitDeployed(ctx, cb, tx); err != nil {
-		if pcontext.IsContextError(err) {
-			return common.Address{}, errors.WithStack(errTxTimedOut)
+		switch {
+		case pcontext.IsContextError(err):
+			txType := fmt.Sprintf("deploy %s", name)
+			err = client.NewTxTimedoutError(txType, tx.Hash().Hex(), err.Error())
+		case isChainNotReachableError(err):
+			err = client.NewChainNotReachableError(err)
+		default:
+			err = errors.WithStack(err)
 		}
-		return common.Address{}, errors.Wrapf(err, "deploying %s", name)
+		return common.Address{}, errors.WithMessagef(err, "deploying %s", name)
 	}
 	log.Infof("Deployed %s at %v.", name, addr.Hex())
 	return addr, nil

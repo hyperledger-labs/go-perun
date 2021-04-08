@@ -26,6 +26,7 @@ import (
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/pkg/errors"
 
+	"perun.network/go-perun/client"
 	"perun.network/go-perun/log"
 	pcontext "perun.network/go-perun/pkg/context"
 )
@@ -101,7 +102,8 @@ func (c *ContractBackend) NewFilterOpts(ctx context.Context) (*bind.FilterOpts, 
 func (c *ContractBackend) pastOffsetBlockNum(ctx context.Context) (uint64, error) {
 	h, err := c.HeaderByNumber(ctx, nil)
 	if err != nil {
-		return uint64(0), errors.Wrap(err, "retrieving latest block")
+		err = checkIsChainNotReachableError(err)
+		return uint64(0), errors.WithMessage(err, "retrieving latest block")
 	}
 
 	// max(1, latestBlock - offset)
@@ -137,10 +139,15 @@ func (c *ContractBackend) NewTransactor(ctx context.Context, gasLimit uint64,
 func (c *ContractBackend) ConfirmTransaction(ctx context.Context, tx *types.Transaction, acc accounts.Account) (*types.Receipt, error) {
 	receipt, err := bind.WaitMined(ctx, c, tx)
 	if err != nil {
-		if pcontext.IsContextError(err) {
-			return nil, errors.WithStack(errTxTimedOut)
+		switch {
+		case pcontext.IsContextError(err):
+			err = errors.WithStack(errTxTimedOut)
+		case isChainNotReachableError(err):
+			err = client.NewChainNotReachableError(err)
+		default:
+			err = errors.WithStack(err)
 		}
-		return nil, errors.Wrap(err, "sending transaction")
+		return nil, errors.WithMessage(err, "sending transaction")
 	}
 	if receipt.Status == types.ReceiptStatusFailed {
 		reason, err := errorReason(ctx, c, tx, receipt.BlockNumber, acc)
@@ -179,7 +186,8 @@ func errorReason(ctx context.Context, b *ContractBackend, tx *types.Transaction,
 	}
 	res, err := b.CallContract(ctx, msg, blockNum)
 	if err != nil {
-		return "", errors.Wrap(err, "CallContract")
+		err = checkIsChainNotReachableError(err)
+		return "", errors.WithMessage(err, "CallContract")
 	}
 	reason, err := abi.UnpackRevert(res)
 	return reason, errors.Wrap(err, "unpacking revert reason")

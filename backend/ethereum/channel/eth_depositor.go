@@ -40,7 +40,7 @@ func (d *ETHDepositor) Deposit(ctx context.Context, req DepositReq) (types.Trans
 	// since we only use the interface functions here.
 	contract, err := assetholdereth.NewAssetHolderETH(common.Address(req.Asset), req.CB)
 	if err != nil {
-		return nil, errors.WithMessagef(err, "binding AssetHolderETH contract at: %x", req.Asset)
+		return nil, errors.Wrapf(err, "binding AssetHolderETH contract at: %x", req.Asset)
 	}
 	opts, err := req.CB.NewTransactor(ctx, ETHDepositorGasLimit, req.Account)
 	if err != nil {
@@ -49,6 +49,7 @@ func (d *ETHDepositor) Deposit(ctx context.Context, req DepositReq) (types.Trans
 	opts.Value = req.Balance
 
 	tx, err := contract.Deposit(opts, req.FundingID, req.Balance)
+	err = checkIsChainNotReachableError(err)
 	return []*types.Transaction{tx}, errors.WithMessage(err, "AssetHolderETH depositing")
 }
 

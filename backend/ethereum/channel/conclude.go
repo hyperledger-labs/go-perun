@@ -43,7 +43,8 @@ func (a *Adjudicator) ensureConcluded(ctx context.Context, req channel.Adjudicat
 	events := make(chan *adjudicator.AdjudicatorChannelUpdate)
 	sub, err := a.contract.WatchChannelUpdate(watchOpts, events, [][32]byte{req.Params.ID()})
 	if err != nil {
-		return errors.Wrap(err, "creating subscription failed")
+		err = checkIsChainNotReachableError(err)
+		return errors.WithMessage(err, "creating subscription failed")
 	}
 	defer sub.Unsubscribe()
 
@@ -83,6 +84,7 @@ func (a *Adjudicator) ensureConcluded(ctx context.Context, req channel.Adjudicat
 	case <-ctx.Done():
 		return errors.Wrap(ctx.Err(), "context cancelled")
 	case err = <-sub.Err():
+		err = checkIsChainNotReachableError(err)
 		return errors.Wrap(err, "subscription error")
 	}
 }
@@ -102,7 +104,8 @@ func waitConcludedForNBlocks(ctx context.Context,
 	h := make(chan *types.Header)
 	hsub, err := cr.SubscribeNewHead(ctx, h)
 	if err != nil {
-		return false, errors.Wrap(err, "subscribing to new blocks")
+		err = checkIsChainNotReachableError(err)
+		return false, errors.WithMessage(err, "subscribing to new blocks")
 	}
 	defer hsub.Unsubscribe()
 	for i := 0; i < numBlocks; i++ {
@@ -115,9 +118,11 @@ func waitConcludedForNBlocks(ctx context.Context,
 		case <-ctx.Done():
 			return false, errors.Wrap(ctx.Err(), "context cancelled")
 		case err = <-hsub.Err():
-			return false, errors.Wrap(err, "header subscription error")
+			err = checkIsChainNotReachableError(err)
+			return false, errors.WithMessage(err, "header subscription error")
 		case err = <-sub.Err():
-			return false, errors.Wrap(err, "concluded subscription error")
+			err = checkIsChainNotReachableError(err)
+			return false, errors.WithMessage(err, "concluded subscription error")
 		}
 	}
 	return false, nil
@@ -131,7 +136,8 @@ func (a *Adjudicator) filterConcluded(ctx context.Context, channelID channel.ID)
 	}
 	iter, err := a.contract.FilterChannelUpdate(filterOpts, [][32]byte{channelID})
 	if err != nil {
-		return false, errors.Wrap(err, "creating iterator")
+		err = checkIsChainNotReachableError(err)
+		return false, errors.WithMessage(err, "creating iterator")
 	}
 
 	found := false

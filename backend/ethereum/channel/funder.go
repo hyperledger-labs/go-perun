@@ -219,7 +219,8 @@ func filterFunds(ctx context.Context, asset assetHolder, fundingIDs ...[32]byte)
 		Context: ctx}
 	iter, err := asset.FilterDeposited(&filterOpts, fundingIDs)
 	if err != nil {
-		return nil, errors.Wrap(err, "filtering deposited events")
+		err = checkIsChainNotReachableError(err)
+		return nil, errors.WithMessage(err, "filtering deposited events")
 	}
 
 	return iter, nil
@@ -238,7 +239,8 @@ func (f *Funder) waitForFundingConfirmation(ctx context.Context, request channel
 	}
 	sub, err := asset.WatchDeposited(watchOpts, deposited, fundingIDs)
 	if err != nil {
-		return errors.Wrapf(err, "WatchDeposit on asset %d failed", asset.assetIndex)
+		err = checkIsChainNotReachableError(err)
+		return errors.WithMessagef(err, "WatchDeposit on asset %d failed", asset.assetIndex)
 	}
 	defer sub.Unsubscribe()
 
@@ -246,7 +248,11 @@ func (f *Funder) waitForFundingConfirmation(ctx context.Context, request channel
 	// channel.
 	errChan := make(chan error, 1)
 	go func() {
-		errChan <- errors.Wrapf(<-sub.Err(), "subscription for asset %d", asset.assetIndex)
+		err := <-sub.Err()
+		if err != nil {
+			err = checkIsChainNotReachableError(err)
+		}
+		errChan <- errors.WithMessagef(err, "subscription for asset %d", asset.assetIndex)
 	}()
 
 	// Query all old funding events

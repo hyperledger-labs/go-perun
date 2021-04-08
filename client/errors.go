@@ -31,6 +31,11 @@ type (
 		TxType string // Type of the transaction.
 		TxID   string // Transaction ID to track it on the blockchain.
 	}
+
+	// ChainNotReachableError indicates problems in connecting to the blockchain
+	// network when trying to do on-chain transactions or reading from the blockchain.
+	ChainNotReachableError struct {
+	}
 )
 
 // Error implements the error interface.
@@ -38,12 +43,26 @@ func (e TxTimedoutError) Error() string {
 	return fmt.Sprintf("timed out waiting for tx to be mined. txID: %s, TxType: %s", e.TxID, e.TxType)
 }
 
-// NewTxTimedoutError constructs a TxTimedoutError and wraps it with the actual error message.
+// Error implements the error interface.
+func (e ChainNotReachableError) Error() string {
+	return "blockchain network not reachable"
+}
+
+// NewTxTimedoutError constructs a TxTimedoutError and wraps it with the actual
+// error message.
+//
 // txID is the ID required for tracking the transaction on the blockchain and
-// txType is the type of on-chain transaction. Valid types should be defined by each of the blockchain backend.
+// txType is the type of on-chain transaction. Valid types should be defined by
+// each of the blockchain backend.
 func NewTxTimedoutError(txType, txID, actualErrMsg string) error {
 	return errors.Wrap(TxTimedoutError{
 		TxType: txType,
 		TxID:   txID,
 	}, actualErrMsg)
+}
+
+// NewChainNotReachableError constructs a ChainNotReachableError and wraps it
+// with the actual error message.
+func NewChainNotReachableError(actualErr error) error {
+	return errors.Wrap(ChainNotReachableError{}, actualErr.Error())
 }
