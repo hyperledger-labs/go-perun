@@ -260,7 +260,12 @@ func (LedgerChannelProposal) Matches(acc ChannelProposalAccept) bool {
 }
 
 // NewLedgerChannelProposal creates a ledger channel proposal and applies the
-// supplied options. For more information, see ProposalOpts.
+// supplied options.
+// challengeDuration is the on-chain challenge duration in seconds.
+// participant is our wallet address.
+// initBals are the initial balances.
+// peers are the wire addresses of the channel participants.
+// For more information, see ProposalOpts.
 func NewLedgerChannelProposal(
 	challengeDuration uint64,
 	participant wallet.Address,
