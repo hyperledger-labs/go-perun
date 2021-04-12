@@ -1,4 +1,4 @@
-name: Tests
+name: CI
 
 on:
   push:
@@ -10,38 +10,58 @@ on:
   release:
 
 jobs:
-  build:
-    name: CI
+  check-copyright:
+    name: Copyright
     runs-on: ubuntu-latest
     steps:
-    - name: Set up Go 1.x
-      uses: actions/setup-go@v2
-      with:
-        go-version: ^1.15
+      - name: Checkout
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+      - name: License header
+        run: .scripts/check-copyright-notice.sh
+      - name: Authors
+        run: .scripts/check-notice-authors.sh origin/master
 
-    - name: Checkout
-      uses: actions/checkout@v2
-      with:
-        fetch-depth: 0
+  vet:
+    name: Vetting
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Check vanity import
+        run: .scripts/check-vanity-imports.sh $GITHUB_WORKSPACE
+      - name: Lint
+        uses: golangci/golangci-lint-action@v2
+        with:
+          version: v1.29
 
-    - name: Copyright notice
-      run: |
-        .scripts/check-copyright-notice.sh
-        .scripts/check-notice-authors.sh origin/master
+  tests:
+    name: Tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Set up Golang
+        uses: actions/setup-go@v2
+        with:
+          go-version: ^1.16
 
-    - name: Dependencies
-      run: |
-        go get -v -t -d ./...
-        docker pull golangci/golangci-lint:v1.27
-    
-    - name: Vanity import
-      run: .scripts/check-vanity-imports.sh $GITHUB_WORKSPACE
+      - name: Checkout
+        uses: actions/checkout@v2
 
-    - name: Vetting
-      run: docker run --rm -v $GITHUB_WORKSPACE:/app -w /app golangci/golangci-lint:v1.27 golangci-lint run
+      - name: Unit Tests
+        run: go test -timeout 60s ./...
 
-    - name: Unit Tests
-      run: go test -timeout 60s ./...
+  race-tests:
+    name: Race Tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Set up Golang
+        uses: actions/setup-go@v2
+        with:
+          go-version: ^1.16
 
-    - name: Unit Race Tests
-      run: go test -timeout 120s -race -gcflags=all=-d=checkptr=0 ./...
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - name: Unit Race Tests
+        run: go test -timeout 120s -race -gcflags=all=-d=checkptr=0 ./...
