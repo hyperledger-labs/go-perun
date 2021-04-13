@@ -22,13 +22,13 @@ SOLC="${SOLC-solc}"
 
 if ! $ABIGEN --version
 then
-    echo "Please install abigen v1.9.25+ or the environment varables AGIBEN."
+    echo "Please make abigen v1.9.25+ available through PATH or set the environment variable AGIBEN."
     exit 1
 fi
 
 if ! $SOLC --version
 then
-    echo "Please install abigen v0.7.4 or the environment varables SOLC."
+    echo "Please make abigen v0.7.4 available through PATH or set the environment variable SOLC."
     exit 1
 fi
 
@@ -38,23 +38,25 @@ echo "Please ensure that the repository was cloned with submodules: 'git submodu
 # $1  solidity file path, relative to ../contracts/contracts/.
 # $2  golang package name.
 generate() {
-    FILE=$1; PKG=$2; CONTRACT=$FILE
+    NAME=$1; PKG=$2
     echo "Generating $PKG bindings..."
 
     rm -r $PKG
     mkdir $PKG
 
+    # Compile
+    $SOLC --abi --bin --bin-runtime --optimize --allow-paths ../contracts/vendor, ../contracts/contracts/$NAME.sol -o $PKG/
+
     # Generate bindings
-    $ABIGEN --pkg $PKG --sol ../contracts/contracts/$FILE.sol --out $PKG/$FILE.go --solc $SOLC
+    $ABIGEN --abi $PKG/$NAME.abi --bin $PKG/$NAME.bin --pkg $PKG --out $PKG/$NAME.go
 
     # Generate binary runtime
-    $SOLC --bin-runtime --optimize --allow-paths ../contracts/vendor, ../contracts/contracts/$FILE.sol -o $PKG/
-    BIN_RUNTIME=`cat ${PKG}/${CONTRACT}.bin-runtime`
-    OUT_FILE="$PKG/${CONTRACT}BinRuntime.go"
+    BIN_RUNTIME=`cat ${PKG}/${NAME}.bin-runtime`
+    OUT_FILE="$PKG/${NAME}BinRuntime.go"
     echo "package $PKG // import \"perun.network/go-perun/backend/ethereum/bindings/$PKG\"" > $OUT_FILE
     echo >> $OUT_FILE
-    echo "// ${CONTRACT}BinRuntime is the runtime part of the compiled bytecode used for deploying new contracts." >> $OUT_FILE
-    echo "var ${CONTRACT}BinRuntime = \"$BIN_RUNTIME\"" >> $OUT_FILE
+    echo "// ${NAME}BinRuntime is the runtime part of the compiled bytecode used for deploying new contracts." >> $OUT_FILE
+    echo "var ${NAME}BinRuntime = \"$BIN_RUNTIME\"" >> $OUT_FILE
 }
 
 # Adjudicator

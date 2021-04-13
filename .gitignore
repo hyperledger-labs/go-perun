@@ -11,5 +11,7 @@
 # Output of the go coverage tool, specifically when used with LiteIDE
 *.out
 
-# Go generate output
+# Generated output
+*.abi
+*.bin
 *.bin-runtime
