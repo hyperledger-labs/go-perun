@@ -43,13 +43,13 @@ func (a *Adjudicator) Withdraw(ctx context.Context, req channel.AdjudicatorReq, 
 func (a *Adjudicator) ensureWithdrawn(ctx context.Context, req channel.AdjudicatorReq) error {
 	g, ctx := errgroup.WithContext(ctx)
 
-	// nolint:scopelint
 	for index, asset := range req.Tx.Allocation.Assets {
 		// Skip zero balance withdrawals
 		if req.Tx.Allocation.Balances[index][req.Idx].Sign() == 0 {
 			a.log.WithFields(log.Fields{"channel": req.Params.ID, "idx": req.Idx}).Debug("Skipped zero withdrawing.")
 			continue
 		}
+		index, asset := index, asset // Capture variables locally for usage in closure
 		g.Go(func() error {
 			// Create subscription
 			watchOpts, err := a.NewWatchOpts(ctx)
