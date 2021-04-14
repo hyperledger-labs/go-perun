@@ -30,13 +30,13 @@ func TestBlockTimeout_IsElapsed(t *testing.T) {
 	sb := test.NewSimulatedBackend()
 	bt := ethchannel.NewBlockTimeout(sb, 100)
 
-	// We use nil contexts in the following because we're working with a simulated
+	// We use context.TODO() in the following because we're working with a simulated
 	// blockchain, which ignores the ctx.
 	for i := 0; i < 10; i++ {
-		assert.False(bt.IsElapsed(nil))
+		assert.False(bt.IsElapsed(context.TODO()))
 		sb.Commit() // advances block time by 10 sec
 	}
-	assert.True(bt.IsElapsed(nil))
+	assert.True(bt.IsElapsed(context.TODO()))
 }
 
 func TestBlockTimeout_Wait(t *testing.T) {
