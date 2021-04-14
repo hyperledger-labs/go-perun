@@ -40,12 +40,12 @@ const ERC20DepositorTXGasLimit = 100000
 // requests's asset address.
 func (d *ERC20Depositor) Deposit(ctx context.Context, req DepositReq) (types.Transactions, error) {
 	// Bind a `AssetHolderERC20` instance.
-	assetholder, err := assetholdererc20.NewAssetHolderERC20(common.Address(req.Asset), req.CB)
+	assetholder, err := assetholdererc20.NewAssetholdererc20(common.Address(req.Asset), req.CB)
 	if err != nil {
 		return nil, errors.Wrapf(err, "binding AssetHolderERC20 contract at: %x", req.Asset)
 	}
 	// Bind an `ERC20` instance.
-	token, err := peruntoken.NewERC20(d.Token, req.CB)
+	token, err := peruntoken.NewPeruntoken(d.Token, req.CB)
 	if err != nil {
 		return nil, errors.Wrapf(err, "binding ERC20 contract at: %x", d.Token)
 	}

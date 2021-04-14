@@ -38,7 +38,7 @@ const ETHDepositorGasLimit = 50000
 func (d *ETHDepositor) Deposit(ctx context.Context, req DepositReq) (types.Transactions, error) {
 	// Bind an `AssetHolderETH` instance. Using `AssetHolder` is also possible
 	// since we only use the interface functions here.
-	contract, err := assetholdereth.NewAssetHolderETH(common.Address(req.Asset), req.CB)
+	contract, err := assetholdereth.NewAssetholdereth(common.Address(req.Asset), req.CB)
 	if err != nil {
 		return nil, errors.Wrapf(err, "binding AssetHolderETH contract at: %x", req.Asset)
 	}

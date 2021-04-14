@@ -43,7 +43,7 @@ const deployGasLimit = 6600000
 func DeployPerunToken(ctx context.Context, backend ContractBackend, deployer accounts.Account, initAccs []common.Address, initBals *big.Int) (common.Address, error) {
 	return deployContract(ctx, backend, deployer, "PerunToken",
 		func(auth *bind.TransactOpts, cb ContractBackend) (common.Address, *types.Transaction, error) {
-			addr, tx, _, err := peruntoken.DeployPerunToken(auth, backend, initAccs, initBals)
+			addr, tx, _, err := peruntoken.DeployPeruntoken(auth, backend, initAccs, initBals)
 			return addr, tx, err
 		})
 }
@@ -54,7 +54,7 @@ func DeployPerunToken(ctx context.Context, backend ContractBackend, deployer acc
 func DeployETHAssetholder(ctx context.Context, backend ContractBackend, adjudicatorAddr common.Address, deployer accounts.Account) (common.Address, error) {
 	return deployContract(ctx, backend, deployer, "ETHAssetHolder",
 		func(auth *bind.TransactOpts, cb ContractBackend) (common.Address, *types.Transaction, error) {
-			addr, tx, _, err := assetholdereth.DeployAssetHolderETH(auth, cb, adjudicatorAddr)
+			addr, tx, _, err := assetholdereth.DeployAssetholdereth(auth, cb, adjudicatorAddr)
 			return addr, tx, err
 		})
 }
@@ -65,7 +65,7 @@ func DeployETHAssetholder(ctx context.Context, backend ContractBackend, adjudica
 func DeployERC20Assetholder(ctx context.Context, backend ContractBackend, adjudicatorAddr common.Address, tokenAddr common.Address, deployer accounts.Account) (common.Address, error) {
 	return deployContract(ctx, backend, deployer, "ERC20AssetHolder",
 		func(auth *bind.TransactOpts, cb ContractBackend) (common.Address, *types.Transaction, error) {
-			addr, tx, _, err := assetholdererc20.DeployAssetHolderERC20(auth, backend, adjudicatorAddr, tokenAddr)
+			addr, tx, _, err := assetholdererc20.DeployAssetholdererc20(auth, backend, adjudicatorAddr, tokenAddr)
 			return addr, tx, err
 		})
 }
@@ -87,7 +87,7 @@ func DeployAdjudicator(ctx context.Context, backend ContractBackend, deployer ac
 func DeployTrivialApp(ctx context.Context, backend ContractBackend, deployer accounts.Account) (common.Address, error) {
 	return deployContract(ctx, backend, deployer, "TrivialApp",
 		func(auth *bind.TransactOpts, cb ContractBackend) (common.Address, *types.Transaction, error) {
-			addr, tx, _, err := trivialapp.DeployTrivialApp(auth, backend)
+			addr, tx, _, err := trivialapp.DeployTrivialapp(auth, backend)
 			return addr, tx, err
 		})
 }

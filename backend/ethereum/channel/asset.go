@@ -63,7 +63,7 @@ func validateAssetHolder(ctx context.Context,
 		return errors.WithMessage(err, "validating asset holder")
 	}
 
-	assetHolder, err := assetholder.NewAssetHolder(assetHolderAddr, backend)
+	assetHolder, err := assetholder.NewAssetholder(assetHolderAddr, backend)
 	if err != nil {
 		return errors.Wrap(err, "binding AssetHolder")
 	}

@@ -370,7 +370,7 @@ func newNFunders(
 
 // fundERC20 funds `to` with ERC20 tokens from account `from`.
 func fundERC20(ctx context.Context, cb ethchannel.ContractBackend, from accounts.Account, to common.Address, token common.Address, asset ethchannel.Asset) error {
-	contract, err := peruntoken.NewERC20(token, cb)
+	contract, err := peruntoken.NewPeruntoken(token, cb)
 	if err != nil {
 		return errors.WithMessagef(err, "binding AssetHolderERC20 contract at: %v", asset)
 	}
@@ -410,7 +410,7 @@ func getOnChainAllocation(ctx context.Context, cb *ethchannel.ContractBackend, p
 
 	for k, asset := range _assets {
 		alloc[k] = make([]channel.Bal, len(params.Parts))
-		contract, err := assetholder.NewAssetHolder(common.Address(*asset.(*ethchannel.Asset)), cb)
+		contract, err := assetholder.NewAssetholder(common.Address(*asset.(*ethchannel.Asset)), cb)
 		if err != nil {
 			return nil, err
 		}

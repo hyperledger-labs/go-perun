@@ -37,7 +37,7 @@ import (
 )
 
 type assetHolder struct {
-	*assetholder.AssetHolder
+	*assetholder.Assetholder
 	*common.Address
 	assetIndex channel.Index
 }
@@ -204,14 +204,14 @@ func checkFunded(ctx context.Context, amount *big.Int, asset assetHolder, fundin
 func (f *Funder) bindContract(asset Asset, assetIndex channel.Index) assetHolder {
 	// Decode and set the asset address.
 	assetAddr := common.Address(asset)
-	ctr, err := assetholder.NewAssetHolder(assetAddr, f)
+	ctr, err := assetholder.NewAssetholder(assetAddr, f)
 	if err != nil {
 		f.log.Panic("Invalid AssetHolder ABI definition.")
 	}
 	return assetHolder{ctr, &assetAddr, assetIndex}
 }
 
-func filterFunds(ctx context.Context, asset assetHolder, fundingIDs ...[32]byte) (*assetholder.AssetHolderDepositedIterator, error) {
+func filterFunds(ctx context.Context, asset assetHolder, fundingIDs ...[32]byte) (*assetholder.AssetholderDepositedIterator, error) {
 	// Filter
 	filterOpts := bind.FilterOpts{
 		Start:   uint64(1),
@@ -231,7 +231,7 @@ func filterFunds(ctx context.Context, asset assetHolder, fundingIDs ...[32]byte)
 // according to the funding agreement.
 // nolint: funlen
 func (f *Funder) waitForFundingConfirmation(ctx context.Context, request channel.FundingReq, asset assetHolder, fundingIDs [][32]byte) error {
-	deposited := make(chan *assetholder.AssetHolderDeposited)
+	deposited := make(chan *assetholder.AssetholderDeposited)
 	// Watch new events
 	watchOpts, err := f.NewWatchOpts(ctx)
 	if err != nil {
