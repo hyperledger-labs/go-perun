@@ -19,10 +19,8 @@ They are blockchain-agnostic and only rely on a blockchain's capability to execu
 
 ## Security Disclaimer
 
-**Do not use this software with real funds**.
-
-_go-perun_ is still in development.
-The authors take no responsibility for any loss of digital assets or other damage caused by the use of this software.
+This software is still under development.
+The authors take no responsibility for any loss of digital assets or other damage caused by the use of it.
 
 ## Getting Started
 
