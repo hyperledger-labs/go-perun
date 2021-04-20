@@ -16,8 +16,8 @@ package channel
 
 import (
 	"context"
-	"fmt"
 	"math/big"
+	"time"
 
 	"github.com/ethereum/go-ethereum/accounts"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
@@ -30,12 +30,14 @@ import (
 	"perun.network/go-perun/backend/ethereum/bindings/assetholdereth"
 	"perun.network/go-perun/backend/ethereum/bindings/peruntoken"
 	"perun.network/go-perun/backend/ethereum/bindings/trivialapp"
-	"perun.network/go-perun/client"
 	"perun.network/go-perun/log"
-	pcontext "perun.network/go-perun/pkg/context"
 )
 
-const deployGasLimit = 6600000
+const (
+	deployGasLimit          = 6600000
+	deploymentRetries       = 3
+	deploymentRetryCooldown = 2 * time.Second
+)
 
 // DeployPerunToken deploys a new PerunToken contract.
 // Returns txTimedOutError if the context is cancelled or if the context
@@ -101,21 +103,25 @@ func deployContract(ctx context.Context, cb ContractBackend, deployer accounts.A
 	}
 	addr, tx, err := f(auth, cb)
 	if err != nil {
-		err = checkIsChainNotReachableError(err)
 		return common.Address{}, errors.WithMessage(err, "creating transaction")
 	}
-	if _, err := bind.WaitDeployed(ctx, cb, tx); err != nil {
-		switch {
-		case pcontext.IsContextError(err):
-			txType := fmt.Sprintf("deploy %s", name)
-			err = client.NewTxTimedoutError(txType, tx.Hash().Hex(), err.Error())
-		case isChainNotReachableError(err):
-			err = client.NewChainNotReachableError(err)
-		default:
-			err = errors.WithStack(err)
+	// Retry it since some nodes report a NoCode directly after deployment.
+	var e error
+	for i := 0; i < deploymentRetries; i++ {
+		log.WithField("attempt", i+1).Debugf("Waiting for %s deployment", name)
+		_, err := bind.WaitDeployed(ctx, cb, tx)
+		e = errors.Wrapf(err, "deploying %s", name)
+
+		if errors.Is(err, bind.ErrNoCodeAfterDeploy) {
+			log.Warnf("No %s code at address: %s", name, addr.Hex())
+			time.Sleep(deploymentRetryCooldown)
+		} else if err != nil {
+			log.Errorf("Error in deployment of %s: %w", name, err)
+			break
+		} else {
+			log.Infof("Deployed %s at %s", name, addr.Hex())
+			break
 		}
-		return common.Address{}, errors.WithMessagef(err, "deploying %s", name)
 	}
-	log.Infof("Deployed %s at %v.", name, addr.Hex())
-	return addr, nil
+	return addr, e
 }
