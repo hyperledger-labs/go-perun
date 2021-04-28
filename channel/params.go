@@ -163,7 +163,6 @@ func (p *Params) Clone() *Params {
 // Encode uses the pkg/io module to serialize a params instance.
 func (p *Params) Encode(w stdio.Writer) error {
 	return io.Encode(w,
-		p.id,
 		p.ChallengeDuration,
 		wallet.AddressesWithLen(p.Parts),
 		OptAppEnc{p.App},
@@ -172,10 +171,27 @@ func (p *Params) Encode(w stdio.Writer) error {
 
 // Decode uses the pkg/io module to deserialize a params instance.
 func (p *Params) Decode(r stdio.Reader) error {
-	return io.Decode(r,
-		&p.id,
-		&p.ChallengeDuration,
-		(*wallet.AddressesWithLen)(&p.Parts),
-		OptAppDec{&p.App},
-		&p.Nonce)
+	var (
+		challengeDuration uint64
+		parts             wallet.AddressesWithLen
+		app               App
+		nonce             Nonce
+	)
+
+	err := io.Decode(r,
+		&challengeDuration,
+		&parts,
+		OptAppDec{App: &app},
+		&nonce)
+	if err != nil {
+		return err
+	}
+
+	_p, err := NewParams(challengeDuration, parts, app, nonce)
+	if err != nil {
+		return err
+	}
+	*p = *_p
+
+	return nil
 }
