@@ -184,7 +184,9 @@ func (ch *paymentChannel) settleImpl(secondary bool) {
 	ctx, cancel := context.WithTimeout(context.Background(), ch.r.timeout)
 	defer cancel()
 
-	assert.NoError(ch.Register(ctx))
+	if ch.IsLedgerChannel() || !ch.State().IsFinal {
+		assert.NoError(ch.Register(ctx))
+	}
 
 	assert.NoError(ch.Settle(ctx, secondary))
 	ch.assertBals(ch.State())
