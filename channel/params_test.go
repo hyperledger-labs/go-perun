@@ -34,9 +34,11 @@ func TestParams_Serializer(t *testing.T) {
 	rng := pkgtest.Prng(t)
 	params := make([]io.Serializer, 10)
 	for i := range params {
-		p := test.NewRandomParams(rng)
+		var p *channel.Params
 		if i&1 == 0 {
-			p.App = channel.NoApp()
+			p = test.NewRandomParams(rng, test.WithoutApp())
+		} else {
+			p = test.NewRandomParams(rng)
 		}
 		params[i] = p
 	}
