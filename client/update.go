@@ -267,6 +267,12 @@ func (c *Channel) handleUpdateReq(
 	c.machMtx.Lock() // Lock machine while update is in progress.
 	defer c.machMtx.Unlock()
 
+	if err := c.machine.CheckUpdate(req.State, req.ActorIdx, req.Sig, pidx); err != nil {
+		// TODO: how to handle invalid updates? Just drop and ignore them?
+		c.logPeer(pidx).Warnf("invalid update received: %v", err)
+		return
+	}
+
 	responder := &UpdateResponder{channel: c, pidx: pidx, req: req}
 
 	if ui, ok := c.subChannelFundings.Filter(req.ChannelUpdate); ok {
@@ -280,12 +286,6 @@ func (c *Channel) handleUpdateReq(
 	}
 
 	if err := c.validTwoPartyUpdate(req.ChannelUpdate, pidx); err != nil {
-		// TODO: how to handle invalid updates? Just drop and ignore them?
-		c.logPeer(pidx).Warnf("invalid update received: %v", err)
-		return
-	}
-
-	if err := c.machine.CheckUpdate(req.State, req.ActorIdx, req.Sig, pidx); err != nil {
 		// TODO: how to handle invalid updates? Just drop and ignore them?
 		c.logPeer(pidx).Warnf("invalid update received: %v", err)
 		return
