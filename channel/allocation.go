@@ -21,6 +21,7 @@ import (
 
 	perunio "perun.network/go-perun/pkg/io"
 	perunbig "perun.network/go-perun/pkg/math/big"
+	"perun.network/go-perun/wire"
 
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/pkg/errors"
@@ -66,6 +67,8 @@ type (
 	//
 	// Locked holds the locked allocations to sub-app-channels.
 	Allocation struct {
+		// Participants of the corresponding channel.
+		participants []wire.Address
 		// Assets are the asset types held in this channel
 		Assets []Asset
 		// Balances is the allocation of assets to the Params.Parts
@@ -100,6 +103,137 @@ var _ perunio.Serializer = (*Allocation)(nil)
 var _ perunio.Serializer = (*Balances)(nil)
 var _ perunbig.Summer = (*Allocation)(nil)
 var _ perunbig.Summer = (*Balances)(nil)
+
+// NewBalances returns a new Balances object of the specified size.
+func NewBalances(numAssets int, numParticipants int) Balances {
+	balances := make([][]*big.Int, numAssets)
+	for i := range balances {
+		balances[i] = make([]*big.Int, numParticipants)
+	}
+	return balances
+}
+
+// NewAllocation returns a new allocation for the given participants and assets.
+func NewAllocation(participants []wire.Address, assets ...Asset) Allocation {
+	return Allocation{
+		participants: participants,
+		Assets:       assets,
+		Balances:     NewBalances(len(assets), len(participants)),
+	}
+}
+
+// AssetIndex returns the index of the asset in the allocation.
+func (a Allocation) AssetIndex(asset Asset) (int, bool) {
+	for idx, _asset := range a.Assets {
+		if ok, err := perunio.EqualEncoding(asset, _asset); ok && err == nil {
+			return idx, true
+		}
+	}
+	return 0, false
+}
+
+// ParticipantIndex returns the index of the participant in the allocation.
+func (a Allocation) ParticipantIndex(participant wire.Address) (int, bool) {
+	for idx, _participant := range a.participants {
+		if participant.Equals(_participant) {
+			return idx, true
+		}
+	}
+	return 0, false
+}
+
+// SetBalance sets the balance for the given asset and participant.
+func (a Allocation) SetBalance(asset Asset, participant wire.Address, val *big.Int) error {
+	assetIdx, ok := a.AssetIndex(asset)
+	if !ok {
+		return errors.New("failed to determine asset index")
+	}
+
+	partIdx, ok := a.ParticipantIndex(participant)
+	if !ok {
+		return errors.New("failed to determine participant index")
+	}
+
+	a.Balances[assetIdx][partIdx] = val
+	return nil
+}
+
+// GetBalance gets the balance for the given asset and participant.
+func (a Allocation) GetBalance(asset Asset, participant wire.Address) (val *big.Int, err error) {
+	assetIdx, ok := a.AssetIndex(asset)
+	if !ok {
+		err = errors.New("failed to determine asset index")
+		return
+	}
+
+	partIdx, ok := a.ParticipantIndex(participant)
+	if !ok {
+		err = errors.New("failed to determine participant index")
+		return
+	}
+
+	val = a.Balances[assetIdx][partIdx]
+	return
+}
+
+// AddToBalance adds a given amount to the balance of the specified participant
+// for the given asset.
+func (a Allocation) AddToBalance(asset Asset, participant wire.Address, val *big.Int) (err error) {
+	bal, err := a.GetBalance(asset, participant)
+	if err != nil {
+		return
+	}
+
+	bal.Add(bal, val)
+	return nil
+}
+
+// SubFromBalance subtracts a given amount from the balance of the specified
+// participant for the given asset.
+func (a Allocation) SubFromBalance(asset Asset, participant wire.Address, val *big.Int) (err error) {
+	bal, err := a.GetBalance(asset, participant)
+	if err != nil {
+		return
+	}
+
+	bal.Sub(bal, val)
+	return nil
+}
+
+// SetSubAllocBalance sets the sub-allocation balance for the given asset.
+func (a Allocation) SetSubAllocBalance(id ID, asset Asset, val *big.Int) error {
+	subAlloc, ok := a.SubAlloc(id)
+	if !ok {
+		subAlloc = SubAlloc{ID: id, Bals: make([]*big.Int, len(a.Assets))}
+		a.Locked = append(a.Locked, subAlloc)
+	}
+
+	assetIdx, ok := a.AssetIndex(asset)
+	if !ok {
+		return errors.New("failed to determine asset index")
+	}
+
+	subAlloc.Bals[assetIdx] = val
+	return nil
+}
+
+// GetSubAllocBalance gets the sub-allocation balance for the given asset.
+func (a Allocation) GetSubAllocBalance(id ID, asset Asset) (val *big.Int, err error) {
+	subAlloc, ok := a.SubAlloc(id)
+	if !ok {
+		err = errors.New("sub-allocation not found")
+		return
+	}
+
+	assetIdx, ok := a.AssetIndex(asset)
+	if !ok {
+		err = errors.New("failed to determine asset index")
+		return
+	}
+
+	val = subAlloc.Bals[assetIdx]
+	return
+}
 
 // NumParts returns the number of participants of this Allocation. It returns -1 if
 // there are no Balances, i.e., if the Allocation is invalid.

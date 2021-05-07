@@ -316,17 +316,18 @@ func (r *role) LedgerChannelProposal(rng *rand.Rand, cfg ExecConfig) *client.Led
 		r.log.Panic("Invalid ExecConfig: App does not specify an app.")
 	}
 
-	cfgInitBals := cfg.InitBals()
-	initBals := &channel.Allocation{
-		Assets:   []channel.Asset{cfg.Asset()},
-		Balances: channel.Balances{cfgInitBals[:]},
-	}
-	cfgPeerAddrs := cfg.Peers()
+	cfgPeers := cfg.Peers()
+	participants, asset, bals := cfgPeers[:], cfg.Asset(), cfg.InitBals()
+
+	alloc := channel.NewAllocation(participants, asset)
+	alloc.SetBalance(asset, participants[0], bals[0])
+	alloc.SetBalance(asset, participants[1], bals[1])
+
 	prop, err := client.NewLedgerChannelProposal(
 		challengeDuration,
 		r.setup.Wallet.NewRandomAccount(rng).Address(),
-		initBals,
-		cfgPeerAddrs[:],
+		&alloc,
+		participants,
 		client.WithNonceFrom(rng),
 		cfg.App())
 	if err != nil {
