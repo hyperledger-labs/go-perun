@@ -17,6 +17,9 @@ package channel_test
 import (
 	"testing"
 
+	"github.com/stretchr/testify/assert"
+
+	simwallet "perun.network/go-perun/backend/sim/wallet"
 	"perun.network/go-perun/channel"
 	"perun.network/go-perun/channel/test"
 	"perun.network/go-perun/pkg/io"
@@ -44,4 +47,28 @@ func TestParams_Serializer(t *testing.T) {
 	}
 
 	iotest.GenericSerializerTest(t, params...)
+}
+
+func TestValidateParameters(t *testing.T) {
+	rng := pkgtest.Prng(t)
+
+	t.Run("valid", func(t *testing.T) {
+		for i := 0; i < 10; i++ {
+			params := test.NewRandomParams(rng)
+			err := channel.ValidateParameters(params.ChallengeDuration, params.Parts, params.App, params.Nonce)
+			assert.NoError(t, err)
+		}
+	})
+	t.Run("parts-nil", func(t *testing.T) {
+		params := test.NewRandomParams(rng, test.WithNumParts(10))
+		params.Parts[5] = nil
+		err := channel.ValidateParameters(params.ChallengeDuration, params.Parts, params.App, params.Nonce)
+		assert.Error(t, err)
+	})
+	t.Run("parts-nil-interface", func(t *testing.T) {
+		params := test.NewRandomParams(rng)
+		params.Parts[0] = (*simwallet.Address)(nil)
+		err := channel.ValidateParameters(params.ChallengeDuration, params.Parts, params.App, params.Nonce)
+		assert.Error(t, err)
+	})
 }

@@ -18,6 +18,7 @@ import (
 	"bytes"
 	stdio "io"
 	"math/big"
+	"reflect"
 
 	"github.com/pkg/errors"
 
@@ -79,7 +80,7 @@ func (p *Params) ID() ID {
 // is also calculated here and persisted because it probably is an expensive
 // hash operation.
 func NewParams(challengeDuration uint64, parts []wallet.Address, app App, nonce Nonce) (*Params, error) {
-	if err := ValidateParameters(challengeDuration, len(parts), app, nonce); err != nil {
+	if err := ValidateParameters(challengeDuration, parts, app, nonce); err != nil {
 		return nil, errors.WithMessage(err, "invalid parameter for NewParams")
 	}
 	return NewParamsUnsafe(challengeDuration, parts, app, nonce), nil
@@ -107,9 +108,10 @@ func ValidateProposalParameters(challengeDuration uint64, numParts int, app App)
 }
 
 // ValidateParameters checks that the arguments form valid Params. Checks
-// everything from ValidateProposalParameters, and that the nonce is not nil.
-func ValidateParameters(challengeDuration uint64, numParts int, app App, nonce Nonce) error {
-	if err := ValidateProposalParameters(challengeDuration, numParts, app); err != nil {
+// everything from ValidateProposalParameters, and that the nonce and
+// participants are not nil.
+func ValidateParameters(challengeDuration uint64, parts []wallet.Address, app App, nonce Nonce) error {
+	if err := ValidateProposalParameters(challengeDuration, len(parts), app); err != nil {
 		return err
 	}
 	if nonce == nil {
@@ -117,6 +119,12 @@ func ValidateParameters(challengeDuration uint64, numParts int, app App, nonce N
 	}
 	if len(nonce.Bytes()) > MaxNonceLen {
 		return errors.Errorf("nonce too long (%d > %d)", len(nonce.Bytes()), MaxNonceLen)
+	}
+	for i, part := range parts {
+		// Reflection check for the (wallet.Address)(nil) case.
+		if part == nil || reflect.ValueOf(part).IsNil() {
+			return errors.Errorf("participant #%d was nil", i)
+		}
 	}
 	return nil
 }
