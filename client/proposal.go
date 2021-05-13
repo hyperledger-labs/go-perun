@@ -541,8 +541,6 @@ func (c *Client) fundLedgerChannel(ctx context.Context, ch *Channel, agreement c
 }
 
 func (c *Client) fundSubchannel(ctx context.Context, prop *SubChannelProposal, subChannel *Channel) (err error) {
-	//@seb: implement this functionality in subchannel funder?
-
 	parentChannel, ok := c.channels.Get(prop.Parent)
 	if !ok {
 		return errors.New("referenced parent channel not found")
