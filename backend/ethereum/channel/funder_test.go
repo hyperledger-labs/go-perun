@@ -251,7 +251,7 @@ func testFundingTimeout(t *testing.T, faultyPeer, n int) {
 			err := funder.Fund(ctx, *req)
 			require.Error(t, err)
 			require.True(rt, channel.IsFundingTimeoutError(err), "funder should return FundingTimeoutError")
-			pErr := errors.Cause(err).(*channel.FundingTimeoutError) // unwrap error
+			pErr := errors.Cause(err).(channel.FundingTimeoutError) // unwrap error
 			// Check that `faultyPeer` is reported as faulty.
 			require.Len(t, pErr.Errors, len(alloc.Assets))
 			for _, e := range pErr.Errors {

@@ -47,7 +47,7 @@ func TestFundingTimeoutError(t *testing.T) {
 		{7531, []Index{1, 3}},
 	}
 	err := NewFundingTimeoutError(errs)
-	perr, ok := errors.Cause(err).(*FundingTimeoutError)
+	perr, ok := errors.Cause(err).(FundingTimeoutError)
 	require.True(t, ok)
 	assert.True(IsFundingTimeoutError(err))
 	assert.True(IsFundingTimeoutError(perr))

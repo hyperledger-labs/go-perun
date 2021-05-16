@@ -73,7 +73,7 @@ func NewFundingTimeoutError(fundingErrs []*AssetFundingError) error {
 	if len(fundingErrs) == 0 {
 		return nil
 	}
-	return errors.WithStack(&FundingTimeoutError{fundingErrs})
+	return errors.WithStack(FundingTimeoutError{fundingErrs})
 }
 
 func (e FundingTimeoutError) Error() string {
@@ -86,7 +86,7 @@ func (e FundingTimeoutError) Error() string {
 
 // IsFundingTimeoutError checks whether an error is a FundingTimeoutError.
 func IsFundingTimeoutError(err error) bool {
-	_, ok := errors.Cause(err).(*FundingTimeoutError)
+	_, ok := errors.Cause(err).(FundingTimeoutError)
 	return ok
 }
 
