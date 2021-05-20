@@ -56,13 +56,35 @@ type Funder struct {
 var _ channel.Funder = (*Funder)(nil)
 
 // NewFunder creates a new ethereum funder.
-func NewFunder(backend ContractBackend, accounts map[Asset]accounts.Account, depositors map[Asset]Depositor) *Funder {
+func NewFunder(backend ContractBackend) *Funder {
 	return &Funder{
 		ContractBackend: backend,
-		accounts:        accounts,
-		depositors:      depositors,
+		accounts:        make(map[wallet.Address]accounts.Account),
+		depositors:      make(map[wallet.Address]Depositor),
 		log:             log.Get(),
 	}
+}
+
+// copy returns a copy of the funder.
+func (f *Funder) copy() (_f *Funder) {
+	_f = NewFunder(f.ContractBackend)
+	for k, v := range f.accounts {
+		_f.accounts[k] = v
+	}
+	for k, v := range f.depositors {
+		_f.depositors[k] = v
+	}
+	return
+}
+
+// WithDepositor creates a copy of the funder and assigns a depositor for the
+// specified asset. Transactions by the depositor will be done using the
+// specified account.
+func (f *Funder) WithDepositor(asset Asset, d Depositor, acc accounts.Account) (_f *Funder) {
+	_f = f.copy()
+	_f.accounts[asset] = acc
+	_f.depositors[asset] = d
+	return
 }
 
 // Fund implements the channel.Funder interface. It funds all assets in

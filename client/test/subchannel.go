@@ -14,8 +14,6 @@
 
 package test
 
-//todo move susie.go and tim.go in one file called "subchannels.go", also move exec config in the same file
-
 import (
 	"fmt"
 	"math/big"

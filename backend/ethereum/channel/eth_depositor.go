@@ -33,6 +33,11 @@ type ETHDepositor struct{}
 // A `Deposit` call uses ~47kGas on average.
 const ETHDepositorGasLimit = 50000
 
+// NewETHDepositor creates a new ETHDepositor.
+func NewETHDepositor() *ETHDepositor {
+	return &ETHDepositor{}
+}
+
 // Deposit deposits ether into the ETH AssetHolder specified at the requests's
 // asset address.
 func (d *ETHDepositor) Deposit(ctx context.Context, req DepositReq) (types.Transactions, error) {

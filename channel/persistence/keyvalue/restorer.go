@@ -152,7 +152,7 @@ func decodePeerChanID(key string) (wire.Address, channel.ID, error) {
 
 // eatExpect consumes bytes from a Reader and asserts that they are equal to
 // the expected string.
-// nolint: deadcode, unused
+// nolint: unused
 func eatExpect(r io.Reader, tok string) error {
 	buf := make([]byte, len(tok))
 	if _, err := io.ReadFull(r, buf); err != nil {
