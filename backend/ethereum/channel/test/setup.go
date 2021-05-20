@@ -21,7 +21,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ethereum/go-ethereum/accounts"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/stretchr/testify/require"
@@ -105,9 +104,7 @@ func NewSetup(t *testing.T, rng *rand.Rand, n int) *Setup {
 		s.SimBackend.FundAddress(ctx, s.Accs[i].Account.Address)
 		s.Recvs[i] = ksWallet.NewRandomAccount(rng).Address().(*ethwallet.Address)
 		cb := ethchannel.NewContractBackend(s.SimBackend, keystore.NewTransactor(*ksWallet, types.NewEIP155Signer(big.NewInt(1337))))
-		accounts := map[ethchannel.Asset]accounts.Account{asset: s.Accs[i].Account}
-		depositors := map[ethchannel.Asset]ethchannel.Depositor{asset: new(ethchannel.ETHDepositor)}
-		s.Funders[i] = ethchannel.NewFunder(cb, accounts, depositors)
+		s.Funders[i] = ethchannel.NewFunder(cb).WithDepositor(asset, ethchannel.NewETHDepositor(), s.Accs[i].Account)
 		s.Adjs[i] = NewSimAdjudicator(cb, adjudicator, common.Address(*s.Recvs[i]), s.Accs[i].Account)
 	}
 

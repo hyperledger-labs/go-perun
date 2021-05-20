@@ -36,6 +36,11 @@ type ERC20Depositor struct {
 // An `IncreaseAllowance` uses ~45kGas and a `Deposit` call ~84kGas on average.
 const ERC20DepositorTXGasLimit = 100000
 
+// NewERC20Depositor creates a new ERC20Depositor.
+func NewERC20Depositor(token common.Address) *ERC20Depositor {
+	return &ERC20Depositor{Token: token}
+}
+
 // Deposit deposits ERC20 tokens into the ERC20 AssetHolder specified at the
 // requests's asset address.
 func (d *ERC20Depositor) Deposit(ctx context.Context, req DepositReq) (types.Transactions, error) {
