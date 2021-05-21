@@ -32,11 +32,11 @@ import (
 // is unknown, an error is logged.
 //
 // This handler is dispatched from the Client.Handle routine.
-func (c *Client) handleChannelUpdate(uh UpdateHandler, p wire.Address, m *msgChannelUpdate) {
-	ch, ok := c.channels.Get(m.ID())
+func (c *Client) handleChannelUpdate(uh UpdateHandler, p wire.Address, m ChannelUpdateProposal) {
+	ch, ok := c.channels.Get(m.Base().ID())
 	if !ok {
 		if !c.cacheVersion1Update(uh, p, m) {
-			c.logChan(m.ID()).WithField("peer", p).Error("received update for unknown channel")
+			c.logChan(m.Base().ID()).WithField("peer", p).Error("received update for unknown channel")
 		}
 		return
 	}
@@ -44,11 +44,11 @@ func (c *Client) handleChannelUpdate(uh UpdateHandler, p wire.Address, m *msgCha
 	ch.handleUpdateReq(pidx, m, uh)
 }
 
-func (c *Client) cacheVersion1Update(uh UpdateHandler, p wire.Address, m *msgChannelUpdate) bool {
+func (c *Client) cacheVersion1Update(uh UpdateHandler, p wire.Address, m ChannelUpdateProposal) bool {
 	c.version1Cache.mu.Lock()
 	defer c.version1Cache.mu.Unlock()
 
-	if !(m.State.Version == 1 && c.version1Cache.enabled > 0) {
+	if !(m.Base().State.Version == 1 && c.version1Cache.enabled > 0) {
 		return false
 	}
 
@@ -93,7 +93,7 @@ type (
 	UpdateResponder struct {
 		channel *Channel
 		pidx    channel.Index
-		req     *msgChannelUpdate
+		req     ChannelUpdateProposal
 		called  atomic.Bool
 	}
 
@@ -157,6 +157,15 @@ func (c *Channel) Update(ctx context.Context, next *channel.State) (err error) {
 
 // Like Update, but assumes channel locked and update validated.
 func (c *Channel) update(ctx context.Context, next *channel.State) (err error) {
+	return c.updateGeneric(ctx, next, func(mcu *msgChannelUpdate) wire.Msg { return mcu })
+}
+
+// Like update, but for generic update types.
+func (c *Channel) updateGeneric(
+	ctx context.Context,
+	next *channel.State,
+	prepareMsg func(*msgChannelUpdate) wire.Msg,
+) (err error) {
 	up := makeChannelUpdate(next, c.machine.Idx())
 	if err = c.machine.Update(ctx, up.State, up.ActorIdx); err != nil {
 		return errors.WithMessage(err, "updating machine")
@@ -165,11 +174,7 @@ func (c *Channel) update(ctx context.Context, next *channel.State) (err error) {
 	// TODO: this is insecure after we sent our signature.
 	defer func() {
 		if err != nil {
-			if derr := c.machine.DiscardUpdate(ctx); derr != nil {
-				// discarding update should never fail
-				err = errors.WithMessagef(derr,
-					"progressing update failed: %v, then discarding update failed", err)
-			}
+			err = c.discardUpdate(ctx)
 		}
 	}()
 
@@ -189,7 +194,8 @@ func (c *Channel) update(ctx context.Context, next *channel.State) (err error) {
 		ChannelUpdate: up,
 		Sig:           sig,
 	}
-	if err = c.conn.Send(ctx, msgUpdate); err != nil {
+	msg := prepareMsg(msgUpdate)
+	if err = c.conn.Send(ctx, msg); err != nil {
 		return errors.WithMessage(err, "sending update")
 	}
 
@@ -213,6 +219,15 @@ func (c *Channel) update(ctx context.Context, next *channel.State) (err error) {
 	}
 
 	return c.enableNotifyUpdate(ctx)
+}
+
+func (c *Channel) discardUpdate(ctx context.Context) (err error) {
+	if derr := c.machine.DiscardUpdate(ctx); derr != nil {
+		// discarding update should never fail
+		err = errors.WithMessagef(derr,
+			"progressing update failed: %v, then discarding update failed", err)
+	}
+	return
 }
 
 // UpdateBy updates the channel state using the update function and proposes the
@@ -261,13 +276,13 @@ func (c *Channel) updateBy(ctx context.Context, update func(*channel.State) erro
 // requests.
 func (c *Channel) handleUpdateReq(
 	pidx channel.Index,
-	req *msgChannelUpdate,
+	req ChannelUpdateProposal,
 	uh UpdateHandler,
 ) {
 	c.machMtx.Lock() // Lock machine while update is in progress.
 	defer c.machMtx.Unlock()
 
-	if err := c.machine.CheckUpdate(req.State, req.ActorIdx, req.Sig, pidx); err != nil {
+	if err := c.machine.CheckUpdate(req.Base().State, req.Base().ActorIdx, req.Base().Sig, pidx); err != nil {
 		// TODO: how to handle invalid updates? Just drop and ignore them?
 		c.logPeer(pidx).Warnf("invalid update received: %v", err)
 		return
@@ -275,29 +290,29 @@ func (c *Channel) handleUpdateReq(
 
 	responder := &UpdateResponder{channel: c, pidx: pidx, req: req}
 
-	if ui, ok := c.subChannelFundings.Filter(req.ChannelUpdate); ok {
-		ui.HandleUpdate(req.ChannelUpdate, responder)
+	if ui, ok := c.subChannelFundings.Filter(req.Base().ChannelUpdate); ok {
+		ui.HandleUpdate(req.Base().ChannelUpdate, responder)
 		return
 	}
 
-	if ui, ok := c.subChannelWithdrawals.Filter(req.ChannelUpdate); ok {
-		ui.HandleUpdate(req.ChannelUpdate, responder)
+	if ui, ok := c.subChannelWithdrawals.Filter(req.Base().ChannelUpdate); ok {
+		ui.HandleUpdate(req.Base().ChannelUpdate, responder)
 		return
 	}
 
-	if err := c.validTwoPartyUpdate(req.ChannelUpdate, pidx); err != nil {
+	if err := c.validTwoPartyUpdate(req.Base().ChannelUpdate, pidx); err != nil {
 		// TODO: how to handle invalid updates? Just drop and ignore them?
 		c.logPeer(pidx).Warnf("invalid update received: %v", err)
 		return
 	}
 
-	uh.HandleUpdate(c.machine.State(), req.ChannelUpdate, responder)
+	uh.HandleUpdate(c.machine.State(), req.Base().ChannelUpdate, responder)
 }
 
 func (c *Channel) handleUpdateAcc(
 	ctx context.Context,
 	pidx channel.Index,
-	req *msgChannelUpdate,
+	req ChannelUpdateProposal,
 ) (err error) {
 	defer func() {
 		if err != nil {
@@ -306,7 +321,7 @@ func (c *Channel) handleUpdateAcc(
 	}()
 
 	// machine.Update and AddSig should never fail after CheckUpdate...
-	if err = c.machine.Update(ctx, req.State, req.ActorIdx); err != nil {
+	if err = c.machine.Update(ctx, req.Base().State, req.Base().ActorIdx); err != nil {
 		return errors.WithMessage(err, "updating machine")
 	}
 	// if anything goes wrong from now on, we discard the update.
@@ -322,7 +337,7 @@ func (c *Channel) handleUpdateAcc(
 		}
 	}()
 
-	if err = c.machine.AddSig(ctx, pidx, req.Sig); err != nil {
+	if err = c.machine.AddSig(ctx, pidx, req.Base().Sig); err != nil {
 		return errors.WithMessage(err, "adding peer signature")
 	}
 	var sig wallet.Sig
@@ -332,13 +347,13 @@ func (c *Channel) handleUpdateAcc(
 	}
 
 	// If subchannel is final, register settlement update at parent channel.
-	if c.IsSubChannel() && req.ChannelUpdate.State.IsFinal {
-		c.Parent().registerSubChannelSettlement(c.ID(), req.ChannelUpdate.State.Balances)
+	if c.IsSubChannel() && req.Base().State.IsFinal {
+		c.Parent().registerSubChannelSettlement(c.ID(), req.Base().State.Balances)
 	}
 
 	msgUpAcc := &msgChannelUpdateAcc{
 		ChannelID: c.ID(),
-		Version:   req.State.Version,
+		Version:   req.Base().State.Version,
 		Sig:       sig,
 	}
 	if err := c.conn.Send(ctx, msgUpAcc); err != nil {
@@ -351,7 +366,7 @@ func (c *Channel) handleUpdateAcc(
 func (c *Channel) handleUpdateRej(
 	ctx context.Context,
 	pidx channel.Index,
-	req *msgChannelUpdate,
+	req ChannelUpdateProposal,
 	reason string,
 ) (err error) {
 	defer func() {
@@ -362,7 +377,7 @@ func (c *Channel) handleUpdateRej(
 
 	msgUpRej := &msgChannelUpdateRej{
 		ChannelID: c.ID(),
-		Version:   req.State.Version,
+		Version:   req.Base().State.Version,
 		Reason:    reason,
 	}
 	return errors.WithMessage(c.conn.Send(ctx, msgUpRej), "sending reject message")

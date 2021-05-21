@@ -592,7 +592,7 @@ type version1Cache struct {
 type cachedUpdate struct {
 	uh UpdateHandler
 	p  wire.Address
-	m  *msgChannelUpdate
+	m  ChannelUpdateProposal
 }
 
 // Error implements the error interface.

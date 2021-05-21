@@ -63,6 +63,13 @@ type (
 		Sig wallet.Sig
 	}
 
+	// ChannelUpdateProposal represents an abstract update proposal message.
+	ChannelUpdateProposal interface {
+		wire.Msg
+		perunio.Decoder
+		Base() *msgChannelUpdate
+	}
+
 	// msgChannelUpdateAcc is the wire message sent as a positive reply to a
 	// ChannelUpdate.  It references the channel ID and version and contains the
 	// signature on the accepted new state by the sender.
@@ -107,6 +114,11 @@ func (*msgChannelUpdateAcc) Type() wire.Type {
 // Type returns this message's type: ChannelUpdateRej.
 func (*msgChannelUpdateRej) Type() wire.Type {
 	return wire.ChannelUpdateRej
+}
+
+// Base returns the core channel update message.
+func (c *msgChannelUpdate) Base() *msgChannelUpdate {
+	return c
 }
 
 func (c msgChannelUpdate) Encode(w io.Writer) error {
