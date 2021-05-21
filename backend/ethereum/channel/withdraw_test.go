@@ -16,6 +16,7 @@ package channel_test
 
 import (
 	"context"
+	"fmt"
 	"sync"
 	"testing"
 	"time"
@@ -31,15 +32,18 @@ import (
 	pkgtest "perun.network/go-perun/pkg/test"
 )
 
-// nolint: dupl
 func TestAdjudicator_MultipleWithdraws_FinalState(t *testing.T) {
-	t.Run("Withdraw 1 party parallel", func(t *testing.T) { withdrawMultipleConcurrentFinal(t, 1, true) })
-	t.Run("Withdraw 2 party parallel", func(t *testing.T) { withdrawMultipleConcurrentFinal(t, 2, true) })
-	t.Run("Withdraw 5 party parallel", func(t *testing.T) { withdrawMultipleConcurrentFinal(t, 5, true) })
-	t.Run("Withdraw 10 party parallel", func(t *testing.T) { withdrawMultipleConcurrentFinal(t, 10, true) })
-	t.Run("Withdraw 1 party sequential", func(t *testing.T) { withdrawMultipleConcurrentFinal(t, 1, false) })
-	t.Run("Withdraw 2 party sequential", func(t *testing.T) { withdrawMultipleConcurrentFinal(t, 2, false) })
-	t.Run("Withdraw 5 party sequential", func(t *testing.T) { withdrawMultipleConcurrentFinal(t, 5, false) })
+	testParallel := func(n int) {
+		t.Run(fmt.Sprintf("Withdraw %d party parallel", n), func(t *testing.T) { withdrawMultipleConcurrentFinal(t, n, true) })
+	}
+	testSequential := func(n int) {
+		t.Run(fmt.Sprintf("Withdraw %d party sequential", n), func(t *testing.T) { withdrawMultipleConcurrentFinal(t, n, false) })
+	}
+
+	for _, n := range []int{1, 2, 5} {
+		testParallel(n)
+		testSequential(n)
+	}
 }
 
 func withdrawMultipleConcurrentFinal(t *testing.T, numParts int, parallel bool) {

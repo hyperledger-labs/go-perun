@@ -119,7 +119,7 @@ func GenericPersistRestorerTest(
 				chIndex := iterIdx
 				log.Error(subSeed)
 				seed := pkgtest.Seed("", subSeed, numChans, numPeers, chIndex, ch.ID())
-				rng := rand.New(rand.NewSource(seed))
+				rng := rand.New(rand.NewSource(seed)) // nolint: gosec
 
 				ch.Init(t, rng)
 				ch.SignAll(t)

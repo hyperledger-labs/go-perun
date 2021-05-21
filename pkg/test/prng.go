@@ -49,7 +49,7 @@ func genRootSeed() (rootSeed int64) {
 // function by passing it `t.Name()`.
 // Use it in tests with: rng := pkgtest.Prng(t).
 func Prng(t interface{ Name() string }, args ...interface{}) *rand.Rand {
-	return rand.New(rand.NewSource(Seed(t.Name(), args...)))
+	return rand.New(rand.NewSource(Seed(t.Name(), args...))) // nolint: gosec
 }
 
 // Seed generates a seed that is dependent on the rootSeed and the passed
