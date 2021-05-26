@@ -134,7 +134,7 @@ func NewRandomSubAlloc(rng *rand.Rand, opts ...RandomOpt) *channel.SubAlloc {
 		bals = NewRandomBals(rng, opt.NumAssets(rng), opt)
 	}
 
-	return &channel.SubAlloc{ID: id, Bals: bals}
+	return channel.NewSubAlloc(id, bals)
 }
 
 // NewRandomParamsAndState generates a new random `channel.Params` and `channel.State`.

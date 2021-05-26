@@ -229,7 +229,7 @@ func pwToCommonAddresses(addr []wallet.Address) []common.Address {
 func FromEthState(app channel.App, s *adjudicator.ChannelState) channel.State {
 	locked := make([]channel.SubAlloc, len(s.Outcome.Locked))
 	for i, sub := range s.Outcome.Locked {
-		locked[i] = channel.SubAlloc{ID: sub.ID, Bals: sub.Balances}
+		locked[i] = *channel.NewSubAlloc(sub.ID, sub.Balances)
 	}
 	alloc := channel.Allocation{
 		Assets:   fromEthAssets(s.Outcome.Assets),
