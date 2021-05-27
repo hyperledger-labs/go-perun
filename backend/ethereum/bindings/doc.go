@@ -14,4 +14,5 @@
 
 // Package bindings contains all automatically generated code bindings to
 // interact with the smart contracts of the Perun Ethereum blockchain backend.
+// It also contains parsed ABI definitions in abi.go for ease of use.
 package bindings // import "perun.network/go-perun/backend/ethereum/bindings"
