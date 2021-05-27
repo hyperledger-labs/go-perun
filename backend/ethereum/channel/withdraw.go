@@ -18,11 +18,13 @@ import (
 	"context"
 
 	"github.com/ethereum/go-ethereum/accounts/abi"
+	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/pkg/errors"
 	"golang.org/x/sync/errgroup"
 
+	"perun.network/go-perun/backend/ethereum/bindings"
 	"perun.network/go-perun/backend/ethereum/bindings/assetholder"
 	"perun.network/go-perun/backend/ethereum/wallet"
 	"perun.network/go-perun/channel"
@@ -58,10 +60,7 @@ func (a *Adjudicator) ensureWithdrawn(ctx context.Context, req channel.Adjudicat
 			}
 			fundingID := FundingIDs(req.Params.ID(), req.Params.Parts[req.Idx])[0]
 			withdrawn := make(chan *assetholder.AssetHolderWithdrawn)
-			contract, err := bindAssetHolder(a.ContractBackend, asset, channel.Index(index))
-			if err != nil {
-				return errors.WithMessage(err, "connecting asset holder")
-			}
+			contract := bindAssetHolder(a.ContractBackend, asset, channel.Index(index))
 			sub, err := contract.WatchWithdrawn(watchOpts, withdrawn, [][32]byte{fundingID})
 			if err != nil {
 				err = checkIsChainNotReachableError(err)
@@ -96,14 +95,15 @@ func (a *Adjudicator) ensureWithdrawn(ctx context.Context, req channel.Adjudicat
 	return g.Wait()
 }
 
-func bindAssetHolder(backend ContractBackend, asset channel.Asset, assetIndex channel.Index) (assetHolder, error) {
+func bindAssetHolder(cb ContractBackend, asset channel.Asset, assetIndex channel.Index) assetHolder {
 	// Decode and set the asset address.
 	assetAddr := common.Address(*asset.(*Asset))
-	ctr, err := assetholder.NewAssetHolder(assetAddr, backend)
+	ctr, err := assetholder.NewAssetHolder(assetAddr, cb)
 	if err != nil {
-		return assetHolder{}, errors.Wrap(err, "connecting to assetholder")
+		log.Panic("Invalid AssetHolder ABI definition.")
 	}
-	return assetHolder{ctr, &assetAddr, assetIndex}, nil
+	contract := bind.NewBoundContract(assetAddr, bindings.AssetHolderABI, cb, cb, cb)
+	return assetHolder{ctr, &assetAddr, contract, assetIndex}
 }
 
 // filterWithdrawn returns whether there has been a Withdrawn event in the past.

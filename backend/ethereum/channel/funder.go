@@ -39,6 +39,7 @@ import (
 type assetHolder struct {
 	*assetholder.AssetHolder
 	*common.Address
+	contract   *bind.BoundContract
 	assetIndex channel.Index
 }
 
@@ -157,7 +158,7 @@ func (f *Funder) fundAssets(ctx context.Context, channelID channel.ID, req chann
 
 	for index, asset := range req.State.Assets {
 		// Bind contract.
-		contract := f.bindContract(*asset.(*Asset), channel.Index(index))
+		contract := bindAssetHolder(f.ContractBackend, asset, channel.Index(index))
 		// Wait for the funding event.
 		errg.Go(func() error {
 			return f.waitForFundingConfirmation(ctx, req, contract, fundingIDs)
@@ -221,16 +222,6 @@ func checkFunded(ctx context.Context, amount *big.Int, asset assetHolder, fundin
 		left.Sub(left, iter.Event.Amount)
 	}
 	return left.Sign() != 1, errors.Wrap(iter.Error(), "iterator")
-}
-
-func (f *Funder) bindContract(asset Asset, assetIndex channel.Index) assetHolder {
-	// Decode and set the asset address.
-	assetAddr := common.Address(asset)
-	ctr, err := assetholder.NewAssetHolder(assetAddr, f)
-	if err != nil {
-		f.log.Panic("Invalid AssetHolder ABI definition.")
-	}
-	return assetHolder{ctr, &assetAddr, assetIndex}
 }
 
 func filterFunds(ctx context.Context, asset assetHolder, fundingIDs ...[32]byte) (*assetholder.AssetHolderDepositedIterator, error) {
