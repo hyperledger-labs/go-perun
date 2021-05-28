@@ -27,7 +27,7 @@ import (
 	"github.com/pkg/errors"
 
 	"perun.network/go-perun/backend/ethereum/bindings/assetholder"
-	cherrors "perun.network/go-perun/backend/ethereum/channel/errors"
+	"perun.network/go-perun/backend/ethereum/subscription"
 	"perun.network/go-perun/backend/ethereum/wallet"
 	"perun.network/go-perun/channel"
 	"perun.network/go-perun/client"
@@ -184,7 +184,7 @@ func (f *Funder) sendFundingTx(ctx context.Context, request channel.FundingReq, 
 	// nolint: gocritic
 	if bal == nil || bal.Sign() <= 0 {
 		f.log.WithFields(log.Fields{"channel": request.Params.ID(), "idx": request.Idx}).Debug("Skipped zero funding.")
-	} else if alreadyFunded, err := checkFunded(ctx, bal, contract, fundingID); err != nil {
+	} else if alreadyFunded, err := f.checkFunded(ctx, bal, contract, fundingID); err != nil {
 		return nil, errors.WithMessage(err, "checking funded")
 	} else if alreadyFunded {
 		f.log.WithFields(log.Fields{"channel": request.Params.ID(), "idx": request.Idx}).Debug("Skipped second funding.")
@@ -210,34 +210,43 @@ func (f *Funder) deposit(ctx context.Context, bal *big.Int, asset Asset, funding
 }
 
 // checkFunded returns whether `fundingID` holds at least `amount` funds.
-func checkFunded(ctx context.Context, amount *big.Int, asset assetHolder, fundingID [32]byte) (bool, error) {
-	iter, err := filterFunds(ctx, asset, fundingID)
+func (f *Funder) checkFunded(ctx context.Context, amount *big.Int, asset assetHolder, fundingID [32]byte) (bool, error) {
+	deposited := make(chan *subscription.Event, 10)
+	subErr := make(chan error, 1)
+	// Subscribe to events.
+	sub, err := f.depositedSub(ctx, asset.contract, fundingID)
 	if err != nil {
-		return false, errors.WithMessagef(err, "filtering old Funding events for asset %d", asset.assetIndex)
+		return false, errors.WithMessage(err, "subscribing to deposited event")
 	}
-	// nolint:errcheck
-	defer iter.Close()
+	defer sub.Close()
+	// Read from the sub.
+	go func() {
+		defer close(deposited)
+		subErr <- sub.ReadPast(ctx, deposited)
+	}()
 
 	left := new(big.Int).Set(amount)
-	for iter.Next() {
-		left.Sub(left, iter.Event.Amount)
+	for _event := range deposited {
+		event := _event.Data.(*assetholder.AssetHolderDeposited)
+		left.Sub(left, event.Amount)
 	}
-	return left.Sign() != 1, errors.Wrap(iter.Error(), "iterator")
+	return left.Sign() != 1, errors.WithMessagef(<-subErr, "filtering old Funding events for asset %d", asset.assetIndex)
 }
 
-func filterFunds(ctx context.Context, asset assetHolder, fundingIDs ...[32]byte) (*assetholder.AssetHolderDepositedIterator, error) {
-	// Filter
-	filterOpts := bind.FilterOpts{
-		Start:   uint64(1),
-		End:     nil,
-		Context: ctx}
-	iter, err := asset.FilterDeposited(&filterOpts, fundingIDs)
-	if err != nil {
-		err = cherrors.CheckIsChainNotReachableError(err)
-		return nil, errors.WithMessage(err, "filtering deposited events")
+func (f *Funder) depositedSub(ctx context.Context, contract *bind.BoundContract, fundingIDs ...[32]byte) (*subscription.EventSub, error) {
+	filter := make([]interface{}, len(fundingIDs))
+	for i, fundingID := range fundingIDs {
+		filter[i] = fundingID
 	}
-
-	return iter, nil
+	event := func() *subscription.Event {
+		return &subscription.Event{
+			Name:   "Deposited",
+			Data:   new(assetholder.AssetHolderDeposited),
+			Filter: [][]interface{}{filter},
+		}
+	}
+	sub, err := subscription.NewEventSub(ctx, f, contract, event, startBlockOffset)
+	return sub, errors.WithMessage(err, "subscribing to deposited event")
 }
 
 // waitForFundingConfirmation waits for the confirmation events on the blockchain that
@@ -245,41 +254,17 @@ func filterFunds(ctx context.Context, asset assetHolder, fundingIDs ...[32]byte)
 // according to the funding agreement.
 // nolint: funlen
 func (f *Funder) waitForFundingConfirmation(ctx context.Context, request channel.FundingReq, asset assetHolder, fundingIDs [][32]byte) error {
-	deposited := make(chan *assetholder.AssetHolderDeposited)
-	// Watch new events
-	watchOpts, err := f.NewWatchOpts(ctx)
+	deposited := make(chan *subscription.Event)
+	subErr := make(chan error, 1)
+	// Subscribe to events.
+	sub, err := f.depositedSub(ctx, asset.contract, fundingIDs...)
 	if err != nil {
-		return errors.WithMessage(err, "error creating watchopts")
+		return errors.WithMessage(err, "subscribing to deposited event")
 	}
-	sub, err := asset.WatchDeposited(watchOpts, deposited, fundingIDs)
-	if err != nil {
-		err = cherrors.CheckIsChainNotReachableError(err)
-		return errors.WithMessagef(err, "WatchDeposit on asset %d failed", asset.assetIndex)
-	}
-	defer sub.Unsubscribe()
-
-	// we let the filter queries and all subscription errors write into this error
-	// channel.
-	errChan := make(chan error, 1)
+	defer sub.Close()
+	// Read from the sub.
 	go func() {
-		err := <-sub.Err()
-		if err != nil {
-			err = cherrors.CheckIsChainNotReachableError(err)
-		}
-		errChan <- errors.WithMessagef(err, "subscription for asset %d", asset.assetIndex)
-	}()
-
-	// Query all old funding events
-	go func() {
-		iter, err := filterFunds(ctx, asset, fundingIDs...)
-		if err != nil {
-			errChan <- errors.WithMessagef(err, "filtering old Deposited events for asset %d", asset.assetIndex)
-			return
-		}
-		defer iter.Close() // nolint: errcheck
-		for iter.Next() {
-			deposited <- iter.Event
-		}
+		subErr <- sub.ReadAll(ctx, deposited)
 	}()
 
 	// The allocation that all participants agreed on.
@@ -290,7 +275,8 @@ func (f *Funder) waitForFundingConfirmation(ctx context.Context, request channel
 	// Wait for all non-zero funding requests
 	for N > 0 {
 		select {
-		case event := <-deposited:
+		case rawEvent := <-deposited:
+			event := rawEvent.Data.(*assetholder.AssetHolderDeposited)
 			log := f.log.WithField("fundingID", event.FundingID)
 
 			// Calculate the position in the participant array.
@@ -320,7 +306,7 @@ func (f *Funder) waitForFundingConfirmation(ctx context.Context, request channel
 				return &channel.AssetFundingError{Asset: asset.assetIndex, TimedOutPeers: indices}
 			}
 			return nil
-		case err := <-errChan:
+		case err := <-subErr:
 			return err
 		}
 	}
