@@ -30,6 +30,7 @@ import (
 	"perun.network/go-perun/backend/ethereum/bindings/assetholdereth"
 	"perun.network/go-perun/backend/ethereum/bindings/peruntoken"
 	"perun.network/go-perun/backend/ethereum/bindings/trivialapp"
+	cherrors "perun.network/go-perun/backend/ethereum/channel/errors"
 	"perun.network/go-perun/client"
 	"perun.network/go-perun/log"
 	pcontext "perun.network/go-perun/pkg/context"
@@ -101,7 +102,7 @@ func deployContract(ctx context.Context, cb ContractBackend, deployer accounts.A
 	}
 	addr, tx, err := f(auth, cb)
 	if err != nil {
-		err = checkIsChainNotReachableError(err)
+		err = cherrors.CheckIsChainNotReachableError(err)
 		return common.Address{}, errors.WithMessage(err, "creating transaction")
 	}
 	if _, err := bind.WaitDeployed(ctx, cb, tx); err != nil {
@@ -109,7 +110,7 @@ func deployContract(ctx context.Context, cb ContractBackend, deployer accounts.A
 		case pcontext.IsContextError(err):
 			txType := fmt.Sprintf("deploy %s", name)
 			err = client.NewTxTimedoutError(txType, tx.Hash().Hex(), err.Error())
-		case isChainNotReachableError(err):
+		case cherrors.IsChainNotReachableError(err):
 			err = client.NewChainNotReachableError(err)
 		default:
 			err = errors.WithStack(err)

@@ -26,6 +26,7 @@ import (
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/pkg/errors"
 
+	cherrors "perun.network/go-perun/backend/ethereum/channel/errors"
 	"perun.network/go-perun/client"
 	"perun.network/go-perun/log"
 	pcontext "perun.network/go-perun/pkg/context"
@@ -102,7 +103,7 @@ func (c *ContractBackend) NewFilterOpts(ctx context.Context) (*bind.FilterOpts, 
 func (c *ContractBackend) pastOffsetBlockNum(ctx context.Context) (uint64, error) {
 	h, err := c.HeaderByNumber(ctx, nil)
 	if err != nil {
-		err = checkIsChainNotReachableError(err)
+		err = cherrors.CheckIsChainNotReachableError(err)
 		return uint64(0), errors.WithMessage(err, "retrieving latest block")
 	}
 
@@ -142,7 +143,7 @@ func (c *ContractBackend) ConfirmTransaction(ctx context.Context, tx *types.Tran
 		switch {
 		case pcontext.IsContextError(err):
 			err = errors.WithStack(errTxTimedOut)
-		case isChainNotReachableError(err):
+		case cherrors.IsChainNotReachableError(err):
 			err = client.NewChainNotReachableError(err)
 		default:
 			err = errors.WithStack(err)
@@ -186,7 +187,7 @@ func errorReason(ctx context.Context, b *ContractBackend, tx *types.Transaction,
 	}
 	res, err := b.CallContract(ctx, msg, blockNum)
 	if err != nil {
-		err = checkIsChainNotReachableError(err)
+		err = cherrors.CheckIsChainNotReachableError(err)
 		return "", errors.WithMessage(err, "CallContract")
 	}
 	reason, err := abi.UnpackRevert(res)

@@ -25,6 +25,7 @@ import (
 	"github.com/pkg/errors"
 
 	"perun.network/go-perun/backend/ethereum/bindings/adjudicator"
+	cherrors "perun.network/go-perun/backend/ethereum/channel/errors"
 	"perun.network/go-perun/channel"
 	"perun.network/go-perun/client"
 	"perun.network/go-perun/log"
@@ -129,7 +130,7 @@ func (a *Adjudicator) call(ctx context.Context, req channel.AdjudicatorReq, fn a
 		}
 		tx, err := fn(trans, ethParams, ethState, req.Tx.Sigs)
 		if err != nil {
-			err = checkIsChainNotReachableError(err)
+			err = cherrors.CheckIsChainNotReachableError(err)
 			return nil, errors.WithMessage(err, "calling adjudicator function")
 		}
 		log.Debugf("Sent transaction %v", tx.Hash().Hex())

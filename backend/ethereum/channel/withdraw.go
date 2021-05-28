@@ -26,6 +26,7 @@ import (
 
 	"perun.network/go-perun/backend/ethereum/bindings"
 	"perun.network/go-perun/backend/ethereum/bindings/assetholder"
+	cherrors "perun.network/go-perun/backend/ethereum/channel/errors"
 	"perun.network/go-perun/backend/ethereum/wallet"
 	"perun.network/go-perun/channel"
 	"perun.network/go-perun/client"
@@ -63,7 +64,7 @@ func (a *Adjudicator) ensureWithdrawn(ctx context.Context, req channel.Adjudicat
 			contract := bindAssetHolder(a.ContractBackend, asset, channel.Index(index))
 			sub, err := contract.WatchWithdrawn(watchOpts, withdrawn, [][32]byte{fundingID})
 			if err != nil {
-				err = checkIsChainNotReachableError(err)
+				err = cherrors.CheckIsChainNotReachableError(err)
 				return errors.WithMessage(err, "WatchWithdrawn failed")
 			}
 			defer sub.Unsubscribe()
@@ -87,7 +88,7 @@ func (a *Adjudicator) ensureWithdrawn(ctx context.Context, req channel.Adjudicat
 			case <-ctx.Done():
 				return errors.Wrap(ctx.Err(), "context cancelled")
 			case err = <-sub.Err():
-				err = checkIsChainNotReachableError(err)
+				err = cherrors.CheckIsChainNotReachableError(err)
 				return errors.Wrap(err, "subscription error")
 			}
 		})
@@ -114,14 +115,14 @@ func (a *Adjudicator) filterWithdrawn(ctx context.Context, fundingID [32]byte, a
 	}
 	iter, err := asset.FilterWithdrawn(filterOpts, [][32]byte{fundingID})
 	if err != nil {
-		err = checkIsChainNotReachableError(err)
+		err = cherrors.CheckIsChainNotReachableError(err)
 		return false, errors.WithMessage(err, "creating iterator")
 	}
 	// nolint:errcheck
 	defer iter.Close()
 
 	if !iter.Next() {
-		err = checkIsChainNotReachableError(iter.Error())
+		err = cherrors.CheckIsChainNotReachableError(iter.Error())
 		return false, errors.WithMessage(err, "iterating")
 	}
 	// Event found
@@ -145,7 +146,7 @@ func (a *Adjudicator) callAssetWithdraw(ctx context.Context, request channel.Adj
 
 		tx, err := asset.Withdraw(trans, auth, sig)
 		if err != nil {
-			err = checkIsChainNotReachableError(err)
+			err = cherrors.CheckIsChainNotReachableError(err)
 			return nil, errors.WithMessagef(err, "withdrawing asset %d", asset.assetIndex)
 		}
 		log.Debugf("Sent transaction %v", tx.Hash().Hex())

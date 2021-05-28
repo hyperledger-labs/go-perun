@@ -22,6 +22,7 @@ import (
 	"github.com/pkg/errors"
 
 	"perun.network/go-perun/backend/ethereum/bindings/adjudicator"
+	cherrors "perun.network/go-perun/backend/ethereum/channel/errors"
 	"perun.network/go-perun/channel"
 )
 
@@ -43,7 +44,7 @@ func (a *Adjudicator) ensureConcluded(ctx context.Context, req channel.Adjudicat
 	events := make(chan *adjudicator.AdjudicatorChannelUpdate)
 	sub, err := a.contract.WatchChannelUpdate(watchOpts, events, [][32]byte{req.Params.ID()})
 	if err != nil {
-		err = checkIsChainNotReachableError(err)
+		err = cherrors.CheckIsChainNotReachableError(err)
 		return errors.WithMessage(err, "creating subscription failed")
 	}
 	defer sub.Unsubscribe()
@@ -84,7 +85,7 @@ func (a *Adjudicator) ensureConcluded(ctx context.Context, req channel.Adjudicat
 	case <-ctx.Done():
 		return errors.Wrap(ctx.Err(), "context cancelled")
 	case err = <-sub.Err():
-		err = checkIsChainNotReachableError(err)
+		err = cherrors.CheckIsChainNotReachableError(err)
 		return errors.Wrap(err, "subscription error")
 	}
 }
@@ -104,7 +105,7 @@ func waitConcludedForNBlocks(ctx context.Context,
 	h := make(chan *types.Header)
 	hsub, err := cr.SubscribeNewHead(ctx, h)
 	if err != nil {
-		err = checkIsChainNotReachableError(err)
+		err = cherrors.CheckIsChainNotReachableError(err)
 		return false, errors.WithMessage(err, "subscribing to new blocks")
 	}
 	defer hsub.Unsubscribe()
@@ -118,10 +119,10 @@ func waitConcludedForNBlocks(ctx context.Context,
 		case <-ctx.Done():
 			return false, errors.Wrap(ctx.Err(), "context cancelled")
 		case err = <-hsub.Err():
-			err = checkIsChainNotReachableError(err)
+			err = cherrors.CheckIsChainNotReachableError(err)
 			return false, errors.WithMessage(err, "header subscription error")
 		case err = <-sub.Err():
-			err = checkIsChainNotReachableError(err)
+			err = cherrors.CheckIsChainNotReachableError(err)
 			return false, errors.WithMessage(err, "concluded subscription error")
 		}
 	}
@@ -136,7 +137,7 @@ func (a *Adjudicator) filterConcluded(ctx context.Context, channelID channel.ID)
 	}
 	iter, err := a.contract.FilterChannelUpdate(filterOpts, [][32]byte{channelID})
 	if err != nil {
-		err = checkIsChainNotReachableError(err)
+		err = cherrors.CheckIsChainNotReachableError(err)
 		return false, errors.WithMessage(err, "creating iterator")
 	}
 
