@@ -22,6 +22,7 @@ import (
 	"github.com/pkg/errors"
 
 	"perun.network/go-perun/backend/ethereum/bindings/assetholdereth"
+	cherrors "perun.network/go-perun/backend/ethereum/channel/errors"
 )
 
 // ETHDepositor deposits funds into the `AssetHolderETH` contract.
@@ -54,7 +55,7 @@ func (d *ETHDepositor) Deposit(ctx context.Context, req DepositReq) (types.Trans
 	opts.Value = req.Balance
 
 	tx, err := contract.Deposit(opts, req.FundingID, req.Balance)
-	err = checkIsChainNotReachableError(err)
+	err = cherrors.CheckIsChainNotReachableError(err)
 	return []*types.Transaction{tx}, errors.WithMessage(err, "AssetHolderETH depositing")
 }
 

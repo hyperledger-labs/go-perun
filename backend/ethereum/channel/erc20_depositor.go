@@ -23,6 +23,7 @@ import (
 
 	"perun.network/go-perun/backend/ethereum/bindings/assetholdererc20"
 	"perun.network/go-perun/backend/ethereum/bindings/peruntoken"
+	cherrors "perun.network/go-perun/backend/ethereum/channel/errors"
 )
 
 // ERC20Depositor deposits tokens into the `AssetHolderERC20` contract.
@@ -61,7 +62,7 @@ func (d *ERC20Depositor) Deposit(ctx context.Context, req DepositReq) (types.Tra
 	}
 	tx1, err := token.IncreaseAllowance(opts, common.Address(req.Asset), req.Balance)
 	if err != nil {
-		err = checkIsChainNotReachableError(err)
+		err = cherrors.CheckIsChainNotReachableError(err)
 		return nil, errors.WithMessagef(err, "increasing allowance for asset: %x", req.Asset)
 	}
 	// Deposit.
@@ -70,7 +71,7 @@ func (d *ERC20Depositor) Deposit(ctx context.Context, req DepositReq) (types.Tra
 		return nil, errors.WithMessagef(err, "creating transactor for asset: %x", req.Asset)
 	}
 	tx2, err := assetholder.Deposit(opts, req.FundingID, req.Balance)
-	err = checkIsChainNotReachableError(err)
+	err = cherrors.CheckIsChainNotReachableError(err)
 	return []*types.Transaction{tx1, tx2}, errors.WithMessage(err, "AssetHolderERC20 depositing")
 }
 

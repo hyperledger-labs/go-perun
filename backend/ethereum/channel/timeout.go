@@ -21,6 +21,8 @@ import (
 	"github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/pkg/errors"
+
+	cherrors "perun.network/go-perun/backend/ethereum/channel/errors"
 )
 
 // BlockTimeout is a timeout on an Ethereum blockchain. A ChainReader is used to
@@ -49,7 +51,7 @@ func NewBlockTimeoutDuration(
 	ctx context.Context, cr ethereum.ChainReader, duration uint64) (*BlockTimeout, error) {
 	h, err := cr.HeaderByNumber(ctx, nil)
 	if err != nil {
-		err = checkIsChainNotReachableError(err)
+		err = cherrors.CheckIsChainNotReachableError(err)
 		return nil, errors.WithMessage(err, "getting latest header")
 	}
 	return NewBlockTimeout(cr, h.Time+duration), nil
@@ -74,7 +76,7 @@ func (t *BlockTimeout) Wait(ctx context.Context) error {
 	headers := make(chan *types.Header)
 	sub, err := t.cr.SubscribeNewHead(ctx, headers)
 	if err != nil {
-		err = checkIsChainNotReachableError(err)
+		err = cherrors.CheckIsChainNotReachableError(err)
 		return errors.WithMessage(err, "subscribing to new heads")
 	}
 	defer sub.Unsubscribe()
@@ -87,7 +89,7 @@ func (t *BlockTimeout) Wait(ctx context.Context) error {
 			}
 		case err := <-sub.Err():
 			if err != nil {
-				err = checkIsChainNotReachableError(err)
+				err = cherrors.CheckIsChainNotReachableError(err)
 				return errors.WithMessage(err, "sub done")
 			}
 			// make sure we return a non-nil error if the timeout hasn't passed yet

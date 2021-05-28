@@ -27,6 +27,7 @@ import (
 	"github.com/pkg/errors"
 
 	"perun.network/go-perun/backend/ethereum/bindings/assetholder"
+	cherrors "perun.network/go-perun/backend/ethereum/channel/errors"
 	"perun.network/go-perun/backend/ethereum/wallet"
 	"perun.network/go-perun/channel"
 	"perun.network/go-perun/client"
@@ -232,7 +233,7 @@ func filterFunds(ctx context.Context, asset assetHolder, fundingIDs ...[32]byte)
 		Context: ctx}
 	iter, err := asset.FilterDeposited(&filterOpts, fundingIDs)
 	if err != nil {
-		err = checkIsChainNotReachableError(err)
+		err = cherrors.CheckIsChainNotReachableError(err)
 		return nil, errors.WithMessage(err, "filtering deposited events")
 	}
 
@@ -252,7 +253,7 @@ func (f *Funder) waitForFundingConfirmation(ctx context.Context, request channel
 	}
 	sub, err := asset.WatchDeposited(watchOpts, deposited, fundingIDs)
 	if err != nil {
-		err = checkIsChainNotReachableError(err)
+		err = cherrors.CheckIsChainNotReachableError(err)
 		return errors.WithMessagef(err, "WatchDeposit on asset %d failed", asset.assetIndex)
 	}
 	defer sub.Unsubscribe()
@@ -263,7 +264,7 @@ func (f *Funder) waitForFundingConfirmation(ctx context.Context, request channel
 	go func() {
 		err := <-sub.Err()
 		if err != nil {
-			err = checkIsChainNotReachableError(err)
+			err = cherrors.CheckIsChainNotReachableError(err)
 		}
 		errChan <- errors.WithMessagef(err, "subscription for asset %d", asset.assetIndex)
 	}()

@@ -26,6 +26,7 @@ import (
 	"perun.network/go-perun/backend/ethereum/bindings/assetholder"
 	"perun.network/go-perun/backend/ethereum/bindings/assetholdererc20"
 	"perun.network/go-perun/backend/ethereum/bindings/assetholdereth"
+	cherrors "perun.network/go-perun/backend/ethereum/channel/errors"
 	"perun.network/go-perun/backend/ethereum/wallet"
 	"perun.network/go-perun/channel"
 )
@@ -72,7 +73,7 @@ func validateAssetHolder(ctx context.Context,
 		Context: ctx,
 	}
 	if addrSetInContract, err := assetHolder.Adjudicator(&opts); err != nil {
-		err = checkIsChainNotReachableError(err)
+		err = cherrors.CheckIsChainNotReachableError(err)
 		return errors.WithMessage(err, "fetching adjudicator address set in asset holder contract")
 	} else if addrSetInContract != adjudicatorAddr {
 		return errors.Wrap(ErrInvalidContractCode, "incorrect adjudicator code")
@@ -86,7 +87,7 @@ func validateContract(ctx context.Context,
 	backend bind.ContractCaller, contract common.Address, bytecode string) error {
 	code, err := backend.CodeAt(ctx, contract, nil)
 	if err != nil {
-		err = checkIsChainNotReachableError(err)
+		err = cherrors.CheckIsChainNotReachableError(err)
 		return errors.WithMessage(err, "fetching contract code")
 	}
 	if hex.EncodeToString(code) != bytecode {
