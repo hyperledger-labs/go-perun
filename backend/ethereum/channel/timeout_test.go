@@ -73,6 +73,8 @@ func TestBlockTimeout_Wait(t *testing.T) {
 			wait <- bt.Wait(ctx)
 		}()
 
+		// Wait for the go-routine above to start.
+		time.Sleep(100 * time.Millisecond)
 		for i := 0; i < numBlocks; i++ {
 			select {
 			case err := <-wait:
