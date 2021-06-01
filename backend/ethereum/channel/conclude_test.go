@@ -47,7 +47,7 @@ func testConcludeFinal(t *testing.T, numParts int) {
 	// create test setup
 	s := test.NewSetup(t, rng, numParts)
 	// create valid state and params
-	params, state := channeltest.NewRandomParamsAndState(rng, channeltest.WithParts(s.Parts...), channeltest.WithAssets((*ethchannel.Asset)(&s.Asset)), channeltest.WithIsFinal(true))
+	params, state := channeltest.NewRandomParamsAndState(rng, channeltest.WithParts(s.Parts...), channeltest.WithAssets((*ethchannel.Asset)(&s.Asset)), channeltest.WithIsFinal(true), channeltest.WithLedgerChannel(true))
 	// we need to properly fund the channel
 	fundingCtx, funCancel := context.WithTimeout(context.Background(), defaultTxTimeout)
 	defer funCancel()

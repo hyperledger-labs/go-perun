@@ -67,6 +67,8 @@ type Params struct {
 	App App `cloneable:"shallow"`
 	// Nonce is a random value that makes the channel's ID unique.
 	Nonce Nonce
+	// LedgerChannel specifies whether this is a ledger channel or not.
+	LedgerChannel bool
 }
 
 // ID returns the channelID of this channel.
@@ -78,11 +80,11 @@ func (p *Params) ID() ID {
 // appDef optional: if it is nil, it describes a payment channel. The channel id
 // is also calculated here and persisted because it probably is an expensive
 // hash operation.
-func NewParams(challengeDuration uint64, parts []wallet.Address, app App, nonce Nonce) (*Params, error) {
+func NewParams(challengeDuration uint64, parts []wallet.Address, app App, nonce Nonce, ledger bool) (*Params, error) {
 	if err := ValidateParameters(challengeDuration, len(parts), app, nonce); err != nil {
 		return nil, errors.WithMessage(err, "invalid parameter for NewParams")
 	}
-	return NewParamsUnsafe(challengeDuration, parts, app, nonce), nil
+	return NewParamsUnsafe(challengeDuration, parts, app, nonce, ledger), nil
 }
 
 // ValidateProposalParameters validates all parameters that are part of the
@@ -124,12 +126,13 @@ func ValidateParameters(challengeDuration uint64, numParts int, app App, nonce N
 // NewParamsUnsafe creates Params from the given data and does NOT perform
 // sanity checks. The channel id is also calculated here and persisted because
 // it probably is an expensive hash operation.
-func NewParamsUnsafe(challengeDuration uint64, parts []wallet.Address, app App, nonce Nonce) *Params {
+func NewParamsUnsafe(challengeDuration uint64, parts []wallet.Address, app App, nonce Nonce, ledger bool) *Params {
 	p := &Params{
 		ChallengeDuration: challengeDuration,
 		Parts:             parts,
 		App:               app,
 		Nonce:             nonce,
+		LedgerChannel:     ledger,
 	}
 	// probably an expensive hash operation, do it only once during creation.
 	p.id = CalcID(p)
@@ -157,7 +160,9 @@ func (p *Params) Clone() *Params {
 		ChallengeDuration: p.ChallengeDuration,
 		Parts:             clonedParts,
 		App:               p.App,
-		Nonce:             new(big.Int).Set(p.Nonce)}
+		Nonce:             new(big.Int).Set(p.Nonce),
+		LedgerChannel:     p.LedgerChannel,
+	}
 }
 
 // Encode uses the pkg/io module to serialize a params instance.
@@ -166,7 +171,8 @@ func (p *Params) Encode(w stdio.Writer) error {
 		p.ChallengeDuration,
 		wallet.AddressesWithLen(p.Parts),
 		OptAppEnc{p.App},
-		p.Nonce)
+		p.Nonce,
+		p.LedgerChannel)
 }
 
 // Decode uses the pkg/io module to deserialize a params instance.
@@ -176,18 +182,20 @@ func (p *Params) Decode(r stdio.Reader) error {
 		parts             wallet.AddressesWithLen
 		app               App
 		nonce             Nonce
+		ledger            bool
 	)
 
 	err := io.Decode(r,
 		&challengeDuration,
 		&parts,
 		OptAppDec{App: &app},
-		&nonce)
+		&nonce,
+		&ledger)
 	if err != nil {
 		return err
 	}
 
-	_p, err := NewParams(challengeDuration, parts, app, nonce)
+	_p, err := NewParams(challengeDuration, parts, app, nonce, ledger)
 	if err != nil {
 		return err
 	}
