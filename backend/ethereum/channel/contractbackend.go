@@ -36,7 +36,7 @@ import (
 const startBlockOffset = 100
 
 // GasLimit is the max amount of gas we want to send per transaction.
-const GasLimit = 500000
+const GasLimit = 1000000
 
 // errTxTimedOut is an internal named error that with an empty message.
 // Because calling function is expected to check for this error and

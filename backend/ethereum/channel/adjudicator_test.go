@@ -51,7 +51,7 @@ func signState(accounts []*keystore.Account, params *channel.Params, state *chan
 		sigs[i] = sig
 	}
 	return channel.Transaction{
-		State: state,
+		State: state.Clone(),
 		Sigs:  sigs,
 	}, nil
 }
@@ -61,7 +61,7 @@ func TestSubscribeRegistered(t *testing.T) {
 	// create test setup
 	s := test.NewSetup(t, rng, 1)
 	// create valid state and params
-	params, state := channeltest.NewRandomParamsAndState(rng, channeltest.WithChallengeDuration(uint64(100*time.Second)), channeltest.WithParts(s.Parts...), channeltest.WithAssets((*ethchannel.Asset)(&s.Asset)), channeltest.WithIsFinal(false))
+	params, state := channeltest.NewRandomParamsAndState(rng, channeltest.WithChallengeDuration(uint64(100*time.Second)), channeltest.WithParts(s.Parts...), channeltest.WithAssets((*ethchannel.Asset)(&s.Asset)), channeltest.WithIsFinal(false), channeltest.WithLedgerChannel(true))
 	// Set up subscription
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()

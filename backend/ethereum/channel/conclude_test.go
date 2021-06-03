@@ -98,8 +98,8 @@ func TestAdjudicator_ConcludeWithSubChannels(t *testing.T) {
 
 	const (
 		numParts               = 2
-		maxCountSubChannels    = 5
-		maxCountSubSubChannels = 5
+		maxCountSubChannels    = 3
+		maxCountSubSubChannels = 3
 		maxChallengeDuration   = 3600
 	)
 	ctx, cancel := newDefaultTestContext()
@@ -128,7 +128,7 @@ func TestAdjudicator_ConcludeWithSubChannels(t *testing.T) {
 		subSubChannels = makeRandomChannels(rng, maxCountSubSubChannels, makeRandomChannel, false)
 	)
 	// update sub-channel locked funds
-	parentChannel := randomChannel(rng, subChannels)
+	parentChannel := &subChannels[rng.Intn(len(subChannels))]
 	for _, c := range subSubChannels {
 		parentChannel.state.AddSubAlloc(*c.state.ToSubAlloc())
 	}
@@ -141,9 +141,11 @@ func TestAdjudicator_ConcludeWithSubChannels(t *testing.T) {
 
 	// 1. register channels
 
-	subChannelsRecursive := []paramsAndState{}
-	subChannelsRecursive = append(subChannelsRecursive, subChannels...)
-	subChannelsRecursive = append(subChannelsRecursive, subSubChannels...)
+	subChannelMap := channelMap{}
+	subChannelMap.Add(subChannels...)
+	subChannelMap.Add(subSubChannels...)
+
+	subChannelsRecursive := toSubChannelsRecursive(ledgerChannel, subChannelMap)
 	require.NoError(register(ctx, adj, accounts, ledgerChannel, subChannelsRecursive))
 
 	// 2. wait until ready to conclude
@@ -156,11 +158,31 @@ func TestAdjudicator_ConcludeWithSubChannels(t *testing.T) {
 	// 3. withdraw channel with sub-channels
 
 	subStates := channel.MakeStateMap()
-	addSubStates(subStates, ledgerChannel)
 	addSubStates(subStates, subChannels...)
 	addSubStates(subStates, subSubChannels...)
 
 	assert.NoError(withdraw(ctx, adj, accounts, ledgerChannel, subStates))
+}
+
+func toSubChannelsRecursive(ch paramsAndState, m channelMap) (states []paramsAndState) {
+	for _, x := range ch.state.Locked {
+		ch, ok := m[x.ID]
+		if !ok {
+			panic("sub-state not found")
+		}
+		states = append(states, ch)
+		subStates := toSubChannelsRecursive(ch, m)
+		states = append(states, subStates...)
+	}
+	return
+}
+
+type channelMap map[channel.ID]paramsAndState
+
+func (m channelMap) Add(states ...paramsAndState) {
+	for _, s := range states {
+		m[s.state.ID] = s
+	}
 }
 
 type paramsAndState struct {
@@ -188,10 +210,6 @@ func makeRandomChannels(rng *rand.Rand, maxCount int, makeRandomChannel func(*ra
 		channels[i] = makeRandomChannel(rng, ledger)
 	}
 	return channels
-}
-
-func randomChannel(rng *rand.Rand, channels []paramsAndState) *paramsAndState {
-	return &channels[rng.Intn(len(channels))]
 }
 
 func fund(ctx context.Context, funders []*ethchannel.Funder, c paramsAndState) error {
