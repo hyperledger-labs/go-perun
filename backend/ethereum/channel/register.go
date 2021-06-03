@@ -24,11 +24,11 @@ import (
 
 // Register registers a state on-chain.
 // If the state is a final state, register becomes a no-op.
-func (a *Adjudicator) Register(ctx context.Context, req channel.AdjudicatorReq) error {
+func (a *Adjudicator) Register(ctx context.Context, req channel.AdjudicatorReq, subChannels []channel.SignedState) error {
 	if req.Tx.State.IsFinal {
 		return a.registerFinal(ctx, req)
 	}
-	return a.registerNonFinal(ctx, req)
+	return a.registerNonFinal(ctx, req, subChannels)
 }
 
 // registerFinal registers a final state. It ensures that the final state is
@@ -43,10 +43,8 @@ func (a *Adjudicator) registerFinal(ctx context.Context, req channel.Adjudicator
 	return nil
 }
 
-func (a *Adjudicator) registerNonFinal(ctx context.Context, req channel.AdjudicatorReq) error {
-	if err := a.callRegister(ctx, req); IsErrTxFailed(err) {
-		a.log.Warn("Calling register failed, waiting for event anyways...")
-	} else if err != nil {
+func (a *Adjudicator) registerNonFinal(ctx context.Context, req channel.AdjudicatorReq, subChannels []channel.SignedState) error {
+	if err := a.callRegister(ctx, req, subChannels); err != nil {
 		return errors.WithMessage(err, "calling register")
 	}
 	return nil

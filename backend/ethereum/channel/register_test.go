@@ -16,6 +16,7 @@ package channel_test
 
 import (
 	"context"
+	"fmt"
 	"sync"
 	"testing"
 	"time"
@@ -31,21 +32,25 @@ import (
 )
 
 func TestAdjudicator_MultipleRegisters(t *testing.T) {
-	t.Run("Register 1 party parallel", func(t *testing.T) { registerMultipleConcurrent(t, 1, true) })
-	t.Run("Register 2 party parallel", func(t *testing.T) { registerMultipleConcurrent(t, 2, true) })
-	t.Run("Register 5 party parallel", func(t *testing.T) { registerMultipleConcurrent(t, 5, true) })
-	t.Run("Register 10 party parallel", func(t *testing.T) { registerMultipleConcurrent(t, 10, true) })
-	t.Run("Register 1 party sequential", func(t *testing.T) { registerMultipleConcurrent(t, 1, false) })
-	t.Run("Register 2 party sequential", func(t *testing.T) { registerMultipleConcurrent(t, 2, false) })
-	t.Run("Register 5 party sequential", func(t *testing.T) { registerMultipleConcurrent(t, 5, false) })
+	testParallel := func(n int) {
+		t.Run(fmt.Sprintf("Register %d party parallel", n), func(t *testing.T) { registerMultiple(t, n, true) })
+	}
+	testSequential := func(n int) {
+		t.Run(fmt.Sprintf("Register %d party sequential", n), func(t *testing.T) { registerMultiple(t, n, false) })
+	}
+
+	for _, n := range []int{1, 2, 5} {
+		testParallel(n)
+		testSequential(n)
+	}
 }
 
-func registerMultipleConcurrent(t *testing.T, numParts int, parallel bool) {
+func registerMultiple(t *testing.T, numParts int, parallel bool) {
 	rng := pkgtest.Prng(t)
 	// create test setup
 	s := test.NewSetup(t, rng, numParts)
 	// create valid state and params
-	params, state := channeltest.NewRandomParamsAndState(rng, channeltest.WithChallengeDuration(uint64(100*time.Second)), channeltest.WithParts(s.Parts...), channeltest.WithAssets((*ethchannel.Asset)(&s.Asset)), channeltest.WithIsFinal(false))
+	params, state := channeltest.NewRandomParamsAndState(rng, channeltest.WithChallengeDuration(uint64(100*time.Second)), channeltest.WithParts(s.Parts...), channeltest.WithAssets((*ethchannel.Asset)(&s.Asset)), channeltest.WithIsFinal(false), channeltest.WithLedgerChannel(true))
 
 	// we need to properly fund the channel
 	fundingCtx, funCancel := context.WithTimeout(context.Background(), defaultTxTimeout)
@@ -71,35 +76,35 @@ func registerMultipleConcurrent(t *testing.T, numParts int, parallel bool) {
 	if parallel {
 		wg.Add(numParts)
 	}
+
+	txs := make([]*channel.Transaction, numParts)
+	subs := make([]channel.AdjudicatorSubscription, numParts)
 	for i := 0; i < numParts; i++ {
-		sleepDuration := time.Duration(rng.Int63n(10)+1) * time.Millisecond
-		// manipulate the state
-		state.Version = uint64(int(state.Version) + i)
+		state.Version = uint64(int(state.Version) + i) // manipulate the state
 		tx := testSignState(t, s.Accs, params, state)
+		txs[i] = &tx
+
+		sleepDuration := time.Duration(rng.Int63n(10)+1) * time.Millisecond
 		reg := func(i int, tx channel.Transaction) {
 			if parallel {
 				defer wg.Done()
 				<-startBarrier
 				time.Sleep(sleepDuration)
 			}
+
 			// create subscription
 			adj := s.Adjs[i]
 			sub, err := adj.Subscribe(ctx, params)
 			require.NoError(t, err)
-			defer sub.Close()
+			subs[i] = sub
+
 			// register
 			req := channel.AdjudicatorReq{
 				Params: params,
-				Acc:    s.Accs[i],
-				Idx:    channel.Index(i),
 				Tx:     tx,
 			}
-			assert.NoError(t, adj.Register(ctx, req), "Registering should succeed")
-			event := sub.Next()
-			assert.NotEqual(t, event, &channel.RegisteredEvent{}, "registering should return valid event")
-			assert.False(t, event.Timeout().IsElapsed(ctx),
-				"registering non-final state should return unelapsed timeout")
-			t.Logf("Peer[%d] registered successful", i)
+			err = adj.Register(ctx, req, nil)
+			require.True(t, err == nil || ethchannel.IsErrTxFailed(err), "Registering peer %d", i)
 		}
 		if parallel {
 			go reg(i, tx)
@@ -107,9 +112,24 @@ func registerMultipleConcurrent(t *testing.T, numParts int, parallel bool) {
 			reg(i, tx)
 		}
 	}
+
 	if parallel {
 		close(startBarrier)
 		wg.Wait()
+	}
+
+	time.Sleep(100 * time.Millisecond) // Give the subscriptions time to receive the latest event.
+
+	// Check result.
+	for i := 0; i < numParts; i++ {
+		tx, sub := txs[i], subs[i]
+		event := sub.Next()
+		sub.Close()
+		require.NotEqual(t, event, &channel.RegisteredEvent{}, "registering should return valid event")
+		require.GreaterOrEqualf(t, event.Version(), tx.State.Version, "peer %d: expected version >= %d, got %d", i, event.Version(), tx.State.Version)
+		require.False(t, event.Timeout().IsElapsed(ctx),
+			"registering non-final state should return unelapsed timeout")
+		t.Logf("Peer[%d] registered successfully", i)
 	}
 }
 
@@ -118,7 +138,7 @@ func TestRegister_FinalState(t *testing.T) {
 	// create new Adjudicator
 	s := test.NewSetup(t, rng, 1)
 	// create valid state and params
-	params, state := channeltest.NewRandomParamsAndState(rng, channeltest.WithChallengeDuration(uint64(100*time.Second)), channeltest.WithParts(s.Parts...), channeltest.WithAssets((*ethchannel.Asset)(&s.Asset)), channeltest.WithIsFinal(true))
+	params, state := channeltest.NewRandomParamsAndState(rng, channeltest.WithChallengeDuration(uint64(100*time.Second)), channeltest.WithParts(s.Parts...), channeltest.WithAssets((*ethchannel.Asset)(&s.Asset)), channeltest.WithIsFinal(true), channeltest.WithLedgerChannel(true))
 	// we need to properly fund the channel
 	fundingCtx, funCancel := context.WithTimeout(context.Background(), defaultTxTimeout)
 	defer funCancel()
@@ -141,7 +161,7 @@ func TestRegister_FinalState(t *testing.T) {
 		Idx:    channel.Index(0),
 		Tx:     tx,
 	}
-	assert.NoError(t, adj.Register(ctx, req), "Registering final state should succeed")
+	assert.NoError(t, adj.Register(ctx, req, nil), "Registering final state should succeed")
 	event := sub.Next()
 	assert.NotEqual(t, event, &channel.RegisteredEvent{}, "registering should return valid event")
 	assert.True(t, event.Timeout().IsElapsed(ctx), "registering final state should return elapsed timeout")
@@ -153,7 +173,7 @@ func TestRegister_CancelledContext(t *testing.T) {
 	// create test setup
 	s := test.NewSetup(t, rng, 1)
 	// create valid state and params
-	params, state := channeltest.NewRandomParamsAndState(rng, channeltest.WithChallengeDuration(uint64(100*time.Second)), channeltest.WithParts(s.Parts...), channeltest.WithAssets((*ethchannel.Asset)(&s.Asset)), channeltest.WithIsFinal(false))
+	params, state := channeltest.NewRandomParamsAndState(rng, channeltest.WithChallengeDuration(uint64(100*time.Second)), channeltest.WithParts(s.Parts...), channeltest.WithAssets((*ethchannel.Asset)(&s.Asset)), channeltest.WithIsFinal(false), channeltest.WithLedgerChannel(true))
 	// we need to properly fund the channel
 	fundingCtx, funCancel := context.WithTimeout(context.Background(), defaultTxTimeout)
 	defer funCancel()
@@ -177,5 +197,5 @@ func TestRegister_CancelledContext(t *testing.T) {
 		Idx:    channel.Index(0),
 		Tx:     tx,
 	}
-	assert.Error(t, adj.Register(ctx, req), "Registering with canceled context should error")
+	assert.Error(t, adj.Register(ctx, req, nil), "Registering with canceled context should error")
 }

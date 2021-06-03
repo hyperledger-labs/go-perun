@@ -78,7 +78,7 @@ func testConcludeFinal(t *testing.T, numParts int) {
 				Secondary: (i != initiator),
 			}
 			diff, err := test.NonceDiff(s.Accs[i].Address(), s.Adjs[i], func() error {
-				return s.Adjs[i].Register(ctx, req)
+				return s.Adjs[i].Register(ctx, req, nil)
 			})
 			require.NoError(t, err, "Withdrawing should succeed")
 			if !req.Secondary {
@@ -117,15 +117,15 @@ func TestAdjudicator_ConcludeWithSubChannels(t *testing.T) {
 		participants      = s.Parts
 		asset             = (*ethchannel.Asset)(&s.Asset)
 		challengeDuration = uint64(rng.Intn(maxChallengeDuration))
-		makeRandomChannel = func(rng *rand.Rand) paramsAndState {
-			return makeRandomChannel(rng, participants, asset, challengeDuration)
+		makeRandomChannel = func(rng *rand.Rand, ledger bool) paramsAndState {
+			return makeRandomChannel(rng, participants, asset, challengeDuration, ledger)
 		}
 	)
 	// create channels
 	var (
-		ledgerChannel  = makeRandomChannel(rng)
-		subChannels    = makeRandomChannels(rng, maxCountSubChannels, makeRandomChannel)
-		subSubChannels = makeRandomChannels(rng, maxCountSubSubChannels, makeRandomChannel)
+		ledgerChannel  = makeRandomChannel(rng, true)
+		subChannels    = makeRandomChannels(rng, maxCountSubChannels, makeRandomChannel, false)
+		subSubChannels = makeRandomChannels(rng, maxCountSubSubChannels, makeRandomChannel, false)
 	)
 	// update sub-channel locked funds
 	parentChannel := randomChannel(rng, subChannels)
@@ -141,9 +141,10 @@ func TestAdjudicator_ConcludeWithSubChannels(t *testing.T) {
 
 	// 1. register channels
 
-	require.NoError(register(ctx, adj, accounts, subSubChannels...))
-	require.NoError(register(ctx, adj, accounts, subChannels...))
-	require.NoError(register(ctx, adj, accounts, ledgerChannel))
+	subChannelsRecursive := []paramsAndState{}
+	subChannelsRecursive = append(subChannelsRecursive, subChannels...)
+	subChannelsRecursive = append(subChannelsRecursive, subSubChannels...)
+	require.NoError(register(ctx, adj, accounts, ledgerChannel, subChannelsRecursive))
 
 	// 2. wait until ready to conclude
 
@@ -167,7 +168,7 @@ type paramsAndState struct {
 	state  *channel.State
 }
 
-func makeRandomChannel(rng *rand.Rand, participants []wallet.Address, asset channel.Asset, challengeDuration uint64) paramsAndState {
+func makeRandomChannel(rng *rand.Rand, participants []wallet.Address, asset channel.Asset, challengeDuration uint64, ledger bool) paramsAndState {
 	params, state := channeltest.NewRandomParamsAndState(
 		rng,
 		channeltest.WithParts(participants...),
@@ -176,14 +177,15 @@ func makeRandomChannel(rng *rand.Rand, participants []wallet.Address, asset chan
 		channeltest.WithNumLocked(0),
 		channeltest.WithoutApp(),
 		channeltest.WithChallengeDuration(challengeDuration),
+		channeltest.WithLedgerChannel(ledger),
 	)
 	return paramsAndState{params, state}
 }
 
-func makeRandomChannels(rng *rand.Rand, maxCount int, makeRandomChannel func(rng *rand.Rand) paramsAndState) []paramsAndState {
+func makeRandomChannels(rng *rand.Rand, maxCount int, makeRandomChannel func(*rand.Rand, bool) paramsAndState, ledger bool) []paramsAndState {
 	channels := make([]paramsAndState, 1+rng.Intn(maxCount))
 	for i := range channels {
-		channels[i] = makeRandomChannel(rng)
+		channels[i] = makeRandomChannel(rng, ledger)
 	}
 	return channels
 }
@@ -204,26 +206,34 @@ func fund(ctx context.Context, funders []*ethchannel.Funder, c paramsAndState) e
 	return errg.Wait()
 }
 
-func register(ctx context.Context, adj *test.SimAdjudicator, accounts []*keystore.Account, channels ...paramsAndState) error {
-	for _, c := range channels {
-		tx, err := signState(accounts, c.params, c.state)
+func register(ctx context.Context, adj *test.SimAdjudicator, accounts []*keystore.Account, ch paramsAndState, subChannels []paramsAndState) error {
+	sub := make([]channel.SignedState, len(subChannels))
+	for i, subCh := range subChannels {
+		tx, err := signState(accounts, subCh.params, subCh.state)
 		if err != nil {
 			return err
 		}
 
-		req := channel.AdjudicatorReq{
-			Params:    c.params,
-			Acc:       accounts[0],
-			Idx:       0,
-			Tx:        tx,
-			Secondary: false,
-		}
-
-		if err := adj.Register(ctx, req); err != nil {
-			return err
+		sub[i] = channel.SignedState{
+			Params: subCh.params,
+			State:  subCh.state,
+			Sigs:   tx.Sigs,
 		}
 	}
-	return nil
+
+	tx, err := signState(accounts, ch.params, ch.state)
+	if err != nil {
+		return err
+	}
+
+	req := channel.AdjudicatorReq{
+		Params:    ch.params,
+		Acc:       accounts[0],
+		Idx:       0,
+		Tx:        tx,
+		Secondary: false,
+	}
+	return adj.Register(ctx, req, sub)
 }
 
 func addSubStates(subStates channel.StateMap, channels ...paramsAndState) {
