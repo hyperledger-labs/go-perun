@@ -100,7 +100,7 @@ func TestEventSub(t *testing.T) {
 	require.NoError(t, err)
 	go ct.Stage("sub", func(t pkgtest.ConcT) {
 		defer close(sink)
-		require.NoError(t, sub.ReadAll(context.Background(), sink))
+		require.NoError(t, sub.Read(context.Background(), sink))
 	})
 
 	go ct.Stage("receiver", func(t pkgtest.ConcT) {
@@ -181,7 +181,7 @@ func TestEventSub_Filter(t *testing.T) {
 	require.NoError(t, err)
 	go ct.Stage("sub", func(t pkgtest.ConcT) {
 		defer close(sink)
-		require.NoError(t, sub.ReadAll(context.Background(), sink))
+		require.NoError(t, sub.Read(context.Background(), sink))
 	})
 
 	// Receive 1 event.

@@ -264,7 +264,7 @@ func (f *Funder) waitForFundingConfirmation(ctx context.Context, request channel
 	defer sub.Close()
 	// Read from the sub.
 	go func() {
-		subErr <- sub.ReadAll(ctx, deposited)
+		subErr <- sub.Read(ctx, deposited)
 	}()
 
 	// The allocation that all participants agreed on.
