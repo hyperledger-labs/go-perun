@@ -24,6 +24,7 @@ import (
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/pkg/errors"
 
+	"perun.network/go-perun/backend/ethereum/bindings"
 	"perun.network/go-perun/backend/ethereum/bindings/adjudicator"
 	cherrors "perun.network/go-perun/backend/ethereum/channel/errors"
 	"perun.network/go-perun/channel"
@@ -40,6 +41,7 @@ var _ channel.Adjudicator = (*Adjudicator)(nil)
 type Adjudicator struct {
 	ContractBackend
 	contract *adjudicator.Adjudicator
+	bound    *bind.BoundContract
 	// The address to which we send all funds.
 	Receiver common.Address
 	// Structured logger
@@ -57,9 +59,11 @@ func NewAdjudicator(backend ContractBackend, contract common.Address, receiver c
 	if err != nil {
 		panic("Could not create a new instance of adjudicator")
 	}
+	bound := bind.NewBoundContract(contract, bindings.AdjudicatorABI, backend, backend, backend)
 	return &Adjudicator{
 		ContractBackend: backend,
 		contract:        contr,
+		bound:           bound,
 		Receiver:        receiver,
 		txSender:        txSender,
 		log:             log.WithField("txSender", txSender.Address),
