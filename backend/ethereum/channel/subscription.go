@@ -62,7 +62,6 @@ func (a *Adjudicator) Subscribe(ctx context.Context, params *channel.Params) (ch
 	}
 	// Pass non-nil past event to updater
 	if ev != nil {
-		rsub.past = true
 		events <- ev
 	}
 
@@ -107,13 +106,7 @@ type RegisteredSub struct {
 	sub    event.Subscription            // Event subscription
 	next   chan channel.AdjudicatorEvent // Event sink
 	err    chan error                    // error from subscription
-	past   bool                          // whether there was a past event when the subscription was created
 	closed sync.Once
-}
-
-// HasPast indicates whether there was a past event when the subscription was created.
-func (r *RegisteredSub) HasPast() bool {
-	return r.past
 }
 
 func (r *RegisteredSub) updateNext(ctx context.Context, events chan *adjudicator.AdjudicatorChannelUpdate, a *Adjudicator) {
