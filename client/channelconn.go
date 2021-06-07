@@ -99,7 +99,7 @@ func (c *channelConn) Send(ctx context.Context, msg wire.Msg) error {
 		if channel.Index(i) == c.idx {
 			continue // skip own peer
 		}
-		c.log.WithField("peer", peer).Debugf("channelConn: publishing message: %v", msg)
+		c.log.WithField("peer", peer).Debugf("channelConn: publishing message: %v: %+v", msg.Type(), msg)
 		env := &wire.Envelope{
 			Sender:    c.sender(),
 			Recipient: peer,

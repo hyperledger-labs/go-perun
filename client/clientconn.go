@@ -74,7 +74,7 @@ func (c clientConn) nextReq(ctx context.Context) (*wire.Envelope, error) {
 // pubMsg publishes the given message on the wire bus, setting the own client as
 // the sender.
 func (c *clientConn) pubMsg(ctx context.Context, msg wire.Msg, rec wire.Address) error {
-	c.Log().WithField("peer", rec).Debugf("Publishing message: %v", msg)
+	c.Log().WithField("peer", rec).Debugf("Publishing message: %v: %+v", msg.Type(), msg)
 	return c.bus.Publish(ctx, &wire.Envelope{
 		Sender:    c.sender,
 		Recipient: rec,
