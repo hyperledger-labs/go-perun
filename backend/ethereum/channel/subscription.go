@@ -17,6 +17,7 @@ package channel
 import (
 	"context"
 	"math/big"
+	"sync"
 
 	"github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/common"
@@ -102,11 +103,12 @@ func (a *Adjudicator) filterWatch(ctx context.Context, events chan *adjudicator.
 
 // RegisteredSub implements the channel.RegisteredSubscription interface.
 type RegisteredSub struct {
-	cr   ethereum.ChainReader          // chain reader to read block time
-	sub  event.Subscription            // Event subscription
-	next chan channel.AdjudicatorEvent // Event sink
-	err  chan error                    // error from subscription
-	past bool                          // whether there was a past event when the subscription was created
+	cr     ethereum.ChainReader          // chain reader to read block time
+	sub    event.Subscription            // Event subscription
+	next   chan channel.AdjudicatorEvent // Event sink
+	err    chan error                    // error from subscription
+	past   bool                          // whether there was a past event when the subscription was created
+	closed sync.Once
 }
 
 // HasPast indicates whether there was a past event when the subscription was created.
@@ -173,7 +175,7 @@ func (r *RegisteredSub) Next() channel.AdjudicatorEvent {
 
 // Close closes this subscription. Any pending calls to Next will return nil.
 func (r *RegisteredSub) Close() error {
-	r.sub.Unsubscribe()
+	r.closed.Do(r.sub.Unsubscribe)
 	return nil
 }
 
