@@ -59,7 +59,7 @@ func NewAdjudicator(backend ContractBackend, contract common.Address, receiver c
 	if err != nil {
 		panic("Could not create a new instance of adjudicator")
 	}
-	bound := bind.NewBoundContract(contract, bindings.AdjudicatorABI, backend, backend, backend)
+	bound := bind.NewBoundContract(contract, bindings.ABI.Adjudicator, backend, backend, backend)
 	return &Adjudicator{
 		ContractBackend: backend,
 		contract:        contr,
