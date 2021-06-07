@@ -109,6 +109,8 @@ func calcStartBlock(ctx context.Context, chain ethereum.ChainReader, pastBlocks 
 // Read reads all past and future events into `sink`.
 // Can be aborted by cancelling `ctx` or `Close()`.
 // It is possible that the same event is read more than once.
+// After casting the generic event to a specific type, the `Raw` log field
+// will be nil. Use the `Log` field of the generic event instead.
 func (s *EventSub) Read(ctx context.Context, sink chan<- *Event) error {
 	// First read into the past.
 	if err := s.readPast(ctx, sink); err != nil {
@@ -124,6 +126,8 @@ func (s *EventSub) Read(ctx context.Context, sink chan<- *Event) error {
 // ReadPast reads all past events into `sink`.
 // Can be aborted by cancelling `ctx` or `Close()`.
 // It is possible that the same event is read more than once.
+// After casting the generic event to a specific type, the `Raw` log field
+// will be nil. Use the `Log` field of the generic event instead.
 func (s *EventSub) ReadPast(ctx context.Context, sink chan<- *Event) error {
 	return errors.WithMessage(s.readPast(ctx, sink), "reading logs")
 }
