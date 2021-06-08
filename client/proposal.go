@@ -371,15 +371,6 @@ func (c *Client) validChannelProposalAcc(
 		return errors.Errorf("mismatched proposal ID %b and accept ID %b", propID, accID)
 	}
 
-	if proposal.Type() == wire.SubChannelProposal {
-		subProp := proposal.(*SubChannelProposal)
-
-		_, ok := c.channels.Get(subProp.Parent)
-		if !ok {
-			return errors.New("parent channel does not exist")
-		}
-	}
-
 	return nil
 }
 
