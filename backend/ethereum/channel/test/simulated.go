@@ -18,6 +18,7 @@ import (
 	"context"
 	"crypto/ecdsa"
 	"math/big"
+	"time"
 
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind/backends"
@@ -29,6 +30,7 @@ import (
 
 	"perun.network/go-perun/channel"
 	"perun.network/go-perun/channel/test"
+	"perun.network/go-perun/log"
 	"perun.network/go-perun/pkg/sync"
 )
 
@@ -40,7 +42,8 @@ type SimulatedBackend struct {
 	backends.SimulatedBackend
 	faucetKey  *ecdsa.PrivateKey
 	faucetAddr common.Address
-	clockMu    sync.Mutex // Mutex for clock adjustments. Locked by SimTimeouts.
+	clockMu    sync.Mutex    // Mutex for clock adjustments. Locked by SimTimeouts.
+	mining     chan struct{} // Used for auto-mining blocks.
 }
 
 // NewSimulatedBackend creates a new Simulated Backend.
@@ -94,4 +97,36 @@ func (s *SimulatedBackend) FundAddress(ctx context.Context, addr common.Address)
 		panic(err)
 	}
 	bind.WaitMined(context.Background(), s, signedTX)
+}
+
+// StartMining makes the simulated blockchain auto-mine blocks with the given
+// interval. Must be stopped with `StopMining`.
+// The block time of generated blocks will always increase by 10 seconds.
+func (s *SimulatedBackend) StartMining(interval time.Duration) {
+	if interval == 0 {
+		panic("blockTime can not be zero")
+	}
+
+	s.mining = make(chan struct{})
+	go func() {
+		log.Trace("Started mining")
+		defer log.Trace("Stopped mining")
+
+		for {
+			s.Commit()
+			log.Trace("Mined simulated block")
+
+			select {
+			case <-time.After(interval):
+			case <-s.mining: // stopped
+				return
+			}
+		}
+	}()
+}
+
+// StopMining stops the auto-mining of the simulated blockchain.
+// Must be called exactly once to free resources iff `StartMining` was called.
+func (s *SimulatedBackend) StopMining() {
+	close(s.mining)
 }
