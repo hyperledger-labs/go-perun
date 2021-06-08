@@ -304,8 +304,7 @@ func (c *Client) validTwoPartyProposal(
 	ourIdx int,
 	peerAddr wallet.Address,
 ) error {
-	base := proposal.Base()
-	if err := base.Valid(); err != nil {
+	if err := proposal.Valid(); err != nil {
 		return err
 	}
 
