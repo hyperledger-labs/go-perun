@@ -44,7 +44,7 @@ func (c *Channel) fundSubChannel(ctx context.Context, id channel.ID, alloc *chan
 
 		// withdraw initial balances into sub-allocation
 		state.Allocation.Balances = state.Allocation.Balances.Sub(alloc.Balances)
-		state.AddSubAlloc(*channel.NewSubAlloc(id, alloc.Balances.Sum()))
+		state.AddSubAlloc(*channel.NewSubAlloc(id, alloc.Balances.Sum(), nil))
 
 		return nil
 	})
@@ -111,7 +111,7 @@ func (c *Channel) withdrawSubChannel(ctx context.Context, sub *Channel) error {
 
 func (c *Channel) registerSubChannelFunding(id channel.ID, alloc []channel.Bal) {
 	filter := func(cu ChannelUpdate) bool {
-		expected := *channel.NewSubAlloc(id, alloc)
+		expected := *channel.NewSubAlloc(id, alloc, nil)
 		_, containedBefore := c.machine.State().SubAlloc(expected.ID)
 		subAlloc, containedAfter := cu.State.SubAlloc(expected.ID)
 		return !containedBefore && containedAfter && expected.Equal(&subAlloc) == nil

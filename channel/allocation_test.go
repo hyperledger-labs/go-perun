@@ -285,10 +285,12 @@ func TestAllocationValidLimits(t *testing.T) {
 			allocation.Locked[i] = *channel.NewSubAlloc(
 				channel.ID{byte(i), byte(i >> 8), byte(i >> 16), byte(i >> 24)},
 				make([]channel.Bal, x.numAssets),
+				nil,
 			)
 			allocation.Locked[i] = *channel.NewSubAlloc(
 				channel.ID{byte(i), byte(i >> 8), byte(i >> 16), byte(i >> 24)},
 				make([]channel.Bal, x.numAssets),
+				nil,
 			)
 
 			for j := range allocation.Locked[i].Bals {
@@ -377,7 +379,7 @@ func TestAllocation_Sum(t *testing.T) {
 
 		{
 			"single asset/one participants/one locked",
-			*test.NewRandomAllocation(rng, test.WithNumAssets(1), test.WithNumParts(1), test.WithLocked(*channel.NewSubAlloc(channel.ID{}, []channel.Bal{big.NewInt(2)})), test.WithBalancesInRange(big.NewInt(1), big.NewInt(1))),
+			*test.NewRandomAllocation(rng, test.WithNumAssets(1), test.WithNumParts(1), test.WithLocked(*channel.NewSubAlloc(channel.ID{}, []channel.Bal{big.NewInt(2)}, nil)), test.WithBalancesInRange(big.NewInt(1), big.NewInt(1))),
 			[]channel.Bal{big.NewInt(3)},
 		},
 
@@ -490,7 +492,7 @@ func TestAllocation_Valid(t *testing.T) {
 					{big.NewInt(64), big.NewInt(128)},
 				},
 				Locked: []channel.SubAlloc{
-					*channel.NewSubAlloc(channel.Zero, []channel.Bal{big.NewInt(4)}),
+					*channel.NewSubAlloc(channel.Zero, []channel.Bal{big.NewInt(4)}, nil),
 				},
 			},
 			false,
@@ -506,7 +508,7 @@ func TestAllocation_Valid(t *testing.T) {
 					{big.NewInt(64), big.NewInt(128)},
 				},
 				Locked: []channel.SubAlloc{
-					*channel.NewSubAlloc(channel.Zero, []channel.Bal{big.NewInt(-1)}),
+					*channel.NewSubAlloc(channel.Zero, []channel.Bal{big.NewInt(-1)}, nil),
 				},
 			},
 			false,
@@ -534,7 +536,7 @@ func TestAllocation_Valid(t *testing.T) {
 					{big.NewInt(2), big.NewInt(16)},
 				},
 				Locked: []channel.SubAlloc{
-					*channel.NewSubAlloc(channel.Zero, []channel.Bal{big.NewInt(4), big.NewInt(-1)}),
+					*channel.NewSubAlloc(channel.Zero, []channel.Bal{big.NewInt(4), big.NewInt(-1)}, nil),
 				},
 			},
 			false,
@@ -554,9 +556,9 @@ func TestAllocation_Valid(t *testing.T) {
 // suballocation serialization.
 func TestSuballocSerialization(t *testing.T) {
 	ss := []perunio.Serializer{
-		channel.NewSubAlloc(channel.ID{2}, []channel.Bal{}),
-		channel.NewSubAlloc(channel.ID{3}, []channel.Bal{big.NewInt(0)}),
-		channel.NewSubAlloc(channel.ID{4}, []channel.Bal{big.NewInt(5), big.NewInt(1 << 62)}),
+		channel.NewSubAlloc(channel.ID{2}, []channel.Bal{}, nil),
+		channel.NewSubAlloc(channel.ID{3}, []channel.Bal{big.NewInt(0)}, nil),
+		channel.NewSubAlloc(channel.ID{4}, []channel.Bal{big.NewInt(5), big.NewInt(1 << 62)}, nil),
 	}
 
 	iotest.GenericSerializerTest(t, ss...)
