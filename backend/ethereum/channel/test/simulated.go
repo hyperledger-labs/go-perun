@@ -27,7 +27,6 @@ import (
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/pkg/errors"
 
-	"perun.network/go-perun/channel"
 	"perun.network/go-perun/channel/test"
 	"perun.network/go-perun/pkg/sync"
 )
@@ -50,20 +49,10 @@ func NewSimulatedBackend() *SimulatedBackend {
 		panic(err)
 	}
 	faucetAddr := crypto.PubkeyToAddress(sk.PublicKey)
-	addr := map[common.Address]core.GenesisAccount{
-		common.BytesToAddress([]byte{1}): {Balance: big.NewInt(1)}, // ECRecover
-		common.BytesToAddress([]byte{2}): {Balance: big.NewInt(1)}, // SHA256
-		common.BytesToAddress([]byte{3}): {Balance: big.NewInt(1)}, // RIPEMD
-		common.BytesToAddress([]byte{4}): {Balance: big.NewInt(1)}, // Identity
-		common.BytesToAddress([]byte{5}): {Balance: big.NewInt(1)}, // ModExp
-		common.BytesToAddress([]byte{6}): {Balance: big.NewInt(1)}, // ECAdd
-		common.BytesToAddress([]byte{7}): {Balance: big.NewInt(1)}, // ECScalarMul
-		common.BytesToAddress([]byte{8}): {Balance: big.NewInt(1)}, // ECPairing
-		faucetAddr:                       {Balance: new(big.Int).Sub(channel.MaxBalance, big.NewInt(9))},
-	}
-	alloc := core.GenesisAlloc(addr)
+
+	genesis := core.DeveloperGenesisBlock(15, faucetAddr)
 	return &SimulatedBackend{
-		SimulatedBackend: *backends.NewSimulatedBackend(alloc, 8000000),
+		SimulatedBackend: *backends.NewSimulatedBackend(genesis.Alloc, genesis.GasLimit),
 		faucetKey:        sk,
 		faucetAddr:       faucetAddr,
 	}
