@@ -45,7 +45,7 @@ func SetRandomizer(r Randomizer) {
 
 // NewRandomPhase generates a random channel machine phase.
 func NewRandomPhase(rng *rand.Rand) channel.Phase {
-	return channel.Phase(rng.Intn(int(channel.LastPhase) + 1))
+	return channel.Phase(rng.Intn(channel.LastPhase + 1))
 }
 
 // NewRandomAsset generates a new random `channel.Asset`.
