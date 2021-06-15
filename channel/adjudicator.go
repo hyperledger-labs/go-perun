@@ -144,6 +144,8 @@ type (
 	// registration on the blockchain.
 	RegisteredEvent struct {
 		AdjudicatorEventBase // Channel ID and Refutation phase timeout
+		State                *State
+		Sigs                 []wallet.Sig
 	}
 
 	// ConcludedEvent signals channel conclusion.
