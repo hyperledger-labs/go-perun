@@ -50,7 +50,7 @@ func TestHappyAliceBob(t *testing.T) {
 		role  [2]clienttest.Executer
 	)
 
-	s := test.NewSetup(t, rng, 2)
+	s := test.NewSetup(t, rng, 2, blockInterval)
 	for i := 0; i < 2; i++ {
 		setup[i] = clienttest.RoleSetup{
 			Name:        name[i],

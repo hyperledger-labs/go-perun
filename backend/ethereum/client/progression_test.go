@@ -36,7 +36,7 @@ func TestProgression(t *testing.T) {
 	rng := pkgtest.Prng(t)
 
 	names := [2]string{"Paul", "Paula"}
-	backendSetup := test.NewSetup(t, rng, 2)
+	backendSetup := test.NewSetup(t, rng, 2, blockInterval)
 	roleSetups := makeRoleSetups(backendSetup, names)
 	clients := [2]clienttest.Executer{
 		clienttest.NewPaul(t, roleSetups[0]),

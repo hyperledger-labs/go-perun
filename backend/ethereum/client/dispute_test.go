@@ -18,6 +18,7 @@ import (
 	"context"
 	"math/big"
 	"testing"
+	"time"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/stretchr/testify/assert"
@@ -33,6 +34,10 @@ import (
 	"perun.network/go-perun/wire"
 )
 
+const (
+	blockInterval = 100 * time.Millisecond
+)
+
 func TestDisputeMalloryCarol(t *testing.T) {
 	log.Info("Starting dispute test")
 	rng := pkgtest.Prng(t)
@@ -45,7 +50,7 @@ func TestDisputeMalloryCarol(t *testing.T) {
 		role  [2]clienttest.Executer
 	)
 
-	s := test.NewSetup(t, rng, 2)
+	s := test.NewSetup(t, rng, 2, blockInterval)
 	for i := 0; i < 2; i++ {
 		setup[i] = clienttest.RoleSetup{
 			Name:        name[i],
