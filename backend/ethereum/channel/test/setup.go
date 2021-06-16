@@ -78,7 +78,8 @@ func NewSimSetup(rng *rand.Rand) *SimSetup {
 // the passed *testing.T. Parameter n determines how many accounts, receivers
 // adjudicators and funders are created. The Parts are the Addresses of the
 // Accs.
-func NewSetup(t *testing.T, rng *rand.Rand, n int) *Setup {
+// `blockInterval` enables the auto-mining feature if set to a value != 0.
+func NewSetup(t *testing.T, rng *rand.Rand, n int, blockInterval time.Duration) *Setup {
 	s := &Setup{
 		SimSetup: *NewSimSetup(rng),
 		Accs:     make([]*keystore.Account, n),
@@ -107,6 +108,11 @@ func NewSetup(t *testing.T, rng *rand.Rand, n int) *Setup {
 		s.Funders[i] = ethchannel.NewFunder(cb)
 		require.True(t, s.Funders[i].RegisterAsset(asset, ethchannel.NewETHDepositor(), s.Accs[i].Account))
 		s.Adjs[i] = NewSimAdjudicator(cb, adjudicator, common.Address(*s.Recvs[i]), s.Accs[i].Account)
+	}
+
+	if blockInterval != 0 {
+		s.SimBackend.StartMining(blockInterval)
+		t.Cleanup(s.SimBackend.StopMining)
 	}
 
 	return s

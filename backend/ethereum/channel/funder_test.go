@@ -371,6 +371,9 @@ func newNFunders(
 	allocation *channel.Allocation,
 ) {
 	simBackend := test.NewSimulatedBackend()
+	// Start the auto-mining of blocks.
+	simBackend.StartMining(blockInterval)
+	t.Cleanup(simBackend.StopMining)
 	ksWallet := wallettest.RandomWallet().(*keystore.Wallet)
 
 	deployAccount := &ksWallet.NewRandomAccount(rng).(*keystore.Account).Account
