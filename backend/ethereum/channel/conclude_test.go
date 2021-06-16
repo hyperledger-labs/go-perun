@@ -46,6 +46,7 @@ func TestAdjudicator_ConcludeFinal(t *testing.T) {
 }
 
 func testConcludeFinal(t *testing.T, numParts int) {
+	t.Parallel()
 	rng := pkgtest.Prng(t)
 	// create test setup
 	s := test.NewSetup(t, rng, numParts, blockInterval)

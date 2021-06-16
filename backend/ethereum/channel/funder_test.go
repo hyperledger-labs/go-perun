@@ -101,6 +101,7 @@ func TestFunder_OneForAllFunding(t *testing.T) {
 }
 
 func testFunderOneForAllFunding(t *testing.T, n int) {
+	t.Parallel()
 	rng := pkgtest.Prng(t, n)
 	ct := pkgtest.NewConcurrent(t)
 	ctx, cancel := context.WithTimeout(context.Background(), defaultTxTimeout*time.Duration(n))
@@ -151,6 +152,7 @@ func TestFunder_CrossOverFunding(t *testing.T) {
 }
 
 func testFunderCrossOverFunding(t *testing.T, n int) {
+	t.Parallel()
 	ctx, cancel := context.WithTimeout(context.Background(), defaultTxTimeout*time.Duration(n))
 	defer cancel()
 	rng := pkgtest.Prng(t, n)
@@ -188,6 +190,7 @@ func TestFunder_ZeroBalance(t *testing.T) {
 }
 
 func testFunderZeroBalance(t *testing.T, n int) {
+	t.Parallel()
 	rng := pkgtest.Prng(t, n)
 	ct := pkgtest.NewConcurrent(t)
 	ctx, cancel := context.WithTimeout(context.Background(), defaultTxTimeout*time.Duration(n))
@@ -277,7 +280,7 @@ func TestFunder_PeerTimeout(t *testing.T) {
 
 func testFundingTimeout(t *testing.T, faultyPeer, n int) {
 	t.Parallel()
-	ctx, cancel := context.WithTimeout(context.Background(), defaultTxTimeout)
+	ctx, cancel := context.WithTimeout(context.Background(), defaultTxTimeout*time.Duration(n))
 	defer cancel()
 	rng := pkgtest.Prng(t, faultyPeer, n)
 	ct := pkgtest.NewConcurrent(t)
@@ -336,7 +339,8 @@ func TestFunder_Fund_multi(t *testing.T) {
 }
 
 func testFunderFunding(t *testing.T, n int) {
-	ctx, cancel := context.WithTimeout(context.Background(), defaultTxTimeout)
+	t.Parallel()
+	ctx, cancel := context.WithTimeout(context.Background(), defaultTxTimeout*time.Duration(n))
 	defer cancel()
 	rng := pkgtest.Prng(t, n)
 	ct := pkgtest.NewConcurrent(t)
@@ -410,9 +414,10 @@ func newNFunders(
 		require.True(t, funders[i].RegisterAsset(asset2, ethchannel.NewERC20Depositor(token), acc))
 	}
 
-	// The SimBackend advances 10 sec per transaction/block, so generously add 20
-	// sec funding duration per participant per asset.
-	params = channeltest.NewRandomParams(rng, channeltest.WithParts(parts...), channeltest.WithChallengeDuration(uint64(n)*40))
+	// The challenge duration needs to be really large, since the auto-mining of
+	// SimBackend advances the block time with 100 seconds/second.
+	// By using a large value, we make sure that longer running tests work.
+	params = channeltest.NewRandomParams(rng, channeltest.WithParts(parts...), channeltest.WithChallengeDuration(uint64(n)*40000))
 	allocation = channeltest.NewRandomAllocation(rng, channeltest.WithNumParts(n), channeltest.WithAssets((*ethchannel.Asset)(&assetAddr1), (*ethchannel.Asset)(&assetAddr2)))
 	return
 }

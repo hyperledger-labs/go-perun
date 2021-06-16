@@ -61,7 +61,7 @@ func registerMultiple(t *testing.T, numParts int, parallel bool) {
 	)
 
 	// we need to properly fund the channel
-	fundingCtx, funCancel := context.WithTimeout(context.Background(), defaultTxTimeout)
+	fundingCtx, funCancel := context.WithTimeout(context.Background(), defaultTxTimeout*time.Duration(numParts))
 	defer funCancel()
 	// fund the contract
 	ct := pkgtest.NewConcurrent(t)
