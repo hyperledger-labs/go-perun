@@ -36,22 +36,28 @@ type Asset = wallet.Address
 
 var _ channel.Asset = new(Asset)
 
-// ValidateAssetHolderETH checks if the bytecodes at the given addresses are
-// correct and if the adjudicator address is correctly set in the asset holder
-// contract. Returns a ContractBytecodeError if the bytecode at the given
-// address is invalid. This error can be checked with function
-// IsErrInvalidContractCode.
+// ValidateAssetHolderETH checks if the bytecode at the given asset holder ETH
+// address is correct and if the adjudicator address is correctly set in the
+// asset holder contract. The contract code at the adjudicator address is not
+// validated, it is the user's responsibility to provide a valid adjudicator
+// address.
+//
+// Returns a ContractBytecodeError if the bytecode is invalid. This error can
+// be checked with function IsErrInvalidContractCode.
 func ValidateAssetHolderETH(ctx context.Context,
 	backend bind.ContractBackend, assetHolderETH, adjudicator common.Address) error {
 	return validateAssetHolder(ctx, backend, assetHolderETH, adjudicator,
 		assetholdereth.AssetHolderETHBinRuntime)
 }
 
-// ValidateAssetHolderERC20 checks if the bytecodes at the given addresses are
-// correct and if the adjudicator address is correctly set in the asset holder
-// contract. Returns a ContractBytecodeError if the bytecode at the given
-// address is invalid. This error can be checked with function
-// IsErrInvalidContractCode.
+// ValidateAssetHolderERC20 checks if the bytecode at the given asset holder
+// ERC20 address is correct and if the adjudicator address is correctly set in
+// the asset holder contract. The contract code at the adjudicator address is
+// not validated, it is the user's responsibility to provide a valid
+// adjudicator address.
+//
+// Returns a ContractBytecodeError if the bytecode is invalid. This error can
+// be checked with function IsErrInvalidContractCode.
 func ValidateAssetHolderERC20(ctx context.Context,
 	backend bind.ContractBackend, assetHolderERC20, adjudicator, token common.Address) error {
 	return validateAssetHolder(ctx, backend, assetHolderERC20, adjudicator,
@@ -79,8 +85,7 @@ func validateAssetHolder(ctx context.Context,
 		return errors.Wrap(ErrInvalidContractCode, "incorrect adjudicator code")
 	}
 
-	return errors.WithMessage(ValidateAdjudicator(ctx, backend, adjudicatorAddr),
-		"validating Adjudicator")
+	return nil
 }
 
 func validateContract(ctx context.Context,

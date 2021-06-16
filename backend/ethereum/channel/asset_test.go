@@ -86,6 +86,13 @@ func testValidateAssetHolder(t *testing.T,
 		require.True(t, ethchannel.IsErrInvalidContractCode(validator(ctx, s.CB, assetHolderAddr, adjAddrToExpect)))
 	})
 
+	t.Run("correct_adj_addr_with_invalid_contract", func(t *testing.T) {
+		adjudicatorAddr := (common.Address)(ethwallettest.NewRandomAddress(rng))
+		assetHolderAddr, err := deployer(ctx, *s.CB, adjudicatorAddr, s.TxSender.Account)
+		require.NoError(t, err)
+		require.NoError(t, validator(ctx, s.CB, assetHolderAddr, adjudicatorAddr))
+	})
+
 	t.Run("all_correct", func(t *testing.T) {
 		adjudicatorAddr, err := ethchannel.DeployAdjudicator(ctx, *s.CB, s.TxSender.Account)
 		require.NoError(t, err)
