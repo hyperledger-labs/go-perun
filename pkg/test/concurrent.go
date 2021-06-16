@@ -15,6 +15,7 @@
 package test
 
 import (
+	"context"
 	"runtime"
 	"strconv"
 	"strings"
@@ -130,6 +131,7 @@ type ConcurrentT struct {
 	t            require.TestingT
 	failed       bool
 	failedCh     chan struct{}
+	ctx          context.Context
 
 	mutex  sync.Mutex
 	stages map[string]*stage
@@ -137,10 +139,18 @@ type ConcurrentT struct {
 
 // NewConcurrent creates a new concurrent testing object.
 func NewConcurrent(t require.TestingT) *ConcurrentT {
+	return NewConcurrentCtx(t, context.Background())
+}
+
+// NewConcurrentCtx creates a new concurrent testing object controlled by a
+// context. If that context expires, any ongoing stages and wait calls will
+// fail.
+func NewConcurrentCtx(t require.TestingT, ctx context.Context) *ConcurrentT {
 	return &ConcurrentT{
 		t:        t,
 		stages:   make(map[string]*stage),
 		failedCh: make(chan struct{}),
+		ctx:      ctx,
 	}
 }
 
@@ -167,8 +177,10 @@ func (t *ConcurrentT) getStage(name string) *stage {
 	return s
 }
 
-// Wait waits until the stages and barriers with the requested names terminate.
-// If any stage or barrier fails, terminates the current goroutine or test.
+// Wait waits until the stages and barriers with the requested names
+// terminate or the test's context expires. If the context expires, fails the
+// test. If any stage or barrier fails, terminates the current goroutine or
+// test.
 func (t *ConcurrentT) Wait(names ...string) {
 	if len(names) == 0 {
 		panic("Wait(): called with 0 names")
@@ -177,6 +189,8 @@ func (t *ConcurrentT) Wait(names ...string) {
 	for _, name := range names {
 		stage := t.getStage(name)
 		select {
+		case <-t.ctx.Done():
+			t.FailNow()
 		case <-stage.wg.WaitCh():
 			if stage.failed.IsSet() {
 				t.FailNow()
@@ -209,28 +223,36 @@ func (t *ConcurrentT) FailNow() {
 // fn must not spawn any goroutines or pass along the T object to goroutines
 // that call T.Fatal. To achieve this, make other goroutines call
 // ConcurrentT.StageN() instead.
+// If the test's context expires before the call returns, fails the test.
 func (t *ConcurrentT) StageN(name string, goroutines int, fn func(ConcT)) {
 	stage := t.spawnStage(name, goroutines)
 
 	stageT := ConcT{TestingT: stage, ct: t}
-	abort := CheckAbort(func() {
+	abort, ok := CheckAbortCtx(t.ctx, func() {
 		fn(stageT)
 	})
 
-	if abort != nil {
-		// Fail the stage, if it had not been marked as such, yet.
-		if stage.failed.TrySet() {
-			defer stage.wg.Done()
-		}
-		// If it is a panic or Goexit from certain contexts, print stack trace.
-		if _, ok := abort.(*Panic); ok || shouldPrintStack(abort.Stack()) {
-			print("\n", abort.String())
-		}
+	if ok && abort == nil {
+		stage.pass()
+		t.Wait(name)
+		return
+	}
+
+	// Fail the stage, if it had not been marked as such, yet.
+	if stage.failed.TrySet() {
+		defer stage.wg.Done()
+	}
+
+	// If it did not terminate, just abort the test.
+	if !ok {
 		t.FailNow()
 	}
 
-	stage.pass()
-	t.Wait(name)
+	// If it is a panic or Goexit from certain contexts, print stack trace.
+	if _, ok := abort.(*Panic); ok || shouldPrintStack(abort.Stack()) {
+		print("\n", abort.String())
+	}
+	t.FailNow()
 }
 
 func shouldPrintStack(stack string) bool {

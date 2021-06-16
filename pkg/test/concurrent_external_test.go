@@ -15,6 +15,7 @@
 package test_test
 
 import (
+	"context"
 	"fmt"
 	"strconv"
 	"sync"
@@ -50,20 +51,34 @@ func TestConcurrentT_Wait(t *testing.T) {
 		})
 		ctxtest.AssertTerminates(t, timeout, func() { ct.Wait("known") })
 	})
+
+	t.Run("context expiry", func(t *testing.T) {
+		ctxtest.AssertTerminates(t, timeout, func() {
+			test.AssertFatal(t, func(t test.T) {
+				ctx, cancel := context.WithCancel(context.Background())
+				cancel()
+				test.NewConcurrentCtx(t, ctx).Stage("", func(test.ConcT) {
+					time.Sleep(timeout)
+				})
+			})
+		})
+	})
 }
 
 func TestConcurrentT_FailNow(t *testing.T) {
-	var ct *test.ConcurrentT
+	t.Run("idempotence", func(t *testing.T) {
+		var ct *test.ConcurrentT
 
-	// Test that NewConcurrent.FailNow() calls T.FailNow().
-	test.AssertFatal(t, func(t test.T) {
-		ct = test.NewConcurrent(t)
-		ct.FailNow()
+		// Test that NewConcurrent.FailNow() calls T.FailNow().
+		test.AssertFatal(t, func(t test.T) {
+			ct = test.NewConcurrent(t)
+			ct.FailNow()
+		})
+
+		// Test that after that, FailNow() calls runtime.Goexit().
+		assert.True(t, test.CheckGoexit(ct.FailNow),
+			"redundant FailNow() must call runtime.Goexit()")
 	})
-
-	// Test that after that, FailNow() calls runtime.Goexit().
-	assert.True(t, test.CheckGoexit(ct.FailNow),
-		"redundant FailNow() must call runtime.Goexit()")
 
 	t.Run("hammer", func(t *testing.T) {
 		const parallel = 12
