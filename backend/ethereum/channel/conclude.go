@@ -21,8 +21,10 @@ import (
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/pkg/errors"
 
+	"perun.network/go-perun/backend/ethereum/bindings"
 	"perun.network/go-perun/backend/ethereum/bindings/adjudicator"
 	cherrors "perun.network/go-perun/backend/ethereum/channel/errors"
+	"perun.network/go-perun/backend/ethereum/subscription"
 	"perun.network/go-perun/channel"
 )
 
@@ -31,35 +33,36 @@ const secondaryWaitBlocks = 2
 // ensureConcluded ensures that conclude or concludeFinal (for non-final and
 // final states, resp.) is called on the adjudicator.
 // - a subscription on Concluded events is established
-// - it searches for a past concluded event
+// - it searches for a past concluded event by calling `isConcluded`
 //   - if found, channel is already concluded and success is returned
 //   - if none found, conclude/concludeFinal is called on the adjudicator
 // - it waits for a Concluded event from the blockchain.
 func (a *Adjudicator) ensureConcluded(ctx context.Context, req channel.AdjudicatorReq, subStates channel.StateMap) error {
-	// Listen for Concluded event.
-	watchOpts, err := a.NewWatchOpts(ctx)
+	sub, err := subscription.NewEventSub(ctx, a.ContractBackend, a.bound, updateEventType(req.Params.ID()), startBlockOffset)
 	if err != nil {
-		return errors.WithMessage(err, "creating watchOpts")
+		return errors.WithMessage(err, "subscribing")
 	}
-	events := make(chan *adjudicator.AdjudicatorChannelUpdate)
-	sub, err := a.contract.WatchChannelUpdate(watchOpts, events, [][32]byte{req.Params.ID()})
-	if err != nil {
-		err = cherrors.CheckIsChainNotReachableError(err)
-		return errors.WithMessage(err, "creating subscription failed")
-	}
-	defer sub.Unsubscribe()
-
-	if found, err := a.filterConcluded(ctx, req.Params.ID()); err != nil {
-		return errors.WithMessage(err, "filtering old Concluded events")
-	} else if found {
+	defer sub.Close()
+	// Check whether it is already concluded.
+	if concluded, err := a.isConcluded(ctx, sub); err != nil {
+		return errors.WithMessage(err, "isConcluded")
+	} else if concluded {
 		return nil
 	}
+
+	events := make(chan *subscription.Event, 10)
+	subErr := make(chan error, 1)
+	waitCtx, cancel := context.WithCancel(ctx)
+	go func() {
+		subErr <- sub.Read(ctx, events)
+		cancel()
+	}()
 
 	// In final Register calls, as the non-initiator, we optimistically wait for
 	// the other party to send the transaction first for secondaryWaitBlocks many
 	// blocks.
 	if req.Tx.IsFinal && req.Secondary {
-		isConcluded, err := waitConcludedForNBlocks(ctx, a, sub, events, secondaryWaitBlocks)
+		isConcluded, err := waitConcludedForNBlocks(waitCtx, a, events, secondaryWaitBlocks)
 		if err != nil {
 			return err
 		} else if isConcluded {
@@ -79,14 +82,51 @@ func (a *Adjudicator) ensureConcluded(ctx context.Context, req channel.Adjudicat
 		return err
 	}
 
-	select {
-	case <-events:
-		return nil
-	case <-ctx.Done():
-		return errors.Wrap(ctx.Err(), "context cancelled")
-	case err = <-sub.Err():
-		err = cherrors.CheckIsChainNotReachableError(err)
-		return errors.Wrap(err, "subscription error")
+	for {
+		select {
+		case _e := <-events:
+			e := _e.Data.(*adjudicator.AdjudicatorChannelUpdate)
+			if e.Phase == phaseConcluded {
+				return nil
+			}
+		case <-ctx.Done():
+			return errors.Wrap(ctx.Err(), "context cancelled")
+		case err = <-subErr:
+			if err != nil {
+				return errors.WithMessage(err, "subscription error")
+			}
+			return errors.New("subscription closed")
+		}
+	}
+}
+
+// isConcluded returns whether a channel is already concluded.
+func (a *Adjudicator) isConcluded(ctx context.Context, sub *subscription.EventSub) (bool, error) {
+	events := make(chan *subscription.Event, 10)
+	subErr := make(chan error, 1)
+	// Write the events into events.
+	go func() {
+		defer close(events)
+		subErr <- sub.ReadPast(ctx, events)
+	}()
+	// Read all events and check for concluded.
+	for _e := range events {
+		e := _e.Data.(*adjudicator.AdjudicatorChannelUpdate)
+		if e.Phase == phaseConcluded {
+			return true, nil
+		}
+	}
+	return false, errors.WithMessage(<-subErr, "reading past events")
+}
+
+func updateEventType(channelID [32]byte) subscription.EventFactory {
+	return func() *subscription.Event {
+		return &subscription.Event{
+			Name: bindings.Events.AdjChannelUpdate,
+			Data: new(adjudicator.AdjudicatorChannelUpdate),
+			// In the best case we could already filter for 'Concluded' phase only here.
+			Filter: [][]interface{}{{channelID}},
+		}
 	}
 }
 
@@ -98,11 +138,10 @@ func (a *Adjudicator) ensureConcluded(ctx context.Context, req channel.Adjudicat
 // the Concluded event subscription instance.
 func waitConcludedForNBlocks(ctx context.Context,
 	cr ethereum.ChainReader,
-	sub ethereum.Subscription,
-	concluded chan *adjudicator.AdjudicatorChannelUpdate,
+	concluded chan *subscription.Event,
 	numBlocks int,
 ) (bool, error) {
-	h := make(chan *types.Header)
+	h := make(chan *types.Header, 10)
 	hsub, err := cr.SubscribeNewHead(ctx, h)
 	if err != nil {
 		err = cherrors.CheckIsChainNotReachableError(err)
@@ -112,7 +151,8 @@ func waitConcludedForNBlocks(ctx context.Context,
 	for i := 0; i < numBlocks; i++ {
 		select {
 		case <-h: // do nothing, wait another block
-		case e := <-concluded: // other participant performed transaction
+		case _e := <-concluded: // other participant performed transaction
+			e := _e.Data.(*adjudicator.AdjudicatorChannelUpdate)
 			if e.Phase == phaseConcluded {
 				return true, nil
 			}
@@ -121,33 +161,7 @@ func waitConcludedForNBlocks(ctx context.Context,
 		case err = <-hsub.Err():
 			err = cherrors.CheckIsChainNotReachableError(err)
 			return false, errors.WithMessage(err, "header subscription error")
-		case err = <-sub.Err():
-			err = cherrors.CheckIsChainNotReachableError(err)
-			return false, errors.WithMessage(err, "concluded subscription error")
 		}
 	}
 	return false, nil
-}
-
-// filterConcluded returns whether there has been a Concluded event in the past.
-func (a *Adjudicator) filterConcluded(ctx context.Context, channelID channel.ID) (bool, error) {
-	filterOpts, err := a.NewFilterOpts(ctx)
-	if err != nil {
-		return false, err
-	}
-	iter, err := a.contract.FilterChannelUpdate(filterOpts, [][32]byte{channelID})
-	if err != nil {
-		err = cherrors.CheckIsChainNotReachableError(err)
-		return false, errors.WithMessage(err, "creating iterator")
-	}
-
-	found := false
-	for iter.Next() {
-		if iter.Event.Phase == phaseConcluded {
-			found = true
-			break
-		}
-	}
-
-	return found, nil
 }

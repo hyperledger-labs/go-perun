@@ -26,6 +26,7 @@ import (
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/pkg/errors"
 
+	"perun.network/go-perun/backend/ethereum/bindings"
 	"perun.network/go-perun/backend/ethereum/bindings/assetholder"
 	"perun.network/go-perun/backend/ethereum/subscription"
 	"perun.network/go-perun/backend/ethereum/wallet"
@@ -240,7 +241,7 @@ func (f *Funder) depositedSub(ctx context.Context, contract *bind.BoundContract,
 	}
 	event := func() *subscription.Event {
 		return &subscription.Event{
-			Name:   "Deposited",
+			Name:   bindings.Events.AhDeposited,
 			Data:   new(assetholder.AssetHolderDeposited),
 			Filter: [][]interface{}{filter},
 		}
@@ -252,7 +253,6 @@ func (f *Funder) depositedSub(ctx context.Context, contract *bind.BoundContract,
 // waitForFundingConfirmation waits for the confirmation events on the blockchain that
 // both we and all peers successfully funded the channel for the specified asset
 // according to the funding agreement.
-// nolint: funlen
 func (f *Funder) waitForFundingConfirmation(ctx context.Context, request channel.FundingReq, asset assetHolder, fundingIDs [][32]byte) error {
 	deposited := make(chan *subscription.Event)
 	subErr := make(chan error, 1)

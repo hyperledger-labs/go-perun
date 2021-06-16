@@ -58,7 +58,7 @@ func (a *SimAdjudicator) Subscribe(ctx context.Context, params *channel.Params) 
 		return nil, err
 	}
 	return &SimRegisteredSub{
-		RegisteredSub: *(sub.(*ethchannel.RegisteredSub)),
+		RegisteredSub: sub.(*ethchannel.RegisteredSub),
 		sb:            a.sb,
 	}, nil
 }
@@ -66,7 +66,7 @@ func (a *SimAdjudicator) Subscribe(ctx context.Context, params *channel.Params) 
 // A SimRegisteredSub embeds an ethereum/channel.RegisteredSub, converting
 // normal TimeTimeouts to SimTimeouts.
 type SimRegisteredSub struct {
-	ethchannel.RegisteredSub
+	*ethchannel.RegisteredSub
 	sb *SimulatedBackend
 }
 

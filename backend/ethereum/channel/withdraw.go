@@ -27,6 +27,7 @@ import (
 	"perun.network/go-perun/backend/ethereum/bindings"
 	"perun.network/go-perun/backend/ethereum/bindings/assetholder"
 	cherrors "perun.network/go-perun/backend/ethereum/channel/errors"
+	"perun.network/go-perun/backend/ethereum/subscription"
 	"perun.network/go-perun/backend/ethereum/wallet"
 	"perun.network/go-perun/channel"
 	"perun.network/go-perun/client"
@@ -55,25 +56,24 @@ func (a *Adjudicator) ensureWithdrawn(ctx context.Context, req channel.Adjudicat
 		index, asset := index, asset // Capture variables locally for usage in closure
 		g.Go(func() error {
 			// Create subscription
-			watchOpts, err := a.NewWatchOpts(ctx)
-			if err != nil {
-				return errors.WithMessage(err, "creating watchOpts")
-			}
-			fundingID := FundingIDs(req.Params.ID(), req.Params.Parts[req.Idx])[0]
-			withdrawn := make(chan *assetholder.AssetHolderWithdrawn)
 			contract := bindAssetHolder(a.ContractBackend, asset, channel.Index(index))
-			sub, err := contract.WatchWithdrawn(watchOpts, withdrawn, [][32]byte{fundingID})
+			fundingID := FundingIDs(req.Params.ID(), req.Params.Parts[req.Idx])[0]
+			events := make(chan *subscription.Event, 10)
+			subErr := make(chan error, 1)
+			sub, err := subscription.NewEventSub(ctx, a.ContractBackend, contract.contract, withdrawnEventType(fundingID), startBlockOffset)
 			if err != nil {
-				err = cherrors.CheckIsChainNotReachableError(err)
-				return errors.WithMessage(err, "WatchWithdrawn failed")
+				return errors.WithMessage(err, "subscribing")
 			}
-			defer sub.Unsubscribe()
+			defer sub.Close()
 
-			// Filter past events
-			if found, err := a.filterWithdrawn(ctx, fundingID, contract); err != nil {
-				return errors.WithMessage(err, "filtering old Withdrawn events")
-			} else if found {
+			// Check for past event
+			if err := sub.ReadPast(ctx, events); err != nil {
+				return errors.WithMessage(err, "reading past events")
+			}
+			select {
+			case <-events:
 				return nil
+			default:
 			}
 
 			// No withdrawn event found in the past, send transaction.
@@ -82,18 +82,34 @@ func (a *Adjudicator) ensureWithdrawn(ctx context.Context, req channel.Adjudicat
 			}
 
 			// Wait for event
+			go func() {
+				subErr <- sub.Read(ctx, events)
+			}()
+
 			select {
-			case <-withdrawn:
+			case <-events:
 				return nil
 			case <-ctx.Done():
 				return errors.Wrap(ctx.Err(), "context cancelled")
-			case err = <-sub.Err():
-				err = cherrors.CheckIsChainNotReachableError(err)
-				return errors.Wrap(err, "subscription error")
+			case err = <-subErr:
+				if err != nil {
+					return errors.WithMessage(err, "subscription error")
+				}
+				return errors.New("subscription closed")
 			}
 		})
 	}
 	return g.Wait()
+}
+
+func withdrawnEventType(fundingID [32]byte) subscription.EventFactory {
+	return func() *subscription.Event {
+		return &subscription.Event{
+			Name:   bindings.Events.AhWithdrawn,
+			Data:   new(assetholder.AssetHolderWithdrawn),
+			Filter: [][]interface{}{{fundingID}},
+		}
+	}
 }
 
 func bindAssetHolder(cb ContractBackend, asset channel.Asset, assetIndex channel.Index) assetHolder {
@@ -103,30 +119,8 @@ func bindAssetHolder(cb ContractBackend, asset channel.Asset, assetIndex channel
 	if err != nil {
 		log.Panic("Invalid AssetHolder ABI definition.")
 	}
-	contract := bind.NewBoundContract(assetAddr, bindings.AssetHolderABI, cb, cb, cb)
+	contract := bind.NewBoundContract(assetAddr, bindings.ABI.AssetHolder, cb, cb, cb)
 	return assetHolder{ctr, &assetAddr, contract, assetIndex}
-}
-
-// filterWithdrawn returns whether there has been a Withdrawn event in the past.
-func (a *Adjudicator) filterWithdrawn(ctx context.Context, fundingID [32]byte, asset assetHolder) (bool, error) {
-	filterOpts, err := a.NewFilterOpts(ctx)
-	if err != nil {
-		return false, err
-	}
-	iter, err := asset.FilterWithdrawn(filterOpts, [][32]byte{fundingID})
-	if err != nil {
-		err = cherrors.CheckIsChainNotReachableError(err)
-		return false, errors.WithMessage(err, "creating iterator")
-	}
-	// nolint:errcheck
-	defer iter.Close()
-
-	if !iter.Next() {
-		err = cherrors.CheckIsChainNotReachableError(iter.Error())
-		return false, errors.WithMessage(err, "iterating")
-	}
-	// Event found
-	return true, nil
 }
 
 func (a *Adjudicator) callAssetWithdraw(ctx context.Context, request channel.AdjudicatorReq, asset assetHolder) error {

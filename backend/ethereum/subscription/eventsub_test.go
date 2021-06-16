@@ -89,13 +89,13 @@ func TestEventSub(t *testing.T) {
 	sink := make(chan *subscription.Event, 10)
 	eFact := func() *subscription.Event {
 		return &subscription.Event{
-			Name: "Approval",
+			Name: bindings.Events.ERC20Approval,
 			Data: new(peruntoken.ERC20Approval),
 		}
 	}
 	// Setup the event sub after some events have been sent.
 	<-waitSent
-	contract := bind.NewBoundContract(tokenAddr, bindings.ERC20TokenABI, cb, cb, cb)
+	contract := bind.NewBoundContract(tokenAddr, bindings.ABI.ERC20Token, cb, cb, cb)
 	sub, err := subscription.NewEventSub(ctx, cb, contract, eFact, 10000)
 	require.NoError(t, err)
 	go ct.Stage("sub", func(t pkgtest.ConcT) {
@@ -171,12 +171,12 @@ func TestEventSub_Filter(t *testing.T) {
 	sink := make(chan *subscription.Event, 1)
 	eFact := func() *subscription.Event {
 		return &subscription.Event{
-			Name:   "Deposited",
+			Name:   bindings.Events.AhDeposited,
 			Data:   new(assetholder.AssetHolderDeposited),
 			Filter: [][]interface{}{Filter},
 		}
 	}
-	contract := bind.NewBoundContract(ahAddr, bindings.AssetHolderABI, cb, cb, cb)
+	contract := bind.NewBoundContract(ahAddr, bindings.ABI.AssetHolder, cb, cb, cb)
 	sub, err := subscription.NewEventSub(ctx, cb, contract, eFact, 100)
 	require.NoError(t, err)
 	go ct.Stage("sub", func(t pkgtest.ConcT) {
