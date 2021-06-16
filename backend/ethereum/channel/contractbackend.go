@@ -29,7 +29,6 @@ import (
 	"github.com/pkg/errors"
 
 	cherrors "perun.network/go-perun/backend/ethereum/channel/errors"
-	"perun.network/go-perun/client"
 	"perun.network/go-perun/log"
 	pcontext "perun.network/go-perun/pkg/context"
 )
@@ -39,6 +38,10 @@ const startBlockOffset = 100
 
 // GasLimit is the max amount of gas we want to send per transaction.
 const GasLimit = 1000000
+
+// TxFinalityDepth defines in how many consecutive blocks a TX has to be
+// included to be considered final. Must be at least 1.
+var TxFinalityDepth uint64 = 6
 
 // errTxTimedOut is an internal named error that with an empty message.
 // Because calling function is expected to check for this error and
@@ -163,23 +166,18 @@ func (c *ContractBackend) NewTransactor(ctx context.Context, gasLimit uint64,
 	return auth, nil
 }
 
-// ConfirmTransaction returns whether a transaction was mined successfully or not
-// and the receipt if it could be retrieved.
-// Returns txTimedOutError if the context is cancelled or if the context
-// deadline is exceeded when waiting for the transaction to be mined.
+// ConfirmTransaction returns the receipt of the transaction if it was
+// included in at least `TxFinalityDepth` many blocks at one point in time.
+// Returns `txTimedOutError` on context timeout or cancel.
 func (c *ContractBackend) ConfirmTransaction(ctx context.Context, tx *types.Transaction, acc accounts.Account) (*types.Receipt, error) {
-	receipt, err := bind.WaitMined(ctx, c, tx)
+	receipt, err := c.confirmNTimes(ctx, tx, TxFinalityDepth)
 	if err != nil {
-		switch {
-		case pcontext.IsContextError(err):
-			err = errors.WithStack(errTxTimedOut)
-		case cherrors.IsChainNotReachableError(err):
-			err = client.NewChainNotReachableError(err)
-		default:
-			err = errors.WithStack(err)
+		if pcontext.IsContextError(err) {
+			err = errTxTimedOut
 		}
 		return nil, errors.WithMessage(err, "sending transaction")
 	}
+
 	if receipt.Status == types.ReceiptStatusFailed {
 		reason, err := errorReason(ctx, c, tx, receipt.BlockNumber, acc)
 		if err != nil {
@@ -196,6 +194,76 @@ func (c *ContractBackend) ConfirmTransaction(ctx context.Context, tx *types.Tran
 		return receipt, errors.WithStack(ErrTxFailed)
 	}
 	return receipt, nil
+}
+
+// confirmNTimes waits for a transaction to be included in `finalityDepth`
+// many consecutive blocks. `finalityDepth` must be at least one.
+func (c *ContractBackend) confirmNTimes(ctx context.Context, tx *types.Transaction, finalityDepth uint64) (*types.Receipt, error) {
+	if finalityDepth < 1 {
+		return nil, errors.New("finalityDepth was less than 1")
+	}
+	// Set up header sub for future blocks.
+	heads := make(chan *types.Header, 10)
+	hsub, err := c.SubscribeNewHead(ctx, heads)
+	if err != nil {
+		err = cherrors.CheckIsChainNotReachableError(err)
+		return nil, errors.WithMessage(err, "subscribing to heads")
+	}
+	defer hsub.Unsubscribe()
+
+	// Wait to be included at least once.
+	head, err := c.waitMined(ctx, tx)
+	if err != nil {
+		return nil, errors.WithMessage(err, "waiting for TX to be mined")
+	}
+	heads <- head
+
+	for {
+		select {
+		case head := <-heads:
+			// Poll the receipt of the TX.
+			receipt, err := c.ContractInterface.TransactionReceipt(ctx, tx.Hash())
+			if err != nil {
+				err = cherrors.CheckIsChainNotReachableError(err)
+				return nil, errors.WithMessage(err, "pulling receipt")
+			}
+			if receipt != nil && isFinal(receipt, head, finalityDepth) {
+				return receipt, nil
+			}
+			// TX is either not included in the canonical chain anymore
+			// or not yet final; wait for next head.
+		case err := <-hsub.Err():
+			err = cherrors.CheckIsChainNotReachableError(err)
+			return nil, errors.WithMessage(err, "header subscription")
+		case <-ctx.Done():
+			return nil, ctx.Err()
+		}
+	}
+}
+
+// waitMined waits for a TX to be mined and returns the latest head.
+func (c *ContractBackend) waitMined(ctx context.Context, tx *types.Transaction) (*types.Header, error) {
+	_, err := bind.WaitMined(ctx, c, tx)
+	if err != nil {
+		err = cherrors.CheckIsChainNotReachableError(err)
+		return nil, errors.WithMessage(err, "waiting for mined")
+	}
+	head, err := c.HeaderByNumber(ctx, nil)
+	if err != nil {
+		err = cherrors.CheckIsChainNotReachableError(err)
+		return nil, errors.WithMessage(err, "subscribing to heads")
+	}
+	return head, nil
+}
+
+// Returns ((head.number - receipt.number) + 1) >= finalityDepth.
+func isFinal(receipt *types.Receipt, head *types.Header, _finalityDepth uint64) bool {
+	finalityDepth := new(big.Int)
+	finalityDepth.SetUint64(_finalityDepth)
+
+	diff := new(big.Int).Sub(head.Number, receipt.BlockNumber)
+	included := new(big.Int).Add(diff, big.NewInt(1))
+	return included.Cmp(finalityDepth) >= 0
 }
 
 // ErrTxFailed signals a failed, i.e., reverted, transaction.
