@@ -15,6 +15,7 @@
 package test
 
 import (
+	"context"
 	"fmt"
 	"runtime/debug"
 	"strings"
@@ -64,10 +65,11 @@ func (g Goexit) String() string {
 	return "runtime.Goexit:\n\n" + g.Stack()
 }
 
-// CheckAbort tests whether a supplied function is aborted early using panic()
-// or runtime.Goexit(). Returns a descriptor of the termination cause or nil if
-// it terminated normally.
-func CheckAbort(function func()) (abort Abort) {
+// CheckAbortCtx tests whether a supplied function terminates within a context,
+// and whether it is aborted early using panic() or runtime.Goexit(). Returns
+// whether the function terminated before the expiry of the context and if so, a
+//  descriptor of the termination cause or nil if it terminated normally.
+func CheckAbortCtx(ctx context.Context, function func()) (abort Abort, ok bool) {
 	done := make(chan struct{})
 
 	goexit := true  // Whether runtime.Goexit occurred.
@@ -103,20 +105,30 @@ func CheckAbort(function func()) (abort Abort) {
 		goexit = false
 	}()
 
-	<-done
+	select {
+	case <-ctx.Done():
+		return nil, false
+	case <-done:
+		ok = true
+		// Concatenate the inner call stack of the failure (which starts at the
+		// goroutine instantiation) with the goroutine that is calling CheckAbort.
+		if goexit || aborted {
+			base.stack += "\n" + getStack(true, 1, 0)
+		}
 
-	// Concatenate the inner call stack of the failure (which starts at the
-	// goroutine instantiation) with the goroutine that is calling CheckAbort.
-	if goexit || aborted {
-		base.stack += "\n" + getStack(true, 1, 0)
+		if goexit {
+			abort = &Goexit{base}
+		} else if aborted {
+			abort = &Panic{base, recovered}
+		}
+		return
 	}
+}
 
-	if goexit {
-		abort = &Goexit{base}
-	} else if aborted {
-		abort = &Panic{base, recovered}
-	}
-	return
+// CheckAbort calls CheckAbortCtx with context.Background.
+func CheckAbort(function func()) Abort {
+	abort, _ := CheckAbortCtx(context.Background(), function)
+	return abort
 }
 
 // getStack retrieves the current call stack as text, and optionally removes the
