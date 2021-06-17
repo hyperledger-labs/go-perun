@@ -190,6 +190,9 @@ func (t *ConcurrentT) Wait(names ...string) {
 		stage := t.getStage(name)
 		select {
 		case <-t.ctx.Done():
+			t.failNowMutex.Lock()
+			t.t.Errorf("Wait for stage %s: %v", name, t.ctx.Err())
+			t.failNowMutex.Unlock()
 			t.FailNow()
 		case <-stage.wg.WaitCh():
 			if stage.failed.IsSet() {
@@ -245,12 +248,17 @@ func (t *ConcurrentT) StageN(name string, goroutines int, fn func(ConcT)) {
 
 	// If it did not terminate, just abort the test.
 	if !ok {
+		t.failNowMutex.Lock()
+		t.t.Errorf("Stage %s: %v", name, t.ctx.Err())
+		t.failNowMutex.Unlock()
 		t.FailNow()
 	}
 
 	// If it is a panic or Goexit from certain contexts, print stack trace.
 	if _, ok := abort.(*Panic); ok || shouldPrintStack(abort.Stack()) {
-		print("\n", abort.String())
+		t.failNowMutex.Lock()
+		t.t.Errorf("Stage %s: %s", name, abort.String())
+		t.failNowMutex.Unlock()
 	}
 	t.FailNow()
 }
