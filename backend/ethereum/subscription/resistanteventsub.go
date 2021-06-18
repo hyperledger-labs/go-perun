@@ -19,6 +19,7 @@ import (
 	"math/big"
 
 	"github.com/ethereum/go-ethereum"
+	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/pkg/errors"
@@ -44,6 +45,22 @@ type (
 		events       map[common.Hash]*Event
 	}
 )
+
+// Subscribe is a convenience function which returns a `ResistantEventSub`.
+// It is equivalent to manually calling `NewEventSub` and `NewResistantEventSub`
+// with the given parameters.
+func Subscribe(ctx context.Context, cr ethereum.ChainReader, contract *bind.BoundContract, eFact EventFactory, startBlockOffset, confirmations uint64) (*ResistantEventSub, error) {
+	_sub, err := NewEventSub(ctx, cr, contract, eFact, startBlockOffset)
+	if err != nil {
+		return nil, errors.WithMessage(err, "creating filter-watch event subscription")
+	}
+	sub, err := NewResistantEventSub(ctx, _sub, cr, confirmations)
+	if err != nil {
+		_sub.Close()
+		return nil, errors.WithMessage(err, "creating filter-watch event subscription")
+	}
+	return sub, nil
+}
 
 // NewResistantEventSub creates a new `ResistantEventSub` from the given
 // `EventSub`. Closes the passed `EventSub` when done.
