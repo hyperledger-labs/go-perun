@@ -34,21 +34,21 @@ const roleOperationTimeout = 1 * time.Second
 
 func NewSetups(rng *rand.Rand, names []string) []ctest.RoleSetup {
 	var (
-		bus   = wiretest.NewSerializingLocalBus()
-		n     = len(names)
-		setup = make([]ctest.RoleSetup, n)
+		bus     = wiretest.NewSerializingLocalBus()
+		n       = len(names)
+		setup   = make([]ctest.RoleSetup, n)
+		backend = &mockBackend{
+			log:          log.Get(),
+			rng:          newThreadSafePrng(rng),
+			latestEvents: make(map[channel.ID]channel.AdjudicatorEvent),
+			eventSubs:    make(map[channel.ID][]chan channel.AdjudicatorEvent),
+		}
 	)
 
 	for i := 0; i < n; i++ {
-		acc := wtest.NewRandomAccount(rng)
-		backend := &logBackend{
-			log: log.WithField("role", names[i]),
-			rng: rng,
-		}
-
 		setup[i] = ctest.RoleSetup{
 			Name:        names[i],
-			Identity:    acc,
+			Identity:    wtest.NewRandomAccount(rng),
 			Bus:         bus,
 			Funder:      backend,
 			Adjudicator: backend,
@@ -81,72 +81,164 @@ func NewClients(rng *rand.Rand, names []string, t *testing.T) []*Client {
 }
 
 type (
-	logBackend struct {
-		log         log.Logger
-		rng         *rand.Rand
-		mu          sync.RWMutex
-		latestEvent channel.AdjudicatorEvent
+	mockBackend struct {
+		log          log.Logger
+		rng          rng
+		mu           sync.Mutex
+		latestEvents map[channel.ID]channel.AdjudicatorEvent
+		eventSubs    map[channel.ID][]chan channel.AdjudicatorEvent
+	}
+
+	rng interface {
+		Intn(n int) int
+	}
+
+	threadSafeRng struct {
+		mu sync.Mutex
+		r  *rand.Rand
 	}
 )
 
-func (a *logBackend) Fund(_ context.Context, req channel.FundingReq) error {
-	time.Sleep(time.Duration(a.rng.Intn(100)) * time.Millisecond)
-	a.log.Infof("Funding: %v", req)
+func newThreadSafePrng(r *rand.Rand) *threadSafeRng {
+	return &threadSafeRng{
+		mu: sync.Mutex{},
+		r:  r,
+	}
+}
+
+func (g *threadSafeRng) Intn(n int) int {
+	g.mu.Lock()
+	defer g.mu.Unlock()
+
+	return g.r.Intn(n)
+}
+
+func (b *mockBackend) Fund(_ context.Context, req channel.FundingReq) error {
+	time.Sleep(time.Duration(b.rng.Intn(100)) * time.Millisecond)
+	b.log.Infof("Funding: %+v", req)
 	return nil
 }
 
-func (a *logBackend) Register(_ context.Context, req channel.AdjudicatorReq, subChannels []channel.SignedState) error {
-	a.log.Infof("Register: %v", req)
-	e := channel.NewRegisteredEvent(
+func (b *mockBackend) Register(_ context.Context, req channel.AdjudicatorReq, subChannels []channel.SignedState) error {
+	b.log.Infof("Register: %+v", req)
+
+	b.mu.Lock()
+	defer b.mu.Unlock()
+
+	channels := append([]channel.SignedState{
+		{
+			Params: req.Params,
+			State:  req.Tx.State,
+			Sigs:   req.Tx.Sigs,
+		},
+	}, subChannels...)
+
+	for _, ch := range channels {
+		b.setLatestEvent(
+			ch.Params.ID(),
+			channel.NewRegisteredEvent(
+				ch.Params.ID(),
+				&channel.ElapsedTimeout{},
+				ch.State.Version,
+				ch.State,
+				ch.Sigs,
+			),
+		)
+	}
+	return nil
+}
+
+func (b *mockBackend) setLatestEvent(ch channel.ID, e channel.AdjudicatorEvent) {
+	b.latestEvents[ch] = e
+	// Update subscriptions.
+	if channelSubs, ok := b.eventSubs[ch]; ok {
+		for _, events := range channelSubs {
+			// Remove previous latest event.
+			select {
+			case <-events:
+			default:
+			}
+			// Add latest event.
+			events <- e
+		}
+	}
+}
+
+func (b *mockBackend) Progress(_ context.Context, req channel.ProgressReq) error {
+	b.log.Infof("Progress: %+v", req)
+
+	b.mu.Lock()
+	defer b.mu.Unlock()
+
+	b.setLatestEvent(
 		req.Params.ID(),
-		&channel.ElapsedTimeout{},
-		req.Tx.Version,
+		channel.NewProgressedEvent(
+			req.Params.ID(),
+			&channel.ElapsedTimeout{},
+			req.NewState.Clone(),
+			req.Idx,
+		),
 	)
-	a.setEvent(e)
 	return nil
 }
 
-func (a *logBackend) Progress(_ context.Context, req channel.ProgressReq) error {
-	a.log.Infof("Progress: %v", req)
-	a.setEvent(channel.NewProgressedEvent(
-		req.Params.ID(),
-		&channel.ElapsedTimeout{},
-		req.NewState.Clone(),
-		req.Idx,
-	))
+// outcomeRecursive returns the accumulated outcome of the channel and its sub-channels.
+func outcomeRecursive(state *channel.State, subStates channel.StateMap) (outcome channel.Balances) {
+	outcome = state.Balances.Clone()
+	for _, subAlloc := range state.Locked {
+		subOutcome := outcomeRecursive(subStates[subAlloc.ID], subStates)
+		for a, bals := range subOutcome {
+			for p, bal := range bals {
+				_p := p
+				if len(subAlloc.IndexMap) > 0 {
+					_p = int(subAlloc.IndexMap[p])
+				}
+				outcome[a][_p].Add(outcome[a][_p], bal)
+			}
+		}
+	}
+	return
+}
+
+func (b *mockBackend) Withdraw(_ context.Context, req channel.AdjudicatorReq, subStates channel.StateMap) error {
+	outcome := outcomeRecursive(req.Tx.State, subStates)
+	b.log.Infof("Withdraw: %+v, %+v, %+v", req, subStates, outcome)
+
 	return nil
 }
 
-func (a *logBackend) Withdraw(_ context.Context, req channel.AdjudicatorReq, subStates channel.StateMap) error {
-	a.log.Infof("Withdraw: %v, %v", req, subStates)
+func (b *mockBackend) Subscribe(_ context.Context, params *channel.Params) (channel.AdjudicatorSubscription, error) {
+	b.log.Infof("SubscribeRegistered: %+v", params)
+
+	b.mu.Lock()
+	defer b.mu.Unlock()
+
+	sub := &mockSubscription{
+		events: make(chan channel.AdjudicatorEvent, 1),
+	}
+	b.eventSubs[params.ID()] = append(b.eventSubs[params.ID()], sub.events)
+
+	// Feed latest event if any.
+	if e, ok := b.latestEvents[params.ID()]; ok {
+		sub.events <- e
+	}
+
+	return sub, nil
+}
+
+type mockSubscription struct {
+	events chan channel.AdjudicatorEvent
+}
+
+func (s *mockSubscription) Next() channel.AdjudicatorEvent {
+	return <-s.events
+}
+
+func (s *mockSubscription) Close() error {
+	close(s.events)
 	return nil
 }
 
-func (a *logBackend) Subscribe(_ context.Context, params *channel.Params) (channel.AdjudicatorSubscription, error) {
-	a.log.Infof("SubscribeRegistered: %v", params)
-	return &simSubscription{a}, nil
-}
-
-func (a *logBackend) setEvent(e channel.AdjudicatorEvent) {
-	a.mu.Lock()
-	defer a.mu.Unlock()
-	a.latestEvent = e
-}
-
-type simSubscription struct {
-	a *logBackend
-}
-
-func (s *simSubscription) Next() channel.AdjudicatorEvent {
-	s.a.mu.RLock()
-	defer s.a.mu.RUnlock()
-	return s.a.latestEvent
-}
-
-func (s *simSubscription) Close() error {
-	return nil
-}
-
-func (s *simSubscription) Err() error {
+func (s *mockSubscription) Err() error {
 	return nil
 }

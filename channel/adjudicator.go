@@ -193,13 +193,15 @@ func (b AdjudicatorEventBase) Timeout() Timeout { return b.TimeoutV }
 func (b AdjudicatorEventBase) Version() uint64 { return b.VersionV }
 
 // NewRegisteredEvent creates a new RegisteredEvent.
-func NewRegisteredEvent(id ID, timeout Timeout, version uint64) *RegisteredEvent {
+func NewRegisteredEvent(id ID, timeout Timeout, version uint64, state *State, sigs []wallet.Sig) *RegisteredEvent {
 	return &RegisteredEvent{
 		AdjudicatorEventBase: AdjudicatorEventBase{
 			IDV:      id,
 			TimeoutV: timeout,
 			VersionV: version,
 		},
+		State: state,
+		Sigs:  sigs,
 	}
 }
 

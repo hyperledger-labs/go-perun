@@ -45,7 +45,7 @@ func (d DummyBus) SubscribeClient(wire.Consumer, wire.Address) error {
 func TestClient_New_NilArgs(t *testing.T) {
 	rng := test.Prng(t)
 	id := wtest.NewRandomAddress(rng)
-	b, f, a, w := &DummyBus{t}, &logBackend{}, &logBackend{}, wtest.RandomWallet()
+	b, f, a, w := &DummyBus{t}, &mockBackend{}, &mockBackend{}, wtest.RandomWallet()
 	assert.Panics(t, func() { client.New(nil, b, f, a, w) })
 	assert.Panics(t, func() { client.New(id, nil, f, a, w) })
 	assert.Panics(t, func() { client.New(id, b, nil, a, w) })
@@ -55,7 +55,7 @@ func TestClient_New_NilArgs(t *testing.T) {
 
 func TestClient_Handle_NilArgs(t *testing.T) {
 	rng := test.Prng(t)
-	c, err := client.New(wtest.NewRandomAddress(rng), &DummyBus{t}, &logBackend{}, &logBackend{}, wtest.RandomWallet())
+	c, err := client.New(wtest.NewRandomAddress(rng), &DummyBus{t}, &mockBackend{}, &mockBackend{}, wtest.RandomWallet())
 	require.NoError(t, err)
 
 	dummyUH := client.UpdateHandlerFunc(func(*channel.State, client.ChannelUpdate, *client.UpdateResponder) {})
@@ -66,7 +66,7 @@ func TestClient_Handle_NilArgs(t *testing.T) {
 
 func TestClient_New(t *testing.T) {
 	rng := test.Prng(t)
-	c, err := client.New(wtest.NewRandomAddress(rng), &DummyBus{t}, &logBackend{}, &logBackend{}, wtest.RandomWallet())
+	c, err := client.New(wtest.NewRandomAddress(rng), &DummyBus{t}, &mockBackend{}, &mockBackend{}, wtest.RandomWallet())
 	assert.NoError(t, err)
 	require.NotNil(t, c)
 }
