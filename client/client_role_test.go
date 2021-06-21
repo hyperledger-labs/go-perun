@@ -41,22 +41,17 @@ func NewSetups(rng *rand.Rand, names []string) []ctest.RoleSetup {
 
 	for i := 0; i < n; i++ {
 		acc := wtest.NewRandomAccount(rng)
-
-		// The use of a delayed funder simulates that channel participants may
-		// receive their funding confirmation at different times.
-		var funder channel.Funder
-		if i == 0 {
-			funder = &logFunderWithDelay{log.WithField("role", names[i])}
-		} else {
-			funder = &logFunder{log.WithField("role", names[i])}
+		backend := &logBackend{
+			log: log.WithField("role", names[i]),
+			rng: rng,
 		}
 
 		setup[i] = ctest.RoleSetup{
 			Name:        names[i],
 			Identity:    acc,
 			Bus:         bus,
-			Funder:      funder,
-			Adjudicator: &logAdjudicator{log.WithField("role", names[i]), sync.RWMutex{}, nil},
+			Funder:      backend,
+			Adjudicator: backend,
 			Wallet:      wtest.NewWallet(),
 			Timeout:     roleOperationTimeout,
 		}
@@ -86,33 +81,21 @@ func NewClients(rng *rand.Rand, names []string, t *testing.T) []*Client {
 }
 
 type (
-	logFunder struct {
-		log log.Logger
-	}
-
-	logFunderWithDelay struct {
-		log log.Logger
-	}
-
-	logAdjudicator struct {
+	logBackend struct {
 		log         log.Logger
+		rng         *rand.Rand
 		mu          sync.RWMutex
 		latestEvent channel.AdjudicatorEvent
 	}
 )
 
-func (f *logFunder) Fund(_ context.Context, req channel.FundingReq) error {
-	f.log.Infof("Funding: %v", req)
+func (a *logBackend) Fund(_ context.Context, req channel.FundingReq) error {
+	time.Sleep(time.Duration(a.rng.Intn(100)) * time.Millisecond)
+	a.log.Infof("Funding: %v", req)
 	return nil
 }
 
-func (f *logFunderWithDelay) Fund(_ context.Context, req channel.FundingReq) error {
-	time.Sleep(100 * time.Millisecond)
-	f.log.Infof("Funding: %v", req)
-	return nil
-}
-
-func (a *logAdjudicator) Register(_ context.Context, req channel.AdjudicatorReq, subChannels []channel.SignedState) error {
+func (a *logBackend) Register(_ context.Context, req channel.AdjudicatorReq, subChannels []channel.SignedState) error {
 	a.log.Infof("Register: %v", req)
 	e := channel.NewRegisteredEvent(
 		req.Params.ID(),
@@ -123,7 +106,7 @@ func (a *logAdjudicator) Register(_ context.Context, req channel.AdjudicatorReq,
 	return nil
 }
 
-func (a *logAdjudicator) Progress(_ context.Context, req channel.ProgressReq) error {
+func (a *logBackend) Progress(_ context.Context, req channel.ProgressReq) error {
 	a.log.Infof("Progress: %v", req)
 	a.setEvent(channel.NewProgressedEvent(
 		req.Params.ID(),
@@ -134,24 +117,24 @@ func (a *logAdjudicator) Progress(_ context.Context, req channel.ProgressReq) er
 	return nil
 }
 
-func (a *logAdjudicator) Withdraw(_ context.Context, req channel.AdjudicatorReq, subStates channel.StateMap) error {
+func (a *logBackend) Withdraw(_ context.Context, req channel.AdjudicatorReq, subStates channel.StateMap) error {
 	a.log.Infof("Withdraw: %v, %v", req, subStates)
 	return nil
 }
 
-func (a *logAdjudicator) Subscribe(_ context.Context, params *channel.Params) (channel.AdjudicatorSubscription, error) {
+func (a *logBackend) Subscribe(_ context.Context, params *channel.Params) (channel.AdjudicatorSubscription, error) {
 	a.log.Infof("SubscribeRegistered: %v", params)
 	return &simSubscription{a}, nil
 }
 
-func (a *logAdjudicator) setEvent(e channel.AdjudicatorEvent) {
+func (a *logBackend) setEvent(e channel.AdjudicatorEvent) {
 	a.mu.Lock()
 	defer a.mu.Unlock()
 	a.latestEvent = e
 }
 
 type simSubscription struct {
-	a *logAdjudicator
+	a *logBackend
 }
 
 func (s *simSubscription) Next() channel.AdjudicatorEvent {
