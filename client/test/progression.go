@@ -21,6 +21,7 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"perun.network/go-perun/channel"
+	"perun.network/go-perun/log"
 )
 
 // ProgressionExecConfig contains config parameters for the progression test.
@@ -30,14 +31,14 @@ type ProgressionExecConfig struct {
 
 // Watcher is a client that handles adjudicator events.
 type Watcher struct {
-	t          *testing.T
+	log.Logger
 	registered chan *channel.RegisteredEvent
 	progressed chan *channel.ProgressedEvent
 }
 
-func makeWatcher(t *testing.T) Watcher {
+func makeWatcher(log log.Logger) Watcher {
 	return Watcher{
-		t:          t,
+		Logger:     log,
 		registered: make(chan *channel.RegisteredEvent),
 		progressed: make(chan *channel.ProgressedEvent),
 	}
@@ -45,7 +46,7 @@ func makeWatcher(t *testing.T) Watcher {
 
 // HandleAdjudicatorEvent is the callback for adjudicator event handling.
 func (w *Watcher) HandleAdjudicatorEvent(e channel.AdjudicatorEvent) {
-	w.t.Logf("HandleAdjudicatorEvent: %v", e)
+	w.Infof("HandleAdjudicatorEvent: %v", e)
 	switch e := e.(type) {
 	case *channel.RegisteredEvent:
 		w.registered <- e
@@ -64,9 +65,10 @@ type Paul struct {
 
 // NewPaul creates a new party that executes the Paul protocol.
 func NewPaul(t *testing.T, setup RoleSetup) *Paul {
+	p := NewProposer(setup, t, 1)
 	return &Paul{
-		Proposer: *NewProposer(setup, t, 1),
-		Watcher:  makeWatcher(t),
+		Proposer: *p,
+		Watcher:  makeWatcher(p.log),
 	}
 }
 
@@ -83,8 +85,8 @@ func (r *Paul) exec(_cfg ExecConfig, ch *paymentChannel) {
 	// start watcher
 	go func() {
 		r.log.Info("Starting channel watcher.")
-		assert.NoError(ch.Watch(r))
-		r.log.Debug("Channel watcher returned.")
+		err := ch.Watch(r)
+		r.log.Infof("Channel watcher returned: %v", err)
 	}()
 
 	r.waitStage() // wait for setup complete
@@ -130,9 +132,10 @@ type Paula struct {
 
 // NewPaula creates a new party that executes the Paula protocol.
 func NewPaula(t *testing.T, setup RoleSetup) *Paula {
+	r := NewResponder(setup, t, 1)
 	return &Paula{
-		Responder: *NewResponder(setup, t, 1),
-		Watcher:   makeWatcher(t),
+		Responder: *r,
+		Watcher:   makeWatcher(r.log),
 	}
 }
 
@@ -149,8 +152,8 @@ func (r *Paula) exec(_cfg ExecConfig, ch *paymentChannel, _ *acceptNextPropHandl
 	// start watcher
 	go func() {
 		r.log.Info("Starting channel watcher.")
-		assert.NoError(ch.Watch(r))
-		r.log.Debug("Channel watcher returned.")
+		err := ch.Watch(r)
+		r.log.Infof("Channel watcher returned: %v", err)
 	}()
 
 	r.waitStage() // wait for setup complete

@@ -45,7 +45,7 @@ func SetRandomizer(r Randomizer) {
 
 // NewRandomPhase generates a random channel machine phase.
 func NewRandomPhase(rng *rand.Rand) channel.Phase {
-	return channel.Phase(rng.Intn(int(channel.LastPhase) + 1))
+	return channel.Phase(rng.Intn(channel.LastPhase + 1))
 }
 
 // NewRandomAsset generates a new random `channel.Asset`.
@@ -134,7 +134,7 @@ func NewRandomSubAlloc(rng *rand.Rand, opts ...RandomOpt) *channel.SubAlloc {
 		bals = NewRandomBals(rng, opt.NumAssets(rng), opt)
 	}
 
-	return &channel.SubAlloc{ID: id, Bals: bals}
+	return channel.NewSubAlloc(id, bals)
 }
 
 // NewRandomParamsAndState generates a new random `channel.Params` and `channel.State`.

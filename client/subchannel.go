@@ -111,7 +111,7 @@ func (c *Channel) withdrawSubChannel(ctx context.Context, sub *Channel) error {
 
 func (c *Channel) registerSubChannelFunding(id channel.ID, alloc []channel.Bal) {
 	filter := func(cu ChannelUpdate) bool {
-		expected := channel.SubAlloc{ID: id, Bals: alloc}
+		expected := *channel.NewSubAlloc(id, alloc)
 		_, containedBefore := c.machine.State().SubAlloc(expected.ID)
 		subAlloc, containedAfter := cu.State.SubAlloc(expected.ID)
 		return !containedBefore && containedAfter && expected.Equal(&subAlloc) == nil

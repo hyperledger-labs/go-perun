@@ -304,8 +304,7 @@ func (c *Client) validTwoPartyProposal(
 	ourIdx int,
 	peerAddr wallet.Address,
 ) error {
-	base := proposal.Base()
-	if err := base.Valid(); err != nil {
+	if err := proposal.Valid(); err != nil {
 		return err
 	}
 
@@ -369,15 +368,6 @@ func (c *Client) validChannelProposalAcc(
 	accID := response.Base().ProposalID
 	if !bytes.Equal(propID[:], accID[:]) {
 		return errors.Errorf("mismatched proposal ID %b and accept ID %b", propID, accID)
-	}
-
-	if proposal.Type() == wire.SubChannelProposal {
-		subProp := proposal.(*SubChannelProposal)
-
-		_, ok := c.channels.Get(subProp.Parent)
-		if !ok {
-			return errors.New("parent channel does not exist")
-		}
 	}
 
 	return nil
@@ -602,7 +592,7 @@ type version1Cache struct {
 type cachedUpdate struct {
 	uh UpdateHandler
 	p  wire.Address
-	m  *msgChannelUpdate
+	m  ChannelUpdateProposal
 }
 
 // Error implements the error interface.

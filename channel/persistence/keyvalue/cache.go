@@ -38,6 +38,7 @@ type channelCache struct {
 	peerChannels map[string]map[channel.ID]struct{} // Address -> Set<chID>
 }
 
+// nolint: unused
 func (c *channelCache) addPeerChannel(addr wire.Address, chID channel.ID) {
 	c.mutex.Lock()
 	defer c.mutex.Unlock()
@@ -53,6 +54,7 @@ func (c *channelCache) addPeerChannel(addr wire.Address, chID channel.ID) {
 	}
 }
 
+// nolint: unused
 func (c *channelCache) deleteChannel(id channel.ID) []wire.Address {
 	c.mutex.Lock()
 	defer c.mutex.Unlock()
@@ -71,6 +73,7 @@ func (c *channelCache) deleteChannel(id channel.ID) []wire.Address {
 	return peers
 }
 
+// nolint: unused
 func (c *channelCache) clear() {
 	c.mutex.Lock()
 	defer c.mutex.Unlock()

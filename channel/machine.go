@@ -68,7 +68,8 @@ const (
 	Progressed
 	Withdrawing
 	Withdrawn
-	LastPhase = Withdrawn
+	// LastPhase contains the value of the last phase. This is useful for testing.
+	LastPhase = int(Withdrawn)
 )
 
 func (p Phase) String() string {
