@@ -172,8 +172,9 @@ func NewRandomParams(rng *rand.Rand, opts ...RandomOpt) *channel.Params {
 	challengeDuration := opt.ChallengeDuration(rng)
 	app := NewRandomApp(rng, opt)
 	ledger := opt.LedgerChannel(rng)
+	virtual := opt.VirtualChannel(rng)
 
-	params := channel.NewParamsUnsafe(challengeDuration, parts, app, nonce, ledger)
+	params := channel.NewParamsUnsafe(challengeDuration, parts, app, nonce, ledger, virtual)
 	updateOpts(opts, WithParams(params))
 	return params
 }

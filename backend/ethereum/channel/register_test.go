@@ -50,7 +50,15 @@ func registerMultiple(t *testing.T, numParts int, parallel bool) {
 	// create test setup
 	s := test.NewSetup(t, rng, numParts)
 	// create valid state and params
-	params, state := channeltest.NewRandomParamsAndState(rng, channeltest.WithChallengeDuration(uint64(100*time.Second)), channeltest.WithParts(s.Parts...), channeltest.WithAssets((*ethchannel.Asset)(&s.Asset)), channeltest.WithIsFinal(false), channeltest.WithLedgerChannel(true))
+	params, state := channeltest.NewRandomParamsAndState(
+		rng,
+		channeltest.WithChallengeDuration(uint64(100*time.Second)),
+		channeltest.WithParts(s.Parts...),
+		channeltest.WithAssets((*ethchannel.Asset)(&s.Asset)),
+		channeltest.WithIsFinal(false),
+		channeltest.WithLedgerChannel(true),
+		channeltest.WithVirtualChannel(false),
+	)
 
 	// we need to properly fund the channel
 	fundingCtx, funCancel := context.WithTimeout(context.Background(), defaultTxTimeout)

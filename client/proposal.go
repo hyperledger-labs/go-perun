@@ -421,7 +421,9 @@ func (c *Client) completeCPP(
 		c.mpcppParts(prop, acc),
 		propBase.App,
 		calcNonce(nonceShares(propBase.NonceShare, acc.Base().NonceShare)),
-		prop.Type() == wire.LedgerChannelProposal)
+		prop.Type() == wire.LedgerChannelProposal,
+		false,
+	)
 
 	if c.channels.Has(params.ID()) {
 		return nil, errors.New("channel already exists")

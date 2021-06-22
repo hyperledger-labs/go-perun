@@ -182,10 +182,16 @@ func WithVersion(version uint64) RandomOpt {
 }
 
 const nameLedgerChannel = "ledgerChannel"
+const nameVirtualChannel = "virtualChannel"
 
 // WithLedgerChannel sets the `LedgerChannel` attribute.
 func WithLedgerChannel(ledger bool) RandomOpt {
 	return RandomOpt{nameLedgerChannel: ledger}
+}
+
+// WithVirtualChannel sets the `VirtualChannel` attribute.
+func WithVirtualChannel(b bool) RandomOpt {
+	return RandomOpt{nameVirtualChannel: b}
 }
 
 // Append inserts all `opts` into the receiving object and returns the result.
@@ -370,7 +376,7 @@ func (o RandomOpt) Nonce(rng io.Reader) channel.Nonce {
 	return o["nonce"].(channel.Nonce)
 }
 
-// LedgerChannel returns the `Nonce` value of the `RandomOpt`.
+// LedgerChannel returns the `LedgerChannel` value of the `RandomOpt`.
 // If not present, a random value is generated with `rng` as entropy source.
 func (o RandomOpt) LedgerChannel(rng io.Reader) bool {
 	if _, ok := o[nameLedgerChannel]; !ok {
@@ -382,6 +388,20 @@ func (o RandomOpt) LedgerChannel(rng io.Reader) bool {
 		o[nameLedgerChannel] = a[0]%2 == 0
 	}
 	return o[nameLedgerChannel].(bool)
+}
+
+// VirtualChannel returns the `VirtualChannel` value of the `RandomOpt`.
+// If not present, a random value is generated with `rng` as entropy source.
+func (o RandomOpt) VirtualChannel(rng io.Reader) bool {
+	if _, ok := o[nameVirtualChannel]; !ok {
+		var a = make([]byte, 1)
+		_, err := rng.Read(a)
+		if err != nil {
+			panic(err)
+		}
+		o[nameVirtualChannel] = a[0]%2 == 0
+	}
+	return o[nameVirtualChannel].(bool)
 }
 
 // NumAssets returns the `NumAssets` value of the `RandomOpt`.

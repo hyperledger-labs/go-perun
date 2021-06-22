@@ -162,6 +162,7 @@ func ToEthParams(p *channel.Params) adjudicator.ChannelParams {
 		App:               app,
 		Participants:      pwToCommonAddresses(p.Parts),
 		LedgerChannel:     p.LedgerChannel,
+		VirtualChannel:    p.VirtualChannel,
 	}
 }
 

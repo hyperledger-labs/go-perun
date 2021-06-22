@@ -61,7 +61,15 @@ func TestSubscribeRegistered(t *testing.T) {
 	// create test setup
 	s := test.NewSetup(t, rng, 1)
 	// create valid state and params
-	params, state := channeltest.NewRandomParamsAndState(rng, channeltest.WithChallengeDuration(uint64(100*time.Second)), channeltest.WithParts(s.Parts...), channeltest.WithAssets((*ethchannel.Asset)(&s.Asset)), channeltest.WithIsFinal(false), channeltest.WithLedgerChannel(true))
+	params, state := channeltest.NewRandomParamsAndState(
+		rng,
+		channeltest.WithChallengeDuration(uint64(100*time.Second)),
+		channeltest.WithParts(s.Parts...),
+		channeltest.WithAssets((*ethchannel.Asset)(&s.Asset)),
+		channeltest.WithIsFinal(false),
+		channeltest.WithLedgerChannel(true),
+		channeltest.WithVirtualChannel(false),
+	)
 	// Set up subscription
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
