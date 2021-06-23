@@ -74,14 +74,14 @@ func testCalcID(t *testing.T, rng *rand.Rand, contr *adjudicator.Adjudicator, op
 
 func testHashState(t *testing.T, rng *rand.Rand, contr *adjudicator.Adjudicator, opts *bind.CallOpts) {
 	for i := 0; i < 100; i++ {
-		state := test.NewRandomParams(rng)
-		ethState := channel.ToEthParams(state)
-		ethId, err := contr.ChannelID(opts, ethState)
+		state := test.NewRandomState(rng)
+		ethState := channel.ToEthState(state)
+		ethHash, err := contr.HashState(opts, ethState)
 		require.NoError(t, err)
-		chID := channel.CalcID(state)
+		stateHash := channel.HashState(state)
 
 		require.NoError(t, err)
-		require.Equal(t, chID, ethId)
+		require.Equal(t, stateHash, ethHash)
 	}
 
 	assert.Panics(t, func() {
