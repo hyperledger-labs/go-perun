@@ -16,6 +16,7 @@ package client
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"github.com/pkg/errors"
@@ -97,6 +98,50 @@ func (c *Client) handleVirtualChannelFundingProposal(
 	c.acceptProposal(responder)
 }
 
+func (c *Channel) watchVirtual() error {
+	log := c.Log().WithField("proc", fmt.Sprintf("virtual channel watcher %v", c.ID()))
+	defer log.Info("Watcher returned.")
+
+	// Subscribe to state changes
+	ctx := c.Ctx()
+	sub, err := c.adjudicator.Subscribe(ctx, c.Params())
+	if err != nil {
+		return errors.WithMessage(err, "subscribing to adjudicator state changes")
+	}
+	defer func() {
+		if err := sub.Close(); err != nil {
+			log.Warn(err)
+		}
+	}()
+
+	// Wait for state changed event
+	for e := sub.Next(); e != nil; e = sub.Next() {
+		// Update channel
+		switch e := e.(type) {
+		case *channel.RegisteredEvent:
+			if e.Version() > c.State().Version {
+				err := c.pushVirtualUpdate(ctx, e.State, e.Sigs)
+				if err != nil {
+					log.Warnf("error updating virtual channel: %v", err)
+				}
+			}
+
+		case *channel.ProgressedEvent:
+			log.Errorf("Virtual channel progressed: %v", e.ID())
+
+		case *channel.ConcludedEvent:
+			log.Infof("Virtual channel concluded: %v", e.ID())
+
+		default:
+			log.Errorf("unsupported type: %T", e)
+		}
+	}
+
+	err = sub.Err()
+	log.Debugf("Subscription closed: %v", err)
+	return errors.WithMessage(err, "subscription closed")
+}
+
 // dummyAcount represents an address but cannot be used for signing.
 type dummyAccount struct {
 	address wallet.Address
@@ -154,6 +199,33 @@ func (c *Client) persistVirtualChannel(ctx context.Context, parent *Channel, pee
 		return nil, errors.Errorf("failed to put channel into registry: %v", cID)
 	}
 	return ch, nil
+}
+
+func (c *Channel) pushVirtualUpdate(ctx context.Context, state *channel.State, sigs []wallet.Sig) error {
+	if !c.machMtx.TryLockCtx(ctx) {
+		return errors.Errorf("locking machine mutex in time: %v", ctx.Err())
+	}
+	defer c.machMtx.Unlock()
+
+	m := c.machine
+	if err := m.ForceUpdate(ctx, state, hubIndex); err != nil {
+		return err
+	}
+
+	for i, sig := range sigs {
+		idx := channel.Index(i)
+		if err := m.AddSig(ctx, idx, sig); err != nil {
+			return err
+		}
+	}
+
+	var err error
+	if state.IsFinal {
+		err = m.EnableFinal(ctx)
+	} else {
+		err = m.EnableUpdate(ctx)
+	}
+	return err
 }
 
 func (c *Client) validateVirtualChannelFundingProposal(
@@ -265,8 +337,16 @@ func (c *Client) matchFundingProposal(ctx context.Context, a, b interface{}) boo
 	// Store state for withdrawal after dispute.
 	parent := channels[0]
 	peers := c.gatherPeers(channels...)
-	_, err = c.persistVirtualChannel(ctx, parent, peers, *prop0.Initial.Params, *prop0.Initial.State, prop0.Initial.Sigs)
-	return err == nil
+	virtual, err := c.persistVirtualChannel(ctx, parent, peers, *prop0.Initial.Params, *prop0.Initial.State, prop0.Initial.Sigs)
+	if err != nil {
+		return false
+	}
+
+	go func() {
+		err := virtual.watchVirtual()
+		c.log.Debugf("channel %v: watcher stopped: %v", virtual.ID(), err)
+	}()
+	return true
 }
 
 func castToFundingProposals(inputs ...interface{}) ([]*virtualChannelFundingProposal, error) {
