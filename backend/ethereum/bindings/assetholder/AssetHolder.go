@@ -486,6 +486,7 @@ func (_AssetHolder *AssetHolderFilterer) ParseDeposited(log types.Log) (*AssetHo
 	if err := _AssetHolder.contract.UnpackLog(event, "Deposited", log); err != nil {
 		return nil, err
 	}
+	event.Raw = log
 	return event, nil
 }
 
@@ -629,6 +630,7 @@ func (_AssetHolder *AssetHolderFilterer) ParseOutcomeSet(log types.Log) (*AssetH
 	if err := _AssetHolder.contract.UnpackLog(event, "OutcomeSet", log); err != nil {
 		return nil, err
 	}
+	event.Raw = log
 	return event, nil
 }
 
@@ -774,6 +776,7 @@ func (_AssetHolder *AssetHolderFilterer) ParseWithdrawn(log types.Log) (*AssetHo
 	if err := _AssetHolder.contract.UnpackLog(event, "Withdrawn", log); err != nil {
 		return nil, err
 	}
+	event.Raw = log
 	return event, nil
 }
 

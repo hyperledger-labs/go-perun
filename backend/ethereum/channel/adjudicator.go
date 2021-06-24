@@ -87,7 +87,15 @@ func (a *Adjudicator) Progress(ctx context.Context, req channel.ProgressReq) err
 }
 
 func (a *Adjudicator) callRegister(ctx context.Context, req channel.AdjudicatorReq) error {
-	return a.call(ctx, req, a.contract.Register, Register)
+	return a.call(ctx, req,
+		func(opts *bind.TransactOpts, params adjudicator.ChannelParams, state adjudicator.ChannelState, sigs [][]byte) (*types.Transaction, error) {
+			ch := adjudicator.AdjudicatorSignedState{
+				Params: params,
+				State:  state,
+				Sigs:   sigs,
+			}
+			return a.contract.Register(opts, ch, []adjudicator.AdjudicatorSignedState{})
+		}, Register)
 }
 
 func (a *Adjudicator) callConclude(ctx context.Context, req channel.AdjudicatorReq, subStates channel.StateMap) error {
