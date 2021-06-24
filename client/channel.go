@@ -35,6 +35,7 @@ type Channel struct {
 	perunsync.OnCloser
 	log.Embedding
 
+	client      *Client
 	conn        *channelConn
 	machine     persistence.StateMachine
 	machMtx     perunsync.Mutex
@@ -91,6 +92,7 @@ func (c *Client) channelFromMachine(machine *channel.StateMachine, parent *Chann
 
 	conn.SetLog(logger)
 	return &Channel{
+		client:                c,
 		parent:                parent,
 		OnCloser:              conn,
 		Embedding:             log.MakeEmbedding(logger),
@@ -137,13 +139,20 @@ func (c *Channel) Params() *channel.Params {
 	return c.machine.Params()
 }
 
-// State returns the current state.
+// State returns a pointer to the current state.
 // Clone it if you want to modify it.
 // Can not be called from an update handler.
 func (c *Channel) State() *channel.State {
 	c.machMtx.Lock()
 	defer c.machMtx.Unlock()
 
+	return c.state()
+}
+
+// state returns a pointer to the current state.
+// Assumes that the machine mutex has been locked.
+// Clone the state if you want to modify it.
+func (c *Channel) state() *channel.State {
 	return c.machine.State()
 }
 

@@ -134,7 +134,7 @@ func NewRandomSubAlloc(rng *rand.Rand, opts ...RandomOpt) *channel.SubAlloc {
 		bals = NewRandomBals(rng, opt.NumAssets(rng), opt)
 	}
 
-	return channel.NewSubAlloc(id, bals)
+	return channel.NewSubAlloc(id, bals, nil)
 }
 
 // NewRandomParamsAndState generates a new random `channel.Params` and `channel.State`.
@@ -171,8 +171,10 @@ func NewRandomParams(rng *rand.Rand, opts ...RandomOpt) *channel.Params {
 	nonce := opt.Nonce(rng)
 	challengeDuration := opt.ChallengeDuration(rng)
 	app := NewRandomApp(rng, opt)
+	ledger := opt.LedgerChannel(rng)
+	virtual := opt.VirtualChannel(rng)
 
-	params := channel.NewParamsUnsafe(challengeDuration, parts, app, nonce)
+	params := channel.NewParamsUnsafe(challengeDuration, parts, app, nonce, ledger, virtual)
 	updateOpts(opts, WithParams(params))
 	return params
 }

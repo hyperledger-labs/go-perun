@@ -36,10 +36,10 @@ type (
 	// AdjudicatorEvents. Those events might be triggered by a Register or
 	// Progress call on the adjudicator from any channel participant.
 	Adjudicator interface {
-		// Register should register the given channel state on-chain. It must be
-		// taken into account that a peer might already have registered the same or
-		// even an old state for the same channel.
-		Register(context.Context, AdjudicatorReq) error
+		// Register should register the given ledger channel state on-chain.
+		// If the channel has locked funds into sub-channels, the corresponding
+		// signed sub-channel states must be provided.
+		Register(context.Context, AdjudicatorReq, []SignedState) error
 
 		// Withdraw should conclude and withdraw the registered state, so that the
 		// final outcome is set on the asset holders and funds are withdrawn
@@ -76,6 +76,13 @@ type (
 		Tx        Transaction
 		Idx       Index // Always the own index
 		Secondary bool  // Optimized secondary call protocol
+	}
+
+	// SignedState represents a signed channel state including parameters.
+	SignedState struct {
+		Params *Params
+		State  *State
+		Sigs   []wallet.Sig
 	}
 
 	// A ProgressReq collects all necessary information to do a progress call to

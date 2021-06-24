@@ -420,7 +420,10 @@ func (c *Client) completeCPP(
 		propBase.ChallengeDuration,
 		c.mpcppParts(prop, acc),
 		propBase.App,
-		calcNonce(nonceShares(propBase.NonceShare, acc.Base().NonceShare)))
+		calcNonce(nonceShares(propBase.NonceShare, acc.Base().NonceShare)),
+		prop.Type() == wire.LedgerChannelProposal,
+		false,
+	)
 
 	if c.channels.Has(params.ID()) {
 		return nil, errors.New("channel already exists")

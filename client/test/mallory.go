@@ -70,7 +70,7 @@ func (r *Mallory) exec(_cfg ExecConfig, ch *paymentChannel) {
 	regCtx, regCancel := context.WithTimeout(context.Background(), r.timeout)
 	defer regCancel()
 	r.log.Debug("Registering version 0 state.")
-	assert.NoError(r.setup.Adjudicator.Register(regCtx, req0))
+	assert.NoError(r.setup.Adjudicator.Register(regCtx, req0, nil))
 
 	// within the challenge duration, Carol should refute.
 	subCtx, subCancel := context.WithTimeout(context.Background(), r.timeout+challengeDuration)

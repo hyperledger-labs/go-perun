@@ -82,8 +82,9 @@ type (
 	// The size of the balances slice must be of the same size as the assets slice
 	// of the channel Params.
 	SubAlloc struct {
-		ID   ID
-		Bals []Bal
+		ID       ID
+		Bals     []Bal
+		IndexMap []Index // Maps participant indices of the sub-channel to participant indices of the parent channel.
 	}
 
 	// Bal is a single asset's balance.
@@ -125,10 +126,7 @@ func (a Allocation) Clone() (clone Allocation) {
 	if a.Locked != nil {
 		clone.Locked = make([]SubAlloc, len(a.Locked))
 		for i, sa := range a.Locked {
-			clone.Locked[i] = SubAlloc{
-				ID:   sa.ID,
-				Bals: CloneBals(sa.Bals),
-			}
+			clone.Locked[i] = *NewSubAlloc(sa.ID, CloneBals(sa.Bals), CloneIndexMap(sa.IndexMap))
 		}
 	}
 
@@ -363,6 +361,17 @@ func CloneBals(orig []Bal) []Bal {
 	return clone
 }
 
+// CloneIndexMap creates a deep copy of an index map.
+func CloneIndexMap(orig []Index) (clone []Index) {
+	if orig == nil {
+		return nil
+	}
+
+	clone = make([]Index, len(orig))
+	copy(clone, orig)
+	return
+}
+
 // Valid checks that the asset-dimensions match and slices are not nil.
 // Assets and Balances cannot be of zero length.
 func (a Allocation) Valid() error {
@@ -441,8 +450,11 @@ func (b Balances) Sum() []Bal {
 }
 
 // NewSubAlloc creates a new sub-allocation.
-func NewSubAlloc(id ID, bals []Bal) *SubAlloc {
-	return &SubAlloc{ID: id, Bals: bals}
+func NewSubAlloc(id ID, bals []Bal, indexMap []uint16) *SubAlloc {
+	if indexMap == nil {
+		indexMap = []uint16{}
+	}
+	return &SubAlloc{ID: id, Bals: bals, IndexMap: indexMap}
 }
 
 // SubAlloc tries to return the sub-allocation for the given subchannel.
@@ -548,6 +560,15 @@ func (s SubAlloc) Encode(w io.Writer) error {
 				err, "encoding balance of participant %d", i)
 		}
 	}
+	// Encode IndexMap.
+	if err := perunio.Encode(w, Index(len(s.IndexMap))); err != nil {
+		return errors.WithMessage(err, "encoding length of index map")
+	}
+	for i, x := range s.IndexMap {
+		if err := perunio.Encode(w, x); err != nil {
+			return errors.WithMessagef(err, "encoding index map entry %d", i)
+		}
+	}
 
 	return nil
 }
@@ -568,7 +589,18 @@ func (s *SubAlloc) Decode(r io.Reader) error {
 	for i := range s.Bals {
 		if err := perunio.Decode(r, &s.Bals[i]); err != nil {
 			return errors.WithMessagef(
-				err, "encoding participant balance %d", i)
+				err, "decoding participant balance %d", i)
+		}
+	}
+	// Decode index map.
+	var l Index
+	if err := perunio.Decode(r, &l); err != nil {
+		return errors.WithMessage(err, "decoding index map length")
+	}
+	s.IndexMap = make([]Index, l)
+	for i := range s.IndexMap {
+		if err := perunio.Decode(r, &s.IndexMap[i]); err != nil {
+			return errors.WithMessagef(err, "decoding index %d", i)
 		}
 	}
 
@@ -587,6 +619,9 @@ func (s *SubAlloc) Equal(t *SubAlloc) error {
 	if !s.BalancesEqual(t.Bals) {
 		return errors.New("balances unequal")
 	}
+	if !s.indexMapEqual(s.IndexMap) {
+		return errors.New("unequal index map")
+	}
 	return nil
 }
 
@@ -597,6 +632,19 @@ func (s *SubAlloc) BalancesEqual(b []Bal) bool {
 	}
 	for i, bal := range s.Bals {
 		if bal.Cmp(b[i]) != 0 {
+			return false
+		}
+	}
+	return true
+}
+
+// indexMapEqual returns whether s.indexMap equals b.
+func (s *SubAlloc) indexMapEqual(b []Index) bool {
+	if len(s.IndexMap) != len(b) {
+		return false
+	}
+	for i, x := range s.IndexMap {
+		if x != b[i] {
 			return false
 		}
 	}

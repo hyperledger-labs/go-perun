@@ -86,8 +86,29 @@ func (a *Adjudicator) Progress(ctx context.Context, req channel.ProgressReq) err
 	return a.call(ctx, req.AdjudicatorReq, progress, Progress)
 }
 
-func (a *Adjudicator) callRegister(ctx context.Context, req channel.AdjudicatorReq) error {
-	return a.call(ctx, req, a.contract.Register, Register)
+func (a *Adjudicator) callRegister(ctx context.Context, req channel.AdjudicatorReq, subChannels []channel.SignedState) error {
+	return a.call(ctx, req,
+		func(opts *bind.TransactOpts, params adjudicator.ChannelParams, state adjudicator.ChannelState, sigs [][]byte) (*types.Transaction, error) {
+			ch := adjudicator.AdjudicatorSignedState{
+				Params: params,
+				State:  state,
+				Sigs:   sigs,
+			}
+			sub := toEthSignedStates(subChannels)
+			return a.contract.Register(opts, ch, sub)
+		}, Register)
+}
+
+func toEthSignedStates(subChannels []channel.SignedState) (ethSubChannels []adjudicator.AdjudicatorSignedState) {
+	ethSubChannels = make([]adjudicator.AdjudicatorSignedState, len(subChannels))
+	for i, x := range subChannels {
+		ethSubChannels[i] = adjudicator.AdjudicatorSignedState{
+			Params: ToEthParams(x.Params),
+			State:  ToEthState(x.State),
+			Sigs:   x.Sigs,
+		}
+	}
+	return
 }
 
 func (a *Adjudicator) callConclude(ctx context.Context, req channel.AdjudicatorReq, subStates channel.StateMap) error {

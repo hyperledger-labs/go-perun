@@ -20,6 +20,7 @@ import (
 	"github.com/pkg/errors"
 
 	"perun.network/go-perun/channel"
+	"perun.network/go-perun/pkg/sync"
 )
 
 // AdjudicatorEventHandler represents an interface for handling adjudicator events.
@@ -31,8 +32,9 @@ type AdjudicatorEventHandler interface {
 // The handler is notified about the corresponding events.
 //
 // The routine takes care that if an old state is registered, the on-chain state
-// is refuted with the most recent event available. In such a case, the handler
-// may receive multiple registered events in short succession.
+// is refuted with the most recent event available by registering the channel
+// tree. In such a case, the handler may receive multiple registered events in
+// short succession.
 //
 // Returns TxTimedoutError when watcher refutes with the most recent state and
 // the program times out waiting for a transaction to be mined.
@@ -87,20 +89,47 @@ func (c *Channel) Watch(h AdjudicatorEventHandler) error {
 	return errors.WithMessage(err, "subscription closed")
 }
 
-// Register registers the channel on the adjudicator.
+// Register registers the channel and all its relatives on the adjudicator.
 //
 // Returns TxTimedoutError when the program times out waiting for a transaction
 // to be mined.
 // Returns ChainNotReachableError if the connection to the blockchain network
 // fails when sending a transaction to / reading from the blockchain.
 func (c *Channel) Register(ctx context.Context) error {
-	// Lock channel machine.
-	if !c.machMtx.TryLockCtx(ctx) {
-		return errors.WithMessage(ctx.Err(), "locking machine")
+	// If this is not the root, go up one level.
+	// Once we are at the root, we register the whole channel tree together.
+	if c.parent != nil {
+		return c.parent.Register(ctx)
 	}
-	defer c.machMtx.Unlock()
 
-	return c.register(ctx)
+	// Lock machines of channel and all subchannels recursively.
+	l, err := c.tryLockRecursive(ctx)
+	defer l.Unlock()
+	if err != nil {
+		return errors.WithMessage(err, "locking recursive")
+	}
+
+	err = c.setRegisteringRecursive(ctx)
+	if err != nil {
+		return errors.WithMessage(err, "setting phase `Registering` recursive")
+	}
+
+	subStates, err := c.gatherSubChannelStates()
+	if err != nil {
+		return errors.WithMessage(err, "gathering sub-channel states")
+	}
+
+	err = c.adjudicator.Register(ctx, c.machine.AdjudicatorReq(), subStates)
+	if err != nil {
+		return errors.WithMessage(err, "calling Register")
+	}
+
+	err = c.setRegisteredRecursive(ctx)
+	if err != nil {
+		return errors.WithMessage(err, "setting phase `Registered` recursive")
+	}
+
+	return nil
 }
 
 // ProgressBy progresses the channel state in the adjudicator backend.
@@ -195,22 +224,6 @@ func (c *Channel) SettleWithSubchannels(ctx context.Context, subStates channel.S
 	return nil
 }
 
-// register calls Register on the adjudicator with the current channel state and
-// progresses the machine phases.
-//
-// The caller is expected to have locked the channel mutex.
-func (c *Channel) register(ctx context.Context) error {
-	if err := c.machine.SetRegistering(ctx); err != nil {
-		return errors.WithMessage(err, "setting the machine phase")
-	}
-
-	if err := c.adjudicator.Register(ctx, c.machine.AdjudicatorReq()); err != nil {
-		return errors.WithMessage(err, "calling Register")
-	}
-
-	return c.machine.SetRegistered(ctx)
-}
-
 func (c *Channel) setMachinePhase(ctx context.Context, e channel.AdjudicatorEvent) (err error) {
 	// Lock machine
 	if !c.machMtx.TryLockCtx(ctx) {
@@ -229,5 +242,103 @@ func (c *Channel) setMachinePhase(ctx context.Context, e channel.AdjudicatorEven
 		c.Log().Panic("unsupported event type")
 	}
 
+	return
+}
+
+type mutexList []*sync.Mutex
+
+func (a mutexList) Unlock() {
+	for _, m := range a {
+		m.Unlock()
+	}
+}
+
+// tryLockRecursive tries to lock the channel and all of its sub-channels.
+// It returns a list of all the mutexes that have been locked.
+func (c *Channel) tryLockRecursive(ctx context.Context) (l mutexList, err error) {
+	l = mutexList{}
+	f := func(c *Channel) error {
+		if !c.machMtx.TryLockCtx(ctx) {
+			return errors.Errorf("locking machine mutex in time: %v", ctx.Err())
+		}
+		l = append(l, &c.machMtx)
+		return nil
+	}
+
+	err = f(c)
+	if err != nil {
+		return
+	}
+
+	err = c.applyToSubChannelsRecursive(f)
+	return
+}
+
+// applyToSubChannelsRecursive applies the function to all sub-channels recursively.
+func (c *Channel) applyToSubChannelsRecursive(f func(*Channel) error) (err error) {
+	for _, subAlloc := range c.state().Locked {
+		subID := subAlloc.ID
+		var subCh *Channel
+		subCh, err = c.client.Channel(subID)
+		if err != nil {
+			err = errors.WithMessagef(err, "getting sub-channel: %v", subID)
+			return
+		}
+		err = f(subCh)
+		if err != nil {
+			return
+		}
+		err = subCh.applyToSubChannelsRecursive(f)
+		if err != nil {
+			return
+		}
+	}
+	return
+}
+
+// setRegisteringRecursive sets the machine phase of the channel and all of its sub-channels to `Registering`.
+// Assumes that the channel machine has been locked.
+func (c *Channel) setRegisteringRecursive(ctx context.Context) (err error) {
+	f := func(c *Channel) error {
+		return c.machine.SetRegistering(ctx)
+	}
+
+	err = f(c)
+	if err != nil {
+		return err
+	}
+
+	err = c.applyToSubChannelsRecursive(f)
+	return
+}
+
+// setRegisteredRecursive sets the machine phase of the channel and all of its sub-channels to `Registered`.
+// Assumes that the channel machine has been locked.
+func (c *Channel) setRegisteredRecursive(ctx context.Context) (err error) {
+	f := func(c *Channel) error {
+		return c.machine.SetRegistered(ctx)
+	}
+
+	err = f(c)
+	if err != nil {
+		return err
+	}
+
+	err = c.applyToSubChannelsRecursive(f)
+	return
+}
+
+// gatherSubChannelStates gathers the state of all sub-channels recursively.
+// Assumes sub-channels are locked.
+func (c *Channel) gatherSubChannelStates() (states []channel.SignedState, err error) {
+	states = []channel.SignedState{}
+	err = c.applyToSubChannelsRecursive(func(c *Channel) error {
+		states = append(states, channel.SignedState{
+			Params: c.Params(),
+			State:  c.machine.CurrentTX().State,
+			Sigs:   c.machine.CurrentTX().Sigs,
+		})
+		return nil
+	})
 	return
 }

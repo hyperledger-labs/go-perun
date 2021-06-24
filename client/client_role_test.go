@@ -89,7 +89,7 @@ func (f *logFunderWithDelay) Fund(_ context.Context, req channel.FundingReq) err
 	return nil
 }
 
-func (a *logAdjudicator) Register(_ context.Context, req channel.AdjudicatorReq) error {
+func (a *logAdjudicator) Register(_ context.Context, req channel.AdjudicatorReq, subChannels []channel.SignedState) error {
 	a.log.Infof("Register: %v", req)
 	e := channel.NewRegisteredEvent(
 		req.Params.ID(),
