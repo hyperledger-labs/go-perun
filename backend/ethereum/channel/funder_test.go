@@ -165,7 +165,7 @@ func testFunderCrossOverFunding(t *testing.T, n int) {
 		i, funder := i, funder
 		go ct.StageN("funding", n, func(rt pkgtest.ConcT) {
 			req := channel.NewFundingReq(params, &channel.State{Allocation: *alloc}, channel.Index(i), agreement)
-			numTx, err := funders[0].NumTX(*req)
+			numTx, err := funders[i].NumTX(*req)
 			require.NoError(t, err)
 			diff, err := test.NonceDiff(parts[i], funder, func() error {
 				return funder.Fund(ctx, *req)
