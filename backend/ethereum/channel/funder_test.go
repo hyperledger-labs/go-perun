@@ -46,6 +46,52 @@ const (
 	txGasLimit = 100000
 )
 
+func TestFunder_RegisterAsset_IsAssetRegistered(t *testing.T) {
+	rng := pkgtest.Prng(t)
+
+	funder, assets, depositors, accs := newFunderWithDummy_ETH_ERC20_Assets(rng)
+	n := len(assets)
+
+	for i := 0; i < n; i++ {
+		_, _, ok := funder.IsAssetRegistered(assets[i])
+		require.False(t, ok, "on a newly initialzed funder, no assets are registered")
+	}
+
+	for i := 0; i < n; i++ {
+		require.True(t, funder.RegisterAsset(assets[i], depositors[i], accs[i]), "should not error on registering a new asset")
+	}
+
+	for i := 0; i < n; i++ {
+		depositor, acc, ok := funder.IsAssetRegistered(assets[i])
+		require.True(t, ok, "registered asset should be returned")
+		assert.Equal(t, depositors[i], depositor)
+		assert.Equal(t, accs[i], acc)
+	}
+}
+
+func newFunderWithDummy_ETH_ERC20_Assets(rng *rand.Rand) (
+	*ethchannel.Funder, []ethchannel.Asset, []ethchannel.Depositor, []accounts.Account) {
+	n := 2
+	simBackend := test.NewSimulatedBackend()
+	ksWallet := wallettest.RandomWallet().(*keystore.Wallet)
+	cb := ethchannel.NewContractBackend(simBackend, keystore.NewTransactor(*ksWallet, types.NewEIP155Signer(big.NewInt(1337))))
+	funder := ethchannel.NewFunder(cb)
+	assets := make([]ethchannel.Asset, n)
+	depositors := make([]ethchannel.Depositor, n)
+	accs := make([]accounts.Account, n)
+
+	for i := 0; i < n; i++ {
+		assets[i] = *(wallettest.NewRandomAddress(rng).(*ethwallet.Address))
+		accs[i] = accounts.Account{Address: ethwallet.AsEthAddr(wallettest.NewRandomAddress(rng))}
+	}
+	// Use an ETH depositor with random addresses at index 0.
+	depositors[0] = ethchannel.NewETHDepositor()
+	// Use an ERC20 depositor with random addresses at index 1.
+	token := wallettest.NewRandomAddress(rng)
+	depositors[1] = ethchannel.NewERC20Depositor(ethwallet.AsEthAddr(token))
+	return funder, assets, depositors, accs
+}
+
 func TestFunder_OneForAllFunding(t *testing.T) {
 	// One party will fund the complete FundingAgreement and the other parties
 	// do nothing.
