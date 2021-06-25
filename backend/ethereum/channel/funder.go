@@ -17,6 +17,7 @@ package channel
 import (
 	"context"
 	"math/big"
+	"sync"
 
 	"github.com/ethereum/go-ethereum/accounts"
 	"github.com/ethereum/go-ethereum/accounts/abi"
@@ -46,7 +47,14 @@ type assetHolder struct {
 }
 
 // Funder implements the channel.Funder interface for Ethereum.
+//
+// In addition to the `Fund` method required by the `Funder` interface, it also
+// provides additional functions for convenience.
+//
+// All the exported methods are thread-safe and can be invoked concurrently.
 type Funder struct {
+	mtx sync.RWMutex
+
 	ContractBackend
 	// accounts associates an Account to every AssetIndex.
 	accounts map[Asset]accounts.Account
@@ -80,11 +88,54 @@ func (f *Funder) copy() (_f *Funder) {
 	return
 }
 
+// RegisterAsset registers the depositor and account for the specified asset in
+// the funder.
+//
+// Deposits for this asset will be sent using the depositors from the
+// specified account when funding. Hence, it is the responsibility of the
+// caller to ensure, the account has sufficient balance in the asset.
+//
+// It returns true if the asset was successfully registered, false if it was already
+// present.
+func (f *Funder) RegisterAsset(asset Asset, d Depositor, acc accounts.Account) bool {
+	f.mtx.Lock()
+	defer f.mtx.Unlock()
+
+	// Both the maps (f.accounts & f.assets) are always modified togethe such
+	// that they will have the same set of keys. Hence, it is okay to check one
+	// of the two.
+	if _, ok := f.accounts[asset]; ok {
+		return false
+	}
+	f.accounts[asset] = acc
+	f.depositors[asset] = d
+	return true
+}
+
+// IsAssetRegistered returns if the specified asset is registered in the funder or not.
+// If is registered, then the corresponding depositor and account will also be
+// returned.
+func (f *Funder) IsAssetRegistered(asset Asset) (Depositor, accounts.Account, bool) {
+	f.mtx.RLock()
+	defer f.mtx.RUnlock()
+
+	// Both the maps (f.accounts & f.assets) are always modified togethe such
+	// that they will have the same set of keys. Hence, it is okay to check one
+	// of the two.
+	if acc, ok := f.accounts[asset]; ok {
+		return f.depositors[asset], acc, true
+	}
+	return nil, accounts.Account{}, false
+}
+
 // WithDepositor creates a copy of the funder and assigns a depositor for the
 // specified asset. Transactions by the depositor will be done using the
 // specified account.
 func (f *Funder) WithDepositor(asset Asset, d Depositor, acc accounts.Account) (_f *Funder) {
+	f.mtx.Lock()
 	_f = f.copy()
+	f.mtx.Unlock()
+
 	_f.accounts[asset] = acc
 	_f.depositors[asset] = d
 	return
@@ -98,6 +149,9 @@ func (f *Funder) WithDepositor(asset Asset, d Depositor, acc accounts.Account) (
 // cancel before the funding period of length ChallengeDuration elapses, or
 // funding will be canceled prematurely.
 func (f *Funder) Fund(ctx context.Context, request channel.FundingReq) error {
+	f.mtx.RLock()
+	defer f.mtx.RUnlock()
+
 	var channelID = request.Params.ID()
 	f.log.WithField("channel", channelID).Debug("Funding Channel.")
 
@@ -349,6 +403,9 @@ func FundingIDs(channelID channel.ID, participants ...perunwallet.Address) [][32
 
 // NumTX returns how many Transactions are needed for the funding request.
 func (f *Funder) NumTX(req channel.FundingReq) (sum uint32, err error) {
+	f.mtx.RLock()
+	defer f.mtx.RUnlock()
+
 	for _, a := range req.State.Assets {
 		depositor, ok := f.depositors[*a.(*Asset)]
 		if !ok {
