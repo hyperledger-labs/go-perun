@@ -402,9 +402,9 @@ func newNFunders(
 		simBackend.FundAddress(ctx, ethwallet.AsEthAddr(parts[i]))
 		fundERC20(ctx, cb, *tokenAcc, ethwallet.AsEthAddr(parts[i]), token, asset2)
 
-		funders[i] = ethchannel.NewFunder(cb).
-			WithDepositor(asset1, ethchannel.NewETHDepositor(), acc).
-			WithDepositor(asset2, ethchannel.NewERC20Depositor(token), acc)
+		funders[i] = ethchannel.NewFunder(cb)
+		require.True(t, funders[i].RegisterAsset(asset1, ethchannel.NewETHDepositor(), acc))
+		require.True(t, funders[i].RegisterAsset(asset2, ethchannel.NewERC20Depositor(token), acc))
 	}
 
 	// The SimBackend advances 10 sec per transaction/block, so generously add 20

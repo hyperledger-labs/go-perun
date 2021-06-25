@@ -76,18 +76,6 @@ func NewFunder(backend ContractBackend) *Funder {
 	}
 }
 
-// copy returns a copy of the funder.
-func (f *Funder) copy() (_f *Funder) {
-	_f = NewFunder(f.ContractBackend)
-	for k, v := range f.accounts {
-		_f.accounts[k] = v
-	}
-	for k, v := range f.depositors {
-		_f.depositors[k] = v
-	}
-	return
-}
-
 // RegisterAsset registers the depositor and account for the specified asset in
 // the funder.
 //
@@ -126,19 +114,6 @@ func (f *Funder) IsAssetRegistered(asset Asset) (Depositor, accounts.Account, bo
 		return f.depositors[asset], acc, true
 	}
 	return nil, accounts.Account{}, false
-}
-
-// WithDepositor creates a copy of the funder and assigns a depositor for the
-// specified asset. Transactions by the depositor will be done using the
-// specified account.
-func (f *Funder) WithDepositor(asset Asset, d Depositor, acc accounts.Account) (_f *Funder) {
-	f.mtx.Lock()
-	_f = f.copy()
-	f.mtx.Unlock()
-
-	_f.accounts[asset] = acc
-	_f.depositors[asset] = d
-	return
 }
 
 // Fund implements the channel.Funder interface. It funds all assets in
