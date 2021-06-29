@@ -172,11 +172,7 @@ func (c *Channel) updateGeneric(
 	}
 	// if anything goes wrong from now on, we discard the update.
 	// TODO: this is insecure after we sent our signature.
-	defer func() {
-		if err != nil {
-			err = c.discardUpdate(ctx)
-		}
-	}()
+	defer func() { c.handleUpdateError(ctx, err) }()
 
 	sig, err := c.machine.Sig(ctx)
 	if err != nil {
@@ -221,13 +217,13 @@ func (c *Channel) updateGeneric(
 	return c.enableNotifyUpdate(ctx)
 }
 
-func (c *Channel) discardUpdate(ctx context.Context) (err error) {
-	if derr := c.machine.DiscardUpdate(ctx); derr != nil {
-		// discarding update should never fail
-		err = errors.WithMessagef(derr,
-			"progressing update failed: %v, then discarding update failed", err)
+func (c *Channel) handleUpdateError(ctx context.Context, updateErr error) {
+	if updateErr != nil {
+		if derr := c.machine.DiscardUpdate(ctx); derr != nil {
+			// discarding update should never fail
+			c.Log().Warn("discarding update failed:", derr)
+		}
 	}
-	return
 }
 
 // UpdateBy updates the channel state using the update function and proposes the
