@@ -287,7 +287,10 @@ func withdraw(ctx context.Context, adj *test.SimAdjudicator, accounts []*keystor
 			Secondary: i != 0,
 		}
 
-		if err := adj.Withdraw(ctx, req, subStates); err != nil {
+		if err := adj.Withdraw(ctx, channel.WithdrawReq{
+			AdjudicatorReq: req,
+			SubChannels:    subStates,
+		}); err != nil {
 			return err
 		}
 	}

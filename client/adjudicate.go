@@ -204,7 +204,10 @@ func (c *Channel) SettleWithSubchannels(ctx context.Context, subStates channel.S
 	case c.IsLedgerChannel():
 		req := c.machine.AdjudicatorReq()
 		req.Secondary = secondary
-		if err := c.adjudicator.Withdraw(ctx, req, subStates); err != nil {
+		if err := c.adjudicator.Withdraw(ctx, channel.WithdrawReq{
+			AdjudicatorReq: req,
+			SubChannels:    subStates,
+		}); err != nil {
 			return errors.WithMessage(err, "calling Withdraw")
 		}
 	case c.IsSubChannel():

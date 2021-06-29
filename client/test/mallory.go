@@ -98,7 +98,7 @@ func (r *Mallory) exec(_cfg ExecConfig, ch *paymentChannel) {
 
 	wdCtx, wdCancel := context.WithTimeout(context.Background(), r.timeout)
 	defer wdCancel()
-	err = r.setup.Adjudicator.Withdraw(wdCtx, req0, nil)
+	err = r.setup.Adjudicator.Withdraw(wdCtx, channel.WithdrawReq{AdjudicatorReq: req0})
 	assert.Error(err, "withdrawing should fail because Carol should have refuted.")
 
 	// settling current version should work

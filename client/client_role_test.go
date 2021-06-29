@@ -111,8 +111,8 @@ func (a *logAdjudicator) Progress(_ context.Context, req channel.ProgressReq) er
 	return nil
 }
 
-func (a *logAdjudicator) Withdraw(_ context.Context, req channel.AdjudicatorReq, subStates channel.StateMap) error {
-	a.log.Infof("Withdraw: %v, %v", req, subStates)
+func (a *logAdjudicator) Withdraw(_ context.Context, req channel.WithdrawReq) error {
+	a.log.Infof("Withdraw: %v, %v", req)
 	return nil
 }
 
