@@ -20,6 +20,7 @@ import (
 	"github.com/pkg/errors"
 
 	"perun.network/go-perun/channel"
+	"perun.network/go-perun/log"
 	"perun.network/go-perun/pkg/sync"
 )
 
@@ -74,7 +75,7 @@ func (c *Channel) Watch(h AdjudicatorEventHandler) error {
 
 			// If local version greater than backend version, register local state.
 			if e.Version() < c.State().Version {
-				if err := c.Register(ctx); err != nil {
+				if err := c.registerDispute(ctx); err != nil {
 					return errors.WithMessage(err, "registering")
 				}
 			}
@@ -89,17 +90,17 @@ func (c *Channel) Watch(h AdjudicatorEventHandler) error {
 	return errors.WithMessage(err, "subscription closed")
 }
 
-// Register registers the channel and all its relatives on the adjudicator.
+// registerDispute registers the channel and all its relatives on the adjudicator.
 //
 // Returns TxTimedoutError when the program times out waiting for a transaction
 // to be mined.
 // Returns ChainNotReachableError if the connection to the blockchain network
 // fails when sending a transaction to / reading from the blockchain.
-func (c *Channel) Register(ctx context.Context) error {
+func (c *Channel) registerDispute(ctx context.Context) error {
 	// If this is not the root, go up one level.
 	// Once we are at the root, we register the whole channel tree together.
 	if c.parent != nil {
-		return c.parent.Register(ctx)
+		return c.parent.registerDispute(ctx)
 	}
 
 	// Lock machines of channel and all subchannels recursively.
@@ -135,13 +136,18 @@ func (c *Channel) Register(ctx context.Context) error {
 	return nil
 }
 
-// ProgressBy progresses the channel state in the adjudicator backend.
+// ForceUpdate progresses the channel state in the adjudicator backend.
 //
 // Returns TxTimedoutError when the program times out waiting for a transaction
 // to be mined.
 // Returns ChainNotReachableError if the connection to the blockchain network
 // fails when sending a transaction to / reading from the blockchain.
-func (c *Channel) ProgressBy(ctx context.Context, update func(*channel.State)) error {
+func (c *Channel) ForceUpdate(ctx context.Context, update func(*channel.State)) error {
+	err := c.ensureRegistered(ctx)
+	if err != nil {
+		return err
+	}
+
 	// Lock machine
 	if !c.machMtx.TryLockCtx(ctx) {
 		return errors.Errorf("locking machine mutex in time: %v", ctx.Err())
@@ -168,6 +174,56 @@ func (c *Channel) ProgressBy(ctx context.Context, update func(*channel.State)) e
 	// Create and send request
 	pr := channel.NewProgressReq(ar, state, sig)
 	return errors.WithMessage(c.adjudicator.Progress(ctx, *pr), "progressing")
+}
+
+func (c *Channel) ensureRegistered(ctx context.Context) (err error) {
+	phase := c.Phase()
+	if phase == channel.Registered || phase == channel.Progressed {
+		return
+	}
+
+	registeredEvents := make(chan *channel.RegisteredEvent)
+
+	// Start event subscription.
+	sub, err := c.adjudicator.Subscribe(ctx, c.Params())
+	if err != nil {
+		return errors.WithMessage(err, "subscribing to adjudicator events")
+	}
+	go waitForRegisteredEvent(sub, registeredEvents)
+
+	// Register.
+	err = c.registerDispute(ctx)
+	if err != nil {
+		return errors.WithMessage(err, "registering")
+	}
+
+	select {
+	case e := <-registeredEvents:
+		err = e.Timeout().Wait(ctx)
+		if err != nil {
+			return err
+		}
+	case <-ctx.Done():
+		return ctx.Err()
+	}
+	return
+}
+
+func waitForRegisteredEvent(sub channel.AdjudicatorSubscription, events chan<- *channel.RegisteredEvent) {
+	defer func() {
+		err := sub.Close()
+		if err != nil {
+			log.Warn("Subscription closed with error:", err)
+		}
+	}()
+
+	// Scan for registered event.
+	for e := sub.Next(); e != nil; e = sub.Next() {
+		if e, ok := e.(*channel.RegisteredEvent); ok {
+			events <- e
+			return
+		}
+	}
 }
 
 // Settle concludes a channel and withdraws the funds.
