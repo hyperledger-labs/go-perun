@@ -119,7 +119,10 @@ func (c *Channel) Register(ctx context.Context) error {
 		return errors.WithMessage(err, "gathering sub-channel states")
 	}
 
-	err = c.adjudicator.Register(ctx, c.machine.AdjudicatorReq(), subStates)
+	err = c.adjudicator.Register(ctx, channel.RegisterReq{
+		AdjudicatorReq: c.machine.AdjudicatorReq(),
+		SubChannels:    subStates,
+	})
 	if err != nil {
 		return errors.WithMessage(err, "calling Register")
 	}

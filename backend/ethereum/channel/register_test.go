@@ -107,11 +107,13 @@ func registerMultiple(t *testing.T, numParts int, parallel bool) {
 			subs[i] = sub
 
 			// register
-			req := channel.AdjudicatorReq{
-				Params: params,
-				Tx:     tx,
+			req := channel.RegisterReq{
+				AdjudicatorReq: channel.AdjudicatorReq{
+					Params: params,
+					Tx:     tx,
+				},
 			}
-			err = adj.Register(ctx, req, nil)
+			err = adj.Register(ctx, req)
 			require.True(t, err == nil || ethchannel.IsErrTxFailed(err), "Registering peer %d", i)
 		}
 		if parallel {
@@ -163,13 +165,15 @@ func TestRegister_FinalState(t *testing.T) {
 	defer sub.Close()
 	// register
 	tx := testSignState(t, s.Accs, params, state)
-	req := channel.AdjudicatorReq{
-		Params: params,
-		Acc:    s.Accs[0],
-		Idx:    channel.Index(0),
-		Tx:     tx,
+	req := channel.RegisterReq{
+		AdjudicatorReq: channel.AdjudicatorReq{
+			Params: params,
+			Acc:    s.Accs[0],
+			Idx:    channel.Index(0),
+			Tx:     tx,
+		},
 	}
-	assert.NoError(t, adj.Register(ctx, req, nil), "Registering final state should succeed")
+	assert.NoError(t, adj.Register(ctx, req), "Registering final state should succeed")
 	event := sub.Next()
 	assert.NotEqual(t, event, &channel.RegisteredEvent{}, "registering should return valid event")
 	assert.True(t, event.Timeout().IsElapsed(ctx), "registering final state should return elapsed timeout")
@@ -199,11 +203,13 @@ func TestRegister_CancelledContext(t *testing.T) {
 	defer sub.Close()
 	// register
 	tx := testSignState(t, s.Accs, params, state)
-	req := channel.AdjudicatorReq{
-		Params: params,
-		Acc:    s.Accs[0],
-		Idx:    channel.Index(0),
-		Tx:     tx,
+	req := channel.RegisterReq{
+		AdjudicatorReq: channel.AdjudicatorReq{
+			Params: params,
+			Acc:    s.Accs[0],
+			Idx:    channel.Index(0),
+			Tx:     tx,
+		},
 	}
-	assert.Error(t, adj.Register(ctx, req, nil), "Registering with canceled context should error")
+	assert.Error(t, adj.Register(ctx, req), "Registering with canceled context should error")
 }

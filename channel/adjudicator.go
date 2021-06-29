@@ -39,7 +39,7 @@ type (
 		// Register should register the given ledger channel state on-chain.
 		// If the channel has locked funds into sub-channels, the corresponding
 		// signed sub-channel states must be provided.
-		Register(context.Context, AdjudicatorReq, []SignedState) error
+		Register(context.Context, RegisterReq) error
 
 		// Withdraw should conclude and withdraw the registered state, so that the
 		// final outcome is set on the asset holders and funds are withdrawn
@@ -76,6 +76,12 @@ type (
 		Tx        Transaction
 		Idx       Index // Always the own index
 		Secondary bool  // Optimized secondary call protocol
+	}
+
+	// RegisterReq constitutes the register call data.
+	RegisterReq struct {
+		AdjudicatorReq
+		SubChannels []SignedState
 	}
 
 	// SignedState represents a signed channel state including parameters.

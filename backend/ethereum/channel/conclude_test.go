@@ -76,15 +76,17 @@ func testConcludeFinal(t *testing.T, numParts int) {
 	for i := 0; i < numParts; i++ {
 		i := i
 		go ct.StageN("register", numParts, func(t pkgtest.ConcT) {
-			req := channel.AdjudicatorReq{
-				Params:    params,
-				Acc:       s.Accs[i],
-				Idx:       channel.Index(i),
-				Tx:        tx,
-				Secondary: (i != initiator),
+			req := channel.RegisterReq{
+				AdjudicatorReq: channel.AdjudicatorReq{
+					Params:    params,
+					Acc:       s.Accs[i],
+					Idx:       channel.Index(i),
+					Tx:        tx,
+					Secondary: (i != initiator),
+				},
 			}
 			diff, err := test.NonceDiff(s.Accs[i].Address(), s.Adjs[i], func() error {
-				return s.Adjs[i].Register(ctx, req, nil)
+				return s.Adjs[i].Register(ctx, req)
 			})
 			require.NoError(t, err, "Withdrawing should succeed")
 			if !req.Secondary {
@@ -251,14 +253,17 @@ func register(ctx context.Context, adj *test.SimAdjudicator, accounts []*keystor
 		return err
 	}
 
-	req := channel.AdjudicatorReq{
-		Params:    ch.params,
-		Acc:       accounts[0],
-		Idx:       0,
-		Tx:        tx,
-		Secondary: false,
+	req := channel.RegisterReq{
+		AdjudicatorReq: channel.AdjudicatorReq{
+			Params:    ch.params,
+			Acc:       accounts[0],
+			Idx:       0,
+			Tx:        tx,
+			Secondary: false,
+		},
+		SubChannels: sub,
 	}
-	return adj.Register(ctx, req, sub)
+	return adj.Register(ctx, req)
 }
 
 func addSubStates(subStates channel.StateMap, channels ...paramsAndState) {

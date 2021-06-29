@@ -88,13 +88,15 @@ func TestSubscribeRegistered(t *testing.T) {
 	defer sub.Close()
 	// Now test the register function
 	tx := testSignState(t, s.Accs, params, state)
-	req := channel.AdjudicatorReq{
-		Params: params,
-		Acc:    s.Accs[0],
-		Idx:    channel.Index(0),
-		Tx:     tx,
+	req := channel.RegisterReq{
+		AdjudicatorReq: channel.AdjudicatorReq{
+			Params: params,
+			Acc:    s.Accs[0],
+			Idx:    channel.Index(0),
+			Tx:     tx,
+		},
 	}
-	assert.NoError(t, adj.Register(txCtx, req, nil), "Registering state should succeed")
+	assert.NoError(t, adj.Register(txCtx, req), "Registering state should succeed")
 	event := sub.Next()
 	assert.Equal(t, event, registered.Next(), "Events should be equal")
 	assert.NoError(t, registered.Close(), "Closing event channel should not error")

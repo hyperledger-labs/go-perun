@@ -24,11 +24,11 @@ import (
 
 // Register registers a state on-chain.
 // If the state is a final state, register becomes a no-op.
-func (a *Adjudicator) Register(ctx context.Context, req channel.AdjudicatorReq, subChannels []channel.SignedState) error {
+func (a *Adjudicator) Register(ctx context.Context, req channel.RegisterReq) error {
 	if req.Tx.State.IsFinal {
-		return a.registerFinal(ctx, req)
+		return a.registerFinal(ctx, req.AdjudicatorReq)
 	}
-	return a.registerNonFinal(ctx, req, subChannels)
+	return a.registerNonFinal(ctx, req.AdjudicatorReq, req.SubChannels)
 }
 
 // registerFinal registers a final state. It ensures that the final state is

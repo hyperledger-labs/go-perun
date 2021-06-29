@@ -23,6 +23,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
+	"perun.network/go-perun/channel"
 	"perun.network/go-perun/client"
 )
 
@@ -70,7 +71,7 @@ func (r *Mallory) exec(_cfg ExecConfig, ch *paymentChannel) {
 	regCtx, regCancel := context.WithTimeout(context.Background(), r.timeout)
 	defer regCancel()
 	r.log.Debug("Registering version 0 state.")
-	assert.NoError(r.setup.Adjudicator.Register(regCtx, req0, nil))
+	assert.NoError(r.setup.Adjudicator.Register(regCtx, channel.RegisterReq{AdjudicatorReq: req0}))
 
 	// within the challenge duration, Carol should refute.
 	subCtx, subCancel := context.WithTimeout(context.Background(), r.timeout+challengeDuration)
