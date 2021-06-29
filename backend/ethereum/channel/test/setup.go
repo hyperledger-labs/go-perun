@@ -104,7 +104,8 @@ func NewSetup(t *testing.T, rng *rand.Rand, n int) *Setup {
 		s.SimBackend.FundAddress(ctx, s.Accs[i].Account.Address)
 		s.Recvs[i] = ksWallet.NewRandomAccount(rng).Address().(*ethwallet.Address)
 		cb := ethchannel.NewContractBackend(s.SimBackend, keystore.NewTransactor(*ksWallet, types.NewEIP155Signer(big.NewInt(1337))))
-		s.Funders[i] = ethchannel.NewFunder(cb).WithDepositor(asset, ethchannel.NewETHDepositor(), s.Accs[i].Account)
+		s.Funders[i] = ethchannel.NewFunder(cb)
+		require.True(t, s.Funders[i].RegisterAsset(asset, ethchannel.NewETHDepositor(), s.Accs[i].Account))
 		s.Adjs[i] = NewSimAdjudicator(cb, adjudicator, common.Address(*s.Recvs[i]), s.Accs[i].Account)
 	}
 
