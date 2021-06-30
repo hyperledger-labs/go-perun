@@ -154,7 +154,8 @@ func (c *Client) ProposeChannel(ctx context.Context, prop ChannelProposal) (*Cha
 	}
 
 	// 2. send proposal, wait for response, create channel object
-	c.enableVer1Cache() // cache version 1 updates until channel is opened
+	c.enableVer1Cache()        // cache version 1 updates until channel is opened
+	defer c.releaseVer1Cache() // replay cached version 1 updates
 	ch, err := c.proposeTwoPartyChannel(ctx, prop)
 	if err != nil {
 		return nil, errors.WithMessage(err, "channel proposal")
@@ -162,7 +163,6 @@ func (c *Client) ProposeChannel(ctx context.Context, prop ChannelProposal) (*Cha
 
 	// 3. fund
 	fundingErr := c.fundChannel(ctx, ch, prop)
-	c.releaseVer1Cache() // replay cached version 1 updates
 	return ch, fundingErr
 }
 
@@ -192,14 +192,14 @@ func (c *Client) handleChannelProposalAcc(
 		return ch, errors.WithMessage(err, "validating channel proposal acceptance")
 	}
 
-	c.enableVer1Cache() // cache version 1 updates
+	c.enableVer1Cache()        // cache version 1 updates
+	defer c.releaseVer1Cache() // replay cached version 1 updates
 
 	if ch, err = c.acceptChannelProposal(ctx, prop, p, acc); err != nil {
 		return ch, errors.WithMessage(err, "accept channel proposal")
 	}
 
 	fundingErr := c.fundChannel(ctx, ch, prop)
-	c.releaseVer1Cache() // replay cached version 1 updates
 	return ch, fundingErr
 }
 
