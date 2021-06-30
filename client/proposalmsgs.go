@@ -653,9 +653,6 @@ func (p VirtualChannelProposal) Accept(
 ) *VirtualChannelProposalAcc {
 	propID := p.ProposalID()
 	_opts := union(opts...)
-	if !_opts.isNonce() {
-		_opts = union(_opts, WithRandomNonce())
-	}
 	return &VirtualChannelProposalAcc{
 		BaseChannelProposalAcc: makeBaseChannelProposalAcc(propID, _opts.nonce()),
 		Responder:              responder,

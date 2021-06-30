@@ -28,13 +28,6 @@ import (
 )
 
 type (
-	// PetraRobertExecConfig contains config parameters for Petra and Robert test.
-	PetraRobertExecConfig struct {
-		BaseExecConfig
-		NumPayments [2]int
-		TxAmounts   [2]*big.Int
-	}
-
 	multiClientRole struct {
 		role
 	}
