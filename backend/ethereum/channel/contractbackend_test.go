@@ -18,6 +18,7 @@ import (
 	"context"
 	"testing"
 
+	"github.com/ethereum/go-ethereum/accounts"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -27,6 +28,7 @@ import (
 	ethwallet "perun.network/go-perun/backend/ethereum/wallet"
 	pkgtest "perun.network/go-perun/pkg/test"
 	"perun.network/go-perun/wallet"
+	wallettest "perun.network/go-perun/wallet/test"
 )
 
 func fromEthAddr(a common.Address) wallet.Address {
@@ -69,17 +71,19 @@ func Test_NewTransactor(t *testing.T) {
 		name     string
 		ctx      context.Context
 		gasLimit uint64
+		address  wallet.Address
 	}{
-		{"Test without context", nil, uint64(0)},
-		{"Test valid transactor", ctx, uint64(0)},
-		{"Test valid transactor", ctx, uint64(12345)},
+		{"Test without context", nil, uint64(0), wallettest.NewRandomAccount(rng).Address()},
+		{"Test valid transactor", ctx, uint64(0), wallettest.NewRandomAccount(rng).Address()},
+		{"Test valid transactor", ctx, uint64(12345), wallettest.NewRandomAccount(rng).Address()},
 	}
 	for _, _tt := range tests {
 		tt := _tt
 		t.Run(tt.name, func(t *testing.T) {
-			transactor, err := s.CB.NewTransactor(tt.ctx, tt.gasLimit, s.TxSender.Account)
+			acc := accounts.Account{Address: ethwallet.AsEthAddr(tt.address)}
+			transactor, err := s.CB.NewTransactor(tt.ctx, tt.gasLimit, acc)
 			assert.NoError(t, err, "Creating Transactor should succeed")
-			assert.Equal(t, s.TxSender.Account.Address, transactor.From, "Transactor address not properly set")
+			assert.Equal(t, ethwallet.AsEthAddr(tt.address), transactor.From, "Transactor address not properly set")
 			assert.Equal(t, tt.ctx, transactor.Context, "Context not set properly")
 			assert.Equal(t, tt.gasLimit, transactor.GasLimit, "Gas limit not set properly")
 		})
