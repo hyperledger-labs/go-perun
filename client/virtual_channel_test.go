@@ -17,6 +17,7 @@ package client_test
 import (
 	"context"
 	"math/big"
+	"math/rand"
 	"testing"
 	"time"
 
@@ -26,6 +27,7 @@ import (
 	"perun.network/go-perun/channel"
 	chtest "perun.network/go-perun/channel/test"
 	"perun.network/go-perun/client"
+	ctest "perun.network/go-perun/client/test"
 	"perun.network/go-perun/pkg/sync"
 	"perun.network/go-perun/pkg/test"
 	"perun.network/go-perun/wire"
@@ -68,7 +70,47 @@ func TestVirtualChannelsOptimistic(t *testing.T) {
 	assert.NoError(t, err, "Bob: invalid final balances")
 }
 
+func TestVirtualChannelsDispute(t *testing.T) {
+	ctx, cancel := context.WithTimeout(context.Background(), testDuration)
+	defer cancel()
+
+	vct := setupVirtualChannelTest(t, ctx)
+	assert := assert.New(t)
+
+	chs := []*client.Channel{vct.chAliceIngrid, vct.chIngridAlice, vct.chBobIngrid, vct.chIngridBob}
+	// Register the channels in a random order.
+	for _, i := range rand.Perm(len(chs)) {
+		err := chs[i].Register(ctx)
+		assert.NoErrorf(err, "register channel: %d", i)
+	}
+
+	time.Sleep(100 * time.Millisecond) // Sleep to ensure that registered events have been processed.
+
+	// Settle the channels in a random order.
+	for _, i := range rand.Perm(len(chs)) {
+		err := chs[i].Settle(ctx, false)
+		assert.NoErrorf(err, "settle channel: %d", i)
+	}
+
+	// Test final balances.
+	vct.testFinalBalancesDispute(t)
+}
+
+func (vct *virtualChannelTest) testFinalBalancesDispute(t *testing.T) {
+	assert := assert.New(t)
+	backend, asset := vct.backend, vct.asset
+	got, expected := backend.GetBalance(vct.alice.Identity.Address(), asset), vct.finalBalsAlice[0]
+	assert.Truef(got.Cmp(expected) == 0, "alice: wrong final balance: got %v, expected %v", got, expected)
+	got, expected = backend.GetBalance(vct.bob.Identity.Address(), asset), vct.finalBalsBob[0]
+	assert.Truef(got.Cmp(expected) == 0, "bob: wrong final balance: got %v, expected %v", got, expected)
+	got, expected = backend.GetBalance(vct.ingrid.Identity.Address(), asset), vct.finalBalIngrid
+	assert.Truef(got.Cmp(expected) == 0, "ingrid: wrong final balance: got %v, expected %v", got, expected)
+}
+
 type virtualChannelTest struct {
+	alice              *Client
+	bob                *Client
+	ingrid             *Client
 	chAliceIngrid      *client.Channel
 	chIngridAlice      *client.Channel
 	chBobIngrid        *client.Channel
@@ -78,7 +120,10 @@ type virtualChannelTest struct {
 	virtualBalsUpdated []*big.Int
 	finalBalsAlice     []*big.Int
 	finalBalsBob       []*big.Int
+	finalBalIngrid     *big.Int
 	errs               chan error
+	backend            *ctest.MockBackend
+	asset              channel.Asset
 }
 
 func setupVirtualChannelTest(t *testing.T, ctx context.Context) (vct virtualChannelTest) {
@@ -87,12 +132,14 @@ func setupVirtualChannelTest(t *testing.T, ctx context.Context) (vct virtualChan
 
 	// Set test values.
 	asset := chtest.NewRandomAsset(rng)
+	vct.asset = asset
 	initBalsAlice := []*big.Int{big.NewInt(10), big.NewInt(10)}       // with Ingrid
 	initBalsBob := []*big.Int{big.NewInt(10), big.NewInt(10)}         // with Ingrid
 	initBalsVirtual := []*big.Int{big.NewInt(5), big.NewInt(5)}       // Alice proposes
 	vct.virtualBalsUpdated = []*big.Int{big.NewInt(2), big.NewInt(8)} // Send 3.
 	vct.finalBalsAlice = []*big.Int{big.NewInt(7), big.NewInt(13)}
 	vct.finalBalsBob = []*big.Int{big.NewInt(13), big.NewInt(7)}
+	vct.finalBalIngrid = new(big.Int).Add(vct.finalBalsAlice[1], vct.finalBalsBob[1])
 	vct.errs = make(chan error, 10)
 
 	// Setup clients.
@@ -102,6 +149,8 @@ func setupVirtualChannelTest(t *testing.T, ctx context.Context) (vct virtualChan
 		t,
 	)
 	alice, bob, ingrid := clients[0], clients[1], clients[2]
+	vct.alice, vct.bob, vct.ingrid = alice, bob, ingrid
+	vct.backend = alice.Backend // Assumes all clients have same backend.
 
 	_channelsIngrid := make(chan *client.Channel, 1)
 	var openingProposalHandlerIngrid client.ProposalHandlerFunc = func(cp client.ChannelProposal, pr *client.ProposalResponder) {
