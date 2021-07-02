@@ -18,11 +18,13 @@ import (
 	"context"
 	stderrors "errors"
 	"math/big"
+	"sync"
 
 	"github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/accounts"
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/pkg/errors"
 
@@ -60,7 +62,9 @@ type Transactor interface {
 // This is needed to send on-chain transaction to interact with the smart contracts.
 type ContractBackend struct {
 	ContractInterface
-	tr Transactor
+	tr                Transactor
+	nonceMtx          *sync.Mutex
+	expectedNextNonce map[common.Address]uint64
 }
 
 // NewContractBackend creates a new ContractBackend with the given parameters.
@@ -68,6 +72,8 @@ func NewContractBackend(cf ContractInterface, tr Transactor) ContractBackend {
 	return ContractBackend{
 		ContractInterface: cf,
 		tr:                tr,
+		expectedNextNonce: make(map[common.Address]uint64),
+		nonceMtx:          &sync.Mutex{},
 	}
 }
 
@@ -122,6 +128,13 @@ func (c *ContractBackend) pastOffsetBlockNum(ctx context.Context) (uint64, error
 // set the value manually afterwards if it should be different from 0.
 func (c *ContractBackend) NewTransactor(ctx context.Context, gasLimit uint64,
 	acc accounts.Account) (*bind.TransactOpts, error) {
+	c.nonceMtx.Lock()
+	defer c.nonceMtx.Unlock()
+	expectedNextNonce, found := c.expectedNextNonce[acc.Address]
+	if !found {
+		c.expectedNextNonce[acc.Address] = 0
+	}
+
 	auth, err := c.tr.NewTransactor(acc)
 	if err != nil {
 		return nil, errors.WithMessage(err, "creating transactor")
@@ -129,6 +142,18 @@ func (c *ContractBackend) NewTransactor(ctx context.Context, gasLimit uint64,
 
 	auth.GasLimit = gasLimit
 	auth.Context = ctx
+
+	nonce, err := c.PendingNonceAt(ctx, acc.Address)
+	if err != nil {
+		err = cherrors.CheckIsChainNotReachableError(err)
+		return nil, errors.WithMessage(err, "fetching nonce")
+	}
+	if nonce < expectedNextNonce {
+		nonce = expectedNextNonce
+	}
+
+	auth.Nonce = big.NewInt(int64(nonce))
+	c.expectedNextNonce[acc.Address] = nonce + 1
 
 	return auth, nil
 }
