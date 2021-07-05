@@ -222,6 +222,33 @@ func NewRandomChannelID(rng *rand.Rand, opts ...RandomOpt) (id channel.ID) {
 	return
 }
 
+// NewRandomChannelIDs generates a list of random channel IDs.
+func NewRandomChannelIDs(rng *rand.Rand, n int) (ids []channel.ID) {
+	ids = make([]channel.ID, n)
+	for i := range ids {
+		ids[i] = NewRandomChannelID(rng)
+	}
+	return
+}
+
+// NewRandomIndexMap generates a random index map.
+func NewRandomIndexMap(rng *rand.Rand, numParts int, numPartsParent int) (m []channel.Index) {
+	m = make([]channel.Index, numParts)
+	for i := range m {
+		m[i] = channel.Index(rng.Intn(numPartsParent))
+	}
+	return
+}
+
+// NewRandomIndexMaps generates a list of random index maps.
+func NewRandomIndexMaps(rng *rand.Rand, numParts int, numPartsParent int) (maps [][]channel.Index) {
+	maps = make([][]channel.Index, numParts)
+	for i := range maps {
+		maps[i] = NewRandomIndexMap(rng, numParts, numPartsParent)
+	}
+	return
+}
+
 // NewRandomBal generates a new random `channel.Bal`.
 // Options: `WithBalancesRange`.
 func NewRandomBal(rng *rand.Rand, opts ...RandomOpt) channel.Bal {

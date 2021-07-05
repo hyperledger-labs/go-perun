@@ -54,3 +54,17 @@ func NewRandomSubChannelProposal(rng *rand.Rand, opts ...client.ProposalOpts) (*
 		channeltest.NewRandomAllocation(rng, channeltest.WithNumParts(2)),
 		opts...)
 }
+
+// NewRandomVirtualChannelProposal creates a random virtual channel proposal with the
+// supplied options. Number of participants is fixed to 2.
+func NewRandomVirtualChannelProposal(rng *rand.Rand, opts ...client.ProposalOpts) (*client.VirtualChannelProposal, error) {
+	numParts := 2
+	return client.NewVirtualChannelProposal(
+		rng.Uint64(),
+		wallettest.NewRandomAddress(rng),
+		channeltest.NewRandomAllocation(rng, channeltest.WithNumParts(numParts)),
+		wiretest.NewRandomAddresses(rng, numParts),
+		channeltest.NewRandomChannelIDs(rng, numParts),
+		channeltest.NewRandomIndexMaps(rng, numParts, numParts),
+		opts...)
+}

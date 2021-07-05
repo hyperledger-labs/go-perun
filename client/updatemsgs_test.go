@@ -29,14 +29,53 @@ import (
 func TestChannelUpdateSerialization(t *testing.T) {
 	rng := pkgtest.Prng(t)
 	for i := 0; i < 4; i++ {
-		state := test.NewRandomState(rng)
-		sig := newRandomSig(rng)
-		m := &msgChannelUpdate{
-			ChannelUpdate: ChannelUpdate{
-				State:    state,
-				ActorIdx: channel.Index(rng.Intn(state.NumParts())),
+		m := newRandomMsgChannelUpdate(rng)
+		wire.TestMsg(t, m)
+	}
+}
+
+func newRandomMsgChannelUpdate(rng *rand.Rand) *msgChannelUpdate {
+	state := test.NewRandomState(rng)
+	sig := newRandomSig(rng)
+	return &msgChannelUpdate{
+		ChannelUpdate: ChannelUpdate{
+			State:    state,
+			ActorIdx: channel.Index(rng.Intn(state.NumParts())),
+		},
+		Sig: sig,
+	}
+}
+
+func TestSerialization_VirtualChannelFundingProposal(t *testing.T) {
+	rng := pkgtest.Prng(t)
+	for i := 0; i < 4; i++ {
+		msgUp := newRandomMsgChannelUpdate(rng)
+		params, state := test.NewRandomParamsAndState(rng)
+		m := &virtualChannelFundingProposal{
+			msgChannelUpdate: *msgUp,
+			Initial: channel.SignedState{
+				Params: params,
+				State:  state,
+				Sigs:   newRandomSigs(rng, state.NumParts()),
 			},
-			Sig: sig,
+			IndexMap: test.NewRandomIndexMap(rng, state.NumParts(), msgUp.State.NumParts()),
+		}
+		wire.TestMsg(t, m)
+	}
+}
+
+func TestSerialization_VirtualChannelSettlementProposal(t *testing.T) {
+	rng := pkgtest.Prng(t)
+	for i := 0; i < 4; i++ {
+		msgUp := newRandomMsgChannelUpdate(rng)
+		params, state := test.NewRandomParamsAndState(rng)
+		m := &virtualChannelSettlementProposal{
+			msgChannelUpdate: *msgUp,
+			Final: channel.SignedState{
+				Params: params,
+				State:  state,
+				Sigs:   newRandomSigs(rng, state.NumParts()),
+			},
 		}
 		wire.TestMsg(t, m)
 	}
@@ -78,6 +117,15 @@ func newRandomSig(rng *rand.Rand) wallet.Sig {
 		panic("signing error")
 	}
 	return sig
+}
+
+// newRandomSigs generates a list of random signatures.
+func newRandomSigs(rng *rand.Rand, n int) (a []wallet.Sig) {
+	a = make([]wallet.Sig, n)
+	for i := range a {
+		a[i] = newRandomSig(rng)
+	}
+	return
 }
 
 // newRandomstring returns a random string of length between minLen and
