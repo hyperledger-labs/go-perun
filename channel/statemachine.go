@@ -99,6 +99,12 @@ func (m *StateMachine) Update(stagingState *State, actor Index) error {
 	return nil
 }
 
+// ForceUpdate makes the provided state the staging state.
+func (m *StateMachine) ForceUpdate(stagingState *State, actor Index) error {
+	m.setStaging(Signing, stagingState)
+	return nil
+}
+
 // CheckUpdate checks if the given state is a valid transition from the current
 // state and if the given signature is valid. It is a read-only operation that
 // does not advance the state machine.

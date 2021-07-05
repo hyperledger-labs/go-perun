@@ -34,15 +34,16 @@ import (
 //
 // Currently, only the two-party protocol is fully implemented.
 type Client struct {
-	address       wire.Address
-	conn          clientConn
-	channels      chanRegistry
-	funder        channel.Funder
-	adjudicator   channel.Adjudicator
-	wallet        wallet.Wallet
-	pr            persistence.PersistRestorer
-	log           log.Logger // structured logger for this client
-	version1Cache version1Cache
+	address        wire.Address
+	conn           clientConn
+	channels       chanRegistry
+	funder         channel.Funder
+	adjudicator    channel.Adjudicator
+	wallet         wallet.Wallet
+	pr             persistence.PersistRestorer
+	log            log.Logger // structured logger for this client
+	version1Cache  version1Cache
+	fundingWatcher *stateWatcher
 
 	sync.Closer
 }
@@ -90,7 +91,7 @@ func New(
 		return nil, errors.WithMessage(err, "setting up client connection")
 	}
 
-	return &Client{
+	c = &Client{
 		address:     address,
 		conn:        conn,
 		channels:    makeChanRegistry(),
@@ -99,7 +100,10 @@ func New(
 		wallet:      wallet,
 		pr:          persistence.NonPersistRestorer,
 		log:         log,
-	}, nil
+	}
+
+	c.fundingWatcher = newStateWatcher(c.matchFundingProposal)
+	return
 }
 
 // Close closes this state channel client.
@@ -158,15 +162,19 @@ func (c *Client) Handle(ph ProposalHandler, uh UpdateHandler) {
 		}
 		msg := env.Msg
 
-		switch msg.Type() {
-		case wire.LedgerChannelProposal:
-			go c.handleChannelProposal(ph, env.Sender, msg.(*LedgerChannelProposal))
-		case wire.SubChannelProposal:
-			go c.handleChannelProposal(ph, env.Sender, msg.(*SubChannelProposal))
-		case wire.ChannelUpdate:
-			go c.handleChannelUpdate(uh, env.Sender, msg.(*msgChannelUpdate))
-		case wire.ChannelSync:
-			go c.handleSyncMsg(env.Sender, msg.(*msgChannelSync))
+		switch msg := msg.(type) {
+		case *LedgerChannelProposal:
+			go c.handleChannelProposal(ph, env.Sender, msg)
+		case *SubChannelProposal:
+			go c.handleChannelProposal(ph, env.Sender, msg)
+		case *VirtualChannelProposal:
+			go c.handleChannelProposal(ph, env.Sender, msg)
+		case *msgChannelUpdate:
+			go c.handleChannelUpdate(uh, env.Sender, msg)
+		case *virtualChannelFundingProposal:
+			go c.handleChannelUpdate(uh, env.Sender, msg)
+		case *msgChannelSync:
+			go c.handleSyncMsg(env.Sender, msg)
 		default:
 			c.log.Error("Unexpected %T message received in request loop")
 		}

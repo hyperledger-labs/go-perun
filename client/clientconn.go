@@ -63,6 +63,8 @@ func makeClientConn(address wire.Address, bus wire.Bus) (c clientConn, err error
 func isReqMsg(m *wire.Envelope) bool {
 	return m.Msg.Type() == wire.LedgerChannelProposal ||
 		m.Msg.Type() == wire.SubChannelProposal ||
+		m.Msg.Type() == wire.VirtualChannelProposal ||
+		m.Msg.Type() == wire.VirtualChannelFundingProposal ||
 		m.Msg.Type() == wire.ChannelUpdate ||
 		m.Msg.Type() == wire.ChannelSync
 }

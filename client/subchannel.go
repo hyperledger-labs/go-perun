@@ -33,12 +33,7 @@ func (c *Channel) IsSubChannel() bool {
 }
 
 func (c *Channel) fundSubChannel(ctx context.Context, id channel.ID, alloc *channel.Allocation) error {
-	// Lock machine while update is in progress.
-	if !c.machMtx.TryLockCtx(ctx) {
-		return errors.Errorf("locking machine mutex in time: %v", ctx.Err())
-	}
-	defer c.machMtx.Unlock()
-
+	// We assume that the channel is locked.
 	return c.updateBy(ctx, func(state *channel.State) error {
 		// equal assets and sufficient balances are already checked when validating the sub-channel proposal
 
