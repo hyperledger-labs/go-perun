@@ -292,6 +292,11 @@ func (c *Channel) handleUpdateReq(
 		return
 	}
 
+	if prop, ok := req.(*virtualChannelSettlementProposal); ok {
+		client.handleVirtualChannelSettlementProposal(c, prop, responder)
+		return
+	}
+
 	if ui, ok := c.subChannelFundings.Filter(req.Base().ChannelUpdate); ok {
 		ui.HandleUpdate(req.Base().ChannelUpdate, responder)
 		return

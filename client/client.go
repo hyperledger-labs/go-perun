@@ -34,16 +34,17 @@ import (
 //
 // Currently, only the two-party protocol is fully implemented.
 type Client struct {
-	address        wire.Address
-	conn           clientConn
-	channels       chanRegistry
-	funder         channel.Funder
-	adjudicator    channel.Adjudicator
-	wallet         wallet.Wallet
-	pr             persistence.PersistRestorer
-	log            log.Logger // structured logger for this client
-	version1Cache  version1Cache
-	fundingWatcher *stateWatcher
+	address           wire.Address
+	conn              clientConn
+	channels          chanRegistry
+	funder            channel.Funder
+	adjudicator       channel.Adjudicator
+	wallet            wallet.Wallet
+	pr                persistence.PersistRestorer
+	log               log.Logger // structured logger for this client
+	version1Cache     version1Cache
+	fundingWatcher    *stateWatcher
+	settlementWatcher *stateWatcher
 
 	sync.Closer
 }
@@ -103,6 +104,7 @@ func New(
 	}
 
 	c.fundingWatcher = newStateWatcher(c.matchFundingProposal)
+	c.settlementWatcher = newStateWatcher(c.matchSettlementProposal)
 	return
 }
 
@@ -172,6 +174,8 @@ func (c *Client) Handle(ph ProposalHandler, uh UpdateHandler) {
 		case *msgChannelUpdate:
 			go c.handleChannelUpdate(uh, env.Sender, msg)
 		case *virtualChannelFundingProposal:
+			go c.handleChannelUpdate(uh, env.Sender, msg)
+		case *virtualChannelSettlementProposal:
 			go c.handleChannelUpdate(uh, env.Sender, msg)
 		case *msgChannelSync:
 			go c.handleSyncMsg(env.Sender, msg)

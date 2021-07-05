@@ -29,7 +29,22 @@ func (c *Channel) IsLedgerChannel() bool {
 
 // IsSubChannel returns whether the channel is a sub-channel.
 func (c *Channel) IsSubChannel() bool {
-	return c.Parent() != nil
+	return c.Parent() != nil && c.equalParticipants(c.Parent())
+}
+
+func (c *Channel) equalParticipants(_c *Channel) bool {
+	a, b := c.Peers(), _c.Peers()
+	if len(a) != len(b) {
+		return false
+	}
+
+	for i, _a := range a {
+		if !_a.Equals(b[i]) {
+			return false
+		}
+	}
+
+	return true
 }
 
 func (c *Channel) fundSubChannel(ctx context.Context, id channel.ID, alloc *channel.Allocation) error {
@@ -45,7 +60,7 @@ func (c *Channel) fundSubChannel(ctx context.Context, id channel.ID, alloc *chan
 	})
 }
 
-func (c *Channel) withdrawIntoParent(ctx context.Context) error {
+func (c *Channel) withdrawSubChannelIntoParent(ctx context.Context) error {
 	if !c.IsSubChannel() {
 		c.Log().Panic("not a sub-channel")
 	} else if !c.machine.State().IsFinal {

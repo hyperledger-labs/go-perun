@@ -204,13 +204,23 @@ func (c *Channel) SettleWithSubchannels(ctx context.Context, subStates channel.S
 		if err := c.adjudicator.Withdraw(ctx, req, subStates); err != nil {
 			return errors.WithMessage(err, "calling Withdraw")
 		}
+
 	case c.IsSubChannel():
 		if c.hasLockedFunds() {
 			return errors.New("cannot settle off-chain with locked funds")
 		}
-		if err := c.withdrawIntoParent(ctx); err != nil {
+		if err := c.withdrawSubChannelIntoParent(ctx); err != nil {
 			return errors.WithMessage(err, "withdrawing into parent channel")
 		}
+
+	case c.IsVirtualChannel():
+		if c.hasLockedFunds() {
+			return errors.New("cannot settle off-chain with locked funds")
+		}
+		if err := c.parent.withdrawVirtualChannel(ctx, c); err != nil {
+			return errors.WithMessage(err, "withdrawing into parent channel")
+		}
+
 	default:
 		panic("invalid channel type")
 	}

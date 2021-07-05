@@ -24,6 +24,13 @@ import (
 	"perun.network/go-perun/wire"
 )
 
+// IsVirtualChannel returns whether the channel is a virtual channel.
+// A virtual channel is a channel that has a parent channel with different
+// participants.
+func (c *Channel) IsVirtualChannel() bool {
+	return c.Parent() != nil && !c.equalParticipants(c.Parent())
+}
+
 func (c *Client) fundVirtualChannel(ctx context.Context, virtual *Channel, prop *VirtualChannelProposal) error {
 	parentID := prop.Parents[virtual.Idx()]
 	parent, ok := c.channels.Get(parentID)
@@ -65,8 +72,9 @@ func (c *Channel) proposeVirtualChannelFunding(ctx context.Context, virtual *Cha
 	return err
 }
 
-const responseTimeout = 10 * time.Second              // How long we wait until the proposal response must be transmitted.
-const virtualChannelFundingTimeout = 10 * time.Second // How long we wait for a matching funding proposal.
+const responseTimeout = 10 * time.Second          // How long we wait until the proposal response must be transmitted.
+const virtualFundingTimeout = 10 * time.Second    // How long we wait for a matching funding proposal.
+const virtualSettlementTimeout = 10 * time.Second // How long we wait for a matching settlement proposal.
 
 func (c *Client) handleVirtualChannelFundingProposal(
 	ch *Channel,
@@ -78,7 +86,7 @@ func (c *Client) handleVirtualChannelFundingProposal(
 		c.rejectProposal(responder, err.Error())
 	}
 
-	ctx, cancel := context.WithTimeout(c.Ctx(), virtualChannelFundingTimeout)
+	ctx, cancel := context.WithTimeout(c.Ctx(), virtualFundingTimeout)
 	defer cancel()
 
 	err = c.fundingWatcher.Await(ctx, prop)

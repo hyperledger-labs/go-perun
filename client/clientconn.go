@@ -65,6 +65,7 @@ func isReqMsg(m *wire.Envelope) bool {
 		m.Msg.Type() == wire.SubChannelProposal ||
 		m.Msg.Type() == wire.VirtualChannelProposal ||
 		m.Msg.Type() == wire.VirtualChannelFundingProposal ||
+		m.Msg.Type() == wire.VirtualChannelSettlementProposal ||
 		m.Msg.Type() == wire.ChannelUpdate ||
 		m.Msg.Type() == wire.ChannelSync
 }
