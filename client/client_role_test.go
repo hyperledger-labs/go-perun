@@ -27,14 +27,14 @@ import (
 	ctest "perun.network/go-perun/client/test"
 	"perun.network/go-perun/log"
 	wtest "perun.network/go-perun/wallet/test"
-	"perun.network/go-perun/wire"
+	wiretest "perun.network/go-perun/wire/test"
 )
 
 const roleOperationTimeout = 1 * time.Second
 
 func NewSetups(rng *rand.Rand, names []string) []ctest.RoleSetup {
 	var (
-		bus   = wire.NewLocalBus()
+		bus   = wiretest.NewSerializingLocalBus()
 		n     = len(names)
 		setup = make([]ctest.RoleSetup, n)
 	)
