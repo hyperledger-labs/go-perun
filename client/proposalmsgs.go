@@ -56,6 +56,16 @@ func init() {
 			var m ChannelProposalRej
 			return &m, m.Decode(r)
 		})
+	wire.RegisterDecoder(wire.VirtualChannelProposal,
+		func(r io.Reader) (wire.Msg, error) {
+			var m = VirtualChannelProposal{}
+			return &m, m.Decode(r)
+		})
+	wire.RegisterDecoder(wire.VirtualChannelProposalAcc,
+		func(r io.Reader) (wire.Msg, error) {
+			var m = VirtualChannelProposalAcc{}
+			return &m, m.Decode(r)
+		})
 }
 
 func newHasher() hash.Hash { return sha3.New256() }
@@ -128,6 +138,8 @@ func (c *Client) proposalPeers(p ChannelProposal) (peers []wire.Address) {
 			c.log.Panic("ProposalPeers: invalid parent channel")
 		}
 		peers = ch.Peers()
+	case *VirtualChannelProposal:
+		peers = prop.Peers
 	default:
 		c.log.Panicf("ProposalPeers: unhandled proposal type %T")
 	}
@@ -178,6 +190,17 @@ func (p BaseChannelProposal) Encode(w io.Writer) error {
 	return perunio.Encode(w,
 		p.ChallengeDuration, p.NonceShare,
 		OptAppAndDataEnc{p.App, p.InitData}, p.InitBals, p.FundingAgreement)
+}
+
+// ProposalID returns the identifier of this channel proposal.
+func (p BaseChannelProposal) ProposalID() (propID ProposalID) {
+	hasher := newHasher()
+	if err := perunio.Encode(hasher, p.Base()); err != nil {
+		log.Panicf("proposal ID base encoding: %v", err)
+	}
+
+	copy(propID[:], hasher.Sum(nil))
+	return
 }
 
 // OptAppAndDataEnc makes an optional pair of App definition and Data encodable.
@@ -542,4 +565,122 @@ func (rej ChannelProposalRej) Encode(w io.Writer) error {
 // Decode decodes a ChannelProposalRej from an io.Reader.
 func (rej *ChannelProposalRej) Decode(r io.Reader) error {
 	return perunio.Decode(r, &rej.ProposalID, &rej.Reason)
+}
+
+/*
+Virtual channels
+*/
+
+type (
+	// VirtualChannelProposal is a channel proposal for virtual channels.
+	VirtualChannelProposal struct {
+		BaseChannelProposal
+		Proposer  wallet.Address    // Proposer's address in the channel.
+		Peers     []wire.Address    // Participants' wire addresses.
+		Parents   []channel.ID      // Parent channels for each participant.
+		IndexMaps [][]channel.Index // Index mapping for each participant in relation to the root channel.
+	}
+
+	// VirtualChannelProposalAcc is the accept message type corresponding to
+	// virtual channel proposals.
+	VirtualChannelProposalAcc struct {
+		BaseChannelProposalAcc
+		Responder wallet.Address // Responder's participant address.
+	}
+)
+
+// NewVirtualChannelProposal creates a virtual channel proposal.
+func NewVirtualChannelProposal(
+	challengeDuration uint64,
+	participant wallet.Address,
+	initBals *channel.Allocation,
+	peers []wire.Address,
+	parents []channel.ID,
+	indexMaps [][]channel.Index,
+	opts ...ProposalOpts,
+) (prop *VirtualChannelProposal, err error) {
+	base, err := makeBaseChannelProposal(
+		challengeDuration,
+		initBals,
+		opts...,
+	)
+	if err != nil {
+		return
+	}
+	prop = &VirtualChannelProposal{
+		BaseChannelProposal: base,
+		Proposer:            participant,
+		Peers:               peers,
+		Parents:             parents,
+		IndexMaps:           indexMaps,
+	}
+	return
+}
+
+// Encode encodes the proposal into an io.Writer.
+func (p VirtualChannelProposal) Encode(w io.Writer) error {
+	return perunio.Encode(
+		w,
+		p.BaseChannelProposal,
+		p.Proposer,
+		wire.AddressesWithLen(p.Peers),
+		channelIDsWithLen(p.Parents),
+		indexMapsWithLen(p.IndexMaps),
+	)
+}
+
+// Decode decodes a proposal from an io.Reader.
+func (p *VirtualChannelProposal) Decode(r io.Reader) error {
+	return perunio.Decode(
+		r,
+		&p.BaseChannelProposal,
+		wallet.AddressDec{Addr: &p.Proposer},
+		(*wire.AddressesWithLen)(&p.Peers),
+		(*channelIDsWithLen)(&p.Parents),
+		(*indexMapsWithLen)(&p.IndexMaps),
+	)
+}
+
+// Type returns the message type.
+func (VirtualChannelProposal) Type() wire.Type {
+	return wire.VirtualChannelProposal
+}
+
+// Accept constructs an accept message that belongs to a proposal message.
+func (p VirtualChannelProposal) Accept(
+	responder wallet.Address,
+	opts ...ProposalOpts,
+) *VirtualChannelProposalAcc {
+	propID := p.ProposalID()
+	_opts := union(opts...)
+	return &VirtualChannelProposalAcc{
+		BaseChannelProposalAcc: makeBaseChannelProposalAcc(propID, _opts.nonce()),
+		Responder:              responder,
+	}
+}
+
+// Matches requires that the accept message has the correct type.
+func (VirtualChannelProposal) Matches(acc ChannelProposalAccept) bool {
+	_, ok := acc.(*VirtualChannelProposalAcc)
+	return ok
+}
+
+// Type returns the message type.
+func (VirtualChannelProposalAcc) Type() wire.Type {
+	return wire.VirtualChannelProposalAcc
+}
+
+// Base returns the common proposal accept values.
+func (acc *VirtualChannelProposalAcc) Base() *BaseChannelProposalAcc {
+	return &acc.BaseChannelProposalAcc
+}
+
+// Encode encodes the message into an io.Writer.
+func (acc VirtualChannelProposalAcc) Encode(w io.Writer) error {
+	return perunio.Encode(w, acc.BaseChannelProposalAcc, acc.Responder)
+}
+
+// Decode decodes a message from an io.Reader.
+func (acc *VirtualChannelProposalAcc) Decode(r io.Reader) error {
+	return perunio.Decode(r, &acc.BaseChannelProposalAcc, wallet.AddressDec{Addr: &acc.Responder})
 }

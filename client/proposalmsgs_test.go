@@ -52,16 +52,22 @@ func TestNewLedgerChannelProposal(t *testing.T) {
 func TestChannelProposalReqSerialization(t *testing.T) {
 	rng := pkgtest.Prng(t)
 	for i := 0; i < 16; i++ {
-		var app client.ProposalOpts
+		var (
+			app client.ProposalOpts
+			m   wire.Msg
+			err error
+		)
 		if i&1 == 0 {
 			app = client.WithApp(test.NewRandomAppAndData(rng))
 		}
-		var m wire.Msg
-		if i&2 == 0 {
+		switch i % 3 {
+		case 0:
 			m = clienttest.NewRandomLedgerChannelProposal(rng, client.WithNonceFrom(rng), app)
-		} else {
-			var err error
+		case 1:
 			m, err = clienttest.NewRandomSubChannelProposal(rng, client.WithNonceFrom(rng), app)
+			require.NoError(t, err)
+		case 2:
+			m, err = clienttest.NewRandomVirtualChannelProposal(rng, client.WithNonceFrom(rng), app)
 			require.NoError(t, err)
 		}
 		wire.TestMsg(t, m)
@@ -135,6 +141,23 @@ func TestSubChannelProposalReqProposalID(t *testing.T) {
 	assert.NotEqual(t, s, c3.ProposalID())
 }
 
+func TestVirtualChannelProposalReqProposalID(t *testing.T) {
+	rng := pkgtest.Prng(t)
+
+	prop, err := clienttest.NewRandomVirtualChannelProposal(rng)
+	require.NoError(t, err)
+
+	testProp := *prop
+	assert.Equal(t, prop.ProposalID(), testProp.ProposalID())
+
+	prop2, err := clienttest.NewRandomVirtualChannelProposal(rng)
+	require.NoError(t, err)
+	assert.NotEqual(t, prop.ProposalID(), prop2.ProposalID())
+
+	testProp.NonceShare = prop2.NonceShare
+	assert.NotEqual(t, prop.ProposalID(), prop2.ProposalID())
+}
+
 func TestChannelProposalAccSerialization(t *testing.T) {
 	rng := pkgtest.Prng(t)
 	t.Run("ledger channel", func(t *testing.T) {
@@ -152,6 +175,15 @@ func TestChannelProposalAccSerialization(t *testing.T) {
 			proposal, err := clienttest.NewRandomSubChannelProposal(rng)
 			require.NoError(t, err)
 			m := proposal.Accept(client.WithNonceFrom(rng))
+			wire.TestMsg(t, m)
+		}
+	})
+	t.Run("virtual channel", func(t *testing.T) {
+		for i := 0; i < 16; i++ {
+			var err error
+			proposal, err := clienttest.NewRandomVirtualChannelProposal(rng)
+			require.NoError(t, err)
+			m := proposal.Accept(wallettest.NewRandomAddress(rng))
 			wire.TestMsg(t, m)
 		}
 	})

@@ -30,7 +30,7 @@ func TestProposalResponder_Accept_Nil(t *testing.T) {
 
 func TestPeerRejectedProposalError(t *testing.T) {
 	reason := "some-random-reason"
-	var err error = newPeerRejectedError("update", reason)
+	err := newPeerRejectedError("update", reason)
 	t.Run("direct_error", func(t *testing.T) {
 		peerRejectedProposalError := PeerRejectedError{}
 		gotPeerRejectedError := errors.As(err, &peerRejectedProposalError)

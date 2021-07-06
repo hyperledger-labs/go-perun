@@ -49,7 +49,7 @@ func TestClient_validTwoPartyProposal(t *testing.T) {
 
 	tests := []struct {
 		prop     *LedgerChannelProposal
-		ourIdx   int
+		ourIdx   channel.Index
 		peerAddr wallet.Address
 		valid    bool
 	}{

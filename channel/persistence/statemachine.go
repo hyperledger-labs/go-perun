@@ -124,6 +124,19 @@ func (m StateMachine) Update(
 	return errors.WithMessage(m.pr.Staged(ctx, m.StateMachine), "Persister.Staged")
 }
 
+// ForceUpdate calls ForceUpdate on the channel.StateMachine and then persists the changed
+// staging state.
+func (m StateMachine) ForceUpdate(
+	ctx context.Context,
+	stagingState *channel.State,
+	actor channel.Index,
+) error {
+	if err := m.StateMachine.ForceUpdate(stagingState, actor); err != nil {
+		return err
+	}
+	return errors.WithMessage(m.pr.Staged(ctx, m.StateMachine), "Persister.Staged")
+}
+
 // Sig calls Sig on the channel.StateMachine and then persists the added
 // signature.
 func (m StateMachine) Sig(ctx context.Context) (sig wallet.Sig, err error) {

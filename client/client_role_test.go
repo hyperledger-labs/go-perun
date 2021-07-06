@@ -18,20 +18,23 @@ import (
 	"context"
 	"math/rand"
 	"sync"
+	"testing"
 	"time"
 
+	"github.com/stretchr/testify/assert"
 	"perun.network/go-perun/channel"
+	"perun.network/go-perun/client"
 	ctest "perun.network/go-perun/client/test"
 	"perun.network/go-perun/log"
 	wtest "perun.network/go-perun/wallet/test"
-	"perun.network/go-perun/wire"
+	wiretest "perun.network/go-perun/wire/test"
 )
 
 const roleOperationTimeout = 1 * time.Second
 
 func NewSetups(rng *rand.Rand, names []string) []ctest.RoleSetup {
 	var (
-		bus   = wire.NewLocalBus()
+		bus   = wiretest.NewSerializingLocalBus()
 		n     = len(names)
 		setup = make([]ctest.RoleSetup, n)
 	)
@@ -60,6 +63,26 @@ func NewSetups(rng *rand.Rand, names []string) []ctest.RoleSetup {
 	}
 
 	return setup
+}
+
+type Client struct {
+	*client.Client
+	ctest.RoleSetup
+}
+
+func NewClients(rng *rand.Rand, names []string, t *testing.T) []*Client {
+	setups := NewSetups(rng, names)
+	clients := make([]*Client, len(setups))
+	for i, setup := range setups {
+		setup.Identity = setup.Wallet.NewRandomAccount(rng)
+		cl, err := client.New(setup.Identity.Address(), setup.Bus, setup.Funder, setup.Adjudicator, setup.Wallet)
+		assert.NoError(t, err)
+		clients[i] = &Client{
+			Client:    cl,
+			RoleSetup: setup,
+		}
+	}
+	return clients
 }
 
 type (

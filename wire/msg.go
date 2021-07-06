@@ -125,8 +125,12 @@ const (
 	LedgerChannelProposalAcc
 	SubChannelProposal
 	SubChannelProposalAcc
+	VirtualChannelProposal
+	VirtualChannelProposalAcc
 	ChannelProposalRej
 	ChannelUpdate
+	VirtualChannelFundingProposal
+	VirtualChannelSettlementProposal
 	ChannelUpdateAcc
 	ChannelUpdateRej
 	ChannelSync
@@ -134,19 +138,23 @@ const (
 )
 
 var typeNames = map[Type]string{
-	Ping:                     "Ping",
-	Pong:                     "Pong",
-	Shutdown:                 "Shutdown",
-	AuthResponse:             "AuthResponse",
-	LedgerChannelProposal:    "LedgerChannelProposal",
-	LedgerChannelProposalAcc: "LedgerChannelProposalAcc",
-	SubChannelProposal:       "SubChannelProposal",
-	SubChannelProposalAcc:    "SubChannelProposalAcc",
-	ChannelProposalRej:       "ChannelProposalRej",
-	ChannelUpdate:            "ChannelUpdate",
-	ChannelUpdateAcc:         "ChannelUpdateAcc",
-	ChannelUpdateRej:         "ChannelUpdateRej",
-	ChannelSync:              "ChannelSync",
+	Ping:                             "Ping",
+	Pong:                             "Pong",
+	Shutdown:                         "Shutdown",
+	AuthResponse:                     "AuthResponse",
+	LedgerChannelProposal:            "LedgerChannelProposal",
+	LedgerChannelProposalAcc:         "LedgerChannelProposalAcc",
+	SubChannelProposal:               "SubChannelProposal",
+	SubChannelProposalAcc:            "SubChannelProposalAcc",
+	VirtualChannelProposal:           "VirtualChannelProposal",
+	VirtualChannelProposalAcc:        "VirtualChannelProposalAcc",
+	ChannelProposalRej:               "ChannelProposalRej",
+	ChannelUpdate:                    "ChannelUpdate",
+	VirtualChannelFundingProposal:    "VirtualChannelFundingProposal",
+	VirtualChannelSettlementProposal: "VirtualChannelSettlementProposal",
+	ChannelUpdateAcc:                 "ChannelUpdateAcc",
+	ChannelUpdateRej:                 "ChannelUpdateRej",
+	ChannelSync:                      "ChannelSync",
 }
 
 // String returns the name of a message type if it is valid and name known

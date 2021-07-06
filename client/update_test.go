@@ -45,7 +45,7 @@ func TestChannel_Update_NilArgs(t *testing.T) {
 }
 
 func TestRequestTimedOutError(t *testing.T) {
-	var err error = newRequestTimedOutError("", "")
+	err := newRequestTimedOutError("", "")
 	requestTimedOutError := RequestTimedOutError("")
 
 	t.Run("direct_error", func(t *testing.T) {

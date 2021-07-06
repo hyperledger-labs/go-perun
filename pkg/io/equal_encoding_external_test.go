@@ -33,7 +33,7 @@ func TestEqualEncoding(t *testing.T) {
 	rng.Read(a)
 	rng.Read(b)
 	rng.Read(c)
-	var c2 io.ByteSlice = c
+	c2 := c
 
 	tests := []struct {
 		a         io.Encoder

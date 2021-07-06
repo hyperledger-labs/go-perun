@@ -21,6 +21,7 @@ import (
 	"testing"
 	"testing/iotest"
 
+	"github.com/stretchr/testify/assert"
 	perunio "perun.network/go-perun/pkg/io"
 )
 
@@ -49,10 +50,9 @@ func genericDecodeEncodeTest(t *testing.T, serializers ...perunio.Serializer) {
 		r.Close()
 		if err != nil {
 			t.Errorf("failed to decode %dth element (%T): %+v", i, v, err)
-		} else if !reflect.DeepEqual(v, dest.Interface()) {
-			t.Errorf(
-				"encoding and decoding the %dth element (%T) resulted in different value: %v, %v",
-				i, v, reflect.ValueOf(v).Elem(), dest.Elem())
+		} else {
+			_v := dest.Interface()
+			assert.Equalf(t, v, _v, "comparing element %d", i)
 		}
 	}
 }

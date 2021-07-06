@@ -16,6 +16,7 @@ package client_test
 
 import (
 	"math/big"
+	"math/rand"
 	"testing"
 
 	"perun.network/go-perun/apps/payment"
@@ -27,14 +28,20 @@ import (
 )
 
 func TestHappyAliceBob(t *testing.T) {
-	rng := test.Prng(t)
-	for i := 0; i < 2; i++ {
-		setups := NewSetups(rng, []string{"Alice", "Bob"})
-		roles := [2]ctest.Executer{
+	runTwoPartyTest(t, func(rng *rand.Rand) (setups []ctest.RoleSetup, roles [2]ctest.Executer) {
+		setups = NewSetups(rng, []string{"Alice", "Bob"})
+		roles = [2]ctest.Executer{
 			ctest.NewAlice(setups[0], t),
 			ctest.NewBob(setups[1], t),
 		}
+		return
+	})
+}
 
+func runTwoPartyTest(t *testing.T, setup func(*rand.Rand) ([]ctest.RoleSetup, [2]ctest.Executer)) {
+	rng := test.Prng(t)
+	for i := 0; i < 2; i++ {
+		setups, roles := setup(rng)
 		app := client.WithoutApp()
 		if i == 1 {
 			app = client.WithApp(

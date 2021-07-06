@@ -226,4 +226,4 @@ func MakeEmbedding(log Logger) Embedding { return Embedding{log: log} }
 func (em Embedding) Log() Logger { return em.log }
 
 // SetLog sets the embedded Logger.
-func (em Embedding) SetLog(l Logger) { em.log = l }
+func (em *Embedding) SetLog(l Logger) { em.log = l }

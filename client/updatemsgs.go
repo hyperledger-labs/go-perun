@@ -39,6 +39,16 @@ func init() {
 			var m msgChannelUpdateRej
 			return &m, m.Decode(r)
 		})
+	wire.RegisterDecoder(wire.VirtualChannelFundingProposal,
+		func(r io.Reader) (wire.Msg, error) {
+			var m virtualChannelFundingProposal
+			return &m, m.Decode(r)
+		})
+	wire.RegisterDecoder(wire.VirtualChannelSettlementProposal,
+		func(r io.Reader) (wire.Msg, error) {
+			var m virtualChannelSettlementProposal
+			return &m, m.Decode(r)
+		})
 }
 
 type (
@@ -179,4 +189,97 @@ func (c *msgChannelUpdateAcc) Ver() uint64 {
 // Ver returns the version of the state this update rejection refers to.
 func (c *msgChannelUpdateRej) Ver() uint64 {
 	return c.Version
+}
+
+/*
+Virtual channel
+*/
+
+type (
+	// virtualChannelFundingProposal is a channel update that proposes the funding of a virtual channel.
+	virtualChannelFundingProposal struct {
+		msgChannelUpdate
+		Initial  channel.SignedState
+		IndexMap []channel.Index
+	}
+
+	// virtualChannelSettlementProposal is a channel update that proposes the settlement of a virtual channel.
+	virtualChannelSettlementProposal struct {
+		msgChannelUpdate
+		Final channel.SignedState
+	}
+)
+
+// Type returns the message type.
+func (*virtualChannelFundingProposal) Type() wire.Type {
+	return wire.VirtualChannelFundingProposal
+}
+
+func (m virtualChannelFundingProposal) Encode(w io.Writer) (err error) {
+	err = perunio.Encode(w,
+		m.msgChannelUpdate,
+		m.Initial.Params,
+		*m.Initial.State,
+		indexMapWithLen(m.IndexMap),
+	)
+	if err != nil {
+		return
+	}
+
+	return wallet.EncodeSparseSigs(w, m.Initial.Sigs)
+}
+
+func (m *virtualChannelFundingProposal) Decode(r io.Reader) (err error) {
+	m.Initial = channel.SignedState{
+		Params: &channel.Params{},
+		State:  &channel.State{},
+	}
+	err = perunio.Decode(r,
+		&m.msgChannelUpdate,
+		m.Initial.Params,
+		m.Initial.State,
+		(*indexMapWithLen)(&m.IndexMap),
+	)
+	if err != nil {
+		return
+	}
+
+	m.Initial.Sigs = make([]wallet.Sig, m.Initial.State.NumParts())
+	return wallet.DecodeSparseSigs(r, &m.Initial.Sigs)
+}
+
+// Type returns the message type.
+func (*virtualChannelSettlementProposal) Type() wire.Type {
+	return wire.VirtualChannelSettlementProposal
+}
+
+func (m virtualChannelSettlementProposal) Encode(w io.Writer) (err error) {
+	err = perunio.Encode(w,
+		m.msgChannelUpdate,
+		m.Final.Params,
+		*m.Final.State,
+	)
+	if err != nil {
+		return
+	}
+
+	return wallet.EncodeSparseSigs(w, m.Final.Sigs)
+}
+
+func (m *virtualChannelSettlementProposal) Decode(r io.Reader) (err error) {
+	m.Final = channel.SignedState{
+		Params: &channel.Params{},
+		State:  &channel.State{},
+	}
+	err = perunio.Decode(r,
+		&m.msgChannelUpdate,
+		m.Final.Params,
+		m.Final.State,
+	)
+	if err != nil {
+		return
+	}
+
+	m.Final.Sigs = make([]wallet.Sig, m.Final.State.NumParts())
+	return wallet.DecodeSparseSigs(r, &m.Final.Sigs)
 }
