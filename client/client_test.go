@@ -24,6 +24,7 @@ import (
 
 	"perun.network/go-perun/channel"
 	"perun.network/go-perun/client"
+	ctest "perun.network/go-perun/client/test"
 	"perun.network/go-perun/pkg/test"
 	wtest "perun.network/go-perun/wallet/test"
 	"perun.network/go-perun/wire"
@@ -45,7 +46,8 @@ func (d DummyBus) SubscribeClient(wire.Consumer, wire.Address) error {
 func TestClient_New_NilArgs(t *testing.T) {
 	rng := test.Prng(t)
 	id := wtest.NewRandomAddress(rng)
-	b, f, a, w := &DummyBus{t}, &mockBackend{}, &mockBackend{}, wtest.RandomWallet()
+	backend := &ctest.MockBackend{}
+	b, f, a, w := &DummyBus{t}, backend, backend, wtest.RandomWallet()
 	assert.Panics(t, func() { client.New(nil, b, f, a, w) })
 	assert.Panics(t, func() { client.New(id, nil, f, a, w) })
 	assert.Panics(t, func() { client.New(id, b, nil, a, w) })
@@ -55,7 +57,8 @@ func TestClient_New_NilArgs(t *testing.T) {
 
 func TestClient_Handle_NilArgs(t *testing.T) {
 	rng := test.Prng(t)
-	c, err := client.New(wtest.NewRandomAddress(rng), &DummyBus{t}, &mockBackend{}, &mockBackend{}, wtest.RandomWallet())
+	backend := &ctest.MockBackend{}
+	c, err := client.New(wtest.NewRandomAddress(rng), &DummyBus{t}, backend, backend, wtest.RandomWallet())
 	require.NoError(t, err)
 
 	dummyUH := client.UpdateHandlerFunc(func(*channel.State, client.ChannelUpdate, *client.UpdateResponder) {})
@@ -66,7 +69,8 @@ func TestClient_Handle_NilArgs(t *testing.T) {
 
 func TestClient_New(t *testing.T) {
 	rng := test.Prng(t)
-	c, err := client.New(wtest.NewRandomAddress(rng), &DummyBus{t}, &mockBackend{}, &mockBackend{}, wtest.RandomWallet())
+	backend := &ctest.MockBackend{}
+	c, err := client.New(wtest.NewRandomAddress(rng), &DummyBus{t}, backend, backend, wtest.RandomWallet())
 	assert.NoError(t, err)
 	require.NotNil(t, c)
 }
