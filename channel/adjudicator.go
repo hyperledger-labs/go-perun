@@ -144,6 +144,8 @@ type (
 	// registration on the blockchain.
 	RegisteredEvent struct {
 		AdjudicatorEventBase // Channel ID and Refutation phase timeout
+		State                *State
+		Sigs                 []wallet.Sig
 	}
 
 	// ConcludedEvent signals channel conclusion.
@@ -191,13 +193,15 @@ func (b AdjudicatorEventBase) Timeout() Timeout { return b.TimeoutV }
 func (b AdjudicatorEventBase) Version() uint64 { return b.VersionV }
 
 // NewRegisteredEvent creates a new RegisteredEvent.
-func NewRegisteredEvent(id ID, timeout Timeout, version uint64) *RegisteredEvent {
+func NewRegisteredEvent(id ID, timeout Timeout, version uint64, state *State, sigs []wallet.Sig) *RegisteredEvent {
 	return &RegisteredEvent{
 		AdjudicatorEventBase: AdjudicatorEventBase{
 			IDV:      id,
 			TimeoutV: timeout,
 			VersionV: version,
 		},
+		State: state,
+		Sigs:  sigs,
 	}
 }
 
@@ -211,6 +215,17 @@ func NewProgressedEvent(id ID, timeout Timeout, state *State, idx Index) *Progre
 		},
 		State: state,
 		Idx:   idx,
+	}
+}
+
+// NewConcludedEvent creates a new ConcludedEvent.
+func NewConcludedEvent(id ID, timeout Timeout, version uint64) *ConcludedEvent {
+	return &ConcludedEvent{
+		AdjudicatorEventBase: AdjudicatorEventBase{
+			IDV:      id,
+			TimeoutV: timeout,
+			VersionV: version,
+		},
 	}
 }
 

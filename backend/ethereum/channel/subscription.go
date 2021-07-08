@@ -21,6 +21,7 @@ import (
 	"sync"
 
 	"github.com/ethereum/go-ethereum"
+	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/pkg/errors"
 
@@ -104,6 +105,7 @@ evloop:
 
 func (r *RegisteredSub) processNext(ctx context.Context, a *Adjudicator, _next *subscription.Event) (err error) {
 	next, ok := _next.Data.(*adjudicator.AdjudicatorChannelUpdate)
+	next.Raw = _next.Log
 	if !ok {
 		log.Panicf("unexpected event type: %T", _next.Data)
 	}
@@ -115,7 +117,7 @@ func (r *RegisteredSub) processNext(ctx context.Context, a *Adjudicator, _next *
 		// if newer version or same version and newer timeout, replace
 		if current.Version() < next.Version || current.Version() == next.Version && currentTimeout.Time < next.Timeout {
 			var e channel.AdjudicatorEvent
-			e, err = a.convertEvent(ctx, next, _next.Log.TxHash)
+			e, err = a.convertEvent(ctx, next)
 			if err != nil {
 				return
 			}
@@ -126,7 +128,7 @@ func (r *RegisteredSub) processNext(ctx context.Context, a *Adjudicator, _next *
 		}
 	default: // next-channel is empty
 		var e channel.AdjudicatorEvent
-		e, err = a.convertEvent(ctx, next, _next.Log.TxHash)
+		e, err = a.convertEvent(ctx, next)
 		if err != nil {
 			return
 		}
@@ -161,14 +163,40 @@ func (r *RegisteredSub) Err() error {
 	return <-r.err
 }
 
-func (a *Adjudicator) convertEvent(ctx context.Context, e *adjudicator.AdjudicatorChannelUpdate, txHash common.Hash) (channel.AdjudicatorEvent, error) {
+func (a *Adjudicator) convertEvent(ctx context.Context, e *adjudicator.AdjudicatorChannelUpdate) (channel.AdjudicatorEvent, error) {
 	base := channel.NewAdjudicatorEventBase(e.ChannelID, NewBlockTimeout(a.ContractInterface, e.Timeout), e.Version)
 	switch e.Phase {
 	case phaseDispute:
-		return &channel.RegisteredEvent{AdjudicatorEventBase: *base}, nil
+		args, err := a.fetchRegisterCallData(ctx, e.Raw.TxHash)
+		if err != nil {
+			return nil, errors.WithMessage(err, "fetching call data")
+		}
+
+		ch, ok := args.get(e.ChannelID)
+		if !ok {
+			return nil, errors.Errorf("channel not found in calldata: %v", e.ChannelID)
+		}
+
+		var app channel.App
+		var zeroAddress common.Address
+		if ch.Params.App == zeroAddress {
+			app = channel.NoApp()
+		} else {
+			app, err = channel.Resolve(wallet.AsWalletAddr(ch.Params.App))
+			if err != nil {
+				return nil, err
+			}
+		}
+		state := FromEthState(app, &ch.State)
+
+		return &channel.RegisteredEvent{
+			AdjudicatorEventBase: *base,
+			State:                &state,
+			Sigs:                 ch.Sigs,
+		}, nil
 
 	case phaseForceExec:
-		args, err := a.fetchProgressCallData(ctx, txHash)
+		args, err := a.fetchProgressCallData(ctx, e.Raw.TxHash)
 		if err != nil {
 			return nil, errors.WithMessage(err, "fetching call data")
 		}
@@ -200,24 +228,53 @@ type progressCallData struct {
 }
 
 func (a *Adjudicator) fetchProgressCallData(ctx context.Context, txHash common.Hash) (*progressCallData, error) {
+	var args progressCallData
+	err := a.fetchCallData(ctx, txHash, abiProgress, &args)
+	return &args, errors.WithMessage(err, "fetching call data")
+}
+
+type registerCallData struct {
+	Channel     adjudicator.AdjudicatorSignedState
+	SubChannels []adjudicator.AdjudicatorSignedState
+}
+
+func (args *registerCallData) get(id channel.ID) (*adjudicator.AdjudicatorSignedState, bool) {
+	ch := &args.Channel
+	if ch.State.ChannelID == id {
+		return ch, true
+	}
+	for _, ch := range args.SubChannels {
+		if ch.State.ChannelID == id {
+			return &ch, true
+		}
+	}
+	return nil, false
+}
+
+func (a *Adjudicator) fetchRegisterCallData(ctx context.Context, txHash common.Hash) (*registerCallData, error) {
+	var args registerCallData
+	err := a.fetchCallData(ctx, txHash, abiRegister, &args)
+	return &args, errors.WithMessage(err, "fetching call data")
+}
+
+func (a *Adjudicator) fetchCallData(ctx context.Context, txHash common.Hash, method abi.Method, args interface{}) error {
 	tx, _, err := a.ContractBackend.TransactionByHash(ctx, txHash)
 	if err != nil {
 		err = cherrors.CheckIsChainNotReachableError(err)
-		return nil, errors.WithMessage(err, "getting transaction")
+		return errors.WithMessage(err, "getting transaction")
 	}
 
-	argsData := tx.Data()[len(abiProgress.ID):]
+	argsData := tx.Data()[len(method.ID):]
 
-	argsI, err := abiProgress.Inputs.UnpackValues(argsData)
+	argsI, err := method.Inputs.UnpackValues(argsData)
 	if err != nil {
-		return nil, errors.WithMessage(err, "unpacking")
+		return errors.WithMessage(err, "unpacking")
 	}
 
-	var args progressCallData
-	err = abiProgress.Inputs.Copy(&args, argsI)
+	err = method.Inputs.Copy(args, argsI)
 	if err != nil {
-		return nil, errors.WithMessage(err, "copying into struct")
+		return errors.WithMessage(err, "copying into struct")
 	}
 
-	return &args, nil
+	return nil
 }

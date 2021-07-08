@@ -63,6 +63,7 @@ type (
 		Wallet      wallettest.Wallet
 		PR          persistence.PersistRestorer // Optional PersistRestorer
 		Timeout     time.Duration               // Timeout waiting for other role, not challenge duration
+		Backend     *MockBackend
 	}
 
 	// ExecConfig contains additional config parameters for the tests.

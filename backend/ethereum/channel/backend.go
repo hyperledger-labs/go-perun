@@ -49,6 +49,7 @@ var (
 	abiParams     abi.Type
 	abiState      abi.Type
 	abiProgress   abi.Method
+	abiRegister   abi.Method
 )
 
 func init() {
@@ -73,6 +74,10 @@ func init() {
 
 	if abiProgress, ok = adj.Methods["progress"]; !ok {
 		panic("Could not find method progress in adjudicator contract.")
+	}
+
+	if abiRegister, ok = adj.Methods["register"]; !ok {
+		panic("Could not find method register in adjudicator contract.")
 	}
 }
 

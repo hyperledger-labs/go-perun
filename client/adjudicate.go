@@ -21,6 +21,7 @@ import (
 
 	"perun.network/go-perun/channel"
 	"perun.network/go-perun/pkg/sync"
+	"perun.network/go-perun/wire"
 )
 
 // AdjudicatorEventHandler represents an interface for handling adjudicator events.
@@ -167,38 +168,80 @@ func (c *Channel) ProgressBy(ctx context.Context, update func(*channel.State)) e
 	return errors.WithMessage(c.adjudicator.Progress(ctx, *pr), "progressing")
 }
 
-// Settle concludes a channel and withdraws the funds.
+// Settle concludes the channel and withdraws the funds.
+//
+// This only works if the channel is concludable.
+// - A ledger channel is concludable, if it is final or if it has been disputed
+// before and the dispute timeout has passed.
+// - Sub-channels and virtual channels are only concludable if they are final
+// and do not have any sub-channels. Otherwise, this means a dispute has
+// occurred and the corresponding ledger channel must be disputed.
 //
 // Returns TxTimedoutError when the program times out waiting for a transaction
 // to be mined.
 // Returns ChainNotReachableError if the connection to the blockchain network
 // fails when sending a transaction to / reading from the blockchain.
-func (c *Channel) Settle(ctx context.Context, secondary bool) error {
-	return c.SettleWithSubchannels(ctx, nil, secondary)
+func (c *Channel) Settle(ctx context.Context, secondary bool) (err error) {
+	// Lock machines of channel and all subchannels recursively.
+	l, err := c.tryLockRecursive(ctx)
+	defer l.Unlock()
+	if err != nil {
+		return errors.WithMessage(err, "locking recursive")
+	}
+
+	// Set phase `Withdrawing`.
+	if err = c.applyRecursive(func(c *Channel) error {
+		if c.machine.Phase() == channel.Withdrawn {
+			return nil
+		}
+		return c.machine.SetWithdrawing(ctx)
+	}); err != nil {
+		return errors.WithMessage(err, "setting phase `Withdrawing` recursive")
+	}
+
+	// Settle.
+	err = c.settle(ctx, secondary)
+	if err != nil {
+		return
+	}
+
+	// Set phase `Withdrawn`.
+	if err = c.applyRecursive(func(c *Channel) error {
+		// Skip if already withdrawn.
+		if c.machine.Phase() == channel.Withdrawn {
+			return nil
+		}
+		return c.machine.SetWithdrawn(ctx)
+	}); err != nil {
+		return errors.WithMessage(err, "setting phase `Withdrawn` recursive")
+	}
+
+	// Decrement account usage.
+	if err = c.applyRecursive(func(c *Channel) (err error) {
+		// Skip if we are not a participant, e.g., if this is a virtual channel and we are the hub.
+		if c.IsVirtualChannel() {
+			ourID := c.parent.Peers()[c.parent.Idx()]
+			if !c.hasParticipant(ourID) {
+				return
+			}
+		}
+		c.wallet.DecrementUsage(c.machine.Account().Address())
+		return
+	}); err != nil {
+		return errors.WithMessage(err, "decrementing account usage")
+	}
+
+	c.Log().Info("Withdrawal successful.")
+	return nil
 }
 
-// SettleWithSubchannels concludes a channel and withdraws the funds.
-//
-// If the channel is a ledger channel with locked funds, additionally subStates
-// can be supplied to also conclude the corresponding sub-channels.
-//
-// Returns TxTimedoutError when the program times out waiting for a transaction
-// to be mined.
-// Returns ChainNotReachableError if the connection to the blockchain network
-// fails when sending a transaction to / reading from the blockchain.
-func (c *Channel) SettleWithSubchannels(ctx context.Context, subStates channel.StateMap, secondary bool) error {
-	// Lock channel machine.
-	if !c.machMtx.TryLockCtx(ctx) {
-		return errors.WithMessage(ctx.Err(), "locking machine")
-	}
-	defer c.machMtx.Unlock()
-
-	if err := c.machine.SetWithdrawing(ctx); err != nil {
-		return errors.WithMessage(err, "setting machine to withdrawing phase")
-	}
-
+func (c *Channel) settle(ctx context.Context, secondary bool) error {
 	switch {
 	case c.IsLedgerChannel():
+		subStates, err := c.subChannelStateMap()
+		if err != nil {
+			return errors.WithMessage(err, "creating sub-channel state map")
+		}
 		req := c.machine.AdjudicatorReq()
 		req.Secondary = secondary
 		if err := c.adjudicator.Withdraw(ctx, req, subStates); err != nil {
@@ -224,14 +267,17 @@ func (c *Channel) SettleWithSubchannels(ctx context.Context, subStates channel.S
 	default:
 		panic("invalid channel type")
 	}
-
-	if err := c.machine.SetWithdrawn(ctx); err != nil {
-		return errors.WithMessage(err, "setting machine phase")
-	}
-
-	c.Log().Info("Withdrawal successful.")
-	c.wallet.DecrementUsage(c.machine.Account().Address())
 	return nil
+}
+
+// hasParticipant returns we are participating in the channel.
+func (c *Channel) hasParticipant(id wire.Address) bool {
+	for _, p := range c.Peers() {
+		if id.Equals(p) {
+			return true
+		}
+	}
+	return false
 }
 
 func (c *Channel) setMachinePhase(ctx context.Context, e channel.AdjudicatorEvent) (err error) {
@@ -266,21 +312,13 @@ func (a mutexList) Unlock() {
 // tryLockRecursive tries to lock the channel and all of its sub-channels.
 // It returns a list of all the mutexes that have been locked.
 func (c *Channel) tryLockRecursive(ctx context.Context) (l mutexList, err error) {
-	l = mutexList{}
-	f := func(c *Channel) error {
+	err = c.applyRecursive(func(c *Channel) error {
 		if !c.machMtx.TryLockCtx(ctx) {
 			return errors.Errorf("locking machine mutex in time: %v", ctx.Err())
 		}
 		l = append(l, &c.machMtx)
 		return nil
-	}
-
-	err = f(c)
-	if err != nil {
-		return
-	}
-
-	err = c.applyToSubChannelsRecursive(f)
+	})
 	return
 }
 
@@ -306,13 +344,8 @@ func (c *Channel) applyToSubChannelsRecursive(f func(*Channel) error) (err error
 	return
 }
 
-// setRegisteringRecursive sets the machine phase of the channel and all of its sub-channels to `Registering`.
-// Assumes that the channel machine has been locked.
-func (c *Channel) setRegisteringRecursive(ctx context.Context) (err error) {
-	f := func(c *Channel) error {
-		return c.machine.SetRegistering(ctx)
-	}
-
+// applyRecursive applies the function to the channel and its sub-channels recursively.
+func (c *Channel) applyRecursive(f func(*Channel) error) (err error) {
 	err = f(c)
 	if err != nil {
 		return err
@@ -322,20 +355,20 @@ func (c *Channel) setRegisteringRecursive(ctx context.Context) (err error) {
 	return
 }
 
+// setRegisteringRecursive sets the machine phase of the channel and all of its sub-channels to `Registering`.
+// Assumes that the channel machine has been locked.
+func (c *Channel) setRegisteringRecursive(ctx context.Context) (err error) {
+	return c.applyRecursive(func(c *Channel) error {
+		return c.machine.SetRegistering(ctx)
+	})
+}
+
 // setRegisteredRecursive sets the machine phase of the channel and all of its sub-channels to `Registered`.
 // Assumes that the channel machine has been locked.
 func (c *Channel) setRegisteredRecursive(ctx context.Context) (err error) {
-	f := func(c *Channel) error {
+	return c.applyRecursive(func(c *Channel) error {
 		return c.machine.SetRegistered(ctx)
-	}
-
-	err = f(c)
-	if err != nil {
-		return err
-	}
-
-	err = c.applyToSubChannelsRecursive(f)
-	return
+	})
 }
 
 // gatherSubChannelStates gathers the state of all sub-channels recursively.
@@ -348,6 +381,17 @@ func (c *Channel) gatherSubChannelStates() (states []channel.SignedState, err er
 			State:  c.machine.CurrentTX().State,
 			Sigs:   c.machine.CurrentTX().Sigs,
 		})
+		return nil
+	})
+	return
+}
+
+// gatherSubChannelStates gathers the state of all sub-channels recursively.
+// Assumes sub-channels are locked.
+func (c *Channel) subChannelStateMap() (states channel.StateMap, err error) {
+	states = channel.MakeStateMap()
+	err = c.applyToSubChannelsRecursive(func(c *Channel) error {
+		states[c.ID()] = c.state()
 		return nil
 	})
 	return
