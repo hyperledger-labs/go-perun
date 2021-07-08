@@ -15,13 +15,17 @@
 package test
 
 import (
+	"bytes"
 	"context"
+	"math/big"
 	"math/rand"
 	"sync"
 	"time"
 
 	"perun.network/go-perun/channel"
 	"perun.network/go-perun/log"
+	"perun.network/go-perun/pkg/io"
+	"perun.network/go-perun/wallet"
 )
 
 type (
@@ -32,6 +36,7 @@ type (
 		mu           sync.Mutex
 		latestEvents map[channel.ID]channel.AdjudicatorEvent
 		eventSubs    map[channel.ID][]chan channel.AdjudicatorEvent
+		balances     map[addressMapKey]map[assetMapKey]*big.Int
 	}
 
 	rng interface {
@@ -51,6 +56,7 @@ func NewMockBackend(rng *rand.Rand) *MockBackend {
 		rng:          newThreadSafePrng(rng),
 		latestEvents: make(map[channel.ID]channel.AdjudicatorEvent),
 		eventSubs:    make(map[channel.ID][]chan channel.AdjudicatorEvent),
+		balances:     make(map[string]map[string]*big.Int),
 	}
 }
 
@@ -81,6 +87,13 @@ func (b *MockBackend) Register(_ context.Context, req channel.AdjudicatorReq, su
 
 	b.mu.Lock()
 	defer b.mu.Unlock()
+
+	// Check concluded.
+	ch := req.Params.ID()
+	if b.isConcluded(ch) {
+		log.Debug("register: already concluded:", ch)
+		return nil
+	}
 
 	channels := append([]channel.SignedState{
 		{
@@ -160,10 +173,97 @@ func outcomeRecursive(state *channel.State, subStates channel.StateMap) (outcome
 
 // Withdraw withdraws the channel funds.
 func (b *MockBackend) Withdraw(_ context.Context, req channel.AdjudicatorReq, subStates channel.StateMap) error {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+
+	// Check concluded.
+	ch := req.Params.ID()
+	if b.isConcluded(ch) {
+		log.Debug("withdraw: already concluded:", ch)
+		return nil
+	}
+
 	outcome := outcomeRecursive(req.Tx.State, subStates)
 	b.log.Infof("Withdraw: %+v, %+v, %+v", req, subStates, outcome)
+	for a, assetOutcome := range outcome {
+		asset := req.Tx.Allocation.Assets[a]
+		for p, amount := range assetOutcome {
+			participant := req.Params.Parts[p]
+			b.addBalance(participant, asset, amount)
+		}
+	}
 
+	b.setLatestEvent(ch, channel.NewConcludedEvent(ch, &channel.ElapsedTimeout{}, req.Tx.Version))
 	return nil
+}
+
+func (b *MockBackend) isConcluded(ch channel.ID) bool {
+	e, ok := b.latestEvents[ch]
+	if !ok {
+		return false
+	}
+	if _, ok := e.(*channel.ConcludedEvent); !ok {
+		return false
+	}
+	return true
+}
+
+func (b *MockBackend) addBalance(p wallet.Address, a channel.Asset, v *big.Int) {
+	bal := b.getBalance(p, a)
+	bal = new(big.Int).Add(bal, v)
+	b.setBalance(p, a, bal)
+}
+
+func (b *MockBackend) getBalance(p wallet.Address, a channel.Asset) *big.Int {
+	partBals, ok := b.balances[newAddressMapKey(p)]
+	if !ok {
+		return big.NewInt(0)
+	}
+	bal, ok := partBals[newAssetMapKey(a)]
+	if !ok {
+		return big.NewInt(0)
+	}
+	return new(big.Int).Set(bal)
+}
+
+type (
+	addressMapKey = string
+	assetMapKey   = string
+)
+
+func newAddressMapKey(a wallet.Address) addressMapKey {
+	return encodableAsString(a)
+}
+
+func newAssetMapKey(a channel.Asset) assetMapKey {
+	return encodableAsString(a)
+}
+
+func encodableAsString(e io.Encoder) string {
+	var buf bytes.Buffer
+	if err := e.Encode(&buf); err != nil {
+		panic(err)
+	}
+	return buf.String()
+}
+
+// GetBalance returns the balance for the participant and asset.
+func (b *MockBackend) GetBalance(p wallet.Address, a channel.Asset) *big.Int {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	return b.getBalance(p, a)
+}
+
+func (b *MockBackend) setBalance(p wallet.Address, a channel.Asset, v *big.Int) {
+	partKey := newAddressMapKey(p)
+	partBals, ok := b.balances[partKey]
+	if !ok {
+		log.Debug("part not found", p)
+		partBals = make(map[string]*big.Int)
+		b.balances[partKey] = partBals
+	}
+	log.Debug("set balance:", p, v)
+	partBals[newAssetMapKey(a)] = new(big.Int).Set(v)
 }
 
 // Subscribe creates an event subscription.

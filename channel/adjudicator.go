@@ -218,6 +218,17 @@ func NewProgressedEvent(id ID, timeout Timeout, state *State, idx Index) *Progre
 	}
 }
 
+// NewConcludedEvent creates a new ConcludedEvent.
+func NewConcludedEvent(id ID, timeout Timeout, version uint64) *ConcludedEvent {
+	return &ConcludedEvent{
+		AdjudicatorEventBase: AdjudicatorEventBase{
+			IDV:      id,
+			TimeoutV: timeout,
+			VersionV: version,
+		},
+	}
+}
+
 // ElapsedTimeout is a Timeout that is always elapsed.
 type ElapsedTimeout struct{}
 
