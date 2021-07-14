@@ -240,9 +240,10 @@ Initial release.
 
 
 ## Legend
-- :warning: This is a pre-release and not intended for usage with real funds.
+- <span id="warning">:warning:</span> This is a pre-release and not intended for usage with real funds.
 
 
+[:warning:]: #warning
 [Unreleased]: https://github.com/hyperledger-labs/go-perun/compare/v0.7.0...HEAD
 [0.7.0]: https://github.com/hyperledger-labs/go-perun/compare/v0.6.0...v0.7.0
 [0.6.0]: https://github.com/hyperledger-labs/go-perun/compare/v0.5.2...v0.6.0
