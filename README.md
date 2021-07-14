@@ -54,16 +54,17 @@ and on [go-perun's pkg.go.dev site](https://pkg.go.dev/perun.network/go-perun).
 
 ## Features
 
-_go-perun_ currently supports all features needed for generalized two-party state channels.
+_go-perun_ currently supports all features needed for two-party generalized state channels.
 The following features are provided:
 * Generalized two-party state channels, including app/sub-channels
 * Cooperatively settling
 * Channel disputes
 * Dispute watchtower
 * Data persistence
+* Virtual two-party payment channels (direct dispute)
 
 The following features are planned for future releases:
-* Virtual two-party channels (direct dispute)
+* Virtual two-party state channels (direct dispute)
 * Virtual two-party channels (indirect dispute)
 * Multi-party ledger channels
 * Virtual multi-party channels (direct dispute)
