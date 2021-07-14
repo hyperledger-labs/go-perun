@@ -6,7 +6,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [0.7.0] Ganymed - 2021-07-09 [:warning:]
+## [0.7.0] Ganymede - 2021-07-09 [:warning:]
 Virtual channels. And some other additions.
 
 ### Added :sparkles:
@@ -22,7 +22,7 @@ GitHub CI ([#3](https://github.com/hyperledger-labs/go-perun/pull/3)),
 Eth sim backend auto mining ([#104](https://github.com/hyperledger-labs/go-perun/pull/104))
 
 ### Changed :construction:
-- :boom: **Asset holder validation** ([#111](https://github.com/hyperledger-labs/go-perun/pull/111)): Asset holder validation does no longer include adjudicator validation.
+- [:boom:] **Asset holder validation** ([#111](https://github.com/hyperledger-labs/go-perun/pull/111)): Asset holder validation does no longer include adjudicator validation.
 - **Current state in HandleUpdate** [#33](https://github.com/hyperledger-labs/go-perun/pull/33): The update handler now receives the current channel state as a parameter.
 - **Funder usability** [#74](https://github.com/hyperledger-labs/go-perun/pull/74): Streamlined Eth funder setup.
 - 2021 updates ([2212847d](https://github.com/perun-network/go-perun/commit/2212847de68d683865427c7e11abd48b589f90ee)),
@@ -240,8 +240,11 @@ Initial release.
 
 
 ## Legend
-- :warning: This is a pre-release and not intended for usage with real funds.
+- <span id="warning">:warning:</span> This is a pre-release and not intended for usage with real funds.
+- <span id="breaking">:boom:</span> This is a breaking change, e.g., it changes the external API.
 
+[:warning:]: #warning
+[:boom:]: #breaking
 
 [Unreleased]: https://github.com/hyperledger-labs/go-perun/compare/v0.7.0...HEAD
 [0.7.0]: https://github.com/hyperledger-labs/go-perun/compare/v0.6.0...v0.7.0
