@@ -92,7 +92,7 @@ func (r *Paul) exec(_cfg ExecConfig, ch *paymentChannel) {
 	r.waitStage() // wait for setup complete
 
 	// progress
-	assert.NoError(ch.ProgressBy(ctx, func(s *channel.State) {
+	assert.NoError(ch.ForceUpdate(ctx, func(s *channel.State) {
 		bal := func(user channel.Index) int64 {
 			return s.Balances[assetIdx][user].Int64()
 		}
@@ -162,7 +162,7 @@ func (r *Paula) exec(_cfg ExecConfig, ch *paymentChannel, _ *acceptNextPropHandl
 	r.t.Logf("%v received progression confirmation 1", r.setup.Name)
 
 	// we progress
-	assert.NoError(ch.ProgressBy(ctx, func(s *channel.State) {
+	assert.NoError(ch.ForceUpdate(ctx, func(s *channel.State) {
 		bal := func(user channel.Index) int64 {
 			return s.Balances[assetIdx][user].Int64()
 		}

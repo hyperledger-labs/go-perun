@@ -134,13 +134,13 @@ func (c *Channel) registerDispute(ctx context.Context) error {
 	return nil
 }
 
-// ProgressBy progresses the channel state in the adjudicator backend.
+// ForceUpdate enforces a channel update on the adjudicator.
 //
 // Returns TxTimedoutError when the program times out waiting for a transaction
 // to be mined.
 // Returns ChainNotReachableError if the connection to the blockchain network
 // fails when sending a transaction to / reading from the blockchain.
-func (c *Channel) ProgressBy(ctx context.Context, update func(*channel.State)) error {
+func (c *Channel) ForceUpdate(ctx context.Context, update func(*channel.State)) error {
 	err := c.ensureRegistered(ctx)
 	if err != nil {
 		return err
