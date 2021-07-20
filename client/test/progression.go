@@ -91,12 +91,6 @@ func (r *Paul) exec(_cfg ExecConfig, ch *paymentChannel) {
 
 	r.waitStage() // wait for setup complete
 
-	// register
-	assert.NoError(ch.Register(ctx), "registering")
-	regEvent := <-r.registered
-
-	assert.NoError(regEvent.Timeout().Wait(ctx), "waiting for refutation timeout")
-
 	// progress
 	assert.NoError(ch.ProgressBy(ctx, func(s *channel.State) {
 		bal := func(user channel.Index) int64 {

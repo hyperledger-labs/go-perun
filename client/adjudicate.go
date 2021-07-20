@@ -141,6 +141,11 @@ func (c *Channel) Register(ctx context.Context) error {
 // Returns ChainNotReachableError if the connection to the blockchain network
 // fails when sending a transaction to / reading from the blockchain.
 func (c *Channel) ProgressBy(ctx context.Context, update func(*channel.State)) error {
+	err := c.ensureRegistered(ctx)
+	if err != nil {
+		return err
+	}
+
 	// Lock machine
 	if !c.machMtx.TryLockCtx(ctx) {
 		return errors.Errorf("locking machine mutex in time: %v", ctx.Err())
