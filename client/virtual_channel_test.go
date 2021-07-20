@@ -80,7 +80,7 @@ func TestVirtualChannelsDispute(t *testing.T) {
 	chs := []*client.Channel{vct.chAliceIngrid, vct.chIngridAlice, vct.chBobIngrid, vct.chIngridBob}
 	// Register the channels in a random order.
 	for _, i := range rand.Perm(len(chs)) {
-		err := chs[i].Register(ctx)
+		err := client.NewTestChannel(chs[i]).Register(ctx)
 		assert.NoErrorf(err, "register channel: %d", i)
 	}
 

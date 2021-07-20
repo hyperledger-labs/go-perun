@@ -76,7 +76,7 @@ func (c *Channel) Watch(h AdjudicatorEventHandler) error {
 
 			// If local version greater than backend version, register local state.
 			if e.Version() < c.State().Version {
-				if err := c.Register(ctx); err != nil {
+				if err := c.register(ctx); err != nil {
 					return errors.WithMessage(err, "registering")
 				}
 			}
@@ -91,17 +91,17 @@ func (c *Channel) Watch(h AdjudicatorEventHandler) error {
 	return errors.WithMessage(err, "subscription closed")
 }
 
-// Register registers the channel and all its relatives on the adjudicator.
+// register registers the channel and all its relatives on the adjudicator.
 //
 // Returns TxTimedoutError when the program times out waiting for a transaction
 // to be mined.
 // Returns ChainNotReachableError if the connection to the blockchain network
 // fails when sending a transaction to / reading from the blockchain.
-func (c *Channel) Register(ctx context.Context) error {
+func (c *Channel) register(ctx context.Context) error {
 	// If this is not the root, go up one level.
 	// Once we are at the root, we register the whole channel tree together.
 	if c.parent != nil {
-		return c.parent.Register(ctx)
+		return c.parent.register(ctx)
 	}
 
 	// Lock machines of channel and all subchannels recursively.
@@ -427,7 +427,7 @@ func (c *Channel) ensureRegistered(ctx context.Context) error {
 	go waitForRegisteredEvent(sub, registeredEvents)
 
 	// Register.
-	err = c.Register(ctx)
+	err = c.register(ctx)
 	if err != nil {
 		return errors.WithMessage(err, "registering")
 	}
