@@ -13,8 +13,6 @@ run:
   modules-download-mode: readonly
 
 linters:
-  disable-all: true
-  fast: false
   enable:
     - bodyclose
     - deadcode
@@ -22,6 +20,7 @@ linters:
     - dogsled
     - dupl
     - errcheck
+    - exportloopref
     - funlen
     # We use init() functions.
     #- gochecknoinits
@@ -30,7 +29,6 @@ linters:
     - gocyclo
     - gofmt
     - goimports
-    - golint
     # This is stupid since it reports every constant as magic-number.
     #- gomnd
     - goprintffuncname
@@ -38,7 +36,6 @@ linters:
     - gosimple
     - govet
     - ineffassign
-    - interfacer
     # This thing reports long lines, but we have a lot of them…
     #- lll
     - misspell
@@ -46,7 +43,6 @@ linters:
     #- nakedret
     - nolintlint
     - rowserrcheck
-    - scopelint
     - staticcheck
     - structcheck
     - stylecheck
