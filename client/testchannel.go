@@ -14,7 +14,11 @@
 
 package client
 
-import "perun.network/go-perun/channel"
+import (
+	"context"
+
+	"perun.network/go-perun/channel"
+)
 
 // TestChannel grants access to the `AdjudicatorRequest` which is otherwise
 // hidden by `Channel`. Behaves like a `Channel` in all other cases.
@@ -32,4 +36,9 @@ func NewTestChannel(c *Channel) *TestChannel {
 // AdjudicatorReq returns the `AdjudicatorReq` of the underlying machine.
 func (c *TestChannel) AdjudicatorReq() channel.AdjudicatorReq {
 	return c.machine.AdjudicatorReq()
+}
+
+// Register exposes dispute registration.
+func (c *TestChannel) Register(ctx context.Context) error {
+	return c.Channel.registerDispute(ctx)
 }
