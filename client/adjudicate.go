@@ -20,6 +20,7 @@ import (
 	"github.com/pkg/errors"
 
 	"perun.network/go-perun/channel"
+	"perun.network/go-perun/log"
 	"perun.network/go-perun/pkg/sync"
 	"perun.network/go-perun/wire"
 )
@@ -182,6 +183,13 @@ func (c *Channel) ProgressBy(ctx context.Context, update func(*channel.State)) e
 // Returns ChainNotReachableError if the connection to the blockchain network
 // fails when sending a transaction to / reading from the blockchain.
 func (c *Channel) Settle(ctx context.Context, secondary bool) (err error) {
+	if !c.State().IsFinal {
+		err := c.ensureRegistered(ctx)
+		if err != nil {
+			return err
+		}
+	}
+
 	// Lock machines of channel and all subchannels recursively.
 	l, err := c.tryLockRecursive(ctx)
 	defer l.Unlock()
@@ -395,4 +403,56 @@ func (c *Channel) subChannelStateMap() (states channel.StateMap, err error) {
 		return nil
 	})
 	return
+}
+
+// ensureRegistered ensures that the channel is registered.
+func (c *Channel) ensureRegistered(ctx context.Context) error {
+	phase := c.Phase()
+	if phase == channel.Registered || phase == channel.Progressed {
+		return nil
+	}
+
+	registeredEvents := make(chan *channel.RegisteredEvent)
+
+	// Start event subscription.
+	sub, err := c.adjudicator.Subscribe(ctx, c.Params())
+	if err != nil {
+		return errors.WithMessage(err, "subscribing to adjudicator events")
+	}
+	go waitForRegisteredEvent(sub, registeredEvents)
+
+	// Register.
+	err = c.Register(ctx)
+	if err != nil {
+		return errors.WithMessage(err, "registering")
+	}
+
+	select {
+	case e := <-registeredEvents:
+		err = e.Timeout().Wait(ctx)
+		if err != nil {
+			return err
+		}
+	case <-ctx.Done():
+		return ctx.Err()
+	}
+	return nil
+}
+
+// waitForRegisteredEvent waits until a RegisteredEvent has been observed.
+func waitForRegisteredEvent(sub channel.AdjudicatorSubscription, events chan<- *channel.RegisteredEvent) {
+	defer func() {
+		err := sub.Close()
+		if err != nil {
+			log.Warn("Subscription closed with error:", err)
+		}
+	}()
+
+	// Scan for registered event.
+	for e := sub.Next(); e != nil; e = sub.Next() {
+		if e, ok := e.(*channel.RegisteredEvent); ok {
+			events <- e
+			return
+		}
+	}
 }
