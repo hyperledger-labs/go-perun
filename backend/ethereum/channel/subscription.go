@@ -39,9 +39,12 @@ func (a *Adjudicator) Subscribe(ctx context.Context, params *channel.Params) (ch
 	events := make(chan *subscription.Event, 10)
 	eFact := func() *subscription.Event {
 		return &subscription.Event{
-			Name:   bindings.Events.AdjChannelUpdate,
-			Data:   new(adjudicator.AdjudicatorChannelUpdate),
-			Filter: [][]interface{}{{params.ID()}},
+			Name: bindings.Events.AdjChannelUpdate,
+			Data: new(adjudicator.AdjudicatorChannelUpdate),
+			Filter: func(_data interface{}) bool {
+				data := _data.(*adjudicator.AdjudicatorChannelUpdate)
+				return data.ChannelID == params.ID()
+			},
 		}
 	}
 	sub, err := subscription.NewEventSub(ctx, a.ContractBackend, a.bound, eFact, startBlockOffset)

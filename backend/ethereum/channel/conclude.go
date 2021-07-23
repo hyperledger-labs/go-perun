@@ -169,7 +169,10 @@ func updateEventType(channelID [32]byte) subscription.EventFactory {
 			Name: bindings.Events.AdjChannelUpdate,
 			Data: new(adjudicator.AdjudicatorChannelUpdate),
 			// In the best case we could already filter for 'Concluded' phase only here.
-			Filter: [][]interface{}{{channelID}},
+			Filter: func(_data interface{}) bool {
+				data := _data.(*adjudicator.AdjudicatorChannelUpdate)
+				return data.ChannelID == channelID
+			},
 		}
 	}
 }

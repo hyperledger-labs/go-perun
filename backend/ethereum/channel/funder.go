@@ -264,15 +264,20 @@ func (f *Funder) checkFunded(ctx context.Context, amount *big.Int, asset assetHo
 }
 
 func (f *Funder) depositedSub(ctx context.Context, contract *bind.BoundContract, fundingIDs ...[32]byte) (*subscription.EventSub, error) {
-	filter := make([]interface{}, len(fundingIDs))
-	for i, fundingID := range fundingIDs {
-		filter[i] = fundingID
+	filter := func(_data interface{}) bool {
+		data := _data.(*assetholder.AssetHolderDeposited)
+		for _, fundingID := range fundingIDs {
+			if data.FundingID == fundingID {
+				return true
+			}
+		}
+		return false
 	}
 	event := func() *subscription.Event {
 		return &subscription.Event{
 			Name:   bindings.Events.AhDeposited,
 			Data:   new(assetholder.AssetHolderDeposited),
-			Filter: [][]interface{}{filter},
+			Filter: filter,
 		}
 	}
 	sub, err := subscription.NewEventSub(ctx, f, contract, event, startBlockOffset)

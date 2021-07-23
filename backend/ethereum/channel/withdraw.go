@@ -105,9 +105,12 @@ func (a *Adjudicator) ensureWithdrawn(ctx context.Context, req channel.Adjudicat
 func withdrawnEventType(fundingID [32]byte) subscription.EventFactory {
 	return func() *subscription.Event {
 		return &subscription.Event{
-			Name:   bindings.Events.AhWithdrawn,
-			Data:   new(assetholder.AssetHolderWithdrawn),
-			Filter: [][]interface{}{{fundingID}},
+			Name: bindings.Events.AhWithdrawn,
+			Data: new(assetholder.AssetHolderWithdrawn),
+			Filter: func(_data interface{}) bool {
+				data := _data.(*assetholder.AssetHolderWithdrawn)
+				return data.FundingID == fundingID
+			},
 		}
 	}
 }
