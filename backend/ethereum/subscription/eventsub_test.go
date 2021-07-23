@@ -165,15 +165,16 @@ func TestEventSub_Filter(t *testing.T) {
 	_, err = cb.ConfirmTransaction(ctx, tx, *account)
 	require.NoError(t, err)
 
-	// Create the filter.
-	Filter := []interface{}{fundingID}
 	// Setup the event sub.
 	sink := make(chan *subscription.Event, 1)
 	eFact := func() *subscription.Event {
 		return &subscription.Event{
-			Name:   bindings.Events.AhDeposited,
-			Data:   new(assetholder.AssetHolderDeposited),
-			Filter: [][]interface{}{Filter},
+			Name: bindings.Events.AhDeposited,
+			Data: new(assetholder.AssetHolderDeposited),
+			Filter: func(_data interface{}) bool {
+				data := _data.(*assetholder.AssetHolderDeposited)
+				return data.FundingID == fundingID
+			},
 		}
 	}
 	contract := bind.NewBoundContract(ahAddr, bindings.ABI.AssetHolder, cb, cb, cb)
