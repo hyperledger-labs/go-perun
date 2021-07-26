@@ -34,8 +34,15 @@ import (
 	"perun.network/go-perun/pkg/sync"
 )
 
-// GasLimit is the max amount of gas we want to send per transaction.
-const GasLimit = 500000
+const (
+	// GasLimit is the max amount of gas we want to send per transaction.
+	GasLimit = 500000
+
+	// GasPrice is the gas price that is used for simulated transactions.
+	// This value is set to `maxFeePerGas` from go-ethereum to prevent
+	// "max fee per gas less than block base fee" errors.
+	GasPrice = 875000000
+)
 
 // SimulatedBackend provides a simulated ethereum blockchain for tests.
 type SimulatedBackend struct {
@@ -72,6 +79,11 @@ func NewSimulatedBackend() *SimulatedBackend {
 	}
 }
 
+// SuggestGasPrice always returns `GasPrice`.
+func (*SimulatedBackend) SuggestGasPrice(context.Context) (*big.Int, error) {
+	return big.NewInt(GasPrice), nil
+}
+
 // SendTransaction executes a transaction.
 func (s *SimulatedBackend) SendTransaction(ctx context.Context, tx *types.Transaction) error {
 	if err := s.SimulatedBackend.SendTransaction(ctx, tx); err != nil {
@@ -87,7 +99,7 @@ func (s *SimulatedBackend) FundAddress(ctx context.Context, addr common.Address)
 	if err != nil {
 		panic(err)
 	}
-	tx := types.NewTransaction(nonce, addr, test.MaxBalance, GasLimit, big.NewInt(1), nil)
+	tx := types.NewTransaction(nonce, addr, test.MaxBalance, GasLimit, big.NewInt(GasPrice), nil)
 	signer := types.NewEIP155Signer(big.NewInt(1337))
 	signedTX, err := types.SignTx(tx, signer, s.faucetKey)
 	if err != nil {
