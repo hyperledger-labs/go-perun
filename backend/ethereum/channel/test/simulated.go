@@ -17,6 +17,7 @@ package test
 import (
 	"context"
 	"crypto/ecdsa"
+	"fmt"
 	"math/big"
 	"time"
 
@@ -47,11 +48,17 @@ const (
 // SimulatedBackend provides a simulated ethereum blockchain for tests.
 type SimulatedBackend struct {
 	backends.SimulatedBackend
+	sbMtx sync.Mutex // protects SimulatedBackend
+
 	faucetKey  *ecdsa.PrivateKey
 	faucetAddr common.Address
 	clockMu    sync.Mutex    // Mutex for clock adjustments. Locked by SimTimeouts.
 	mining     chan struct{} // Used for auto-mining blocks.
 }
+
+// Reorder can be used to insert, reorder and exclude transactions in
+// combination with `Reorg`.
+type Reorder func([]types.Transactions) []types.Transactions
 
 // NewSimulatedBackend creates a new Simulated Backend.
 func NewSimulatedBackend() *SimulatedBackend {
@@ -141,4 +148,58 @@ func (s *SimulatedBackend) StartMining(interval time.Duration) {
 // Must be called exactly once to free resources iff `StartMining` was called.
 func (s *SimulatedBackend) StopMining() {
 	close(s.mining)
+}
+
+// Reorg applies a chain reorg.
+// `depth` is the number of blocks to be removed.
+// `reorder` is a function that gets as input the removed blocks and outputs a list of blocks that are to be added after the removal.
+// It is required that the number of added blocks is greater than `depth` for a reorg to be accepted.
+// The nonce prevents transactions of the same account from being re-ordered. Trying to do this will panic.
+func (s *SimulatedBackend) Reorg(ctx context.Context, depth uint64, reorder Reorder) error {
+	// Lock
+	if !s.sbMtx.TryLockCtx(ctx) {
+		return errors.Errorf("locking mutex: %v", ctx.Err())
+	}
+	defer s.sbMtx.Unlock()
+
+	// parent at current - depth.
+	parentN := new(big.Int).Sub(s.Blockchain().CurrentBlock().Number(), big.NewInt(int64(depth)))
+	parent, err := s.BlockByNumber(ctx, parentN)
+	if err != nil {
+		return errors.Wrap(err, "retrieving reorg parent")
+	}
+
+	// Collect orphaned blocks.
+	blocks := make([]types.Transactions, depth)
+	for i := uint64(0); i < depth; i++ {
+		blockN := new(big.Int).Add(parentN, big.NewInt(int64(i+1)))
+		block, err := s.BlockByNumber(ctx, blockN)
+		if err != nil {
+			return errors.Wrap(err, "retrieving block")
+		}
+		// Add the TXs from block parent + 1 + i.
+		blocks[i] = block.Transactions()
+	}
+
+	// Modify the blocks with the reorder callback.
+	newBlocks := reorder(blocks)
+	if uint64(len(newBlocks)) <= depth {
+		return fmt.Errorf("number of blocks added %d must be greater than number of blocks removed %d", len(newBlocks), depth)
+	}
+
+	// Reset the chain to the parent block.
+	if err := s.Fork(ctx, parent.Hash()); err != nil {
+		return errors.Wrap(err, "forking")
+	}
+
+	// Add modified blocks.
+	for _, txs := range newBlocks {
+		for _, tx := range txs {
+			if err := s.SimulatedBackend.SendTransaction(ctx, tx); err != nil {
+				return errors.Wrap(err, "re-sending transaction")
+			}
+		}
+		s.Commit()
+	}
+	return nil
 }
