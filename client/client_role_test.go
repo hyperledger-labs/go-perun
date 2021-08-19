@@ -38,14 +38,15 @@ func NewSetups(rng *rand.Rand, names []string) []ctest.RoleSetup {
 
 	for i := 0; i < n; i++ {
 		setup[i] = ctest.RoleSetup{
-			Name:        names[i],
-			Identity:    wtest.NewRandomAccount(rng),
-			Bus:         bus,
-			Funder:      backend,
-			Adjudicator: backend,
-			Wallet:      wtest.NewWallet(),
-			Timeout:     roleOperationTimeout,
-			Backend:     backend,
+			Name:              names[i],
+			Identity:          wtest.NewRandomAccount(rng),
+			Bus:               bus,
+			Funder:            backend,
+			Adjudicator:       backend,
+			Wallet:            wtest.NewWallet(),
+			Timeout:           roleOperationTimeout,
+			Backend:           backend,
+			ChallengeDuration: 60,
 		}
 	}
 

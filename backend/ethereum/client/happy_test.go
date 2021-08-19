@@ -27,7 +27,6 @@ import (
 
 	"perun.network/go-perun/backend/ethereum/channel/test"
 	"perun.network/go-perun/backend/ethereum/wallet"
-	ethwtest "perun.network/go-perun/backend/ethereum/wallet/test"
 	chtest "perun.network/go-perun/channel/test"
 	perunclient "perun.network/go-perun/client"
 	clienttest "perun.network/go-perun/client/test"
@@ -45,23 +44,12 @@ func TestHappyAliceBob(t *testing.T) {
 	const A, B = 0, 1 // Indices of Alice and Bob
 	var (
 		name  = [2]string{"Alice", "Bob"}
-		bus   = wire.NewLocalBus()
 		setup [2]clienttest.RoleSetup
 		role  [2]clienttest.Executer
 	)
 
 	s := test.NewSetup(t, rng, 2, blockInterval)
-	for i := 0; i < 2; i++ {
-		setup[i] = clienttest.RoleSetup{
-			Name:        name[i],
-			Identity:    s.Accs[i],
-			Bus:         bus,
-			Funder:      s.Funders[i],
-			Adjudicator: s.Adjs[i],
-			Wallet:      ethwtest.NewTmpWallet(),
-			Timeout:     defaultTimeout,
-		}
-	}
+	setup = makeRoleSetups(s, name)
 
 	role[A] = clienttest.NewAlice(setup[A], t)
 	role[B] = clienttest.NewBob(setup[B], t)

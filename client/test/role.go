@@ -41,11 +41,12 @@ type (
 		newChan func(*paymentChannel) // new channel callback
 		setup   RoleSetup
 		// we use the Client as Closer
-		timeout   time.Duration
-		log       log.Logger
-		t         *testing.T
-		numStages int
-		stages    Stages
+		timeout           time.Duration
+		log               log.Logger
+		t                 *testing.T
+		numStages         int
+		stages            Stages
+		challengeDuration uint64
 	}
 
 	channelMap struct {
@@ -55,15 +56,16 @@ type (
 
 	// RoleSetup contains the injectables for setting up the client.
 	RoleSetup struct {
-		Name        string
-		Identity    wire.Account
-		Bus         wire.Bus
-		Funder      channel.Funder
-		Adjudicator channel.Adjudicator
-		Wallet      wallettest.Wallet
-		PR          persistence.PersistRestorer // Optional PersistRestorer
-		Timeout     time.Duration               // Timeout waiting for other role, not challenge duration
-		Backend     *MockBackend
+		Name              string
+		Identity          wire.Account
+		Bus               wire.Bus
+		Funder            channel.Funder
+		Adjudicator       channel.Adjudicator
+		Wallet            wallettest.Wallet
+		PR                persistence.PersistRestorer // Optional PersistRestorer
+		Timeout           time.Duration               // Timeout waiting for other role, not challenge duration
+		Backend           *MockBackend
+		ChallengeDuration uint64
 	}
 
 	// ExecConfig contains additional config parameters for the tests.
@@ -169,11 +171,12 @@ func (c *BaseExecConfig) App() client.ProposalOpts {
 // makeRole creates a client for the given setup and wraps it into a Role.
 func makeRole(setup RoleSetup, t *testing.T, numStages int) (r role) {
 	r = role{
-		chans:     &channelMap{entries: make(map[channel.ID]*paymentChannel)},
-		setup:     setup,
-		timeout:   setup.Timeout,
-		t:         t,
-		numStages: numStages,
+		chans:             &channelMap{entries: make(map[channel.ID]*paymentChannel)},
+		setup:             setup,
+		timeout:           setup.Timeout,
+		t:                 t,
+		numStages:         numStages,
+		challengeDuration: setup.ChallengeDuration,
 	}
 	cl, err := client.New(r.setup.Identity.Address(), r.setup.Bus, r.setup.Funder, r.setup.Adjudicator, r.setup.Wallet)
 	if err != nil {
@@ -310,8 +313,6 @@ func (r *role) GoHandle(rng *rand.Rand) (h *acceptNextPropHandler, wait func()) 
 	}
 }
 
-const challengeDuration = 60
-
 func (r *role) LedgerChannelProposal(rng *rand.Rand, cfg ExecConfig) *client.LedgerChannelProposal {
 	if !cfg.App().SetsApp() {
 		r.log.Panic("Invalid ExecConfig: App does not specify an app.")
@@ -324,7 +325,7 @@ func (r *role) LedgerChannelProposal(rng *rand.Rand, cfg ExecConfig) *client.Led
 	}
 	cfgPeerAddrs := cfg.Peers()
 	prop, err := client.NewLedgerChannelProposal(
-		challengeDuration,
+		r.challengeDuration,
 		r.setup.Wallet.NewRandomAccount(rng).Address(),
 		initBals,
 		cfgPeerAddrs[:],
@@ -348,7 +349,7 @@ func (r *role) SubChannelProposal(
 	}
 	prop, err := client.NewSubChannelProposal(
 		parent.ID(),
-		challengeDuration,
+		r.challengeDuration,
 		initBals,
 		client.WithNonceFrom(rng),
 		app,
