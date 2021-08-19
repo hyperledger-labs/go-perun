@@ -18,6 +18,7 @@ import (
 	"context"
 	"math/big"
 	"testing"
+	"time"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/stretchr/testify/assert"
@@ -25,12 +26,15 @@ import (
 
 	"perun.network/go-perun/backend/ethereum/channel/test"
 	"perun.network/go-perun/backend/ethereum/wallet"
-	ethwtest "perun.network/go-perun/backend/ethereum/wallet/test"
 	"perun.network/go-perun/client"
 	clienttest "perun.network/go-perun/client/test"
 	"perun.network/go-perun/log"
 	pkgtest "perun.network/go-perun/pkg/test"
 	"perun.network/go-perun/wire"
+)
+
+const (
+	blockInterval = 100 * time.Millisecond
 )
 
 func TestDisputeMalloryCarol(t *testing.T) {
@@ -40,23 +44,12 @@ func TestDisputeMalloryCarol(t *testing.T) {
 	const A, B = 0, 1 // Indices of Mallory and Carol
 	var (
 		name  = [2]string{"Mallory", "Carol"}
-		bus   = wire.NewLocalBus()
 		setup [2]clienttest.RoleSetup
 		role  [2]clienttest.Executer
 	)
 
-	s := test.NewSetup(t, rng, 2)
-	for i := 0; i < 2; i++ {
-		setup[i] = clienttest.RoleSetup{
-			Name:        name[i],
-			Identity:    s.Accs[i],
-			Bus:         bus,
-			Funder:      s.Funders[i],
-			Adjudicator: s.Adjs[i],
-			Wallet:      ethwtest.NewTmpWallet(),
-			Timeout:     defaultTimeout,
-		}
-	}
+	s := test.NewSetup(t, rng, 2, blockInterval)
+	setup = makeRoleSetups(s, name)
 
 	role[A] = clienttest.NewMallory(setup[A], t)
 	role[B] = clienttest.NewCarol(setup[B], t)

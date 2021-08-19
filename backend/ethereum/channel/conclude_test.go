@@ -33,7 +33,10 @@ import (
 	"perun.network/go-perun/wallet"
 )
 
-const defaultTestTimeout = 10 * time.Second
+const (
+	defaultTestTimeout = 10 * time.Second
+	blockInterval      = 100 * time.Millisecond
+)
 
 func TestAdjudicator_ConcludeFinal(t *testing.T) {
 	t.Run("ConcludeFinal 1 party", func(t *testing.T) { testConcludeFinal(t, 1) })
@@ -43,9 +46,10 @@ func TestAdjudicator_ConcludeFinal(t *testing.T) {
 }
 
 func testConcludeFinal(t *testing.T, numParts int) {
+	t.Parallel()
 	rng := pkgtest.Prng(t)
 	// create test setup
-	s := test.NewSetup(t, rng, numParts)
+	s := test.NewSetup(t, rng, numParts, blockInterval)
 	// create valid state and params
 	params, state := channeltest.NewRandomParamsAndState(
 		rng,
@@ -117,7 +121,7 @@ func TestAdjudicator_ConcludeWithSubChannels(t *testing.T) {
 	)
 	// create backend
 	var (
-		s                 = test.NewSetup(t, rng, numParts)
+		s                 = test.NewSetup(t, rng, numParts, blockInterval)
 		adj               = s.Adjs[0]
 		accounts          = s.Accs
 		participants      = s.Parts

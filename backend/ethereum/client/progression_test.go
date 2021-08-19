@@ -18,6 +18,7 @@ import (
 	"context"
 	"math/big"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/require"
 	ethchannel "perun.network/go-perun/backend/ethereum/channel"
@@ -36,7 +37,7 @@ func TestProgression(t *testing.T) {
 	rng := pkgtest.Prng(t)
 
 	names := [2]string{"Paul", "Paula"}
-	backendSetup := test.NewSetup(t, rng, 2)
+	backendSetup := test.NewSetup(t, rng, 2, blockInterval)
 	roleSetups := makeRoleSetups(backendSetup, names)
 	clients := [2]clienttest.Executer{
 		clienttest.NewPaul(t, roleSetups[0]),
@@ -63,13 +64,14 @@ func makeRoleSetups(s *test.Setup, names [2]string) (setup [2]clienttest.RoleSet
 	bus := wire.NewLocalBus()
 	for i := 0; i < len(setup); i++ {
 		setup[i] = clienttest.RoleSetup{
-			Name:        names[i],
-			Identity:    s.Accs[i],
-			Bus:         bus,
-			Funder:      s.Funders[i],
-			Adjudicator: s.Adjs[i],
-			Wallet:      ethwtest.NewTmpWallet(),
-			Timeout:     defaultTimeout,
+			Name:              names[i],
+			Identity:          s.Accs[i],
+			Bus:               bus,
+			Funder:            s.Funders[i],
+			Adjudicator:       s.Adjs[i],
+			Wallet:            ethwtest.NewTmpWallet(),
+			Timeout:           defaultTimeout,
+			ChallengeDuration: 60 * uint64(time.Second/blockInterval), // Scaled due to simbackend automining progressing faster than real time.
 		}
 	}
 	return
