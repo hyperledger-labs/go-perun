@@ -43,7 +43,7 @@ type (
 	Event struct {
 		Name   string      // Name of the event. Must match the ABI definition.
 		Data   interface{} // Instance of the concrete Event type.
-		Filter Filter      // Filters Events by their body.
+		Filter Filter      // Use this to filter Events by content of `Data`. Can be nil.
 		Log    types.Log   // Raw original log for additional information.
 	}
 
@@ -51,10 +51,10 @@ type (
 	// The `Data` and `Name` fields must be set. `Filter` is optional.
 	EventFactory func() *Event
 
-	// Filter can be used to filter events.
-	// Look at `TestEventSub_Filter` test or the auto generated Filter- and
-	// Watch-functions in the bindings/ folder for an example.
-	Filter [][]interface{}
+	// Filter can be used to filter events by their `Data` field.
+	// Ignore Event.Data.Log and use Event.Log instead.
+	// See `TestEventSub_Filter` for usage example.
+	Filter func(interface{}) bool
 )
 
 // NewEventSub creates a new `EventSub`. Should always be closed with `Close`.
@@ -69,14 +69,14 @@ func NewEventSub(ctx context.Context, chain ethereum.ChainReader, contract *bind
 	// Watch for future events.
 	event := eFact()
 	watchOpts := &bind.WatchOpts{Start: &startBlock}
-	watchLogs, watchSub, err := contract.WatchLogs(watchOpts, event.Name, event.Filter...)
+	watchLogs, watchSub, err := contract.WatchLogs(watchOpts, event.Name)
 	if err != nil {
 		err = cherrors.CheckIsChainNotReachableError(err)
 		return nil, errors.WithMessage(err, "watching logs")
 	}
 	// Read past events.
 	filterOpts := &bind.FilterOpts{Start: startBlock}
-	filterLogs, filterSub, err := contract.FilterLogs(filterOpts, event.Name, event.Filter...)
+	filterLogs, filterSub, err := contract.FilterLogs(filterOpts, event.Name)
 	if err != nil {
 		watchSub.Unsubscribe()
 		err = cherrors.CheckIsChainNotReachableError(err)
@@ -174,12 +174,14 @@ read2:
 		}
 		event.Log = log
 
-		select {
-		case <-ctx.Done():
-			return ctx.Err()
-		case sink <- event:
-		case <-s.closed:
-			return nil
+		if event.Filter == nil || event.Filter(event.Data) {
+			select {
+			case <-ctx.Done():
+				return ctx.Err()
+			case sink <- event:
+			case <-s.closed:
+				return nil
+			}
 		}
 	}
 	return nil
@@ -195,12 +197,14 @@ func (s *EventSub) readFuture(ctx context.Context, sink chan<- *Event) error {
 			}
 			event.Log = log
 
-			select {
-			case <-ctx.Done():
-				return ctx.Err()
-			case sink <- event:
-			case <-s.closed:
-				return nil
+			if event.Filter == nil || event.Filter(event.Data) {
+				select {
+				case <-ctx.Done():
+					return ctx.Err()
+				case sink <- event:
+				case <-s.closed:
+					return nil
+				}
 			}
 		case err := <-s.watchSub.Err():
 			err = cherrors.CheckIsChainNotReachableError(err)
