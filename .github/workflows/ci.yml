@@ -4,7 +4,7 @@ on:
   push:
     branches:
       - dev
-      - master
+      - main
     tags:
   pull_request:
   release:
@@ -21,7 +21,7 @@ jobs:
       - name: License header
         run: .scripts/check-copyright-notice.sh
       - name: Authors
-        run: .scripts/check-notice-authors.sh origin/master
+        run: .scripts/check-notice-authors.sh origin/main
 
   vet:
     name: Vetting
@@ -48,6 +48,15 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v2
 
+      - uses: actions/cache@v2
+        with:
+          path: |
+            ~/.cache/go-build
+            ~/go/pkg/mod
+          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-
+
       - name: Unit Tests
         run: go test -timeout 60s ./...
 
@@ -62,6 +71,15 @@ jobs:
 
       - name: Checkout
         uses: actions/checkout@v2
+
+      - uses: actions/cache@v2
+        with:
+          path: |
+            ~/.cache/go-build
+            ~/go/pkg/mod
+          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}-race
+          restore-keys: |
+            ${{ runner.os }}-go-
 
       - name: Unit Race Tests
         run: go test -timeout 120s -race -gcflags=all=-d=checkptr=0 ./...
