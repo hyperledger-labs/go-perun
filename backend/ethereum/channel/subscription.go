@@ -18,7 +18,6 @@ import (
 	"context"
 	"log"
 	"math/big"
-	"sync"
 
 	"github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/accounts/abi"
@@ -71,7 +70,6 @@ type RegisteredSub struct {
 	subErr chan error
 	next   chan channel.AdjudicatorEvent // Event sink
 	err    chan error                    // error from subscription
-	closed sync.Once
 }
 
 func (r *RegisteredSub) updateNext(ctx context.Context, events chan *subscription.Event, a *Adjudicator) {
@@ -153,7 +151,7 @@ func (r *RegisteredSub) Next() channel.AdjudicatorEvent {
 
 // Close closes this subscription. Any pending calls to Next will return nil.
 func (r *RegisteredSub) Close() error {
-	r.closed.Do(r.sub.Close)
+	r.sub.Close()
 	return nil
 }
 
