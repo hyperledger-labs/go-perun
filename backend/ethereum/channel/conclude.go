@@ -59,10 +59,11 @@ func (a *Adjudicator) ensureConcluded(ctx context.Context, req channel.Adjudicat
 	}()
 
 	// In final Register calls, as the non-initiator, we optimistically wait for
-	// the other party to send the transaction first for secondaryWaitBlocks many
-	// blocks.
+	// the other party to send the transaction first for
+	// `secondaryWaitBlocks + TxFinalityDepth` many blocks.
 	if req.Tx.IsFinal && req.Secondary {
-		isConcluded, err := waitConcludedForNBlocks(waitCtx, a, events, secondaryWaitBlocks)
+		waitBlocks := secondaryWaitBlocks + int(TxFinalityDepth)
+		isConcluded, err := waitConcludedForNBlocks(waitCtx, a, events, waitBlocks)
 		if err != nil {
 			return err
 		} else if isConcluded {
