@@ -263,7 +263,7 @@ func (f *Funder) checkFunded(ctx context.Context, amount *big.Int, asset assetHo
 	return left.Sign() != 1, errors.WithMessagef(<-subErr, "filtering old Funding events for asset %d", asset.assetIndex)
 }
 
-func (f *Funder) depositedSub(ctx context.Context, contract *bind.BoundContract, fundingIDs ...[32]byte) (*subscription.EventSub, error) {
+func (f *Funder) depositedSub(ctx context.Context, contract *bind.BoundContract, fundingIDs ...[32]byte) (*subscription.ResistantEventSub, error) {
 	filter := make([]interface{}, len(fundingIDs))
 	for i, fundingID := range fundingIDs {
 		filter[i] = fundingID
@@ -275,7 +275,7 @@ func (f *Funder) depositedSub(ctx context.Context, contract *bind.BoundContract,
 			Filter: [][]interface{}{filter},
 		}
 	}
-	sub, err := subscription.NewEventSub(ctx, f, contract, event, startBlockOffset)
+	sub, err := subscription.Subscribe(ctx, f, contract, event, startBlockOffset, TxFinalityDepth)
 	return sub, errors.WithMessage(err, "subscribing to deposited event")
 }
 

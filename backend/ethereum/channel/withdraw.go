@@ -60,7 +60,7 @@ func (a *Adjudicator) ensureWithdrawn(ctx context.Context, req channel.Adjudicat
 			fundingID := FundingIDs(req.Params.ID(), req.Params.Parts[req.Idx])[0]
 			events := make(chan *subscription.Event, 10)
 			subErr := make(chan error, 1)
-			sub, err := subscription.NewEventSub(ctx, a.ContractBackend, contract.contract, withdrawnEventType(fundingID), startBlockOffset)
+			sub, err := subscription.Subscribe(ctx, a.ContractBackend, contract.contract, withdrawnEventType(fundingID), startBlockOffset, TxFinalityDepth)
 			if err != nil {
 				return errors.WithMessage(err, "subscribing")
 			}
