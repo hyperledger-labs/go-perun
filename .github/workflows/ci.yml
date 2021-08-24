@@ -4,7 +4,7 @@ on:
   push:
     branches:
       - dev
-      - master
+      - main
     tags:
   pull_request:
   release:
@@ -21,7 +21,7 @@ jobs:
       - name: License header
         run: .scripts/check-copyright-notice.sh
       - name: Authors
-        run: .scripts/check-notice-authors.sh origin/master
+        run: .scripts/check-notice-authors.sh origin/main
 
   vet:
     name: Vetting
