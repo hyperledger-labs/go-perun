@@ -23,11 +23,12 @@ import (
 
 type (
 	// The Funder interface needs to be implemented by every
-	// blockchain backend. It provides functionality to fund a new channel on-chain.
+	// blockchain backend. It provides functionality to fund a new channel.
 	Funder interface {
-		// Fund should fund the channel in FundingReq on the blockchain.
-		// It should return an error if own funding did not succeed, possibly
-		// because the peer did not fund the channel in time.
+		// Fund should deposit funds into a channel and wait until funding by
+		// other peers is complete.
+		// It should return an error if the funding did not succeed, possibly
+		// because a peer did not fund the channel in time.
 		// Depending on the funding protocol, if we fund first and then the peer does
 		// not fund in time, a dispute process needs to be initiated to get back the
 		// funds from the partially funded channel. In this case, the user should
