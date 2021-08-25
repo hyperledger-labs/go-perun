@@ -91,7 +91,7 @@ func NewResistantEventSub(ctx context.Context, sub *EventSub, cr ethereum.ChainR
 	fd.SetUint64(finalityDepth)
 	ret := &ResistantEventSub{
 		sub:           sub,
-		lastBlockNum:  last.Number,
+		lastBlockNum:  new(big.Int).Set(last.Number),
 		heads:         heads,
 		headSub:       headSub,
 		finalityDepth: fd,

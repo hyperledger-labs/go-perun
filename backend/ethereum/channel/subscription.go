@@ -18,7 +18,6 @@ import (
 	"context"
 	"log"
 	"math/big"
-	"sync"
 
 	"github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/accounts/abi"
@@ -44,7 +43,7 @@ func (a *Adjudicator) Subscribe(ctx context.Context, params *channel.Params) (ch
 			Filter: [][]interface{}{{params.ID()}},
 		}
 	}
-	sub, err := subscription.NewEventSub(ctx, a.ContractBackend, a.bound, eFact, startBlockOffset)
+	sub, err := subscription.Subscribe(ctx, a.ContractBackend, a.bound, eFact, startBlockOffset, TxFinalityDepth)
 	if err != nil {
 		return nil, errors.WithMessage(err, "creating filter-watch event subscription")
 	}
@@ -66,12 +65,11 @@ func (a *Adjudicator) Subscribe(ctx context.Context, params *channel.Params) (ch
 
 // RegisteredSub implements the channel.AdjudicatorSubscription interface.
 type RegisteredSub struct {
-	cr     ethereum.ChainReader   // chain reader to read block time
-	sub    *subscription.EventSub // Event subscription
+	cr     ethereum.ChainReader            // chain reader to read block time
+	sub    *subscription.ResistantEventSub // Event subscription
 	subErr chan error
 	next   chan channel.AdjudicatorEvent // Event sink
 	err    chan error                    // error from subscription
-	closed sync.Once
 }
 
 func (r *RegisteredSub) updateNext(ctx context.Context, events chan *subscription.Event, a *Adjudicator) {
@@ -153,7 +151,7 @@ func (r *RegisteredSub) Next() channel.AdjudicatorEvent {
 
 // Close closes this subscription. Any pending calls to Next will return nil.
 func (r *RegisteredSub) Close() error {
-	r.closed.Do(r.sub.Close)
+	r.sub.Close()
 	return nil
 }
 

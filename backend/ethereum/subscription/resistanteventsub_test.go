@@ -38,7 +38,7 @@ var event = func() *subscription.Event {
 }
 
 // Defines a soft maximum value for the finality that tests will use.
-// Must be divisible by 2 and greater than 1.
+// Must be divisible by 2 and greater than 2.
 const maxFinality = 20
 
 // TestResistantEventSub_Confirm tests that a TX is confirmed exactly
@@ -166,7 +166,7 @@ func TestResistantEventSub_ReorgRemove(t *testing.T) {
 	require := require.New(t)
 	s := test.NewTokenSetup(ctx, t, rng)
 
-	finality := rng.Int31n(maxFinality-2) + 2
+	finality := rng.Int31n(maxFinality-3) + 3
 	sub, err := subscription.Subscribe(ctx, s.CB, s.Contract, event, 0, uint64(finality))
 	require.NoError(err)
 	defer sub.Close()
@@ -182,7 +182,7 @@ func TestResistantEventSub_ReorgRemove(t *testing.T) {
 
 	NoEvent(require, sub)
 	// Verify that the event never arrives.
-	for i := 0; i < maxFinality; i++ {
+	for i := 0; i < int(finality); i++ {
 		s.SB.Commit()
 	}
 	time.Sleep(1 * time.Second) // give the event subscription time to catch up
