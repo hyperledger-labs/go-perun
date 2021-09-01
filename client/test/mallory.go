@@ -75,7 +75,7 @@ func (r *Mallory) exec(_cfg ExecConfig, ch *paymentChannel) {
 	// within the challenge duration, Carol should refute.
 	subCtx, subCancel := context.WithTimeout(context.Background(), r.timeout+challengeDuration)
 	defer subCancel()
-	sub, err := r.setup.Adjudicator.Subscribe(subCtx, ch.Params())
+	sub, err := r.setup.Adjudicator.Subscribe(subCtx, ch.Params().ID())
 	assert.NoError(err)
 
 	// 3rd stage - wait until Carol has refuted

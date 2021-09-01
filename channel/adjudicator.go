@@ -60,7 +60,7 @@ type (
 		// The context should only be used to establish the subscription. The
 		// framework will call Close on the subscription once the respective channel
 		// controller shuts down.
-		Subscribe(context.Context, *Params) (AdjudicatorSubscription, error)
+		Subscribe(context.Context, ID) (AdjudicatorSubscription, error)
 	}
 
 	// An AdjudicatorReq collects all necessary information to make calls to the

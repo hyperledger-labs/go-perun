@@ -48,7 +48,7 @@ func (c *Channel) Watch(h AdjudicatorEventHandler) error {
 
 	// Subscribe to state changes
 	ctx := c.Ctx()
-	sub, err := c.adjudicator.Subscribe(ctx, c.Params())
+	sub, err := c.adjudicator.Subscribe(ctx, c.Params().ID())
 	if err != nil {
 		return errors.WithMessage(err, "subscribing to adjudicator state changes")
 	}
@@ -420,7 +420,7 @@ func (c *Channel) ensureRegistered(ctx context.Context) error {
 	registeredEvents := make(chan *channel.RegisteredEvent)
 
 	// Start event subscription.
-	sub, err := c.adjudicator.Subscribe(ctx, c.Params())
+	sub, err := c.adjudicator.Subscribe(ctx, c.Params().ID())
 	if err != nil {
 		return errors.WithMessage(err, "subscribing to adjudicator events")
 	}

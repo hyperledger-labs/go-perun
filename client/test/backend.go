@@ -267,8 +267,8 @@ func (b *MockBackend) setBalance(p wallet.Address, a channel.Asset, v *big.Int) 
 }
 
 // Subscribe creates an event subscription.
-func (b *MockBackend) Subscribe(ctx context.Context, params *channel.Params) (channel.AdjudicatorSubscription, error) {
-	b.log.Infof("SubscribeRegistered: %+v", params)
+func (b *MockBackend) Subscribe(ctx context.Context, chID channel.ID) (channel.AdjudicatorSubscription, error) {
+	b.log.Infof("SubscribeRegistered: %+v", chID)
 
 	b.mu.Lock()
 	defer b.mu.Unlock()
@@ -278,10 +278,10 @@ func (b *MockBackend) Subscribe(ctx context.Context, params *channel.Params) (ch
 		events: make(chan channel.AdjudicatorEvent, 1),
 		err:    make(chan error, 1),
 	}
-	b.eventSubs[params.ID()] = append(b.eventSubs[params.ID()], sub.events)
+	b.eventSubs[chID] = append(b.eventSubs[chID], sub.events)
 
 	// Feed latest event if any.
-	if e, ok := b.latestEvents[params.ID()]; ok {
+	if e, ok := b.latestEvents[chID]; ok {
 		sub.events <- e
 	}
 

@@ -102,7 +102,7 @@ func registerMultiple(t *testing.T, numParts int, parallel bool) {
 
 			// create subscription
 			adj := s.Adjs[i]
-			sub, err := adj.Subscribe(ctx, params)
+			sub, err := adj.Subscribe(ctx, params.ID())
 			require.NoError(t, err)
 			subs[i] = sub
 
@@ -158,7 +158,7 @@ func TestRegister_FinalState(t *testing.T) {
 	defer cancel()
 	// create subscription
 	adj := s.Adjs[0]
-	sub, err := adj.Subscribe(ctx, params)
+	sub, err := adj.Subscribe(ctx, params.ID())
 	require.NoError(t, err)
 	defer sub.Close()
 	// register
@@ -194,7 +194,7 @@ func TestRegister_CancelledContext(t *testing.T) {
 	cancel()
 	// create subscription
 	adj := s.Adjs[0]
-	sub, err := adj.Subscribe(ctx, params)
+	sub, err := adj.Subscribe(ctx, params.ID())
 	require.NoError(t, err)
 	defer sub.Close()
 	// register
