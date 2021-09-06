@@ -20,6 +20,7 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
+
 	"perun.network/go-perun/channel"
 	"perun.network/go-perun/wallet"
 	"perun.network/go-perun/wire"
@@ -104,7 +105,7 @@ func (c *Channel) watchVirtual() error {
 
 	// Subscribe to state changes
 	ctx := c.Ctx()
-	sub, err := c.adjudicator.Subscribe(ctx, c.Params())
+	sub, err := c.adjudicator.Subscribe(ctx, c.Params().ID())
 	if err != nil {
 		return errors.WithMessage(err, "subscribing to adjudicator state changes")
 	}

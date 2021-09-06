@@ -160,7 +160,7 @@ func TestAdjudicator_ConcludeWithSubChannels(t *testing.T) {
 
 	// 2. wait until ready to conclude
 
-	sub, err := adj.Subscribe(ctx, ledgerChannel.params)
+	sub, err := adj.Subscribe(ctx, ledgerChannel.params.ID())
 	require.NoError(err)
 	require.NoError(sub.Next().Timeout().Wait(ctx))
 	sub.Close()

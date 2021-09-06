@@ -243,7 +243,7 @@ func TestWithdrawNonFinal(t *testing.T) {
 
 	// create subscription
 	adj := s.Adjs[0]
-	sub, err := adj.Subscribe(ctx, params)
+	sub, err := adj.Subscribe(ctx, params.ID())
 	require.NoError(t, err)
 	defer sub.Close()
 
