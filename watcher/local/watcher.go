@@ -21,6 +21,7 @@ import (
 	"github.com/pkg/errors"
 
 	"perun.network/go-perun/channel"
+	"perun.network/go-perun/log"
 	"perun.network/go-perun/watcher"
 )
 
@@ -84,7 +85,7 @@ func (w *Watcher) startWatching(ctx context.Context, parent channel.ID, signedSt
 		return nil, nil, errors.New("already watching for this channel")
 	}
 
-	_, err := w.rs.Subscribe(ctx, id)
+	eventsFromChainSub, err := w.rs.Subscribe(ctx, id)
 	if err != nil {
 		return nil, nil, errors.WithMessage(err, "subscribing to adjudicator events from blockchain")
 	}
@@ -94,6 +95,8 @@ func (w *Watcher) startWatching(ctx context.Context, parent channel.ID, signedSt
 
 	w.registry.addUnsafe(ch)
 
+	go w.handleEventsFromChain(eventsFromChainSub, eventsToClientPubSub, ch)
+
 	return statesPubSub, eventsToClientPubSub, nil
 }
 
@@ -102,5 +105,18 @@ func newCh(id, parent channel.ID, params *channel.Params) *ch {
 		id:     id,
 		params: params,
 		parent: parent,
+	}
+}
+
+func (w *Watcher) handleEventsFromChain(eventsFromChainSub channel.AdjudicatorSubscription, eventsToClientPubSub adjudicatorPub,
+	thisCh *ch) {
+	for e := eventsFromChainSub.Next(); e != nil; e = eventsFromChainSub.Next() {
+		switch e.(type) {
+		case *channel.RegisteredEvent:
+			log := log.WithFields(log.Fields{"ID": e.ID(), "Version": e.Version()})
+			log.Debug("Received registered event from chain")
+			eventsToClientPubSub.Publish(e)
+		default:
+		}
 	}
 }
