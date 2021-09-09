@@ -24,6 +24,9 @@ import (
 	"perun.network/go-perun/wallet"
 )
 
+//go:generate mockery --name AdjudicatorSubscription --output ../watcher/internal/mocks
+//go:generate mockery --name RegisterSubscriber --output ../watcher/internal/mocks
+
 type (
 
 	// Adjudicator is the interface that groups the Register, Withdraw,
