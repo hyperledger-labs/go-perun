@@ -45,6 +45,17 @@ type (
 		EventSubscriber
 	}
 
+	// RegisterSubscriber is the interface that groups the Register and
+	// Subscribe methods.
+	//
+	// These methods are used to watch for adjudicator events on the blockchain
+	// and dispute, if the event is a RegisteredEvent and the state in the
+	// event is not the latest.
+	RegisterSubscriber interface {
+		Registerer
+		EventSubscriber
+	}
+
 	// Registerer is the interface that wraps the Register method.
 	//
 	// Register should register the given ledger channel state on-chain.
