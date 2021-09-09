@@ -1,0 +1,91 @@
+// Copyright 2021 - See NOTICE file for copyright holders.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+package local
+
+import (
+	"context"
+
+	"github.com/pkg/errors"
+
+	"perun.network/go-perun/channel"
+	"perun.network/go-perun/pkg/sync/atomic"
+	"perun.network/go-perun/watcher"
+)
+
+var _ watcher.StatesPub = &statesPubSub{}
+
+// errAlreadyClosed indicates the pub-sub has already been closed.
+var errAlreadyClosed error = errors.New("already closed")
+
+const statesPubSubBufferSize = 10
+
+type (
+	statesPubSub struct {
+		closed atomic.Bool
+		pipe   chan channel.Transaction
+	}
+
+	// statesSub is used by the watcher to receive transactions.
+	statesSub interface {
+		statesStream() <-chan channel.Transaction
+		error() error
+		close() error
+	}
+)
+
+func newStatesPubSub() *statesPubSub {
+	return &statesPubSub{
+		pipe: make(chan channel.Transaction, statesPubSubBufferSize),
+	}
+}
+
+// Publish publishes the given state to all the subscribers.
+//
+// Each time when a transaction is published, watcher will treat it as the
+// latest transaction without any validation. It is the responsibility of the
+// client to publish transactions in correct order and ensure they are the
+// valid.
+//
+// Context is added as this method implements watcher.StatesPub interface.
+// However, is is not used as there no network communications involved in local
+// watcher.
+//
+// Returns nil if the state is published. Panics if the subscriptions is
+// already closed.
+func (s *statesPubSub) Publish(_ context.Context, tx channel.Transaction) error {
+	s.pipe <- tx
+	return nil
+}
+
+// close closes the publisher instance and all the subscriptions associated
+// with it. Any further call to Publish should panic.
+func (s *statesPubSub) close() error {
+	if !s.closed.TrySet() {
+		return errors.WithStack(errAlreadyClosed)
+	}
+	close(s.pipe)
+	return nil
+}
+
+func (s *statesPubSub) statesStream() <-chan channel.Transaction {
+	return s.pipe
+}
+
+func (s *statesPubSub) error() error {
+	if s.closed.IsSet() {
+		return errors.WithStack(errAlreadyClosed)
+	}
+	return nil
+}
