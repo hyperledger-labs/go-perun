@@ -20,6 +20,8 @@ import (
 	"sync"
 
 	"github.com/pkg/errors"
+
+	pkgsync "perun.network/go-perun/pkg/sync"
 )
 
 // NewGatherer creates a new error gatherer.
@@ -33,7 +35,7 @@ func NewGatherer() *Gatherer {
 type Gatherer struct {
 	mutex sync.Mutex
 	errs  accumulatedError
-	wg    sync.WaitGroup
+	wg    pkgsync.WaitGroup
 
 	onFails []func()
 	failed  chan struct{} // Closed when an error has occurred.
