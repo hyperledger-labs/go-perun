@@ -18,6 +18,7 @@ import (
 	"context"
 	"fmt"
 	"math/rand"
+	"sync"
 	"testing"
 	"time"
 
@@ -126,6 +127,26 @@ func Test_Watcher_Working(t *testing.T) {
 
 			rs.AssertExpectations(t)
 		})
+		t.Run("error/older_state_registered", func(t *testing.T) {
+			params, txs := randomTxsForSingleCh(rng, 3)
+			adjSub, trigger := setupAdjudicatorSub(makeRegisteredEvent(txs[1], txs[2])...)
+
+			rs := &mocks.RegisterSubscriber{}
+			rs.On("Subscribe", mock.Anything, mock.Anything).Return(adjSub, nil)
+			setupRegistered(t, rs, &channelTree{txs[2], []channel.Transaction{}})
+			w := newWatcher(t, rs)
+			// Start watching and publish states.
+			statesPub, eventsForClient := startWatchingForLedgerChannel(t, w, makeSignedStateWDummySigs(params, txs[0].State))
+			require.NoError(t, statesPub.Publish(txs[1]))
+			require.NoError(t, statesPub.Publish(txs[2]))
+
+			// Trigger events.
+			triggerAdjEventAndExpectNotif(t, trigger, eventsForClient)
+			// Trigger events for registered state.
+			triggerAdjEventAndExpectNotif(t, trigger, eventsForClient)
+
+			rs.AssertExpectations(t)
+		})
 	})
 
 	t.Run("ledger_channel_with_sub_channel", func(t *testing.T) {
@@ -186,6 +207,83 @@ func Test_Watcher_Working(t *testing.T) {
 			// Parent, Child: Trigger events.
 			triggerAdjEventAndExpectNotif(t, triggerParent, eventsForClientParent)
 			triggerAdjEventAndExpectNotif(t, triggerChild, eventsForClientChild)
+			rs.AssertExpectations(t)
+		})
+		t.Run("happy/older_state_registered", func(t *testing.T) {
+			parentParams, parentTxs := randomTxsForSingleCh(rng, 3)
+			childParams, childTxs := randomTxsForSingleCh(rng, 3)
+			parentTxs[2].Allocation.Locked = []channel.SubAlloc{{ID: childTxs[0].ID}} // Add sub-channel to allocation.
+
+			adjSubParent, triggerParent := setupAdjudicatorSub(makeRegisteredEvent(parentTxs[1], parentTxs[2])...)
+			adjSubChild, triggerChild := setupAdjudicatorSub(makeRegisteredEvent(childTxs[1], childTxs[2])...)
+
+			rs := &mocks.RegisterSubscriber{}
+			rs.On("Subscribe", mock.Anything, mock.Anything).Return(adjSubParent, nil).Once()
+			rs.On("Subscribe", mock.Anything, mock.Anything).Return(adjSubChild, nil).Once()
+			setupRegistered(t, rs, &channelTree{parentTxs[2], []channel.Transaction{childTxs[2]}})
+
+			w := newWatcher(t, rs)
+			// Parent: Start watching and publish states.
+			parentSignedState := makeSignedStateWDummySigs(parentParams, parentTxs[0].State)
+			parentStatesPub, eventsForClientParent := startWatchingForLedgerChannel(t, w, parentSignedState)
+			require.NoError(t, parentStatesPub.Publish(parentTxs[1]))
+			require.NoError(t, parentStatesPub.Publish(parentTxs[2]))
+
+			// Child: Start watching and publish states.
+			childSignedState := makeSignedStateWDummySigs(childParams, childTxs[0].State)
+			childStatesPub, eventsForClientChild := startWatchingForSubChannel(t, w, childSignedState, parentTxs[0].State.ID)
+			require.NoError(t, childStatesPub.Publish(childTxs[1]))
+			require.NoError(t, childStatesPub.Publish(childTxs[2]))
+
+			// Parent, Child: Trigger events.
+			triggerAdjEventAndExpectNotif(t, triggerParent, eventsForClientParent)
+			triggerAdjEventAndExpectNotif(t, triggerChild, eventsForClientChild)
+			// Parent, Child: Trigger events for registered state.
+			triggerAdjEventAndExpectNotif(t, triggerParent, eventsForClientParent)
+			triggerAdjEventAndExpectNotif(t, triggerChild, eventsForClientChild)
+			rs.AssertExpectations(t)
+		})
+		t.Run("happy/older_state_registered_then_newer_state_received", func(t *testing.T) {
+			parentParams, parentTxs := randomTxsForSingleCh(rng, 3)
+			childParams, childTxs := randomTxsForSingleCh(rng, 4)
+			parentTxs[2].Allocation.Locked = []channel.SubAlloc{{ID: childTxs[0].ID}} // Add sub-channel to allocation.
+
+			adjSubParent, triggerParent := setupAdjudicatorSub(makeRegisteredEvent(parentTxs[1], parentTxs[2], parentTxs[2])...)
+			adjSubChild, triggerChild := setupAdjudicatorSub(makeRegisteredEvent(childTxs[1], childTxs[2], childTxs[3])...)
+
+			rs := &mocks.RegisterSubscriber{}
+			rs.On("Subscribe", mock.Anything, mock.Anything).Return(adjSubParent, nil).Once()
+			rs.On("Subscribe", mock.Anything, mock.Anything).Return(adjSubChild, nil).Once()
+			setupRegistered(t, rs,
+				&channelTree{parentTxs[2], []channel.Transaction{childTxs[2]}},
+				&channelTree{parentTxs[2], []channel.Transaction{childTxs[3]}})
+
+			w := newWatcher(t, rs)
+			// Parent: Start watching and publish states.
+			parentSignedState := makeSignedStateWDummySigs(parentParams, parentTxs[0].State)
+			parentStatesPub, eventsForClientParent := startWatchingForLedgerChannel(t, w, parentSignedState)
+			require.NoError(t, parentStatesPub.Publish(parentTxs[1]))
+			require.NoError(t, parentStatesPub.Publish(parentTxs[2]))
+
+			// Child: Start watching and publish states.
+			childSignedState := makeSignedStateWDummySigs(childParams, childTxs[0].State)
+			childStatesPub, eventsForClientChild := startWatchingForSubChannel(t, w, childSignedState, parentTxs[0].State.ID)
+			require.NoError(t, childStatesPub.Publish(childTxs[1]))
+			require.NoError(t, childStatesPub.Publish(childTxs[2]))
+
+			// Trigger event with older state.
+			triggerAdjEventAndExpectNotif(t, triggerParent, eventsForClientParent)
+			triggerAdjEventAndExpectNotif(t, triggerChild, eventsForClientChild)
+
+			// Child: Publish newer state. Parent, Child: trigger adjduciator event for the registered state.
+			require.NoError(t, childStatesPub.Publish(childTxs[3]))
+			triggerAdjEventAndExpectNotif(t, triggerParent, eventsForClientParent)
+			triggerAdjEventAndExpectNotif(t, triggerChild, eventsForClientChild)
+
+			// Parent, Child: Trigger events for registered state(second time).
+			triggerAdjEventAndExpectNotif(t, triggerParent, eventsForClientParent)
+			triggerAdjEventAndExpectNotif(t, triggerChild, eventsForClientChild)
+
 			rs.AssertExpectations(t)
 		})
 	})
@@ -262,6 +360,58 @@ func setupAdjudicatorSub(adjEvents ...channel.AdjudicatorEvent) (*mocks.Adjudica
 	adjSub.On("Next").Return(channel.RegisteredEvent{}).WaitUntil(handle).Once()
 
 	return adjSub, triggers
+}
+
+type channelTree struct {
+	rootTx channel.Transaction
+	subTxs []channel.Transaction
+}
+
+func setupRegistered(t *testing.T, rs *mocks.RegisterSubscriber, channelTrees ...*channelTree) {
+	limit := len(channelTrees)
+	mtx := sync.Mutex{}
+	iChannelTree := 0
+
+	rs.On("Register", mock.Anything,
+		mock.MatchedBy(func(req channel.AdjudicatorReq) bool {
+			mtx.Lock()
+			if iChannelTree >= limit {
+				return false
+			}
+			return assertEqualAdjudicatorReq(t, req, channelTrees[iChannelTree].rootTx.State)
+		}),
+		mock.MatchedBy(func(subStates []channel.SignedState) bool {
+			defer func() {
+				iChannelTree += 1
+				mtx.Unlock()
+			}()
+			if iChannelTree >= limit {
+				return false
+			}
+			return assertEqualSignedStates(t, subStates, channelTrees[iChannelTree].subTxs)
+		})).Return(nil).Times(limit)
+}
+
+func assertEqualAdjudicatorReq(t *testing.T, got channel.AdjudicatorReq, want *channel.State) bool {
+	if nil != got.Tx.State.Equal(want) {
+		t.Logf("Got %+v, expected %+v", got.Tx.State, want)
+		return false
+	}
+	return true
+}
+
+func assertEqualSignedStates(t *testing.T, got []channel.SignedState, want []channel.Transaction) bool {
+	if len(got) != len(want) {
+		t.Logf("Got %d sub states, expected %d sub states", len(got), len(want))
+		return false
+	}
+	for iSubState := range got {
+		t.Logf("Got %+v, expected %+v", got[iSubState].State, want[iSubState].State)
+		if nil != got[iSubState].State.Equal(want[iSubState].State) {
+			return false
+		}
+	}
+	return true
 }
 
 func makeRegisteredEvent(txs ...channel.Transaction) []channel.AdjudicatorEvent {

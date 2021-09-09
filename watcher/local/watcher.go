@@ -17,12 +17,19 @@ package local
 import (
 	"context"
 	"sync"
+	"time"
 
 	"github.com/pkg/errors"
 
 	"perun.network/go-perun/channel"
 	"perun.network/go-perun/log"
 	"perun.network/go-perun/watcher"
+)
+
+const (
+	// Duration for which the watcher will wait for latest transactions
+	// when an adjudicator event is received.
+	statesFromClientWaitTime = 1 * time.Millisecond
 )
 
 type (
@@ -41,6 +48,10 @@ type (
 		id     channel.ID
 		params *channel.Params
 		parent channel.ID
+
+		registeredVersion uint64
+		requestLatestTx   chan struct{}
+		latestTx          chan channel.Transaction
 
 		subChsAccess sync.Mutex
 	}
@@ -95,6 +106,11 @@ func (w *Watcher) startWatching(ctx context.Context, parent channel.ID, signedSt
 
 	w.registry.addUnsafe(ch)
 
+	tx := channel.Transaction{
+		State: signedState.State,
+		Sigs:  signedState.Sigs,
+	}
+	go handleStatesFromClient(tx, statesPubSub, ch.requestLatestTx, ch.latestTx)
 	go w.handleEventsFromChain(eventsFromChainSub, eventsToClientPubSub, ch)
 
 	return statesPubSub, eventsToClientPubSub, nil
@@ -102,21 +118,144 @@ func (w *Watcher) startWatching(ctx context.Context, parent channel.ID, signedSt
 
 func newCh(id, parent channel.ID, params *channel.Params) *ch {
 	return &ch{
-		id:     id,
-		params: params,
-		parent: parent,
+		id:                id,
+		params:            params,
+		parent:            parent,
+		registeredVersion: 0,
+		requestLatestTx:   make(chan struct{}),
+		latestTx:          make(chan channel.Transaction),
 	}
 }
 
-func (w *Watcher) handleEventsFromChain(eventsFromChainSub channel.AdjudicatorSubscription, eventsToClientPubSub adjudicatorPub,
-	thisCh *ch) {
+func (ch *ch) retreiveLatestTx() channel.Transaction {
+	ch.requestLatestTx <- struct{}{}
+	return <-ch.latestTx
+}
+
+func handleStatesFromClient(currentTx channel.Transaction, statesSub statesSub, requestLatestTxn chan struct{},
+	latestTx chan channel.Transaction) {
+	var _tx channel.Transaction
+	var ok bool
+	for {
+		select {
+		case _tx, ok = <-statesSub.statesStream():
+			if !ok {
+				log.WithField("ID", currentTx.State.ID).Info("States sub closed by client. Shutting down handler")
+				return
+			}
+			currentTx = _tx
+			log.WithField("ID", currentTx.ID).Debugf("Received state from client", currentTx.Version, currentTx.ID)
+		case <-requestLatestTxn:
+			currentTx = receiveTxUntil(statesSub, time.NewTimer(statesFromClientWaitTime).C, currentTx)
+			latestTx <- currentTx
+		}
+	}
+}
+
+// receiveTxUntil wait for the transactions on statesPub until the timeout channel is closed
+// or statesPub is closed and returns the last received transaction.
+// If no transaction was received, then returns currentTx itself.
+func receiveTxUntil(statesSub statesSub, timeout <-chan time.Time, currentTx channel.Transaction) channel.Transaction {
+	var _tx channel.Transaction
+	var ok bool
+	for {
+		select {
+		case _tx, ok = <-statesSub.statesStream():
+			if !ok {
+				return currentTx // states sub was closed, send the latest event.
+			}
+			currentTx = _tx
+			log.WithField("ID", currentTx.ID).Debugf("Received state from client", currentTx.Version, currentTx.ID)
+		case <-timeout:
+			return currentTx // timer expired, send the latest the event.
+		}
+	}
+}
+
+func (w *Watcher) handleEventsFromChain(eventsFromChainSub channel.AdjudicatorSubscription,
+	eventsToClientPubSub adjudicatorPub, thisCh *ch) {
+	parent := thisCh
+	if thisCh.parent != channel.Zero {
+		parent, _ = w.registry.retrieve(thisCh.parent)
+	}
+
 	for e := eventsFromChainSub.Next(); e != nil; e = eventsFromChainSub.Next() {
 		switch e.(type) {
 		case *channel.RegisteredEvent:
-			log := log.WithFields(log.Fields{"ID": e.ID(), "Version": e.Version()})
-			log.Debug("Received registered event from chain")
-			eventsToClientPubSub.Publish(e)
+			parent.subChsAccess.Lock()
+			func() {
+				defer parent.subChsAccess.Unlock()
+
+				log := log.WithFields(log.Fields{"ID": e.ID(), "Version": e.Version()})
+				log.Debug("Received registered event from chain")
+
+				eventsToClientPubSub.publish(e)
+
+				latestTx := thisCh.retreiveLatestTx()
+				log.Debugf("Latest version is (%d)", latestTx.Version)
+
+				if e.Version() < latestTx.Version {
+					if e.Version() < thisCh.registeredVersion {
+						log.Debugf("Latest version (%d) already registered ", thisCh.registeredVersion)
+						return
+					}
+					log.Debugf("Registering latest version (%d)", latestTx.Version)
+					err := registerDispute(w.registry, w.rs, parent)
+					if err != nil {
+						log.Error("Error registering dispute")
+						// TODO: Should the subscription be closed ?
+						return
+					}
+					log.Debug("Registered successfully")
+				}
+			}()
 		default:
 		}
+	}
+}
+
+// registerDispute collects the latest transaction for the parent channel and
+// each of its children. It then registers dispute for the channel tree.
+//
+// This function assumes the callers has locked the parent channel.
+func registerDispute(r *registry, registerer channel.Registerer, parentCh *ch) error {
+	parentTx := parentCh.retreiveLatestTx()
+	subStates := retreiveLatestSubStates(r, parentTx)
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	err := registerer.Register(ctx, makeAdjudicatorReq(parentCh.params, parentTx), subStates)
+	if err != nil {
+		return err
+	}
+
+	parentCh.registeredVersion = parentTx.Version
+	for i := range subStates {
+		subCh, _ := r.retrieve(parentTx.Allocation.Locked[i].ID)
+		subCh.registeredVersion = subStates[i].State.Version
+	}
+	return nil
+}
+
+func retreiveLatestSubStates(r *registry, parentTx channel.Transaction) []channel.SignedState {
+	subStates := make([]channel.SignedState, len(parentTx.Allocation.Locked))
+	for i := range parentTx.Allocation.Locked {
+		// Can be done concurrently.
+		subCh, _ := r.retrieve(parentTx.Allocation.Locked[i].ID)
+		subChTx := subCh.retreiveLatestTx()
+		subStates[i] = channel.SignedState{
+			Params: subCh.params,
+			State:  subChTx.State,
+			Sigs:   subChTx.Sigs,
+		}
+	}
+	return subStates
+}
+
+func makeAdjudicatorReq(params *channel.Params, tx channel.Transaction) channel.AdjudicatorReq {
+	return channel.AdjudicatorReq{
+		Params:    params,
+		Tx:        tx,
+		Secondary: false,
 	}
 }
