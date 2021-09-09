@@ -60,13 +60,14 @@ type (
 	// from the watcher to the client.
 	//
 	// This is initialized when client starts watching for a given channel.
-	// Client can receive the event via the channel returned by Next method.
+	// Client can receive the event via the channel returned by EventStream
+	// method.
 	//
 	// This channel will be closed when client requests the watcher to stop
 	// watching or when there is an error. After the channel is closed, error
 	// message can be read using the Err method.
 	AdjudicatorSub interface {
-		Next() <-chan channel.AdjudicatorEvent
+		EventStream() <-chan channel.AdjudicatorEvent
 
 		Err() error
 	}
