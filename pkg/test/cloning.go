@@ -255,7 +255,7 @@ func checkInterface(kind *reflect.Kind, left, right *reflect.Value) bool {
 			// reflect.DeepEqual() should detect this case
 			panic(fmt.Sprintf(
 				"Expected both interfaces to be zero or both non-zero, got %v, %v",
-				left.InterfaceData(), right.InterfaceData()))
+				left.Interface(), right.Interface()))
 		}
 
 		*left = left.Elem()
