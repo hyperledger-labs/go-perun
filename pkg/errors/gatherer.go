@@ -15,11 +15,14 @@
 package errors
 
 import (
+	"context"
 	"fmt"
 	"strings"
 	"sync"
 
 	"github.com/pkg/errors"
+
+	pkgsync "perun.network/go-perun/pkg/sync"
 )
 
 // NewGatherer creates a new error gatherer.
@@ -33,7 +36,7 @@ func NewGatherer() *Gatherer {
 type Gatherer struct {
 	mutex sync.Mutex
 	errs  accumulatedError
-	wg    sync.WaitGroup
+	wg    pkgsync.WaitGroup
 
 	onFails []func()
 	failed  chan struct{} // Closed when an error has occurred.
@@ -42,6 +45,27 @@ type Gatherer struct {
 // Failed returns a channel that is closed when an error occurs.
 func (g *Gatherer) Failed() <-chan struct{} {
 	return g.failed
+}
+
+// WaitDoneOrFailed returns when either:
+// all routines returned successfully OR
+// any routine returned with an error.
+func (g *Gatherer) WaitDoneOrFailed() {
+	_ = g.WaitDoneOrFailedCtx(context.Background())
+}
+
+// WaitDoneOrFailedCtx returns when either:
+// all routines returned successfully OR
+// any routine returned with an error OR
+// the context was cancelled.
+// The result indicates whether the context was cancelled.
+func (g *Gatherer) WaitDoneOrFailedCtx(ctx context.Context) bool {
+	select {
+	case <-g.failed:
+	case <-g.wg.WaitCh():
+	case <-ctx.Done():
+	}
+	return ctx.Err() == nil
 }
 
 // Add gathers an error. If the supplied error is nil, it is ignored. On the

@@ -15,6 +15,7 @@
 package errors_test
 
 import (
+	"context"
 	stderrors "errors"
 	"testing"
 	"time"
@@ -59,6 +60,60 @@ func TestGatherer_Go_and_Wait(t *testing.T) {
 	var err error
 	test.AssertTerminates(t, timeout, func() { err = g.Wait() })
 	require.Error(t, err)
+}
+
+func TestGatherer_Go_and_DoneOrFailed(t *testing.T) {
+	const timeout = 100 * time.Millisecond
+
+	t.Run("success", func(t *testing.T) {
+		t.Parallel()
+		g := errors.NewGatherer()
+
+		// Two successful routines
+		g.Go(func() error {
+			time.Sleep(timeout / 2)
+			return nil
+		})
+		g.Go(func() error {
+			time.Sleep(timeout * 2)
+			return nil
+		})
+
+		test.AssertNotTerminates(t, timeout, g.WaitDoneOrFailed)
+		test.AssertTerminates(t, timeout*2, g.WaitDoneOrFailed)
+	})
+	t.Run("error", func(t *testing.T) {
+		t.Parallel()
+		g := errors.NewGatherer()
+
+		// One slow successful and one error routine
+		g.Go(func() error {
+			time.Sleep(timeout * 10)
+			return nil
+		})
+		g.Go(func() error {
+			time.Sleep(timeout)
+			return stderrors.New("")
+		})
+
+		test.AssertNotTerminates(t, timeout/2, g.WaitDoneOrFailed)
+		test.AssertTerminates(t, timeout, g.WaitDoneOrFailed)
+	})
+	t.Run("ctx", func(t *testing.T) {
+		t.Parallel()
+		g := errors.NewGatherer()
+
+		// One slow routine
+		g.Go(func() error {
+			time.Sleep(timeout * 10)
+			return nil
+		})
+
+		ctx, cancel := context.WithTimeout(context.Background(), timeout)
+		defer cancel()
+		test.AssertNotTerminates(t, timeout/2, func() { g.WaitDoneOrFailedCtx(ctx) })
+		test.AssertTerminates(t, timeout, func() { g.WaitDoneOrFailedCtx(ctx) })
+	})
 }
 
 func TestGatherer_Add_and_Err(t *testing.T) {
