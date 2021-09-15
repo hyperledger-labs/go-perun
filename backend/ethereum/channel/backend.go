@@ -139,6 +139,8 @@ func Sign(acc wallet.Account, p *channel.Params, s *channel.State) (wallet.Sig, 
 func Verify(addr wallet.Address, p *channel.Params, s *channel.State, sig wallet.Sig) (bool, error) {
 	if err := s.Valid(); err != nil {
 		return false, errors.WithMessage(err, "invalid state")
+	} else if p.ID() != s.ID {
+		return false, errors.Errorf("wrong channel ID in state: expected %x, got %x", p.ID(), s.ID)
 	}
 	state := ToEthState(s)
 	enc, err := EncodeState(&state)

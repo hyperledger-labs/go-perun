@@ -69,6 +69,8 @@ func (b *backend) Sign(addr wallet.Account, _params *channel.Params, state *chan
 func (b *backend) Verify(addr wallet.Address, _params *channel.Params, state *channel.State, sig []byte) (bool, error) {
 	if err := state.Valid(); err != nil {
 		return false, errors.Wrap(err, "verifying invalid state")
+	} else if _params.ID() != state.ID {
+		return false, errors.Errorf("wrong channel ID in state: expected %x, got %x", _params.ID(), state.ID)
 	}
 	log.WithFields(log.Fields{"channel": state.ID, "version": state.Version}).Tracef("Verifying state")
 

@@ -96,20 +96,23 @@ func genericVerifyTest(t *testing.T, s *Setup) {
 
 	// Different state and same params
 	ok, err = channel.Verify(addr, s.Params, s.State2, sig)
-	assert.NoError(t, err, "Verify should not return an error")
+	assert.Error(t, err, "Verify should return an error")
 	assert.False(t, ok, "Verify should return false")
 
-	// Different params and same state
-	// -> The backend does not detect this
-
-	// Different params and different state
 	for _, _modParams := range buildModifiedParams(s.Params, s.Params2, s) {
+		// Different params and same state
 		modParams := _modParams
+		require.NotEqual(t, *s.Params, modParams)
+		ok, _ = channel.Verify(addr, &modParams, s.State, sig)
+		assert.False(t, ok, "Should not verify with wrong params")
 		for _, _fakeState := range buildModifiedStates(s.State, s.State2, false) {
+			// Different params and different state
 			fakeState := _fakeState
 			ok, err = channel.Verify(addr, &modParams, &fakeState, sig)
 			assert.False(t, ok, "Verify should return false")
-			if err2 := fakeState.Valid(); err2 != nil {
+			if modParams.ID() != fakeState.ID {
+				assert.Error(t, err, "Verify should return an error given mismatching params")
+			} else if err2 := fakeState.Valid(); err2 != nil {
 				assert.Error(t, err, "Verify should return error on an invalid state")
 			} else {
 				assert.NoError(t, err, "Verify should not return an error on a valid state")
