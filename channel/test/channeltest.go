@@ -36,7 +36,7 @@ type Setup struct {
 
 	// State is a random state with parameters `Params`
 	State *channel.State
-	// State2 is a random state with parameters `Params2` and must differ in all fields from `State`
+	// State2 is a random state with parameters `Params2` and should differ in all fields from `State`
 	State2 *channel.State
 
 	// Account is a random account
@@ -244,7 +244,7 @@ func buildModifiedStates(s1, s2 *channel.State, modifyApp bool) (ret []channel.S
 				}
 			}
 			// Modify Locked
-			{
+			if len(s1.Locked) > 0 || len(s2.Locked) > 0 {
 				// Modify complete Locked
 				{
 					modState := s1.Clone()
@@ -274,7 +274,7 @@ func buildModifiedStates(s1, s2 *channel.State, modifyApp bool) (ret []channel.S
 			}
 		}
 		// Modify Data
-		{
+		if !channel.IsNoData(s1.Data) || !channel.IsNoData(s2.Data) {
 			modState := s1.Clone()
 			modState.Data = s2.Data
 			ret = append(ret, *modState)
