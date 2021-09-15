@@ -133,13 +133,13 @@ func buildModifiedParams(p1, p2 *channel.Params, s *Setup) (ret []channel.Params
 		// Modify complete Params
 		{
 			modParams := *p2
-			ret = append(ret, modParams)
+			ret = appendModParams(ret, modParams)
 		}
 		// Modify ChallengeDuration
 		{
 			modParams := *p1
 			modParams.ChallengeDuration = p2.ChallengeDuration
-			ret = append(ret, modParams)
+			ret = appendModParams(ret, modParams)
 		}
 		// Modify Parts
 		{
@@ -147,7 +147,7 @@ func buildModifiedParams(p1, p2 *channel.Params, s *Setup) (ret []channel.Params
 			{
 				modParams := *p1
 				modParams.Parts = p2.Parts
-				ret = append(ret, modParams)
+				ret = appendModParams(ret, modParams)
 			}
 			// Modify Parts[0]
 			{
@@ -155,18 +155,30 @@ func buildModifiedParams(p1, p2 *channel.Params, s *Setup) (ret []channel.Params
 				modParams.Parts = make([]wallet.Address, len(p1.Parts))
 				copy(modParams.Parts, p1.Parts)
 				modParams.Parts[0] = s.RandomAddress()
-				ret = append(ret, modParams)
+				ret = appendModParams(ret, modParams)
 			}
 		}
 		// Modify Nonce
 		{
 			modParams := *p1
 			modParams.Nonce = p2.Nonce
-			ret = append(ret, modParams)
+			ret = appendModParams(ret, modParams)
 		}
 	}
 
 	return
+}
+
+func appendModParams(a []channel.Params, modParams channel.Params) []channel.Params {
+	p := channel.NewParamsUnsafe(
+		modParams.ChallengeDuration,
+		modParams.Parts,
+		modParams.App,
+		modParams.Nonce,
+		modParams.LedgerChannel,
+		modParams.VirtualChannel,
+	)
+	return append(a, *p)
 }
 
 // buildModifiedStates returns a slice of States that are different from `s1` assuming that `s2` differs in
@@ -211,8 +223,11 @@ func buildModifiedStates(s1, s2 *channel.State, modifyApp bool) (ret []channel.S
 			{
 				// Modify complete Assets
 				{
+					l1, l2 := len(s1.Allocation.Assets), len(s2.Allocation.Assets)
 					modState := s1.Clone()
-					modState.Allocation.Assets = s2.Allocation.Assets
+					for i := 0; i < l1 && i < l2; i++ {
+						modState.Allocation.Assets[i] = s2.Allocation.Assets[i]
+					}
 					ret = append(ret, *modState)
 				}
 				// Modify Assets[0]
@@ -228,8 +243,11 @@ func buildModifiedStates(s1, s2 *channel.State, modifyApp bool) (ret []channel.S
 			{
 				// Modify complete Balances
 				{
+					l1, l2 := len(s1.Allocation.Balances), len(s2.Allocation.Balances)
 					modState := s1.Clone()
-					modState.Allocation.Balances = s2.Allocation.Balances
+					for i := 0; i < l1 && i < l2; i++ {
+						modState.Allocation.Balances[i] = s2.Allocation.Balances[i]
+					}
 					ret = append(ret, *modState)
 				}
 				// Modify Balances[0]
@@ -246,14 +264,14 @@ func buildModifiedStates(s1, s2 *channel.State, modifyApp bool) (ret []channel.S
 				}
 			}
 			// Modify Locked
-			{
+			if len(s1.Allocation.Locked) > 0 && len(s2.Allocation.Locked) > 0 {
 				// Modify complete Locked
 				{
 					modState := s1.Clone()
 					modState.Allocation.Locked = s2.Allocation.Locked
 					ret = append(ret, *modState)
 				}
-				// Modify AppID
+				// Modify Locked ID
 				{
 					modState := s1.Clone()
 					modState.Allocation.Locked[0].ID = s2.Allocation.Locked[0].ID
