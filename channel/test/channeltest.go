@@ -94,27 +94,11 @@ func genericVerifyTest(t *testing.T, s *Setup) {
 	assert.NoError(t, err, "Verify should not return an error")
 	assert.True(t, ok, "Verify should return true")
 
-	// Different state and same params
-	ok, err = channel.Verify(addr, s.State2, sig)
-	assert.NoError(t, err, "Verify should not return an error")
-	assert.False(t, ok, "Verify should return false")
-
-	// Different params and same state
-	// -> The backend does not detect this
-
-	// Different params and different state
-	for _, _modParams := range buildModifiedParams(s.Params, s.Params2, s) {
-		modParams := _modParams
-		for _, _fakeState := range buildModifiedStates(s.State, s.State2, false) {
-			fakeState := _fakeState
-			ok, err = channel.Verify(addr, &fakeState, sig)
-			assert.False(t, ok, "Verify should return false")
-			if err2 := fakeState.Valid(); err2 != nil {
-				assert.Error(t, err, "Verify should return error on an invalid state")
-			} else {
-				assert.NoError(t, err, "Verify should not return an error on a valid state")
-			}
-		}
+	for i, _modState := range buildModifiedStates(s.State, s.State2, false) {
+		modState := _modState
+		ok, err = channel.Verify(addr, &modState, sig)
+		assert.Falsef(t, ok, "Verify should return false: index %d", i)
+		assert.NoError(t, err, "Verify should not return an error")
 	}
 
 	// Different address and same state and params
