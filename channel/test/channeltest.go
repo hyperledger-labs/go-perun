@@ -133,13 +133,13 @@ func buildModifiedParams(p1, p2 *channel.Params, s *Setup) (ret []channel.Params
 		// Modify complete Params
 		{
 			modParams := *p2
-			ret = append(ret, modParams)
+			ret = appendModParams(ret, modParams)
 		}
 		// Modify ChallengeDuration
 		{
 			modParams := *p1
 			modParams.ChallengeDuration = p2.ChallengeDuration
-			ret = append(ret, modParams)
+			ret = appendModParams(ret, modParams)
 		}
 		// Modify Parts
 		{
@@ -147,7 +147,7 @@ func buildModifiedParams(p1, p2 *channel.Params, s *Setup) (ret []channel.Params
 			{
 				modParams := *p1
 				modParams.Parts = p2.Parts
-				ret = append(ret, modParams)
+				ret = appendModParams(ret, modParams)
 			}
 			// Modify Parts[0]
 			{
@@ -155,18 +155,30 @@ func buildModifiedParams(p1, p2 *channel.Params, s *Setup) (ret []channel.Params
 				modParams.Parts = make([]wallet.Address, len(p1.Parts))
 				copy(modParams.Parts, p1.Parts)
 				modParams.Parts[0] = s.RandomAddress()
-				ret = append(ret, modParams)
+				ret = appendModParams(ret, modParams)
 			}
 		}
 		// Modify Nonce
 		{
 			modParams := *p1
 			modParams.Nonce = p2.Nonce
-			ret = append(ret, modParams)
+			ret = appendModParams(ret, modParams)
 		}
 	}
 
 	return
+}
+
+func appendModParams(a []channel.Params, modParams channel.Params) []channel.Params {
+	p := channel.NewParamsUnsafe(
+		modParams.ChallengeDuration,
+		modParams.Parts,
+		modParams.App,
+		modParams.Nonce,
+		modParams.LedgerChannel,
+		modParams.VirtualChannel,
+	)
+	return append(a, *p)
 }
 
 // buildModifiedStates returns a slice of States that are different from `s1` assuming that `s2` differs in
