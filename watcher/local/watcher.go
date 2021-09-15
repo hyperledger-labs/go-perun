@@ -217,6 +217,12 @@ func (w *Watcher) handleEventsFromChain(eventsFromChainSub channel.AdjudicatorSu
 					log.Debug("Registered successfully")
 				}
 			}()
+		case *channel.ProgressedEvent:
+			log.Debugf("Received progressed event from chain: %v", e)
+			eventsToClientPubSub.publish(e)
+		case *channel.ConcludedEvent:
+			log.Debugf("Received concluded event from chain: %v", e)
+			eventsToClientPubSub.publish(e)
 		default:
 		}
 	}
