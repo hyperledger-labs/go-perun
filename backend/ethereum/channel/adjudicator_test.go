@@ -35,16 +35,16 @@ import (
 
 const defaultTxTimeout = 2 * time.Second
 
-func testSignState(t *testing.T, accounts []*keystore.Account, params *channel.Params, state *channel.State) channel.Transaction {
-	tx, err := signState(accounts, params, state)
+func testSignState(t *testing.T, accounts []*keystore.Account, state *channel.State) channel.Transaction {
+	tx, err := signState(accounts, state)
 	assert.NoError(t, err, "Sign should not return error")
 	return tx
 }
 
-func signState(accounts []*keystore.Account, params *channel.Params, state *channel.State) (channel.Transaction, error) {
+func signState(accounts []*keystore.Account, state *channel.State) (channel.Transaction, error) {
 	sigs := make([][]byte, len(accounts))
 	for i := range accounts {
-		sig, err := channel.Sign(accounts[i], params, state)
+		sig, err := channel.Sign(accounts[i], state)
 		if err != nil {
 			return channel.Transaction{}, errors.WithMessagef(err, "signing with account %d", i)
 		}
@@ -87,7 +87,7 @@ func TestSubscribeRegistered(t *testing.T) {
 	require.NoError(t, err)
 	defer sub.Close()
 	// Now test the register function
-	tx := testSignState(t, s.Accs, params, state)
+	tx := testSignState(t, s.Accs, state)
 	req := channel.AdjudicatorReq{
 		Params: params,
 		Acc:    s.Accs[0],

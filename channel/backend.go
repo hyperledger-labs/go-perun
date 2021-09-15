@@ -36,15 +36,11 @@ type Backend interface {
 
 	// Sign signs a channel's State with the given Account.
 	// Returns the signature or an error.
-	// The framework guarantees to not pass nil Account, *Params or *State, that
-	// the IDs of them match and that Params.ID = ChannelID(Params).
-	Sign(wallet.Account, *Params, *State) (wallet.Sig, error)
+	Sign(wallet.Account, *State) (wallet.Sig, error)
 
 	// Verify verifies that the provided signature on the state belongs to the
 	// provided address.
-	// The framework guarantees to not pass nil Address, *Params or *State, that
-	// the IDs of them match and that Params.ID = ChannelID(Params).
-	Verify(addr wallet.Address, params *Params, state *State, sig wallet.Sig) (bool, error)
+	Verify(addr wallet.Address, state *State, sig wallet.Sig) (bool, error)
 
 	// DecodeAsset decodes an asset from a stream.
 	DecodeAsset(io.Reader) (Asset, error)
@@ -65,13 +61,13 @@ func CalcID(p *Params) ID {
 }
 
 // Sign creates a signature from the account a on state s.
-func Sign(a wallet.Account, p *Params, s *State) (wallet.Sig, error) {
-	return backend.Sign(a, p, s)
+func Sign(a wallet.Account, s *State) (wallet.Sig, error) {
+	return backend.Sign(a, s)
 }
 
 // Verify verifies that a signature was a valid signature from addr on a state.
-func Verify(addr wallet.Address, params *Params, state *State, sig wallet.Sig) (bool, error) {
-	return backend.Verify(addr, params, state, sig)
+func Verify(addr wallet.Address, state *State, sig wallet.Sig) (bool, error) {
+	return backend.Verify(addr, state, sig)
 }
 
 // DecodeAsset decodes an Asset from an io.Reader.

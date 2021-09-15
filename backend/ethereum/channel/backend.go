@@ -90,13 +90,13 @@ func (*Backend) CalcID(p *channel.Params) (id channel.ID) {
 }
 
 // Sign signs the channel state as needed by the ethereum smart contracts.
-func (*Backend) Sign(acc wallet.Account, p *channel.Params, s *channel.State) (wallet.Sig, error) {
-	return Sign(acc, p, s)
+func (*Backend) Sign(acc wallet.Account, s *channel.State) (wallet.Sig, error) {
+	return Sign(acc, s)
 }
 
 // Verify verifies that a state was signed correctly.
-func (*Backend) Verify(addr wallet.Address, p *channel.Params, s *channel.State, sig wallet.Sig) (bool, error) {
-	return Verify(addr, p, s, sig)
+func (*Backend) Verify(addr wallet.Address, s *channel.State, sig wallet.Sig) (bool, error) {
+	return Verify(addr, s, sig)
 }
 
 // DecodeAsset decodes an asset from a stream.
@@ -126,7 +126,7 @@ func HashState(s *channel.State) (id channel.ID) {
 }
 
 // Sign signs the channel state as needed by the ethereum smart contracts.
-func Sign(acc wallet.Account, p *channel.Params, s *channel.State) (wallet.Sig, error) {
+func Sign(acc wallet.Account, s *channel.State) (wallet.Sig, error) {
 	state := ToEthState(s)
 	enc, err := EncodeState(&state)
 	if err != nil {
@@ -136,10 +136,7 @@ func Sign(acc wallet.Account, p *channel.Params, s *channel.State) (wallet.Sig, 
 }
 
 // Verify verifies that a state was signed correctly.
-func Verify(addr wallet.Address, p *channel.Params, s *channel.State, sig wallet.Sig) (bool, error) {
-	if err := s.Valid(); err != nil {
-		return false, errors.WithMessage(err, "invalid state")
-	}
+func Verify(addr wallet.Address, s *channel.State, sig wallet.Sig) (bool, error) {
 	state := ToEthState(s)
 	enc, err := EncodeState(&state)
 	if err != nil {

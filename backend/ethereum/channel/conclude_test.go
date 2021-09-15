@@ -71,7 +71,7 @@ func testConcludeFinal(t *testing.T, numParts int) {
 		})
 	}
 	ct.Wait("funding loop")
-	tx := testSignState(t, s.Accs, params, state)
+	tx := testSignState(t, s.Accs, state)
 
 	ctx, cancel := context.WithTimeout(context.Background(), defaultTxTimeout)
 	defer cancel()
@@ -238,7 +238,7 @@ func fund(ctx context.Context, funders []*ethchannel.Funder, c paramsAndState) e
 func register(ctx context.Context, adj *test.SimAdjudicator, accounts []*keystore.Account, ch paramsAndState, subChannels []paramsAndState) error {
 	sub := make([]channel.SignedState, len(subChannels))
 	for i, subCh := range subChannels {
-		tx, err := signState(accounts, subCh.params, subCh.state)
+		tx, err := signState(accounts, subCh.state)
 		if err != nil {
 			return err
 		}
@@ -250,7 +250,7 @@ func register(ctx context.Context, adj *test.SimAdjudicator, accounts []*keystor
 		}
 	}
 
-	tx, err := signState(accounts, ch.params, ch.state)
+	tx, err := signState(accounts, ch.state)
 	if err != nil {
 		return err
 	}
@@ -272,7 +272,7 @@ func addSubStates(subStates channel.StateMap, channels ...paramsAndState) {
 }
 
 func withdraw(ctx context.Context, adj *test.SimAdjudicator, accounts []*keystore.Account, c paramsAndState, subStates channel.StateMap) error {
-	tx, err := signState(accounts, c.params, c.state)
+	tx, err := signState(accounts, c.state)
 	if err != nil {
 		return err
 	}

@@ -116,7 +116,7 @@ func (m *StateMachine) CheckUpdate(
 		return err
 	}
 
-	if ok, err := Verify(m.params.Parts[sigIdx], &m.params, state, sig); err != nil {
+	if ok, err := Verify(m.params.Parts[sigIdx], state, sig); err != nil {
 		return errors.WithMessagef(err, "verifying signature[%d]", sigIdx)
 	} else if !ok {
 		return errors.Errorf("invalid signature[%d]", sigIdx)

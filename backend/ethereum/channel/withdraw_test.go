@@ -69,7 +69,7 @@ func withdrawMultipleConcurrentFinal(t *testing.T, numParts int, parallel bool) 
 	ct.Wait("funding loop")
 	// manipulate the state
 	state.IsFinal = true
-	tx := testSignState(t, s.Accs, params, state)
+	tx := testSignState(t, s.Accs, state)
 
 	// Now test the withdraw function
 	ctx, cancel := context.WithTimeout(context.Background(), defaultTxTimeout)
@@ -148,7 +148,7 @@ func testWithdrawZeroBalance(t *testing.T, n int) {
 	req := channel.AdjudicatorReq{
 		Params: params,
 		Acc:    s.Accs[0],
-		Tx:     testSignState(t, s.Accs, params, state),
+		Tx:     testSignState(t, s.Accs, state),
 		Idx:    0,
 	}
 	require.NoError(t, s.Adjs[0].Register(context.Background(), req, nil))
@@ -194,7 +194,7 @@ func TestWithdraw(t *testing.T) {
 	testWithdraw := func(t *testing.T, shouldWork bool) {
 		ctx, cancel := context.WithTimeout(context.Background(), defaultTxTimeout)
 		defer cancel()
-		req.Tx = testSignState(t, s.Accs, params, state)
+		req.Tx = testSignState(t, s.Accs, state)
 		err := s.Adjs[0].Withdraw(ctx, req, nil)
 
 		if shouldWork {
@@ -252,7 +252,7 @@ func TestWithdrawNonFinal(t *testing.T) {
 		Params: params,
 		Acc:    s.Accs[0],
 		Idx:    0,
-		Tx:     testSignState(t, s.Accs, params, state),
+		Tx:     testSignState(t, s.Accs, state),
 	}
 	require.NoError(t, adj.Register(ctx, req, nil))
 	reg := sub.Next()

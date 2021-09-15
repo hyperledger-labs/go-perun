@@ -80,22 +80,22 @@ func genericChannelIDTest(t *testing.T, s *Setup) {
 }
 
 func genericSignTest(t *testing.T, s *Setup) {
-	_, err := channel.Sign(s.Account, s.Params, s.State)
+	_, err := channel.Sign(s.Account, s.State)
 	assert.NoError(t, err, "Sign should not return an error")
 }
 
 func genericVerifyTest(t *testing.T, s *Setup) {
 	addr := s.Account.Address()
 	require.Equal(t, channel.CalcID(s.Params), s.Params.ID(), "Invalid test params")
-	sig, err := channel.Sign(s.Account, s.Params, s.State)
+	sig, err := channel.Sign(s.Account, s.State)
 	require.NoError(t, err, "Sign should not return an error")
 
-	ok, err := channel.Verify(addr, s.Params, s.State, sig)
+	ok, err := channel.Verify(addr, s.State, sig)
 	assert.NoError(t, err, "Verify should not return an error")
 	assert.True(t, ok, "Verify should return true")
 
 	// Different state and same params
-	ok, err = channel.Verify(addr, s.Params, s.State2, sig)
+	ok, err = channel.Verify(addr, s.State2, sig)
 	assert.NoError(t, err, "Verify should not return an error")
 	assert.False(t, ok, "Verify should return false")
 
@@ -107,7 +107,7 @@ func genericVerifyTest(t *testing.T, s *Setup) {
 		modParams := _modParams
 		for _, _fakeState := range buildModifiedStates(s.State, s.State2, false) {
 			fakeState := _fakeState
-			ok, err = channel.Verify(addr, &modParams, &fakeState, sig)
+			ok, err = channel.Verify(addr, &fakeState, sig)
 			assert.False(t, ok, "Verify should return false")
 			if err2 := fakeState.Valid(); err2 != nil {
 				assert.Error(t, err, "Verify should return error on an invalid state")
@@ -119,7 +119,7 @@ func genericVerifyTest(t *testing.T, s *Setup) {
 
 	// Different address and same state and params
 	for i := 0; i < 10; i++ {
-		ok, err := channel.Verify(s.RandomAddress(), s.Params, s.State, sig)
+		ok, err := channel.Verify(s.RandomAddress(), s.State, sig)
 		assert.NoError(t, err, "Verify should not return an error")
 		assert.False(t, ok, "Verify should return false")
 	}
