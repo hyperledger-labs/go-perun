@@ -15,6 +15,7 @@
 package test
 
 import (
+	"math/big"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -208,14 +209,13 @@ func buildModifiedStates(s1, s2 *channel.State, modifyApp bool) (ret []channel.S
 				// Modify complete Assets
 				{
 					modState := s1.Clone()
-					modState.Allocation.Assets = s2.Allocation.Assets
+					modState.Assets = s2.Assets
+					modState = ensureConsistentBalances(modState)
 					ret = append(ret, *modState)
 				}
 				// Modify Assets[0]
 				{
 					modState := s1.Clone()
-					modState.Assets = make([]channel.Asset, len(s1.Assets))
-					copy(modState.Allocation.Assets, s1.Allocation.Assets)
 					modState.Allocation.Assets[0] = s2.Allocation.Assets[0]
 					ret = append(ret, *modState)
 				}
@@ -225,13 +225,15 @@ func buildModifiedStates(s1, s2 *channel.State, modifyApp bool) (ret []channel.S
 				// Modify complete Balances
 				{
 					modState := s1.Clone()
-					modState.Allocation.Balances = s2.Allocation.Balances
+					modState.Balances = s2.Balances
+					modState = ensureConsistentBalances(modState)
 					ret = append(ret, *modState)
 				}
 				// Modify Balances[0]
 				{
 					modState := s1.Clone()
-					copy(modState.Allocation.Balances[0], s2.Allocation.Balances[0])
+					modState.Allocation.Balances[0] = s2.Allocation.Balances[0]
+					modState = ensureConsistentBalances(modState)
 					ret = append(ret, *modState)
 				}
 				// Modify Balances[0][0]
@@ -246,22 +248,24 @@ func buildModifiedStates(s1, s2 *channel.State, modifyApp bool) (ret []channel.S
 				// Modify complete Locked
 				{
 					modState := s1.Clone()
-					modState.Allocation.Locked = s2.Allocation.Locked
+					modState.Allocation.Locked = s2.Clone().Locked
+					modState = ensureConsistentBalances(modState)
 					ret = append(ret, *modState)
 				}
-				// Modify AppID
+				// Modify Locked[0].ID
 				{
 					modState := s1.Clone()
 					modState.Allocation.Locked[0].ID = s2.Allocation.Locked[0].ID
 					ret = append(ret, *modState)
 				}
-				// Modify Bals
+				// Modify Locked[0].Bals
 				{
 					modState := s1.Clone()
-					modState.Allocation.Locked[0].Bals = s2.Allocation.Locked[0].Bals
+					modState.Allocation.Locked[0].Bals = s2.Locked[0].Bals
+					modState = ensureConsistentBalances(modState)
 					ret = append(ret, *modState)
 				}
-				// Modify Bals[0]
+				// Modify Locked[0].Bals[0]
 				{
 					modState := s1.Clone()
 					modState.Allocation.Locked[0].Bals[0] = s2.Allocation.Locked[0].Bals[0]
@@ -284,6 +288,46 @@ func buildModifiedStates(s1, s2 *channel.State, modifyApp bool) (ret []channel.S
 	}
 
 	return
+}
+
+func ensureConsistentBalances(s *channel.State) *channel.State {
+	_s := s.Clone()
+	numAssets := len(_s.Assets)
+	numParts := _s.NumParts()
+
+	// Ensure Balances has correct length.
+	// Ensure at least numAssets.
+	for numAssets-len(_s.Balances) > 0 {
+		assetBals := make([]channel.Bal, numParts)
+		for i := range assetBals {
+			assetBals[i] = big.NewInt(0)
+		}
+		_s.Balances = append(_s.Balances, assetBals)
+	}
+	// Ensure at most numAssets.
+	_s.Balances = _s.Balances[:numAssets]
+
+	// Ensure asset balances have correct length.
+	for i, assetBals := range _s.Balances {
+		_s.Balances[i] = ensureBalanceVectorLength(assetBals, numParts)
+	}
+
+	// Ensure locked balances have correct length.
+	for i, subAlloc := range _s.Locked {
+		_s.Locked[i].Bals = ensureBalanceVectorLength(subAlloc.Bals, numAssets)
+	}
+
+	return _s
+}
+
+func ensureBalanceVectorLength(bals []channel.Bal, l int) []channel.Bal {
+	// Ensure at least numParts.
+	for l-len(bals) > 0 {
+		bals = append(bals, big.NewInt(0))
+	}
+	// Ensure at most numParts.
+	bals = bals[:l]
+	return bals
 }
 
 // GenericStateEqualTest tests the State.Equal function.
