@@ -35,8 +35,8 @@ type UnlockedAccount func() (wallet.Account, error)
 type Setup struct {
 	UnlockedAccount UnlockedAccount // provides an account that is ready to sign
 	// Address tests
-	AddressBytes []byte         // a valid nonzero address not in the wallet
-	Backend      wallet.Backend // backend implementation
+	AddressEncoded []byte         // a valid nonzero address not in the wallet
+	Backend        wallet.Backend // backend implementation
 	// Signature tests
 	DataToSign []byte
 }
@@ -53,7 +53,7 @@ func GenericSignatureTest(t *testing.T, s *Setup) {
 	assert.True(t, valid, "Verification should succeed")
 	assert.NoError(t, err, "Verification should not produce error")
 
-	addr, err := s.Backend.DecodeAddress(bytes.NewBuffer(s.AddressBytes))
+	addr, err := s.Backend.DecodeAddress(bytes.NewBuffer(s.AddressEncoded))
 	assert.NoError(t, err, "Byte deserialization of address should work")
 	valid, err = s.Backend.VerifySignature(s.DataToSign, sign, addr)
 	assert.False(t, valid, "Verification with wrong address should fail")
@@ -124,10 +124,10 @@ func GenericSignatureSizeTest(t *testing.T, s *Setup) {
 // GenericAddressTest runs a test suite designed to test the general functionality of addresses.
 // This function should be called by every implementation of the wallet interface.
 func GenericAddressTest(t *testing.T, s *Setup) {
-	addrLen := len(s.AddressBytes)
+	addrLen := len(s.AddressEncoded)
 	null, err := s.Backend.DecodeAddress(bytes.NewReader(make([]byte, addrLen)))
 	assert.NoError(t, err, "Byte deserialization of zero address should work")
-	addr, err := s.Backend.DecodeAddress(bytes.NewReader(s.AddressBytes))
+	addr, err := s.Backend.DecodeAddress(bytes.NewReader(s.AddressEncoded))
 	assert.NoError(t, err, "Byte deserialization of address should work")
 
 	nullString := null.String()
@@ -136,7 +136,7 @@ func GenericAddressTest(t *testing.T, s *Setup) {
 	assert.Greater(t, len(addrString), 0)
 	assert.NotEqual(t, addrString, nullString)
 
-	assert.Equal(t, s.AddressBytes, addr.Bytes(), "Expected equality of address bytes")
+	assert.Equal(t, s.AddressEncoded, addr.Bytes(), "Expected equality of address bytes")
 	assert.False(t, addr.Equals(null), "Expected inequality of zero, nonzero address")
 	assert.True(t, null.Equals(null), "Expected equality of zero address to itself")
 

@@ -67,7 +67,7 @@ func benchBackendVerifySig(b *testing.B, s *Setup) {
 
 func benchBackendDecodeAddress(b *testing.B, s *Setup) {
 	for n := 0; n < b.N; n++ {
-		_, err := s.Backend.DecodeAddress(bytes.NewReader(s.AddressBytes))
+		_, err := s.Backend.DecodeAddress(bytes.NewReader(s.AddressEncoded))
 
 		if err != nil {
 			b.Fatal(err)

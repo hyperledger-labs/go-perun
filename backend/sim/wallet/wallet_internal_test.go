@@ -98,6 +98,6 @@ func newWalletSetup(rng *rand.Rand) *test.Setup {
 	return &test.Setup{
 		Backend:         new(Backend),
 		UnlockedAccount: unlockedAccount,
-		AddressBytes:    accountB.Address().Bytes(),
+		AddressEncoded:  accountB.Address().Bytes(),
 	}
 }
