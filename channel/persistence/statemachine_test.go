@@ -62,7 +62,7 @@ func TestStateMachine(t *testing.T) {
 		tpr.AssertEqual(csm)
 		// remote signers
 		for i := 1; i < n; i++ {
-			sig, err := channel.Sign(accs[i], params, csm.StagingState())
+			sig, err := channel.Sign(accs[i], csm.StagingState())
 			require.NoError(err)
 			sm.AddSig(nil, channel.Index(i), sig)
 			tpr.AssertEqual(csm)

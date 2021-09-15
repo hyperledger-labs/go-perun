@@ -107,7 +107,6 @@ func (c *Client) validateVirtualChannelSettlementProposal(
 	for i, sig := range prop.Final.Sigs {
 		ok, err := channel.Verify(
 			prop.Final.Params.Parts[i],
-			prop.Final.Params,
 			prop.Final.State,
 			sig,
 		)

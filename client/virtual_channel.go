@@ -246,7 +246,6 @@ func (c *Client) validateVirtualChannelFundingProposal(
 	for i, sig := range prop.Initial.Sigs {
 		ok, err := channel.Verify(
 			prop.Initial.Params.Parts[i],
-			prop.Initial.Params,
 			prop.Initial.State,
 			sig,
 		)

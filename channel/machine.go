@@ -209,7 +209,7 @@ func (m *machine) Sig() (sig wallet.Sig, err error) {
 	}
 
 	if m.stagingTX.Sigs[m.idx] == nil {
-		sig, err = Sign(m.acc, &m.params, m.stagingTX.State)
+		sig, err = Sign(m.acc, m.stagingTX.State)
 		if err != nil {
 			return
 		}
@@ -275,7 +275,7 @@ func (m *machine) AddSig(idx Index, sig wallet.Sig) error {
 		return errors.Errorf("signature for idx %d already present (ID: %x)", idx, m.params.id)
 	}
 
-	if ok, err := Verify(m.params.Parts[idx], &m.params, m.stagingTX.State, sig); err != nil {
+	if ok, err := Verify(m.params.Parts[idx], m.stagingTX.State, sig); err != nil {
 		return err
 	} else if !ok {
 		return errors.Errorf("invalid signature for idx %d (ID: %x)", idx, m.params.id)

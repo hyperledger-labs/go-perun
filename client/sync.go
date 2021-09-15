@@ -133,7 +133,7 @@ func validateMessage(ch *persistence.Channel, msg *msgChannelSync) error {
 			return errors.New("sigs length mismatch")
 		}
 		for i, sig := range msg.CurrentTX.Sigs {
-			ok, err := channel.Verify(ch.Params().Parts[i], ch.Params(), msg.CurrentTX.State, sig)
+			ok, err := channel.Verify(ch.Params().Parts[i], msg.CurrentTX.State, sig)
 			if err != nil {
 				return errors.WithMessagef(err, "validating sig %d", i)
 			}

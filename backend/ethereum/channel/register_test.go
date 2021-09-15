@@ -89,7 +89,7 @@ func registerMultiple(t *testing.T, numParts int, parallel bool) {
 	subs := make([]channel.AdjudicatorSubscription, numParts)
 	for i := 0; i < numParts; i++ {
 		state.Version = uint64(int(state.Version) + i) // manipulate the state
-		tx := testSignState(t, s.Accs, params, state)
+		tx := testSignState(t, s.Accs, state)
 		txs[i] = &tx
 
 		sleepDuration := time.Duration(rng.Int63n(10)+1) * time.Millisecond
@@ -162,7 +162,7 @@ func TestRegister_FinalState(t *testing.T) {
 	require.NoError(t, err)
 	defer sub.Close()
 	// register
-	tx := testSignState(t, s.Accs, params, state)
+	tx := testSignState(t, s.Accs, state)
 	req := channel.AdjudicatorReq{
 		Params: params,
 		Acc:    s.Accs[0],
@@ -198,7 +198,7 @@ func TestRegister_CancelledContext(t *testing.T) {
 	require.NoError(t, err)
 	defer sub.Close()
 	// register
-	tx := testSignState(t, s.Accs, params, state)
+	tx := testSignState(t, s.Accs, state)
 	req := channel.AdjudicatorReq{
 		Params: params,
 		Acc:    s.Accs[0],

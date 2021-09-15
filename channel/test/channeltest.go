@@ -15,6 +15,7 @@
 package test
 
 import (
+	"math/big"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -35,7 +36,7 @@ type Setup struct {
 
 	// State is a random state with parameters `Params`
 	State *channel.State
-	// State2 is a random state with parameters `Params2` and must differ in all fields from `State`
+	// State2 is a random state with parameters `Params2` and should differ in all fields from `State`
 	State2 *channel.State
 
 	// Account is a random account
@@ -80,46 +81,30 @@ func genericChannelIDTest(t *testing.T, s *Setup) {
 }
 
 func genericSignTest(t *testing.T, s *Setup) {
-	_, err := channel.Sign(s.Account, s.Params, s.State)
+	_, err := channel.Sign(s.Account, s.State)
 	assert.NoError(t, err, "Sign should not return an error")
 }
 
 func genericVerifyTest(t *testing.T, s *Setup) {
 	addr := s.Account.Address()
 	require.Equal(t, channel.CalcID(s.Params), s.Params.ID(), "Invalid test params")
-	sig, err := channel.Sign(s.Account, s.Params, s.State)
+	sig, err := channel.Sign(s.Account, s.State)
 	require.NoError(t, err, "Sign should not return an error")
 
-	ok, err := channel.Verify(addr, s.Params, s.State, sig)
+	ok, err := channel.Verify(addr, s.State, sig)
 	assert.NoError(t, err, "Verify should not return an error")
 	assert.True(t, ok, "Verify should return true")
 
-	// Different state and same params
-	ok, err = channel.Verify(addr, s.Params, s.State2, sig)
-	assert.NoError(t, err, "Verify should not return an error")
-	assert.False(t, ok, "Verify should return false")
-
-	// Different params and same state
-	// -> The backend does not detect this
-
-	// Different params and different state
-	for _, _modParams := range buildModifiedParams(s.Params, s.Params2, s) {
-		modParams := _modParams
-		for _, _fakeState := range buildModifiedStates(s.State, s.State2, false) {
-			fakeState := _fakeState
-			ok, err = channel.Verify(addr, &modParams, &fakeState, sig)
-			assert.False(t, ok, "Verify should return false")
-			if err2 := fakeState.Valid(); err2 != nil {
-				assert.Error(t, err, "Verify should return error on an invalid state")
-			} else {
-				assert.NoError(t, err, "Verify should not return an error on a valid state")
-			}
-		}
+	for i, _modState := range buildModifiedStates(s.State, s.State2, false) {
+		modState := _modState
+		ok, err = channel.Verify(addr, &modState, sig)
+		assert.Falsef(t, ok, "Verify should return false: index %d", i)
+		assert.NoError(t, err, "Verify should not return an error")
 	}
 
 	// Different address and same state and params
 	for i := 0; i < 10; i++ {
-		ok, err := channel.Verify(s.RandomAddress(), s.Params, s.State, sig)
+		ok, err := channel.Verify(s.RandomAddress(), s.State, sig)
 		assert.NoError(t, err, "Verify should not return an error")
 		assert.False(t, ok, "Verify should return false")
 	}
@@ -224,14 +209,13 @@ func buildModifiedStates(s1, s2 *channel.State, modifyApp bool) (ret []channel.S
 				// Modify complete Assets
 				{
 					modState := s1.Clone()
-					modState.Allocation.Assets = s2.Allocation.Assets
+					modState.Assets = s2.Assets
+					modState = ensureConsistentBalances(modState)
 					ret = append(ret, *modState)
 				}
 				// Modify Assets[0]
 				{
 					modState := s1.Clone()
-					modState.Assets = make([]channel.Asset, len(s1.Assets))
-					copy(modState.Allocation.Assets, s1.Allocation.Assets)
 					modState.Allocation.Assets[0] = s2.Allocation.Assets[0]
 					ret = append(ret, *modState)
 				}
@@ -241,13 +225,15 @@ func buildModifiedStates(s1, s2 *channel.State, modifyApp bool) (ret []channel.S
 				// Modify complete Balances
 				{
 					modState := s1.Clone()
-					modState.Allocation.Balances = s2.Allocation.Balances
+					modState.Balances = s2.Balances
+					modState = ensureConsistentBalances(modState)
 					ret = append(ret, *modState)
 				}
 				// Modify Balances[0]
 				{
 					modState := s1.Clone()
-					copy(modState.Allocation.Balances[0], s2.Allocation.Balances[0])
+					modState.Allocation.Balances[0] = s2.Allocation.Balances[0]
+					modState = ensureConsistentBalances(modState)
 					ret = append(ret, *modState)
 				}
 				// Modify Balances[0][0]
@@ -258,26 +244,28 @@ func buildModifiedStates(s1, s2 *channel.State, modifyApp bool) (ret []channel.S
 				}
 			}
 			// Modify Locked
-			{
+			if len(s1.Locked) > 0 || len(s2.Locked) > 0 {
 				// Modify complete Locked
 				{
 					modState := s1.Clone()
-					modState.Allocation.Locked = s2.Allocation.Locked
+					modState.Allocation.Locked = s2.Clone().Locked
+					modState = ensureConsistentBalances(modState)
 					ret = append(ret, *modState)
 				}
-				// Modify AppID
+				// Modify Locked[0].ID
 				{
 					modState := s1.Clone()
 					modState.Allocation.Locked[0].ID = s2.Allocation.Locked[0].ID
 					ret = append(ret, *modState)
 				}
-				// Modify Bals
+				// Modify Locked[0].Bals
 				{
 					modState := s1.Clone()
-					modState.Allocation.Locked[0].Bals = s2.Allocation.Locked[0].Bals
+					modState.Allocation.Locked[0].Bals = s2.Locked[0].Bals
+					modState = ensureConsistentBalances(modState)
 					ret = append(ret, *modState)
 				}
-				// Modify Bals[0]
+				// Modify Locked[0].Bals[0]
 				{
 					modState := s1.Clone()
 					modState.Allocation.Locked[0].Bals[0] = s2.Allocation.Locked[0].Bals[0]
@@ -286,7 +274,7 @@ func buildModifiedStates(s1, s2 *channel.State, modifyApp bool) (ret []channel.S
 			}
 		}
 		// Modify Data
-		{
+		if !channel.IsNoData(s1.Data) || !channel.IsNoData(s2.Data) {
 			modState := s1.Clone()
 			modState.Data = s2.Data
 			ret = append(ret, *modState)
@@ -300,6 +288,46 @@ func buildModifiedStates(s1, s2 *channel.State, modifyApp bool) (ret []channel.S
 	}
 
 	return
+}
+
+func ensureConsistentBalances(s *channel.State) *channel.State {
+	_s := s.Clone()
+	numAssets := len(_s.Assets)
+	numParts := _s.NumParts()
+
+	// Ensure Balances has correct length.
+	// Ensure at least numAssets.
+	for numAssets-len(_s.Balances) > 0 {
+		assetBals := make([]channel.Bal, numParts)
+		for i := range assetBals {
+			assetBals[i] = big.NewInt(0)
+		}
+		_s.Balances = append(_s.Balances, assetBals)
+	}
+	// Ensure at most numAssets.
+	_s.Balances = _s.Balances[:numAssets]
+
+	// Ensure asset balances have correct length.
+	for i, assetBals := range _s.Balances {
+		_s.Balances[i] = ensureBalanceVectorLength(assetBals, numParts)
+	}
+
+	// Ensure locked balances have correct length.
+	for i, subAlloc := range _s.Locked {
+		_s.Locked[i].Bals = ensureBalanceVectorLength(subAlloc.Bals, numAssets)
+	}
+
+	return _s
+}
+
+func ensureBalanceVectorLength(bals []channel.Bal, l int) []channel.Bal {
+	// Ensure at least numParts.
+	for l-len(bals) > 0 {
+		bals = append(bals, big.NewInt(0))
+	}
+	// Ensure at most numParts.
+	bals = bals[:l]
+	return bals
 }
 
 // GenericStateEqualTest tests the State.Equal function.
