@@ -24,7 +24,7 @@ var backend Backend
 
 // Backend provides useful methods for this blockchain.
 type Backend interface {
-	// DecodeAddress reads and decodes an address from an io.Writer
+	// DecodeAddress should read an address that was encoded with Address.Encode.
 	DecodeAddress(io.Reader) (Address, error)
 
 	// DecodeSig reads a signature from the provided stream. It is needed for

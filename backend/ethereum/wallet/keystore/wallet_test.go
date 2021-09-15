@@ -73,11 +73,11 @@ func TestBackend(t *testing.T) {
 
 	s := newSetup(t)
 
-	buff := bytes.NewReader(s.AddressBytes)
+	buff := bytes.NewReader(s.AddressEncoded)
 	addr, err := backend.DecodeAddress(buff)
 
 	assert.NoError(t, err, "NewAddress from Bytes should work")
-	assert.Equal(t, s.AddressBytes, addr.Bytes())
+	assert.Equal(t, s.AddressEncoded, addr.Bytes())
 
 	buff = bytes.NewReader([]byte(invalidAddr))
 	_, err = backend.DecodeAddress(buff)
@@ -92,7 +92,7 @@ func newSetup(t require.TestingT) *test.Setup {
 	return &test.Setup{
 		UnlockedAccount: func() (wallet.Account, error) { return acc, nil },
 		Backend:         new(ethwallet.Backend),
-		AddressBytes:    validAddrBytes,
+		AddressEncoded:  validAddrBytes,
 		DataToSign:      dataToSign,
 	}
 }

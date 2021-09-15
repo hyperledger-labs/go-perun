@@ -73,7 +73,7 @@ func TestNewWallet(t *testing.T) {
 func TestSignWithMissingKey(t *testing.T) {
 	setup, accsWallet, _ := newSetup(t, pkgtest.Prng(t))
 
-	missingAddr := common.BytesToAddress(setup.AddressBytes)
+	missingAddr := common.BytesToAddress(setup.AddressEncoded)
 	acc := hd.NewAccountFromEth(accsWallet, accounts.Account{Address: missingAddr})
 	require.NotNil(t, acc)
 	_, err := acc.SignData(setup.DataToSign)
@@ -83,7 +83,7 @@ func TestSignWithMissingKey(t *testing.T) {
 func TestUnlock(t *testing.T) {
 	setup, _, hdWallet := newSetup(t, pkgtest.Prng(t))
 
-	missingAddr := common.BytesToAddress(setup.AddressBytes)
+	missingAddr := common.BytesToAddress(setup.AddressEncoded)
 	_, err := hdWallet.Unlock(ethwallet.AsWalletAddr(missingAddr))
 	assert.Error(t, err, "should error on unlocking missing address")
 
@@ -98,7 +98,7 @@ func TestContains(t *testing.T) {
 
 	assert.False(t, hdWallet.Contains(common.Address{}), "should not contain nil account")
 
-	missingAddr := common.BytesToAddress(setup.AddressBytes)
+	missingAddr := common.BytesToAddress(setup.AddressEncoded)
 	assert.False(t, hdWallet.Contains(missingAddr), "should not contain address of the missing account")
 
 	validAcc, err := setup.UnlockedAccount()
@@ -131,7 +131,7 @@ func newSetup(t require.TestingT, prng *rand.Rand) (*test.Setup, accounts.Wallet
 	return &test.Setup{
 		UnlockedAccount: func() (wallet.Account, error) { return acc, nil },
 		Backend:         new(ethwallet.Backend),
-		AddressBytes:    sampleBytes,
+		AddressEncoded:  sampleBytes,
 		DataToSign:      dataToSign,
 	}, rawHDWallet, hdWallet
 }
