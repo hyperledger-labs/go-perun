@@ -22,7 +22,6 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"perun.network/go-perun/pkg/io"
-	"perun.network/go-perun/pkg/io/test"
 	"perun.network/go-perun/wallet"
 )
 
@@ -139,9 +138,6 @@ func GenericAddressTest(t *testing.T, s *Setup) {
 	assert.False(t, addr.Equals(null), "Expected inequality of zero, nonzero address")
 	assert.True(t, null.Equals(null), "Expected equality of zero address to itself")
 
-	t.Run("Generic Serializer Test", func(t *testing.T) {
-		test.GenericSerializerTest(t, addr)
-	})
 	// a.Equals(Decode(Encode(a)))
 	t.Run("Serialize Equals Test", func(t *testing.T) {
 		buff := new(bytes.Buffer)
