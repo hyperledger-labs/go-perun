@@ -136,7 +136,6 @@ func GenericAddressTest(t *testing.T, s *Setup) {
 	assert.Greater(t, len(addrString), 0)
 	assert.NotEqual(t, addrString, nullString)
 
-	assert.Equal(t, s.AddressEncoded, addr.Bytes(), "Expected equality of address bytes")
 	assert.False(t, addr.Equals(null), "Expected inequality of zero, nonzero address")
 	assert.True(t, null.Equals(null), "Expected equality of zero address to itself")
 
