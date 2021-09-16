@@ -35,7 +35,7 @@ import (
 
 const (
 	defaultTestTimeout = 10 * time.Second
-	blockInterval      = 100 * time.Millisecond
+	blockInterval      = 10 * time.Millisecond
 )
 
 func TestAdjudicator_ConcludeFinal(t *testing.T) {
