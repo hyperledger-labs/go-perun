@@ -25,6 +25,7 @@ import (
 	"perun.network/go-perun/log"
 	"perun.network/go-perun/pkg/sync"
 	"perun.network/go-perun/wallet"
+	"perun.network/go-perun/watcher"
 	"perun.network/go-perun/wire"
 )
 
@@ -45,6 +46,7 @@ type Client struct {
 	version1Cache     version1Cache
 	fundingWatcher    *stateWatcher
 	settlementWatcher *stateWatcher
+	watcher           watcher.Watcher
 
 	sync.Closer
 }
@@ -71,6 +73,7 @@ func New(
 	funder channel.Funder,
 	adjudicator channel.Adjudicator,
 	wallet wallet.Wallet,
+	watcher watcher.Watcher,
 ) (c *Client, err error) {
 	if address == nil {
 		log.Panic("address must not be nil")
@@ -101,6 +104,7 @@ func New(
 		wallet:      wallet,
 		pr:          persistence.NonPersistRestorer,
 		log:         log,
+		watcher:     watcher,
 	}
 
 	c.fundingWatcher = newStateWatcher(c.matchFundingProposal)
