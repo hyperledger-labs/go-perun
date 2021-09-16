@@ -417,47 +417,65 @@ func (c *Channel) ensureRegistered(ctx context.Context) error {
 		return nil
 	}
 
-	registeredEvents := make(chan *channel.RegisteredEvent)
+	registered := make(chan error)
+	go func() {
+		registered <- c.awaitRegistered(ctx)
+	}()
 
+	// Register.
+	err := c.registerDispute(ctx)
+	if err != nil {
+		// Only log because channel may already be registered.
+		c.Log().Warnf("registering: %v", err)
+	}
+
+	select {
+	case err = <-registered:
+	case <-ctx.Done():
+		err = ctx.Err()
+	}
+	return err
+}
+
+// awaitRegistered scans for an event indicating that the channel has been
+// registered and waits for the event timeout to elapse.
+func (c *Channel) awaitRegistered(ctx context.Context) error {
 	// Start event subscription.
 	sub, err := c.adjudicator.Subscribe(ctx, c.Params().ID())
 	if err != nil {
 		return errors.WithMessage(err, "subscribing to adjudicator events")
 	}
-	go waitForRegisteredEvent(sub, registeredEvents)
-
-	// Register.
-	err = c.registerDispute(ctx)
-	if err != nil {
-		return errors.WithMessage(err, "registering")
-	}
-
-	select {
-	case e := <-registeredEvents:
-		err = e.Timeout().Wait(ctx)
-		if err != nil {
-			return err
-		}
-	case <-ctx.Done():
-		return ctx.Err()
-	}
-	return nil
-}
-
-// waitForRegisteredEvent waits until a RegisteredEvent has been observed.
-func waitForRegisteredEvent(sub channel.AdjudicatorSubscription, events chan<- *channel.RegisteredEvent) {
 	defer func() {
-		err := sub.Close()
-		if err != nil {
-			log.Warn("Subscription closed with error:", err)
+		if err := sub.Close(); err != nil {
+			c.Log().Warn("Subscription closed with error:", err)
 		}
 	}()
 
-	// Scan for registered event.
+	// Scan for event.
 	for e := sub.Next(); e != nil; e = sub.Next() {
-		if e, ok := e.(*channel.RegisteredEvent); ok {
-			events <- e
-			return
+		switch e.(type) {
+		case *channel.RegisteredEvent:
+		case *channel.ProgressedEvent:
+		case *channel.ConcludedEvent:
+		default:
+			log.Warnf("unrecognized event type: %T", e)
+			continue
 		}
+
+		// We set phase registered to ensure that we are in the correct phase
+		// even if the channel has been registered by someone else.
+		l, err := c.tryLockRecursive(ctx)
+		defer l.Unlock()
+		if err != nil {
+			return errors.WithMessage(err, "locking recursive")
+		}
+		err = c.setRegisteredRecursive(ctx)
+		if err != nil {
+			return errors.WithMessage(err, "setting phase `Registered` recursive")
+		}
+
+		// Wait until end of channel phase.
+		return e.Timeout().Wait(ctx)
 	}
+	return sub.Err()
 }
