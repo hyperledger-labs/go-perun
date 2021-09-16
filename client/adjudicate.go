@@ -31,7 +31,7 @@ type AdjudicatorEventHandler interface {
 	HandleAdjudicatorEvent(channel.AdjudicatorEvent)
 }
 
-func (c *Channel) Watch2(h AdjudicatorEventHandler) error {
+func (c *Channel) Watch(h AdjudicatorEventHandler) error {
 	log := c.Log().WithField("proc", "watcher")
 	defer log.Info("Watcher returned.")
 

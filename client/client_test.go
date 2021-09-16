@@ -27,6 +27,7 @@ import (
 	ctest "perun.network/go-perun/client/test"
 	"perun.network/go-perun/pkg/test"
 	wtest "perun.network/go-perun/wallet/test"
+	"perun.network/go-perun/watcher/local"
 	"perun.network/go-perun/wire"
 )
 
@@ -48,17 +49,20 @@ func TestClient_New_NilArgs(t *testing.T) {
 	id := wtest.NewRandomAddress(rng)
 	backend := &ctest.MockBackend{}
 	b, f, a, w := &DummyBus{t}, backend, backend, wtest.RandomWallet()
-	assert.Panics(t, func() { client.New(nil, b, f, a, w) })
-	assert.Panics(t, func() { client.New(id, nil, f, a, w) })
-	assert.Panics(t, func() { client.New(id, b, nil, a, w) })
-	assert.Panics(t, func() { client.New(id, b, f, nil, w) })
-	assert.Panics(t, func() { client.New(id, b, f, a, nil) })
+	wa, _ := local.NewWatcher(local.Config{RegisterSubscriber: backend})
+	assert.Panics(t, func() { client.New(nil, b, f, a, w, wa) })
+	assert.Panics(t, func() { client.New(id, nil, f, a, w, wa) })
+	assert.Panics(t, func() { client.New(id, b, nil, a, w, wa) })
+	assert.Panics(t, func() { client.New(id, b, f, nil, w, wa) })
+	assert.Panics(t, func() { client.New(id, b, f, a, nil, wa) })
+	assert.Panics(t, func() { client.New(id, b, f, a, w, nil) })
 }
 
 func TestClient_Handle_NilArgs(t *testing.T) {
 	rng := test.Prng(t)
 	backend := &ctest.MockBackend{}
-	c, err := client.New(wtest.NewRandomAddress(rng), &DummyBus{t}, backend, backend, wtest.RandomWallet())
+	w, _ := local.NewWatcher(local.Config{RegisterSubscriber: backend})
+	c, err := client.New(wtest.NewRandomAddress(rng), &DummyBus{t}, backend, backend, wtest.RandomWallet(), w)
 	require.NoError(t, err)
 
 	dummyUH := client.UpdateHandlerFunc(func(*channel.State, client.ChannelUpdate, *client.UpdateResponder) {})
@@ -70,7 +74,8 @@ func TestClient_Handle_NilArgs(t *testing.T) {
 func TestClient_New(t *testing.T) {
 	rng := test.Prng(t)
 	backend := &ctest.MockBackend{}
-	c, err := client.New(wtest.NewRandomAddress(rng), &DummyBus{t}, backend, backend, wtest.RandomWallet())
+	w, _ := local.NewWatcher(local.Config{RegisterSubscriber: backend})
+	c, err := client.New(wtest.NewRandomAddress(rng), &DummyBus{t}, backend, backend, wtest.RandomWallet(), w)
 	assert.NoError(t, err)
 	require.NotNil(t, c)
 }

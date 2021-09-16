@@ -88,6 +88,8 @@ func New(
 		log.Panic("adjudicator must not be nil")
 	} else if wallet == nil {
 		log.Panic("wallet must not be nil")
+	} else if watcher == nil {
+		log.Panic("watcher must not be nil")
 	}
 
 	conn, err := makeClientConn(address, bus)

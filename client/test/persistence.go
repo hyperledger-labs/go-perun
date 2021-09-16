@@ -25,6 +25,7 @@ import (
 	"perun.network/go-perun/channel"
 	"perun.network/go-perun/client"
 	"perun.network/go-perun/pkg/test"
+	"perun.network/go-perun/watcher/local"
 )
 
 type (
@@ -42,7 +43,8 @@ type (
 // ReplaceClient replaces the client instance of the Role. Useful for
 // persistence testing.
 func (r *multiClientRole) ReplaceClient() {
-	cl, err := client.New(r.setup.Identity.Address(), r.setup.Bus, r.setup.Funder, r.setup.Adjudicator, r.setup.Wallet)
+	w, _ := local.NewWatcher(local.Config{RegisterSubscriber: r.setup.Adjudicator})
+	cl, err := client.New(r.setup.Identity.Address(), r.setup.Bus, r.setup.Funder, r.setup.Adjudicator, r.setup.Wallet, w)
 	if err != nil {
 		r.t.Fatal("Error recreating Client: ", err)
 	}
