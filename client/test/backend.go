@@ -209,12 +209,12 @@ func (b *MockBackend) isConcluded(ch channel.ID) bool {
 }
 
 func (b *MockBackend) addBalance(p wallet.Address, a channel.Asset, v *big.Int) {
-	bal := b.getBalance(p, a)
+	bal := b.balance(p, a)
 	bal = new(big.Int).Add(bal, v)
 	b.setBalance(p, a, bal)
 }
 
-func (b *MockBackend) getBalance(p wallet.Address, a channel.Asset) *big.Int {
+func (b *MockBackend) balance(p wallet.Address, a channel.Asset) *big.Int {
 	partBals, ok := b.balances[newAddressMapKey(p)]
 	if !ok {
 		return big.NewInt(0)
@@ -247,11 +247,11 @@ func encodableAsString(e io.Encoder) string {
 	return buf.String()
 }
 
-// GetBalance returns the balance for the participant and asset.
-func (b *MockBackend) GetBalance(p wallet.Address, a channel.Asset) *big.Int {
+// Balance returns the balance for the participant and asset.
+func (b *MockBackend) Balance(p wallet.Address, a channel.Asset) *big.Int {
 	b.mu.Lock()
 	defer b.mu.Unlock()
-	return b.getBalance(p, a)
+	return b.balance(p, a)
 }
 
 func (b *MockBackend) setBalance(p wallet.Address, a channel.Asset, v *big.Int) {

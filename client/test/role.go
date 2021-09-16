@@ -29,6 +29,7 @@ import (
 	"perun.network/go-perun/channel/persistence"
 	"perun.network/go-perun/client"
 	"perun.network/go-perun/log"
+	"perun.network/go-perun/wallet"
 	wallettest "perun.network/go-perun/wallet/test"
 	"perun.network/go-perun/wire"
 )
@@ -54,6 +55,11 @@ type (
 		sync.RWMutex
 	}
 
+	// BalanceReader can be used to read state from a ledger.
+	BalanceReader interface {
+		Balance(p wallet.Address, a channel.Asset) channel.Bal
+	}
+
 	// RoleSetup contains the injectables for setting up the client.
 	RoleSetup struct {
 		Name              string
@@ -64,7 +70,7 @@ type (
 		Wallet            wallettest.Wallet
 		PR                persistence.PersistRestorer // Optional PersistRestorer
 		Timeout           time.Duration               // Timeout waiting for other role, not challenge duration
-		Backend           *MockBackend
+		BalanceReader     BalanceReader
 		ChallengeDuration uint64
 	}
 
