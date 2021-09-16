@@ -22,12 +22,108 @@ import (
 	"perun.network/go-perun/channel"
 	"perun.network/go-perun/log"
 	"perun.network/go-perun/pkg/sync"
+	"perun.network/go-perun/watcher"
 	"perun.network/go-perun/wire"
 )
 
 // AdjudicatorEventHandler represents an interface for handling adjudicator events.
 type AdjudicatorEventHandler interface {
 	HandleAdjudicatorEvent(channel.AdjudicatorEvent)
+}
+
+func (c *Channel) Watch2(h AdjudicatorEventHandler) error {
+	log := c.Log().WithField("proc", "watcher")
+	defer log.Info("Watcher returned.")
+
+	eventsSub, err := c.startWatching()
+	if err != nil {
+		return err
+	}
+	c.handleEvents(eventsSub, h) // returns only when eventsSub is closed.
+
+	err = errors.WithMessage(eventsSub.Err(), "subscription closed")
+	log.Debugf("Subscription closed: %v", err)
+	return err
+}
+
+func (c *Channel) startWatching() (watcher.AdjudicatorSub, error) {
+	c.machMtx.Lock()
+	defer c.machMtx.Unlock()
+
+	currentTx := c.machine.CurrentTX()
+	signedState := channel.SignedState{
+		Params: c.Params(),
+		State:  currentTx.State.Clone(),
+		Sigs:   currentTx.Sigs,
+	}
+	statesPub, eventsSub, err := c.client.watcher.StartWatchingLedgerChannel(c.Ctx(), signedState)
+	if err != nil {
+		return nil, errors.WithMessage(err, "registering channel with the watcher")
+	}
+	ok := c.OnCloseAlways(func() {
+		err := c.client.watcher.StopWatching(c.ID())
+		if err != nil {
+			c.Log().Errorf("Error de-registering channel from watcher: %v", err)
+		}
+	})
+	if !ok {
+		return nil, errors.WithMessage(err, "channel already closed")
+	}
+	c.statesPub = statesPub
+	return eventsSub, nil
+}
+
+func (c *Channel) handleEvents(eventsSub watcher.AdjudicatorSub, h AdjudicatorEventHandler) {
+	for {
+		select {
+		case e, ok := <-eventsSub.EventStream():
+			if !ok {
+				return
+			}
+			log.Infof("event %v", e)
+			switch e.(type) {
+			case *channel.RegisteredEvent:
+				c.setRegisteredRecursiveIgnoreError()
+			case *channel.ProgressedEvent:
+				c.machine.SetProgressed(c.Ctx(), e.(*channel.ProgressedEvent))
+			}
+
+			// Notify handler
+			go h.HandleAdjudicatorEvent(e)
+		case <-c.Ctx().Done():
+			c.Log().Info("Exiting watcher as channel context was cancelled")
+			return
+		}
+	}
+}
+
+// setRegisteredRecursiveIgnoreError sets registered for the parent channel and
+// all its sub-channels.
+// If error is encountered for any of the channels, it logs the errors and
+// continues.
+func (c *Channel) setRegisteredRecursiveIgnoreError() {
+	parent := c
+	if c.parent != nil {
+		parent = c.parent
+	}
+	logIfError := func(l log.Logger, err error) {
+		if err != nil {
+			l.Errorf("Error setting registered: %v", err)
+		}
+	}
+	err := parent.machine.SetRegistered(parent.Ctx())
+	logIfError(parent.Log(), err)
+
+	for _, subAlloc := range c.state().Locked {
+		subID := subAlloc.ID
+		subCh, err := c.client.Channel(subID)
+		// TODO(mano): Is it safe to just log here ? When will this sceanrio occur ?
+		logIfError(c.Log(), errors.WithMessagef(err, "getting sub-channel: %v", subID))
+
+		logIfError(parent.Log(), subCh.machine.SetRegistered(subCh.Ctx()))
+	}
+	return
+
 }
 
 // Watch watches the adjudicator for channel events and responds accordingly.
@@ -41,55 +137,7 @@ type AdjudicatorEventHandler interface {
 // Returns TxTimedoutError when watcher refutes with the most recent state and
 // the program times out waiting for a transaction to be mined.
 // Returns ChainNotReachableError if the connection to the blockchain network
-// fails when sending a transaction to / reading from the blockchain.
-func (c *Channel) Watch(h AdjudicatorEventHandler) error {
-	log := c.Log().WithField("proc", "watcher")
-	defer log.Info("Watcher returned.")
-
-	// Subscribe to state changes
-	ctx := c.Ctx()
-	sub, err := c.adjudicator.Subscribe(ctx, c.Params().ID())
-	if err != nil {
-		return errors.WithMessage(err, "subscribing to adjudicator state changes")
-	}
-	// nolint:errcheck
-	defer sub.Close()
-	// nolint:errcheck,gosec
-	c.OnCloseAlways(func() { sub.Close() })
-
-	// Wait for state changed event
-	for e := sub.Next(); e != nil; e = sub.Next() {
-		log.Infof("event %v", e)
-
-		// Update machine phase
-		if err := c.setMachinePhase(ctx, e); err != nil {
-			return errors.WithMessage(err, "setting machine phase")
-		}
-
-		// Special handling of RegisteredEvent
-		if e, ok := e.(*channel.RegisteredEvent); ok {
-			// Assert backend version not greater than local version.
-			if e.Version() > c.State().Version {
-				// If the implementation works as intended, this should never happen.
-				log.Panicf("watch: registered: expected version less than or equal to %d, got version %d", c.machine.State().Version, e.Version)
-			}
-
-			// If local version greater than backend version, register local state.
-			if e.Version() < c.State().Version {
-				if err := c.registerDispute(ctx); err != nil {
-					return errors.WithMessage(err, "registering")
-				}
-			}
-		}
-
-		// Notify handler
-		go h.HandleAdjudicatorEvent(e)
-	}
-
-	err = sub.Err()
-	log.Debugf("Subscription closed: %v", err)
-	return errors.WithMessage(err, "subscription closed")
-}
+// fails when sending a transaction to reading from the blockchain.
 
 // registerDispute registers a dispute for the channel and all its relatives.
 //
@@ -291,27 +339,6 @@ func (c *Channel) hasParticipant(id wire.Address) bool {
 		}
 	}
 	return false
-}
-
-func (c *Channel) setMachinePhase(ctx context.Context, e channel.AdjudicatorEvent) (err error) {
-	// Lock machine
-	if !c.machMtx.TryLockCtx(ctx) {
-		return errors.WithMessage(ctx.Err(), "locking machine")
-	}
-	defer c.machMtx.Unlock()
-
-	switch e := e.(type) {
-	case *channel.RegisteredEvent:
-		err = c.machine.SetRegistered(ctx)
-	case *channel.ProgressedEvent:
-		err = c.machine.SetProgressed(ctx, e)
-	case *channel.ConcludedEvent:
-		// Do nothing as there is currently no corresponding phase in the channel machine.
-	default:
-		c.Log().Panic("unsupported event type")
-	}
-
-	return
 }
 
 type mutexList []*sync.Mutex
