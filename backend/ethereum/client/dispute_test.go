@@ -18,23 +18,19 @@ import (
 	"context"
 	"math/big"
 	"testing"
-	"time"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"perun.network/go-perun/backend/ethereum/channel/test"
+	ctest "perun.network/go-perun/backend/ethereum/client/test"
 	"perun.network/go-perun/backend/ethereum/wallet"
 	"perun.network/go-perun/client"
 	clienttest "perun.network/go-perun/client/test"
 	"perun.network/go-perun/log"
 	pkgtest "perun.network/go-perun/pkg/test"
 	"perun.network/go-perun/wire"
-)
-
-const (
-	blockInterval = 100 * time.Millisecond
 )
 
 func TestDisputeMalloryCarol(t *testing.T) {
@@ -48,8 +44,8 @@ func TestDisputeMalloryCarol(t *testing.T) {
 		role  [2]clienttest.Executer
 	)
 
-	s := test.NewSetup(t, rng, 2, blockInterval)
-	setup = makeRoleSetups(s, name)
+	s := test.NewSetup(t, rng, 2, ctest.BlockInterval)
+	setup = ctest.MakeRoleSetups(s, name)
 
 	role[A] = clienttest.NewMallory(setup[A], t)
 	role[B] = clienttest.NewCarol(setup[B], t)
@@ -74,7 +70,7 @@ func TestDisputeMalloryCarol(t *testing.T) {
 		new(big.Int).Sub(execConfig.InitBals()[A], netTransfer),
 		new(big.Int).Add(execConfig.InitBals()[B], netTransfer)}
 	// reset context timeout
-	ctx, cancel := context.WithTimeout(context.Background(), defaultTimeout)
+	ctx, cancel := context.WithTimeout(context.Background(), ctest.DefaultTimeout)
 	defer cancel()
 	for i, bal := range finalBal {
 		b, err := s.SimBackend.BalanceAt(ctx, common.Address(*s.Recvs[i]), nil)

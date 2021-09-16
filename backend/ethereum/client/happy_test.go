@@ -19,13 +19,13 @@ import (
 	"math/big"
 	"sync"
 	"testing"
-	"time"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"perun.network/go-perun/backend/ethereum/channel/test"
+	ctest "perun.network/go-perun/backend/ethereum/client/test"
 	"perun.network/go-perun/backend/ethereum/wallet"
 	chtest "perun.network/go-perun/channel/test"
 	perunclient "perun.network/go-perun/client"
@@ -34,8 +34,6 @@ import (
 	pkgtest "perun.network/go-perun/pkg/test"
 	"perun.network/go-perun/wire"
 )
-
-var defaultTimeout = 5 * time.Second
 
 func TestHappyAliceBob(t *testing.T) {
 	log.Info("Starting happy test")
@@ -48,8 +46,8 @@ func TestHappyAliceBob(t *testing.T) {
 		role  [2]clienttest.Executer
 	)
 
-	s := test.NewSetup(t, rng, 2, blockInterval)
-	setup = makeRoleSetups(s, name)
+	s := test.NewSetup(t, rng, 2, ctest.BlockInterval)
+	setup = ctest.MakeRoleSetups(s, name)
 
 	role[A] = clienttest.NewAlice(setup[A], t)
 	role[B] = clienttest.NewBob(setup[B], t)
@@ -86,7 +84,7 @@ func TestHappyAliceBob(t *testing.T) {
 	finalBalAlice := new(big.Int).Sub(execConfig.InitBals()[A], aliceToBob)
 	finalBalBob := new(big.Int).Add(execConfig.InitBals()[B], aliceToBob)
 	// reset context timeout
-	ctx, cancel := context.WithTimeout(context.Background(), defaultTimeout)
+	ctx, cancel := context.WithTimeout(context.Background(), ctest.DefaultTimeout)
 	defer cancel()
 	assertBal := func(addr *wallet.Address, bal *big.Int) {
 		b, err := s.SimBackend.BalanceAt(ctx, common.Address(*addr), nil)
