@@ -1,6 +1,6 @@
 ---
 name: Basic Issue Template
-about: ''
+about: A generic template for any type of issue.
 title: ''
 labels: ''
 assignees: ''
