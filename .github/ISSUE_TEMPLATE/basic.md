@@ -1,6 +1,6 @@
 ---
-name: Issue
-about: Generic issue description
+name: Basic Issue Template
+about: ''
 title: ''
 labels: ''
 assignees: ''
