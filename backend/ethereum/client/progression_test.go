@@ -21,6 +21,7 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/require"
+
 	ethchannel "perun.network/go-perun/backend/ethereum/channel"
 	"perun.network/go-perun/backend/ethereum/channel/test"
 	ethwallet "perun.network/go-perun/backend/ethereum/wallet"
@@ -30,6 +31,7 @@ import (
 	clienttest "perun.network/go-perun/client/test"
 	pkgtest "perun.network/go-perun/pkg/test"
 	"perun.network/go-perun/wallet"
+	"perun.network/go-perun/watcher/local"
 	"perun.network/go-perun/wire"
 )
 
@@ -63,12 +65,17 @@ func TestProgression(t *testing.T) {
 func makeRoleSetups(s *test.Setup, names [2]string) (setup [2]clienttest.RoleSetup) {
 	bus := wire.NewLocalBus()
 	for i := 0; i < len(setup); i++ {
+		watcher, err := local.NewWatcher(local.Config{RegisterSubscriber: s.Adjs[i]})
+		if err != nil {
+			panic("Error initializing watcher: " + err.Error())
+		}
 		setup[i] = clienttest.RoleSetup{
 			Name:              names[i],
 			Identity:          s.Accs[i],
 			Bus:               bus,
 			Funder:            s.Funders[i],
 			Adjudicator:       s.Adjs[i],
+			Watcher:           watcher,
 			Wallet:            ethwtest.NewTmpWallet(),
 			Timeout:           defaultTimeout,
 			ChallengeDuration: 60 * uint64(time.Second/blockInterval), // Scaled due to simbackend automining progressing faster than real time.
