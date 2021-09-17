@@ -17,8 +17,10 @@ package test
 import (
 	"fmt"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
+
 	"perun.network/go-perun/channel"
 )
 
@@ -73,6 +75,8 @@ func (r *Carol) exec(_cfg ExecConfig, ch *paymentChannel, propHandler *acceptNex
 
 	r.log.Debug("Waiting for registered event")
 	e := <-r.registered
+	// Time for the watcher to react, as SimBackend Wait does not cause any delay.
+	time.Sleep(500 * time.Millisecond)
 
 	r.log.Debug("Waiting until ready to conclude")
 	assert.NoError(e.Timeout().Wait(r.Ctx())) // wait until ready to conclude
