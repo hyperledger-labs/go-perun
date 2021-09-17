@@ -45,7 +45,7 @@ func NewSetups(rng *rand.Rand, names []string) []ctest.RoleSetup {
 			Adjudicator:       backend,
 			Wallet:            wtest.NewWallet(),
 			Timeout:           roleOperationTimeout,
-			Backend:           backend,
+			BalanceReader:     backend,
 			ChallengeDuration: 60,
 		}
 	}

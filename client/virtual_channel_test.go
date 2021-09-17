@@ -98,12 +98,12 @@ func TestVirtualChannelsDispute(t *testing.T) {
 
 func (vct *virtualChannelTest) testFinalBalancesDispute(t *testing.T) {
 	assert := assert.New(t)
-	backend, asset := vct.backend, vct.asset
-	got, expected := backend.GetBalance(vct.alice.Identity.Address(), asset), vct.finalBalsAlice[0]
+	backend, asset := vct.balanceReader, vct.asset
+	got, expected := backend.Balance(vct.alice.Identity.Address(), asset), vct.finalBalsAlice[0]
 	assert.Truef(got.Cmp(expected) == 0, "alice: wrong final balance: got %v, expected %v", got, expected)
-	got, expected = backend.GetBalance(vct.bob.Identity.Address(), asset), vct.finalBalsBob[0]
+	got, expected = backend.Balance(vct.bob.Identity.Address(), asset), vct.finalBalsBob[0]
 	assert.Truef(got.Cmp(expected) == 0, "bob: wrong final balance: got %v, expected %v", got, expected)
-	got, expected = backend.GetBalance(vct.ingrid.Identity.Address(), asset), vct.finalBalIngrid
+	got, expected = backend.Balance(vct.ingrid.Identity.Address(), asset), vct.finalBalIngrid
 	assert.Truef(got.Cmp(expected) == 0, "ingrid: wrong final balance: got %v, expected %v", got, expected)
 }
 
@@ -122,7 +122,7 @@ type virtualChannelTest struct {
 	finalBalsBob       []*big.Int
 	finalBalIngrid     *big.Int
 	errs               chan error
-	backend            *ctest.MockBackend
+	balanceReader      ctest.BalanceReader
 	asset              channel.Asset
 }
 
@@ -150,7 +150,7 @@ func setupVirtualChannelTest(t *testing.T, ctx context.Context) (vct virtualChan
 	)
 	alice, bob, ingrid := clients[0], clients[1], clients[2]
 	vct.alice, vct.bob, vct.ingrid = alice, bob, ingrid
-	vct.backend = alice.Backend // Assumes all clients have same backend.
+	vct.balanceReader = alice.BalanceReader // Assumes all clients have same backend.
 
 	_channelsIngrid := make(chan *client.Channel, 1)
 	var openingProposalHandlerIngrid client.ProposalHandlerFunc = func(cp client.ChannelProposal, pr *client.ProposalResponder) {

@@ -18,13 +18,12 @@ import (
 	"context"
 	"math/big"
 	"testing"
-	"time"
 
 	"github.com/stretchr/testify/require"
 	ethchannel "perun.network/go-perun/backend/ethereum/channel"
 	"perun.network/go-perun/backend/ethereum/channel/test"
+	ctest "perun.network/go-perun/backend/ethereum/client/test"
 	ethwallet "perun.network/go-perun/backend/ethereum/wallet"
-	ethwtest "perun.network/go-perun/backend/ethereum/wallet/test"
 	"perun.network/go-perun/channel"
 	"perun.network/go-perun/client"
 	clienttest "perun.network/go-perun/client/test"
@@ -37,8 +36,8 @@ func TestProgression(t *testing.T) {
 	rng := pkgtest.Prng(t)
 
 	names := [2]string{"Paul", "Paula"}
-	backendSetup := test.NewSetup(t, rng, 2, blockInterval)
-	roleSetups := makeRoleSetups(backendSetup, names)
+	backendSetup := test.NewSetup(t, rng, 2, ctest.BlockInterval)
+	roleSetups := ctest.MakeRoleSetups(backendSetup, names)
 	clients := [2]clienttest.Executer{
 		clienttest.NewPaul(t, roleSetups[0]),
 		clienttest.NewPaula(t, roleSetups[1]),
@@ -60,25 +59,8 @@ func TestProgression(t *testing.T) {
 	clienttest.ExecuteTwoPartyTest(t, clients, execConfig)
 }
 
-func makeRoleSetups(s *test.Setup, names [2]string) (setup [2]clienttest.RoleSetup) {
-	bus := wire.NewLocalBus()
-	for i := 0; i < len(setup); i++ {
-		setup[i] = clienttest.RoleSetup{
-			Name:              names[i],
-			Identity:          s.Accs[i],
-			Bus:               bus,
-			Funder:            s.Funders[i],
-			Adjudicator:       s.Adjs[i],
-			Wallet:            ethwtest.NewTmpWallet(),
-			Timeout:           defaultTimeout,
-			ChallengeDuration: 60 * uint64(time.Second/blockInterval), // Scaled due to simbackend automining progressing faster than real time.
-		}
-	}
-	return
-}
-
 func deployMockApp(t *testing.T, s *test.Setup) wallet.Address {
-	ctx, cancel := context.WithTimeout(context.Background(), defaultTimeout)
+	ctx, cancel := context.WithTimeout(context.Background(), ctest.DefaultTimeout)
 	defer cancel()
 	addr, err := ethchannel.DeployTrivialApp(ctx, *s.CB, s.TxSender.Account)
 	require.NoError(t, err)
