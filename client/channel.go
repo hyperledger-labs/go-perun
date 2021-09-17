@@ -24,6 +24,7 @@ import (
 	"perun.network/go-perun/log"
 	perunsync "perun.network/go-perun/pkg/sync"
 	"perun.network/go-perun/wallet"
+	"perun.network/go-perun/watcher"
 	"perun.network/go-perun/wire"
 )
 
@@ -39,6 +40,7 @@ type Channel struct {
 	conn        *channelConn
 	machine     persistence.StateMachine
 	machMtx     perunsync.Mutex
+	statesPub   watcher.StatesPub
 	onUpdate    func(from, to *channel.State)
 	adjudicator channel.Adjudicator
 	wallet      wallet.Wallet
@@ -94,6 +96,7 @@ func (c *Client) channelFromMachine(machine *channel.StateMachine, parent *Chann
 	return &Channel{
 		client:                c,
 		parent:                parent,
+		statesPub:             noopStatesPub{},
 		OnCloser:              conn,
 		Embedding:             log.MakeEmbedding(logger),
 		conn:                  conn,
