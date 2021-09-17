@@ -20,9 +20,11 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/assert"
+
 	"perun.network/go-perun/client"
 	ctest "perun.network/go-perun/client/test"
 	wtest "perun.network/go-perun/wallet/test"
+	"perun.network/go-perun/watcher/local"
 	wiretest "perun.network/go-perun/wire/test"
 )
 
@@ -37,12 +39,17 @@ func NewSetups(rng *rand.Rand, names []string) []ctest.RoleSetup {
 	)
 
 	for i := 0; i < n; i++ {
+		watcher, err := local.NewWatcher(backend)
+		if err != nil {
+			panic("Error initializing watcher: " + err.Error())
+		}
 		setup[i] = ctest.RoleSetup{
 			Name:              names[i],
 			Identity:          wtest.NewRandomAccount(rng),
 			Bus:               bus,
 			Funder:            backend,
 			Adjudicator:       backend,
+			Watcher:           watcher,
 			Wallet:            wtest.NewWallet(),
 			Timeout:           roleOperationTimeout,
 			BalanceReader:     backend,
@@ -63,7 +70,7 @@ func NewClients(rng *rand.Rand, names []string, t *testing.T) []*Client {
 	clients := make([]*Client, len(setups))
 	for i, setup := range setups {
 		setup.Identity = setup.Wallet.NewRandomAccount(rng)
-		cl, err := client.New(setup.Identity.Address(), setup.Bus, setup.Funder, setup.Adjudicator, setup.Wallet)
+		cl, err := client.New(setup.Identity.Address(), setup.Bus, setup.Funder, setup.Adjudicator, setup.Wallet, setup.Watcher)
 		assert.NoError(t, err)
 		clients[i] = &Client{
 			Client:    cl,
