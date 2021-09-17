@@ -19,6 +19,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+
 	"perun.network/go-perun/channel"
 )
 
@@ -71,8 +72,13 @@ func (r *Carol) exec(_cfg ExecConfig, ch *paymentChannel, propHandler *acceptNex
 	// 2nd stage - txs received
 	r.waitStage()
 
-	r.log.Debug("Waiting for registered event")
+	r.log.Debug("Waiting for registered event that will be triggered by mallory registering older state")
 	e := <-r.registered
+	r.log.Debugf("mallory registered the version: %v", e.State.Version)
+
+	r.log.Debug("Waiting for registered event that will be watcher refuting with the latest state")
+	e = <-r.registered
+	r.log.Debugf("watcher refuted with the version: %v", e.State.Version)
 
 	r.log.Debug("Waiting until ready to conclude")
 	assert.NoError(e.Timeout().Wait(r.Ctx())) // wait until ready to conclude
