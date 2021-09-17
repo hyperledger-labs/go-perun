@@ -31,6 +31,7 @@ import (
 	"perun.network/go-perun/log"
 	"perun.network/go-perun/wallet"
 	wallettest "perun.network/go-perun/wallet/test"
+	"perun.network/go-perun/watcher"
 	"perun.network/go-perun/wire"
 )
 
@@ -67,6 +68,7 @@ type (
 		Bus               wire.Bus
 		Funder            channel.Funder
 		Adjudicator       channel.Adjudicator
+		Watcher           watcher.Watcher
 		Wallet            wallettest.Wallet
 		PR                persistence.PersistRestorer // Optional PersistRestorer
 		Timeout           time.Duration               // Timeout waiting for other role, not challenge duration
@@ -184,7 +186,8 @@ func makeRole(setup RoleSetup, t *testing.T, numStages int) (r role) {
 		numStages:         numStages,
 		challengeDuration: setup.ChallengeDuration,
 	}
-	cl, err := client.New(r.setup.Identity.Address(), r.setup.Bus, r.setup.Funder, r.setup.Adjudicator, r.setup.Wallet)
+	cl, err := client.New(r.setup.Identity.Address(),
+		r.setup.Bus, r.setup.Funder, r.setup.Adjudicator, r.setup.Wallet, r.setup.Watcher)
 	if err != nil {
 		t.Fatal("Error creating client: ", err)
 	}

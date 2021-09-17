@@ -27,6 +27,7 @@ import (
 	ctest "perun.network/go-perun/client/test"
 	"perun.network/go-perun/pkg/test"
 	wtest "perun.network/go-perun/wallet/test"
+	"perun.network/go-perun/watcher/local"
 	"perun.network/go-perun/wire"
 )
 
@@ -48,17 +49,23 @@ func TestClient_New_NilArgs(t *testing.T) {
 	id := wtest.NewRandomAddress(rng)
 	backend := &ctest.MockBackend{}
 	b, f, a, w := &DummyBus{t}, backend, backend, wtest.RandomWallet()
-	assert.Panics(t, func() { client.New(nil, b, f, a, w) })
-	assert.Panics(t, func() { client.New(id, nil, f, a, w) })
-	assert.Panics(t, func() { client.New(id, b, nil, a, w) })
-	assert.Panics(t, func() { client.New(id, b, f, nil, w) })
-	assert.Panics(t, func() { client.New(id, b, f, a, nil) })
+	watcher, err := local.NewWatcher(backend)
+	require.NoError(t, err, "initializing the watcher should not error")
+	assert.Panics(t, func() { client.New(nil, b, f, a, w, watcher) })
+	assert.Panics(t, func() { client.New(id, nil, f, a, w, watcher) })
+	assert.Panics(t, func() { client.New(id, b, nil, a, w, watcher) })
+	assert.Panics(t, func() { client.New(id, b, f, nil, w, watcher) })
+	assert.Panics(t, func() { client.New(id, b, f, a, nil, watcher) })
+	assert.Panics(t, func() { client.New(id, b, f, a, w, nil) })
 }
 
 func TestClient_Handle_NilArgs(t *testing.T) {
 	rng := test.Prng(t)
 	backend := &ctest.MockBackend{}
-	c, err := client.New(wtest.NewRandomAddress(rng), &DummyBus{t}, backend, backend, wtest.RandomWallet())
+	watcher, err := local.NewWatcher(backend)
+	require.NoError(t, err, "initializing the watcher should not error")
+	c, err := client.New(wtest.NewRandomAddress(rng),
+		&DummyBus{t}, backend, backend, wtest.RandomWallet(), watcher)
 	require.NoError(t, err)
 
 	dummyUH := client.UpdateHandlerFunc(func(*channel.State, client.ChannelUpdate, *client.UpdateResponder) {})
@@ -70,7 +77,10 @@ func TestClient_Handle_NilArgs(t *testing.T) {
 func TestClient_New(t *testing.T) {
 	rng := test.Prng(t)
 	backend := &ctest.MockBackend{}
-	c, err := client.New(wtest.NewRandomAddress(rng), &DummyBus{t}, backend, backend, wtest.RandomWallet())
+	watcher, err := local.NewWatcher(backend)
+	require.NoError(t, err, "initializing the watcher should not error")
+	c, err := client.New(wtest.NewRandomAddress(rng),
+		&DummyBus{t}, backend, backend, wtest.RandomWallet(), watcher)
 	assert.NoError(t, err)
 	require.NotNil(t, c)
 }
