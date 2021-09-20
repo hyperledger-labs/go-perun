@@ -48,7 +48,9 @@ func (c *Channel) Watch(h AdjudicatorEventHandler) error {
 	if err != nil {
 		return err
 	}
+	c.machMtx.Lock()
 	c.statesPub = statesPub
+	c.machMtx.Unlock()
 	c.handleEvents(eventsSub, h) // returns only when eventsSub is closed.
 
 	err = errors.WithMessage(eventsSub.Err(), "subscription closed")
@@ -94,7 +96,9 @@ func (c *Channel) handleEvents(eventsSub watcher.AdjudicatorSub, h AdjudicatorEv
 			case *channel.RegisteredEvent:
 				c.setRegisteredRecursiveIgnoreError()
 			case *channel.ProgressedEvent:
+				c.machMtx.Lock()
 				c.machine.SetProgressed(c.Ctx(), e.(*channel.ProgressedEvent))
+				c.machMtx.Unlock()
 			}
 
 			// Notify handler
@@ -120,8 +124,9 @@ func (c *Channel) setRegisteredRecursiveIgnoreError() {
 			l.Errorf("Error setting registered: %v", err)
 		}
 	}
-	err := parent.machine.SetRegistered(parent.Ctx())
-	logIfError(parent.Log(), err)
+	parent.machMtx.Lock()
+	logIfError(parent.Log(), parent.machine.SetRegistered(parent.Ctx()))
+	parent.machMtx.Unlock()
 
 	for _, subAlloc := range c.state().Locked {
 		subID := subAlloc.ID
@@ -129,7 +134,9 @@ func (c *Channel) setRegisteredRecursiveIgnoreError() {
 		// TODO(mano): Is it safe to just log here ? When will this sceanrio occur ?
 		logIfError(c.Log(), errors.WithMessagef(err, "getting sub-channel: %v", subID))
 
+		subCh.machMtx.Lock()
 		logIfError(parent.Log(), subCh.machine.SetRegistered(subCh.Ctx()))
+		subCh.machMtx.Unlock()
 	}
 	return
 
