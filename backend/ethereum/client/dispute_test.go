@@ -18,6 +18,7 @@ import (
 	"context"
 	"math/big"
 	"testing"
+	"time"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/stretchr/testify/assert"
@@ -32,6 +33,8 @@ import (
 	pkgtest "perun.network/go-perun/pkg/test"
 	"perun.network/go-perun/wire"
 )
+
+const twoPartyTestTimeout = 10 * time.Second
 
 func TestDisputeMalloryCarol(t *testing.T) {
 	log.Info("Starting dispute test")
@@ -61,7 +64,10 @@ func TestDisputeMalloryCarol(t *testing.T) {
 		TxAmounts:   [2]*big.Int{big.NewInt(20), big.NewInt(0)},
 	}
 
-	clienttest.ExecuteTwoPartyTest(t, role, execConfig)
+	ctx, cancel := context.WithTimeout(context.Background(), twoPartyTestTimeout)
+	defer cancel()
+	err := clienttest.ExecuteTwoPartyTest(ctx, role, execConfig)
+	require.NoError(t, err)
 
 	// Assert correct final balances
 	netTransfer := big.NewInt(int64(execConfig.NumPayments[A])*execConfig.TxAmounts[A].Int64() -
@@ -70,7 +76,7 @@ func TestDisputeMalloryCarol(t *testing.T) {
 		new(big.Int).Sub(execConfig.InitBals()[A], netTransfer),
 		new(big.Int).Add(execConfig.InitBals()[B], netTransfer)}
 	// reset context timeout
-	ctx, cancel := context.WithTimeout(context.Background(), ctest.DefaultTimeout)
+	ctx, cancel = context.WithTimeout(context.Background(), ctest.DefaultTimeout)
 	defer cancel()
 	for i, bal := range finalBal {
 		b, err := s.SimBackend.BalanceAt(ctx, common.Address(*s.Recvs[i]), nil)

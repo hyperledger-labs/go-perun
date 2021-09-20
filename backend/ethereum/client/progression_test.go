@@ -19,6 +19,7 @@ import (
 	"math/big"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	ethchannel "perun.network/go-perun/backend/ethereum/channel"
 	"perun.network/go-perun/backend/ethereum/channel/test"
@@ -56,7 +57,10 @@ func TestProgression(t *testing.T) {
 		),
 	}
 
-	clienttest.ExecuteTwoPartyTest(t, clients, execConfig)
+	ctx, cancel := context.WithTimeout(context.Background(), twoPartyTestTimeout)
+	defer cancel()
+	err := clienttest.ExecuteTwoPartyTest(ctx, clients, execConfig)
+	assert.NoError(t, err)
 }
 
 func deployMockApp(t *testing.T, s *test.Setup) wallet.Address {
