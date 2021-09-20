@@ -29,6 +29,7 @@ import (
 	"perun.network/go-perun/channel/persistence"
 	"perun.network/go-perun/client"
 	"perun.network/go-perun/log"
+	pkgsync "perun.network/go-perun/pkg/sync"
 	"perun.network/go-perun/wallet"
 	wallettest "perun.network/go-perun/wallet/test"
 	"perun.network/go-perun/wire"
@@ -113,27 +114,20 @@ func ExecuteTwoPartyTest(ctx context.Context, role [2]Executer, cfg ExecConfig) 
 	stages := role[0].EnableStages()
 	role[1].SetStages(stages)
 
-	numClients := len(role)
-	done := make(chan struct{}, numClients)
-
+	var wg pkgsync.WaitGroup
 	// start clients
-	for i := 0; i < numClients; i++ {
+	for i := 0; i < len(role); i++ {
+		wg.Add(1)
 		go func(i int) {
+			defer wg.Done()
 			log.Infof("Executing role %d", i)
 			role[i].Execute(cfg)
-			done <- struct{}{} // signal client done
 		}(i)
 	}
 
 	// wait for clients to finish or timeout
-	for clientsRunning := numClients; clientsRunning > 0; clientsRunning-- {
-		select {
-		case <-done: // wait for client done signal
-		case <-ctx.Done():
-			return ctx.Err()
-		}
-	}
-	return nil
+	wg.WaitCtx(ctx)
+	return ctx.Err()
 }
 
 // MakeBaseExecConfig creates a new BaseExecConfig.
