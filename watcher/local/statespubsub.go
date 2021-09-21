@@ -15,6 +15,8 @@
 package local
 
 import (
+	"context"
+
 	"github.com/pkg/errors"
 
 	"perun.network/go-perun/channel"
@@ -55,9 +57,13 @@ func newStatesPubSub() *statesPubSub {
 // client to publish transactions in correct order and ensure they are the
 // valid.
 //
+// Context is added as this method implements watcher.StatesPub interface.
+// However, is is not used as there no network communications involved in local
+// watcher.
+//
 // Returns nil if the state is published. Panics if the subscriptions is
 // already closed.
-func (s *statesPubSub) Publish(tx channel.Transaction) error {
+func (s *statesPubSub) Publish(_ context.Context, tx channel.Transaction) error {
 	s.pipe <- tx
 	return nil
 }
