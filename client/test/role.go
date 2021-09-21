@@ -29,6 +29,7 @@ import (
 	"perun.network/go-perun/channel/persistence"
 	"perun.network/go-perun/client"
 	"perun.network/go-perun/log"
+	pkgsync "perun.network/go-perun/pkg/sync"
 	"perun.network/go-perun/wallet"
 	wallettest "perun.network/go-perun/wallet/test"
 	"perun.network/go-perun/wire"
@@ -104,39 +105,29 @@ type (
 	Stages = []sync.WaitGroup
 )
 
-const twoPartyTestTimeout = 10 * time.Second
-
 // ExecuteTwoPartyTest executes the specified client test.
-func ExecuteTwoPartyTest(t *testing.T, role [2]Executer, cfg ExecConfig) {
+func ExecuteTwoPartyTest(ctx context.Context, role [2]Executer, cfg ExecConfig) error {
 	log.Info("Starting two-party test")
+	defer log.Info("Two-party test done")
 
 	// enable stages synchronization
 	stages := role[0].EnableStages()
 	role[1].SetStages(stages)
 
-	numClients := len(role)
-	done := make(chan struct{}, numClients)
-
+	var wg pkgsync.WaitGroup
 	// start clients
-	for i := 0; i < numClients; i++ {
+	for i := 0; i < len(role); i++ {
+		wg.Add(1)
 		go func(i int) {
+			defer wg.Done()
 			log.Infof("Executing role %d", i)
 			role[i].Execute(cfg)
-			done <- struct{}{} // signal client done
 		}(i)
 	}
 
 	// wait for clients to finish or timeout
-	timeout := time.After(twoPartyTestTimeout)
-	for clientsRunning := numClients; clientsRunning > 0; clientsRunning-- {
-		select {
-		case <-done: // wait for client done signal
-		case <-timeout:
-			t.Fatal("twoPartyTest timeout")
-		}
-	}
-
-	log.Info("Two-party test done")
+	wg.WaitCtx(ctx)
+	return ctx.Err()
 }
 
 // MakeBaseExecConfig creates a new BaseExecConfig.

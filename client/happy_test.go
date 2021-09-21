@@ -15,10 +15,13 @@
 package client_test
 
 import (
+	"context"
 	"math/big"
 	"math/rand"
 	"testing"
+	"time"
 
+	"github.com/stretchr/testify/assert"
 	"perun.network/go-perun/apps/payment"
 	chtest "perun.network/go-perun/channel/test"
 	"perun.network/go-perun/client"
@@ -27,8 +30,13 @@ import (
 	"perun.network/go-perun/wire"
 )
 
+const twoPartyTestTimeout = 10 * time.Second
+
 func TestHappyAliceBob(t *testing.T) {
-	runTwoPartyTest(t, func(rng *rand.Rand) (setups []ctest.RoleSetup, roles [2]ctest.Executer) {
+	ctx, cancel := context.WithTimeout(context.Background(), twoPartyTestTimeout)
+	defer cancel()
+
+	runTwoPartyTest(ctx, t, func(rng *rand.Rand) (setups []ctest.RoleSetup, roles [2]ctest.Executer) {
 		setups = NewSetups(rng, []string{"Alice", "Bob"})
 		roles = [2]ctest.Executer{
 			ctest.NewAlice(setups[0], t),
@@ -38,7 +46,7 @@ func TestHappyAliceBob(t *testing.T) {
 	})
 }
 
-func runTwoPartyTest(t *testing.T, setup func(*rand.Rand) ([]ctest.RoleSetup, [2]ctest.Executer)) {
+func runTwoPartyTest(ctx context.Context, t *testing.T, setup func(*rand.Rand) ([]ctest.RoleSetup, [2]ctest.Executer)) {
 	rng := test.Prng(t)
 	for i := 0; i < 2; i++ {
 		setups, roles := setup(rng)
@@ -60,6 +68,7 @@ func runTwoPartyTest(t *testing.T, setup func(*rand.Rand) ([]ctest.RoleSetup, [2
 			TxAmounts:   [2]*big.Int{big.NewInt(5), big.NewInt(3)},
 		}
 
-		ctest.ExecuteTwoPartyTest(t, roles, cfg)
+		err := ctest.ExecuteTwoPartyTest(ctx, roles, cfg)
+		assert.NoError(t, err)
 	}
 }

@@ -15,9 +15,11 @@
 package client_test
 
 import (
+	"context"
 	"math/big"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
 	"perun.network/go-perun/apps/payment"
 	chtest "perun.network/go-perun/channel/test"
 	"perun.network/go-perun/client"
@@ -59,5 +61,7 @@ func TestHappySusieTim(t *testing.T) {
 		big.NewInt(1),
 	)
 
-	ctest.ExecuteTwoPartyTest(t, roles, cfg)
+	ctx, cancel := context.WithTimeout(context.Background(), twoPartyTestTimeout)
+	defer cancel()
+	assert.NoError(t, ctest.ExecuteTwoPartyTest(ctx, roles, cfg))
 }
