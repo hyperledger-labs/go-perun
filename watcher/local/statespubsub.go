@@ -19,7 +19,10 @@ import (
 
 	"perun.network/go-perun/channel"
 	"perun.network/go-perun/pkg/sync/atomic"
+	"perun.network/go-perun/watcher"
 )
+
+var _ watcher.StatesPub = &statesPubSub{}
 
 // ErrAlreadyClosed indicates the pub-sub has already been closed.
 var ErrAlreadyClosed error = errors.New("already closed")
