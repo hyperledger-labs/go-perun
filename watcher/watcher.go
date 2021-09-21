@@ -61,7 +61,7 @@ type (
 	//
 	// This is initialized when client starts watching for a given channel.
 	// Client can receive the event via the channel returned by EventStream
-	// method. Multiple calls to the EventStream method returns the same
+	// method. Repeated calls to the EventStream method returns the same
 	// channel instance.
 	//
 	// This channel will be closed when client requests the watcher to stop
