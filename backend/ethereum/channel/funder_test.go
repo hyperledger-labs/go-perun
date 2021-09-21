@@ -338,6 +338,68 @@ func TestFunder_Fund_multi(t *testing.T) {
 	t.Run("10-party funding", func(t *testing.T) { testFunderFunding(t, 10) })
 }
 
+func TestFunder(t *testing.T) {
+	ctx, cancel := context.WithTimeout(context.Background(), defaultTestTimeout)
+	defer cancel()
+
+	rng := pkgtest.Prng(t)
+
+	numParts := 2 + rng.Intn(maxNumParts-2)
+	s := test.NewSetup(t, rng, numParts, blockInterval)
+
+	funders := make([]channel.Funder, numParts)
+	for i := range funders {
+		funders[i] = s.Funders[i]
+	}
+
+	_f := &funderSetup{
+		setup:   s,
+		funders: funders,
+	}
+	channeltest.TestFunder(ctx, t, rng, _f)
+}
+
+// funderSetup represents a funderSetup test setup.
+type funderSetup struct {
+	setup   *test.Setup
+	funders []channel.Funder
+}
+
+const maxNumParts = 8
+
+func (f *funderSetup) Funders() []channel.Funder {
+	return f.funders
+}
+
+func (f *funderSetup) NewFundingRequests(ctx context.Context, t *testing.T, rng *rand.Rand) []channel.FundingReq {
+	params, state := f.newRandomParamsAndState(rng)
+
+	funders := f.funders
+	numParts := len(funders)
+	requests := make([]channel.FundingReq, numParts)
+	for i := range funders {
+		requests[i] = *channel.NewFundingReq(params, state, channel.Index(i), state.Balances)
+	}
+	return requests
+}
+
+func (f *funderSetup) newRandomParamsAndState(rng *rand.Rand, opts ...channeltest.RandomOpt) (*channel.Params, *channel.State) {
+	_opts := f.defaultOpts()
+	_opts = append(_opts, opts...)
+	return channeltest.NewRandomParamsAndState(rng, _opts...)
+}
+
+func (f *funderSetup) defaultOpts() []channeltest.RandomOpt {
+	return []channeltest.RandomOpt{
+		channeltest.WithChallengeDuration(100),
+		channeltest.WithParts(f.setup.Parts...),
+		channeltest.WithAssets((*ethchannel.Asset)(&f.setup.Asset)),
+		channeltest.WithLedgerChannel(true),
+		channeltest.WithVirtualChannel(false),
+		channeltest.WithNumLocked(0),
+	}
+}
+
 func testFunderFunding(t *testing.T, n int) {
 	t.Parallel()
 	ctx, cancel := context.WithTimeout(context.Background(), defaultTxTimeout*time.Duration(n))
