@@ -57,14 +57,19 @@ func NewWatcher(cfg Config) (*Watcher, error) {
 }
 
 // StartWatchingLedgerChannel starts watching for a ledger channel.
-func (w *Watcher) StartWatchingLedgerChannel(ctx context.Context, signedState channel.SignedState) (
-	watcher.StatesPub, watcher.AdjudicatorSub, error) {
+func (w *Watcher) StartWatchingLedgerChannel(
+	ctx context.Context,
+	signedState channel.SignedState,
+) (watcher.StatesPub, watcher.AdjudicatorSub, error) {
 	return w.startWatching(ctx, channel.Zero, signedState)
 }
 
 // StartWatchingSubChannel starts watching for a sub-channel or virtual channel.
-func (w *Watcher) StartWatchingSubChannel(ctx context.Context, parent channel.ID, signedState channel.SignedState) (
-	watcher.StatesPub, watcher.AdjudicatorSub, error) {
+func (w *Watcher) StartWatchingSubChannel(
+	ctx context.Context,
+	parent channel.ID,
+	signedState channel.SignedState,
+) (watcher.StatesPub, watcher.AdjudicatorSub, error) {
 	parentCh, ok := w.registry.retrieve(parent)
 	if !ok {
 		return nil, nil, errors.New("parent channel not registered with the watcher")
@@ -74,8 +79,11 @@ func (w *Watcher) StartWatchingSubChannel(ctx context.Context, parent channel.ID
 	return w.startWatching(ctx, parent, signedState)
 }
 
-func (w *Watcher) startWatching(ctx context.Context, parent channel.ID, signedState channel.SignedState) (
-	watcher.StatesPub, watcher.AdjudicatorSub, error) {
+func (w *Watcher) startWatching(
+	ctx context.Context,
+	parent channel.ID,
+	signedState channel.SignedState,
+) (watcher.StatesPub, watcher.AdjudicatorSub, error) {
 	id := signedState.State.ID
 	w.registry.lock()
 	defer w.registry.unlock()

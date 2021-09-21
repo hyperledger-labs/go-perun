@@ -30,12 +30,6 @@ import (
 	"perun.network/go-perun/watcher/local"
 )
 
-// func init() {
-// 	l := logrus.New()
-// 	l.SetLevel(logrus.DebugLevel)
-// 	log.Set(plogrus.FromLogrus(l))
-// }
-
 func Test_StartWatching(t *testing.T) {
 	rng := test.Prng(t)
 	rs := &mocks.RegisterSubscriber{}
