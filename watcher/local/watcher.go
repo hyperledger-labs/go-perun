@@ -39,7 +39,7 @@ type (
 	ch struct {
 		id     channel.ID
 		params *channel.Params
-		parent channel.ID
+		parent *ch
 
 		subChsAccess sync.Mutex
 	}
@@ -61,7 +61,7 @@ func (w *Watcher) StartWatchingLedgerChannel(
 	ctx context.Context,
 	signedState channel.SignedState,
 ) (watcher.StatesPub, watcher.AdjudicatorSub, error) {
-	return w.startWatching(ctx, channel.Zero, signedState)
+	return w.startWatching(ctx, nil, signedState)
 }
 
 // StartWatchingSubChannel starts watching for a sub-channel or virtual channel.
@@ -76,12 +76,12 @@ func (w *Watcher) StartWatchingSubChannel(
 	}
 	parentCh.subChsAccess.Lock()
 	defer parentCh.subChsAccess.Unlock()
-	return w.startWatching(ctx, parent, signedState)
+	return w.startWatching(ctx, parentCh, signedState)
 }
 
 func (w *Watcher) startWatching(
 	ctx context.Context,
-	parent channel.ID,
+	parent *ch,
 	signedState channel.SignedState,
 ) (watcher.StatesPub, watcher.AdjudicatorSub, error) {
 	id := signedState.State.ID
@@ -105,7 +105,7 @@ func (w *Watcher) startWatching(
 	return statesPubSub, eventsToClientPubSub, nil
 }
 
-func newCh(id, parent channel.ID, params *channel.Params) *ch {
+func newCh(id channel.ID, parent *ch, params *channel.Params) *ch {
 	return &ch{
 		id:     id,
 		params: params,
