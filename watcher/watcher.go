@@ -53,7 +53,7 @@ type (
 	// watching or when there is an error. After the client requests the
 	// watcher to stop watching, Publish method must not be called.
 	StatesPub interface {
-		Publish(channel.Transaction) error
+		Publish(context.Context, channel.Transaction) error
 	}
 
 	// AdjudicatorSub is the interface used to relay the adjudicator events
