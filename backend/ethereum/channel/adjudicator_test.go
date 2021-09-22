@@ -16,6 +16,7 @@ package channel_test
 
 import (
 	"context"
+	"math/rand"
 	"testing"
 	"time"
 
@@ -32,6 +33,128 @@ import (
 	channeltest "perun.network/go-perun/channel/test"
 	pkgtest "perun.network/go-perun/pkg/test"
 )
+
+// TestAdjudicator tests the adjudicator.
+func TestAdjudicator(t *testing.T) {
+	ctx, cancel := context.WithTimeout(context.Background(), defaultTestTimeout)
+	defer cancel()
+
+	rng := pkgtest.Prng(t)
+	numParts := 2 + rng.Intn(maxNumParts-2)
+	s := test.NewSetup(t, rng, numParts, blockInterval)
+	a := newAdjudicatorSetup(s)
+	channeltest.TestAdjudicator(ctx, t, a)
+}
+
+type adjudicatorSetup struct {
+	setup *test.Setup
+}
+
+func newAdjudicatorSetup(setup *test.Setup) *adjudicatorSetup {
+	return &adjudicatorSetup{
+		setup: setup,
+	}
+}
+
+type testAdjudicator struct {
+	*test.SimAdjudicator
+}
+
+// Progress is a no-op because app channels are not supported yet.
+func (a *testAdjudicator) Progress(ctx context.Context, req channel.ProgressReq) error {
+	return nil
+}
+
+func (a *adjudicatorSetup) Adjudicator() channel.Adjudicator {
+	return &testAdjudicator{a.setup.Adjs[0]}
+}
+
+func (a *adjudicatorSetup) NewRegisterReq(ctx context.Context, rng *rand.Rand) (*channel.AdjudicatorReq, []channel.SignedState) {
+	req := a.newAdjudicatorReq(ctx, rng, channeltest.WithIsFinal(false))
+	return req, nil
+}
+
+func (a *adjudicatorSetup) newAdjudicatorReq(ctx context.Context, rng *rand.Rand, opts ...channeltest.RandomOpt) *channel.AdjudicatorReq {
+	params, state := a.newRandomParamsAndState(rng, opts...)
+
+	// Fund the channel.
+	numParts := len(params.Parts)
+	errs := make(chan error, numParts)
+	for i, funder := range a.setup.Funders {
+		req := channel.NewFundingReq(params, state, channel.Index(i), state.Balances)
+		go func(funder channel.Funder, req channel.FundingReq) {
+			errs <- funder.Fund(ctx, req)
+		}(funder, *req)
+	}
+	for range a.setup.Funders {
+		select {
+		case err := <-errs:
+			if err != nil {
+				panic(err)
+			}
+		case <-ctx.Done():
+			panic(ctx.Err())
+		}
+	}
+
+	tx, err := signState(a.setup.Accs, state)
+	if err != nil {
+		panic(err)
+	}
+	return &channel.AdjudicatorReq{
+		Acc:    a.setup.Accs[0],
+		Idx:    0,
+		Params: params,
+		Tx:     tx,
+	}
+}
+
+func (a *adjudicatorSetup) newRandomParamsAndState(rng *rand.Rand, opts ...channeltest.RandomOpt) (*channel.Params, *channel.State) {
+	_opts := a.defaultOpts()
+	_opts = append(_opts, opts...)
+	return channeltest.NewRandomParamsAndState(rng, _opts...)
+}
+
+func (a *adjudicatorSetup) defaultOpts() []channeltest.RandomOpt {
+	return []channeltest.RandomOpt{
+		channeltest.WithChallengeDuration(100),
+		channeltest.WithParts(a.setup.Parts...),
+		channeltest.WithAssets((*ethchannel.Asset)(&a.setup.Asset)),
+		channeltest.WithLedgerChannel(true),
+		channeltest.WithVirtualChannel(false),
+		channeltest.WithNumLocked(0),
+	}
+}
+
+func (a *adjudicatorSetup) NewProgressReq(context.Context, *rand.Rand) *channel.ProgressReq {
+	return &channel.ProgressReq{} // Progression test is not implemented.
+}
+
+func (a *adjudicatorSetup) NewWithdrawReq(ctx context.Context, rng *rand.Rand) (*channel.AdjudicatorReq, channel.StateMap) {
+	adj := a.Adjudicator()
+	req := a.newAdjudicatorReq(ctx, rng, channeltest.WithoutApp())
+	subChannels := []channel.SignedState{}
+
+	if !req.Tx.IsFinal {
+		// Register.
+		err := adj.Register(ctx, *req, subChannels)
+		if err != nil {
+			panic(err)
+		}
+
+		// Wait until concludable.
+		sub, err := adj.Subscribe(ctx, req.Params.ID())
+		if err != nil {
+			panic(err)
+		}
+		err = sub.Next().Timeout().Wait(ctx)
+		if err != nil {
+			panic(err)
+		}
+	}
+
+	return req, channeltest.MakeStateMapFromSignedStates(subChannels...)
+}
 
 const defaultTxTimeout = 2 * time.Second
 
