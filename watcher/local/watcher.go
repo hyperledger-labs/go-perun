@@ -41,6 +41,10 @@ type (
 		params *channel.Params
 		parent *ch
 
+		// subChsAccess mutex is used for thread-safe access of a parent
+		// channel and all of its sub-channels. For example, while adding new
+		// sub-channels to a ledger channel or while registering dispute for
+		// the ledger channel and all its children.
 		subChsAccess sync.Mutex
 	}
 )

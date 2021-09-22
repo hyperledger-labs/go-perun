@@ -24,6 +24,11 @@ import (
 	"perun.network/go-perun/wallet"
 )
 
+// go generate directives will not work if placed inside the type() block.
+// Hence they are placed outside of it.
+//go:generate mockery --name AdjudicatorSubscription --output ../watcher/internal/mocks
+//go:generate mockery --name RegisterSubscriber --output ../watcher/internal/mocks
+
 type (
 
 	// Adjudicator is the interface that groups the Register, Withdraw,
