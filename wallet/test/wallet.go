@@ -16,12 +16,14 @@ package test
 
 import (
 	"bytes"
+	"math/rand"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"perun.network/go-perun/pkg/io"
+	pkgtest "perun.network/go-perun/pkg/test"
 	"perun.network/go-perun/wallet"
 )
 
@@ -38,6 +40,27 @@ type Setup struct {
 	Backend        wallet.Backend // backend implementation
 	// Signature tests
 	DataToSign []byte
+}
+
+type NewSetupFunc func(rng *rand.Rand) *Setup
+
+// TestWallet tests a wallet implementation.
+func TestWallet(t *testing.T, newWalletSetup NewSetupFunc) {
+	t.Run("Generic Address Test", func(t *testing.T) {
+		t.Parallel()
+		rng := pkgtest.Prng(t, "address")
+		GenericAddressTest(t, newWalletSetup(rng))
+	})
+	t.Run("Generic Signature Test", func(t *testing.T) {
+		t.Parallel()
+		rng := pkgtest.Prng(t, "signature")
+		GenericSignatureTest(t, newWalletSetup(rng))
+	})
+	t.Run("Generic Signature Size Test", func(t *testing.T) {
+		t.Parallel()
+		rng := pkgtest.Prng(t, "signature size")
+		GenericSignatureSizeTest(t, newWalletSetup(rng))
+	})
 }
 
 // GenericSignatureTest runs a test suite designed to test the general functionality of an account.
@@ -118,33 +141,4 @@ func GenericSignatureSizeTest(t *testing.T, s *Setup) {
 			}
 		})
 	}
-}
-
-// GenericAddressTest runs a test suite designed to test the general functionality of addresses.
-// This function should be called by every implementation of the wallet interface.
-func GenericAddressTest(t *testing.T, s *Setup) {
-	addrLen := len(s.AddressEncoded)
-	null, err := s.Backend.DecodeAddress(bytes.NewReader(make([]byte, addrLen)))
-	assert.NoError(t, err, "Byte deserialization of zero address should work")
-	addr, err := s.Backend.DecodeAddress(bytes.NewReader(s.AddressEncoded))
-	assert.NoError(t, err, "Byte deserialization of address should work")
-
-	nullString := null.String()
-	addrString := addr.String()
-	assert.Greater(t, len(nullString), 0)
-	assert.Greater(t, len(addrString), 0)
-	assert.NotEqual(t, addrString, nullString)
-
-	assert.False(t, addr.Equals(null), "Expected inequality of zero, nonzero address")
-	assert.True(t, null.Equals(null), "Expected equality of zero address to itself")
-
-	// a.Equals(Decode(Encode(a)))
-	t.Run("Serialize Equals Test", func(t *testing.T) {
-		buff := new(bytes.Buffer)
-		require.NoError(t, addr.Encode(buff))
-		addr2, err := s.Backend.DecodeAddress(buff)
-		require.NoError(t, err)
-
-		assert.True(t, addr.Equals(addr2))
-	})
 }
