@@ -32,18 +32,17 @@ type UnlockedAccount func() (wallet.Account, error)
 
 // Setup provides all objects needed for the generic tests.
 type Setup struct {
-	Backend wallet.Backend // backend implementation
-	Wallet  wallet.Wallet  // the wallet instance used for testing
-	Address wallet.Address // an address of an account in the test wallet
-	// Address tests
-	AddressEncoded []byte // a valid nonzero address not in the wallet
-	// Signature tests
-	DataToSign []byte
+	Backend        wallet.Backend // backend implementation
+	Wallet         wallet.Wallet  // the wallet instance used for testing
+	Address        wallet.Address // an address of an account in the test wallet
+	DataToSign     []byte         // some data to sign
+	AddressEncoded []byte         // a valid nonzero address not in the wallet
 }
 
-// GenericSignatureTest runs a test suite designed to test the general functionality of an account.
+// TestAccountWithWalletAndBackend tests an account implementation together with
+// a corresponding wallet and backend implementation.
 // This function should be called by every implementation of the wallet interface.
-func GenericSignatureTest(t *testing.T, s *Setup) {
+func TestAccountWithWalletAndBackend(t *testing.T, s *Setup) {
 	acc, err := s.Wallet.Unlock(s.Address)
 	assert.NoError(t, err)
 	// Check unlocked account
