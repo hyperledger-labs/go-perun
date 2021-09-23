@@ -58,7 +58,7 @@ func TestUnlock(t *testing.T) {
 	_, err := simpleWallet.Unlock(ethwallet.AsWalletAddr(missingAddr))
 	assert.Error(t, err, "should error on unlocking missing address")
 
-	acc, err := simpleWallet.Unlock(setup.Address)
+	acc, err := simpleWallet.Unlock(setup.AddressInWallet)
 	assert.NoError(t, err, "should not error on unlocking missing address")
 	assert.NotNil(t, acc, "account should be non nil when error is nil")
 }
@@ -69,7 +69,7 @@ func TestWallet_Contains(t *testing.T) {
 	missingAddr := common.BytesToAddress(setup.AddressEncoded)
 	assert.False(t, simpleWallet.Contains(missingAddr))
 
-	assert.True(t, simpleWallet.Contains(ethwallet.AsEthAddr(setup.Address)))
+	assert.True(t, simpleWallet.Contains(ethwallet.AsEthAddr(setup.AddressInWallet)))
 }
 
 func TestSignatures(t *testing.T) {
@@ -106,10 +106,10 @@ func newSetup(t require.TestingT, prng *rand.Rand) (*test.Setup, *simple.Wallet)
 	require.NoError(t, err, "invalid sample address")
 
 	return &test.Setup{
-		Wallet:         simpleWallet,
-		Address:        acc.Address(),
-		Backend:        new(ethwallet.Backend),
-		AddressEncoded: validAddrBytes,
-		DataToSign:     dataToSign,
+		Wallet:          simpleWallet,
+		AddressInWallet: acc.Address(),
+		Backend:         new(ethwallet.Backend),
+		AddressEncoded:  validAddrBytes,
+		DataToSign:      dataToSign,
 	}, simpleWallet
 }
