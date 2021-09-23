@@ -59,7 +59,7 @@ func TestGenericTests(t *testing.T) {
 	t.Run("Generic Address Test", func(t *testing.T) {
 		t.Parallel()
 		rng := pkgtest.Prng(t, "address")
-		test.GenericAddressTest(t, newWalletSetup(rng))
+		test.TestAddress(t, newWalletSetup(rng))
 	})
 	t.Run("Generic Signature Test", func(t *testing.T) {
 		t.Parallel()
