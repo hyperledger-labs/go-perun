@@ -100,10 +100,10 @@ func newWalletSetup(rng *rand.Rand) *test.Setup {
 	}
 
 	return &test.Setup{
-		Backend:        new(Backend),
-		Wallet:         w,
-		Address:        acc.Address(),
-		AddressEncoded: accountB.Address().Bytes(),
-		DataToSign:     data,
+		Backend:         new(Backend),
+		Wallet:          w,
+		AddressInWallet: acc.Address(),
+		AddressEncoded:  accountB.Address().Bytes(),
+		DataToSign:      data,
 	}
 }

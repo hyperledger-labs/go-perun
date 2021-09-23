@@ -90,11 +90,11 @@ func newSetup(t require.TestingT) *test.Setup {
 	require.NoError(t, err, "decoding valid address should not fail")
 
 	return &test.Setup{
-		Wallet:         w,
-		Address:        acc.Address(),
-		Backend:        new(ethwallet.Backend),
-		AddressEncoded: validAddrBytes,
-		DataToSign:     dataToSign,
+		Wallet:          w,
+		AddressInWallet: acc.Address(),
+		Backend:         new(ethwallet.Backend),
+		AddressEncoded:  validAddrBytes,
+		DataToSign:      dataToSign,
 	}
 }
 

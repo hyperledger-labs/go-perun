@@ -86,7 +86,7 @@ func TestUnlock(t *testing.T) {
 	_, err := hdWallet.Unlock(ethwallet.AsWalletAddr(missingAddr))
 	assert.Error(t, err, "should error on unlocking missing address")
 
-	acc, err := hdWallet.Unlock(setup.Address)
+	acc, err := hdWallet.Unlock(setup.AddressInWallet)
 	assert.NoError(t, err, "should not error on unlocking valid address")
 	assert.NotNil(t, acc, "account should be non nil when error is nil")
 }
@@ -99,7 +99,7 @@ func TestContains(t *testing.T) {
 	missingAddr := common.BytesToAddress(setup.AddressEncoded)
 	assert.False(t, hdWallet.Contains(missingAddr), "should not contain address of the missing account")
 
-	assert.True(t, hdWallet.Contains(ethwallet.AsEthAddr(setup.Address)), "should contain valid account")
+	assert.True(t, hdWallet.Contains(ethwallet.AsEthAddr(setup.AddressInWallet)), "should contain valid account")
 }
 
 // nolint:interfacer // rand.Rand is preferred over io.Reader here.
@@ -125,10 +125,10 @@ func newSetup(t require.TestingT, prng *rand.Rand) (*test.Setup, accounts.Wallet
 	require.NoError(t, err, "invalid sample address")
 
 	return &test.Setup{
-		Wallet:         hdWallet,
-		Address:        acc.Address(),
-		Backend:        new(ethwallet.Backend),
-		AddressEncoded: sampleBytes,
-		DataToSign:     dataToSign,
+		Wallet:          hdWallet,
+		AddressInWallet: acc.Address(),
+		Backend:         new(ethwallet.Backend),
+		AddressEncoded:  sampleBytes,
+		DataToSign:      dataToSign,
 	}, rawHDWallet, hdWallet
 }

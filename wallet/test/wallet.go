@@ -32,18 +32,18 @@ type UnlockedAccount func() (wallet.Account, error)
 
 // Setup provides all objects needed for the generic tests.
 type Setup struct {
-	Backend        wallet.Backend // backend implementation
-	Wallet         wallet.Wallet  // the wallet instance used for testing
-	Address        wallet.Address // an address of an account in the test wallet
-	DataToSign     []byte         // some data to sign
-	AddressEncoded []byte         // a valid nonzero address not in the wallet
+	Backend         wallet.Backend // backend implementation
+	Wallet          wallet.Wallet  // the wallet instance used for testing
+	AddressInWallet wallet.Address // an address of an account in the test wallet
+	DataToSign      []byte         // some data to sign
+	AddressEncoded  []byte         // a valid nonzero address not in the wallet
 }
 
 // TestAccountWithWalletAndBackend tests an account implementation together with
 // a corresponding wallet and backend implementation.
 // This function should be called by every implementation of the wallet interface.
 func TestAccountWithWalletAndBackend(t *testing.T, s *Setup) {
-	acc, err := s.Wallet.Unlock(s.Address)
+	acc, err := s.Wallet.Unlock(s.AddressInWallet)
 	assert.NoError(t, err)
 	// Check unlocked account
 	sig, err := acc.SignData(s.DataToSign)
@@ -102,7 +102,7 @@ func TestAccountWithWalletAndBackend(t *testing.T, s *Setup) {
 // GenericSignatureSizeTest tests that the size of the signatures produced by
 // Account.Sign(…) does not vary between executions (tested with 2048 samples).
 func GenericSignatureSizeTest(t *testing.T, s *Setup) {
-	acc, err := s.Wallet.Unlock(s.Address)
+	acc, err := s.Wallet.Unlock(s.AddressInWallet)
 	require.NoError(t, err)
 	// get a signature
 	sign, err := acc.SignData(s.DataToSign)
