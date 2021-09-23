@@ -31,14 +31,22 @@ func GenericAddressTest(t *testing.T, s *Setup) {
 	addr, err := s.Backend.DecodeAddress(bytes.NewReader(s.AddressEncoded))
 	assert.NoError(t, err, "Byte deserialization of address should work")
 
+	// Test Address.String.
 	nullString := null.String()
 	addrString := addr.String()
 	assert.Greater(t, len(nullString), 0)
 	assert.Greater(t, len(addrString), 0)
 	assert.NotEqual(t, addrString, nullString)
 
+	// Test Address.Equals.
 	assert.False(t, addr.Equals(null), "Expected inequality of zero, nonzero address")
 	assert.True(t, null.Equals(null), "Expected equality of zero address to itself")
+
+	// Test Address.Bytes.
+	addrBytes := addr.Bytes()
+	nullBytes := null.Bytes()
+	assert.False(t, bytes.Equal(addrBytes, nullBytes), "Expected inequality of byte representations of nonzero and zero address")
+	assert.True(t, bytes.Equal(addrBytes, addr.Bytes()), "Expected that byte representations do not change")
 
 	// a.Equals(Decode(Encode(a)))
 	t.Run("Serialize Equals Test", func(t *testing.T) {
