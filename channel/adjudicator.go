@@ -25,41 +25,76 @@ import (
 )
 
 type (
-	// An Adjudicator represents an adjudicator contract on the blockchain. It has
-	// methods for state registration, progression and withdrawal of channel
-	// funds. A channel state needs to be registered before it can be progressed
-	// or withdrawn. No-App channels skip the force-execution phase and can be
-	// withdrawn directly after the refutation phase has finished. Channels in a
-	// final state can directly be withdrawn after registration.
+
+	// Adjudicator is the interface that groups the Register, Withdraw,
+	// Progress and Subscribe methods.
+	//
+	// An adjudicator represents an adjudicator contract on the blockchain. A
+	// channel state needs to be registered before it can be progressed or
+	// withdrawn. No-App channels skip the force-execution phase and can be
+	// withdrawn directly after the refutation phase has finished. Channels in
+	// a final state can directly be withdrawn after registration.
 	//
 	// Furthermore, an Adjudicator has a method for subscribing to
 	// AdjudicatorEvents. Those events might be triggered by a Register or
 	// Progress call on the adjudicator from any channel participant.
 	Adjudicator interface {
-		// Register should register the given ledger channel state on-chain.
-		// If the channel has locked funds into sub-channels, the corresponding
-		// signed sub-channel states must be provided.
+		Registerer
+		Withdrawer
+		Progresser
+		EventSubscriber
+	}
+
+	// RegisterSubscriber is the interface that groups the Register and
+	// Subscribe methods.
+	//
+	// These methods are used to watch for adjudicator events on the blockchain
+	// and dispute, if the event is a RegisteredEvent and the state in the
+	// event is not the latest.
+	RegisterSubscriber interface {
+		Registerer
+		EventSubscriber
+	}
+
+	// Registerer is the interface that wraps the Register method.
+	//
+	// Register should register the given ledger channel state on-chain.
+	// If the channel has locked funds into sub-channels, the corresponding
+	// signed sub-channel states must be provided.
+	Registerer interface {
 		Register(context.Context, AdjudicatorReq, []SignedState) error
+	}
 
-		// Withdraw should conclude and withdraw the registered state, so that the
-		// final outcome is set on the asset holders and funds are withdrawn
-		// (dependent on the architecture of the contracts). It must be taken into
-		// account that a peer might already have concluded the same channel.
-		// If the channel has locked funds in sub-channels, the states of the
-		// corresponding sub-channels need to be supplied additionally.
+	// Withdrawer is the interface that wraps the Withdraw method.
+	//
+	// Withdraw should conclude and withdraw the registered state, so that the
+	// final outcome is set on the asset holders and funds are withdrawn
+	// (dependent on the architecture of the contracts). It must be taken into
+	// account that a peer might already have concluded the same channel.
+	// If the channel has locked funds in sub-channels, the states of the
+	// corresponding sub-channels need to be supplied additionally.
+	Withdrawer interface {
 		Withdraw(context.Context, AdjudicatorReq, StateMap) error
+	}
 
-		// Progress should try to progress an on-chain registered state to the new
-		// state given in ProgressReq. The Transaction field only needs to
-		// contain the state, the signatures can be nil, since the old state is
-		// already registered on the adjudicator.
+	// Progresser is the interface that wraps the Progress method.
+	//
+	// Progress should try to progress an on-chain registered state to the new
+	// state given in ProgressReq. The Transaction field only needs to
+	// contain the state, the signatures can be nil, since the old state is
+	// already registered on the adjudicator.
+	Progresser interface {
 		Progress(context.Context, ProgressReq) error
+	}
 
-		// Subscribe returns an AdjudicatorEvent subscription.
-		//
-		// The context should only be used to establish the subscription. The
-		// framework will call Close on the subscription once the respective channel
-		// controller shuts down.
+	// EventSubscriber is the interface that wraps the Subscribe method.
+	//
+	// Subscribe returns an AdjudicatorEvent subscription.
+	//
+	// The context should only be used to establish the subscription. The
+	// subscription should be closed by calling Close on the subscription after
+	// the channel is closed.
+	EventSubscriber interface {
 		Subscribe(context.Context, ID) (AdjudicatorSubscription, error)
 	}
 
