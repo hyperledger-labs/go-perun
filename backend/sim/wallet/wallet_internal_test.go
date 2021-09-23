@@ -22,7 +22,6 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	pkgtest "perun.network/go-perun/pkg/test"
-	"perun.network/go-perun/wallet"
 	"perun.network/go-perun/wallet/test"
 )
 
@@ -89,15 +88,22 @@ func TestGenericTests(t *testing.T) {
 	}
 }
 
-// nolint: interfacer
 func newWalletSetup(rng *rand.Rand) *test.Setup {
-	accountA := NewRandomAccount(rng)
+	w := NewWallet()
+	acc := w.NewRandomAccount(rng)
 	accountB := NewRandomAccount(rng)
-	unlockedAccount := func() (wallet.Account, error) { return accountA, nil }
+
+	data := make([]byte, 128)
+	_, err := rng.Read(data)
+	if err != nil {
+		panic(err)
+	}
 
 	return &test.Setup{
-		Backend:         new(Backend),
-		UnlockedAccount: unlockedAccount,
-		AddressEncoded:  accountB.Address().Bytes(),
+		Backend:        new(Backend),
+		Wallet:         w,
+		Address:        acc.Address(),
+		AddressEncoded: accountB.Address().Bytes(),
+		DataToSign:     data,
 	}
 }

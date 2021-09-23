@@ -29,7 +29,6 @@ import (
 	ethwallet "perun.network/go-perun/backend/ethereum/wallet"
 	"perun.network/go-perun/backend/ethereum/wallet/simple"
 	pkgtest "perun.network/go-perun/pkg/test"
-	"perun.network/go-perun/wallet"
 	"perun.network/go-perun/wallet/test"
 )
 
@@ -59,8 +58,7 @@ func TestUnlock(t *testing.T) {
 	_, err := simpleWallet.Unlock(ethwallet.AsWalletAddr(missingAddr))
 	assert.Error(t, err, "should error on unlocking missing address")
 
-	validAcc, _ := setup.UnlockedAccount()
-	acc, err := simpleWallet.Unlock(validAcc.Address())
+	acc, err := simpleWallet.Unlock(setup.Address)
 	assert.NoError(t, err, "should not error on unlocking missing address")
 	assert.NotNil(t, acc, "account should be non nil when error is nil")
 }
@@ -71,9 +69,7 @@ func TestWallet_Contains(t *testing.T) {
 	missingAddr := common.BytesToAddress(setup.AddressEncoded)
 	assert.False(t, simpleWallet.Contains(missingAddr))
 
-	validAcc, err := setup.UnlockedAccount()
-	require.NoError(t, err)
-	assert.True(t, simpleWallet.Contains(ethwallet.AsEthAddr(validAcc.Address())))
+	assert.True(t, simpleWallet.Contains(ethwallet.AsEthAddr(setup.Address)))
 }
 
 func TestSignatures(t *testing.T) {
@@ -110,9 +106,10 @@ func newSetup(t require.TestingT, prng *rand.Rand) (*test.Setup, *simple.Wallet)
 	require.NoError(t, err, "invalid sample address")
 
 	return &test.Setup{
-		UnlockedAccount: func() (wallet.Account, error) { return acc, nil },
-		Backend:         new(ethwallet.Backend),
-		AddressEncoded:  validAddrBytes,
-		DataToSign:      dataToSign,
+		Wallet:         simpleWallet,
+		Address:        acc.Address(),
+		Backend:        new(ethwallet.Backend),
+		AddressEncoded: validAddrBytes,
+		DataToSign:     dataToSign,
 	}, simpleWallet
 }
