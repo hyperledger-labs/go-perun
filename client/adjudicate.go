@@ -399,7 +399,7 @@ func (c *Channel) gatherSubChannelStates() (states []channel.SignedState, err er
 	return
 }
 
-// gatherSubChannelStates gathers the state of all sub-channels recursively.
+// subChannelStateMap gathers the state of all sub-channels recursively.
 // Assumes sub-channels are locked.
 func (c *Channel) subChannelStateMap() (states channel.StateMap, err error) {
 	states = channel.MakeStateMap()

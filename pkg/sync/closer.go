@@ -78,9 +78,10 @@ func (c *Closer) IsClosed() bool {
 	return c.isClosed.IsSet()
 }
 
-// OnClose registers the passed callback to be calle when the Closer is closed.
-// If the Closer is already closed, does nothing. Returns whether the Closer was
-// not yet closed.
+// OnClose registers the passed callback to be called when the Closer is closed.
+// If the Closer is already closed, it does nothing and returns false.
+// If the Closer is not yet closed and callback was successfully registered,
+// returns true.
 func (c *Closer) OnClose(handler func()) bool {
 	c.onClosedMtx.Lock()
 	defer c.onClosedMtx.Unlock()
@@ -95,8 +96,10 @@ func (c *Closer) OnClose(handler func()) bool {
 
 // OnCloseAlways registers the passed callback to be called when the Closer is
 // closed.
-// If the Closer is already closed, immediately executes the callback. Returns
-// whether the closer was not yet closed.
+// If the Closer is already closed, it executes the callback immediately and
+// returns false.
+// If the Closer is not yet closed and callback was successfully registered,
+// returns true.
 func (c *Closer) OnCloseAlways(handler func()) bool {
 	c.onClosedMtx.Lock()
 	defer c.onClosedMtx.Unlock()
