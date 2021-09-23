@@ -15,12 +15,5 @@
 package channel
 
 import (
-	"testing"
-
 	_ "perun.network/go-perun/backend/sim/wallet" // backend init
-	"perun.network/go-perun/channel"
 )
-
-func TestSetBackend(t *testing.T) {
-	channel.SetBackendTest(t)
-}
