@@ -263,6 +263,7 @@ func FromEthState(app channel.App, s *adjudicator.ChannelState) channel.State {
 		ID:         s.ChannelID,
 		Version:    s.Version,
 		Allocation: alloc,
+		App:        app,
 		Data:       data,
 		IsFinal:    s.IsFinal,
 	}

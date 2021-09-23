@@ -15,6 +15,7 @@
 package test
 
 import (
+	"bytes"
 	"math/big"
 	"testing"
 
@@ -65,6 +66,10 @@ func GenericBackendTest(t *testing.T, s *Setup) {
 
 	t.Run("Verify", func(t *testing.T) {
 		genericVerifyTest(t, s)
+	})
+
+	t.Run("DecodeAsset", func(t *testing.T) {
+		genericDecodeAssetTest(t, s)
 	})
 }
 
@@ -338,4 +343,19 @@ func GenericStateEqualTest(t *testing.T, s1, s2 *channel.State) {
 	for _, differentState := range buildModifiedStates(s1, s2, true) {
 		assert.Error(t, differentState.Equal(s1))
 	}
+}
+
+// genericDecodeAssetTest tests the DecodeAsset function of the initialized backend.
+func genericDecodeAssetTest(t *testing.T, s *Setup) {
+	assets := s.State.Assets
+	_assets := make([]channel.Asset, len(assets))
+	for i, a := range assets {
+		var buf bytes.Buffer
+		err := a.Encode(&buf)
+		assert.NoError(t, err, "encoding")
+		_assets[i], err = channel.DecodeAsset(&buf)
+		assert.NoError(t, err, "decoding")
+	}
+	err := channel.AssetsAssertEqual(assets, _assets)
+	assert.NoError(t, err, "equality")
 }
