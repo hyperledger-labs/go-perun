@@ -16,14 +16,12 @@ package test
 
 import (
 	"bytes"
-	"math/rand"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"perun.network/go-perun/pkg/io"
-	pkgtest "perun.network/go-perun/pkg/test"
 	"perun.network/go-perun/wallet"
 )
 
@@ -34,39 +32,17 @@ type UnlockedAccount func() (wallet.Account, error)
 
 // Setup provides all objects needed for the generic tests.
 type Setup struct {
-	Backend wallet.Backend // backend implementation
-	Wallet  wallet.Wallet  // the wallet instance used for testing
-	Address wallet.Address // an address of an account in the test wallet
-	// Address tests
-	AddressEncoded []byte // a valid nonzero address not in the wallet
-	// Signature tests
-	DataToSign []byte
+	Backend        wallet.Backend // backend implementation
+	Wallet         wallet.Wallet  // the wallet instance used for testing
+	Address        wallet.Address // an address of an account in the test wallet
+	DataToSign     []byte         // some data to sign
+	AddressEncoded []byte         // a valid nonzero address not in the wallet
 }
 
-type NewSetupFunc func(rng *rand.Rand) *Setup
-
-// TestWalletPackage tests a wallet package implementation.
-func TestWalletPackage(t *testing.T, newWalletSetup NewSetupFunc) {
-	t.Run("Generic Address Test", func(t *testing.T) {
-		t.Parallel()
-		rng := pkgtest.Prng(t, "address")
-		GenericAddressTest(t, newWalletSetup(rng))
-	})
-	t.Run("Generic Signature Test", func(t *testing.T) {
-		t.Parallel()
-		rng := pkgtest.Prng(t, "signature")
-		GenericSignatureTest(t, newWalletSetup(rng))
-	})
-	t.Run("Generic Signature Size Test", func(t *testing.T) {
-		t.Parallel()
-		rng := pkgtest.Prng(t, "signature size")
-		GenericSignatureSizeTest(t, newWalletSetup(rng))
-	})
-}
-
-// GenericSignatureTest runs a test suite designed to test the general functionality of an account.
+// TestAccountWithWalletAndBackend tests an account implementation together with
+// a corresponding wallet and backend implementation.
 // This function should be called by every implementation of the wallet interface.
-func GenericSignatureTest(t *testing.T, s *Setup) {
+func TestAccountWithWalletAndBackend(t *testing.T, s *Setup) {
 	acc, err := s.Wallet.Unlock(s.Address)
 	assert.NoError(t, err)
 	// Check unlocked account

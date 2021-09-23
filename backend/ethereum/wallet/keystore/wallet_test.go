@@ -38,7 +38,7 @@ const (
 
 func TestGenericSignatureTests(t *testing.T) {
 	setup := newSetup(t)
-	test.GenericSignatureTest(t, setup)
+	test.TestAccountWithWalletAndBackend(t, setup)
 	test.GenericSignatureSizeTest(t, setup)
 }
 

@@ -38,7 +38,7 @@ const sampleAddr = "1234560000000000000000000000000000000000"
 
 func TestGenericSignatureTests(t *testing.T) {
 	setup, _ := newSetup(t, pkgtest.Prng(t))
-	test.GenericSignatureTest(t, setup)
+	test.TestAccountWithWalletAndBackend(t, setup)
 	test.GenericSignatureSizeTest(t, setup)
 	test.GenericAddressTest(t, setup)
 }

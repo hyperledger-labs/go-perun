@@ -64,7 +64,7 @@ func TestGenericTests(t *testing.T) {
 	t.Run("Generic Signature Test", func(t *testing.T) {
 		t.Parallel()
 		rng := pkgtest.Prng(t, "signature")
-		test.GenericSignatureTest(t, newWalletSetup(rng))
+		test.TestAccountWithWalletAndBackend(t, newWalletSetup(rng))
 		test.GenericSignatureSizeTest(t, newWalletSetup(rng))
 	})
 
