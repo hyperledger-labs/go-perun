@@ -22,9 +22,9 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// GenericAddressTest runs a test suite designed to test the general functionality of addresses.
-// This function should be called by every implementation of the wallet interface.
-func GenericAddressTest(t *testing.T, s *Setup) {
+// TestAddress runs a test suite designed to test the general functionality of
+// an address implementation.
+func TestAddress(t *testing.T, s *Setup) {
 	addrLen := len(s.AddressEncoded)
 	null, err := s.Backend.DecodeAddress(bytes.NewReader(make([]byte, addrLen)))
 	assert.NoError(t, err, "Byte deserialization of zero address should work")

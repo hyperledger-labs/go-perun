@@ -43,7 +43,7 @@ func TestGenericSignatureTests(t *testing.T) {
 }
 
 func TestGenericAddressTests(t *testing.T) {
-	test.GenericAddressTest(t, newSetup(t))
+	test.TestAddress(t, newSetup(t))
 }
 
 func TestWallet_Contains(t *testing.T) {

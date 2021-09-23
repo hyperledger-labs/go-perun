@@ -40,7 +40,7 @@ func TestGenericSignatureTests(t *testing.T) {
 	setup, _ := newSetup(t, pkgtest.Prng(t))
 	test.TestAccountWithWalletAndBackend(t, setup)
 	test.GenericSignatureSizeTest(t, setup)
-	test.GenericAddressTest(t, setup)
+	test.TestAddress(t, setup)
 }
 
 func TestNewWallet(t *testing.T) {
