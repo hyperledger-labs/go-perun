@@ -28,26 +28,49 @@ import (
 type addressCreator = func() wallet.Address
 
 // Setup provides all objects needed for the generic channel tests.
-type Setup struct {
-	// Params are the random parameters of `State`
-	Params *channel.Params
-	// Params2 are the parameters of `State2` and must differ in all fields from `Params`
-	Params2 *channel.Params
+type (
+	Setup struct {
+		// Params are the random parameters of `State`
+		Params *channel.Params
+		// Params2 are the parameters of `State2` and must differ in all fields from `Params`
+		Params2 *channel.Params
 
-	// State is a random state with parameters `Params`
-	State *channel.State
-	// State2 is a random state with parameters `Params2` and should differ in all fields from `State`
-	State2 *channel.State
+		// State is a random state with parameters `Params`
+		State *channel.State
+		// State2 is a random state with parameters `Params2` and should differ in all fields from `State`
+		State2 *channel.State
 
-	// Account is a random account
-	Account wallet.Account
+		// Account is a random account
+		Account wallet.Account
 
-	// RandomAddress returns a new random address
-	RandomAddress addressCreator
+		// RandomAddress returns a new random address
+		RandomAddress addressCreator
+	}
+
+	// GenericTestOption can be used to control the behaviour of generic tests.
+	GenericTestOption int
+	// GenericTestOptions is a collection of GenericTestOption.
+	GenericTestOptions map[GenericTestOption]bool
+)
+
+const (
+	// IgnoreAssets ignores the Assets in tests that support it.
+	IgnoreAssets GenericTestOption = iota
+	// IgnoreApp ignores the App in tests that support it.
+	IgnoreApp
+)
+
+// mergeTestOpts merges all passed options into one and returns it.
+func mergeTestOpts(opts ...GenericTestOption) GenericTestOptions {
+	ret := make(GenericTestOptions)
+	for _, o := range opts {
+		ret[o] = true
+	}
+	return ret
 }
 
 // GenericBackendTest tests the interface functions of the global channel.Backend with the passed test data.
-func GenericBackendTest(t *testing.T, s *Setup) {
+func GenericBackendTest(t *testing.T, s *Setup, opts ...GenericTestOption) {
 	require := require.New(t)
 	ID := channel.CalcID(s.Params)
 	require.Equal(ID, s.State.ID, "ChannelID(params) should match the States ID")
@@ -64,7 +87,7 @@ func GenericBackendTest(t *testing.T, s *Setup) {
 	})
 
 	t.Run("Verify", func(t *testing.T) {
-		genericVerifyTest(t, s)
+		genericVerifyTest(t, s, opts...)
 	})
 }
 
@@ -85,7 +108,7 @@ func genericSignTest(t *testing.T, s *Setup) {
 	assert.NoError(t, err, "Sign should not return an error")
 }
 
-func genericVerifyTest(t *testing.T, s *Setup) {
+func genericVerifyTest(t *testing.T, s *Setup, opts ...GenericTestOption) {
 	addr := s.Account.Address()
 	require.Equal(t, channel.CalcID(s.Params), s.Params.ID(), "Invalid test params")
 	sig, err := channel.Sign(s.Account, s.State)
@@ -95,7 +118,7 @@ func genericVerifyTest(t *testing.T, s *Setup) {
 	assert.NoError(t, err, "Verify should not return an error")
 	assert.True(t, ok, "Verify should return true")
 
-	for i, _modState := range buildModifiedStates(s.State, s.State2, false) {
+	for i, _modState := range buildModifiedStates(s.State, s.State2, append(opts, IgnoreApp)...) {
 		modState := _modState
 		ok, err = channel.Verify(addr, &modState, sig)
 		assert.Falsef(t, ok, "Verify should return false: index %d", i)
@@ -170,7 +193,8 @@ func appendModParams(a []channel.Params, modParams channel.Params) []channel.Par
 // every member from `s1`.
 // `modifyApp` indicates whether the app should also be changed or not. In some cases (signature) it is desirable
 // not to modify it.
-func buildModifiedStates(s1, s2 *channel.State, modifyApp bool) (ret []channel.State) {
+func buildModifiedStates(s1, s2 *channel.State, _opts ...GenericTestOption) (ret []channel.State) {
+	opts := mergeTestOpts(_opts...)
 	// Modify state
 	{
 		// Modify complete state
@@ -191,7 +215,7 @@ func buildModifiedStates(s1, s2 *channel.State, modifyApp bool) (ret []channel.S
 			ret = append(ret, *modState)
 		}
 		// Modify App
-		if modifyApp {
+		if !opts[IgnoreApp] {
 			modState := s1.Clone()
 			modState.App = s2.App
 			ret = append(ret, *modState)
@@ -205,7 +229,7 @@ func buildModifiedStates(s1, s2 *channel.State, modifyApp bool) (ret []channel.S
 				ret = append(ret, *modState)
 			}
 			// Modify Assets
-			{
+			if !opts[IgnoreAssets] {
 				// Modify complete Assets
 				{
 					modState := s1.Clone()
@@ -331,11 +355,11 @@ func ensureBalanceVectorLength(bals []channel.Bal, l int) []channel.Bal {
 }
 
 // GenericStateEqualTest tests the State.Equal function.
-func GenericStateEqualTest(t *testing.T, s1, s2 *channel.State) {
+func GenericStateEqualTest(t *testing.T, s1, s2 *channel.State, opts ...GenericTestOption) {
 	assert.NoError(t, s1.Equal(s1))
 	assert.NoError(t, s2.Equal(s2))
 
-	for _, differentState := range buildModifiedStates(s1, s2, true) {
+	for _, differentState := range buildModifiedStates(s1, s2, opts...) {
 		assert.Error(t, differentState.Equal(s1))
 	}
 }
