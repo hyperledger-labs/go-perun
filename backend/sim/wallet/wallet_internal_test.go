@@ -15,6 +15,7 @@
 package wallet
 
 import (
+	"bytes"
 	"math/big"
 	"math/rand"
 	"testing"
@@ -22,7 +23,6 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	pkgtest "perun.network/go-perun/pkg/test"
-	"perun.network/go-perun/wallet"
 	"perun.network/go-perun/wallet/test"
 )
 
@@ -60,12 +60,12 @@ func TestGenericTests(t *testing.T) {
 	t.Run("Generic Address Test", func(t *testing.T) {
 		t.Parallel()
 		rng := pkgtest.Prng(t, "address")
-		test.GenericAddressTest(t, newWalletSetup(rng))
+		test.TestAddress(t, newWalletSetup(rng))
 	})
 	t.Run("Generic Signature Test", func(t *testing.T) {
 		t.Parallel()
 		rng := pkgtest.Prng(t, "signature")
-		test.GenericSignatureTest(t, newWalletSetup(rng))
+		test.TestAccountWithWalletAndBackend(t, newWalletSetup(rng))
 		test.GenericSignatureSizeTest(t, newWalletSetup(rng))
 	})
 
@@ -89,15 +89,31 @@ func TestGenericTests(t *testing.T) {
 	}
 }
 
-// nolint: interfacer
 func newWalletSetup(rng *rand.Rand) *test.Setup {
-	accountA := NewRandomAccount(rng)
+	w := NewWallet()
+	acc := w.NewRandomAccount(rng)
 	accountB := NewRandomAccount(rng)
-	unlockedAccount := func() (wallet.Account, error) { return accountA, nil }
+
+	data := make([]byte, 128)
+	_, err := rng.Read(data)
+	if err != nil {
+		panic(err)
+	}
+
+	backend := new(Backend)
+	addrEncoded := accountB.Address().Bytes()
+	addrLen := len(addrEncoded)
+	zeroAddr, err := backend.DecodeAddress(bytes.NewReader(make([]byte, addrLen)))
+	if err != nil {
+		panic(err)
+	}
 
 	return &test.Setup{
-		Backend:         new(Backend),
-		UnlockedAccount: unlockedAccount,
-		AddressEncoded:  accountB.Address().Bytes(),
+		Backend:         backend,
+		Wallet:          w,
+		AddressInWallet: acc.Address(),
+		AddressEncoded:  addrEncoded,
+		ZeroAddress:     zeroAddr,
+		DataToSign:      data,
 	}
 }

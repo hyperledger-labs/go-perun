@@ -32,66 +32,69 @@ type UnlockedAccount func() (wallet.Account, error)
 
 // Setup provides all objects needed for the generic tests.
 type Setup struct {
-	UnlockedAccount UnlockedAccount // provides an account that is ready to sign
-	// Address tests
-	AddressEncoded []byte         // a valid nonzero address not in the wallet
-	Backend        wallet.Backend // backend implementation
-	// Signature tests
-	DataToSign []byte
+	Backend         wallet.Backend // backend implementation
+	Wallet          wallet.Wallet  // the wallet instance used for testing
+	AddressInWallet wallet.Address // an address of an account in the test wallet
+	ZeroAddress     wallet.Address // an address that is less or equal to any other address
+	DataToSign      []byte         // some data to sign
+	AddressEncoded  []byte         // a valid nonzero address not in the wallet
 }
 
-// GenericSignatureTest runs a test suite designed to test the general functionality of an account.
+// TestAccountWithWalletAndBackend tests an account implementation together with
+// a corresponding wallet and backend implementation.
 // This function should be called by every implementation of the wallet interface.
-func GenericSignatureTest(t *testing.T, s *Setup) {
-	acc, err := s.UnlockedAccount()
+func TestAccountWithWalletAndBackend(t *testing.T, s *Setup) {
+	acc, err := s.Wallet.Unlock(s.AddressInWallet)
 	assert.NoError(t, err)
 	// Check unlocked account
-	sign, err := acc.SignData(s.DataToSign)
+	sig, err := acc.SignData(s.DataToSign)
 	assert.NoError(t, err, "Sign with unlocked account should succeed")
-	valid, err := s.Backend.VerifySignature(s.DataToSign, sign, acc.Address())
+	valid, err := s.Backend.VerifySignature(s.DataToSign, sig, acc.Address())
 	assert.True(t, valid, "Verification should succeed")
 	assert.NoError(t, err, "Verification should not produce error")
 
 	addr, err := s.Backend.DecodeAddress(bytes.NewBuffer(s.AddressEncoded))
 	assert.NoError(t, err, "Byte deserialization of address should work")
-	valid, err = s.Backend.VerifySignature(s.DataToSign, sign, addr)
+	valid, err = s.Backend.VerifySignature(s.DataToSign, sig, addr)
 	assert.False(t, valid, "Verification with wrong address should fail")
 	assert.NoError(t, err, "Verification of valid signature should not produce error")
 
-	tampered := make([]byte, len(sign))
-	copy(tampered, sign)
+	tampered := make([]byte, len(sig))
+	copy(tampered, sig)
 	// Invalidate the signature and check for error
-	tampered[0] = ^sign[0]
+	tampered[0] = ^sig[0]
 	valid, err = s.Backend.VerifySignature(s.DataToSign, tampered, acc.Address())
 	if valid && err == nil {
 		t.Error("Verification of invalid signature should produce error or return false")
 	}
 	// Truncate the signature and check for error
-	tampered = sign[:len(sign)-1]
+	tampered = sig[:len(sig)-1]
 	valid, err = s.Backend.VerifySignature(s.DataToSign, tampered, acc.Address())
 	if valid && err != nil {
 		t.Error("Verification of invalid signature should produce error or return false")
 	}
 	// Expand the signature and check for error
 	// nolint:gocritic
-	tampered = append(sign, 0)
+	tampered = append(sig, 0)
 	valid, err = s.Backend.VerifySignature(s.DataToSign, tampered, acc.Address())
 	if valid && err != nil {
 		t.Error("Verification of invalid signature should produce error or return false")
 	}
 
 	// Test DecodeSig
-	sign, err = acc.SignData(s.DataToSign)
+	sig, err = acc.SignData(s.DataToSign)
 	require.NoError(t, err, "Sign with unlocked account should succeed")
 
 	buff := new(bytes.Buffer)
-	io.Encode(buff, sign)
+	err = io.Encode(buff, sig)
+	require.NoError(t, err, "encode sig")
 	sign2, err := s.Backend.DecodeSig(buff)
 	assert.NoError(t, err, "Decoded signature should work")
-	assert.Equal(t, sign, sign2, "Decoded signature should be equal to the original")
+	assert.Equal(t, sig, sign2, "Decoded signature should be equal to the original")
 
 	// Test DecodeSig on short stream
-	io.Encode(buff, sign)
+	err = io.Encode(buff, sig)
+	require.NoError(t, err, "encode sig")
 	shortBuff := bytes.NewBuffer(buff.Bytes()[:len(buff.Bytes())-1]) // remove one byte
 	_, err = s.Backend.DecodeSig(shortBuff)
 	assert.Error(t, err, "DecodeSig on short stream should error")
@@ -100,7 +103,7 @@ func GenericSignatureTest(t *testing.T, s *Setup) {
 // GenericSignatureSizeTest tests that the size of the signatures produced by
 // Account.Sign(…) does not vary between executions (tested with 2048 samples).
 func GenericSignatureSizeTest(t *testing.T, s *Setup) {
-	acc, err := s.UnlockedAccount()
+	acc, err := s.Wallet.Unlock(s.AddressInWallet)
 	require.NoError(t, err)
 	// get a signature
 	sign, err := acc.SignData(s.DataToSign)
@@ -118,33 +121,4 @@ func GenericSignatureSizeTest(t *testing.T, s *Setup) {
 			}
 		})
 	}
-}
-
-// GenericAddressTest runs a test suite designed to test the general functionality of addresses.
-// This function should be called by every implementation of the wallet interface.
-func GenericAddressTest(t *testing.T, s *Setup) {
-	addrLen := len(s.AddressEncoded)
-	null, err := s.Backend.DecodeAddress(bytes.NewReader(make([]byte, addrLen)))
-	assert.NoError(t, err, "Byte deserialization of zero address should work")
-	addr, err := s.Backend.DecodeAddress(bytes.NewReader(s.AddressEncoded))
-	assert.NoError(t, err, "Byte deserialization of address should work")
-
-	nullString := null.String()
-	addrString := addr.String()
-	assert.Greater(t, len(nullString), 0)
-	assert.Greater(t, len(addrString), 0)
-	assert.NotEqual(t, addrString, nullString)
-
-	assert.False(t, addr.Equals(null), "Expected inequality of zero, nonzero address")
-	assert.True(t, null.Equals(null), "Expected equality of zero address to itself")
-
-	// a.Equals(Decode(Encode(a)))
-	t.Run("Serialize Equals Test", func(t *testing.T) {
-		buff := new(bytes.Buffer)
-		require.NoError(t, addr.Encode(buff))
-		addr2, err := s.Backend.DecodeAddress(buff)
-		require.NoError(t, err)
-
-		assert.True(t, addr.Equals(addr2))
-	})
 }

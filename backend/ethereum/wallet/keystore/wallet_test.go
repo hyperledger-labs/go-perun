@@ -26,7 +26,6 @@ import (
 	ethwallet "perun.network/go-perun/backend/ethereum/wallet"
 	ethwallettest "perun.network/go-perun/backend/ethereum/wallet/test"
 	pkgtest "perun.network/go-perun/pkg/test"
-	"perun.network/go-perun/wallet"
 	"perun.network/go-perun/wallet/test"
 )
 
@@ -39,12 +38,12 @@ const (
 
 func TestGenericSignatureTests(t *testing.T) {
 	setup := newSetup(t)
-	test.GenericSignatureTest(t, setup)
+	test.TestAccountWithWalletAndBackend(t, setup)
 	test.GenericSignatureSizeTest(t, setup)
 }
 
 func TestGenericAddressTests(t *testing.T) {
-	test.GenericAddressTest(t, newSetup(t))
+	test.TestAddress(t, newSetup(t))
 }
 
 func TestWallet_Contains(t *testing.T) {
@@ -85,14 +84,17 @@ func TestBackend(t *testing.T) {
 }
 
 func newSetup(t require.TestingT) *test.Setup {
-	acc := ethwallettest.NewTmpWallet().NewAccount()
+	w := ethwallettest.NewTmpWallet()
+	acc := w.NewAccount()
 	validAddrBytes, err := hex.DecodeString(validAddr)
 	require.NoError(t, err, "decoding valid address should not fail")
 
 	return &test.Setup{
-		UnlockedAccount: func() (wallet.Account, error) { return acc, nil },
+		Wallet:          w,
+		AddressInWallet: acc.Address(),
 		Backend:         new(ethwallet.Backend),
 		AddressEncoded:  validAddrBytes,
+		ZeroAddress:     ethwallet.AsWalletAddr(common.Address{}),
 		DataToSign:      dataToSign,
 	}
 }
