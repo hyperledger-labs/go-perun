@@ -94,6 +94,7 @@ func newSetup(t require.TestingT) *test.Setup {
 		AddressInWallet: acc.Address(),
 		Backend:         new(ethwallet.Backend),
 		AddressEncoded:  validAddrBytes,
+		ZeroAddress:     ethwallet.AsWalletAddr(common.Address{}),
 		DataToSign:      dataToSign,
 	}
 }

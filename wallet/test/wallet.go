@@ -35,6 +35,7 @@ type Setup struct {
 	Backend         wallet.Backend // backend implementation
 	Wallet          wallet.Wallet  // the wallet instance used for testing
 	AddressInWallet wallet.Address // an address of an account in the test wallet
+	ZeroAddress     wallet.Address // an address that is less or equal to any other address
 	DataToSign      []byte         // some data to sign
 	AddressEncoded  []byte         // a valid nonzero address not in the wallet
 }

@@ -129,6 +129,7 @@ func newSetup(t require.TestingT, prng *rand.Rand) (*test.Setup, accounts.Wallet
 		AddressInWallet: acc.Address(),
 		Backend:         new(ethwallet.Backend),
 		AddressEncoded:  sampleBytes,
+		ZeroAddress:     ethwallet.AsWalletAddr(common.Address{}),
 		DataToSign:      dataToSign,
 	}, rawHDWallet, hdWallet
 }

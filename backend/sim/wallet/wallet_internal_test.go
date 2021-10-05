@@ -15,6 +15,7 @@
 package wallet
 
 import (
+	"bytes"
 	"math/big"
 	"math/rand"
 	"testing"
@@ -99,11 +100,20 @@ func newWalletSetup(rng *rand.Rand) *test.Setup {
 		panic(err)
 	}
 
+	backend := new(Backend)
+	addrEncoded := accountB.Address().Bytes()
+	addrLen := len(addrEncoded)
+	zeroAddr, err := backend.DecodeAddress(bytes.NewReader(make([]byte, addrLen)))
+	if err != nil {
+		panic(err)
+	}
+
 	return &test.Setup{
-		Backend:         new(Backend),
+		Backend:         backend,
 		Wallet:          w,
 		AddressInWallet: acc.Address(),
-		AddressEncoded:  accountB.Address().Bytes(),
+		AddressEncoded:  addrEncoded,
+		ZeroAddress:     zeroAddr,
 		DataToSign:      data,
 	}
 }

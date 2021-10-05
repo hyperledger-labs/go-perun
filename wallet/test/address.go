@@ -25,9 +25,7 @@ import (
 // TestAddress runs a test suite designed to test the general functionality of
 // an address implementation.
 func TestAddress(t *testing.T, s *Setup) {
-	addrLen := len(s.AddressEncoded)
-	null, err := s.Backend.DecodeAddress(bytes.NewReader(make([]byte, addrLen)))
-	assert.NoError(t, err, "Byte deserialization of zero address should work")
+	null := s.ZeroAddress
 	addr, err := s.Backend.DecodeAddress(bytes.NewReader(s.AddressEncoded))
 	assert.NoError(t, err, "Byte deserialization of address should work")
 
@@ -41,6 +39,11 @@ func TestAddress(t *testing.T, s *Setup) {
 	// Test Address.Equals.
 	assert.False(t, addr.Equals(null), "Expected inequality of zero, nonzero address")
 	assert.True(t, null.Equals(null), "Expected equality of zero address to itself")
+
+	// Test Address.Cmp.
+	assert.Positive(t, addr.Cmp(null), "Expected addr > zero")
+	assert.Zero(t, null.Cmp(null), "Expected zero = zero")
+	assert.Negative(t, null.Cmp(addr), "Expected null < addr")
 
 	// Test Address.Bytes.
 	addrBytes := addr.Bytes()
