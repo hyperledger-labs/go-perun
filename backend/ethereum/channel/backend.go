@@ -173,11 +173,14 @@ func ToEthState(s *channel.State) adjudicator.ChannelState {
 	locked := make([]adjudicator.ChannelSubAlloc, len(s.Locked))
 	for i, sub := range s.Locked {
 		// Create index map.
-		indexMap := sub.IndexMap
-		if len(indexMap) == 0 {
-			indexMap = make([]uint16, s.NumParts())
+		indexMap := make([]uint16, s.NumParts())
+		if len(sub.IndexMap) == 0 {
 			for i := range indexMap {
 				indexMap[i] = uint16(i)
+			}
+		} else {
+			for i, x := range sub.IndexMap {
+				indexMap[i] = uint16(x)
 			}
 		}
 
@@ -242,7 +245,8 @@ func pwToCommonAddresses(addr []wallet.Address) []common.Address {
 func FromEthState(app channel.App, s *adjudicator.ChannelState) channel.State {
 	locked := make([]channel.SubAlloc, len(s.Outcome.Locked))
 	for i, sub := range s.Outcome.Locked {
-		locked[i] = *channel.NewSubAlloc(sub.ID, sub.Balances, sub.IndexMap)
+		indexMap := makeIndexMap(sub.IndexMap)
+		locked[i] = *channel.NewSubAlloc(sub.ID, sub.Balances, indexMap)
 	}
 	alloc := channel.Allocation{
 		Assets:   fromEthAssets(s.Outcome.Assets),
@@ -267,6 +271,14 @@ func FromEthState(app channel.App, s *adjudicator.ChannelState) channel.State {
 		Data:       data,
 		IsFinal:    s.IsFinal,
 	}
+}
+
+func makeIndexMap(m []uint16) []channel.Index {
+	_m := make([]channel.Index, len(m))
+	for i, x := range m {
+		_m[i] = channel.Index(x)
+	}
+	return _m
 }
 
 func fromEthAssets(assets []common.Address) []channel.Asset {

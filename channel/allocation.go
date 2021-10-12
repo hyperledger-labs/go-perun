@@ -524,9 +524,9 @@ func (b Balances) Sum() []Bal {
 }
 
 // NewSubAlloc creates a new sub-allocation.
-func NewSubAlloc(id ID, bals []Bal, indexMap []uint16) *SubAlloc {
+func NewSubAlloc(id ID, bals []Bal, indexMap []Index) *SubAlloc {
 	if indexMap == nil {
-		indexMap = []uint16{}
+		indexMap = []Index{}
 	}
 	return &SubAlloc{ID: id, Bals: bals, IndexMap: indexMap}
 }

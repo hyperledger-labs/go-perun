@@ -27,7 +27,20 @@ import (
 )
 
 // Index is the type for the number of participants, assets, sub-allocations, actions and alike.
-type Index = uint16
+type Index uint16
+
+// Encode encodes the object onto an io.Writer.
+func (i Index) Encode(w stdio.Writer) error {
+	return io.Encode(w, uint16(i))
+}
+
+// Decode decodes an object from an io.Reader.
+func (i *Index) Decode(r stdio.Reader) error {
+	var _i uint16
+	err := io.Decode(r, &_i)
+	*i = Index(_i)
+	return err
+}
 
 type (
 	// Phase is a phase of the channel pushdown automaton.

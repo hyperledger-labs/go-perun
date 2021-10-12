@@ -212,7 +212,7 @@ func (c *Channel) forceFinalState(ctx context.Context, final channel.SignedState
 		return err
 	}
 	for i, sig := range final.Sigs {
-		if err := c.machine.AddSig(ctx, uint16(i), sig); err != nil {
+		if err := c.machine.AddSig(ctx, channel.Index(i), sig); err != nil {
 			return err
 		}
 	}
