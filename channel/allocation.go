@@ -94,7 +94,7 @@ type (
 	// where all participants' assets are deposited.
 	// The same Asset should be shareable by multiple Allocation instances.
 	// Decoding happens with AppBackend.DecodeAsset.
-	Asset = perunio.Encoder
+	Asset perunio.Encoder
 )
 
 var _ perunio.Serializer = (*Allocation)(nil)
