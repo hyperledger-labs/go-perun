@@ -25,7 +25,7 @@ The authors take no responsibility for any loss of digital assets or other damag
 
 ## Getting Started
 
-Running _go-perun_ requires a working Go distribution (version 1.15 or higher).
+Running _go-perun_ requires a working [Go distribution](https://golang.org), see `go.mod` for the required version.
 ```sh
 # Clone the repository into a directory of your choice
 git clone https://github.com/hyperledger-labs/go-perun.git
