@@ -9,6 +9,7 @@
   <a href="https://www.apache.org/licenses/LICENSE-2.0.txt"><img src="https://img.shields.io/badge/license-Apache%202-blue" alt="License: Apache 2.0"></a>
   <a href="https://github.com/hyperledger-labs/go-perun/actions/workflows/ci.yml"><img src="https://github.com/hyperledger-labs/go-perun/actions/workflows/ci.yml/badge.svg" alt="TravisCI build status"></a>
   <a href="https://pkg.go.dev/perun.network/go-perun?status.svg"> <img src="https://img.shields.io/badge/go.dev-reference-007d9c?logo=go&logoColor=white" alt="pkg.go.dev docs"></a>
+  <a href="https://labs.hyperledger.org/perun-doc/"> <img src=".assets/read_the_docs.svg" alt="Read the Docs"></a>
 </p>
 
 _go-perun_ is a Go implementation of the [Perun state channel protocols](https://perun.network/) ([introduction paper](https://perun.network/pdf/Perun2.0.pdf)).
