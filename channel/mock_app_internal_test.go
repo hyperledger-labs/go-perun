@@ -19,9 +19,9 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	iotest "perun.network/go-perun/pkg/io/test"
 	pkgtest "perun.network/go-perun/pkg/test"
 	wallettest "perun.network/go-perun/wallet/test"
+	wiretest "perun.network/go-perun/wire/test"
 )
 
 func TestMockApp(t *testing.T) {
@@ -43,11 +43,11 @@ func TestMockApp(t *testing.T) {
 	})
 
 	t.Run("GenericSerializeable", func(t *testing.T) {
-		iotest.GenericSerializerTest(t, NewMockOp(OpValid))
-		iotest.GenericSerializerTest(t, NewMockOp(OpErr))
-		iotest.GenericSerializerTest(t, NewMockOp(OpTransitionErr))
-		iotest.GenericSerializerTest(t, NewMockOp(OpActionErr))
-		iotest.GenericSerializerTest(t, NewMockOp(OpPanic))
+		wiretest.GenericSerializerTest(t, NewMockOp(OpValid))
+		wiretest.GenericSerializerTest(t, NewMockOp(OpErr))
+		wiretest.GenericSerializerTest(t, NewMockOp(OpTransitionErr))
+		wiretest.GenericSerializerTest(t, NewMockOp(OpActionErr))
+		wiretest.GenericSerializerTest(t, NewMockOp(OpPanic))
 	})
 
 	// We cant use VerifyClone here since it requires that the same type is returned by

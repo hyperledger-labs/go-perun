@@ -20,8 +20,8 @@ import (
 	"perun.network/go-perun/channel"
 	"perun.network/go-perun/channel/test"
 	"perun.network/go-perun/pkg/io"
-	iotest "perun.network/go-perun/pkg/io/test"
 	pkgtest "perun.network/go-perun/pkg/test"
+	wiretest "perun.network/go-perun/wire/test"
 )
 
 func TestParams_Clone(t *testing.T) {
@@ -43,5 +43,5 @@ func TestParams_Serializer(t *testing.T) {
 		params[i] = p
 	}
 
-	iotest.GenericSerializerTest(t, params...)
+	wiretest.GenericSerializerTest(t, params...)
 }

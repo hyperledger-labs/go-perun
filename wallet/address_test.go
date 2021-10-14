@@ -21,10 +21,10 @@ import (
 	"github.com/stretchr/testify/require"
 
 	_ "perun.network/go-perun/backend/sim/wallet"
-	iotest "perun.network/go-perun/pkg/io/test"
 	pkgtest "perun.network/go-perun/pkg/test"
 	"perun.network/go-perun/wallet"
 	wallettest "perun.network/go-perun/wallet/test"
+	wiretest "perun.network/go-perun/wire/test"
 )
 
 type testAddresses struct {
@@ -43,13 +43,13 @@ func TestAddresses_Serializer(t *testing.T) {
 	rng := pkgtest.Prng(t)
 
 	addrs := wallettest.NewRandomAddresses(rng, 0)
-	iotest.GenericSerializerTest(t, &testAddresses{addrs})
+	wiretest.GenericSerializerTest(t, &testAddresses{addrs})
 
 	addrs = wallettest.NewRandomAddresses(rng, 1)
-	iotest.GenericSerializerTest(t, &testAddresses{addrs})
+	wiretest.GenericSerializerTest(t, &testAddresses{addrs})
 
 	addrs = wallettest.NewRandomAddresses(rng, 5)
-	iotest.GenericSerializerTest(t, &testAddresses{addrs})
+	wiretest.GenericSerializerTest(t, &testAddresses{addrs})
 }
 
 func TestAddrKey_Equals(t *testing.T) {

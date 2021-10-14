@@ -30,10 +30,10 @@ import (
 	ethchanneltest "perun.network/go-perun/backend/ethereum/channel/test"
 	ethwallettest "perun.network/go-perun/backend/ethereum/wallet/test"
 	"perun.network/go-perun/channel/test"
-	iotest "perun.network/go-perun/pkg/io/test"
 	pkgtest "perun.network/go-perun/pkg/test"
 	perunwallet "perun.network/go-perun/wallet"
 	wallettest "perun.network/go-perun/wallet/test"
+	wiretest "perun.network/go-perun/wire/test"
 )
 
 func TestAdjudicator_PureFunctions(t *testing.T) {
@@ -132,6 +132,6 @@ func TestAssetSerialization(t *testing.T) {
 
 	for i := 0; i < 10; i++ {
 		asset := ethwallettest.NewRandomAddress(rng)
-		iotest.GenericSerializerTest(t, &asset)
+		wiretest.GenericSerializerTest(t, &asset)
 	}
 }

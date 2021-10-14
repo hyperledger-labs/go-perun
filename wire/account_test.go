@@ -18,13 +18,13 @@ import (
 	"testing"
 
 	_ "perun.network/go-perun/backend/ethereum/wallet/test" // random init
-	iotest "perun.network/go-perun/pkg/io/test"
 	pkgtest "perun.network/go-perun/pkg/test"
 	wallettest "perun.network/go-perun/wallet/test"
 	"perun.network/go-perun/wire"
+	wiretest "perun.network/go-perun/wire/test"
 )
 
 func TestAuthResponseMsg(t *testing.T) {
 	rng := pkgtest.Prng(t)
-	iotest.TestMsgSerializer(t, wire.NewAuthResponseMsg(wallettest.NewRandomAccount(rng)))
+	wiretest.TestMsgSerializer(t, wire.NewAuthResponseMsg(wallettest.NewRandomAccount(rng)))
 }

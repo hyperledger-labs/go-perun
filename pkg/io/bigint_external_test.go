@@ -22,7 +22,7 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	perunio "perun.network/go-perun/pkg/io"
-	"perun.network/go-perun/pkg/io/test"
+	"perun.network/go-perun/wire/test"
 )
 
 func TestBigInt_Generic(t *testing.T) {

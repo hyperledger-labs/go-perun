@@ -22,13 +22,13 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	perunio "perun.network/go-perun/pkg/io"
-	iotest "perun.network/go-perun/pkg/io/test"
+	wiretest "perun.network/go-perun/wire/test"
 )
 
 func TestByteSlice(t *testing.T) {
 	var v1, v2, v3, v4 perunio.ByteSlice = []byte{}, []byte{255}, []byte{1, 2, 3, 4, 5, 6}, make([]byte, 20000)
 	testByteSlices(t, v1, v2, v3, v4)
-	iotest.GenericBrokenPipeTest(t, &v1, &v2, &v3, &v4)
+	wiretest.GenericBrokenPipeTest(t, &v1, &v2, &v3, &v4)
 }
 
 // TestStutter tests what happens if the network stutters (split one message into several network packages).

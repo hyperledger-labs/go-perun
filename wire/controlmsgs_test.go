@@ -17,18 +17,18 @@ package wire_test
 import (
 	"testing"
 
-	iotest "perun.network/go-perun/pkg/io/test"
 	"perun.network/go-perun/wire"
+	wiretest "perun.network/go-perun/wire/test"
 )
 
 func TestPingMsg(t *testing.T) {
-	iotest.TestMsgSerializer(t, wire.NewPingMsg())
+	wiretest.TestMsgSerializer(t, wire.NewPingMsg())
 }
 
 func TestPongMsg(t *testing.T) {
-	iotest.TestMsgSerializer(t, wire.NewPongMsg())
+	wiretest.TestMsgSerializer(t, wire.NewPongMsg())
 }
 
 func TestShutdownMsg(t *testing.T) {
-	iotest.TestMsgSerializer(t, &wire.ShutdownMsg{"m2384ordkln fb30954390582"})
+	wiretest.TestMsgSerializer(t, &wire.ShutdownMsg{"m2384ordkln fb30954390582"})
 }

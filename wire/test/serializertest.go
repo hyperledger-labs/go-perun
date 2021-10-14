@@ -13,7 +13,7 @@
 // limitations under the License.
 
 // Package test contains the generic serializer tests.
-package test // import "perun.network/go-perun/pkg/io/test"
+package test // import "perun.network/go-perun/wire/test"
 
 import (
 	"io"
@@ -22,6 +22,7 @@ import (
 	"testing/iotest"
 
 	"github.com/stretchr/testify/assert"
+
 	perunio "perun.network/go-perun/pkg/io"
 )
 
