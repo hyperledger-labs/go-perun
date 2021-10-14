@@ -24,6 +24,7 @@ import (
 	"perun.network/go-perun/channel/test"
 	"perun.network/go-perun/client"
 	clienttest "perun.network/go-perun/client/test"
+	iotest "perun.network/go-perun/pkg/io/test"
 	pkgtest "perun.network/go-perun/pkg/test"
 	wallettest "perun.network/go-perun/wallet/test"
 	"perun.network/go-perun/wire"
@@ -70,7 +71,7 @@ func TestChannelProposalReqSerialization(t *testing.T) {
 			m, err = clienttest.NewRandomVirtualChannelProposal(rng, client.WithNonceFrom(rng), app)
 			require.NoError(t, err)
 		}
-		wire.TestMsg(t, m)
+		iotest.TestMsgSerializer(t, m)
 	}
 }
 
@@ -166,7 +167,7 @@ func TestChannelProposalAccSerialization(t *testing.T) {
 			m := proposal.Accept(
 				wallettest.NewRandomAddress(rng),
 				client.WithNonceFrom(rng))
-			wire.TestMsg(t, m)
+			iotest.TestMsgSerializer(t, m)
 		}
 	})
 	t.Run("sub channel", func(t *testing.T) {
@@ -175,7 +176,7 @@ func TestChannelProposalAccSerialization(t *testing.T) {
 			proposal, err := clienttest.NewRandomSubChannelProposal(rng)
 			require.NoError(t, err)
 			m := proposal.Accept(client.WithNonceFrom(rng))
-			wire.TestMsg(t, m)
+			iotest.TestMsgSerializer(t, m)
 		}
 	})
 	t.Run("virtual channel", func(t *testing.T) {
@@ -184,7 +185,7 @@ func TestChannelProposalAccSerialization(t *testing.T) {
 			proposal, err := clienttest.NewRandomVirtualChannelProposal(rng)
 			require.NoError(t, err)
 			m := proposal.Accept(wallettest.NewRandomAddress(rng))
-			wire.TestMsg(t, m)
+			iotest.TestMsgSerializer(t, m)
 		}
 	})
 }
@@ -196,7 +197,7 @@ func TestChannelProposalRejSerialization(t *testing.T) {
 			ProposalID: newRandomProposalID(rng),
 			Reason:     newRandomString(rng, 16, 16),
 		}
-		wire.TestMsg(t, m)
+		iotest.TestMsgSerializer(t, m)
 	}
 }
 
@@ -206,7 +207,7 @@ func TestSubChannelProposalSerialization(t *testing.T) {
 	for i := 0; i < repeatRandomizedTest; i++ {
 		prop, err := clienttest.NewRandomSubChannelProposal(rng)
 		require.NoError(t, err)
-		wire.TestMsg(t, prop)
+		iotest.TestMsgSerializer(t, prop)
 	}
 }
 

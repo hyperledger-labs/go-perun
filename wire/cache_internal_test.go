@@ -16,13 +16,24 @@ package wire
 
 import (
 	"context"
+	"math/rand"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"perun.network/go-perun/pkg/test"
+	wallettest "perun.network/go-perun/wallet/test"
 )
+
+// NewRandomEnvelope - copy from wire/test for internal tests.
+func NewRandomEnvelope(rng *rand.Rand, m Msg) *Envelope {
+	return &Envelope{
+		Sender:    wallettest.NewRandomAddress(rng),
+		Recipient: wallettest.NewRandomAddress(rng),
+		Msg:       m,
+	}
+}
 
 func TestCache(t *testing.T) {
 	assert, require := assert.New(t), require.New(t)

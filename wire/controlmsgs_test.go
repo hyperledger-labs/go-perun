@@ -12,20 +12,23 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package wire
+package wire_test
 
 import (
 	"testing"
+
+	iotest "perun.network/go-perun/pkg/io/test"
+	"perun.network/go-perun/wire"
 )
 
 func TestPingMsg(t *testing.T) {
-	TestMsg(t, NewPingMsg())
+	iotest.TestMsgSerializer(t, wire.NewPingMsg())
 }
 
 func TestPongMsg(t *testing.T) {
-	TestMsg(t, NewPongMsg())
+	iotest.TestMsgSerializer(t, wire.NewPongMsg())
 }
 
 func TestShutdownMsg(t *testing.T) {
-	TestMsg(t, &ShutdownMsg{"m2384ordkln fb30954390582"})
+	iotest.TestMsgSerializer(t, &wire.ShutdownMsg{"m2384ordkln fb30954390582"})
 }

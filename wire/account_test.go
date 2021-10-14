@@ -12,17 +12,19 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package wire
+package wire_test
 
 import (
 	"testing"
 
 	_ "perun.network/go-perun/backend/ethereum/wallet/test" // random init
+	iotest "perun.network/go-perun/pkg/io/test"
 	pkgtest "perun.network/go-perun/pkg/test"
 	wallettest "perun.network/go-perun/wallet/test"
+	"perun.network/go-perun/wire"
 )
 
 func TestAuthResponseMsg(t *testing.T) {
 	rng := pkgtest.Prng(t)
-	TestMsg(t, NewAuthResponseMsg(wallettest.NewRandomAccount(rng)))
+	iotest.TestMsgSerializer(t, wire.NewAuthResponseMsg(wallettest.NewRandomAccount(rng)))
 }

@@ -12,29 +12,29 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package wire
+package test
 
 import (
 	"io"
 	"testing"
 
-	"perun.network/go-perun/pkg/io/test"
+	"perun.network/go-perun/wire"
 )
 
 type serializerMsg struct {
-	Msg Msg
+	Msg wire.Msg
 }
 
 func (msg *serializerMsg) Encode(writer io.Writer) error {
-	return Encode(msg.Msg, writer)
+	return wire.Encode(msg.Msg, writer)
 }
 
 func (msg *serializerMsg) Decode(reader io.Reader) (err error) {
-	msg.Msg, err = Decode(reader)
+	msg.Msg, err = wire.Decode(reader)
 	return err
 }
 
-// TestMsg performs generic tests on a wire.Msg object.
-func TestMsg(t *testing.T, msg Msg) {
-	test.GenericSerializerTest(t, &serializerMsg{msg})
+// TestMsgSerializer performs generic serializer tests on a wire.Msg object.
+func TestMsgSerializer(t *testing.T, msg wire.Msg) {
+	GenericSerializerTest(t, &serializerMsg{msg})
 }
