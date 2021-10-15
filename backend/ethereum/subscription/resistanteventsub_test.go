@@ -103,8 +103,6 @@ func TestResistantEventSub_ReadPast(t *testing.T) {
 
 	// Receive exactly `numTx` past events.
 	{
-		ctx, cancel := context.WithTimeout(context.Background(), 100*time.Millisecond)
-		defer cancel()
 		sink := make(chan *subscription.Event, numTx+1)
 		err := sub.ReadPast(ctx, sink) // read only past events
 		require.NoError(err)
