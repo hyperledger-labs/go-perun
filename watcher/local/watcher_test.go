@@ -196,6 +196,37 @@ func Test_Watcher_Working(t *testing.T) {
 			triggerAdjEventAndExpectNotification(t, trigger, eventsForClient)
 			rs.AssertExpectations(t)
 		})
+
+		testIfEventsAreRelayed := func(
+			t *testing.T,
+			eventConstructor func(txs ...channel.Transaction,
+			) []channel.AdjudicatorEvent) {
+			// Setup: Generate the params and off-chain states for a ledger channel.
+			params, txs := randomTxsForSingleCh(rng, 2)
+
+			// Setup: Adjudicator event subscription for the ledger.
+			adjSub := &mock.AdjudicatorSubscription{}
+			trigger := setExpectationNextCall(adjSub, eventConstructor(txs[1])...)
+			rs := &mock.RegisterSubscriber{}
+			setExpectationSubscribeCall(rs, adjSub, nil)
+
+			// Setup: Initialize the watcher and start watching for the ledger.
+			w := newWatcher(t, rs)
+			_, eventsForClient := startWatchingForLedgerChannel(t, w, makeSignedStateWDummySigs(params, txs[0].State))
+
+			// Trigger the event for ledger channel and assert if they are relayed to the adjudicator subscription
+			// (eventsForClient).
+			triggerAdjEventAndExpectNotification(t, trigger, eventsForClient)
+			rs.AssertExpectations(t)
+		}
+		// Test if progressed events are relayed to the adjudicator subscription.
+		t.Run("happy/progressed_event", func(t *testing.T) {
+			testIfEventsAreRelayed(t, makeProgressedEvents)
+		})
+		// Test if concluded events are relayed to the adjudicator subscription.
+		t.Run("happy/concluded_event", func(t *testing.T) {
+			testIfEventsAreRelayed(t, makeConcludedEvents)
+		})
 	})
 
 	t.Run("ledger_channel_with_sub_channel", func(t *testing.T) {
@@ -396,6 +427,46 @@ func Test_Watcher_Working(t *testing.T) {
 			triggerAdjEventAndExpectNotification(t, triggerChild, eventsForClientChild)
 			rs.AssertExpectations(t)
 		})
+		testIfEventsAreRelayed := func(
+			t *testing.T,
+			eventConstructor func(txs ...channel.Transaction,
+			) []channel.AdjudicatorEvent) {
+			// Setup: Generate the params and off-chain states for a ledger channel and a sub-channel.
+			parentParams, parentTxs := randomTxsForSingleCh(rng, 2)
+			childParams, childTxs := randomTxsForSingleCh(rng, 2)
+			parentTxs[1].Allocation.Locked = []channel.SubAlloc{{ID: childTxs[0].ID}} // Add sub-channel to allocation.
+
+			// Setup: Adjudicator event subscription for the ledger and sub-channel.
+			adjSubParent := &mock.AdjudicatorSubscription{}
+			triggerParent := setExpectationNextCall(adjSubParent, eventConstructor(parentTxs[1])...)
+			adjSubChild := &mock.AdjudicatorSubscription{}
+			triggerChild := setExpectationNextCall(adjSubChild, eventConstructor(childTxs[1])...)
+			rs := &mock.RegisterSubscriber{}
+			setExpectationSubscribeCall(rs, adjSubParent, nil)
+			setExpectationSubscribeCall(rs, adjSubChild, nil)
+
+			// Setup: Initialize the watcher and start watching for the ledger and sub-channel.
+			w := newWatcher(t, rs)
+			parentSignedState := makeSignedStateWDummySigs(parentParams, parentTxs[0].State)
+			_, eventsForClientParent := startWatchingForLedgerChannel(t, w, parentSignedState)
+			childSignedState := makeSignedStateWDummySigs(childParams, childTxs[0].State)
+			_, eventsForClientChild := startWatchingForSubChannel(t, w, childSignedState, parentTxs[0].State.ID)
+
+			// Trigger the events for both (the ledger channel and the sub-channel) and, assert if they are relayed to
+			// the adjudicator subscription (eventsForClient).
+			triggerAdjEventAndExpectNotification(t, triggerParent, eventsForClientParent)
+			triggerAdjEventAndExpectNotification(t, triggerChild, eventsForClientChild)
+
+			rs.AssertExpectations(t)
+		}
+		// Test if progressed events are relayed to the adjudicator subscription.
+		t.Run("happy/progressed_event", func(t *testing.T) {
+			testIfEventsAreRelayed(t, makeProgressedEvents)
+		})
+		// Test if concluded events are relayed to the adjudicator subscription.
+		t.Run("happy/concluded_event", func(t *testing.T) {
+			testIfEventsAreRelayed(t, makeConcludedEvents)
+		})
 	})
 }
 
@@ -556,6 +627,36 @@ func makeRegisteredEvents(txs ...channel.Transaction) []channel.AdjudicatorEvent
 		events[i] = &channel.RegisteredEvent{
 			State: tx.State,
 			Sigs:  tx.Sigs,
+			AdjudicatorEventBase: channel.AdjudicatorEventBase{
+				IDV:      tx.State.ID,
+				TimeoutV: &channel.ElapsedTimeout{},
+				VersionV: tx.State.Version,
+			},
+		}
+	}
+	return events
+}
+
+func makeProgressedEvents(txs ...channel.Transaction) []channel.AdjudicatorEvent {
+	events := make([]channel.AdjudicatorEvent, len(txs))
+	for i, tx := range txs {
+		events[i] = &channel.ProgressedEvent{
+			State: tx.State,
+			Idx:   channel.Index(0),
+			AdjudicatorEventBase: channel.AdjudicatorEventBase{
+				IDV:      tx.State.ID,
+				TimeoutV: &channel.ElapsedTimeout{},
+				VersionV: tx.State.Version,
+			},
+		}
+	}
+	return events
+}
+
+func makeConcludedEvents(txs ...channel.Transaction) []channel.AdjudicatorEvent {
+	events := make([]channel.AdjudicatorEvent, len(txs))
+	for i, tx := range txs {
+		events[i] = &channel.ConcludedEvent{
 			AdjudicatorEventBase: channel.AdjudicatorEventBase{
 				IDV:      tx.State.ID,
 				TimeoutV: &channel.ElapsedTimeout{},

@@ -286,7 +286,15 @@ func (ch *ch) handleEventsFromChain(registerer channel.Registerer, chRegistry *r
 					log.Debug("Registered successfully")
 				}
 			}()
+		case *channel.ProgressedEvent:
+			log.Debugf("Received progressed event from chain: %v", e)
+			ch.eventsToClientPub.publish(e)
+		case *channel.ConcludedEvent:
+			log.Debugf("Received concluded event from chain: %v", e)
+			ch.eventsToClientPub.publish(e)
 		default:
+			// This should never happen.
+			log.Error("Received adjudicator event of unknown type (%T) from chain: %v", e)
 		}
 	}
 	err := ch.eventsFromChainSub.Err()
