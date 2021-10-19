@@ -21,6 +21,7 @@ import (
 	"github.com/pkg/errors"
 
 	"perun.network/go-perun/channel"
+	"perun.network/go-perun/log"
 	"perun.network/go-perun/watcher"
 )
 
@@ -35,6 +36,10 @@ type (
 		id     channel.ID
 		params *channel.Params
 		parent *ch
+
+		eventsFromChainSub channel.AdjudicatorSubscription
+		eventsToClientPub  adjudicatorPub
+		statesSub          statesSub
 
 		// subChsAccess mutex is used for thread-safe access of a parent
 		// channel and all of its sub-channels. For example, while adding new
@@ -93,29 +98,64 @@ func (w *Watcher) startWatching(
 ) (watcher.StatesPub, watcher.AdjudicatorSub, error) {
 	id := signedState.State.ID
 
+	var statesPubSub *statesPubSub
+	var eventsToClientPubSub *adjudicatorPubSub
 	chInitializer := func() (*ch, error) {
-		_, err := w.rs.Subscribe(ctx, id)
+		eventsFromChainSub, err := w.rs.Subscribe(ctx, id)
 		if err != nil {
 			return nil, errors.WithMessage(err, "subscribing to adjudicator events from blockchain")
 		}
-		ch := newCh(id, parent, signedState.Params)
-		return ch, nil
+		statesPubSub = newStatesPubSub()
+		eventsToClientPubSub = newAdjudicatorEventsPubSub()
+		return newCh(id, parent, signedState.Params, eventsFromChainSub, eventsToClientPubSub, statesPubSub), nil
 	}
 
-	_, err := w.registry.addIfSucceeds(id, chInitializer)
+	ch, err := w.registry.addIfSucceeds(id, chInitializer)
 	if err != nil {
 		return nil, nil, err
 	}
-	statesPubSub := newStatesPubSub()
-	eventsToClientPubSub := newAdjudicatorEventsPubSub()
+	go ch.handleEventsFromChain(w.rs, w.registry)
 
 	return statesPubSub, eventsToClientPubSub, nil
 }
 
-func newCh(id channel.ID, parent *ch, params *channel.Params) *ch {
+func newCh(
+	id channel.ID,
+	parent *ch,
+	params *channel.Params,
+	eventsFromChainSub channel.AdjudicatorSubscription,
+	eventsToClientPub adjudicatorPub,
+	statesSub statesSub,
+) *ch {
 	return &ch{
 		id:     id,
 		params: params,
 		parent: parent,
+
+		eventsFromChainSub: eventsFromChainSub,
+		eventsToClientPub:  eventsToClientPub,
+		statesSub:          statesSub,
+	}
+}
+
+// handleEventsFromChain receives adjudicator events from the blockchain and
+// relays it to the client.
+//
+// It should be started as a go-routine and returns when the subscription for
+// adjudicator events from blockchain is closed.
+func (ch *ch) handleEventsFromChain(registerer channel.Registerer, chRegistry *registry) {
+	for e := ch.eventsFromChainSub.Next(); e != nil; e = ch.eventsFromChainSub.Next() {
+		switch e.(type) {
+		case *channel.RegisteredEvent:
+			log := log.WithFields(log.Fields{"ID": e.ID(), "Version": e.Version()})
+			log.Debug("Received registered event from chain")
+			ch.eventsToClientPub.publish(e)
+
+		default:
+		}
+	}
+	err := ch.eventsFromChainSub.Err()
+	if err != nil {
+		log.Error("Subscription to adjudicator events from chain was closed with error: %v", err)
 	}
 }

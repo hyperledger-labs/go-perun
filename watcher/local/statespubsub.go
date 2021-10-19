@@ -36,8 +36,7 @@ type (
 	// the client.
 	statesSub interface {
 		statesStream() <-chan channel.Transaction
-		error() error
-		close() error
+		close()
 	}
 )
 
