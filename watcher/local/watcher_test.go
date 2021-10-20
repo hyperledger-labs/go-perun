@@ -22,8 +22,10 @@ import (
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/assert"
 	testifyMock "github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
+	"go.uber.org/goleak"
 
 	ethChannel "perun.network/go-perun/backend/ethereum/channel"
 	_ "perun.network/go-perun/backend/ethereum/channel/test" // For initilizing channeltest
@@ -470,6 +472,240 @@ func Test_Watcher_Working(t *testing.T) {
 	})
 }
 
+func Test_Watcher_StopWatching(t *testing.T) {
+	rng := test.Prng(t)
+
+	t.Run("ledger_channel_without_sub_channel", func(t *testing.T) {
+		f := func(t *testing.T, errOnClose error) {
+			defer goleak.VerifyNone(t, goleak.IgnoreCurrent())
+
+			params, txs := randomTxsForSingleCh(rng, 1)
+			adjSub := &mock.AdjudicatorSubscription{}
+			trigger := setExpectationNextCall(adjSub)
+			setExpectationCloseCallErrCall(adjSub, trigger, errOnClose)
+
+			rs := &mock.RegisterSubscriber{}
+			setExpectationSubscribeCall(rs, adjSub, nil)
+			w := newWatcher(t, rs)
+			_, _ = startWatchingForLedgerChannel(t, w, makeSignedStateWDummySigs(params, txs[0].State))
+
+			require.NoError(t, w.StopWatching(context.Background(), txs[0].State.ID))
+			rs.AssertExpectations(t)
+		}
+
+		// Errors from adjudicator subscription (events from chain) does not affect stop watching.
+		// They are only logged by the watcher and not returned to the user.
+		t.Run("happy/adjSub_noError", func(t *testing.T) { f(t, nil) })
+		t.Run("happy/adjSub_error", func(t *testing.T) { f(t, assert.AnError) })
+		t.Run("happy/concurrency", func(t *testing.T) {
+			// defer goleak.VerifyNone(t, goleak.IgnoreCurrent())
+
+			params, txs := randomTxsForSingleCh(rng, 1)
+			adjSub := &mock.AdjudicatorSubscription{}
+			trigger := setExpectationNextCall(adjSub)
+			setExpectationCloseCallErrCall(adjSub, trigger, nil)
+
+			rs := &mock.RegisterSubscriber{}
+			setExpectationSubscribeCall(rs, adjSub, nil)
+			w := newWatcher(t, rs)
+			_, _ = startWatchingForLedgerChannel(t, w, makeSignedStateWDummySigs(params, txs[0].State))
+
+			wg := sync.WaitGroup{}
+			for i := 0; i < 2; i++ {
+				wg.Add(1)
+				go func() {
+					w.StopWatching(context.Background(), txs[0].State.ID)
+					wg.Done()
+				}()
+			}
+			wg.Wait()
+			rs.AssertExpectations(t)
+		})
+	})
+
+	t.Run("ledger_channel_with_sub_channel", func(t *testing.T) {
+		t.Run("happy/settleOnLedger_stopChild_stopParent", func(t *testing.T) {
+			defer goleak.VerifyNone(t, goleak.IgnoreCurrent())
+			parentParams, parentTxs := randomTxsForSingleCh(rng, 3)
+			childParams, childTxs := randomTxsForSingleCh(rng, 1)
+			parentTxs[1].Allocation.Locked = []channel.SubAlloc{{ID: childTxs[0].ID}} // sub-channel funding.
+			parentTxs[2].Allocation.Locked = []channel.SubAlloc{}                     // sub-channel withdrawal.
+
+			adjSubParent := &mock.AdjudicatorSubscription{}
+			triggerParent := setExpectationNextCall(adjSubParent)
+			setExpectationCloseCallErrCall(adjSubParent, triggerParent, nil)
+			adjSubChild := &mock.AdjudicatorSubscription{}
+			triggerChild := setExpectationNextCall(adjSubChild)
+			setExpectationCloseCallErrCall(adjSubChild, triggerChild, nil)
+
+			rs := &mock.RegisterSubscriber{}
+			setExpectationSubscribeCall(rs, adjSubParent, nil)
+			setExpectationSubscribeCall(rs, adjSubChild, nil)
+
+			w := newWatcher(t, rs)
+			// Parent: Start watching and publish sub-channel funding transaction.
+			parentSignedState := makeSignedStateWDummySigs(parentParams, parentTxs[0].State)
+			statesPub, _ := startWatchingForLedgerChannel(t, w, parentSignedState)
+			require.NoError(t, statesPub.Publish(context.Background(), parentTxs[1]))
+
+			// Child: Start watching. Parent: Publish sub-channel withdrawal transaction
+			childSignedState := makeSignedStateWDummySigs(childParams, childTxs[0].State)
+			_, _ = startWatchingForSubChannel(t, w, childSignedState, parentTxs[0].State.ID)
+			require.NoError(t, statesPub.Publish(context.Background(), parentTxs[2]))
+
+			// Child, then Parent: Stop Watching.
+			require.NoError(t, w.StopWatching(context.Background(), childTxs[0].State.ID))
+			require.NoError(t, w.StopWatching(context.Background(), parentTxs[0].State.ID))
+
+			rs.AssertExpectations(t)
+		})
+
+		t.Run("happy/stopChild_registeredEventNoDispute_stopParent", func(t *testing.T) {
+			defer goleak.VerifyNone(t, goleak.IgnoreCurrent())
+			parentParams, parentTxs := randomTxsForSingleCh(rng, 3)
+			childParams, childTxs := randomTxsForSingleCh(rng, 3)
+			parentTxs[2].Allocation.Locked = []channel.SubAlloc{{ID: childTxs[0].ID}} // sub-channel funding.
+
+			adjSubParent := &mock.AdjudicatorSubscription{}
+			triggerParent := setExpectationNextCall(adjSubParent, makeRegisteredEvents(parentTxs[2])[0])
+			setExpectationCloseCallErrCall(adjSubParent, triggerParent, nil)
+			adjSubChild := &mock.AdjudicatorSubscription{}
+			triggerChild := setExpectationNextCall(adjSubChild)
+			setExpectationCloseCallErrCall(adjSubChild, triggerChild, nil)
+
+			rs := &mock.RegisterSubscriber{}
+			setExpectationSubscribeCall(rs, adjSubParent, nil)
+			setExpectationSubscribeCall(rs, adjSubChild, nil)
+
+			w := newWatcher(t, rs)
+			// Parent: Start watching and publish sub-channel funding transaction.
+			parentSignedState := makeSignedStateWDummySigs(parentParams, parentTxs[0].State)
+			parentStatesPub, eventsForClientParent := startWatchingForLedgerChannel(t, w, parentSignedState)
+			require.NoError(t, parentStatesPub.Publish(context.Background(), parentTxs[1]))
+			require.NoError(t, parentStatesPub.Publish(context.Background(), parentTxs[2]))
+
+			// Child: Start watching.
+			childSignedState := makeSignedStateWDummySigs(childParams, childTxs[0].State)
+			_, _ = startWatchingForSubChannel(t, w, childSignedState, parentTxs[0].State.ID)
+
+			// Child: Stop watching.
+			require.NoError(t, w.StopWatching(context.Background(), childTxs[0].State.ID))
+			// Parent: Trigger event with latest state and expect refutation with parent, child transactions.
+			triggerAdjEventAndExpectNotification(t, triggerParent, eventsForClientParent)
+			// Parent: Stop watching.
+			require.NoError(t, w.StopWatching(context.Background(), parentTxs[0].State.ID))
+
+			rs.AssertExpectations(t)
+		})
+
+		t.Run("happy/stopChild_registeredEventDispute_stopParent", func(t *testing.T) {
+			defer goleak.VerifyNone(t, goleak.IgnoreCurrent())
+			parentParams, parentTxs := randomTxsForSingleCh(rng, 3)
+			childParams, childTxs := randomTxsForSingleCh(rng, 3)
+			parentTxs[2].Allocation.Locked = []channel.SubAlloc{{ID: childTxs[0].ID}} // sub-channel funding.
+
+			adjSubParent := &mock.AdjudicatorSubscription{}
+			triggerParent := setExpectationNextCall(adjSubParent, makeRegisteredEvents(parentTxs[1])[0])
+			setExpectationCloseCallErrCall(adjSubParent, triggerParent, nil)
+			adjSubChild := &mock.AdjudicatorSubscription{}
+			triggerChild := setExpectationNextCall(adjSubChild)
+			setExpectationCloseCallErrCall(adjSubChild, triggerChild, nil)
+
+			rs := &mock.RegisterSubscriber{}
+			setExpectationSubscribeCall(rs, adjSubParent, nil)
+			setExpectationSubscribeCall(rs, adjSubChild, nil)
+			setExpectationRegisterCalls(t, rs, &channelTree{parentTxs[2], []channel.Transaction{childTxs[0]}})
+
+			w := newWatcher(t, rs)
+			// Parent: Start watching and publish sub-channel funding transaction.
+			parentSignedState := makeSignedStateWDummySigs(parentParams, parentTxs[0].State)
+			parentStatesPub, eventsForClientParent := startWatchingForLedgerChannel(t, w, parentSignedState)
+			require.NoError(t, parentStatesPub.Publish(context.Background(), parentTxs[1]))
+			require.NoError(t, parentStatesPub.Publish(context.Background(), parentTxs[2]))
+
+			// Child: Start watching.
+			childSignedState := makeSignedStateWDummySigs(childParams, childTxs[0].State)
+			_, _ = startWatchingForSubChannel(t, w, childSignedState, parentTxs[0].State.ID)
+
+			// Child: Stop watching.
+			require.NoError(t, w.StopWatching(context.Background(), childTxs[0].State.ID))
+			// Parent: Trigger event with latest state and expect refutation with parent, child transactions.
+			triggerAdjEventAndExpectNotification(t, triggerParent, eventsForClientParent)
+			// Parent: Stop watching.
+			require.NoError(t, w.StopWatching(context.Background(), parentTxs[0].State.ID))
+
+			rs.AssertExpectations(t)
+		})
+
+		t.Run("error/stopParent_woSettleOnParent_woStopChild", func(t *testing.T) {
+			parentParams, parentTxs := randomTxsForSingleCh(rng, 3)
+			childParams, childTxs := randomTxsForSingleCh(rng, 3)
+			parentTxs[2].Allocation.Locked = []channel.SubAlloc{{ID: childTxs[0].ID}} // sub-channel funding.
+
+			adjSubParent := &mock.AdjudicatorSubscription{}
+			triggerParent := setExpectationNextCall(adjSubParent)
+			setExpectationCloseCallErrCall(adjSubParent, triggerParent, nil)
+			adjSubChild := &mock.AdjudicatorSubscription{}
+			triggerChild := setExpectationNextCall(adjSubChild)
+			setExpectationCloseCallErrCall(adjSubChild, triggerChild, nil)
+
+			rs := &mock.RegisterSubscriber{}
+			setExpectationSubscribeCall(rs, adjSubParent, nil)
+			setExpectationSubscribeCall(rs, adjSubChild, nil)
+
+			w := newWatcher(t, rs)
+			// Parent: Start watching and publish sub-channel funding transaction.
+			parentSignedState := makeSignedStateWDummySigs(parentParams, parentTxs[0].State)
+			statesSub, _ := startWatchingForLedgerChannel(t, w, parentSignedState)
+			require.NoError(t, statesSub.Publish(context.Background(), parentTxs[1]))
+			require.NoError(t, statesSub.Publish(context.Background(), parentTxs[2]))
+
+			// Child: Start watching.
+			childSignedState := makeSignedStateWDummySigs(childParams, childTxs[0].State)
+			_, _ = startWatchingForSubChannel(t, w, childSignedState, parentTxs[0].State.ID)
+
+			// Parent: Stop watching (error).
+			require.Error(t, w.StopWatching(context.Background(), parentTxs[0].State.ID))
+
+			rs.AssertExpectations(t)
+		})
+
+		t.Run("error/stopParent_SettleOnParent_woStopChild", func(t *testing.T) {
+			parentParams, parentTxs := randomTxsForSingleCh(rng, 3)
+			childParams, childTxs := randomTxsForSingleCh(rng, 3)
+			parentTxs[1].Allocation.Locked = []channel.SubAlloc{{ID: childTxs[0].ID}} // sub-channel funding.
+			parentTxs[2].Allocation.Locked = []channel.SubAlloc{}                     // sub-channel withdrawal.
+
+			adjSubParent := &mock.AdjudicatorSubscription{}
+			triggerParent := setExpectationNextCall(adjSubParent)
+			setExpectationCloseCallErrCall(adjSubParent, triggerParent, nil)
+			adjSubChild := &mock.AdjudicatorSubscription{}
+			triggerChild := setExpectationNextCall(adjSubChild)
+			setExpectationCloseCallErrCall(adjSubChild, triggerChild, nil)
+
+			rs := &mock.RegisterSubscriber{}
+			setExpectationSubscribeCall(rs, adjSubParent, nil)
+			setExpectationSubscribeCall(rs, adjSubChild, nil)
+
+			w := newWatcher(t, rs)
+			// Parent: Start watching and publish sub-channel funding transaction.
+			parentSignedState := makeSignedStateWDummySigs(parentParams, parentTxs[0].State)
+			statesSub, _ := startWatchingForLedgerChannel(t, w, parentSignedState)
+			require.NoError(t, statesSub.Publish(context.Background(), parentTxs[1]))
+			require.NoError(t, statesSub.Publish(context.Background(), parentTxs[2]))
+
+			// Child: Start watching.
+			childSignedState := makeSignedStateWDummySigs(childParams, childTxs[0].State)
+			_, _ = startWatchingForSubChannel(t, w, childSignedState, parentTxs[0].State.ID)
+
+			// Parent: Stop watching (error).
+			require.Error(t, w.StopWatching(context.Background(), parentTxs[0].State.ID))
+
+			rs.AssertExpectations(t)
+		})
+	})
+}
+
 func newWatcher(t *testing.T, rs channel.RegisterSubscriber) *local.Watcher {
 	t.Helper()
 
@@ -502,7 +738,10 @@ func randomTxsForSingleCh(rng *rand.Rand, n int) (*channel.Params, []channel.Tra
 // handles contains the handles (signalling channels of type (chan time.Time)) for triggering these events.
 type adjEventSource struct {
 	adjEvents chan channel.AdjudicatorEvent
-	handles   chan chan time.Time // chan time.Time is the signalling channel type required by testify/mock.WaitUntil.
+
+	// chan time.Time is the signalling channel type required by testify/mock.WaitUntil.
+	handles     chan chan time.Time
+	closeHandle chan chan time.Time
 }
 
 // trigger closes a signalling channel and returns the corresponding adjudicator event.
@@ -513,6 +752,15 @@ func (t *adjEventSource) trigger() channel.AdjudicatorEvent {
 		return <-t.adjEvents
 	default:
 		panic(fmt.Sprintf("Number of triggers exceeded maximum limit of %d", cap(t.handles)))
+	}
+}
+
+func (t *adjEventSource) close() {
+	select {
+	case closeHandle := <-t.closeHandle:
+		close(closeHandle)
+	default:
+		panic("Close called more than once")
 	}
 }
 
@@ -538,8 +786,9 @@ func setExpectationNextCall(
 	adjEvents ...channel.AdjudicatorEvent,
 ) adjEventSource {
 	triggers := adjEventSource{
-		handles:   make(chan chan time.Time, len(adjEvents)),
-		adjEvents: make(chan channel.AdjudicatorEvent, len(adjEvents)),
+		handles:     make(chan chan time.Time, len(adjEvents)),
+		adjEvents:   make(chan channel.AdjudicatorEvent, len(adjEvents)),
+		closeHandle: make(chan chan time.Time, 1),
 	}
 
 	for i := range adjEvents {
@@ -550,10 +799,19 @@ func setExpectationNextCall(
 		adjSub.On("Next").Return(adjEvents[i]).WaitUntil(handle).Once()
 	}
 	// Set up a transaction, that cannot be triggered.
-	handle := make(chan time.Time)
-	adjSub.On("Next").Return(channel.RegisteredEvent{}).WaitUntil(handle).Once()
+	closeHandle := make(chan time.Time)
+	triggers.closeHandle <- closeHandle
+	adjSub.On("Next").Return(nil).WaitUntil(closeHandle).Once()
 
 	return triggers
+}
+
+func setExpectationCloseCallErrCall(adjSub *mock.AdjudicatorSubscription, trigger adjEventSource, errOnClose error) {
+	adjSub.On("Close").Run(func(_ testifyMock.Arguments) {
+		time.Sleep(1 * time.Millisecond) // Simulate closure of actual subscription.
+		trigger.close()
+	}).Return(errOnClose)
+	adjSub.On("Err").Return(nil)
 }
 
 type channelTree struct {
