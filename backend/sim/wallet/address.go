@@ -19,15 +19,19 @@ import (
 	"bytes"
 	"crypto/ecdsa"
 	"encoding/hex"
+	"fmt"
 	"io"
 	"math/big"
 
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/pkg/errors"
 
 	"perun.network/go-perun/log"
 	perunio "perun.network/go-perun/pkg/io"
 	"perun.network/go-perun/wallet"
 )
+
+const AddressLength = 64
 
 // Address represents a simulated address.
 type Address ecdsa.PublicKey
@@ -116,20 +120,39 @@ func (a *Address) Cmp(addr wallet.Address) int {
 // Encode encodes this address into an io.Writer. Part of the
 // go-perun/pkg/io.Serializer interface.
 func (a *Address) Encode(w io.Writer) error {
+	data, err := a.MarshalBinary()
+	if err != nil {
+		return errors.WithMessage(err, "unmarshaling address")
+	}
+	return perunio.Encode(w, data)
+}
+
+// MarshalBinary marhals the address into a binary form.
+// Error will always be nil, it is for implementing BinaryMarshaler.
+func (a *Address) MarshalBinary() ([]byte, error) {
 	data := a.ByteArray()
-	return perunio.Encode(w, data[:])
+	return data[:], nil
+}
+
+// UnmarshalBinary unmarshals the binary representation of the address.
+func (a *Address) UnmarshalBinary(data []byte) (err error) {
+	if len(data) != AddressLength {
+		return fmt.Errorf("incorrect length, required %d", common.AddressLength)
+	}
+
+	a.X = new(big.Int).SetBytes(data[:32])
+	a.Y = new(big.Int).SetBytes(data[32:])
+	a.Curve = curve
+	return nil
 }
 
 // Decode decodes an address from an io.Reader. Part of the
 // go-perun/pkg/io.Serializer interface.
 func (a *Address) Decode(r io.Reader) error {
-	data := make([]byte, 64)
-	if err := perunio.Decode(r, &data); err != nil {
+	data := make([]byte, AddressLength)
+	err := perunio.Decode(r, &data)
+	if err != nil {
 		return errors.WithMessage(err, "decoding address")
 	}
-	a.X = new(big.Int).SetBytes(data[:32])
-	a.Y = new(big.Int).SetBytes(data[32:])
-	a.Curve = curve
-
-	return nil
+	return errors.WithMessage(a.UnmarshalBinary(data), "decoding address")
 }

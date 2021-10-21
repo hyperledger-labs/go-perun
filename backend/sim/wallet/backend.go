@@ -34,6 +34,10 @@ type Backend struct{}
 
 var _ wallet.Backend = new(Backend)
 
+func (b *Backend) NewAddress() wallet.Address {
+	return &Address{}
+}
+
 // DecodeAddress decodes an address from the given Reader.
 func (b *Backend) DecodeAddress(r io.Reader) (wallet.Address, error) {
 	var addr Address

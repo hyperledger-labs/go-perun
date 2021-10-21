@@ -15,6 +15,7 @@
 package wallet
 
 import (
+	"encoding"
 	"fmt"
 	stdio "io"
 	"strings"
@@ -27,6 +28,9 @@ import (
 // Address represents a identifier used in a cryptocurrency.
 // It is dependent on the currency and needs to be implemented for every blockchain.
 type Address interface {
+	encoding.BinaryMarshaler
+	encoding.BinaryUnmarshaler
+
 	// Encoder should write an address that can be decoded with Backend.DecodeAddress.
 	io.Encoder
 	// Bytes should return the representation of the address as byte slice.

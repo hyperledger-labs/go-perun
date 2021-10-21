@@ -34,6 +34,10 @@ const SigLen = 65
 // compile-time check that the ethereum backend implements the perun backend.
 var _ wallet.Backend = (*Backend)(nil)
 
+func (*Backend) NewAddress() wallet.Address {
+	return NewAddress()
+}
+
 // DecodeAddress decodes an address from an io.Reader.
 func (*Backend) DecodeAddress(r io.Reader) (wallet.Address, error) {
 	return DecodeAddress(r)
@@ -51,7 +55,7 @@ func (*Backend) VerifySignature(msg []byte, sig wallet.Sig, a wallet.Address) (b
 
 // DecodeAddress decodes an address from an io.Reader.
 func DecodeAddress(r io.Reader) (wallet.Address, error) {
-	addr := new(Address)
+	addr := NewAddress()
 	return addr, addr.Decode(r)
 }
 
@@ -59,6 +63,10 @@ func DecodeAddress(r io.Reader) (wallet.Address, error) {
 func DecodeSig(r io.Reader) (wallet.Sig, error) {
 	buf := make(wallet.Sig, SigLen)
 	return buf, perunio.Decode(r, &buf)
+}
+
+func NewAddress() *Address {
+	return &Address{}
 }
 
 // VerifySignature verifies if a signature was made by this account.

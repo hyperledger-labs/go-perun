@@ -16,6 +16,7 @@ package wallet
 
 import (
 	"bytes"
+	"fmt"
 	"io"
 
 	"github.com/ethereum/go-ethereum/common"
@@ -35,10 +36,26 @@ func (a *Address) Bytes() []byte {
 	return (*common.Address)(a).Bytes()
 }
 
+// MarshalBinary marhals the address into a binary form.
+// Error will always be nil, it is for implementing BinaryMarshaler.
+func (a *Address) MarshalBinary() ([]byte, error) {
+	return (*common.Address)(a).Bytes(), nil
+}
+
+// UnmarshalBinary unmarshals the binary representation of the address.
+func (a *Address) UnmarshalBinary(data []byte) (err error) {
+	if len(data) != common.AddressLength {
+		return fmt.Errorf("incorrect length, required %d", common.AddressLength)
+	}
+	(*common.Address)(a).SetBytes(data)
+	return nil
+}
+
 // Encode encodes this address into a io.Writer. Part of the
 // go-perun/pkg/io.Serializer interface.
 func (a *Address) Encode(w io.Writer) error {
-	_, err := w.Write(a.Bytes())
+	data, _ := a.MarshalBinary()
+	_, err := w.Write(data)
 	return err
 }
 
@@ -47,8 +64,10 @@ func (a *Address) Encode(w io.Writer) error {
 func (a *Address) Decode(r io.Reader) error {
 	buf := make([]byte, common.AddressLength)
 	_, err := io.ReadFull(r, buf)
-	(*common.Address)(a).SetBytes(buf)
-	return errors.Wrap(err, "error decoding address")
+	if err != nil {
+		return errors.Wrap(err, "error decoding address")
+	}
+	return errors.Wrap(a.UnmarshalBinary(buf), "error decoding address")
 }
 
 // String converts this address to a string.

@@ -24,6 +24,8 @@ var backend Backend
 
 // Backend provides useful methods for this blockchain.
 type Backend interface {
+	NewAddress() Address
+
 	// DecodeAddress should read an address that was encoded with Address.Encode.
 	DecodeAddress(io.Reader) (Address, error)
 
