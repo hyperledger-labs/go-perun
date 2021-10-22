@@ -35,7 +35,7 @@ type (
 	// received from the blockchain to the client.
 	adjudicatorPub interface {
 		publish(channel.AdjudicatorEvent)
-		close() error
+		close()
 	}
 )
 
