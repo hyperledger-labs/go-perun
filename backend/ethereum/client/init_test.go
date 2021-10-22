@@ -26,9 +26,7 @@ import (
 func init() {
 	plogrus.Set(logrus.WarnLevel, &logrus.TextFormatter{ForceColors: true})
 
-	// Eth client tests use the payment app for now...
-	// TODO: This has to be set to the deployed app contract (or counterfactual
-	// address of it) when we start using it in tests.
+	// Eth client tests use the payment app.
 	test.SetAppRandomizer(new(payment.Randomizer))
 	// Fix the finality depth for testing.
 	channel.TxFinalityDepth = 3
