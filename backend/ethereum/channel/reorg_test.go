@@ -22,7 +22,6 @@ import (
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/stretchr/testify/require"
 
-	"perun.network/go-perun/backend/ethereum/channel"
 	"perun.network/go-perun/backend/ethereum/channel/test"
 	pkgtest "perun.network/go-perun/pkg/test"
 )
@@ -37,16 +36,10 @@ func TestSimBackend_Reorg(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
 	defer cancel()
 
-	// Set the TxFinalityDepth to 1 when using non-reorg resistant subs.
-	oldFd := channel.TxFinalityDepth
-	channel.TxFinalityDepth = 1
-	defer func() {
-		channel.TxFinalityDepth = oldFd
-	}()
-
+	txFinalityDepth := uint64(1)
 	t.Run("same-order", func(t *testing.T) {
 		rng := pkgtest.Prng(t)
-		s := test.NewTokenSetup(ctx, t, rng)
+		s := test.NewTokenSetup(ctx, t, rng, txFinalityDepth)
 		s.StartSubs()
 		defer s.StopSubs()
 
@@ -65,7 +58,7 @@ func TestSimBackend_Reorg(t *testing.T) {
 	})
 	t.Run("remove-approval", func(t *testing.T) {
 		rng := pkgtest.Prng(t)
-		s := test.NewTokenSetup(ctx, t, rng)
+		s := test.NewTokenSetup(ctx, t, rng, txFinalityDepth)
 		s.StartSubs()
 		defer s.StopSubs()
 
@@ -86,7 +79,7 @@ func TestSimBackend_Reorg(t *testing.T) {
 	})
 	t.Run("remove-transfer", func(t *testing.T) {
 		rng := pkgtest.Prng(t)
-		s := test.NewTokenSetup(ctx, t, rng)
+		s := test.NewTokenSetup(ctx, t, rng, txFinalityDepth)
 		s.StartSubs()
 		defer s.StopSubs()
 
@@ -106,7 +99,7 @@ func TestSimBackend_Reorg(t *testing.T) {
 	})
 	t.Run("remove-transfer-rebirth", func(t *testing.T) {
 		rng := pkgtest.Prng(t)
-		s := test.NewTokenSetup(ctx, t, rng)
+		s := test.NewTokenSetup(ctx, t, rng, txFinalityDepth)
 		s.StartSubs()
 		defer s.StopSubs()
 
@@ -129,7 +122,7 @@ func TestSimBackend_Reorg(t *testing.T) {
 	})
 	t.Run("remove-both", func(t *testing.T) {
 		rng := pkgtest.Prng(t)
-		s := test.NewTokenSetup(ctx, t, rng)
+		s := test.NewTokenSetup(ctx, t, rng, txFinalityDepth)
 		s.StartSubs()
 		defer s.StopSubs()
 
@@ -150,7 +143,7 @@ func TestSimBackend_Reorg(t *testing.T) {
 	})
 	t.Run("switch-tx", func(t *testing.T) {
 		rng := pkgtest.Prng(t)
-		s := test.NewTokenSetup(ctx, t, rng)
+		s := test.NewTokenSetup(ctx, t, rng, txFinalityDepth)
 		s.StartSubs()
 		defer s.StopSubs()
 

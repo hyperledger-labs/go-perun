@@ -18,7 +18,6 @@ import (
 	"github.com/sirupsen/logrus"
 
 	"perun.network/go-perun/apps/payment"
-	"perun.network/go-perun/backend/ethereum/channel"
 	"perun.network/go-perun/channel/test"
 	plogrus "perun.network/go-perun/log/logrus"
 )
@@ -28,6 +27,4 @@ func init() {
 
 	// Eth client tests use the payment app.
 	test.SetAppRandomizer(new(payment.Randomizer))
-	// Fix the finality depth for testing.
-	channel.TxFinalityDepth = 3
 }

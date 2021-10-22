@@ -43,7 +43,7 @@ func (a *Adjudicator) Subscribe(ctx context.Context, chID channel.ID) (channel.A
 			Filter: [][]interface{}{{chID}},
 		}
 	}
-	sub, err := subscription.Subscribe(ctx, a.ContractBackend, a.bound, eFact, startBlockOffset, TxFinalityDepth)
+	sub, err := subscription.Subscribe(ctx, a.ContractBackend, a.bound, eFact, startBlockOffset, a.txFinalityDepth)
 	if err != nil {
 		return nil, errors.WithMessage(err, "creating filter-watch event subscription")
 	}

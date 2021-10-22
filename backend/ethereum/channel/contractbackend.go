@@ -39,10 +39,6 @@ const startBlockOffset = 100
 // GasLimit is the max amount of gas we want to send per transaction.
 const GasLimit = 1000000
 
-// TxFinalityDepth defines in how many consecutive blocks a TX has to be
-// included to be considered final. Must be at least 1.
-var TxFinalityDepth uint64 = 6
-
 // errTxTimedOut is an internal named error that with an empty message.
 // Because calling function is expected to check for this error and
 // create a TxTimedoutError with additional context.
@@ -68,15 +64,19 @@ type ContractBackend struct {
 	tr                Transactor
 	nonceMtx          *sync.Mutex
 	expectedNextNonce map[common.Address]uint64
+	txFinalityDepth   uint64
 }
 
 // NewContractBackend creates a new ContractBackend with the given parameters.
-func NewContractBackend(cf ContractInterface, tr Transactor) ContractBackend {
+// txFinalityDepth defines in how many consecutive blocks a TX has to be
+// included to be considered final. Must be at least 1.
+func NewContractBackend(cf ContractInterface, tr Transactor, txFinalityDepth uint64) ContractBackend {
 	return ContractBackend{
 		ContractInterface: cf,
 		tr:                tr,
 		expectedNextNonce: make(map[common.Address]uint64),
 		nonceMtx:          &sync.Mutex{},
+		txFinalityDepth:   txFinalityDepth,
 	}
 }
 
@@ -170,7 +170,7 @@ func (c *ContractBackend) NewTransactor(ctx context.Context, gasLimit uint64,
 // included in at least `TxFinalityDepth` many blocks at one point in time.
 // Returns `txTimedOutError` on context timeout or cancel.
 func (c *ContractBackend) ConfirmTransaction(ctx context.Context, tx *types.Transaction, acc accounts.Account) (*types.Receipt, error) {
-	receipt, err := c.confirmNTimes(ctx, tx, TxFinalityDepth)
+	receipt, err := c.confirmNTimes(ctx, tx, c.txFinalityDepth)
 	if err != nil {
 		if pcontext.IsContextError(err) {
 			err = errTxTimedOut

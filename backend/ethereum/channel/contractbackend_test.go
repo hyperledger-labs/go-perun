@@ -65,7 +65,7 @@ func Test_calcFundingIDs(t *testing.T) {
 
 func Test_NewTransactor(t *testing.T) {
 	rng := pkgtest.Prng(t)
-	s := test.NewSimSetup(rng)
+	s := test.NewSimSetup(rng, TxFinalityDepth)
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	tests := []struct {
@@ -91,7 +91,7 @@ func Test_NewTransactor(t *testing.T) {
 
 func Test_NewWatchOpts(t *testing.T) {
 	rng := pkgtest.Prng(t)
-	s := test.NewSimSetup(rng)
+	s := test.NewSimSetup(rng, TxFinalityDepth)
 	watchOpts, err := s.CB.NewWatchOpts(context.Background())
 	require.NoError(t, err, "Creating watchopts on valid ContractBackend should succeed")
 	assert.Equal(t, context.Background(), watchOpts.Context, "context should be set")
@@ -109,7 +109,7 @@ func Test_NewWatchOpts(t *testing.T) {
 // Does not test reorgs.
 func Test_ConfirmTransaction(t *testing.T) {
 	rng := pkgtest.Prng(t)
-	s := test.NewSimSetup(rng)
+	s := test.NewSimSetup(rng, TxFinalityDepth)
 	ctx, cancel := context.WithTimeout(context.Background(), defaultTestTimeout)
 	defer cancel()
 
@@ -140,7 +140,7 @@ func Test_ConfirmTransaction(t *testing.T) {
 	}()
 
 	// Create new blocks.
-	for i := 0; i < int(ethchannel.TxFinalityDepth); i++ {
+	for i := 0; i < int(TxFinalityDepth); i++ {
 		// Check that it is not yet confirmed.
 		select {
 		case <-time.After(100 * time.Millisecond):
@@ -157,24 +157,24 @@ func Test_ConfirmTransaction(t *testing.T) {
 	h, err := s.CB.BlockByNumber(ctx, nil)
 	require.NoError(t, err)
 	// Assert that it got included in `TxBlockFinality` many blocks.
-	assert.Equal(t, ethchannel.TxFinalityDepth, (h.NumberU64()-r.BlockNumber.Uint64())+1)
+	assert.Equal(t, TxFinalityDepth, (h.NumberU64()-r.BlockNumber.Uint64())+1)
 }
 
 // Test_ReorgConfirmTransaction tests that a TX is confirmed correctly after a
 // reorg.
 func Test_ReorgConfirmTransaction(t *testing.T) {
 	// Test does not make sense for Finality < 2.
-	require.Greater(t, ethchannel.TxFinalityDepth, uint64(1))
+	require.Greater(t, TxFinalityDepth, uint64(1))
 	rng := pkgtest.Prng(t)
 	ctx, cancel := context.WithTimeout(context.Background(), defaultTestTimeout)
 	defer cancel()
-	s := test.NewTokenSetup(ctx, t, rng)
+	s := test.NewTokenSetup(ctx, t, rng, TxFinalityDepth)
 
 	// Send the TX and mine one block.
 	tx := s.IncAllowance(ctx)
 
 	// Wait `TxFinalityDepth - 2` many blocks.
-	for i := uint64(0); i < ethchannel.TxFinalityDepth-2; i++ {
+	for i := uint64(0); i < TxFinalityDepth-2; i++ {
 		s.SB.Commit()
 	}
 
@@ -183,8 +183,8 @@ func Test_ReorgConfirmTransaction(t *testing.T) {
 
 	// Do a reorg and add two more blocks. Move the TX one block forward.
 	// The TX should now be included in `TxFinalityDepth` many blocks.
-	s.SB.Reorg(ctx, ethchannel.TxFinalityDepth-1, func(txs []types.Transactions) []types.Transactions {
-		ret := make([]types.Transactions, ethchannel.TxFinalityDepth+1)
+	s.SB.Reorg(ctx, TxFinalityDepth-1, func(txs []types.Transactions) []types.Transactions {
+		ret := make([]types.Transactions, TxFinalityDepth+1)
 		ret[1] = txs[0]
 		return ret
 	})
@@ -197,17 +197,17 @@ func Test_ReorgConfirmTransaction(t *testing.T) {
 // removes it from the canonical chain before `TxFinalityDepth` is reached.
 func Test_ReorgRemoveTransaction(t *testing.T) {
 	// Test does not make sense for Finality < 2.
-	require.Greater(t, ethchannel.TxFinalityDepth, uint64(1))
+	require.Greater(t, TxFinalityDepth, uint64(1))
 	rng := pkgtest.Prng(t)
 	ctx, cancel := context.WithTimeout(context.Background(), defaultTestTimeout)
 	defer cancel()
-	s := test.NewTokenSetup(ctx, t, rng)
+	s := test.NewTokenSetup(ctx, t, rng, TxFinalityDepth)
 
 	// Send the TX and mine one block.
 	tx := s.IncAllowance(ctx)
 
 	// Wait `TxFinalityDepth - 2` many blocks.
-	for i := uint64(0); i < ethchannel.TxFinalityDepth-2; i++ {
+	for i := uint64(0); i < TxFinalityDepth-2; i++ {
 		s.SB.Commit()
 	}
 
@@ -216,8 +216,8 @@ func Test_ReorgRemoveTransaction(t *testing.T) {
 
 	// Do a reorg by adding two more blocks and removing the TX.
 	// The `TxFinalityDepth` would now be reached.
-	s.SB.Reorg(ctx, ethchannel.TxFinalityDepth-1, func(txs []types.Transactions) []types.Transactions {
-		return make([]types.Transactions, ethchannel.TxFinalityDepth+1)
+	s.SB.Reorg(ctx, TxFinalityDepth-1, func(txs []types.Transactions) []types.Transactions {
+		return make([]types.Transactions, TxFinalityDepth+1)
 	})
 
 	// Still not confirmed.

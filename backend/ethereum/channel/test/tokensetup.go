@@ -57,7 +57,7 @@ const (
 )
 
 // NewTokenSetup creates a new TokenSetup.
-func NewTokenSetup(ctx context.Context, t *testing.T, rng *rand.Rand) *TokenSetup {
+func NewTokenSetup(ctx context.Context, t *testing.T, rng *rand.Rand, txFinalityDepth uint64) *TokenSetup {
 	// Simulated chain setup.
 	sb := NewSimulatedBackend()
 	ksWallet := wallettest.RandomWallet().(*keystore.Wallet)
@@ -65,7 +65,11 @@ func NewTokenSetup(ctx context.Context, t *testing.T, rng *rand.Rand) *TokenSetu
 	sb.FundAddress(ctx, acc1.Address)
 	acc2 := &ksWallet.NewRandomAccount(rng).(*keystore.Account).Account
 	sb.FundAddress(ctx, acc2.Address)
-	cb := ethchannel.NewContractBackend(sb, keystore.NewTransactor(*ksWallet, types.NewEIP155Signer(big.NewInt(1337))))
+	cb := ethchannel.NewContractBackend(
+		sb,
+		keystore.NewTransactor(*ksWallet, types.NewEIP155Signer(big.NewInt(1337))),
+		txFinalityDepth,
+	)
 
 	// Setup Perun Token.
 	tokenAddr, err := ethchannel.DeployPerunToken(ctx, cb, *acc1, []common.Address{acc1.Address}, channeltest.MaxBalance)

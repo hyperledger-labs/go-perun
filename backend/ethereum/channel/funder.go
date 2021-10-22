@@ -275,7 +275,7 @@ func (f *Funder) depositedSub(ctx context.Context, contract *bind.BoundContract,
 			Filter: [][]interface{}{filter},
 		}
 	}
-	sub, err := subscription.Subscribe(ctx, f, contract, event, startBlockOffset, TxFinalityDepth)
+	sub, err := subscription.Subscribe(ctx, f, contract, event, startBlockOffset, f.txFinalityDepth)
 	return sub, errors.WithMessage(err, "subscribing to deposited event")
 }
 

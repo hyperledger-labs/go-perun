@@ -48,7 +48,7 @@ func TestResistantEventSub_Confirm(t *testing.T) {
 	defer cancel()
 	rng := pkgtest.Prng(t)
 	require := require.New(t)
-	s := test.NewTokenSetup(ctx, t, rng)
+	s := test.NewTokenSetup(ctx, t, rng, txFinalityDepth)
 
 	finality := rng.Int31n(maxFinality) + 1
 	sub, err := subscription.Subscribe(ctx, s.CB, s.Contract, event, 0, uint64(finality))
@@ -74,7 +74,7 @@ func TestResistantEventSub_ReadPast(t *testing.T) {
 	defer cancel()
 	rng := pkgtest.Prng(t)
 	require := require.New(t)
-	s := test.NewTokenSetup(ctx, t, rng)
+	s := test.NewTokenSetup(ctx, t, rng, txFinalityDepth)
 	numTx := 5
 	finality := int(rng.Int31n(maxFinality) + 1)
 
@@ -126,7 +126,7 @@ func TestResistantEventSub_ReorgConfirm(t *testing.T) {
 	defer cancel()
 	rng := pkgtest.Prng(t)
 	require := require.New(t)
-	s := test.NewTokenSetup(ctx, t, rng)
+	s := test.NewTokenSetup(ctx, t, rng, txFinalityDepth)
 
 	finality := rng.Int31n(maxFinality-2) + 2
 	sub, err := subscription.Subscribe(ctx, s.CB, s.Contract, event, 0, uint64(finality))
@@ -162,7 +162,7 @@ func TestResistantEventSub_ReorgRemove(t *testing.T) {
 	defer cancel()
 	rng := pkgtest.Prng(t)
 	require := require.New(t)
-	s := test.NewTokenSetup(ctx, t, rng)
+	s := test.NewTokenSetup(ctx, t, rng, txFinalityDepth)
 
 	finality := rng.Int31n(maxFinality-3) + 3
 	sub, err := subscription.Subscribe(ctx, s.CB, s.Contract, event, 0, uint64(finality))

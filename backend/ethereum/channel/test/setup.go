@@ -56,7 +56,7 @@ type (
 
 // NewSimSetup return a simulated backend test setup. The rng is used to
 // generate the random account for sending of transaction.
-func NewSimSetup(rng *rand.Rand) *SimSetup {
+func NewSimSetup(rng *rand.Rand, txFinalityDepth uint64) *SimSetup {
 	simBackend := NewSimulatedBackend()
 	ksWallet := wallettest.RandomWallet().(*keystore.Wallet)
 	txAccount := ksWallet.NewRandomAccount(rng).(*keystore.Account)
@@ -64,7 +64,11 @@ func NewSimSetup(rng *rand.Rand) *SimSetup {
 	defer cancel()
 	simBackend.FundAddress(ctx, txAccount.Account.Address)
 
-	contractBackend := ethchannel.NewContractBackend(simBackend, keystore.NewTransactor(*ksWallet, types.NewEIP155Signer(big.NewInt(1337))))
+	contractBackend := ethchannel.NewContractBackend(
+		simBackend,
+		keystore.NewTransactor(*ksWallet, types.NewEIP155Signer(big.NewInt(1337))),
+		txFinalityDepth,
+	)
 
 	return &SimSetup{
 		SimBackend: simBackend,
@@ -79,9 +83,9 @@ func NewSimSetup(rng *rand.Rand) *SimSetup {
 // adjudicators and funders are created. The Parts are the Addresses of the
 // Accs.
 // `blockInterval` enables the auto-mining feature if set to a value != 0.
-func NewSetup(t *testing.T, rng *rand.Rand, n int, blockInterval time.Duration) *Setup {
+func NewSetup(t *testing.T, rng *rand.Rand, n int, blockInterval time.Duration, txFinalityDepth uint64) *Setup {
 	s := &Setup{
-		SimSetup: *NewSimSetup(rng),
+		SimSetup: *NewSimSetup(rng, txFinalityDepth),
 		Accs:     make([]*keystore.Account, n),
 		Parts:    make([]wallet.Address, n),
 		Recvs:    make([]*ethwallet.Address, n),
@@ -104,7 +108,11 @@ func NewSetup(t *testing.T, rng *rand.Rand, n int, blockInterval time.Duration) 
 		s.Parts[i] = s.Accs[i].Address()
 		s.SimBackend.FundAddress(ctx, s.Accs[i].Account.Address)
 		s.Recvs[i] = ksWallet.NewRandomAccount(rng).Address().(*ethwallet.Address)
-		cb := ethchannel.NewContractBackend(s.SimBackend, keystore.NewTransactor(*ksWallet, types.NewEIP155Signer(big.NewInt(1337))))
+		cb := ethchannel.NewContractBackend(
+			s.SimBackend,
+			keystore.NewTransactor(*ksWallet, types.NewEIP155Signer(big.NewInt(1337))),
+			txFinalityDepth,
+		)
 		s.Funders[i] = ethchannel.NewFunder(cb)
 		require.True(t, s.Funders[i].RegisterAsset(asset, ethchannel.NewETHDepositor(), s.Accs[i].Account))
 		s.Adjs[i] = NewSimAdjudicator(cb, adjudicator, common.Address(*s.Recvs[i]), s.Accs[i].Account)

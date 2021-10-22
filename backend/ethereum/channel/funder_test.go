@@ -74,7 +74,11 @@ func newFunderWithDummy_ETH_ERC20_Assets(rng *rand.Rand) (
 	n := 2
 	simBackend := test.NewSimulatedBackend()
 	ksWallet := wallettest.RandomWallet().(*keystore.Wallet)
-	cb := ethchannel.NewContractBackend(simBackend, keystore.NewTransactor(*ksWallet, types.NewEIP155Signer(big.NewInt(1337))))
+	cb := ethchannel.NewContractBackend(
+		simBackend,
+		keystore.NewTransactor(*ksWallet, types.NewEIP155Signer(big.NewInt(1337))),
+		TxFinalityDepth,
+	)
 	funder := ethchannel.NewFunder(cb)
 	assets := make([]ethchannel.Asset, n)
 	depositors := make([]ethchannel.Depositor, n)
@@ -384,7 +388,11 @@ func newNFunders(
 	simBackend.FundAddress(ctx, deployAccount.Address)
 	tokenAcc := &ksWallet.NewRandomAccount(rng).(*keystore.Account).Account
 	simBackend.FundAddress(ctx, tokenAcc.Address)
-	cb := ethchannel.NewContractBackend(simBackend, keystore.NewTransactor(*ksWallet, types.NewEIP155Signer(big.NewInt(1337))))
+	cb := ethchannel.NewContractBackend(
+		simBackend,
+		keystore.NewTransactor(*ksWallet, types.NewEIP155Signer(big.NewInt(1337))),
+		TxFinalityDepth,
+	)
 
 	// Deploy ETHAssetholder
 	assetAddr1, err := ethchannel.DeployETHAssetholder(ctx, cb, deployAccount.Address, *deployAccount)
