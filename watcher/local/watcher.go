@@ -16,6 +16,7 @@ package local
 
 import (
 	"context"
+	"fmt"
 	"sync"
 	"time"
 
@@ -26,15 +27,17 @@ import (
 	"perun.network/go-perun/watcher"
 )
 
+var _ watcher.Watcher = &Watcher{}
+
 const (
 	// Duration for which the watcher will wait for latest transactions
 	// when an adjudicator event is received.
 	//
 	// Currently, this is set to an insignificant value of 1ms.
-	// TODO (mano): Later, when the concept of "sync interval" will be introduced
-	// to avoid two registrations for the same channel (as described in test case
-	// "happy/older_state_registered_then_newer_state_received",
-	// this can be set to the sync interval.
+	// Later, when the concept of "sync interval" will be introduced to avoid
+	// two registrations for the same channel (as described in test case
+	// "happy/older_state_registered_then_newer_state_received", this can be
+	// set to the sync interval.
 	statesFromClientWaitTime = 1 * time.Millisecond
 )
 
@@ -51,9 +54,24 @@ type (
 	}
 
 	ch struct {
-		id     channel.ID
-		params *channel.Params
-		parent *ch
+		id       channel.ID
+		params   *channel.Params
+		isClosed bool
+		parent   *ch
+
+		// For keeping track of the sub-channels of this ledger channel
+		// registered with the watcher.
+		// Sub-channels are added when they are registered with the watcher and
+		// removed when they are de-registered from the watcher.
+		subChs map[channel.ID]struct{}
+
+		// For keeping track of the last received signed states for a
+		// sub-channel, after it is de-registered from the watcher.  These
+		// states will be used, when the state of a particular sub-channel is
+		// required while disputing any other channel in the channel tree and
+		// the particular sub-channel has already been de-registered from the
+		// watcher.
+		archivedSubChStates map[channel.ID]channel.SignedState
 
 		// For keeping track of the version registered on the blockchain for
 		// this channel. This is used to prevent registering the same state
@@ -77,6 +95,8 @@ type (
 
 	chInitializer func() (*ch, error)
 )
+
+func (ch *ch) isSubChannel() bool { return ch.parent != nil }
 
 // NewWatcher initializes a local watcher.
 //
@@ -110,12 +130,17 @@ func (w *Watcher) StartWatchingSubChannel(
 	if !ok {
 		return nil, nil, errors.New("parent channel not registered with the watcher")
 	}
-	if parentCh.parent != nil {
+	if parentCh.isSubChannel() {
 		return nil, nil, errors.New("parent must be a ledger channel")
 	}
 	parentCh.subChsAccess.Lock()
 	defer parentCh.subChsAccess.Unlock()
-	return w.startWatching(ctx, parentCh, signedState)
+	statesPub, eventsSub, err := w.startWatching(ctx, parentCh, signedState)
+	if err != nil {
+		return nil, nil, err
+	}
+	parentCh.subChs[signedState.State.ID] = struct{}{}
+	return statesPub, eventsSub, nil
 }
 
 func (w *Watcher) startWatching(
@@ -163,6 +188,9 @@ func newCh(
 		id:     id,
 		params: params,
 		parent: parent,
+
+		subChs:              make(map[channel.ID]struct{}),
+		archivedSubChStates: make(map[channel.ID]channel.SignedState),
 
 		registeredVersion: 0,
 		txRetriever: txRetriever{
@@ -244,7 +272,7 @@ func readPendingTxs(statesSub statesSub, timeout time.Duration) (channel.Transac
 // adjudicator events from blockchain is closed.
 func (ch *ch) handleEventsFromChain(registerer channel.Registerer, chRegistry *registry) {
 	parent := ch
-	if ch.parent != nil {
+	if ch.isSubChannel() {
 		parent = ch.parent
 	}
 	for e := ch.eventsFromChainSub.Next(); e != nil; e = ch.eventsFromChainSub.Next() {
@@ -308,8 +336,7 @@ func (ch *ch) handleEventsFromChain(registerer channel.Registerer, chRegistry *r
 //
 // This function assumes the callers has locked the parent channel.
 func registerDispute(r *registry, registerer channel.Registerer, parentCh *ch) error {
-	parentTx := parentCh.txRetriever.retrieve()
-	subStates := retrieveLatestSubStates(r, parentTx)
+	parentTx, subStates := retreiveLatestSubStates(r, parentCh)
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
@@ -320,25 +347,36 @@ func registerDispute(r *registry, registerer channel.Registerer, parentCh *ch) e
 
 	parentCh.registeredVersion = parentTx.Version
 	for i := range subStates {
-		subCh, _ := r.retrieve(parentTx.Allocation.Locked[i].ID)
-		subCh.registeredVersion = subStates[i].State.Version
+		subCh, ok := r.retrieve(parentTx.Allocation.Locked[i].ID)
+		if ok {
+			subCh.registeredVersion = subStates[i].State.Version
+		}
 	}
 	return nil
 }
 
-func retrieveLatestSubStates(r *registry, parentTx channel.Transaction) []channel.SignedState {
+func retreiveLatestSubStates(r *registry, parent *ch) (channel.Transaction, []channel.SignedState) {
+	parentTx := parent.txRetriever.retrieve()
 	subStates := make([]channel.SignedState, len(parentTx.Allocation.Locked))
 	for i := range parentTx.Allocation.Locked {
 		// Can be done concurrently.
-		subCh, _ := r.retrieve(parentTx.Allocation.Locked[i].ID)
-		subChTx := subCh.txRetriever.retrieve()
-		subStates[i] = channel.SignedState{
-			Params: subCh.params,
-			State:  subChTx.State,
-			Sigs:   subChTx.Sigs,
+		subCh, ok := r.retrieve(parentTx.Allocation.Locked[i].ID)
+		if ok {
+			subChTx := subCh.txRetriever.retrieve()
+			subStates[i] = makeSignedState(subCh.params, subChTx)
+		} else {
+			subStates[i] = parent.archivedSubChStates[parentTx.Allocation.Locked[i].ID]
 		}
 	}
-	return subStates
+	return parentTx, subStates
+}
+
+func makeSignedState(params *channel.Params, tx channel.Transaction) channel.SignedState {
+	return channel.SignedState{
+		Params: params,
+		State:  tx.State,
+		Sigs:   tx.Sigs,
+	}
 }
 
 func makeAdjudicatorReq(params *channel.Params, tx channel.Transaction) channel.AdjudicatorReq {
@@ -347,4 +385,59 @@ func makeAdjudicatorReq(params *channel.Params, tx channel.Transaction) channel.
 		Tx:        tx,
 		Secondary: false,
 	}
+}
+
+// StopWatching stops watching for adjudicator events, closes the pub-sub
+// instances and removes the channel from the registry.
+//
+// The client should invoke stop watching for all the sub-channels before
+// invoking for the parent ledger channel.
+//
+// In case of stop watching for sub-channels, watcher ensures that, when it
+// receives a registered event for its parent channel or any other sub-channels
+// of the parent channel, it is able to successfully refute with the latest
+// states for the ledger channel and all its sub-channels (even if the watcher
+// has stopped watching for some of the sub-channel).
+//
+// Context is not used, it is for implementing watcher.Watcher interface.
+func (w *Watcher) StopWatching(_ context.Context, id channel.ID) error {
+	ch, ok := w.retrieve(id)
+	if !ok {
+		return errors.New("channel not registered with the watcher")
+	}
+
+	parent := ch
+	if ch.isSubChannel() {
+		parent = ch.parent
+	}
+	parent.subChsAccess.Lock()
+	defer parent.subChsAccess.Unlock()
+	if ch.isClosed {
+		// Channel could have been closed while were waiting for the mutex locked.
+		return errors.New("channel not registered with the watcher")
+	}
+
+	if ch.isSubChannel() {
+		latestParentTx := ch.parent.txRetriever.retrieve()
+		if _, ok := latestParentTx.SubAlloc(id); ok {
+			parent.archivedSubChStates[id] = makeSignedState(ch.params, ch.txRetriever.retrieve())
+		}
+		delete(parent.subChs, id)
+	} else if len(ch.subChs) > 0 {
+		return fmt.Errorf("cannot de-register when sub-channels are present: %d %v", len(ch.subChs), ch.id)
+	}
+
+	closePubSubs(ch)
+	w.remove(ch.id)
+	ch.isClosed = true
+	return nil
+}
+
+func closePubSubs(ch *ch) {
+	if err := ch.eventsFromChainSub.Close(); err != nil {
+		err := errors.WithMessage(err, "closing events from chain sub")
+		log.WithField("id", ch.id).Error(err.Error())
+	}
+	ch.eventsToClientPub.close()
+	ch.statesSub.close()
 }
