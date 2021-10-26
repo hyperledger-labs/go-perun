@@ -40,7 +40,8 @@ import (
 )
 
 const (
-	txGasLimit = 100000
+	txGasLimit      = 100000
+	txFinalityDepth = 1
 )
 
 // TestEventSub tests the `EventSub` by:
@@ -59,7 +60,11 @@ func TestEventSub(t *testing.T) {
 	ksWallet := wallettest.RandomWallet().(*keystore.Wallet)
 	account := &ksWallet.NewRandomAccount(rng).(*keystore.Account).Account
 	sb.FundAddress(ctx, account.Address)
-	cb := ethchannel.NewContractBackend(sb, keystore.NewTransactor(*ksWallet, types.NewEIP155Signer(big.NewInt(1337))))
+	cb := ethchannel.NewContractBackend(
+		sb,
+		keystore.NewTransactor(*ksWallet, types.NewEIP155Signer(big.NewInt(1337))),
+		txFinalityDepth,
+	)
 
 	// Setup Perun Token.
 	tokenAddr, err := ethchannel.DeployPerunToken(ctx, cb, *account, []common.Address{account.Address}, channeltest.MaxBalance)
@@ -143,7 +148,11 @@ func TestEventSub_Filter(t *testing.T) {
 	ksWallet := wallettest.RandomWallet().(*keystore.Wallet)
 	account := &ksWallet.NewRandomAccount(rng).(*keystore.Account).Account
 	sb.FundAddress(ctx, account.Address)
-	cb := ethchannel.NewContractBackend(sb, keystore.NewTransactor(*ksWallet, types.NewEIP155Signer(big.NewInt(1337))))
+	cb := ethchannel.NewContractBackend(
+		sb,
+		keystore.NewTransactor(*ksWallet, types.NewEIP155Signer(big.NewInt(1337))),
+		txFinalityDepth,
+	)
 
 	// Setup ETH AssetHolder.
 	adjAddr, err := ethchannel.DeployAdjudicator(ctx, cb, *account)

@@ -17,12 +17,11 @@ package channel_test
 import (
 	"github.com/sirupsen/logrus"
 
-	"perun.network/go-perun/backend/ethereum/channel"
 	plogrus "perun.network/go-perun/log/logrus"
 )
 
+const TxFinalityDepth uint64 = 3
+
 func init() {
 	plogrus.Set(logrus.WarnLevel, &logrus.TextFormatter{ForceColors: true})
-	// Fix the finality depth for testing.
-	channel.TxFinalityDepth = 3
 }

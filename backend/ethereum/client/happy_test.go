@@ -46,7 +46,7 @@ func TestHappyAliceBob(t *testing.T) {
 		role  [2]clienttest.Executer
 	)
 
-	s := test.NewSetup(t, rng, 2, ctest.BlockInterval)
+	s := test.NewSetup(t, rng, 2, ctest.BlockInterval, TxFinalityDepth)
 	setup = ctest.MakeRoleSetups(s, name)
 
 	role[A] = clienttest.NewAlice(setup[A], t)

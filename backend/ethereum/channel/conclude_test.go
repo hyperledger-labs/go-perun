@@ -49,7 +49,7 @@ func testConcludeFinal(t *testing.T, numParts int) {
 	t.Parallel()
 	rng := pkgtest.Prng(t)
 	// create test setup
-	s := test.NewSetup(t, rng, numParts, blockInterval)
+	s := test.NewSetup(t, rng, numParts, blockInterval, TxFinalityDepth)
 	// create valid state and params
 	params, state := channeltest.NewRandomParamsAndState(
 		rng,
@@ -121,7 +121,7 @@ func TestAdjudicator_ConcludeWithSubChannels(t *testing.T) {
 	)
 	// create backend
 	var (
-		s                 = test.NewSetup(t, rng, numParts, blockInterval)
+		s                 = test.NewSetup(t, rng, numParts, blockInterval, TxFinalityDepth)
 		adj               = s.Adjs[0]
 		accounts          = s.Accs
 		participants      = s.Parts

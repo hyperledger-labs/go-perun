@@ -35,6 +35,7 @@ import (
 )
 
 const twoPartyTestTimeout = 10 * time.Second
+const TxFinalityDepth = 3
 
 func TestDisputeMalloryCarol(t *testing.T) {
 	log.Info("Starting dispute test")
@@ -47,7 +48,7 @@ func TestDisputeMalloryCarol(t *testing.T) {
 		role  [2]clienttest.Executer
 	)
 
-	s := test.NewSetup(t, rng, 2, ctest.BlockInterval)
+	s := test.NewSetup(t, rng, 2, ctest.BlockInterval, TxFinalityDepth)
 	setup = ctest.MakeRoleSetups(s, name)
 
 	role[A] = clienttest.NewMallory(setup[A], t)

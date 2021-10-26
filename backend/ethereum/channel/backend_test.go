@@ -38,7 +38,7 @@ import (
 
 func TestAdjudicator_PureFunctions(t *testing.T) {
 	rng := pkgtest.Prng(t)
-	s := ethchanneltest.NewSimSetup(rng)
+	s := ethchanneltest.NewSimSetup(rng, TxFinalityDepth)
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 	defer cancel()
 	adj, err := channel.DeployAdjudicator(ctx, *s.CB, s.TxSender.Account)

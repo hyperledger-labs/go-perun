@@ -38,7 +38,7 @@ const secondaryWaitBlocks = 2
 //   - if none found, conclude/concludeFinal is called on the adjudicator
 // - it waits for a Concluded event from the blockchain.
 func (a *Adjudicator) ensureConcluded(ctx context.Context, req channel.AdjudicatorReq, subStates channel.StateMap) error {
-	sub, err := subscription.Subscribe(ctx, a.ContractBackend, a.bound, updateEventType(req.Params.ID()), startBlockOffset, TxFinalityDepth)
+	sub, err := subscription.Subscribe(ctx, a.ContractBackend, a.bound, updateEventType(req.Params.ID()), startBlockOffset, a.txFinalityDepth)
 	if err != nil {
 		return errors.WithMessage(err, "subscribing")
 	}
@@ -62,7 +62,7 @@ func (a *Adjudicator) ensureConcluded(ctx context.Context, req channel.Adjudicat
 	// the other party to send the transaction first for
 	// `secondaryWaitBlocks + TxFinalityDepth` many blocks.
 	if req.Tx.IsFinal && req.Secondary {
-		waitBlocks := secondaryWaitBlocks + int(TxFinalityDepth)
+		waitBlocks := secondaryWaitBlocks + int(a.txFinalityDepth)
 		isConcluded, err := waitConcludedForNBlocks(waitCtx, a, events, waitBlocks)
 		if err != nil {
 			return err

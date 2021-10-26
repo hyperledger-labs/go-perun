@@ -59,7 +59,7 @@ func signState(accounts []*keystore.Account, state *channel.State) (channel.Tran
 func TestSubscribeRegistered(t *testing.T) {
 	rng := pkgtest.Prng(t)
 	// create test setup
-	s := test.NewSetup(t, rng, 1, blockInterval)
+	s := test.NewSetup(t, rng, 1, blockInterval, TxFinalityDepth)
 	// create valid state and params
 	params, state := channeltest.NewRandomParamsAndState(
 		rng,
@@ -112,7 +112,7 @@ func TestSubscribeRegistered(t *testing.T) {
 func TestValidateAdjudicator(t *testing.T) {
 	// Test setup
 	rng := pkgtest.Prng(t)
-	s := test.NewSimSetup(rng)
+	s := test.NewSimSetup(rng, TxFinalityDepth)
 
 	t.Run("no_adj_code", func(t *testing.T) {
 		randomAddr := (common.Address)(ethwallettest.NewRandomAddress(rng))
