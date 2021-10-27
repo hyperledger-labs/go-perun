@@ -162,22 +162,30 @@ func (s *ResistantEventSub) ReadPast(_ctx context.Context, sink chan<- *Event) e
 				return errors.New("head sub returned nil")
 			}
 			s.processHead(head, sink)
-		case event := <-rawEvents:
-			if event == nil {
-				return nil
+		case event, ok := <-rawEvents:
+			if !ok {
+				s.drainHeadSub(sink)
+				return errors.WithMessage(<-subErr, "underlying EventSub.Read")
 			}
 			s.processEvent(event, sink)
 		case e := <-s.headSub.Err():
 			return errors.WithMessage(e, "underlying head subscription")
-		case e := <-subErr:
-			if e != nil {
-				return errors.WithMessage(e, "underlying EventSub.Read")
-			}
-			continue
 		case <-ctx.Done():
 			return ctx.Err()
 		case <-s.closer.Closed():
 			return nil
+		}
+	}
+}
+
+// drainHeadSub ensures that all queued block headers are processed.
+func (s *ResistantEventSub) drainHeadSub(sink chan<- *Event) {
+	for {
+		select {
+		case head := <-s.heads:
+			s.processHead(head, sink)
+		default:
+			return
 		}
 	}
 }
