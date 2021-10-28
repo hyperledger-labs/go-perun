@@ -91,10 +91,24 @@ type (
 		// sub-channels to a ledger channel or while registering dispute for
 		// the ledger channel and all its children.
 		subChsAccess sync.Mutex
+
+		// wg is used to synchronize the starting and stopping of handler go
+		// routines for this channel.
+		wg sync.WaitGroup
 	}
 
 	chInitializer func() (*ch, error)
 )
+
+// Go executes a function in a goroutine, updating the channel's wait group
+// before and after execution.
+func (ch *ch) Go(fn func()) {
+	ch.wg.Add(1)
+	go func() {
+		defer ch.wg.Done()
+		fn()
+	}()
+}
 
 func (ch *ch) isSubChannel() bool { return ch.parent != nil }
 
@@ -170,8 +184,8 @@ func (w *Watcher) startWatching(
 		State: signedState.State,
 		Sigs:  signedState.Sigs,
 	}
-	go ch.handleStatesFromClient(initialTx)
-	go ch.handleEventsFromChain(w.rs, w.registry)
+	ch.Go(func() { ch.handleStatesFromClient(initialTx) })
+	ch.Go(func() { ch.handleEventsFromChain(w.rs, w.registry) })
 
 	return statesPubSub, eventsToClientPubSub, nil
 }
@@ -438,6 +452,8 @@ func closePubSubs(ch *ch) {
 		err := errors.WithMessage(err, "closing events from chain sub")
 		log.WithField("id", ch.id).Error(err.Error())
 	}
-	ch.eventsToClientPub.close()
 	ch.statesSub.close()
+	ch.wg.Wait()
+
+	ch.eventsToClientPub.close()
 }
