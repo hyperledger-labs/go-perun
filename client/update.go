@@ -410,6 +410,10 @@ func (c *Channel) enableNotifyUpdate(ctx context.Context) error {
 	if c.onUpdate != nil {
 		c.onUpdate(from, to)
 	}
+
+	if err = c.statesPub.Publish(ctx, c.machine.CurrentTX()); err != nil {
+		c.Log().WithField("Version", c.state().Version).Errorf("Error publishe state to watcher: %v", err)
+	}
 	return nil
 }
 

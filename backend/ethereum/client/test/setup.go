@@ -20,6 +20,7 @@ import (
 	ethctest "perun.network/go-perun/backend/ethereum/channel/test"
 	ethwtest "perun.network/go-perun/backend/ethereum/wallet/test"
 	clienttest "perun.network/go-perun/client/test"
+	"perun.network/go-perun/watcher/local"
 	"perun.network/go-perun/wire"
 )
 
@@ -31,12 +32,17 @@ const (
 func MakeRoleSetups(s *ethctest.Setup, names [2]string) (setup [2]clienttest.RoleSetup) {
 	bus := wire.NewLocalBus()
 	for i := 0; i < len(setup); i++ {
+		watcher, err := local.NewWatcher(s.Adjs[i])
+		if err != nil {
+			panic("Error initializing watcher: " + err.Error())
+		}
 		setup[i] = clienttest.RoleSetup{
 			Name:              names[i],
 			Identity:          s.Accs[i],
 			Bus:               bus,
 			Funder:            s.Funders[i],
 			Adjudicator:       s.Adjs[i],
+			Watcher:           watcher,
 			Wallet:            ethwtest.NewTmpWallet(),
 			Timeout:           DefaultTimeout,
 			ChallengeDuration: 60 * uint64(time.Second/BlockInterval), // Scaled due to simbackend automining progressing faster than real time.
