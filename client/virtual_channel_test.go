@@ -172,15 +172,14 @@ func setupVirtualChannelTest(t *testing.T, ctx context.Context) (vct virtualChan
 	go ingrid.Client.Handle(openingProposalHandlerIngrid, updateProposalHandlerIngrid)
 
 	// Establish ledger channel between Alice and Ingrid.
-	initAllocAlice := channel.Allocation{
-		Assets:   []channel.Asset{asset},
-		Balances: [][]channel.Bal{initBalsAlice},
-	}
+	peersAlice := []wire.Address{alice.Identity.Address(), ingrid.Identity.Address()}
+	initAllocAlice := channel.NewAllocation(len(peersAlice), asset)
+	initAllocAlice.SetAssetBalances(asset, initBalsAlice)
 	lcpAlice, err := client.NewLedgerChannelProposal(
 		challengeDuration,
 		alice.Identity.Address(),
-		&initAllocAlice,
-		[]wire.Address{alice.Identity.Address(), ingrid.Identity.Address()},
+		initAllocAlice,
+		peersAlice,
 	)
 	require.NoError(err, "creating ledger channel proposal")
 
@@ -193,15 +192,14 @@ func setupVirtualChannelTest(t *testing.T, ctx context.Context) (vct virtualChan
 	}
 
 	// Establish ledger channel between Bob and Ingrid.
-	initAllocBob := channel.Allocation{
-		Assets:   []channel.Asset{asset},
-		Balances: [][]channel.Bal{initBalsBob},
-	}
+	peersBob := []wire.Address{bob.Identity.Address(), ingrid.Identity.Address()}
+	initAllocBob := channel.NewAllocation(len(peersBob), asset)
+	initAllocBob.SetAssetBalances(asset, initBalsBob)
 	lcpBob, err := client.NewLedgerChannelProposal(
 		challengeDuration,
 		bob.Identity.Address(),
-		&initAllocBob,
-		[]wire.Address{bob.Identity.Address(), ingrid.Identity.Address()},
+		initAllocBob,
+		peersBob,
 	)
 	require.NoError(err, "creating ledger channel proposal")
 
