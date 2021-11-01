@@ -102,6 +102,71 @@ var _ perunio.Serializer = (*Balances)(nil)
 var _ perunbig.Summer = (*Allocation)(nil)
 var _ perunbig.Summer = (*Balances)(nil)
 
+// NewAllocation returns a new allocation for the given number of participants and assets.
+func NewAllocation(numParts int, assets ...Asset) *Allocation {
+	return &Allocation{
+		Assets:   assets,
+		Balances: MakeBalances(len(assets), numParts),
+	}
+}
+
+// AssetIndex returns the index of the asset in the allocation.
+func (a *Allocation) AssetIndex(asset Asset) (Index, bool) {
+	for idx, _asset := range a.Assets {
+		if ok, err := perunio.EqualEncoding(asset, _asset); ok && err == nil {
+			return Index(idx), true
+		}
+	}
+	return 0, false
+}
+
+// SetBalance sets the balance for the given asset and participant.
+func (a *Allocation) SetBalance(part Index, asset Asset, val Bal) {
+	assetIdx, ok := a.AssetIndex(asset)
+	if !ok {
+		log.Panicf("asset not found: %v", a)
+	}
+	a.Balances[assetIdx][part] = new(big.Int).Set(val)
+}
+
+// SetAssetBalances sets the balances for the given asset and all participants.
+func (a *Allocation) SetAssetBalances(asset Asset, val []Bal) {
+	assetIdx, ok := a.AssetIndex(asset)
+	if !ok {
+		log.Panicf("asset not found: %v", a)
+	}
+	a.Balances[assetIdx] = CloneBals(val)
+}
+
+// Balance gets the balance for the given asset and participant.
+func (a *Allocation) Balance(part Index, asset Asset) Bal {
+	assetIdx, ok := a.AssetIndex(asset)
+	if !ok {
+		log.Panicf("asset not found: %v", a)
+	}
+	return a.Balances[assetIdx][part]
+}
+
+// AddToBalance adds a given amount to the balance of the specified participant
+// for the given asset.
+func (a *Allocation) AddToBalance(part Index, asset Asset, val Bal) {
+	bal := a.Balance(part, asset)
+	bal.Add(bal, val)
+}
+
+// SubFromBalance subtracts a given amount from the balance of the specified
+// participant for the given asset.
+func (a *Allocation) SubFromBalance(part Index, asset Asset, val Bal) {
+	bal := a.Balance(part, asset)
+	bal.Sub(bal, val)
+}
+
+// TransferBalance transfers the given amount from one participant to the other.
+func (a *Allocation) TransferBalance(from, to Index, asset Asset, val Bal) {
+	a.SubFromBalance(from, asset, val)
+	a.AddToBalance(to, asset, val)
+}
+
 // NumParts returns the number of participants of this Allocation. It returns -1 if
 // there are no Balances, i.e., if the Allocation is invalid.
 func (a *Allocation) NumParts() int {
@@ -131,6 +196,15 @@ func (a Allocation) Clone() (clone Allocation) {
 	}
 
 	return clone
+}
+
+// MakeBalances returns a new Balances object of the specified size.
+func MakeBalances(numAssets, numParticipants int) Balances {
+	balances := make([][]*big.Int, numAssets)
+	for i := range balances {
+		balances[i] = make([]*big.Int, numParticipants)
+	}
+	return balances
 }
 
 // Clone returns a deep copy of the Balance object.
