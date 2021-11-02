@@ -20,7 +20,11 @@ import (
 	plogrus "perun.network/go-perun/log/logrus"
 )
 
-const TxFinalityDepth uint64 = 3
+const (
+	TxFinalityDepth    = 3 // For tests that use a constant finality depth.
+	TxFinalityDepthMin = 1
+	TxFinalityDepthMax = 10
+)
 
 func init() {
 	plogrus.Set(logrus.WarnLevel, &logrus.TextFormatter{ForceColors: true})

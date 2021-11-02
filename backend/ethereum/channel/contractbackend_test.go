@@ -157,14 +157,14 @@ func Test_ConfirmTransaction(t *testing.T) {
 	h, err := s.CB.BlockByNumber(ctx, nil)
 	require.NoError(t, err)
 	// Assert that it got included in `TxBlockFinality` many blocks.
-	assert.Equal(t, TxFinalityDepth, (h.NumberU64()-r.BlockNumber.Uint64())+1)
+	assert.Equal(t, uint64(TxFinalityDepth), (h.NumberU64()-r.BlockNumber.Uint64())+1)
 }
 
 // Test_ReorgConfirmTransaction tests that a TX is confirmed correctly after a
 // reorg.
 func Test_ReorgConfirmTransaction(t *testing.T) {
 	// Test does not make sense for Finality < 2.
-	require.Greater(t, TxFinalityDepth, uint64(1))
+	require.Greater(t, uint64(TxFinalityDepth), uint64(1))
 	rng := pkgtest.Prng(t)
 	ctx, cancel := context.WithTimeout(context.Background(), defaultTestTimeout)
 	defer cancel()
@@ -197,7 +197,7 @@ func Test_ReorgConfirmTransaction(t *testing.T) {
 // removes it from the canonical chain before `TxFinalityDepth` is reached.
 func Test_ReorgRemoveTransaction(t *testing.T) {
 	// Test does not make sense for Finality < 2.
-	require.Greater(t, TxFinalityDepth, uint64(1))
+	require.Greater(t, uint64(TxFinalityDepth), uint64(1))
 	rng := pkgtest.Prng(t)
 	ctx, cancel := context.WithTimeout(context.Background(), defaultTestTimeout)
 	defer cancel()

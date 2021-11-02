@@ -56,8 +56,8 @@ type (
 
 // NewSimSetup return a simulated backend test setup. The rng is used to
 // generate the random account for sending of transaction.
-func NewSimSetup(t *testing.T, rng *rand.Rand, txFinalityDepth uint64, blockInterval time.Duration) *SimSetup {
-	simBackend := NewSimulatedBackend()
+func NewSimSetup(t *testing.T, rng *rand.Rand, txFinalityDepth uint64, blockInterval time.Duration, opts ...SimBackendOpt) *SimSetup {
+	simBackend := NewSimulatedBackend(opts...)
 	ksWallet := wallettest.RandomWallet().(*keystore.Wallet)
 	txAccount := ksWallet.NewRandomAccount(rng).(*keystore.Account)
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
