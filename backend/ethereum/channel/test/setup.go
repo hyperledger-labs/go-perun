@@ -56,13 +56,18 @@ type (
 
 // NewSimSetup return a simulated backend test setup. The rng is used to
 // generate the random account for sending of transaction.
-func NewSimSetup(rng *rand.Rand, txFinalityDepth uint64) *SimSetup {
-	simBackend := NewSimulatedBackend()
+func NewSimSetup(t *testing.T, rng *rand.Rand, txFinalityDepth uint64, blockInterval time.Duration, opts ...SimBackendOpt) *SimSetup {
+	simBackend := NewSimulatedBackend(opts...)
 	ksWallet := wallettest.RandomWallet().(*keystore.Wallet)
 	txAccount := ksWallet.NewRandomAccount(rng).(*keystore.Account)
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 	simBackend.FundAddress(ctx, txAccount.Account.Address)
+
+	if blockInterval != 0 {
+		simBackend.StartMining(blockInterval)
+		t.Cleanup(simBackend.StopMining)
+	}
 
 	contractBackend := ethchannel.NewContractBackend(
 		simBackend,
@@ -85,7 +90,7 @@ func NewSimSetup(rng *rand.Rand, txFinalityDepth uint64) *SimSetup {
 // `blockInterval` enables the auto-mining feature if set to a value != 0.
 func NewSetup(t *testing.T, rng *rand.Rand, n int, blockInterval time.Duration, txFinalityDepth uint64) *Setup {
 	s := &Setup{
-		SimSetup: *NewSimSetup(rng, txFinalityDepth),
+		SimSetup: *NewSimSetup(t, rng, txFinalityDepth, blockInterval),
 		Accs:     make([]*keystore.Account, n),
 		Parts:    make([]wallet.Address, n),
 		Recvs:    make([]*ethwallet.Address, n),
@@ -116,11 +121,6 @@ func NewSetup(t *testing.T, rng *rand.Rand, n int, blockInterval time.Duration, 
 		s.Funders[i] = ethchannel.NewFunder(cb)
 		require.True(t, s.Funders[i].RegisterAsset(asset, ethchannel.NewETHDepositor(), s.Accs[i].Account))
 		s.Adjs[i] = NewSimAdjudicator(cb, adjudicator, common.Address(*s.Recvs[i]), s.Accs[i].Account)
-	}
-
-	if blockInterval != 0 {
-		s.SimBackend.StartMining(blockInterval)
-		t.Cleanup(s.SimBackend.StopMining)
 	}
 
 	return s

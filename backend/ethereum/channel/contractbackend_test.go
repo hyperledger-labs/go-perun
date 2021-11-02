@@ -65,7 +65,7 @@ func Test_calcFundingIDs(t *testing.T) {
 
 func Test_NewTransactor(t *testing.T) {
 	rng := pkgtest.Prng(t)
-	s := test.NewSimSetup(rng, TxFinalityDepth)
+	s := test.NewSimSetup(t, rng, TxFinalityDepth, blockInterval)
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	tests := []struct {
@@ -91,7 +91,7 @@ func Test_NewTransactor(t *testing.T) {
 
 func Test_NewWatchOpts(t *testing.T) {
 	rng := pkgtest.Prng(t)
-	s := test.NewSimSetup(rng, TxFinalityDepth)
+	s := test.NewSimSetup(t, rng, TxFinalityDepth, blockInterval)
 	watchOpts, err := s.CB.NewWatchOpts(context.Background())
 	require.NoError(t, err, "Creating watchopts on valid ContractBackend should succeed")
 	assert.Equal(t, context.Background(), watchOpts.Context, "context should be set")
@@ -109,7 +109,7 @@ func Test_NewWatchOpts(t *testing.T) {
 // Does not test reorgs.
 func Test_ConfirmTransaction(t *testing.T) {
 	rng := pkgtest.Prng(t)
-	s := test.NewSimSetup(rng, TxFinalityDepth)
+	s := test.NewSimSetup(t, rng, TxFinalityDepth, 0)
 	ctx, cancel := context.WithTimeout(context.Background(), defaultTestTimeout)
 	defer cancel()
 
@@ -157,14 +157,14 @@ func Test_ConfirmTransaction(t *testing.T) {
 	h, err := s.CB.BlockByNumber(ctx, nil)
 	require.NoError(t, err)
 	// Assert that it got included in `TxBlockFinality` many blocks.
-	assert.Equal(t, TxFinalityDepth, (h.NumberU64()-r.BlockNumber.Uint64())+1)
+	assert.Equal(t, uint64(TxFinalityDepth), (h.NumberU64()-r.BlockNumber.Uint64())+1)
 }
 
 // Test_ReorgConfirmTransaction tests that a TX is confirmed correctly after a
 // reorg.
 func Test_ReorgConfirmTransaction(t *testing.T) {
 	// Test does not make sense for Finality < 2.
-	require.Greater(t, TxFinalityDepth, uint64(1))
+	require.Greater(t, uint64(TxFinalityDepth), uint64(1))
 	rng := pkgtest.Prng(t)
 	ctx, cancel := context.WithTimeout(context.Background(), defaultTestTimeout)
 	defer cancel()
@@ -197,7 +197,7 @@ func Test_ReorgConfirmTransaction(t *testing.T) {
 // removes it from the canonical chain before `TxFinalityDepth` is reached.
 func Test_ReorgRemoveTransaction(t *testing.T) {
 	// Test does not make sense for Finality < 2.
-	require.Greater(t, TxFinalityDepth, uint64(1))
+	require.Greater(t, uint64(TxFinalityDepth), uint64(1))
 	rng := pkgtest.Prng(t)
 	ctx, cancel := context.WithTimeout(context.Background(), defaultTestTimeout)
 	defer cancel()

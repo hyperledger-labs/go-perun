@@ -54,14 +54,20 @@ type SimulatedBackend struct {
 	faucetAddr common.Address
 	clockMu    sync.Mutex    // Mutex for clock adjustments. Locked by SimTimeouts.
 	mining     chan struct{} // Used for auto-mining blocks.
+	commitTx   bool          // Whether each transaction is committed.
 }
 
-// Reorder can be used to insert, reorder and exclude transactions in
-// combination with `Reorg`.
-type Reorder func([]types.Transactions) []types.Transactions
+type (
+	// Reorder can be used to insert, reorder and exclude transactions in
+	// combination with `Reorg`.
+	Reorder func([]types.Transactions) []types.Transactions
+
+	// SimBackendOpt represents an optional argument for the sim backend.
+	SimBackendOpt func(*SimulatedBackend)
+)
 
 // NewSimulatedBackend creates a new Simulated Backend.
-func NewSimulatedBackend() *SimulatedBackend {
+func NewSimulatedBackend(opts ...SimBackendOpt) *SimulatedBackend {
 	sk, err := crypto.GenerateKey()
 	if err != nil {
 		panic(err)
@@ -79,11 +85,16 @@ func NewSimulatedBackend() *SimulatedBackend {
 		faucetAddr:                       {Balance: new(big.Int).Sub(channel.MaxBalance, big.NewInt(9))},
 	}
 	alloc := core.GenesisAlloc(addr)
-	return &SimulatedBackend{
+	sb := &SimulatedBackend{
 		SimulatedBackend: *backends.NewSimulatedBackend(alloc, 8000000),
 		faucetKey:        sk,
 		faucetAddr:       faucetAddr,
+		commitTx:         true,
 	}
+	for _, opt := range opts {
+		opt(sb)
+	}
+	return sb
 }
 
 // SuggestGasPrice always returns `GasPrice`.
@@ -96,7 +107,9 @@ func (s *SimulatedBackend) SendTransaction(ctx context.Context, tx *types.Transa
 	if err := s.SimulatedBackend.SendTransaction(ctx, tx); err != nil {
 		return errors.WithStack(err)
 	}
-	s.Commit()
+	if s.commitTx {
+		s.Commit()
+	}
 	return nil
 }
 
@@ -112,10 +125,13 @@ func (s *SimulatedBackend) FundAddress(ctx context.Context, addr common.Address)
 	if err != nil {
 		panic(err)
 	}
-	if err := s.SendTransaction(ctx, signedTX); err != nil {
+	if err := s.SimulatedBackend.SendTransaction(ctx, signedTX); err != nil {
 		panic(err)
 	}
-	bind.WaitMined(context.Background(), s, signedTX)
+	s.Commit()
+	if _, err := bind.WaitMined(context.Background(), s, signedTX); err != nil {
+		panic(err)
+	}
 }
 
 // StartMining makes the simulated blockchain auto-mine blocks with the given
@@ -202,4 +218,8 @@ func (s *SimulatedBackend) Reorg(ctx context.Context, depth uint64, reorder Reor
 		s.Commit()
 	}
 	return nil
+}
+
+func WithCommitTx(b bool) SimBackendOpt {
+	return func(sb *SimulatedBackend) { sb.commitTx = b }
 }
