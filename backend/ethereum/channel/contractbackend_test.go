@@ -65,7 +65,7 @@ func Test_calcFundingIDs(t *testing.T) {
 
 func Test_NewTransactor(t *testing.T) {
 	rng := pkgtest.Prng(t)
-	s := test.NewSimSetup(rng, TxFinalityDepth)
+	s := test.NewSimSetup(t, rng, TxFinalityDepth, blockInterval)
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	tests := []struct {
@@ -91,7 +91,7 @@ func Test_NewTransactor(t *testing.T) {
 
 func Test_NewWatchOpts(t *testing.T) {
 	rng := pkgtest.Prng(t)
-	s := test.NewSimSetup(rng, TxFinalityDepth)
+	s := test.NewSimSetup(t, rng, TxFinalityDepth, blockInterval)
 	watchOpts, err := s.CB.NewWatchOpts(context.Background())
 	require.NoError(t, err, "Creating watchopts on valid ContractBackend should succeed")
 	assert.Equal(t, context.Background(), watchOpts.Context, "context should be set")
@@ -109,7 +109,7 @@ func Test_NewWatchOpts(t *testing.T) {
 // Does not test reorgs.
 func Test_ConfirmTransaction(t *testing.T) {
 	rng := pkgtest.Prng(t)
-	s := test.NewSimSetup(rng, TxFinalityDepth)
+	s := test.NewSimSetup(t, rng, TxFinalityDepth, 0)
 	ctx, cancel := context.WithTimeout(context.Background(), defaultTestTimeout)
 	defer cancel()
 

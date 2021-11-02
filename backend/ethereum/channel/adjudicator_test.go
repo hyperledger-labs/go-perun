@@ -112,7 +112,7 @@ func TestSubscribeRegistered(t *testing.T) {
 func TestValidateAdjudicator(t *testing.T) {
 	// Test setup
 	rng := pkgtest.Prng(t)
-	s := test.NewSimSetup(rng, TxFinalityDepth)
+	s := test.NewSimSetup(t, rng, TxFinalityDepth, blockInterval)
 
 	t.Run("no_adj_code", func(t *testing.T) {
 		randomAddr := (common.Address)(ethwallettest.NewRandomAddress(rng))

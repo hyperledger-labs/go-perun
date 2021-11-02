@@ -61,7 +61,7 @@ func testValidateAssetHolder(t *testing.T,
 		backend bind.ContractBackend, assetHolderETH, adjudicator common.Address) error) {
 	// Test setup
 	rng := pkgtest.Prng(t, "validate")
-	s := test.NewSimSetup(rng, TxFinalityDepth)
+	s := test.NewSimSetup(t, rng, TxFinalityDepth, blockInterval)
 	ctx, cancel := context.WithTimeout(context.Background(), 4*defaultTxTimeout)
 	defer cancel()
 
