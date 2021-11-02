@@ -52,8 +52,9 @@ type TokenSetup struct {
 }
 
 const (
-	eventTimeout = 100 * time.Millisecond
-	txGasLimit   = 100000
+	eventTimeout  = 100 * time.Millisecond
+	txGasLimit    = 100000
+	blockInterval = 100 * time.Millisecond
 )
 
 // NewTokenSetup creates a new TokenSetup.
@@ -72,6 +73,8 @@ func NewTokenSetup(ctx context.Context, t *testing.T, rng *rand.Rand, txFinality
 	)
 
 	// Setup Perun Token.
+	sb.StartMining(blockInterval) // Automine to allow reorg-resistant contract deployment.
+	defer sb.StopMining()
 	tokenAddr, err := ethchannel.DeployPerunToken(ctx, cb, *acc1, []common.Address{acc1.Address}, channeltest.MaxBalance)
 	require.NoError(t, err)
 	token, err := peruntoken.NewERC20(tokenAddr, cb)
