@@ -105,7 +105,7 @@ func deployContract(ctx context.Context, cb ContractBackend, deployer accounts.A
 		err = cherrors.CheckIsChainNotReachableError(err)
 		return common.Address{}, errors.WithMessage(err, "creating transaction")
 	}
-	if _, err := bind.WaitDeployed(ctx, cb, tx); err != nil {
+	if _, err := waitDeployed(ctx, &cb, tx); err != nil {
 		switch {
 		case pcontext.IsContextError(err):
 			txType := fmt.Sprintf("deploy %s", name)
@@ -119,4 +119,27 @@ func deployContract(ctx context.Context, cb ContractBackend, deployer accounts.A
 	}
 	log.Infof("Deployed %s at %v.", name, addr.Hex())
 	return addr, nil
+}
+
+// waitDeployed waits for a contract deployment transaction and returns the on-chain
+// contract address when it is mined. It stops waiting when ctx is canceled.
+func waitDeployed(ctx context.Context, b *ContractBackend, tx *types.Transaction) (common.Address, error) {
+	if tx.To() != nil {
+		return common.Address{}, errors.New("tx is not contract creation")
+	}
+	receipt, err := b.confirmNTimes(ctx, tx, b.txFinalityDepth)
+	if err != nil {
+		return common.Address{}, err
+	}
+	if receipt.ContractAddress == (common.Address{}) {
+		return common.Address{}, errors.New("zero address")
+	}
+	// Check that code has indeed been deployed at the address.
+	// This matters on pre-Homestead chains: OOG in the constructor
+	// could leave an empty account behind.
+	code, err := b.CodeAt(ctx, receipt.ContractAddress, nil)
+	if err == nil && len(code) == 0 {
+		err = bind.ErrNoCodeAfterDeploy
+	}
+	return receipt.ContractAddress, err
 }
