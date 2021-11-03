@@ -71,7 +71,13 @@ func (c *Channel) startWatching() (watcher.StatesPub, watcher.AdjudicatorSub, er
 		State:  currentTx.State.Clone(),
 		Sigs:   currentTx.Sigs,
 	}
-	statesPub, eventsSub, err := c.client.watcher.StartWatchingLedgerChannel(c.Ctx(), signedState)
+
+	statesPub, eventsSub, err := func() (watcher.StatesPub, watcher.AdjudicatorSub, error) {
+		if c.IsLedgerChannel() {
+			return c.client.watcher.StartWatchingLedgerChannel(c.Ctx(), signedState)
+		}
+		return c.client.watcher.StartWatchingSubChannel(c.Ctx(), c.parent.ID(), signedState)
+	}()
 	if err != nil {
 		return nil, nil, errors.WithMessage(err, "registering channel with the watcher")
 	}
