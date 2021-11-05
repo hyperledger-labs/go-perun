@@ -28,7 +28,7 @@ import (
 	"perun.network/go-perun/wire"
 )
 
-func TestHappySusieTim(t *testing.T) {
+func TestSubChannelHappy(t *testing.T) {
 	rng := test.Prng(t)
 
 	setups := NewSetups(rng, []string{"Susie", "Tim"})
