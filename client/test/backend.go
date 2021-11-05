@@ -96,6 +96,16 @@ func (b *MockBackend) Register(_ context.Context, req channel.AdjudicatorReq, su
 		return nil
 	}
 
+	// Check register requirements.
+	states := make([]*channel.State, 1+len(subChannels))
+	states[0] = req.Tx.State
+	for i, subCh := range subChannels {
+		states[1+i] = subCh.State
+	}
+	if err := b.checkStates(states, checkRegister); err != nil {
+		return err
+	}
+
 	channels := append([]channel.SignedState{
 		{
 			Params: req.Params,
@@ -172,21 +182,44 @@ func outcomeRecursive(state *channel.State, subStates channel.StateMap) (outcome
 	return
 }
 
-func (b *MockBackend) checkVersions(req channel.AdjudicatorReq, subStates channel.StateMap) error {
-	if err := b.checkVersion(req.Params.ID(), req.Tx.Version); err != nil {
-		return err
+type checkStateFunc func(e channel.AdjudicatorEvent, ok bool, s *channel.State) error
+
+// checkRegister checks the following for the given channels:
+// - If the channel is already registered, the given version must be greater or equal to the registered version.
+func checkRegister(e channel.AdjudicatorEvent, ok bool, s *channel.State) error {
+	v := s.Version
+	if ok && e.Version() > v {
+		return fmt.Errorf("invalid version: expected >=%v, got %v", e.Version(), v)
 	}
-	for _, subCh := range subStates {
-		if err := b.checkVersion(subCh.ID, subCh.Version); err != nil {
+	return nil
+}
+
+// checkWithdraw checks the following for the given channels:
+// - If the channel is not registered, the given state must be final.
+// - If the channel is already registered, the given version must be equal the registered version.
+func checkWithdraw(e channel.AdjudicatorEvent, ok bool, s *channel.State) error {
+	v := s.Version
+	if !ok && !s.IsFinal {
+		return fmt.Errorf("invalid version: expected %v, got not registered", v)
+	} else if ok && e.Version() != v {
+		return fmt.Errorf("invalid version: expected %v, got %v", e.Version(), v)
+	}
+	return nil
+}
+
+func (b *MockBackend) checkStates(states []*channel.State, op checkStateFunc) error {
+	for _, s := range states {
+		if err := b.checkState(s, op); err != nil {
 			return err
 		}
 	}
 	return nil
 }
 
-func (b *MockBackend) checkVersion(ch channel.ID, v uint64) error {
-	if e, ok := b.latestEvents[ch]; ok && e.Version() != v {
-		return fmt.Errorf("invalid version: expected %v, got %v", e.Version(), v)
+func (b *MockBackend) checkState(s *channel.State, op checkStateFunc) error {
+	e, ok := b.latestEvents[s.ID]
+	if err := op(e, ok, s); err != nil {
+		return err
 	}
 	return nil
 }
@@ -196,8 +229,15 @@ func (b *MockBackend) Withdraw(_ context.Context, req channel.AdjudicatorReq, su
 	b.mu.Lock()
 	defer b.mu.Unlock()
 
-	// Check correct versions.
-	if err := b.checkVersions(req, subStates); err != nil {
+	// Check withdraw requirements.
+	states := make([]*channel.State, 1+len(subStates))
+	states[0] = req.Tx.State
+	i := 1
+	for _, s := range subStates {
+		states[i] = s
+		i++
+	}
+	if err := b.checkStates(states, checkWithdraw); err != nil {
 		return err
 	}
 
