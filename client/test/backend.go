@@ -17,6 +17,7 @@ package test
 import (
 	"bytes"
 	"context"
+	"fmt"
 	"math/big"
 	"math/rand"
 	"sync"
@@ -35,7 +36,7 @@ type (
 		rng          rng
 		mu           sync.Mutex
 		latestEvents map[channel.ID]channel.AdjudicatorEvent
-		eventSubs    map[channel.ID][]chan channel.AdjudicatorEvent
+		eventSubs    map[channel.ID][]*mockSubscription
 		balances     map[addressMapKey]map[assetMapKey]*big.Int
 	}
 
@@ -55,7 +56,7 @@ func NewMockBackend(rng *rand.Rand) *MockBackend {
 		log:          log.Get(),
 		rng:          newThreadSafePrng(rng),
 		latestEvents: make(map[channel.ID]channel.AdjudicatorEvent),
-		eventSubs:    make(map[channel.ID][]chan channel.AdjudicatorEvent),
+		eventSubs:    make(map[channel.ID][]*mockSubscription),
 		balances:     make(map[string]map[string]*big.Int),
 	}
 }
@@ -122,14 +123,14 @@ func (b *MockBackend) setLatestEvent(ch channel.ID, e channel.AdjudicatorEvent) 
 	b.latestEvents[ch] = e
 	// Update subscriptions.
 	if channelSubs, ok := b.eventSubs[ch]; ok {
-		for _, events := range channelSubs {
+		for _, sub := range channelSubs {
 			// Remove previous latest event.
 			select {
-			case <-events:
+			case <-sub.events:
 			default:
 			}
 			// Add latest event.
-			events <- e
+			sub.events <- e
 		}
 	}
 }
@@ -171,10 +172,34 @@ func outcomeRecursive(state *channel.State, subStates channel.StateMap) (outcome
 	return
 }
 
+func (b *MockBackend) checkVersions(req channel.AdjudicatorReq, subStates channel.StateMap) error {
+	if err := b.checkVersion(req.Params.ID(), req.Tx.Version); err != nil {
+		return err
+	}
+	for _, subCh := range subStates {
+		if err := b.checkVersion(subCh.ID, subCh.Version); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (b *MockBackend) checkVersion(ch channel.ID, v uint64) error {
+	if e, ok := b.latestEvents[ch]; ok && e.Version() != v {
+		return fmt.Errorf("invalid version: expected %v, got %v", e.Version(), v)
+	}
+	return nil
+}
+
 // Withdraw withdraws the channel funds.
 func (b *MockBackend) Withdraw(_ context.Context, req channel.AdjudicatorReq, subStates channel.StateMap) error {
 	b.mu.Lock()
 	defer b.mu.Unlock()
+
+	// Check correct versions.
+	if err := b.checkVersions(req, subStates); err != nil {
+		return err
+	}
 
 	// Check concluded.
 	ch := req.Params.ID()
@@ -278,7 +303,8 @@ func (b *MockBackend) Subscribe(ctx context.Context, chID channel.ID) (channel.A
 		events: make(chan channel.AdjudicatorEvent, 1),
 		err:    make(chan error, 1),
 	}
-	b.eventSubs[chID] = append(b.eventSubs[chID], sub.events)
+	sub.onClose = func() { b.removeSubscription(chID, sub) }
+	b.eventSubs[chID] = append(b.eventSubs[chID], sub)
 
 	// Feed latest event if any.
 	if e, ok := b.latestEvents[chID]; ok {
@@ -288,10 +314,34 @@ func (b *MockBackend) Subscribe(ctx context.Context, chID channel.ID) (channel.A
 	return sub, nil
 }
 
+func (b *MockBackend) removeSubscription(ch channel.ID, sub *mockSubscription) {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+
+	// Find subscription index.
+	i, ok := func() (int, bool) {
+		for i, sub_ := range b.eventSubs[ch] {
+			if sub == sub_ {
+				return i, true
+			}
+		}
+		return 0, false
+	}()
+
+	if !ok {
+		log.Warnf("Remove subscription: Not found: %v", ch)
+		return
+	}
+
+	subs := b.eventSubs[ch]
+	b.eventSubs[ch] = append(subs[:i], subs[i+1:]...)
+}
+
 type mockSubscription struct {
-	ctx    context.Context
-	events chan channel.AdjudicatorEvent
-	err    chan error
+	ctx     context.Context
+	events  chan channel.AdjudicatorEvent
+	err     chan error
+	onClose func()
 }
 
 func (s *mockSubscription) Next() channel.AdjudicatorEvent {
@@ -305,7 +355,9 @@ func (s *mockSubscription) Next() channel.AdjudicatorEvent {
 }
 
 func (s *mockSubscription) Close() error {
+	s.onClose()
 	close(s.events)
+	close(s.err)
 	return nil
 }
 
