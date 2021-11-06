@@ -256,8 +256,8 @@ func (c *Channel) Settle(ctx context.Context, secondary bool) (err error) {
 		return errors.WithMessage(err, "setting phase `Withdrawing` recursive")
 	}
 
-	// Settle.
-	err = c.settle(ctx, secondary)
+	// Withdraw.
+	err = c.withdraw(ctx, secondary)
 	if err != nil {
 		return
 	}
@@ -292,7 +292,7 @@ func (c *Channel) Settle(ctx context.Context, secondary bool) (err error) {
 	return nil
 }
 
-func (c *Channel) settle(ctx context.Context, secondary bool) error {
+func (c *Channel) withdraw(ctx context.Context, secondary bool) error {
 	switch {
 	case c.IsLedgerChannel():
 		subStates, err := c.subChannelStateMap()
