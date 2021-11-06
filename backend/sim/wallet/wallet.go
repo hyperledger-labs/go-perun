@@ -144,7 +144,7 @@ func (w *Wallet) UsageCount(a wallet.Address) int {
 func (w *Wallet) NewRandomAccount(rng *rand.Rand) wallet.Account {
 	acc := NewRandomAccount(rng)
 	if err := w.AddAccount(acc); err != nil {
-		log.WithError(err).Panic("Could not add account to wallet")
+		log.WithError(err).Warn("Account already in wallet")
 	}
 	return acc
 }
