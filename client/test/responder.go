@@ -37,7 +37,10 @@ func (r *Responder) Execute(cfg ExecConfig, exec func(ExecConfig, *paymentChanne
 	assert := assert.New(r.t)
 
 	propHandler, waitHandler := r.GoHandle(rng)
-	defer waitHandler()
+	defer func() {
+		assert.NoError(r.Close())
+		waitHandler()
+	}()
 
 	// receive one accepted proposal
 	ch, err := propHandler.Next()
@@ -52,5 +55,4 @@ func (r *Responder) Execute(cfg ExecConfig, exec func(ExecConfig, *paymentChanne
 	exec(cfg, ch, propHandler)
 
 	assert.NoError(ch.Close())
-	assert.NoError(r.Close())
 }
