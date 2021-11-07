@@ -202,21 +202,21 @@ func (c *ContractBackend) confirmNTimes(ctx context.Context, tx *types.Transacti
 	if finalityDepth < 1 {
 		return nil, errors.New("finalityDepth was less than 1")
 	}
+	// Wait to be included at least once.
+	head, err := c.waitMined(ctx, tx)
+	if err != nil {
+		return nil, errors.WithMessage(err, "waiting for TX to be mined")
+	}
+
 	// Set up header sub for future blocks.
 	heads := make(chan *types.Header, 10)
+	heads <- head // Include the current head.
 	hsub, err := c.SubscribeNewHead(ctx, heads)
 	if err != nil {
 		err = cherrors.CheckIsChainNotReachableError(err)
 		return nil, errors.WithMessage(err, "subscribing to heads")
 	}
 	defer hsub.Unsubscribe()
-
-	// Wait to be included at least once.
-	head, err := c.waitMined(ctx, tx)
-	if err != nil {
-		return nil, errors.WithMessage(err, "waiting for TX to be mined")
-	}
-	heads <- head
 
 	for {
 		select {
