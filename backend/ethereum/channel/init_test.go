@@ -15,6 +15,8 @@
 package channel_test
 
 import (
+	"time"
+
 	"github.com/sirupsen/logrus"
 
 	plogrus "perun.network/go-perun/log/logrus"
@@ -24,6 +26,9 @@ const (
 	TxFinalityDepth    = 3 // For tests that use a constant finality depth.
 	TxFinalityDepthMin = 1
 	TxFinalityDepthMax = 10
+
+	defaultTestTimeout = 10 * time.Second
+	blockInterval      = 50 * time.Millisecond
 )
 
 func init() {
