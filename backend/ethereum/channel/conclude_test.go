@@ -18,7 +18,6 @@ import (
 	"context"
 	"math/rand"
 	"testing"
-	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -31,11 +30,6 @@ import (
 	"perun.network/go-perun/pkg/errors"
 	pkgtest "perun.network/go-perun/pkg/test"
 	"perun.network/go-perun/wallet"
-)
-
-const (
-	defaultTestTimeout = 10 * time.Second
-	blockInterval      = 50 * time.Millisecond
 )
 
 func TestAdjudicator_ConcludeFinal(t *testing.T) {
