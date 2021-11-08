@@ -341,7 +341,7 @@ func (ch *ch) handleEventsFromChain(registerer channel.Registerer, chRegistry *r
 	}
 	err := ch.eventsFromChainSub.Err()
 	if err != nil {
-		log.Error("Subscription to adjudicator events from chain was closed with error: %v", err)
+		log.Errorf("Subscription to adjudicator events from chain was closed with error: %v", err)
 	}
 }
 

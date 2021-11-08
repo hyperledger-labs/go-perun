@@ -1,4 +1,4 @@
-// Copyright 2020 - See NOTICE file for copyright holders.
+// Copyright 2021 - See NOTICE file for copyright holders.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -20,7 +20,6 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	"perun.network/go-perun/apps/payment"
 	chtest "perun.network/go-perun/channel/test"
 	"perun.network/go-perun/client"
 	ctest "perun.network/go-perun/client/test"
@@ -28,38 +27,26 @@ import (
 	"perun.network/go-perun/wire"
 )
 
-func TestSubChannelHappy(t *testing.T) {
+func TestSubChannelDispute(t *testing.T) {
 	rng := test.Prng(t)
 
-	setups := NewSetups(rng, []string{"Susie", "Tim"})
+	setups := NewSetups(rng, []string{"DisputeSusie", "DisputeTim"})
 	roles := [2]ctest.Executer{
-		ctest.NewSusie(setups[0], t),
-		ctest.NewTim(setups[1], t),
+		ctest.NewDisputeSusie(setups[0], t),
+		ctest.NewDisputeTim(setups[1], t),
 	}
 
-	cfg := ctest.NewSusieTimExecConfig(
-		ctest.MakeBaseExecConfig(
-			[2]wire.Address{setups[0].Identity.Address(), setups[1].Identity.Address()},
-			chtest.NewRandomAsset(rng),
-			[2]*big.Int{big.NewInt(100), big.NewInt(100)},
-			client.WithoutApp(),
-		),
-		2,
-		3,
-		[][2]*big.Int{
-			{big.NewInt(10), big.NewInt(10)},
-			{big.NewInt(5), big.NewInt(5)},
-		},
-		[][2]*big.Int{
-			{big.NewInt(3), big.NewInt(3)},
-			{big.NewInt(2), big.NewInt(2)},
-			{big.NewInt(1), big.NewInt(1)},
-		},
-		client.WithApp(
-			chtest.NewRandomAppAndData(rng, chtest.WithAppRandomizer(new(payment.Randomizer))),
-		),
-		big.NewInt(1),
+	baseCfg := ctest.MakeBaseExecConfig(
+		[2]wire.Address{setups[0].Identity.Address(), setups[1].Identity.Address()},
+		chtest.NewRandomAsset(rng),
+		[2]*big.Int{big.NewInt(100), big.NewInt(100)},
+		client.WithoutApp(),
 	)
+	cfg := &ctest.DisputeSusieTimExecConfig{
+		BaseExecConfig:  baseCfg,
+		SubChannelFunds: [2]*big.Int{big.NewInt(10), big.NewInt(10)},
+		TxAmount:        big.NewInt(1),
+	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), twoPartyTestTimeout)
 	defer cancel()

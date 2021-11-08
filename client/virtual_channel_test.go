@@ -76,15 +76,17 @@ func TestVirtualChannelsDispute(t *testing.T) {
 
 	vct := setupVirtualChannelTest(t, ctx)
 	assert := assert.New(t)
+	waitTimeout := 100 * time.Millisecond
 
 	chs := []*client.Channel{vct.chAliceIngrid, vct.chIngridAlice, vct.chBobIngrid, vct.chIngridBob}
 	// Register the channels in a random order.
-	for _, i := range rand.Perm(len(chs)) {
+	perm := rand.Perm(len(chs))
+	t.Logf("perm = %v", perm)
+	for _, i := range perm {
 		err := client.NewTestChannel(chs[i]).Register(ctx)
 		assert.NoErrorf(err, "register channel: %d", i)
+		time.Sleep(waitTimeout) // Sleep to ensure that events have been processed and local client states have been updated.
 	}
-
-	time.Sleep(100 * time.Millisecond) // Sleep to ensure that registered events have been processed.
 
 	// Settle the channels in a random order.
 	for _, i := range rand.Perm(len(chs)) {

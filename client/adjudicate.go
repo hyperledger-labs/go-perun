@@ -71,7 +71,13 @@ func (c *Channel) startWatching() (watcher.StatesPub, watcher.AdjudicatorSub, er
 		State:  currentTx.State.Clone(),
 		Sigs:   currentTx.Sigs,
 	}
-	statesPub, eventsSub, err := c.client.watcher.StartWatchingLedgerChannel(c.Ctx(), signedState)
+
+	statesPub, eventsSub, err := func() (watcher.StatesPub, watcher.AdjudicatorSub, error) {
+		if c.IsLedgerChannel() {
+			return c.client.watcher.StartWatchingLedgerChannel(c.Ctx(), signedState)
+		}
+		return c.client.watcher.StartWatchingSubChannel(c.Ctx(), c.parent.ID(), signedState)
+	}()
 	if err != nil {
 		return nil, nil, errors.WithMessage(err, "registering channel with the watcher")
 	}
@@ -250,8 +256,8 @@ func (c *Channel) Settle(ctx context.Context, secondary bool) (err error) {
 		return errors.WithMessage(err, "setting phase `Withdrawing` recursive")
 	}
 
-	// Settle.
-	err = c.settle(ctx, secondary)
+	// Withdraw.
+	err = c.withdraw(ctx, secondary)
 	if err != nil {
 		return
 	}
@@ -286,7 +292,7 @@ func (c *Channel) Settle(ctx context.Context, secondary bool) (err error) {
 	return nil
 }
 
-func (c *Channel) settle(ctx context.Context, secondary bool) error {
+func (c *Channel) withdraw(ctx context.Context, secondary bool) error {
 	switch {
 	case c.IsLedgerChannel():
 		subStates, err := c.subChannelStateMap()

@@ -37,8 +37,11 @@ func (r *Proposer) Execute(cfg ExecConfig, exec func(ExecConfig, *paymentChannel
 	assert := assert.New(r.t)
 
 	// ignore proposal handler since Proposer doesn't accept any incoming channels
-	_, wait := r.GoHandle(rng)
-	defer wait()
+	_, waitHandler := r.GoHandle(rng)
+	defer func() {
+		assert.NoError(r.Close())
+		waitHandler()
+	}()
 
 	prop := r.LedgerChannelProposal(rng, cfg)
 	ch, err := r.ProposeChannel(prop)
@@ -51,6 +54,5 @@ func (r *Proposer) Execute(cfg ExecConfig, exec func(ExecConfig, *paymentChannel
 
 	exec(cfg, ch)
 
-	ch.Close() // May or may not already be closed due to channelConn closing.
-	assert.NoError(r.Close())
+	assert.NoError(ch.Close()) // May or may not already be closed due to channelConn closing.
 }

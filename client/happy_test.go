@@ -16,21 +16,11 @@ package client_test
 
 import (
 	"context"
-	"math/big"
 	"math/rand"
 	"testing"
-	"time"
 
-	"github.com/stretchr/testify/assert"
-	"perun.network/go-perun/apps/payment"
-	chtest "perun.network/go-perun/channel/test"
-	"perun.network/go-perun/client"
 	ctest "perun.network/go-perun/client/test"
-	"perun.network/go-perun/pkg/test"
-	"perun.network/go-perun/wire"
 )
-
-const twoPartyTestTimeout = 10 * time.Second
 
 func TestHappyAliceBob(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), twoPartyTestTimeout)
@@ -44,31 +34,4 @@ func TestHappyAliceBob(t *testing.T) {
 		}
 		return
 	})
-}
-
-func runTwoPartyTest(ctx context.Context, t *testing.T, setup func(*rand.Rand) ([]ctest.RoleSetup, [2]ctest.Executer)) {
-	rng := test.Prng(t)
-	for i := 0; i < 2; i++ {
-		setups, roles := setup(rng)
-		app := client.WithoutApp()
-		if i == 1 {
-			app = client.WithApp(
-				chtest.NewRandomAppAndData(rng, chtest.WithAppRandomizer(new(payment.Randomizer))),
-			)
-		}
-
-		cfg := &ctest.AliceBobExecConfig{
-			BaseExecConfig: ctest.MakeBaseExecConfig(
-				[2]wire.Address{setups[0].Identity.Address(), setups[1].Identity.Address()},
-				chtest.NewRandomAsset(rng),
-				[2]*big.Int{big.NewInt(100), big.NewInt(100)},
-				app,
-			),
-			NumPayments: [2]int{2, 2},
-			TxAmounts:   [2]*big.Int{big.NewInt(5), big.NewInt(3)},
-		}
-
-		err := ctest.ExecuteTwoPartyTest(ctx, roles, cfg)
-		assert.NoError(t, err)
-	}
 }
