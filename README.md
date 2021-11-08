@@ -58,7 +58,7 @@ and on [go-perun's pkg.go.dev site](https://pkg.go.dev/perun.network/go-perun).
 _go-perun_ currently supports all features needed for two-party generalized state channels.
 The following features are provided:
 * Generalized two-party state channels, including app/sub-channels
-* Cooperatively settling
+* Cooperative settling
 * Channel disputes
 * Dispute watchtower
 * Data persistence
@@ -103,6 +103,7 @@ import (
 	"perun.network/go-perun/log"
 	"perun.network/go-perun/peer"
 	"perun.network/go-perun/wallet"
+	"perun.network/go-perun/watcher"
 	"perun.network/go-perun/wire"
 	// other imports
 )
@@ -116,10 +117,12 @@ func main() {
 	// setup communication bus
 	var bus wire.Bus
 	// setup wallet for channel accounts
-	var w wallet.Wallet
+	var wallet wallet.Wallet
+	// setup channel watcher
+	var watcher watcher.Watcher
 
 	// create state channel network client
-	c := client.New(perunID, bus, funder, adjudicator, w)
+	c := client.New(perunID, bus, funder, adjudicator, wallet, watcher)
 
 	// choose how to react to incoming channel proposals
 	var proposalHandler client.ProposalHandler
