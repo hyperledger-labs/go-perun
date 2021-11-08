@@ -6,6 +6,38 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.8.0] Hyperion - 2021-11-08 [:warning:]
+Reorg-resistance for the Ethereum backend and support for external Watchtowers.
+
+### Added
+
+- :sparkles: **Ethereum backend: Reorg resistance** [#19](https://github.com/hyperledger-labs/go-perun/issues/19): The Ethereum backend now lets the user specify after how many blocks a transaction or an event should be considered confirmed.
+- :sparkles: **Watcher interface** [#172](https://github.com/hyperledger-labs/go-perun/issues/172): The watcher logic is now injectable. The adjudicator takes a watcher instance as a setup parameter. This enables using remote watcher services. A local watcher implementation is provided.
+
+### Changed
+
+- :arrow_up: Update go to v1.17 and go-ethereum to v1.10.12.
+- :white_check_mark: Extend support for additional blockchain backends by revising the generic tests (e.g., [#225], [#227], [#228]).
+- :children_crossing: Improve usability (e.g., [#124], [#144], [#196], [#204], [#240]).
+
+### Fixed
+- :bug: Improve stability (e.g., [#129], [#134], [#148], [#191], [#207], [#218]).
+
+[#225]: https://github.com/hyperledger-labs/go-perun/pull/225
+[#227]: https://github.com/hyperledger-labs/go-perun/pull/227
+[#228]: https://github.com/hyperledger-labs/go-perun/pull/228
+[#124]: https://github.com/hyperledger-labs/go-perun/pull/124
+[#144]: https://github.com/hyperledger-labs/go-perun/pull/144
+[#204]: https://github.com/hyperledger-labs/go-perun/pull/204
+[#129]: https://github.com/hyperledger-labs/go-perun/pull/129
+[#134]: https://github.com/hyperledger-labs/go-perun/pull/134
+[#148]: https://github.com/hyperledger-labs/go-perun/pull/148
+[#191]: https://github.com/hyperledger-labs/go-perun/pull/191
+[#196]: https://github.com/hyperledger-labs/go-perun/pull/196
+[#207]: https://github.com/hyperledger-labs/go-perun/pull/207
+[#218]: https://github.com/hyperledger-labs/go-perun/pull/218
+[#240]: https://github.com/hyperledger-labs/go-perun/pull/240
+
 ## [0.7.0] Ganymede - 2021-07-09 [:warning:]
 Virtual channels. And some other additions.
 
@@ -246,7 +278,8 @@ Initial release.
 [:warning:]: #warning
 [:boom:]: #breaking
 
-[Unreleased]: https://github.com/hyperledger-labs/go-perun/compare/v0.7.0...HEAD
+[Unreleased]: https://github.com/hyperledger-labs/go-perun/compare/v0.8.0...HEAD
+[0.8.0]: https://github.com/hyperledger-labs/go-perun/compare/v0.7.0...v0.8.0
 [0.7.0]: https://github.com/hyperledger-labs/go-perun/compare/v0.6.0...v0.7.0
 [0.6.0]: https://github.com/hyperledger-labs/go-perun/compare/v0.5.2...v0.6.0
 [0.5.2]: https://github.com/hyperledger-labs/go-perun/compare/v0.5.0...v0.5.2
