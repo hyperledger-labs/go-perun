@@ -15,8 +15,8 @@
 package test
 
 import (
-	"bytes"
 	"context"
+	"encoding"
 	"fmt"
 	"math/big"
 	"math/rand"
@@ -25,7 +25,6 @@ import (
 
 	"perun.network/go-perun/channel"
 	"perun.network/go-perun/log"
-	"perun.network/go-perun/pkg/io"
 	"perun.network/go-perun/wallet"
 )
 
@@ -307,12 +306,12 @@ func newAssetMapKey(a channel.Asset) assetMapKey {
 	return encodableAsString(a)
 }
 
-func encodableAsString(e io.Encoder) string {
-	var buf bytes.Buffer
-	if err := e.Encode(&buf); err != nil {
+func encodableAsString(e encoding.BinaryMarshaler) string {
+	buff, err := e.MarshalBinary()
+	if err != nil {
 		panic(err)
 	}
-	return buf.String()
+	return string(buff)
 }
 
 // Balance returns the balance for the participant and asset.

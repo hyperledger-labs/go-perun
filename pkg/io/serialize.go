@@ -15,6 +15,7 @@
 package io
 
 import (
+	"encoding"
 	"encoding/binary"
 	"fmt"
 	"io"
@@ -43,6 +44,13 @@ func Encode(writer io.Writer, values ...interface{}) (err error) {
 			err = ByteSlice(v).Encode(writer)
 		case string:
 			err = encodeString(writer, v)
+		case encoding.BinaryMarshaler:
+			var data []byte
+			data, err = v.MarshalBinary()
+			if err != nil {
+				return errors.WithMessage(err, "marshaling to byte array")
+			}
+			err = ByteSlice(data).Encode(writer)
 		default:
 			if enc, ok := value.(Encoder); ok {
 				err = enc.Encode(writer)

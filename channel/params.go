@@ -150,7 +150,7 @@ func (p *Params) Clone() *Params {
 	clonedParts := make([]wallet.Address, len(p.Parts))
 	for i, v := range p.Parts {
 		var buff bytes.Buffer
-		if err := v.Encode(&buff); err != nil {
+		if err := io.Encode(&buff, v); err != nil {
 			log.WithError(err).Panic("Could not encode part")
 		}
 

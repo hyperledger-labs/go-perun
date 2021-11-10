@@ -38,7 +38,7 @@ func (*backend) CalcID(p *channel.Params) (id channel.ID) {
 
 	// Write Parts
 	for _, addr := range p.Parts {
-		if err := addr.Encode(w); err != nil {
+		if err := perunio.Encode(w, addr); err != nil {
 			log.Panic("Could not write to sha256 hasher")
 		}
 	}

@@ -15,8 +15,6 @@
 package wallet
 
 import (
-	"bufio"
-	"bytes"
 	"crypto/ecdsa"
 	"fmt"
 	"io"
@@ -59,17 +57,8 @@ func NewRandomAddress(rng io.Reader) *Address {
 
 // Bytes converts this address to bytes.
 func (a *Address) Bytes() []byte {
-	// Serialize the Address into a buffer and return the buffers bytes
-	buff := new(bytes.Buffer)
-	w := bufio.NewWriter(buff)
-	if err := a.Encode(w); err != nil {
-		log.Panic("address encode error ", err)
-	}
-	if err := w.Flush(); err != nil {
-		log.Panic("bufio flush ", err)
-	}
-
-	return buff.Bytes()
+	data := a.ByteArray()
+	return data[:]
 }
 
 // ByteArray converts an address into a 64-byte array. The returned array
@@ -120,11 +109,11 @@ func (a *Address) Cmp(addr wallet.Address) int {
 	return yCmp
 }
 
-// Encode encodes this address into an io.Writer. Part of the
-// go-perun/pkg/io.Serializer interface.
-func (a *Address) Encode(w io.Writer) error {
+// MarshalBinary marshals the address into its binary representation.
+// Error will always be nil, it is for implementing BinaryMarshaler.
+func (a *Address) MarshalBinary() ([]byte, error) {
 	data := a.ByteArray()
-	return perunio.Encode(w, data[:])
+	return data[:], nil
 }
 
 // Decode decodes an address from an io.Reader. Part of the

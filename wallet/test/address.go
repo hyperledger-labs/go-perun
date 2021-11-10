@@ -20,6 +20,8 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"perun.network/go-perun/pkg/io"
 )
 
 // TestAddress runs a test suite designed to test the general functionality of
@@ -54,7 +56,7 @@ func TestAddress(t *testing.T, s *Setup) { //nolint:revive // `test.Test...` stu
 	// a.Equal(Decode(Encode(a)))
 	t.Run("Serialize Equal Test", func(t *testing.T) {
 		buff := new(bytes.Buffer)
-		require.NoError(t, addr.Encode(buff))
+		require.NoError(t, io.Encode(buff, addr))
 		addr2, err := s.Backend.DecodeAddress(buff)
 		require.NoError(t, err)
 

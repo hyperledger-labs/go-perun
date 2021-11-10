@@ -15,6 +15,7 @@
 package wallet
 
 import (
+	"encoding"
 	"fmt"
 	stdio "io"
 	"strings"
@@ -27,8 +28,10 @@ import (
 // Address represents a identifier used in a cryptocurrency.
 // It is dependent on the currency and needs to be implemented for every blockchain.
 type Address interface {
-	// Encoder should write an address that can be decoded with Backend.DecodeAddress.
-	io.Encoder
+	// BinaryMarshaler marshals the blockchain specific address to binary
+	// format (a byte array).
+	encoding.BinaryMarshaler
+
 	// Bytes should return the representation of the address as byte slice.
 	Bytes() []byte
 	// String converts this address to a string.
@@ -81,7 +84,7 @@ type AddrKey string
 // following decode operation.
 func (a Addresses) Encode(w stdio.Writer) error {
 	for i, addr := range a {
-		if err := addr.Encode(w); err != nil {
+		if err := io.Encode(w, addr); err != nil {
 			return errors.WithMessagef(err, "encoding %d-th address", i)
 		}
 	}
@@ -131,7 +134,7 @@ func (a AddressDec) Decode(r stdio.Reader) (err error) {
 // Panics when the `Address` can't be encoded.
 func Key(a Address) AddrKey {
 	var buff strings.Builder
-	if err := a.Encode(&buff); err != nil {
+	if err := io.Encode(&buff, a); err != nil {
 		panic("Could not encode address in AddrKey")
 	}
 	return AddrKey(buff.String())
