@@ -19,8 +19,8 @@ import (
 
 	"github.com/ethereum/go-ethereum/crypto"
 
-	perunio "perun.network/go-perun/pkg/io"
 	"perun.network/go-perun/wallet"
+	perunio "polycry.pt/poly-go/io"
 )
 
 // Backend implements the utility interface defined in the wallet package.

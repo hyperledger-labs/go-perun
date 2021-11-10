@@ -25,11 +25,11 @@ import (
 	"perun.network/go-perun/channel/persistence"
 	"perun.network/go-perun/channel/test"
 	"perun.network/go-perun/log"
-	"perun.network/go-perun/pkg/sync"
-	pkgtest "perun.network/go-perun/pkg/test"
 	"perun.network/go-perun/wallet"
 	wallettest "perun.network/go-perun/wallet/test"
 	"perun.network/go-perun/wire"
+	"polycry.pt/poly-go/sync"
+	pkgtest "polycry.pt/poly-go/test"
 )
 
 func patchChFromSource(

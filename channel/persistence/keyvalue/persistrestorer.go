@@ -16,7 +16,7 @@ package keyvalue
 
 import (
 	"perun.network/go-perun/channel/persistence"
-	"perun.network/go-perun/pkg/sortedkv"
+	"polycry.pt/poly-go/sortedkv"
 )
 
 var _ persistence.PersistRestorer = (*PersistRestorer)(nil)

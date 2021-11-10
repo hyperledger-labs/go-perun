@@ -20,10 +20,10 @@ import (
 
 	"perun.network/go-perun/channel"
 	"perun.network/go-perun/channel/test"
-	pkgtest "perun.network/go-perun/pkg/test"
 	"perun.network/go-perun/wallet"
 	wallettest "perun.network/go-perun/wallet/test"
 	"perun.network/go-perun/wire"
+	pkgtest "polycry.pt/poly-go/test"
 )
 
 func TestChannelUpdateSerialization(t *testing.T) {

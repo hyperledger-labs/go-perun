@@ -19,7 +19,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	"perun.network/go-perun/pkg/test"
+	"polycry.pt/poly-go/test"
 )
 
 func TestAddress_ByteArray(t *testing.T) {

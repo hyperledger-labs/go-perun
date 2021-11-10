@@ -18,9 +18,9 @@ import (
 	"testing"
 
 	chtest "perun.network/go-perun/channel/test"
-	pkgtest "perun.network/go-perun/pkg/test"
 	"perun.network/go-perun/wallet"
 	wtest "perun.network/go-perun/wallet/test"
+	pkgtest "polycry.pt/poly-go/test"
 )
 
 func TestGenericTests(t *testing.T) {

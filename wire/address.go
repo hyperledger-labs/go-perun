@@ -17,8 +17,8 @@ package wire
 import (
 	stdio "io"
 
-	"perun.network/go-perun/pkg/io"
 	"perun.network/go-perun/wallet"
+	"polycry.pt/poly-go/io"
 )
 
 var _ io.Serializer = (*Addresses)(nil)

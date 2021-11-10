@@ -25,10 +25,10 @@ import (
 	"perun.network/go-perun/channel"
 	"perun.network/go-perun/client"
 	ctest "perun.network/go-perun/client/test"
-	"perun.network/go-perun/pkg/test"
 	wtest "perun.network/go-perun/wallet/test"
 	"perun.network/go-perun/watcher/local"
 	"perun.network/go-perun/wire"
+	"polycry.pt/poly-go/test"
 )
 
 type DummyBus struct {

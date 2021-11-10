@@ -19,8 +19,8 @@ import (
 
 	"github.com/pkg/errors"
 
-	"perun.network/go-perun/pkg/sync/atomic"
 	"perun.network/go-perun/wire"
+	"polycry.pt/poly-go/sync/atomic"
 )
 
 var _ Conn = (*MockConn)(nil)

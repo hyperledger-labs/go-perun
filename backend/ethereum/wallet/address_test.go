@@ -20,7 +20,7 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/stretchr/testify/require"
 
-	pkgtest "perun.network/go-perun/pkg/test"
+	pkgtest "polycry.pt/poly-go/test"
 )
 
 func TestAsWalletAddr(t *testing.T) {

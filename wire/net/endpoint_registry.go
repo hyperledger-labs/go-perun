@@ -24,9 +24,9 @@ import (
 	"github.com/pkg/errors"
 
 	"perun.network/go-perun/log"
-	perunsync "perun.network/go-perun/pkg/sync"
 	"perun.network/go-perun/wallet"
 	"perun.network/go-perun/wire"
+	perunsync "polycry.pt/poly-go/sync"
 )
 
 // dialingEndpoint is an endpoint that is being dialed, but has no connection

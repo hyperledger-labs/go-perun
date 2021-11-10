@@ -20,9 +20,9 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"perun.network/go-perun/pkg/test"
 	"perun.network/go-perun/wallet"
 	wtest "perun.network/go-perun/wallet/test"
+	"polycry.pt/poly-go/test"
 )
 
 func TestAppRegistry(t *testing.T) {

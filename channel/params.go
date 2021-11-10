@@ -22,8 +22,8 @@ import (
 	"github.com/pkg/errors"
 
 	"perun.network/go-perun/log"
-	"perun.network/go-perun/pkg/io"
 	"perun.network/go-perun/wallet"
+	"polycry.pt/poly-go/io"
 )
 
 // IDLen the length of a channelID.

@@ -30,7 +30,7 @@ import (
 	"perun.network/go-perun/channel"
 	"perun.network/go-perun/client"
 	"perun.network/go-perun/log"
-	psync "perun.network/go-perun/pkg/sync"
+	psync "polycry.pt/poly-go/sync"
 )
 
 // compile time check that we implement the perun adjudicator interface.

@@ -21,9 +21,9 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	ctxtest "perun.network/go-perun/pkg/context/test"
 	"perun.network/go-perun/wire"
 	wirenet "perun.network/go-perun/wire/net"
+	ctxtest "polycry.pt/poly-go/context/test"
 )
 
 type fakeConn struct{}

@@ -22,7 +22,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"perun.network/go-perun/backend/ethereum/channel/test"
-	pkgtest "perun.network/go-perun/pkg/test"
+	pkgtest "polycry.pt/poly-go/test"
 )
 
 // TestSimBackend_AutoMine tests that SimulatedBackend mines blocks after

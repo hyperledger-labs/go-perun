@@ -23,7 +23,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"perun.network/go-perun/channel"
 	"perun.network/go-perun/client"
-	pkgtest "perun.network/go-perun/pkg/test"
+	pkgtest "polycry.pt/poly-go/test"
 )
 
 const nStagesDisputeSusieTime = 4

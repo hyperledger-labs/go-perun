@@ -27,11 +27,11 @@ import (
 	chtest "perun.network/go-perun/channel/test"
 	"perun.network/go-perun/client"
 	ctest "perun.network/go-perun/client/test"
-	"perun.network/go-perun/pkg/test"
 	wtest "perun.network/go-perun/wallet/test"
 	"perun.network/go-perun/watcher/local"
 	"perun.network/go-perun/wire"
 	wiretest "perun.network/go-perun/wire/test"
+	"polycry.pt/poly-go/test"
 )
 
 const (

@@ -26,8 +26,8 @@ import (
 	"perun.network/go-perun/backend/ethereum/channel/test"
 	"perun.network/go-perun/backend/ethereum/subscription"
 	"perun.network/go-perun/log"
-	pctx "perun.network/go-perun/pkg/context"
-	pkgtest "perun.network/go-perun/pkg/test"
+	pctx "polycry.pt/poly-go/context"
+	pkgtest "polycry.pt/poly-go/test"
 )
 
 var event = func() *subscription.Event {

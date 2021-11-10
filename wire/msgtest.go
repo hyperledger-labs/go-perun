@@ -18,7 +18,7 @@ import (
 	"io"
 	"testing"
 
-	"perun.network/go-perun/pkg/io/test"
+	"polycry.pt/poly-go/io/test"
 )
 
 type serializerMsg struct {

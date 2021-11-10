@@ -25,13 +25,13 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	ctxtest "perun.network/go-perun/pkg/context/test"
-	"perun.network/go-perun/pkg/sync/atomic"
-	"perun.network/go-perun/pkg/test"
 	"perun.network/go-perun/wallet"
 	wallettest "perun.network/go-perun/wallet/test"
 	"perun.network/go-perun/wire"
 	wiretest "perun.network/go-perun/wire/test"
+	ctxtest "polycry.pt/poly-go/context/test"
+	"polycry.pt/poly-go/sync/atomic"
+	"polycry.pt/poly-go/test"
 )
 
 var _ Dialer = (*mockDialer)(nil)

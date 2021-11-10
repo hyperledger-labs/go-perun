@@ -28,9 +28,9 @@ import (
 	"perun.network/go-perun/channel"
 	"perun.network/go-perun/client"
 	clienttest "perun.network/go-perun/client/test"
-	pkgtest "perun.network/go-perun/pkg/test"
 	"perun.network/go-perun/wallet"
 	"perun.network/go-perun/wire"
+	pkgtest "polycry.pt/poly-go/test"
 )
 
 func TestProgression(t *testing.T) {

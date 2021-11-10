@@ -31,10 +31,10 @@ import (
 	_ "perun.network/go-perun/backend/ethereum/channel/test" // For initilizing channeltest
 	"perun.network/go-perun/channel"
 	channeltest "perun.network/go-perun/channel/test"
-	"perun.network/go-perun/pkg/test"
 	"perun.network/go-perun/watcher"
 	"perun.network/go-perun/watcher/internal/mock"
 	"perun.network/go-perun/watcher/local"
+	"polycry.pt/poly-go/test"
 )
 
 func Test_StartWatching(t *testing.T) {

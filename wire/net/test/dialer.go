@@ -21,9 +21,9 @@ import (
 
 	"github.com/pkg/errors"
 
-	"perun.network/go-perun/pkg/sync"
 	"perun.network/go-perun/wire"
 	wirenet "perun.network/go-perun/wire/net"
+	"polycry.pt/poly-go/sync"
 )
 
 // Dialer is a test dialer that can dial connections to Listeners via a ConnHub.

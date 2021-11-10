@@ -23,8 +23,8 @@ import (
 	"github.com/pkg/errors"
 
 	"perun.network/go-perun/log"
-	"perun.network/go-perun/pkg/sync/atomic"
 	"perun.network/go-perun/wallet"
+	"polycry.pt/poly-go/sync/atomic"
 )
 
 // Account represents a mocked account.

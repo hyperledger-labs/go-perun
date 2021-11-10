@@ -24,9 +24,9 @@ import (
 	"perun.network/go-perun/channel/test"
 	"perun.network/go-perun/client"
 	clienttest "perun.network/go-perun/client/test"
-	pkgtest "perun.network/go-perun/pkg/test"
 	wallettest "perun.network/go-perun/wallet/test"
 	"perun.network/go-perun/wire"
+	pkgtest "polycry.pt/poly-go/test"
 )
 
 func TestNewLedgerChannelProposal(t *testing.T) {

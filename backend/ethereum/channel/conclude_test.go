@@ -27,9 +27,9 @@ import (
 	"perun.network/go-perun/backend/ethereum/wallet/keystore"
 	"perun.network/go-perun/channel"
 	channeltest "perun.network/go-perun/channel/test"
-	"perun.network/go-perun/pkg/errors"
-	pkgtest "perun.network/go-perun/pkg/test"
 	"perun.network/go-perun/wallet"
+	"polycry.pt/poly-go/errors"
+	pkgtest "polycry.pt/poly-go/test"
 )
 
 func TestAdjudicator_ConcludeFinal(t *testing.T) {

@@ -29,11 +29,11 @@ import (
 	"perun.network/go-perun/channel/persistence"
 	"perun.network/go-perun/client"
 	"perun.network/go-perun/log"
-	pkgsync "perun.network/go-perun/pkg/sync"
 	"perun.network/go-perun/wallet"
 	wallettest "perun.network/go-perun/wallet/test"
 	"perun.network/go-perun/watcher"
 	"perun.network/go-perun/wire"
+	pkgsync "polycry.pt/poly-go/sync"
 )
 
 type (

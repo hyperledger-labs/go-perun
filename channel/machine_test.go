@@ -20,8 +20,8 @@ import (
 	"github.com/stretchr/testify/require"
 	"perun.network/go-perun/channel"
 	"perun.network/go-perun/channel/test"
-	pkgtest "perun.network/go-perun/pkg/test"
 	wtest "perun.network/go-perun/wallet/test"
+	pkgtest "polycry.pt/poly-go/test"
 )
 
 func TestMachineClone(t *testing.T) {

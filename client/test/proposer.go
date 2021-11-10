@@ -18,7 +18,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	pkgtest "perun.network/go-perun/pkg/test"
+	pkgtest "polycry.pt/poly-go/test"
 )
 
 // Proposer is a test client role. He proposes the new channel.

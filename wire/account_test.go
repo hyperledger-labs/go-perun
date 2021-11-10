@@ -18,8 +18,8 @@ import (
 	"testing"
 
 	_ "perun.network/go-perun/backend/ethereum/wallet/test" // random init
-	pkgtest "perun.network/go-perun/pkg/test"
 	wallettest "perun.network/go-perun/wallet/test"
+	pkgtest "polycry.pt/poly-go/test"
 )
 
 func TestAuthResponseMsg(t *testing.T) {

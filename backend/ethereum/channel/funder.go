@@ -34,9 +34,9 @@ import (
 	"perun.network/go-perun/channel"
 	"perun.network/go-perun/client"
 	"perun.network/go-perun/log"
-	pcontext "perun.network/go-perun/pkg/context"
-	perror "perun.network/go-perun/pkg/errors"
 	perunwallet "perun.network/go-perun/wallet"
+	pcontext "polycry.pt/poly-go/context"
+	perror "polycry.pt/poly-go/errors"
 )
 
 type assetHolder struct {

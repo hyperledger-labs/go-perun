@@ -20,7 +20,7 @@ import (
 	"testing"
 
 	"perun.network/go-perun/client"
-	pkgtest "perun.network/go-perun/pkg/test"
+	pkgtest "polycry.pt/poly-go/test"
 )
 
 // SusieTimExecConfig contains config parameters for Susie and Tim test.

@@ -20,8 +20,8 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	channeltest "perun.network/go-perun/channel/test"
-	"perun.network/go-perun/pkg/test"
 	wallettest "perun.network/go-perun/wallet/test"
+	"polycry.pt/poly-go/test"
 )
 
 func TestClient_Channel(t *testing.T) {

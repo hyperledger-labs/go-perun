@@ -35,8 +35,8 @@ import (
 	"perun.network/go-perun/backend/ethereum/wallet/keystore"
 	channeltest "perun.network/go-perun/channel/test"
 	"perun.network/go-perun/log"
-	pkgtest "perun.network/go-perun/pkg/test"
 	wallettest "perun.network/go-perun/wallet/test"
+	pkgtest "polycry.pt/poly-go/test"
 )
 
 const (

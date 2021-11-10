@@ -30,7 +30,7 @@ import (
 
 	cherrors "perun.network/go-perun/backend/ethereum/channel/errors"
 	"perun.network/go-perun/log"
-	pcontext "perun.network/go-perun/pkg/context"
+	pcontext "polycry.pt/poly-go/context"
 )
 
 // How many blocks we query into the past for events.

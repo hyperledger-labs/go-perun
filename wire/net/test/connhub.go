@@ -19,8 +19,8 @@ import (
 
 	"github.com/pkg/errors"
 
-	"perun.network/go-perun/pkg/sync"
 	"perun.network/go-perun/wire"
+	"polycry.pt/poly-go/sync"
 )
 
 // ConnHub is a factory for creating and connecting test dialers and listeners.

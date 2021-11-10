@@ -21,7 +21,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"perun.network/go-perun/backend/sim/wallet"
-	pkgtest "perun.network/go-perun/pkg/test"
+	pkgtest "polycry.pt/poly-go/test"
 )
 
 func TestWallet_AddAccount(t *testing.T) {

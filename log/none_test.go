@@ -19,7 +19,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"perun.network/go-perun/pkg/test"
+	"polycry.pt/poly-go/test"
 )
 
 // TestNone tests the none logger for coverage :).

@@ -22,10 +22,10 @@ import (
 	"perun.network/go-perun/channel"
 	"perun.network/go-perun/channel/persistence"
 	"perun.network/go-perun/log"
-	perunsync "perun.network/go-perun/pkg/sync"
 	"perun.network/go-perun/wallet"
 	"perun.network/go-perun/watcher"
 	"perun.network/go-perun/wire"
+	perunsync "polycry.pt/poly-go/sync"
 )
 
 // Channel is the channel controller, progressing the channel state machine and
