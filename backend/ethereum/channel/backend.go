@@ -30,6 +30,7 @@ import (
 	"perun.network/go-perun/backend/ethereum/bindings/adjudicator"
 	ethwallet "perun.network/go-perun/backend/ethereum/wallet"
 	"perun.network/go-perun/channel"
+	perunio "perun.network/go-perun/pkg/io"
 	"perun.network/go-perun/wallet"
 )
 
@@ -148,7 +149,7 @@ func Verify(addr wallet.Address, s *channel.State, sig wallet.Sig) (bool, error)
 // DecodeAsset decodes an asset from a stream.
 func DecodeAsset(r io.Reader) (channel.Asset, error) {
 	var asset Asset
-	return &asset, asset.Decode(r)
+	return &asset, perunio.Decode(r, &asset)
 }
 
 // ToEthParams converts a channel.Params to a ChannelParams struct.

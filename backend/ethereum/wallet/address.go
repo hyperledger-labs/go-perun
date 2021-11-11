@@ -17,21 +17,18 @@ package wallet
 import (
 	"bytes"
 	"fmt"
-	"io"
 
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/pkg/errors"
 
-	perunio "perun.network/go-perun/pkg/io"
 	"perun.network/go-perun/wallet"
 )
-
-// compile time check that we implement the perun Address interface.
-var _ wallet.Address = (*Address)(nil)
 
 // AddressBinaryLen is the length of the binary representation of Address, in
 // bytes.
 const AddressBinaryLen = common.AddressLength
+
+// compile time check that we implement the perun Address interface.
+var _ wallet.Address = (*Address)(nil)
 
 // Address represents an ethereum address as a perun address.
 type Address common.Address
@@ -47,22 +44,14 @@ func (a *Address) MarshalBinary() ([]byte, error) {
 	return (*common.Address)(a).Bytes(), nil
 }
 
-// Decode decodes an address from a io.Reader. Part of the
-// go-perun/pkg/io.Serializer interface.
-func (a *Address) Decode(r io.Reader) error {
-	var length uint16
-	err := perunio.Decode(r, &length)
-	if err != nil {
-		return err
-	}
-	if length != AddressBinaryLen {
-		return fmt.Errorf("unexpected address length %d, want %d", length, AddressBinaryLen)
+// UnmarshalBinary unmarshals the address from its binary representation.
+func (a *Address) UnmarshalBinary(data []byte) error {
+	if len(data) != AddressBinaryLen {
+		return fmt.Errorf("unexpected address length %d, want %d", len(data), AddressBinaryLen)
 	}
 
-	buf := make([]byte, length)
-	_, err = io.ReadFull(r, buf)
-	(*common.Address)(a).SetBytes(buf)
-	return errors.Wrap(err, "error decoding address")
+	(*common.Address)(a).SetBytes(data)
+	return nil
 }
 
 // String converts this address to a string.

@@ -17,7 +17,6 @@ package channel
 import (
 	"bytes"
 	"fmt"
-	"io"
 	"math/rand"
 
 	"perun.network/go-perun/channel"
@@ -48,16 +47,10 @@ func (a Asset) MarshalBinary() ([]byte, error) {
 	return buff.Bytes(), nil
 }
 
-// Decode decodes a sim Asset from the io.Reader `r`.
-func (a *Asset) Decode(r io.Reader) error {
-	var length uint16
-	err := perunio.Decode(r, &length)
-	if err != nil {
-		return err
+// UnmarshalBinary unmarshals the asset from its binary representation.
+func (a *Asset) UnmarshalBinary(data []byte) error {
+	if len(data) != AssetBinaryLen {
+		return fmt.Errorf("unexpected address length %d, want %d", len(data), AssetBinaryLen)
 	}
-	if length != AssetBinaryLen {
-		return fmt.Errorf("unexpected address length %d, want %d", length, AssetBinaryLen)
-	}
-
-	return perunio.Decode(r, &a.ID)
+	return perunio.Decode(bytes.NewBuffer(data), &a.ID)
 }

@@ -95,8 +95,14 @@ type (
 	// Asset identifies an asset. E.g., it may be the address of the multi-sig
 	// where all participants' assets are deposited.
 	// The same Asset should be shareable by multiple Allocation instances.
-	// Decoding happens with AppBackend.DecodeAsset.
-	Asset = encoding.BinaryMarshaler
+	Asset interface {
+		// BinaryMarshaler marshals the blockchain specific address to
+		// binary format (a byte array).
+		encoding.BinaryMarshaler
+		// BinaryUnmarshaler unmarshals the blockchain specific address
+		// from binary format (a byte array).
+		encoding.BinaryUnmarshaler
+	}
 )
 
 var (

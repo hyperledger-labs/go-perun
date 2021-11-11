@@ -15,6 +15,7 @@
 package wallet
 
 import (
+	"bytes"
 	"encoding"
 	"fmt"
 	stdio "io"
@@ -31,6 +32,9 @@ type Address interface {
 	// BinaryMarshaler marshals the blockchain specific address to binary
 	// format (a byte array).
 	encoding.BinaryMarshaler
+	// BinaryUnmarshaler unmarshals the blockchain specific address from
+	// binary format (a byte array).
+	encoding.BinaryUnmarshaler
 
 	// Bytes should return the representation of the address as byte slice.
 	Bytes() []byte
@@ -104,7 +108,8 @@ func (a AddressesWithLen) Encode(w stdio.Writer) error {
 // allocated to the correct size already.
 func (a Addresses) Decode(r stdio.Reader) (err error) {
 	for i := range a {
-		a[i], err = DecodeAddress(r)
+		a[i] = NewAddress()
+		err = io.Decode(r, a[i])
 		if err != nil {
 			return errors.WithMessagef(err, "decoding %d-th address", i)
 		}
@@ -125,7 +130,8 @@ func (a *AddressesWithLen) Decode(r stdio.Reader) (err error) {
 
 // Decode decodes a single wallet address.
 func (a AddressDec) Decode(r stdio.Reader) (err error) {
-	*a.Addr, err = DecodeAddress(r)
+	*a.Addr = NewAddress()
+	err = io.Decode(r, *a.Addr)
 	return err
 }
 
@@ -135,7 +141,7 @@ func (a AddressDec) Decode(r stdio.Reader) (err error) {
 func Key(a Address) AddrKey {
 	var buff strings.Builder
 	if err := io.Encode(&buff, a); err != nil {
-		panic("Could not encode address in AddrKey")
+		panic("Could not encode address in AddrKey: " + err.Error())
 	}
 	return AddrKey(buff.String())
 }
@@ -144,9 +150,10 @@ func Key(a Address) AddrKey {
 // created by `Key`.
 // Panics when the `Address` can't be decoded.
 func FromKey(k AddrKey) Address {
-	a, err := DecodeAddress(strings.NewReader(string(k)))
+	a := NewAddress()
+	err := io.Decode(bytes.NewBuffer([]byte(k)), a)
 	if err != nil {
-		panic("Could not decode address in FromKey")
+		panic("Could not decode address in FromKey: " + err.Error())
 	}
 	return a
 }

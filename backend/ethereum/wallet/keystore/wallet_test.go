@@ -74,11 +74,13 @@ func TestBackend(t *testing.T) {
 	s := newSetup(t, pkgtest.Prng(t))
 
 	buff := bytes.NewReader(s.AddressEncoded)
-	_, err := backend.DecodeAddress(buff)
+	addr := backend.NewAddress()
+	err := io.Decode(buff, addr)
 	assert.NoError(t, err, "NewAddress from Bytes should work")
 
 	buff = bytes.NewReader([]byte(invalidAddr))
-	_, err = backend.DecodeAddress(buff)
+	addr = backend.NewAddress()
+	err = io.Decode(buff, addr)
 	assert.Error(t, err, "Conversion from wrong address should fail")
 }
 

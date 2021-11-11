@@ -34,10 +34,11 @@ type Backend struct{}
 
 var _ wallet.Backend = new(Backend)
 
-// DecodeAddress decodes an address from the given Reader.
-func (b *Backend) DecodeAddress(r io.Reader) (wallet.Address, error) {
-	var addr Address
-	return &addr, addr.Decode(r)
+// NewAddress returns a variable of type Address, which can be used
+// for unmarshalling an address from its binary representation.
+func (b *Backend) NewAddress() wallet.Address {
+	addr := Address{}
+	return &addr
 }
 
 // DecodeSig reads a []byte with length of a signature.

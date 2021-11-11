@@ -43,7 +43,8 @@ type AddressesWithLen []Address
 
 // DecodeAddress decodes a peer address.
 func DecodeAddress(r stdio.Reader) (Address, error) {
-	return wallet.DecodeAddress(r)
+	addr := wallet.NewAddress()
+	return addr, io.Decode(r, addr)
 }
 
 // Encode encodes wire addresses.

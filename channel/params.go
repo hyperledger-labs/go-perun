@@ -154,8 +154,8 @@ func (p *Params) Clone() *Params {
 			log.WithError(err).Panic("Could not encode part")
 		}
 
-		addr, err := wallet.DecodeAddress(&buff)
-		if err != nil {
+		addr := wallet.NewAddress()
+		if err := io.Decode(&buff, addr); err != nil {
 			log.WithError(err).Panic("Could not clone params' addresses")
 		}
 		clonedParts[i] = addr

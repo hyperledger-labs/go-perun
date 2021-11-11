@@ -160,7 +160,7 @@ func (t *testAsset) Encode(w io.Writer) error {
 }
 
 func (t *testAsset) Decode(r io.Reader) error {
-	return t.asset.Decode(r)
+	return perunio.Decode(r, &t.asset)
 }
 
 func TestAssetSerialization(t *testing.T) {

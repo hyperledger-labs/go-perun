@@ -24,8 +24,9 @@ var backend Backend
 
 // Backend provides useful methods for this blockchain.
 type Backend interface {
-	// DecodeAddress should read an address that was encoded with Address.Encode.
-	DecodeAddress(io.Reader) (Address, error)
+	// NewAddress returns a variable of type Address, which can be used
+	// for unmarshalling an address from its binary representation.
+	NewAddress() Address
 
 	// DecodeSig reads a signature from the provided stream. It is needed for
 	// decoding of wire messages.
@@ -46,9 +47,10 @@ func SetBackend(b Backend) {
 	backend = b
 }
 
-// DecodeAddress calls DecodeAddress of the current backend.
-func DecodeAddress(r io.Reader) (Address, error) {
-	return backend.DecodeAddress(r)
+// NewAddress returns a variable of type Address, which can be used
+// for unmarshalling an address from its binary representation.
+func NewAddress() Address {
+	return backend.NewAddress()
 }
 
 // DecodeSig calls DecodeSig of the current backend.

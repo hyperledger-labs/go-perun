@@ -76,5 +76,5 @@ func (b *backend) Verify(addr wallet.Address, state *channel.State, sig []byte) 
 
 func (*backend) DecodeAsset(r io.Reader) (channel.Asset, error) {
 	var asset Asset
-	return &asset, asset.Decode(r)
+	return &asset, perunio.Decode(r, &asset)
 }

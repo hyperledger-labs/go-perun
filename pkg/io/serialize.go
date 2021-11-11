@@ -59,7 +59,7 @@ func Encode(writer io.Writer, values ...interface{}) (err error) {
 			}
 			err = binary.Write(writer, byteOrder, uint16(length))
 			if err != nil {
-				return errors.WithMessage(err, "writing length of marshalled data to byte array")
+				return errors.WithMessage(err, "writing length of marshalled data")
 			}
 
 			err = ByteSlice(data).Encode(writer)
@@ -101,6 +101,21 @@ func Decode(reader io.Reader, values ...interface{}) (err error) {
 			err = d.Decode(reader)
 		case *string:
 			err = decodeString(reader, v)
+		case encoding.BinaryUnmarshaler:
+			var length uint16
+			err = binary.Read(reader, byteOrder, &length)
+			if err != nil {
+				return errors.WithMessage(err, "reading length of binary data")
+			}
+
+			var data ByteSlice = make([]byte, length)
+			err = data.Decode(reader)
+			if err != nil {
+				return errors.WithMessage(err, "reading binary data")
+			}
+
+			err = v.UnmarshalBinary(data)
+			err = errors.WithMessage(err, "unmarshaling binary data")
 		default:
 			if dec, ok := value.(Decoder); ok {
 				err = dec.Decode(reader)

@@ -20,10 +20,7 @@ import (
 	"io"
 	"math/big"
 
-	"github.com/pkg/errors"
-
 	"perun.network/go-perun/log"
-	perunio "perun.network/go-perun/pkg/io"
 	"perun.network/go-perun/wallet"
 )
 
@@ -119,21 +116,10 @@ func (a *Address) MarshalBinary() ([]byte, error) {
 	return data[:], nil
 }
 
-// Decode decodes an address from an io.Reader. Part of the
-// go-perun/pkg/io.Serializer interface.
-func (a *Address) Decode(r io.Reader) error {
-	var length uint16
-	err := perunio.Decode(r, &length)
-	if err != nil {
-		return err
-	}
-	if length != AddressBinaryLen {
-		return fmt.Errorf("unexpected address length %d, want %d", length, AddressBinaryLen)
-	}
-
-	data := make([]byte, length)
-	if err := perunio.Decode(r, &data); err != nil {
-		return errors.WithMessage(err, "decoding address")
+// UnmarshalBinary unmarshals the address from its binary representation.
+func (a *Address) UnmarshalBinary(data []byte) error {
+	if len(data) != AddressBinaryLen {
+		return fmt.Errorf("unexpected address length %d, want %d", len(data), AddressBinaryLen)
 	}
 	a.X = new(big.Int).SetBytes(data[:ElemLen])
 	a.Y = new(big.Int).SetBytes(data[ElemLen:])

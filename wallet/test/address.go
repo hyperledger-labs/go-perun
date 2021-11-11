@@ -28,7 +28,8 @@ import (
 // an address implementation.
 func TestAddress(t *testing.T, s *Setup) { //nolint:revive // `test.Test...` stutters, but we accept that here.
 	null := s.ZeroAddress
-	addr, err := s.Backend.DecodeAddress(bytes.NewReader(s.AddressEncoded))
+	addr := s.Backend.NewAddress()
+	err := io.Decode(bytes.NewReader(s.AddressEncoded), addr)
 	assert.NoError(t, err, "Byte deserialization of address should work")
 
 	// Test Address.String.
@@ -57,7 +58,8 @@ func TestAddress(t *testing.T, s *Setup) { //nolint:revive // `test.Test...` stu
 	t.Run("Serialize Equal Test", func(t *testing.T) {
 		buff := new(bytes.Buffer)
 		require.NoError(t, io.Encode(buff, addr))
-		addr2, err := s.Backend.DecodeAddress(buff)
+		addr2 := s.Backend.NewAddress()
+		err := io.Decode(buff, addr2)
 		require.NoError(t, err)
 
 		assert.True(t, addr.Equal(addr2))
