@@ -15,7 +15,7 @@
 package hd_test
 
 import (
-	"encoding/hex"
+	"bytes"
 	"math/rand"
 	"testing"
 
@@ -27,14 +27,13 @@ import (
 
 	ethwallet "perun.network/go-perun/backend/ethereum/wallet"
 	"perun.network/go-perun/backend/ethereum/wallet/hd"
+	ethwallettest "perun.network/go-perun/backend/ethereum/wallet/test"
+	"perun.network/go-perun/pkg/io"
 	"perun.network/go-perun/wallet/test"
 	pkgtest "polycry.pt/poly-go/test"
 )
 
-var (
-	dataToSign = []byte("SomeLongDataThatShouldBeSignedPlease")
-	sampleAddr = "1234560000000000000000000000000000000000"
-)
+var dataToSign = []byte("SomeLongDataThatShouldBeSignedPlease")
 
 func TestGenericSignatureTests(t *testing.T) {
 	s, _, _ := newSetup(t, pkgtest.Prng(t))
@@ -104,7 +103,6 @@ func TestContains(t *testing.T) {
 	assert.True(t, hdWallet.Contains(ethwallet.AsEthAddr(setup.AddressInWallet)), "should contain valid account")
 }
 
-// rand.Rand is preferred over io.Reader here.
 func newSetup(t require.TestingT, prng *rand.Rand) (*test.Setup, accounts.Wallet, *hd.Wallet) {
 	walletSeed := make([]byte, 20)
 	prng.Read(walletSeed)
@@ -123,14 +121,19 @@ func newSetup(t require.TestingT, prng *rand.Rand) (*test.Setup, accounts.Wallet
 	require.NoError(t, err)
 	require.NotNil(t, acc)
 
-	sampleBytes, err := hex.DecodeString(sampleAddr)
-	require.NoError(t, err, "invalid sample address")
+	addressNotInWallet := ethwallettest.NewRandomAddress(prng)
+	var buff bytes.Buffer
+	err = io.Encode(&buff, &addressNotInWallet)
+	if err != nil {
+		panic(err)
+	}
+	addrEncoded := buff.Bytes()
 
 	return &test.Setup{
 		Wallet:          hdWallet,
 		AddressInWallet: acc.Address(),
 		Backend:         new(ethwallet.Backend),
-		AddressEncoded:  sampleBytes,
+		AddressEncoded:  addrEncoded,
 		ZeroAddress:     ethwallet.AsWalletAddr(common.Address{}),
 		DataToSign:      dataToSign,
 	}, rawHDWallet, hdWallet

@@ -17,6 +17,7 @@ package keystore_test
 import (
 	"bytes"
 	"encoding/hex"
+	"math/rand"
 	"testing"
 
 	"github.com/ethereum/go-ethereum/common"
@@ -25,6 +26,7 @@ import (
 
 	ethwallet "perun.network/go-perun/backend/ethereum/wallet"
 	ethwallettest "perun.network/go-perun/backend/ethereum/wallet/test"
+	"perun.network/go-perun/pkg/io"
 	"perun.network/go-perun/wallet/test"
 	pkgtest "polycry.pt/poly-go/test"
 )
@@ -32,18 +34,17 @@ import (
 var dataToSign = []byte("SomeLongDataThatShouldBeSignedPlease")
 
 const (
-	validAddr   = "1234560000000000000000000000000000000000"
 	invalidAddr = "123456"
 )
 
 func TestGenericSignatureTests(t *testing.T) {
-	setup := newSetup(t)
+	setup := newSetup(t, pkgtest.Prng(t))
 	test.TestAccountWithWalletAndBackend(t, setup)
 	test.GenericSignatureSizeTest(t, setup)
 }
 
 func TestGenericAddressTests(t *testing.T) {
-	test.TestAddress(t, newSetup(t))
+	test.TestAddress(t, newSetup(t, pkgtest.Prng(t)))
 }
 
 func TestWallet_Contains(t *testing.T) {
@@ -70,30 +71,35 @@ func TestSignatures(t *testing.T) {
 func TestBackend(t *testing.T) {
 	backend := new(ethwallet.Backend)
 
-	s := newSetup(t)
+	s := newSetup(t, pkgtest.Prng(t))
 
 	buff := bytes.NewReader(s.AddressEncoded)
-	addr, err := backend.DecodeAddress(buff)
-
+	_, err := backend.DecodeAddress(buff)
 	assert.NoError(t, err, "NewAddress from Bytes should work")
-	assert.Equal(t, s.AddressEncoded, addr.Bytes())
 
 	buff = bytes.NewReader([]byte(invalidAddr))
 	_, err = backend.DecodeAddress(buff)
 	assert.Error(t, err, "Conversion from wrong address should fail")
 }
 
-func newSetup(t require.TestingT) *test.Setup {
+func newSetup(t require.TestingT, prng *rand.Rand) *test.Setup {
 	w := ethwallettest.NewTmpWallet()
-	acc := w.NewAccount()
-	validAddrBytes, err := hex.DecodeString(validAddr)
+
+	addressNotInWallet := ethwallettest.NewRandomAddress(prng)
+	var buff bytes.Buffer
+	err := io.Encode(&buff, &addressNotInWallet)
+	if err != nil {
+		panic(err)
+	}
+	addrEncoded := buff.Bytes()
+
 	require.NoError(t, err, "decoding valid address should not fail")
 
 	return &test.Setup{
 		Wallet:          w,
-		AddressInWallet: acc.Address(),
+		AddressInWallet: w.NewAccount().Address(),
 		Backend:         new(ethwallet.Backend),
-		AddressEncoded:  validAddrBytes,
+		AddressEncoded:  addrEncoded,
 		ZeroAddress:     ethwallet.AsWalletAddr(common.Address{}),
 		DataToSign:      dataToSign,
 	}
