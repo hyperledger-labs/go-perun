@@ -27,8 +27,9 @@ type Proposer struct {
 }
 
 // NewProposer creates a new party that executes the Proposer protocol.
-func NewProposer(setup RoleSetup, t *testing.T, numStages int) *Proposer {
-	return &Proposer{role: makeRole(setup, t, numStages)}
+func NewProposer(t *testing.T, setup RoleSetup, numStages int) *Proposer {
+	t.Helper()
+	return &Proposer{role: makeRole(t, setup, numStages)}
 }
 
 // Execute executes the Proposer protocol.

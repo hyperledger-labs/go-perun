@@ -41,6 +41,7 @@ type TransactorSetup struct {
 // GenericSignerTest tests that a transactor produces the correct signatures
 // for the passed signer.
 func GenericSignerTest(t *testing.T, rng *rand.Rand, setup TransactorSetup) {
+	t.Helper()
 	signer := setup.Signer
 	chainID := setup.ChainID
 	data := make([]byte, rng.Int31n(100)+1)
@@ -79,6 +80,7 @@ func GenericSignerTest(t *testing.T, rng *rand.Rand, setup TransactorSetup) {
 }
 
 func sigFromRSV(t *testing.T, r, s, _v *big.Int, chainID int64) []byte {
+	t.Helper()
 	sig := make([]byte, 65)
 	copy(sig[32-len(r.Bytes()):32], r.Bytes())
 	copy(sig[64-len(s.Bytes()):64], s.Bytes())

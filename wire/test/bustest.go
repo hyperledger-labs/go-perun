@@ -34,6 +34,7 @@ import (
 // perform any necessary work to make clients able to communicate with each
 // other (such as setting up dialers and listeners, in case of networking).
 func GenericBusTest(t *testing.T, busAssigner func(wire.Account) wire.Bus, numClients, numMsgs int) {
+	t.Helper()
 	require.Greater(t, numClients, 1)
 	require.Greater(t, numMsgs, 0)
 
@@ -54,6 +55,7 @@ func GenericBusTest(t *testing.T, busAssigner func(wire.Account) wire.Bus, numCl
 	// Here, we have common, reused code.
 
 	testNoReceive := func(t *testing.T) {
+		t.Helper()
 		ct := test.NewConcurrent(t)
 		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Millisecond)
 		defer cancel()
@@ -72,6 +74,7 @@ func GenericBusTest(t *testing.T, busAssigner func(wire.Account) wire.Bus, numCl
 	}
 
 	testPublishAndReceive := func(t *testing.T, waiting func()) {
+		t.Helper()
 		ct := test.NewConcurrent(t)
 		ctx, cancel := context.WithTimeout(
 			context.Background(),

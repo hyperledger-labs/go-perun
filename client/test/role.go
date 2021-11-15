@@ -169,7 +169,8 @@ func (c *BaseExecConfig) App() client.ProposalOpts {
 }
 
 // makeRole creates a client for the given setup and wraps it into a Role.
-func makeRole(setup RoleSetup, t *testing.T, numStages int) (r role) {
+func makeRole(t *testing.T, setup RoleSetup, numStages int) (r role) {
+	t.Helper()
 	r = role{
 		chans:             &channelMap{entries: make(map[channel.ID]*paymentChannel)},
 		setup:             setup,

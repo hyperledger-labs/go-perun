@@ -25,8 +25,9 @@ type Bob struct {
 }
 
 // NewBob creates a new Responder that executes the Bob protocol.
-func NewBob(setup RoleSetup, t *testing.T) *Bob {
-	return &Bob{Responder: *NewResponder(setup, t, 3)}
+func NewBob(t *testing.T, setup RoleSetup) *Bob {
+	t.Helper()
+	return &Bob{Responder: *NewResponder(t, setup, 3)}
 }
 
 // Execute executes the Bob protocol.

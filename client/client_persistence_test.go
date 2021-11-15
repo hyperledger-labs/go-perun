@@ -27,17 +27,18 @@ func TestPersistencePetraRobert(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), twoPartyTestTimeout)
 	defer cancel()
 
-	runTwoPartyTest(ctx, t, func(rng *rand.Rand) (setups []ctest.RoleSetup, roles [2]ctest.Executer) {
+	runTwoPartyTest(t, ctx, func(rng *rand.Rand) (setups []ctest.RoleSetup, roles [2]ctest.Executer) {
 		setups = NewSetupsPersistence(t, rng, []string{"Petra", "Robert"})
 		roles = [2]ctest.Executer{
-			ctest.NewPetra(setups[0], t),
-			ctest.NewRobert(setups[1], t),
+			ctest.NewPetra(t, setups[0]),
+			ctest.NewRobert(t, setups[1]),
 		}
 		return
 	})
 }
 
 func NewSetupsPersistence(t *testing.T, rng *rand.Rand, names []string) []ctest.RoleSetup {
+	t.Helper()
 	setups := NewSetups(rng, names)
 	for i := range names {
 		setups[i].PR = chprtest.NewPersistRestorer(t)

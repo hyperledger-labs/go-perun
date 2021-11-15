@@ -59,6 +59,7 @@ func testValidateAssetHolder(t *testing.T,
 		deployer accounts.Account) (common.Address, error),
 	validator func(ctx context.Context,
 		backend bind.ContractBackend, assetHolderETH, adjudicator common.Address) error) {
+	t.Helper()
 	// Test setup
 	rng := pkgtest.Prng(t, "validate")
 	s := test.NewSimSetup(t, rng, TxFinalityDepth, blockInterval)

@@ -51,8 +51,8 @@ func TestDisputeMalloryCarol(t *testing.T) {
 	s := test.NewSetup(t, rng, 2, ctest.BlockInterval, TxFinalityDepth)
 	setup = ctest.MakeRoleSetups(s, name)
 
-	role[A] = clienttest.NewMallory(setup[A], t)
-	role[B] = clienttest.NewCarol(setup[B], t)
+	role[A] = clienttest.NewMallory(t, setup[A])
+	role[B] = clienttest.NewCarol(t, setup[B])
 
 	execConfig := &clienttest.MalloryCarolExecConfig{
 		BaseExecConfig: clienttest.MakeBaseExecConfig(

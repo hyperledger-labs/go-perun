@@ -45,6 +45,7 @@ type PersistRestorer struct {
 // NewPersistRestorer creates a new testing PersistRestorer that reports assert
 // errors on the passed *testing.T t.
 func NewPersistRestorer(t *testing.T) *PersistRestorer {
+	t.Helper()
 	return &PersistRestorer{
 		t:     t,
 		chans: make(map[channel.ID]*persistence.Channel),

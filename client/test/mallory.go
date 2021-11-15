@@ -39,8 +39,9 @@ type Mallory struct {
 }
 
 // NewMallory creates a new party that executes the Mallory protocol.
-func NewMallory(setup RoleSetup, t *testing.T) *Mallory {
-	return &Mallory{Proposer: *NewProposer(setup, t, 3)}
+func NewMallory(t *testing.T, setup RoleSetup) *Mallory {
+	t.Helper()
+	return &Mallory{Proposer: *NewProposer(t, setup, 3)}
 }
 
 // Execute executes the Mallory protocol.

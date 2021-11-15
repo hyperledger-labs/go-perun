@@ -65,7 +65,8 @@ type Paul struct {
 
 // NewPaul creates a new party that executes the Paul protocol.
 func NewPaul(t *testing.T, setup RoleSetup) *Paul {
-	p := NewProposer(setup, t, 1)
+	t.Helper()
+	p := NewProposer(t, setup, 1)
 	return &Paul{
 		Proposer: *p,
 		Watcher:  makeWatcher(p.log),
@@ -126,7 +127,8 @@ type Paula struct {
 
 // NewPaula creates a new party that executes the Paula protocol.
 func NewPaula(t *testing.T, setup RoleSetup) *Paula {
-	r := NewResponder(setup, t, 1)
+	t.Helper()
+	r := NewResponder(t, setup, 1)
 	return &Paula{
 		Responder: *r,
 		Watcher:   makeWatcher(r.log),

@@ -62,6 +62,7 @@ func TestMockApp(t *testing.T) {
 }
 
 func MockStateAppTest(t *testing.T, app MockApp) {
+	t.Helper()
 	stateValid := createState(OpValid)
 	stateErr := createState(OpErr)
 	stateTransErr := createState(OpTransitionErr)
@@ -87,6 +88,7 @@ func MockStateAppTest(t *testing.T, app MockApp) {
 }
 
 func MockActionAppTest(t *testing.T, app MockApp) {
+	t.Helper()
 	actValid := NewMockOp(OpValid)
 	actErr := NewMockOp(OpErr)
 	actTransErr := NewMockOp(OpTransitionErr)

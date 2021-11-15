@@ -54,6 +54,7 @@ func TestAppRegistry(t *testing.T) {
 }
 
 func testAppRegistryPanicsAndErrors(t *testing.T) {
+	t.Helper()
 	resetAppRegistry()
 	assert.Panics(t, func() { RegisterAppResolver(nil, nil) })
 	assert.Panics(t, func() { RegisterAppResolver(func(wallet.Address) bool { return true }, nil) })
@@ -78,6 +79,7 @@ func (r defaultRes) Resolve(wallet.Address) (App, error) {
 }
 
 func testAppRegistryIdentity(t *testing.T, rng *rand.Rand) {
+	t.Helper()
 	resetAppRegistry()
 	a0 := newRandomMockApp(rng)
 	RegisterApp(a0)
@@ -93,6 +95,7 @@ func testAppRegistryIdentity(t *testing.T, rng *rand.Rand) {
 }
 
 func assertIdentity(t *testing.T, expected App) {
+	t.Helper()
 	actual, err := Resolve(expected.Def())
 	assert.NoError(t, err)
 	assert.True(t, actual.Def().Equals(expected.Def()))

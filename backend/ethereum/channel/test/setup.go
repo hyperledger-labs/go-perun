@@ -57,6 +57,7 @@ type (
 // NewSimSetup return a simulated backend test setup. The rng is used to
 // generate the random account for sending of transaction.
 func NewSimSetup(t *testing.T, rng *rand.Rand, txFinalityDepth uint64, blockInterval time.Duration, opts ...SimBackendOpt) *SimSetup {
+	t.Helper()
 	simBackend := NewSimulatedBackend(opts...)
 	ksWallet := wallettest.RandomWallet().(*keystore.Wallet)
 	txAccount := ksWallet.NewRandomAccount(rng).(*keystore.Account)
@@ -89,6 +90,7 @@ func NewSimSetup(t *testing.T, rng *rand.Rand, txFinalityDepth uint64, blockInte
 // Accs.
 // `blockInterval` enables the auto-mining feature if set to a value != 0.
 func NewSetup(t *testing.T, rng *rand.Rand, n int, blockInterval time.Duration, txFinalityDepth uint64) *Setup {
+	t.Helper()
 	s := &Setup{
 		SimSetup: *NewSimSetup(t, rng, txFinalityDepth, blockInterval),
 		Accs:     make([]*keystore.Account, n),

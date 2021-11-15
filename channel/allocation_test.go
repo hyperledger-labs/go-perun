@@ -195,6 +195,7 @@ func TestBalancesSub(t *testing.T) {
 }
 
 func testBalancesOperation(t *testing.T, op func(channel.Balances, channel.Balances) channel.Balances, elementOp func(channel.Bal, channel.Bal) channel.Bal) {
+	t.Helper()
 	assert := assert.New(t)
 	rng := pkgtest.Prng(t)
 	const rngBase = 10

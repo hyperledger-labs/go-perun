@@ -33,8 +33,9 @@ type Alice struct {
 }
 
 // NewAlice creates a new Proposer that executes the Alice protocol.
-func NewAlice(setup RoleSetup, t *testing.T) *Alice {
-	return &Alice{Proposer: *NewProposer(setup, t, 3)}
+func NewAlice(t *testing.T, setup RoleSetup) *Alice {
+	t.Helper()
+	return &Alice{Proposer: *NewProposer(t, setup, 3)}
 }
 
 // Execute executes the Alice protocol.

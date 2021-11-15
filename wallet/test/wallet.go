@@ -103,6 +103,7 @@ func TestAccountWithWalletAndBackend(t *testing.T, s *Setup) {
 // GenericSignatureSizeTest tests that the size of the signatures produced by
 // Account.Sign(…) does not vary between executions (tested with 2048 samples).
 func GenericSignatureSizeTest(t *testing.T, s *Setup) {
+	t.Helper()
 	acc, err := s.Wallet.Unlock(s.AddressInWallet)
 	require.NoError(t, err)
 	// get a signature

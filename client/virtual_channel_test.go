@@ -99,6 +99,7 @@ func TestVirtualChannelsDispute(t *testing.T) {
 }
 
 func (vct *virtualChannelTest) testFinalBalancesDispute(t *testing.T) {
+	t.Helper()
 	assert := assert.New(t)
 	backend, asset := vct.balanceReader, vct.asset
 	got, expected := backend.Balance(vct.alice.Identity.Address(), asset), vct.finalBalsAlice[0]
@@ -129,6 +130,7 @@ type virtualChannelTest struct {
 }
 
 func setupVirtualChannelTest(t *testing.T, ctx context.Context) (vct virtualChannelTest) {
+	t.Helper()
 	rng := test.Prng(t)
 	require := require.New(t)
 
@@ -146,9 +148,9 @@ func setupVirtualChannelTest(t *testing.T, ctx context.Context) (vct virtualChan
 
 	// Setup clients.
 	clients := NewClients(
+		t,
 		rng,
 		[]string{"Alice", "Bob", "Ingrid"},
-		t,
 	)
 	alice, bob, ingrid := clients[0], clients[1], clients[2]
 	vct.alice, vct.bob, vct.ingrid = alice, bob, ingrid

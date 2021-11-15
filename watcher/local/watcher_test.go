@@ -203,6 +203,7 @@ func Test_Watcher_Working(t *testing.T) {
 			t *testing.T,
 			eventConstructor func(txs ...channel.Transaction,
 			) []channel.AdjudicatorEvent) {
+			t.Helper()
 			// Setup: Generate the params and off-chain states for a ledger channel.
 			params, txs := randomTxsForSingleCh(rng, 2)
 
@@ -433,6 +434,7 @@ func Test_Watcher_Working(t *testing.T) {
 			t *testing.T,
 			eventConstructor func(txs ...channel.Transaction,
 			) []channel.AdjudicatorEvent) {
+			t.Helper()
 			// Setup: Generate the params and off-chain states for a ledger channel and a sub-channel.
 			parentParams, parentTxs := randomTxsForSingleCh(rng, 2)
 			childParams, childTxs := randomTxsForSingleCh(rng, 2)
@@ -473,10 +475,12 @@ func Test_Watcher_Working(t *testing.T) {
 }
 
 func Test_Watcher_StopWatching(t *testing.T) {
+	t.Helper()
 	rng := test.Prng(t)
 
 	t.Run("ledger_channel_without_sub_channel", func(t *testing.T) {
 		f := func(t *testing.T, errOnClose error) {
+			t.Helper()
 			defer goleak.VerifyNone(t, goleak.IgnoreCurrent())
 
 			params, txs := randomTxsForSingleCh(rng, 1)
@@ -826,6 +830,7 @@ type channelTree struct {
 // for the given channel tree and fails the test if incorrect. The return value
 // of "Register" calls is always nil.
 func setExpectationRegisterCalls(t *testing.T, rs *mock.RegisterSubscriber, channelTrees ...*channelTree) {
+	t.Helper()
 	limit := len(channelTrees)
 	mtx := sync.Mutex{}
 	iChannelTree := 0
@@ -858,6 +863,7 @@ func setExpectationRegisterCalls(t *testing.T, rs *mock.RegisterSubscriber, chan
 }
 
 func assertEqualAdjudicatorReq(t *testing.T, got channel.AdjudicatorReq, want *channel.State) bool {
+	t.Helper()
 	if nil != got.Tx.State.Equal(want) {
 		t.Logf("Got %+v, expected %+v", got.Tx.State, want)
 		return false
@@ -866,6 +872,7 @@ func assertEqualAdjudicatorReq(t *testing.T, got channel.AdjudicatorReq, want *c
 }
 
 func assertEqualSignedStates(t *testing.T, got []channel.SignedState, want []channel.Transaction) bool {
+	t.Helper()
 	if len(got) != len(want) {
 		t.Logf("Got %d sub states, expected %d sub states", len(got), len(want))
 		return false
@@ -930,6 +937,7 @@ func startWatchingForLedgerChannel(
 	w *local.Watcher,
 	signedState channel.SignedState,
 ) (watcher.StatesPub, watcher.AdjudicatorSub) {
+	t.Helper()
 	statesPub, eventsSub, err := w.StartWatchingLedgerChannel(context.TODO(), signedState)
 
 	require.NoError(t, err)
@@ -945,6 +953,7 @@ func startWatchingForSubChannel(
 	signedState channel.SignedState,
 	parentID channel.ID,
 ) (watcher.StatesPub, watcher.AdjudicatorSub) {
+	t.Helper()
 	statesPub, eventsSub, err := w.StartWatchingSubChannel(context.TODO(), parentID, signedState)
 
 	require.NoError(t, err)
@@ -958,6 +967,7 @@ func triggerAdjEventAndExpectNotification(
 	trigger adjEventSource,
 	eventsForClient watcher.AdjudicatorSub,
 ) {
+	t.Helper()
 	wantEvent := trigger.trigger()
 	t.Logf("waiting for adjudicator event for ch %x, version: %v", wantEvent.ID(), wantEvent.Version())
 	gotEvent := <-eventsForClient.EventStream()

@@ -46,6 +46,7 @@ func TestAdjudicator_MultipleRegisters(t *testing.T) {
 }
 
 func registerMultiple(t *testing.T, numParts int, parallel bool) {
+	t.Helper()
 	rng := pkgtest.Prng(t)
 	// create test setup
 	s := test.NewSetup(t, rng, numParts, blockInterval, TxFinalityDepth)

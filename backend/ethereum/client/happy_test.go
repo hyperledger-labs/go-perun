@@ -49,8 +49,8 @@ func TestHappyAliceBob(t *testing.T) {
 	s := test.NewSetup(t, rng, 2, ctest.BlockInterval, TxFinalityDepth)
 	setup = ctest.MakeRoleSetups(s, name)
 
-	role[A] = clienttest.NewAlice(setup[A], t)
-	role[B] = clienttest.NewBob(setup[B], t)
+	role[A] = clienttest.NewAlice(t, setup[A])
+	role[B] = clienttest.NewBob(t, setup[B])
 	// enable stages synchronization
 	stages := role[A].EnableStages()
 	role[B].SetStages(stages)

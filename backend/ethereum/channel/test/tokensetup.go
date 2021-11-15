@@ -59,6 +59,7 @@ const (
 
 // NewTokenSetup creates a new TokenSetup.
 func NewTokenSetup(ctx context.Context, t *testing.T, rng *rand.Rand, txFinalityDepth uint64) *TokenSetup {
+	t.Helper()
 	// Simulated chain setup.
 	sb := NewSimulatedBackend()
 	ksWallet := wallettest.RandomWallet().(*keystore.Wallet)

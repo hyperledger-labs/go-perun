@@ -105,6 +105,7 @@ func TestFunder_OneForAllFunding(t *testing.T) {
 }
 
 func testFunderOneForAllFunding(t *testing.T, n int) {
+	t.Helper()
 	t.Parallel()
 	rng := pkgtest.Prng(t, n)
 	ct := pkgtest.NewConcurrent(t)
@@ -156,6 +157,7 @@ func TestFunder_CrossOverFunding(t *testing.T) {
 }
 
 func testFunderCrossOverFunding(t *testing.T, n int) {
+	t.Helper()
 	t.Parallel()
 	ctx, cancel := context.WithTimeout(context.Background(), defaultTxTimeout*time.Duration(n))
 	defer cancel()
@@ -194,6 +196,7 @@ func TestFunder_ZeroBalance(t *testing.T) {
 }
 
 func testFunderZeroBalance(t *testing.T, n int) {
+	t.Helper()
 	t.Parallel()
 	rng := pkgtest.Prng(t, n)
 	ct := pkgtest.NewConcurrent(t)
@@ -283,6 +286,7 @@ func TestFunder_PeerTimeout(t *testing.T) {
 }
 
 func testFundingTimeout(t *testing.T, faultyPeer, n int) {
+	t.Helper()
 	t.Parallel()
 	ctx, cancel := context.WithTimeout(context.Background(), defaultTxTimeout*time.Duration(n))
 	defer cancel()
@@ -343,6 +347,7 @@ func TestFunder_Fund_multi(t *testing.T) {
 }
 
 func testFunderFunding(t *testing.T, n int) {
+	t.Helper()
 	t.Parallel()
 	ctx, cancel := context.WithTimeout(context.Background(), defaultTxTimeout*time.Duration(n))
 	defer cancel()
@@ -378,6 +383,7 @@ func newNFunders(
 	params *channel.Params,
 	allocation *channel.Allocation,
 ) {
+	t.Helper()
 	simBackend := test.NewSimulatedBackend()
 	// Start the auto-mining of blocks.
 	simBackend.StartMining(blockInterval)

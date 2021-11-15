@@ -24,10 +24,12 @@ import (
 // GenericAccountBenchmark runs a suite designed to benchmark the general speed of an implementation of an Account.
 // This function should be called by every implementation of the Account interface.
 func GenericAccountBenchmark(b *testing.B, s *Setup) {
+	b.Helper()
 	b.Run("Sign", func(b *testing.B) { benchAccountSign(b, s) })
 }
 
 func benchAccountSign(b *testing.B, s *Setup) {
+	b.Helper()
 	perunAcc, err := s.Wallet.Unlock(s.AddressInWallet)
 	require.Nil(b, err)
 
@@ -43,11 +45,13 @@ func benchAccountSign(b *testing.B, s *Setup) {
 // GenericBackendBenchmark runs a suite designed to benchmark the general speed of an implementation of a Backend.
 // This function should be called by every implementation of the Backend interface.
 func GenericBackendBenchmark(b *testing.B, s *Setup) {
+	b.Helper()
 	b.Run("VerifySig", func(b *testing.B) { benchBackendVerifySig(b, s) })
 	b.Run("DecodeAddress", func(b *testing.B) { benchBackendDecodeAddress(b, s) })
 }
 
 func benchBackendVerifySig(b *testing.B, s *Setup) {
+	b.Helper()
 	// We dont want to measure the SignDataWithPW here, just need it for the verification
 	b.StopTimer()
 	perunAcc, err := s.Wallet.Unlock(s.AddressInWallet)
@@ -66,6 +70,7 @@ func benchBackendVerifySig(b *testing.B, s *Setup) {
 }
 
 func benchBackendDecodeAddress(b *testing.B, s *Setup) {
+	b.Helper()
 	for n := 0; n < b.N; n++ {
 		_, err := s.Backend.DecodeAddress(bytes.NewReader(s.AddressEncoded))
 

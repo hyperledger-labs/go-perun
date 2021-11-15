@@ -47,6 +47,7 @@ func TestAdjudicator_MultipleWithdraws_FinalState(t *testing.T) {
 }
 
 func withdrawMultipleConcurrentFinal(t *testing.T, numParts int, parallel bool) {
+	t.Helper()
 	rng := pkgtest.Prng(t)
 	// create test setup
 	s := test.NewSetup(t, rng, numParts, blockInterval, TxFinalityDepth)
@@ -119,6 +120,7 @@ func TestWithdrawZeroBalance(t *testing.T) {
 
 // shouldFunders decides who should fund. 1 indicates funding, 0 indicates skipping.
 func testWithdrawZeroBalance(t *testing.T, n int) {
+	t.Helper()
 	rng := pkgtest.Prng(t)
 	s := test.NewSetup(t, rng, n, blockInterval, TxFinalityDepth)
 	// create valid state and params
@@ -192,6 +194,7 @@ func TestWithdraw(t *testing.T) {
 	}
 
 	testWithdraw := func(t *testing.T, shouldWork bool) {
+		t.Helper()
 		ctx, cancel := context.WithTimeout(context.Background(), defaultTxTimeout)
 		defer cancel()
 		req.Tx = testSignState(t, s.Accs, state)
@@ -266,6 +269,7 @@ func TestWithdrawNonFinal(t *testing.T) {
 }
 
 func assertHoldingsZero(ctx context.Context, t *testing.T, cb *ethchannel.ContractBackend, params *channel.Params, _assets []channel.Asset) {
+	t.Helper()
 	alloc, err := getOnChainAllocation(ctx, cb, params, _assets)
 	require.NoError(t, err, "Getting on-chain allocs should succeed")
 	for i, assetalloc := range alloc {

@@ -41,6 +41,7 @@ type Client struct {
 
 // NewClient creates a client.
 func NewClient(ctx context.Context, t *testing.T, rng *rand.Rand, pr persistence.PersistRestorer) *Client {
+	t.Helper()
 	return &Client{
 		addr: wtest.NewRandomAddress(rng),
 		rng:  rng,
@@ -79,6 +80,7 @@ func GenericPersistRestorerTest(
 	pr persistence.PersistRestorer,
 	numPeers int,
 	numChans int) {
+	t.Helper()
 	t.Run("RestoreChannel error", func(t *testing.T) {
 		var id channel.ID
 		ch, err := pr.RestoreChannel(context.Background(), id)
