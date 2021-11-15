@@ -18,6 +18,8 @@ import (
 	"math/rand"
 	"testing"
 
+	"github.com/pkg/errors"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"perun.network/go-perun/channel"
@@ -98,6 +100,33 @@ func TestChannelProposal_assertValidNumParts(t *testing.T) {
 	require.NoError(c.assertValidNumParts())
 	c.Peers = make([]wire.Address, channel.MaxNumParts+1)
 	require.Error(c.assertValidNumParts())
+}
+
+func TestProposalResponder_Accept_Nil(t *testing.T) {
+	p := new(ProposalResponder)
+	_, err := p.Accept(nil, new(LedgerChannelProposalAcc))
+	assert.Error(t, err, "context")
+}
+
+func TestPeerRejectedProposalError(t *testing.T) {
+	reason := "some-random-reason"
+	err := newPeerRejectedError("update", reason)
+	t.Run("direct_error", func(t *testing.T) {
+		peerRejectedProposalError := PeerRejectedError{}
+		gotPeerRejectedError := errors.As(err, &peerRejectedProposalError)
+		require.True(t, gotPeerRejectedError)
+		assert.Equal(t, reason, peerRejectedProposalError.Reason)
+		assert.Contains(t, err.Error(), reason)
+	})
+
+	t.Run("wrapped_error", func(t *testing.T) {
+		wrappedError := errors.WithMessage(err, "some higher level error")
+		peerRejectedError := PeerRejectedError{}
+		gotPeerRejectedError := errors.As(wrappedError, &peerRejectedError)
+		require.True(t, gotPeerRejectedError)
+		assert.Equal(t, reason, peerRejectedError.Reason)
+		assert.Contains(t, err.Error(), reason)
+	})
 }
 
 func NewRandomBaseChannelProposal(rng *rand.Rand, opts ...channeltest.RandomOpt) BaseChannelProposal {
