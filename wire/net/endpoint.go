@@ -49,7 +49,6 @@ func (p *Endpoint) recvLoop(c wire.Consumer) error {
 	for {
 		e, err := p.conn.Recv()
 		if err != nil {
-			// nolint:errcheck,gosec
 			p.Close() // Ignore double close.
 			// Check for graceful TCP connection close.
 			if errors.Cause(err) == io.EOF {
@@ -69,7 +68,6 @@ func (p *Endpoint) recvLoop(c wire.Consumer) error {
 // times out, the Endpoint is closed.
 func (p *Endpoint) Send(ctx context.Context, e *wire.Envelope) error {
 	if !p.sending.TryLockCtx(ctx) {
-		// nolint:errcheck,gosec
 		p.Close()
 		return errors.New("failed to lock sending mutex")
 	}
@@ -86,7 +84,6 @@ func (p *Endpoint) Send(ctx context.Context, e *wire.Envelope) error {
 	case err := <-sent:
 		return err
 	case <-ctx.Done():
-		// nolint:errcheck,gosec
 		p.Close()
 		return errors.Wrap(ctx.Err(), "context canceled")
 	}

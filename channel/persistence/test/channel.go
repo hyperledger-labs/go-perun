@@ -167,16 +167,16 @@ func (c *Channel) EnableInit(t require.TestingT) {
 }
 
 // SignAll signs the current staged state by all parties.
-func (c *Channel) SignAll(ctx context.Context, t require.TestingT) {
+func (c *Channel) SignAll(t require.TestingT) {
 	// trigger local signing
-	c.Sig(ctx) //nolint:errcheck
-	c.AssertPersisted(ctx, t)
+	c.Sig(nil) //nolint:errcheck
+	c.AssertPersisted(c.ctx, t)
 	// remote signers
 	for i := range c.accounts {
 		sig, err := channel.Sign(c.accounts[i], c.StagingState())
 		require.NoError(t, err)
-		c.AddSig(ctx, channel.Index(i), sig) //nolint:errcheck
-		c.AssertPersisted(ctx, t)
+		c.AddSig(nil, channel.Index(i), sig) //nolint:errcheck
+		c.AssertPersisted(c.ctx, t)
 	}
 }
 

@@ -48,7 +48,7 @@ func (p *fullEndpoint) Endpoint() *Endpoint {
 
 func newFullEndpoint(e *Endpoint) *fullEndpoint {
 	return &fullEndpoint{
-		endpoint: unsafe.Pointer(e), // nolint: gosec
+		endpoint: unsafe.Pointer(e),
 	}
 }
 
@@ -164,7 +164,6 @@ func (r *EndpointRegistry) setupConn(conn Conn) error {
 	var peerAddr wire.Address
 	var err error
 	if peerAddr, err = ExchangeAddrsPassive(ctx, r.id, conn); err != nil {
-		// nolint:errcheck,gosec
 		conn.Close()
 		r.Log().WithField("peer", peerAddr).Error("could not authenticate peer:", err)
 		return err
@@ -247,7 +246,6 @@ func (r *EndpointRegistry) authenticatedDial(
 	}
 
 	if err := ExchangeAddrsActive(ctx, r.id, addr, conn); err != nil {
-		// nolint:errcheck,gosec
 		conn.Close()
 		return nil, errors.WithMessage(err, "ExchangeAddrs failed")
 	}
@@ -327,7 +325,7 @@ func (r *EndpointRegistry) getOrCreateFullEndpoint(addr wire.Address, e *Endpoin
 // tie resolving, and whether the supplied endpoint was closed in the process.
 func (p *fullEndpoint) replace(newValue *Endpoint, self wire.Address, dialer bool) (updated *Endpoint, closed bool) {
 	// If there was no previous endpoint, just set the new one.
-	wasNil := atomic.CompareAndSwapPointer(&p.endpoint, nil, unsafe.Pointer(newValue)) // nolint: gosec
+	wasNil := atomic.CompareAndSwapPointer(&p.endpoint, nil, unsafe.Pointer(newValue))
 	if wasNil {
 		return newValue, false
 	}
@@ -345,7 +343,7 @@ func (p *fullEndpoint) replace(newValue *Endpoint, self wire.Address, dialer boo
 	}
 
 	// Otherwise, install the new endpoint and close the old endpoint.
-	old := atomic.SwapPointer(&p.endpoint, unsafe.Pointer(newValue)) // nolint: gosec
+	old := atomic.SwapPointer(&p.endpoint, unsafe.Pointer(newValue))
 	if old != nil {
 		// It may be possible that in the meanwhile, the peer might have been
 		// replaced by another goroutine.
@@ -359,7 +357,7 @@ func (p *fullEndpoint) replace(newValue *Endpoint, self wire.Address, dialer boo
 
 // delete deletes an endpoint if it was not replaced previously.
 func (p *fullEndpoint) delete(expectedOldValue *Endpoint) {
-	atomic.CompareAndSwapPointer(&p.endpoint, unsafe.Pointer(expectedOldValue), nil) // nolint: gosec
+	atomic.CompareAndSwapPointer(&p.endpoint, unsafe.Pointer(expectedOldValue), nil)
 }
 
 func (r *EndpointRegistry) find(addr wire.Address) *Endpoint {

@@ -182,7 +182,6 @@ func (c *Channel) updateGeneric(
 	if err != nil {
 		return errors.WithMessage(err, "creating update response receiver")
 	}
-	// nolint:errcheck
 	defer resRecv.Close()
 
 	msgUpdate := &msgChannelUpdate{

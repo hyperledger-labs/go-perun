@@ -70,7 +70,6 @@ func (c *Client) handleSyncMsg(peer wire.Address, msg *msgChannelSync) {
 // nolint:unused
 func (c *Client) syncChannel(ctx context.Context, ch *persistence.Channel, p wire.Address) (err error) {
 	recv := wire.NewReceiver()
-	// nolint:errcheck
 	defer recv.Close() // ignore error
 	id := ch.ID()
 	err = c.conn.Subscribe(recv, func(m *wire.Envelope) bool {

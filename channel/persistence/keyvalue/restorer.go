@@ -92,7 +92,7 @@ func (pr *PersistRestorer) RestorePeer(addr wire.Address) (persistence.ChannelIt
 		return nil, errors.WithMessage(err, "restoring peer")
 	}
 	itPeer := sortedkv.NewTable(pr.db, prefix.PeerDB+key).NewIterator()
-	defer itPeer.Close() // nolint: errcheck
+	defer itPeer.Close()
 
 	var id channel.ID
 	for itPeer.Next() {

@@ -109,7 +109,6 @@ func (c *Client) restoreChannelCollection(
 		if !c.channels.Put(ch.ID(), ch) {
 			log.Warn("Channel already present, closing restored channel.")
 			// If the channel already existed, close this one.
-			// nolint:errcheck,gosec
 			ch.Close()
 		}
 		log.Info("Channel restored.")

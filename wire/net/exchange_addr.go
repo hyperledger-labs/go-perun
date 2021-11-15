@@ -81,7 +81,6 @@ func ExchangeAddrsActive(ctx context.Context, id wire.Account, peer wire.Address
 	})
 
 	if !ok {
-		// nolint:errcheck,gosec
 		conn.Close()
 		return errors.WithMessage(ctx.Err(), "timeout")
 	}
@@ -114,11 +113,9 @@ func ExchangeAddrsPassive(ctx context.Context, id wire.Account, conn Conn) (wire
 	})
 
 	if !ok {
-		// nolint:errcheck,gosec
 		conn.Close()
 		return nil, errors.WithMessage(ctx.Err(), "timeout")
 	} else if err != nil {
-		// nolint:errcheck,gosec
 		conn.Close()
 	}
 	return addr, err

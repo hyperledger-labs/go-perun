@@ -308,7 +308,6 @@ func (c *Client) proposeTwoPartyChannel(
 				e.Msg.(*ChannelProposalRej).ProposalID == proposalID)
 	}
 	receiver := wire.NewReceiver()
-	// nolint:errcheck
 	defer receiver.Close()
 
 	if err := c.conn.Subscribe(receiver, isResponse); err != nil {
