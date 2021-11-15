@@ -104,7 +104,7 @@ func TestChannelProposal_assertValidNumParts(t *testing.T) {
 
 func TestProposalResponder_Accept_Nil(t *testing.T) {
 	p := new(ProposalResponder)
-	_, err := p.Accept(nil, new(LedgerChannelProposalAcc))
+	_, err := p.Accept(nil, new(LedgerChannelProposalAcc)) // nolint: staticcheck
 	assert.Error(t, err, "context")
 }
 

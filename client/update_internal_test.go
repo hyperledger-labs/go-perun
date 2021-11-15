@@ -25,13 +25,13 @@ import (
 )
 
 func TestUpdateResponder_Accept_NilArgs(t *testing.T) {
-	err := new(UpdateResponder).Accept(nil)
+	err := new(UpdateResponder).Accept(nil) // nolint: staticcheck
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "context")
 }
 
 func TestUpdateResponder_Reject_NilArgs(t *testing.T) {
-	err := new(UpdateResponder).Reject(nil, "reason")
+	err := new(UpdateResponder).Reject(nil, "reason") // nolint: staticcheck
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "context")
 }
@@ -39,7 +39,7 @@ func TestUpdateResponder_Reject_NilArgs(t *testing.T) {
 // Channel.Update() is defined in `client/update.go` so its test can be found
 // here as well.
 func TestChannel_Update_NilArgs(t *testing.T) {
-	err := new(Channel).Update(nil, new(channel.State))
+	err := new(Channel).Update(nil, new(channel.State)) // nolint: staticcheck
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "context")
 }

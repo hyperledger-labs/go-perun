@@ -154,7 +154,7 @@ func isNilSigs(s []wallet.Sig) bool {
 func (c *Channel) Init(t require.TestingT, rng *rand.Rand) {
 	initAlloc := *ctest.NewRandomAllocation(rng, ctest.WithNumParts(len(c.accounts)))
 	initData := channel.NewMockOp(channel.OpValid)
-	err := c.StateMachine.Init(nil, initAlloc, initData)
+	err := c.StateMachine.Init(nil, initAlloc, initData) //nolint:staticcheck
 	require.NoError(t, err)
 	c.AssertPersisted(c.ctx, t)
 }
@@ -169,13 +169,13 @@ func (c *Channel) EnableInit(t require.TestingT) {
 // SignAll signs the current staged state by all parties.
 func (c *Channel) SignAll(t require.TestingT) {
 	// trigger local signing
-	c.Sig(nil) //nolint:errcheck
+	c.Sig(nil) //nolint:errcheck,staticcheck
 	c.AssertPersisted(c.ctx, t)
 	// remote signers
 	for i := range c.accounts {
 		sig, err := channel.Sign(c.accounts[i], c.StagingState())
 		require.NoError(t, err)
-		c.AddSig(nil, channel.Index(i), sig) //nolint:errcheck
+		c.AddSig(nil, channel.Index(i), sig) //nolint:errcheck,staticcheck
 		c.AssertPersisted(c.ctx, t)
 	}
 }

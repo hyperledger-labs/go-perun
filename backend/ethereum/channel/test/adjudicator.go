@@ -143,8 +143,8 @@ func (t *SimTimeout) Wait(ctx context.Context) error {
 
 func (t *SimTimeout) timeLeft() int64 {
 	// context is ignored by sim blockchain anyways
-	h, err := t.sb.HeaderByNumber(nil, nil)
-	if err != nil { // should never happen with a sim blockchain
+	h, err := t.sb.HeaderByNumber(nil, nil) //nolint:staticcheck
+	if err != nil {                         // should never happen with a sim blockchain
 		panic(fmt.Sprint("Error getting latest block: ", err))
 	}
 	return int64(t.Time) - int64(h.Time)
