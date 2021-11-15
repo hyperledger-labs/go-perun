@@ -30,8 +30,6 @@ import (
 // TestStateMachine tests the StateMachine embedding by advancing the
 // StateMachine step by step and asserting that the persisted data matches the
 // expected.
-//
-// TODO: After #316 (custom random gens) this test can be greatly improved.
 func TestStateMachine(t *testing.T) {
 	require := require.New(t)
 	rng := pkgtest.Prng(t)

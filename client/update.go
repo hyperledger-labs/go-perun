@@ -171,7 +171,6 @@ func (c *Channel) updateGeneric(
 		return errors.WithMessage(err, "updating machine")
 	}
 	// if anything goes wrong from now on, we discard the update.
-	// TODO: this is insecure after we sent our signature.
 	defer func() { c.handleUpdateError(ctx, err) }()
 
 	sig, err := c.machine.Sig(ctx)
@@ -279,7 +278,6 @@ func (c *Channel) handleUpdateReq(
 	defer c.machMtx.Unlock()
 
 	if err := c.machine.CheckUpdate(req.Base().State, req.Base().ActorIdx, req.Base().Sig, pidx); err != nil {
-		// TODO: how to handle invalid updates? Just drop and ignore them?
 		c.logPeer(pidx).Warnf("invalid update received: %v", err)
 		return
 	}
@@ -308,7 +306,6 @@ func (c *Channel) handleUpdateReq(
 	}
 
 	if err := c.validTwoPartyUpdate(req.Base().ChannelUpdate, pidx); err != nil {
-		// TODO: how to handle invalid updates? Just drop and ignore them?
 		c.logPeer(pidx).Warnf("invalid update received: %v", err)
 		return
 	}
@@ -332,7 +329,6 @@ func (c *Channel) handleUpdateAcc(
 		return errors.WithMessage(err, "updating machine")
 	}
 	// if anything goes wrong from now on, we discard the update.
-	// TODO: this is insecure after we sent our signature.
 	defer func() {
 		if err != nil {
 			// we discard the update if anything went wrong

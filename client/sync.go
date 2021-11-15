@@ -39,8 +39,6 @@ func (c *Client) handleSyncMsg(peer wire.Address, msg *msgChannelSync) {
 		return
 	}
 
-	// TODO: cancel ongoing protocol, like Update
-
 	ctx, cancel := context.WithTimeout(c.Ctx(), syncReplyTimeout)
 	defer cancel()
 	// Lock machine while replying to sync request.

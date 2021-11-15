@@ -322,7 +322,6 @@ func (ch *ch) handleEventsFromChain(registerer channel.Registerer, chRegistry *r
 					err := registerDispute(chRegistry, registerer, parent)
 					if err != nil {
 						log.Error("Error registering dispute")
-						// TODO: Should the subscription be closed with an error ?
 						return
 					}
 					log.Debug("Registered successfully")

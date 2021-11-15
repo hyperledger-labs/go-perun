@@ -103,11 +103,6 @@ func (c *Client) restoreChannelCollection(
 		log := c.logChan(ch.ID())
 		log.Debug("Restoring channel...")
 
-		// TODO:
-		// Send outgoing channel sync request and receive possibly newer channel data.
-		// Incoming sync requests are handled by handleSyncMsg which is called from
-		// the client's request loop.
-
 		// Putting the channel into the channel registry will call the
 		// OnNewChannel callback so that the user can deal with the restored
 		// channel.
