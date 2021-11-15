@@ -74,7 +74,6 @@ func (c *Channel) proposeVirtualChannelFunding(ctx context.Context, virtual *Cha
 	return err
 }
 
-const responseTimeout = 10 * time.Second          // How long we wait until the proposal response must be transmitted.
 const virtualFundingTimeout = 10 * time.Second    // How long we wait for a matching funding proposal.
 const virtualSettlementTimeout = 10 * time.Second // How long we wait for a matching settlement proposal.
 
