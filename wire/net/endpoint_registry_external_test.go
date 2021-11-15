@@ -41,11 +41,11 @@ func TestEndpointRegistry_Get_Pair(t *testing.T) {
 	assert, require := assert.New(t), require.New(t)
 	rng := test.Prng(t)
 	var hub nettest.ConnHub
-	dialerId := wallettest.NewRandomAccount(rng)
-	listenerId := wallettest.NewRandomAccount(rng)
-	dialerReg := net.NewEndpointRegistry(dialerId, nilConsumer, hub.NewNetDialer())
-	listenerReg := net.NewEndpointRegistry(listenerId, nilConsumer, nil)
-	listener := hub.NewNetListener(listenerId.Address())
+	dialerID := wallettest.NewRandomAccount(rng)
+	listenerID := wallettest.NewRandomAccount(rng)
+	dialerReg := net.NewEndpointRegistry(dialerID, nilConsumer, hub.NewNetDialer())
+	listenerReg := net.NewEndpointRegistry(listenerID, nilConsumer, nil)
+	listener := hub.NewNetListener(listenerID.Address())
 
 	done := make(chan struct{})
 	go func() {
@@ -55,17 +55,17 @@ func TestEndpointRegistry_Get_Pair(t *testing.T) {
 
 	ctx, cancel := context.WithTimeout(context.Background(), 2*timeout)
 	defer cancel()
-	p, err := dialerReg.Get(ctx, listenerId.Address())
+	p, err := dialerReg.Get(ctx, listenerID.Address())
 	assert.NoError(err)
 	require.NotNil(p)
-	assert.True(p.Address.Equals(listenerId.Address()))
+	assert.True(p.Address.Equals(listenerID.Address()))
 
 	// should allow the listener routine to add the peer to its registry
 	time.Sleep(timeout)
-	p, err = listenerReg.Get(ctx, dialerId.Address())
+	p, err = listenerReg.Get(ctx, dialerID.Address())
 	assert.NoError(err)
 	require.NotNil(p)
-	assert.True(p.Address.Equals(dialerId.Address()))
+	assert.True(p.Address.Equals(dialerID.Address()))
 
 	listenerReg.Close()
 	dialerReg.Close()
@@ -81,16 +81,16 @@ func TestEndpointRegistry_Get_Multiple(t *testing.T) {
 	assert := assert.New(t)
 	rng := test.Prng(t)
 	var hub nettest.ConnHub
-	dialerId := wallettest.NewRandomAccount(rng)
-	listenerId := wallettest.NewRandomAccount(rng)
+	dialerID := wallettest.NewRandomAccount(rng)
+	listenerID := wallettest.NewRandomAccount(rng)
 	dialer := hub.NewNetDialer()
 	logPeer := func(addr wire.Address) wire.Consumer {
 		t.Logf("subscribing %s\n", addr)
 		return nil
 	}
-	dialerReg := net.NewEndpointRegistry(dialerId, logPeer, dialer)
-	listenerReg := net.NewEndpointRegistry(listenerId, logPeer, nil)
-	listener := hub.NewNetListener(listenerId.Address())
+	dialerReg := net.NewEndpointRegistry(dialerID, logPeer, dialer)
+	listenerReg := net.NewEndpointRegistry(listenerID, logPeer, nil)
+	listener := hub.NewNetListener(listenerID.Address())
 
 	done := make(chan struct{})
 	go func() {
@@ -105,10 +105,10 @@ func TestEndpointRegistry_Get_Multiple(t *testing.T) {
 	peers := make(chan *net.Endpoint, N)
 	for i := 0; i < N; i++ {
 		go func() {
-			p, err := dialerReg.Get(ctx, listenerId.Address())
+			p, err := dialerReg.Get(ctx, listenerID.Address())
 			assert.NoError(err)
 			if p != nil {
-				assert.True(p.Address.Equals(listenerId.Address()))
+				assert.True(p.Address.Equals(listenerID.Address()))
 			}
 			peers <- p
 		}()
@@ -134,10 +134,10 @@ func TestEndpointRegistry_Get_Multiple(t *testing.T) {
 
 	// should allow the listener routine to add the peer to its registry
 	time.Sleep(timeout)
-	p, err := listenerReg.Get(ctx, dialerId.Address())
+	p, err := listenerReg.Get(ctx, dialerID.Address())
 	assert.NoError(err)
 	assert.NotNil(p)
-	assert.True(p.Address.Equals(dialerId.Address()))
+	assert.True(p.Address.Equals(dialerID.Address()))
 	assert.Equal(1, listener.NumAccepted())
 
 	listenerReg.Close()

@@ -49,7 +49,7 @@ const (
 func TestFunder_RegisterAsset_IsAssetRegistered(t *testing.T) {
 	rng := pkgtest.Prng(t)
 
-	funder, assets, depositors, accs := newFunderWithDummy_ETH_ERC20_Assets(rng)
+	funder, assets, depositors, accs := newFunderSetup(rng)
 	n := len(assets)
 
 	for i := 0; i < n; i++ {
@@ -69,7 +69,7 @@ func TestFunder_RegisterAsset_IsAssetRegistered(t *testing.T) {
 	}
 }
 
-func newFunderWithDummy_ETH_ERC20_Assets(rng *rand.Rand) (
+func newFunderSetup(rng *rand.Rand) (
 	*ethchannel.Funder, []ethchannel.Asset, []ethchannel.Depositor, []accounts.Account) {
 	n := 2
 	simBackend := test.NewSimulatedBackend()
