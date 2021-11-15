@@ -28,7 +28,11 @@ import (
 	"perun.network/go-perun/channel"
 )
 
-const secondaryWaitBlocks = 2
+const (
+	secondaryWaitBlocks = 2
+	adjEventBuffSize    = 10
+	adjHeaderBuffSize   = 10
+)
 
 // ensureConcluded ensures that conclude or concludeFinal (for non-final and
 // final states, resp.) is called on the adjudicator.
@@ -50,7 +54,7 @@ func (a *Adjudicator) ensureConcluded(ctx context.Context, req channel.Adjudicat
 		return nil
 	}
 
-	events := make(chan *subscription.Event, 10)
+	events := make(chan *subscription.Event, adjEventBuffSize)
 	subErr := make(chan error, 1)
 	waitCtx, cancel := context.WithCancel(ctx)
 	go func() {
@@ -117,7 +121,7 @@ func (a *Adjudicator) conclude(ctx context.Context, req channel.AdjudicatorReq, 
 
 // isConcluded returns whether a channel is already concluded.
 func (a *Adjudicator) isConcluded(ctx context.Context, sub *subscription.ResistantEventSub) (bool, error) {
-	events := make(chan *subscription.Event, 10)
+	events := make(chan *subscription.Event, adjEventBuffSize)
 	subErr := make(chan error, 1)
 	// Write the events into events.
 	go func() {
@@ -143,7 +147,7 @@ func (a *Adjudicator) isForceExecuted(_ctx context.Context, c channel.ID) (bool,
 		return false, errors.WithMessage(err, "subscribing")
 	}
 	defer sub.Close()
-	events := make(chan *subscription.Event, 10)
+	events := make(chan *subscription.Event, adjEventBuffSize)
 	subErr := make(chan error, 1)
 	// Write the events into events.
 	go func() {
@@ -186,7 +190,7 @@ func waitConcludedForNBlocks(ctx context.Context,
 	concluded chan *subscription.Event,
 	numBlocks int,
 ) (bool, error) {
-	h := make(chan *types.Header, 10)
+	h := make(chan *types.Header, adjHeaderBuffSize)
 	hsub, err := cr.SubscribeNewHead(ctx, h)
 	if err != nil {
 		err = cherrors.CheckIsChainNotReachableError(err)

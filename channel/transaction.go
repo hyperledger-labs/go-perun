@@ -61,9 +61,13 @@ func (t *Transaction) Decode(r io.Reader) error {
 	if err := perunio.Decode(r, &stateSet); err != nil {
 		return errors.WithMessage(err, "decoding stateSet bit")
 	}
-	if (stateSet % 2) == 0 {
+	switch stateSet {
+	case 0:
 		t.State = nil
 		return nil
+	case 1:
+	default:
+		return errors.Errorf("unknown stateSet value: %v", stateSet)
 	}
 
 	// Decode State

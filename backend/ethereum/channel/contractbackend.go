@@ -33,8 +33,11 @@ import (
 	pcontext "polycry.pt/poly-go/context"
 )
 
-// How many blocks we query into the past for events.
-const startBlockOffset = 100
+const (
+	// How many blocks we query into the past for events.
+	startBlockOffset            = 100
+	contractBackendHeadBuffSize = 10
+)
 
 // GasLimit is the max amount of gas we want to send per transaction.
 const GasLimit = 1000000
@@ -209,7 +212,7 @@ func (c *ContractBackend) confirmNTimes(ctx context.Context, tx *types.Transacti
 	}
 
 	// Set up header sub for future blocks.
-	heads := make(chan *types.Header, 10)
+	heads := make(chan *types.Header, contractBackendHeadBuffSize)
 	heads <- head // Include the current head.
 	hsub, err := c.SubscribeNewHead(ctx, heads)
 	if err != nil {

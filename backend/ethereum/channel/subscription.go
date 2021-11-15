@@ -35,7 +35,7 @@ import (
 // Subscribe returns a new AdjudicatorSubscription to adjudicator events.
 func (a *Adjudicator) Subscribe(ctx context.Context, chID channel.ID) (channel.AdjudicatorSubscription, error) {
 	subErr := make(chan error, 1)
-	events := make(chan *subscription.Event, 10)
+	events := make(chan *subscription.Event, adjEventBuffSize)
 	eFact := func() *subscription.Event {
 		return &subscription.Event{
 			Name:   bindings.Events.AdjChannelUpdate,

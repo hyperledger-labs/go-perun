@@ -26,6 +26,9 @@ import (
 	"perun.network/go-perun/wire"
 )
 
+// number of peers that gatherPeers supports.
+const gatherNumPeers = 2
+
 // IsVirtualChannel returns whether the channel is a virtual channel.
 // A virtual channel is a channel that has a parent channel with different
 // participants.
@@ -376,7 +379,7 @@ func (c *Client) gatherPeers(channels ...*Channel) (peers []wire.Address) {
 	peers = make([]wire.Address, len(channels))
 	for i, ch := range channels {
 		chPeers := ch.Peers()
-		if len(chPeers) != 2 {
+		if len(chPeers) != gatherNumPeers {
 			panic("unsupported number of participants")
 		}
 		peers[i] = chPeers[1-ch.Idx()]

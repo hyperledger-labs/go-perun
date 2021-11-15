@@ -32,6 +32,9 @@ import (
 // Address represents a simulated address.
 type Address ecdsa.PublicKey
 
+// length of an encoded address in byte.
+const addrLen = 64
+
 // compile time check that we implement the perun Address interface.
 var _ wallet.Address = (*Address)(nil)
 
@@ -68,24 +71,25 @@ func (a *Address) Bytes() []byte {
 
 // ByteArray converts an address into a 64-byte array. The returned array
 // consists of two 32-byte chunks representing the public key's X and Y values.
-func (a *Address) ByteArray() (data [64]byte) {
+func (a *Address) ByteArray() (data [addrLen]byte) {
 	xb := a.X.Bytes()
 	yb := a.Y.Bytes()
 
 	// Left-pad with 0 bytes.
-	copy(data[32-len(xb):32], xb)
-	copy(data[64-len(yb):64], yb)
+	copy(data[addrLen/2-len(xb):addrLen/2], xb)
+	copy(data[addrLen-len(yb):addrLen], yb)
 
 	return data
 }
 
 // String converts this address to a human-readable string.
 func (a *Address) String() string {
+	const bytePerNibble = 4
 	// Encode the address directly instead of using Address.Bytes() because
 	// * some addresses may have a very short encoding, e.g., the null address,
 	// * the Address.Bytes() output may contain encoding information, e.g., the
 	//   length.
-	bs := make([]byte, 4)
+	bs := make([]byte, bytePerNibble)
 	copy(bs, a.X.Bytes())
 
 	return "0x" + hex.EncodeToString(bs)
@@ -123,12 +127,12 @@ func (a *Address) Encode(w io.Writer) error {
 // Decode decodes an address from an io.Reader. Part of the
 // go-perun/pkg/io.Serializer interface.
 func (a *Address) Decode(r io.Reader) error {
-	data := make([]byte, 64)
+	data := make([]byte, addrLen)
 	if err := perunio.Decode(r, &data); err != nil {
 		return errors.WithMessage(err, "decoding address")
 	}
-	a.X = new(big.Int).SetBytes(data[:32])
-	a.Y = new(big.Int).SetBytes(data[32:])
+	a.X = new(big.Int).SetBytes(data[:addrLen/2])
+	a.Y = new(big.Int).SetBytes(data[addrLen/2:])
 	a.Curve = curve
 
 	return nil

@@ -63,6 +63,8 @@ type Funder struct {
 	log        log.Logger // structured logger
 }
 
+const funderEventBufSize = 10
+
 // compile time check that we implement the perun funder interface.
 var _ channel.Funder = (*Funder)(nil)
 
@@ -241,7 +243,7 @@ func (f *Funder) deposit(ctx context.Context, bal *big.Int, asset Asset, funding
 
 // checkFunded returns whether `fundingID` holds at least `amount` funds.
 func (f *Funder) checkFunded(ctx context.Context, amount *big.Int, asset assetHolder, fundingID [32]byte) (bool, error) {
-	deposited := make(chan *subscription.Event, 10)
+	deposited := make(chan *subscription.Event, funderEventBufSize)
 	subErr := make(chan error, 1)
 	// Subscribe to events.
 	sub, err := f.depositedSub(ctx, asset.contract, fundingID)

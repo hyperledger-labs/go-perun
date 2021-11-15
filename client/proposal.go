@@ -33,6 +33,9 @@ import (
 
 const proposerIdx, proposeeIdx = 0, 1
 
+// number of participants that is used unless specified otherwise.
+const proposalNumParts = 2
+
 type (
 	// A ProposalHandler decides how to handle incoming channel proposals from
 	// other channel network peers.
@@ -354,7 +357,7 @@ func (c *Client) validTwoPartyProposal(
 		return errors.Errorf("participants (%d) and peers (%d) dimension mismatch",
 			proposal.Base().NumPeers(), len(peers))
 	}
-	if len(peers) != 2 {
+	if len(peers) != proposalNumParts {
 		return errors.Errorf("expected 2 peers, got %d", len(peers))
 	}
 
@@ -467,14 +470,14 @@ func (c *Client) validChannelProposalAcc(
 }
 
 func participants(proposer, proposee wallet.Address) []wallet.Address {
-	parts := make([]wallet.Address, 2)
+	parts := make([]wallet.Address, proposalNumParts)
 	parts[proposerIdx] = proposer
 	parts[proposeeIdx] = proposee
 	return parts
 }
 
 func nonceShares(proposer, proposee NonceShare) []NonceShare {
-	shares := make([]NonceShare, 2)
+	shares := make([]NonceShare, proposalNumParts)
 	shares[proposerIdx] = proposer
 	shares[proposeeIdx] = proposee
 	return shares
