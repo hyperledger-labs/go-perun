@@ -296,14 +296,14 @@ func testFundingTimeout(t *testing.T, faultyPeer, n int) {
 	_, funders, params, alloc := newNFunders(ctx, t, rng, n)
 
 	for i, funder := range funders {
-		sleepTime := time.Duration(rng.Int63n(10) + 1)
+		sleepTime := time.Millisecond * time.Duration(rng.Int63n(10)+1)
 		i, funder := i, funder
 		go ct.StageN("funding loop", n, func(rt pkgtest.ConcT) {
 			// Faulty peer does not fund the channel.
 			if i == faultyPeer {
 				return
 			}
-			time.Sleep(sleepTime * time.Millisecond)
+			time.Sleep(sleepTime)
 			req := channel.NewFundingReq(params, &channel.State{Allocation: *alloc}, channel.Index(i), alloc.Balances)
 			err := funder.Fund(ctx, *req)
 			require.Error(t, err)
@@ -357,10 +357,10 @@ func testFunderFunding(t *testing.T, n int) {
 	_, funders, params, alloc := newNFunders(ctx, t, rng, n)
 
 	for i, funder := range funders {
-		sleepTime := time.Duration(rng.Int63n(10) + 1)
+		sleepTime := time.Millisecond * time.Duration(rng.Int63n(10)+1)
 		i, funder := i, funder
 		go ct.StageN("funding", n, func(rt pkgtest.ConcT) {
-			time.Sleep(sleepTime * time.Millisecond)
+			time.Sleep(sleepTime)
 			req := channel.NewFundingReq(params, &channel.State{Allocation: *alloc}, channel.Index(i), alloc.Balances)
 			err := funder.Fund(ctx, *req)
 			require.NoError(rt, err, "funding should succeed")
