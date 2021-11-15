@@ -487,7 +487,7 @@ func Test_Watcher_StopWatching(t *testing.T) {
 			rs := &mock.RegisterSubscriber{}
 			setExpectationSubscribeCall(rs, adjSub, nil)
 			w := newWatcher(t, rs)
-			_, _ = startWatchingForLedgerChannel(t, w, makeSignedStateWDummySigs(params, txs[0].State))
+			startWatchingForLedgerChannel(t, w, makeSignedStateWDummySigs(params, txs[0].State))
 
 			require.NoError(t, w.StopWatching(context.Background(), txs[0].State.ID))
 			rs.AssertExpectations(t)
@@ -508,13 +508,13 @@ func Test_Watcher_StopWatching(t *testing.T) {
 			rs := &mock.RegisterSubscriber{}
 			setExpectationSubscribeCall(rs, adjSub, nil)
 			w := newWatcher(t, rs)
-			_, _ = startWatchingForLedgerChannel(t, w, makeSignedStateWDummySigs(params, txs[0].State))
+			startWatchingForLedgerChannel(t, w, makeSignedStateWDummySigs(params, txs[0].State))
 
 			wg := sync.WaitGroup{}
 			for i := 0; i < 2; i++ {
 				wg.Add(1)
 				go func() {
-					w.StopWatching(context.Background(), txs[0].State.ID)
+					w.StopWatching(context.Background(), txs[0].State.ID) //nolint:errcheck
 					wg.Done()
 				}()
 			}
@@ -550,7 +550,7 @@ func Test_Watcher_StopWatching(t *testing.T) {
 
 			// Child: Start watching. Parent: Publish sub-channel withdrawal transaction
 			childSignedState := makeSignedStateWDummySigs(childParams, childTxs[0].State)
-			_, _ = startWatchingForSubChannel(t, w, childSignedState, parentTxs[0].State.ID)
+			startWatchingForSubChannel(t, w, childSignedState, parentTxs[0].State.ID)
 			require.NoError(t, statesPub.Publish(context.Background(), parentTxs[2]))
 
 			// Child, then Parent: Stop Watching.
@@ -586,7 +586,7 @@ func Test_Watcher_StopWatching(t *testing.T) {
 
 			// Child: Start watching.
 			childSignedState := makeSignedStateWDummySigs(childParams, childTxs[0].State)
-			_, _ = startWatchingForSubChannel(t, w, childSignedState, parentTxs[0].State.ID)
+			startWatchingForSubChannel(t, w, childSignedState, parentTxs[0].State.ID)
 
 			// Child: Stop watching.
 			require.NoError(t, w.StopWatching(context.Background(), childTxs[0].State.ID))
@@ -625,7 +625,7 @@ func Test_Watcher_StopWatching(t *testing.T) {
 
 			// Child: Start watching.
 			childSignedState := makeSignedStateWDummySigs(childParams, childTxs[0].State)
-			_, _ = startWatchingForSubChannel(t, w, childSignedState, parentTxs[0].State.ID)
+			startWatchingForSubChannel(t, w, childSignedState, parentTxs[0].State.ID)
 
 			// Child: Stop watching.
 			require.NoError(t, w.StopWatching(context.Background(), childTxs[0].State.ID))
@@ -662,7 +662,7 @@ func Test_Watcher_StopWatching(t *testing.T) {
 
 			// Child: Start watching.
 			childSignedState := makeSignedStateWDummySigs(childParams, childTxs[0].State)
-			_, _ = startWatchingForSubChannel(t, w, childSignedState, parentTxs[0].State.ID)
+			startWatchingForSubChannel(t, w, childSignedState, parentTxs[0].State.ID)
 
 			// Parent: Stop watching (error).
 			require.Error(t, w.StopWatching(context.Background(), parentTxs[0].State.ID))
@@ -696,7 +696,7 @@ func Test_Watcher_StopWatching(t *testing.T) {
 
 			// Child: Start watching.
 			childSignedState := makeSignedStateWDummySigs(childParams, childTxs[0].State)
-			_, _ = startWatchingForSubChannel(t, w, childSignedState, parentTxs[0].State.ID)
+			startWatchingForSubChannel(t, w, childSignedState, parentTxs[0].State.ID)
 
 			// Parent: Stop watching (error).
 			require.Error(t, w.StopWatching(context.Background(), parentTxs[0].State.ID))

@@ -80,7 +80,7 @@ func TestListener_Accept(t *testing.T) {
 		defer l.Close()
 
 		test.AssertNotTerminates(t, timeout, func() {
-			l.Accept()
+			l.Accept() //nolint:errcheck
 		})
 	})
 

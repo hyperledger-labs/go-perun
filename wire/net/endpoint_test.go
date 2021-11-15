@@ -166,7 +166,9 @@ func TestEndpoint_Send_Timeout_Mutex_TryLockCtx(t *testing.T) {
 	conn, remote := newPipeConnPair()
 	p := newEndpoint(nil, conn)
 
-	go remote.Recv()
+	go func() {
+		remote.Recv() //nolint:errcheck
+	}()
 	p.sending.Lock()
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()

@@ -49,35 +49,6 @@ func TestProducer(t *testing.T) {
 	assert.Panics(t, func() { p.delete(r0) })
 }
 
-/*
-TODO waiting for mocked Endpoint
-func TestProducer_produce_DefaultMsgHandler(t *testing.T) {
-	missedMsg := make(chan *Envelope, 1)
-	recv, send := nettest.NewPipeConnPair()
-	p := net.NewEndpoint(nil, recv, nil)
-	go p.recvLoop()
-
-	rng := test.Prng(t)
-
-	p.SetDefaultMsgHandler(func(e *Envelope) {
-		missedMsg <- e
-	})
-
-	ctxtest.AssertTerminates(t, timeout, func() {
-		r := NewReceiver()
-		p.Subscribe(r, func(e *Envelope) bool { return e.Msg.Type() == ChannelProposal })
-		assert.NoError(t, send.Send(NewRandomEnvelope(rng, NewPingMsg())))
-		assert.IsType(t, &PingMsg{}, (<-missedMsg).Msg)
-	})
-
-	test.AssertNotTerminates(t, timeout, func() {
-		r := NewReceiver()
-		p.Subscribe(r, func(e *Envelope) bool { return e.Msg.Type() == Ping })
-		assert.NoError(t, send.Send(NewRandomEnvelope(rng, NewPingMsg())))
-		<-missedMsg
-	})
-}*/
-
 func TestProducer_produce_closed(t *testing.T) {
 	var missed *Envelope
 	p := NewRelay()
@@ -127,7 +98,7 @@ func TestProducer_Subscribe(t *testing.T) {
 		p := NewRelay()
 		r := NewReceiver()
 		assert.NoError(t, p.Subscribe(r, fn))
-		assert.Panics(t, func() { p.Subscribe(r, fn) })
+		assert.Panics(t, func() { p.Subscribe(r, fn) }) //nolint:errcheck
 	})
 
 	t.Run("closed consumer", func(t *testing.T) {
@@ -176,7 +147,7 @@ func TestProducer_caching(t *testing.T) {
 	assert.Len(unhandlesMsg, 1)
 
 	rec := NewReceiver()
-	prod.Subscribe(rec, isPing)
+	prod.Subscribe(rec, isPing) //nolint:errcheck
 	ctxtest.AssertTerminates(t, timeout, func() {
 		e, err := rec.Next(ctx)
 		assert.NoError(err)

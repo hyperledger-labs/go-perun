@@ -44,7 +44,8 @@ func TestStateMachine(t *testing.T) {
 	sm := persistence.FromStateMachine(csm, tpr)
 
 	// Newly created channel
-	tpr.ChannelCreated(nil, &sm, nil, nil) // nil peers since we only test StateMachine
+	err = tpr.ChannelCreated(nil, &sm, nil, nil) // nil peers since we only test StateMachine
+	require.NoError(err)
 	tpr.AssertEqual(csm)
 
 	// Init state
@@ -62,7 +63,8 @@ func TestStateMachine(t *testing.T) {
 		for i := 1; i < n; i++ {
 			sig, err := channel.Sign(accs[i], csm.StagingState())
 			require.NoError(err)
-			sm.AddSig(nil, channel.Index(i), sig)
+			err = sm.AddSig(nil, channel.Index(i), sig)
+			require.NoError(err)
 			tpr.AssertEqual(csm)
 		}
 	}

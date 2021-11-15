@@ -15,6 +15,7 @@
 package test
 
 import (
+	"fmt"
 	"io"
 	"math/big"
 	"math/rand"
@@ -370,7 +371,9 @@ func (o RandomOpt) LockedIDs(rng *rand.Rand) (ids []channel.ID) {
 func (o RandomOpt) Nonce(rng io.Reader) channel.Nonce {
 	if _, ok := o["nonce"]; !ok {
 		var n = make([]byte, channel.MaxNonceLen)
-		rng.Read(n)
+		if _, err := rng.Read(n); err != nil {
+			panic(fmt.Sprintf("reading rnd: %v", err))
+		}
 		o["nonce"] = channel.NonceFromBytes(n)
 	}
 	return o["nonce"].(channel.Nonce)

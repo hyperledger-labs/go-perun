@@ -25,6 +25,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/require"
 	"perun.network/go-perun/channel"
 	"perun.network/go-perun/channel/persistence"
 	"perun.network/go-perun/client"
@@ -428,7 +429,8 @@ func (h *roleUpdateHandler) HandleUpdate(_ *channel.State, up client.ChannelUpda
 		h.t.Errorf("unknown channel: %v", up.State.ID)
 		ctx, cancel := context.WithTimeout(context.Background(), h.setup.Timeout)
 		defer cancel()
-		res.Reject(ctx, "unknown channel")
+		err := res.Reject(ctx, "unknown channel")
+		require.NoError(h.t, err)
 		return
 	}
 

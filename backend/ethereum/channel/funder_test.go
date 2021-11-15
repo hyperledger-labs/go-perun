@@ -242,7 +242,7 @@ func TestFunder_Multiple(t *testing.T) {
 	defer cancel()
 	parts, funders, params, alloc := newNFunders(ctx, t, rng, 1)
 	// Test invalid funding request
-	assert.Panics(t, func() { funders[0].Fund(ctx, channel.FundingReq{}) }, "Funding with invalid funding req should fail")
+	assert.Panics(t, func() { funders[0].Fund(ctx, channel.FundingReq{}) }, "Funding with invalid funding req should fail") //nolint:errcheck
 	// Test funding without assets
 	req := channel.NewFundingReq(&channel.Params{}, &channel.State{}, 0, make(channel.Balances, 0))
 	require.NoError(t, funders[0].Fund(ctx, *req), "Funding with no assets should succeed")
@@ -415,7 +415,8 @@ func newNFunders(
 		parts[i] = ethwallet.AsWalletAddr(acc.Address)
 
 		simBackend.FundAddress(ctx, ethwallet.AsEthAddr(parts[i]))
-		fundERC20(ctx, cb, *tokenAcc, ethwallet.AsEthAddr(parts[i]), token, asset2)
+		err = fundERC20(ctx, cb, *tokenAcc, ethwallet.AsEthAddr(parts[i]), token, asset2)
+		require.NoError(t, err)
 
 		funders[i] = ethchannel.NewFunder(cb)
 		require.True(t, funders[i].RegisterAsset(asset1, ethchannel.NewETHDepositor(), acc))

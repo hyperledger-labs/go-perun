@@ -162,8 +162,9 @@ func TestRegistry_Get(t *testing.T) {
 		defer cancel()
 		go ct.Stage("receiver", func(t test.ConcT) {
 			dialer.put(a)
-			ExchangeAddrsPassive(ctx, peerID, b)
-			_, err := b.Recv()
+			_, err := ExchangeAddrsPassive(ctx, peerID, b)
+			require.NoError(t, err)
+			_, err = b.Recv()
 			require.NoError(t, err)
 		})
 		p, err := r.Get(ctx, peerAddr)
@@ -201,11 +202,16 @@ func TestRegistry_authenticatedDial(t *testing.T) {
 		a, b := newPipeConnPair()
 		go func() {
 			d.put(a)
-			b.Recv()
-			b.Send(&wire.Envelope{
+			if _, err := b.Recv(); err != nil {
+				panic(err)
+			}
+			err := b.Send(&wire.Envelope{
 				Sender:    remoteAddr,
 				Recipient: id.Address(),
 				Msg:       wire.NewPingMsg()})
+			if err != nil {
+				panic(err)
+			}
 		}()
 		de, created := r.getOrCreateDialingEndpoint(remoteAddr)
 		ctx, cancel := context.WithTimeout(context.Background(), timeout)
@@ -234,12 +240,17 @@ func TestRegistry_authenticatedDial(t *testing.T) {
 
 	t.Run("dial success, ExchangeAddrs success", func(t *testing.T) {
 		a, b := newPipeConnPair()
+		go func() {
+			ctx, cancel := context.WithTimeout(context.Background(), timeout)
+			defer cancel()
+			d.put(a)
+			_, err := ExchangeAddrsPassive(ctx, remoteID, b)
+			if err != nil {
+				panic(err)
+			}
+		}()
 		ctx, cancel := context.WithTimeout(context.Background(), timeout)
 		defer cancel()
-		go func() {
-			d.put(a)
-			ExchangeAddrsPassive(ctx, remoteID, b)
-		}()
 		de, created := r.getOrCreateDialingEndpoint(remoteAddr)
 		e, err := r.authenticatedDial(ctx, remoteAddr, de, created)
 		assert.NoError(t, err)
@@ -257,10 +268,15 @@ func TestRegistry_setupConn(t *testing.T) {
 		d := &mockDialer{dial: make(chan Conn)}
 		r := NewEndpointRegistry(id, nilConsumer, d)
 		a, b := newPipeConnPair()
-		go b.Send(&wire.Envelope{
-			Sender:    id.Address(),
-			Recipient: remoteID.Address(),
-			Msg:       wire.NewPingMsg()})
+		go func() {
+			err := b.Send(&wire.Envelope{
+				Sender:    id.Address(),
+				Recipient: remoteID.Address(),
+				Msg:       wire.NewPingMsg()})
+			if err != nil {
+				panic(err)
+			}
+		}()
 		ctxtest.AssertTerminates(t, timeout, func() {
 			assert.Error(t, r.setupConn(a))
 		})
@@ -270,7 +286,12 @@ func TestRegistry_setupConn(t *testing.T) {
 		d := &mockDialer{dial: make(chan Conn)}
 		r := NewEndpointRegistry(id, nilConsumer, d)
 		a, b := newPipeConnPair()
-		go ExchangeAddrsActive(context.Background(), remoteID, id.Address(), b)
+		go func() {
+			err := ExchangeAddrsActive(context.Background(), remoteID, id.Address(), b)
+			if err != nil {
+				panic(err)
+			}
+		}()
 
 		r.addEndpoint(remoteID.Address(), newMockConn(), false)
 		ctxtest.AssertTerminates(t, timeout, func() {
@@ -282,7 +303,12 @@ func TestRegistry_setupConn(t *testing.T) {
 		d := &mockDialer{dial: make(chan Conn)}
 		r := NewEndpointRegistry(id, nilConsumer, d)
 		a, b := newPipeConnPair()
-		go ExchangeAddrsActive(context.Background(), remoteID, id.Address(), b)
+		go func() {
+			err := ExchangeAddrsActive(context.Background(), remoteID, id.Address(), b)
+			if err != nil {
+				panic(err)
+			}
+		}()
 
 		ctxtest.AssertTerminates(t, timeout, func() {
 			assert.NoError(t, r.setupConn(a))

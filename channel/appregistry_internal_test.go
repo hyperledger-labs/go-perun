@@ -68,7 +68,7 @@ func testAppRegistryPanicsAndErrors(t *testing.T) {
 		RegisterDefaultApp(&MockAppResolver{})
 	})
 
-	assert.Panics(t, func() { Resolve(nil) })
+	assert.Panics(t, func() { Resolve(nil) }) //nolint:errcheck
 }
 
 type defaultRes struct{ def wallet.Address }

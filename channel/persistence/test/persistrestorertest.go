@@ -130,9 +130,11 @@ func GenericPersistRestorerTest(
 				// Update state
 				state1 := ch.State().Clone()
 				state1.Version++
-				ch.Update(t, state1, ch.Idx())
+				err := ch.Update(t, state1, ch.Idx())
+				require.NoError(t, err)
 				ch.DiscardUpdate(t)
-				ch.Update(t, state1, ch.Idx())
+				err = ch.Update(t, state1, ch.Idx())
+				require.NoError(t, err)
 				ch.SignAll(t)
 				ch.EnableUpdate(t)
 
@@ -140,7 +142,8 @@ func GenericPersistRestorerTest(
 				statef := ch.State().Clone()
 				statef.Version++
 				statef.IsFinal = true
-				ch.Update(t, statef, ch.Idx()^1)
+				err = ch.Update(t, statef, ch.Idx()^1)
+				require.NoError(t, err)
 				ch.SignAll(t)
 				ch.EnableFinal(t)
 

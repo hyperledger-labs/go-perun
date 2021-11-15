@@ -62,8 +62,9 @@ func GenericBusTest(t *testing.T, busAssigner func(wire.Account) wire.Bus, numCl
 			go ct.StageN("receive timeout", numClients, func(t test.ConcT) {
 				r := wire.NewReceiver()
 				defer r.Close()
-				clients[i].r.Subscribe(r, func(e *wire.Envelope) bool { return true })
-				_, err := r.Next(ctx)
+				err := clients[i].r.Subscribe(r, func(e *wire.Envelope) bool { return true })
+				require.NoError(t, err)
+				_, err = r.Next(ctx)
 				require.Error(t, err)
 			})
 		}
@@ -90,9 +91,10 @@ func GenericBusTest(t *testing.T, busAssigner func(wire.Account) wire.Bus, numCl
 				}
 				// Only subscribe to the current sender.
 				recv := wire.NewReceiver()
-				clients[recipient].r.Subscribe(recv, func(e *wire.Envelope) bool {
+				err := clients[recipient].r.Subscribe(recv, func(e *wire.Envelope) bool {
 					return e.Sender.Equals(clients[sender].id.Address())
 				})
+				require.NoError(t, err)
 
 				go ct.StageN("receive", numClients*(numClients-1), func(t test.ConcT) {
 					defer recv.Close()

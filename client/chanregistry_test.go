@@ -134,6 +134,6 @@ func TestChanRegistry_CloseAll(t *testing.T) {
 	ch := testCh()
 	reg := makeChanRegistry()
 	reg.Put(id, ch)
-	reg.CloseAll()
+	require.NoError(t, reg.CloseAll())
 	assert.True(t, ch.IsClosed())
 }

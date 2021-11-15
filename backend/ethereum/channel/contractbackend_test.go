@@ -183,11 +183,12 @@ func Test_ReorgConfirmTransaction(t *testing.T) {
 
 	// Do a reorg and add two more blocks. Move the TX one block forward.
 	// The TX should now be included in `TxFinalityDepth` many blocks.
-	s.SB.Reorg(ctx, TxFinalityDepth-1, func(txs []types.Transactions) []types.Transactions {
+	err := s.SB.Reorg(ctx, TxFinalityDepth-1, func(txs []types.Transactions) []types.Transactions {
 		ret := make([]types.Transactions, TxFinalityDepth+1)
 		ret[1] = txs[0]
 		return ret
 	})
+	require.NoError(t, err)
 
 	// Confirm
 	s.ConfirmTx(tx, true)
@@ -216,9 +217,10 @@ func Test_ReorgRemoveTransaction(t *testing.T) {
 
 	// Do a reorg by adding two more blocks and removing the TX.
 	// The `TxFinalityDepth` would now be reached.
-	s.SB.Reorg(ctx, TxFinalityDepth-1, func(txs []types.Transactions) []types.Transactions {
+	err := s.SB.Reorg(ctx, TxFinalityDepth-1, func(txs []types.Transactions) []types.Transactions {
 		return make([]types.Transactions, TxFinalityDepth+1)
 	})
+	require.NoError(t, err)
 
 	// Still not confirmed.
 	s.ConfirmTx(tx, false)

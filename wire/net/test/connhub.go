@@ -49,8 +49,9 @@ func (h *ConnHub) NewNetListener(addr wire.Address) *Listener {
 	}
 
 	// Remove the listener from the hub after it's closed.
-	listener.OnClose(func() { h.erase(addr) })
-
+	listener.OnClose(func() {
+		h.erase(addr) //nolint:errcheck
+	})
 	return listener
 }
 
@@ -66,7 +67,9 @@ func (h *ConnHub) NewNetDialer() *Dialer {
 
 	dialer := &Dialer{hub: h}
 	h.dialers.insert(dialer)
-	dialer.OnClose(func() { h.dialers.erase(dialer) })
+	dialer.OnClose(func() {
+		h.dialers.erase(dialer) //nolint:errcheck
+	})
 
 	return dialer
 }
