@@ -36,7 +36,7 @@ func NewRandomEnvelope(rng *rand.Rand, m Msg) *Envelope {
 	}
 }
 
-var nilDecoder = func(io.Reader) (Msg, error) { return nil, nil }
+var nilDecoder = func(io.Reader) (Msg, error) { return nil, nil } // nolint: nilnil
 
 func TestType_Valid_String(t *testing.T) {
 	test.OnlyOnce(t)
