@@ -274,7 +274,7 @@ var ErrTxFailed = stderrors.New("transaction failed")
 
 // IsErrTxFailed returns whether the cause of the error was a failed transaction.
 func IsErrTxFailed(err error) bool {
-	return errors.Cause(err) == ErrTxFailed
+	return errors.Is(err, ErrTxFailed)
 }
 
 func errorReason(ctx context.Context, b *ContractBackend, tx *types.Transaction, blockNum *big.Int, acc accounts.Account) (string, error) {
@@ -300,5 +300,5 @@ var ErrInvalidContractCode = stderrors.New("invalid bytecode at address")
 
 // IsErrInvalidContractCode returns whether the cause of the error was a invalid bytecode.
 func IsErrInvalidContractCode(err error) bool {
-	return errors.Cause(err) == ErrInvalidContractCode
+	return errors.Is(err, ErrInvalidContractCode)
 }
