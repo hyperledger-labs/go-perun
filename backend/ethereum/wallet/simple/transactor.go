@@ -15,6 +15,8 @@
 package simple
 
 import (
+	stderrors "errors"
+
 	"github.com/ethereum/go-ethereum/accounts"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
@@ -30,6 +32,16 @@ type Transactor struct {
 	types.Signer
 }
 
+// ErrWrongAddrType signals than an operation failed because an address was of
+// the wrong type.
+var ErrWrongAddrType = stderrors.New("wrong address type")
+
+// IsErrWrongAddrType returns whether the cause of the error was an
+// ErrWrongAddrType error.
+func IsErrWrongAddrType(err error) bool {
+	return errors.Is(err, ErrWrongAddrType)
+}
+
 // NewTransactor returns a TransactOpts for the given account. It errors if the
 // account is not contained in the wallet of the transactor factory.
 func (t *Transactor) NewTransactor(account accounts.Account) (*bind.TransactOpts, error) {
@@ -37,7 +49,10 @@ func (t *Transactor) NewTransactor(account accounts.Account) (*bind.TransactOpts
 	if err != nil {
 		return nil, err
 	}
-	acc := walletAcc.(*Account)
+	acc, ok := walletAcc.(*Account)
+	if !ok {
+		return nil, ErrWrongAddrType
+	}
 
 	return &bind.TransactOpts{
 		From: account.Address,

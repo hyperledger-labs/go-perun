@@ -26,6 +26,7 @@ import (
 	cherrors "perun.network/go-perun/backend/ethereum/channel/errors"
 	"perun.network/go-perun/backend/ethereum/subscription"
 	"perun.network/go-perun/channel"
+	"perun.network/go-perun/log"
 )
 
 const (
@@ -79,7 +80,10 @@ func (a *Adjudicator) ensureConcluded(ctx context.Context, req channel.Adjudicat
 	for {
 		select {
 		case _e := <-events:
-			e := _e.Data.(*adjudicator.AdjudicatorChannelUpdate)
+			e, ok := _e.Data.(*adjudicator.AdjudicatorChannelUpdate)
+			if !ok {
+				log.Panic("wrong event type")
+			}
 			if e.Phase == phaseConcluded {
 				return nil
 			}
@@ -135,7 +139,10 @@ func (a *Adjudicator) isConcluded(ctx context.Context, sub *subscription.Resista
 	}()
 	// Read all events and check for concluded.
 	for _e := range events {
-		e := _e.Data.(*adjudicator.AdjudicatorChannelUpdate)
+		e, ok := _e.Data.(*adjudicator.AdjudicatorChannelUpdate)
+		if !ok {
+			log.Panic("wrong event type")
+		}
 		if e.Phase == phaseConcluded {
 			return true, nil
 		}
@@ -165,7 +172,10 @@ func (a *Adjudicator) isForceExecuted(_ctx context.Context, c channel.ID) (bool,
 		lastEvent = _e
 	}
 	if lastEvent != nil {
-		e := lastEvent.Data.(*adjudicator.AdjudicatorChannelUpdate)
+		e, ok := lastEvent.Data.(*adjudicator.AdjudicatorChannelUpdate)
+		if !ok {
+			log.Panic("wrong event type")
+		}
 		if e.Phase == phaseForceExec {
 			return true, nil
 		}
@@ -206,7 +216,10 @@ func waitConcludedForNBlocks(ctx context.Context,
 		select {
 		case <-h: // do nothing, wait another block
 		case _e := <-concluded: // other participant performed transaction
-			e := _e.Data.(*adjudicator.AdjudicatorChannelUpdate)
+			e, ok := _e.Data.(*adjudicator.AdjudicatorChannelUpdate)
+			if !ok {
+				log.Panic("wrong event type")
+			}
 			if e.Phase == phaseConcluded {
 				return true, nil
 			}

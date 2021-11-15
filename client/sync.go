@@ -16,6 +16,7 @@ package client
 
 import (
 	"context"
+	"log"
 	"time"
 
 	"github.com/pkg/errors"
@@ -99,7 +100,10 @@ func (c *Client) syncChannel(ctx context.Context, ch *persistence.Channel, p wir
 	if err != nil {
 		return errors.WithMessage(err, "receiving sync message")
 	}
-	msg := env.Msg.(*msgChannelSync) // safe by the predicate
+	msg, ok := env.Msg.(*msgChannelSync) // safe by the predicate
+	if !ok {
+		log.Panic("internal error: wrong message type")
+	}
 	// Validate sync message.
 	if err := validateMessage(ch, msg); err != nil {
 		return errors.WithMessage(err, "invalid message")

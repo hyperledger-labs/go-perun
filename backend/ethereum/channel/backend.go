@@ -226,7 +226,10 @@ func EncodeState(state *adjudicator.ChannelState) ([]byte, error) {
 func assetToCommonAddresses(addr []channel.Asset) []common.Address {
 	cAddrs := make([]common.Address, len(addr))
 	for i, part := range addr {
-		asset := part.(*Asset)
+		asset, ok := part.(*Asset)
+		if !ok {
+			log.Panic("wrong address type")
+		}
 		cAddrs[i] = common.Address(*asset)
 	}
 	return cAddrs

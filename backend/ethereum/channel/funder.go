@@ -259,7 +259,10 @@ func (f *Funder) checkFunded(ctx context.Context, amount *big.Int, asset assetHo
 
 	left := new(big.Int).Set(amount)
 	for _event := range deposited {
-		event := _event.Data.(*assetholder.AssetHolderDeposited)
+		event, ok := _event.Data.(*assetholder.AssetHolderDeposited)
+		if !ok {
+			log.Panic("wrong event type")
+		}
 		left.Sub(left, event.Amount)
 	}
 	return left.Sign() != 1, errors.WithMessagef(<-subErr, "filtering old Funding events for asset %d", asset.assetIndex)
@@ -307,7 +310,10 @@ func (f *Funder) waitForFundingConfirmation(ctx context.Context, request channel
 	for N > 0 {
 		select {
 		case rawEvent := <-deposited:
-			event := rawEvent.Data.(*assetholder.AssetHolderDeposited)
+			event, ok := rawEvent.Data.(*assetholder.AssetHolderDeposited)
+			if !ok {
+				log.Panic("wrong event type")
+			}
 			log := f.log.WithField("fundingID", event.FundingID)
 
 			// Calculate the position in the participant array.
@@ -368,7 +374,10 @@ func FundingIDs(channelID channel.ID, participants ...perunwallet.Address) [][32
 	ids := make([][32]byte, len(participants))
 	args := abi.Arguments{{Type: abiBytes32}, {Type: abiAddress}}
 	for idx, pID := range participants {
-		address := pID.(*wallet.Address)
+		address, ok := pID.(*wallet.Address)
+		if !ok {
+			log.Panic("wrong address type")
+		}
 		bytes, err := args.Pack(channelID, common.Address(*address))
 		if err != nil {
 			log.Panicf("error packing values: %v", err)

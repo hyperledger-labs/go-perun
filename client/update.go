@@ -208,7 +208,10 @@ func (c *Channel) updateGeneric(
 		return newPeerRejectedError("channel update", rej.Reason)
 	}
 
-	acc := res.(*msgChannelUpdateAcc) // safe by predicate of the updateResRecv
+	acc, ok := res.(*msgChannelUpdateAcc) // safe by predicate of the updateResRecv
+	if !ok {
+		log.Panic("wrong message type")
+	}
 	if err := c.machine.AddSig(ctx, pidx, acc.Sig); err != nil {
 		return errors.WithMessage(err, "adding peer signature")
 	}

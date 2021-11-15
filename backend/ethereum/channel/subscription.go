@@ -111,7 +111,10 @@ func (r *RegisteredSub) processNext(ctx context.Context, a *Adjudicator, _next *
 	select {
 	// drain next-channel on new event
 	case current := <-r.next:
-		currentTimeout := current.Timeout().(*BlockTimeout)
+		currentTimeout, ok := current.Timeout().(*BlockTimeout)
+		if !ok {
+			log.Panic("wrong timeout type")
+		}
 		// if newer version or same version and newer timeout, replace
 		if current.Version() < next.Version || current.Version() == next.Version && currentTimeout.Time < next.Timeout {
 			var e channel.AdjudicatorEvent

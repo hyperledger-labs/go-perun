@@ -330,7 +330,10 @@ func (c *Client) proposeTwoPartyChannel(
 		return nil, newPeerRejectedError("channel proposal", rej.Reason)
 	}
 
-	acc := env.Msg.(ChannelProposalAccept) // this is safe because of predicate isResponse
+	acc, ok := env.Msg.(ChannelProposalAccept) // this is safe because of predicate isResponse
+	if !ok {
+		log.Panic("internal error: wrong message type")
+	}
 
 	if err := c.validChannelProposalAcc(proposal, acc); err != nil {
 		return nil, errors.WithMessage(err, "validating channel proposal acceptance")
