@@ -174,18 +174,8 @@ read2:
 	}
 
 	for _, log := range logs {
-		event := s.eFact()
-		if err := s.contract.UnpackLog(event.Data, event.Name, log); err != nil {
+		if err := s.processLog(ctx, log, sink); err != nil {
 			return err
-		}
-		event.Log = log
-
-		select {
-		case <-ctx.Done():
-			return ctx.Err()
-		case sink <- event:
-		case <-s.closer.Closed():
-			return nil
 		}
 	}
 	return nil
@@ -195,18 +185,8 @@ func (s *EventSub) readFuture(ctx context.Context, sink chan<- *Event) error {
 	for {
 		select {
 		case log := <-s.watchLogs:
-			event := s.eFact()
-			if err := s.contract.UnpackLog(event.Data, event.Name, log); err != nil {
+			if err := s.processLog(ctx, log, sink); err != nil {
 				return err
-			}
-			event.Log = log
-
-			select {
-			case <-ctx.Done():
-				return ctx.Err()
-			case sink <- event:
-			case <-s.closer.Closed():
-				return nil
 			}
 		case err := <-s.watchSub.Err():
 			err = cherrors.CheckIsChainNotReachableError(err)
@@ -216,6 +196,23 @@ func (s *EventSub) readFuture(ctx context.Context, sink chan<- *Event) error {
 		case <-s.closer.Closed():
 			return nil
 		}
+	}
+}
+
+func (s *EventSub) processLog(ctx context.Context, log types.Log, sink chan<- *Event) error {
+	event := s.eFact()
+	if err := s.contract.UnpackLog(event.Data, event.Name, log); err != nil {
+		return err
+	}
+	event.Log = log
+
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	case sink <- event:
+		return nil
+	case <-s.closer.Closed():
+		return nil
 	}
 }
 
