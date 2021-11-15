@@ -39,7 +39,7 @@ func (a *Address) Bytes() []byte {
 // go-perun/pkg/io.Serializer interface.
 func (a *Address) Encode(w io.Writer) error {
 	_, err := w.Write(a.Bytes())
-	return err
+	return errors.WithStack(err)
 }
 
 // Decode decodes an address from a io.Reader. Part of the

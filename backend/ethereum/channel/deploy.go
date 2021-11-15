@@ -89,7 +89,7 @@ func DeployTrivialApp(ctx context.Context, backend ContractBackend, deployer acc
 	return deployContract(ctx, backend, deployer, "TrivialApp",
 		func(auth *bind.TransactOpts, cb ContractBackend) (common.Address, *types.Transaction, error) {
 			addr, tx, _, err := trivialapp.DeployTrivialApp(auth, backend)
-			return addr, tx, err
+			return addr, tx, errors.WithStack(err)
 		})
 }
 

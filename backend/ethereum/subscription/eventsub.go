@@ -202,7 +202,7 @@ func (s *EventSub) readFuture(ctx context.Context, sink chan<- *Event) error {
 func (s *EventSub) processLog(ctx context.Context, log types.Log, sink chan<- *Event) error {
 	event := s.eFact()
 	if err := s.contract.UnpackLog(event.Data, event.Name, log); err != nil {
-		return err
+		return errors.WithStack(err)
 	}
 	event.Log = log
 

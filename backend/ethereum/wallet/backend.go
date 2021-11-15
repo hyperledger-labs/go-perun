@@ -18,6 +18,7 @@ import (
 	"io"
 
 	"github.com/ethereum/go-ethereum/crypto"
+	"github.com/pkg/errors"
 
 	"perun.network/go-perun/wallet"
 	perunio "polycry.pt/poly-go/io"
@@ -75,7 +76,7 @@ func VerifySignature(msg []byte, sig wallet.Sig, a wallet.Address) (bool, error)
 	}
 	pk, err := crypto.SigToPub(hash, sigCopy)
 	if err != nil {
-		return false, err
+		return false, errors.WithStack(err)
 	}
 	addr := crypto.PubkeyToAddress(*pk)
 	return a.Equals((*Address)(&addr)), nil
