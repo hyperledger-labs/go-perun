@@ -111,7 +111,7 @@ func New(
 
 	c.fundingWatcher = newStateWatcher(c.matchFundingProposal)
 	c.settlementWatcher = newStateWatcher(c.matchSettlementProposal)
-	return
+	return c, nil
 }
 
 // Close closes this state channel client.

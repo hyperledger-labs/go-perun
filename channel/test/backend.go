@@ -178,7 +178,7 @@ func buildModifiedParams(p1, p2 *channel.Params, s *Setup) (ret []channel.Params
 		}
 	}
 
-	return
+	return ret
 }
 
 func appendModParams(a []channel.Params, modParams channel.Params) []channel.Params {
@@ -315,7 +315,7 @@ func buildModifiedStates(s1, s2 *channel.State, _opts ...GenericTestOption) (ret
 		}
 	}
 
-	return
+	return ret
 }
 
 func ensureConsistentBalances(s *channel.State) *channel.State {

@@ -277,5 +277,5 @@ func setupVirtualChannelTest(t *testing.T, ctx context.Context) (vct virtualChan
 		return nil
 	})
 	require.NoError(err, "updating virtual channel")
-	return
+	return vct
 }

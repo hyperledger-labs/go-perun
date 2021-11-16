@@ -434,7 +434,7 @@ func newNFunders(
 	// By using a large value, we make sure that longer running tests work.
 	params = channeltest.NewRandomParams(rng, channeltest.WithParts(parts...), channeltest.WithChallengeDuration(uint64(n)*40000))
 	allocation = channeltest.NewRandomAllocation(rng, channeltest.WithNumParts(n), channeltest.WithAssets((*ethchannel.Asset)(&assetAddr1), (*ethchannel.Asset)(&assetAddr2)))
-	return
+	return parts, funders, params, allocation
 }
 
 // fundERC20 funds `to` with ERC20 tokens from account `from`.

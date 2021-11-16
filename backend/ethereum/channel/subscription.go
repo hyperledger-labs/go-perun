@@ -136,7 +136,7 @@ func (r *RegisteredSub) processNext(ctx context.Context, a *Adjudicator, _next *
 
 		r.next <- e
 	}
-	return
+	return err
 }
 
 // Next returns the newest past or next blockchain event.

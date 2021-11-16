@@ -78,7 +78,7 @@ func NewRandomChannel(
 
 	require.NoError(t, pr.ChannelCreated(ctx, c.StateMachine, c.peers, c.parent))
 	c.AssertPersisted(ctx, t)
-	return
+	return c
 }
 
 func requireEqualPeers(t require.TestingT, expected, actual []wire.Address) {
