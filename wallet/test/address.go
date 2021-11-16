@@ -38,11 +38,11 @@ func TestAddress(t *testing.T, s *Setup) {
 
 	// Test Address.Equals.
 	assert.False(t, addr.Equals(null), "Expected inequality of zero, nonzero address")
-	assert.True(t, null.Equals(null), "Expected equality of zero address to itself")
+	assert.True(t, null.Equals(null), "Expected equality of zero address to itself") // nolint: gocritic
 
 	// Test Address.Cmp.
 	assert.Positive(t, addr.Cmp(null), "Expected addr > zero")
-	assert.Zero(t, null.Cmp(null), "Expected zero = zero")
+	assert.Zero(t, null.Cmp(null), "Expected zero = zero") // nolint: gocritic
 	assert.Negative(t, null.Cmp(addr), "Expected null < addr")
 
 	// Test Address.Bytes.

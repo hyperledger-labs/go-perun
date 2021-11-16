@@ -127,7 +127,7 @@ func TestBalancesEqualAndAssertEqual(t *testing.T) {
 		assert.False(b1.Equal(b2))
 		assert.Error(b1.AssertEqual(b2))
 
-		assert.True(b1.Equal(b1))
+		assert.True(b1.Equal(b1)) // nolint: gocritic
 		assert.NoError(b1.AssertEqual(b1))
 	})
 }
