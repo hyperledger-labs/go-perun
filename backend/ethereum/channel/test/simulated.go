@@ -220,6 +220,8 @@ func (s *SimulatedBackend) Reorg(ctx context.Context, depth uint64, reorder Reor
 	return nil
 }
 
+// WithCommitTx controls whether the simulated backend should automatically
+// mine a block after a transaction was sent.
 func WithCommitTx(b bool) SimBackendOpt {
 	return func(sb *SimulatedBackend) { sb.commitTx = b }
 }

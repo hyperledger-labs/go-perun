@@ -97,7 +97,7 @@ func GenericPersistRestorerTest(
 	for p := 0; p < numPeers; p++ {
 		channels[p] = make(map[channel.ID]*Channel)
 		for i := 0; i < numChans; i++ {
-			var parent *Channel = nil
+			var parent *Channel
 			// Every second channel is set to have a parent.
 			if i&1 == 1 {
 				parent = prevCh

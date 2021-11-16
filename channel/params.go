@@ -50,7 +50,7 @@ func NonceFromBytes(b []byte) Nonce {
 }
 
 // Zero is the default channelID.
-var Zero ID = ID{}
+var Zero = ID{}
 
 var _ io.Serializer = (*Params)(nil)
 

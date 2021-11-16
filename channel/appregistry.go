@@ -23,7 +23,7 @@ import (
 )
 
 // appRegistry is the global registry for `AppResolver`s.
-var appRegistry appReg = appReg{singles: make(map[wallet.AddrKey]App)}
+var appRegistry = appReg{singles: make(map[wallet.AddrKey]App)}
 
 type appReg struct {
 	sync.RWMutex

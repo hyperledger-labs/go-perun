@@ -360,8 +360,8 @@ func (b *MockBackend) removeSubscription(ch channel.ID, sub *mockSubscription) {
 
 	// Find subscription index.
 	i, ok := func() (int, bool) {
-		for i, sub_ := range b.eventSubs[ch] {
-			if sub == sub_ {
+		for i, s := range b.eventSubs[ch] {
+			if sub == s {
 				return i, true
 			}
 		}

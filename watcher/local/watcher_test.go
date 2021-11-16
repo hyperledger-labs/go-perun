@@ -852,7 +852,7 @@ func setExpectationRegisterCalls(t *testing.T, rs *mock.RegisterSubscriber, chan
 		}),
 		testifyMock.MatchedBy(func(subStates []channel.SignedState) bool {
 			defer func() {
-				iChannelTree += 1
+				iChannelTree++
 				mtx.Unlock()
 			}()
 			if iChannelTree >= limit {

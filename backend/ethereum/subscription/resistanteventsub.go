@@ -242,16 +242,16 @@ func (s *ResistantEventSub) isFinal(event *Event) bool {
 	if diff.Sign() < 0 {
 		log.Tracef("Event sub was faster than head sub, ignored")
 		return false
-	} else {
-		included := new(big.Int).Add(diff, big.NewInt(1))
-		if included.Cmp(s.finalityDepth) >= 0 {
-			log.Debugf("Event final after %d block(s)", included)
-			return true
-		} else {
-			log.Tracef("Event included %d time(s)", included)
-			return false
-		}
 	}
+
+	included := new(big.Int).Add(diff, big.NewInt(1))
+	if included.Cmp(s.finalityDepth) >= 0 {
+		log.Debugf("Event final after %d block(s)", included)
+		return true
+	}
+
+	log.Tracef("Event included %d time(s)", included)
+	return false
 }
 
 // Close closes the sub and the underlying `EventSub`.

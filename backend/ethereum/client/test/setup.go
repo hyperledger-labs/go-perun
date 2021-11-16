@@ -25,10 +25,13 @@ import (
 )
 
 const (
+	// DefaultTimeout is the default timeout for client tests.
 	DefaultTimeout = 5 * time.Second
-	BlockInterval  = 100 * time.Millisecond
+	// BlockInterval is the default block interval for the simulated chain.
+	BlockInterval = 100 * time.Millisecond
 )
 
+// MakeRoleSetups creates a two party client test setup with the provided names.
 func MakeRoleSetups(s *ethctest.Setup, names [2]string) (setup [2]clienttest.RoleSetup) {
 	bus := wire.NewLocalBus()
 	for i := 0; i < len(setup); i++ {
