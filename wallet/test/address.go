@@ -24,7 +24,7 @@ import (
 
 // TestAddress runs a test suite designed to test the general functionality of
 // an address implementation.
-func TestAddress(t *testing.T, s *Setup) {
+func TestAddress(t *testing.T, s *Setup) { // nolint: revive
 	null := s.ZeroAddress
 	addr, err := s.Backend.DecodeAddress(bytes.NewReader(s.AddressEncoded))
 	assert.NoError(t, err, "Byte deserialization of address should work")
