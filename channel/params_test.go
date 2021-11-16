@@ -19,9 +19,9 @@ import (
 
 	"perun.network/go-perun/channel"
 	"perun.network/go-perun/channel/test"
-	"perun.network/go-perun/pkg/io"
-	iotest "perun.network/go-perun/pkg/io/test"
-	pkgtest "perun.network/go-perun/pkg/test"
+	"polycry.pt/poly-go/io"
+	iotest "polycry.pt/poly-go/io/test"
+	pkgtest "polycry.pt/poly-go/test"
 )
 
 func TestParams_Clone(t *testing.T) {

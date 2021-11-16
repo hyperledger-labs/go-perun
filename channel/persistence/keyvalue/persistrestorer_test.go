@@ -24,10 +24,10 @@ import (
 
 	_ "perun.network/go-perun/backend/sim"
 	"perun.network/go-perun/channel/persistence/test"
-	"perun.network/go-perun/pkg/sortedkv"
-	"perun.network/go-perun/pkg/sortedkv/leveldb"
-	"perun.network/go-perun/pkg/sortedkv/memorydb"
-	pkgtest "perun.network/go-perun/pkg/test"
+	"polycry.pt/poly-go/sortedkv"
+	"polycry.pt/poly-go/sortedkv/leveldb"
+	"polycry.pt/poly-go/sortedkv/memorydb"
+	pkgtest "polycry.pt/poly-go/test"
 )
 
 func TestPersistRestorer_Generic(t *testing.T) {

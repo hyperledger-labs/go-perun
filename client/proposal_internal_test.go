@@ -22,11 +22,11 @@ import (
 
 	"perun.network/go-perun/channel"
 	channeltest "perun.network/go-perun/channel/test"
-	pkgtest "perun.network/go-perun/pkg/test"
 	"perun.network/go-perun/wallet"
 	wallettest "perun.network/go-perun/wallet/test"
 	"perun.network/go-perun/wire"
 	wiretest "perun.network/go-perun/wire/test"
+	pkgtest "polycry.pt/poly-go/test"
 )
 
 func TestClient_validTwoPartyProposal(t *testing.T) {

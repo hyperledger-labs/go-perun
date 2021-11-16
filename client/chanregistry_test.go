@@ -21,8 +21,8 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"perun.network/go-perun/channel/test"
-	pkgtest "perun.network/go-perun/pkg/test"
 	"perun.network/go-perun/wire"
+	pkgtest "polycry.pt/poly-go/test"
 )
 
 func testCh() *Channel {

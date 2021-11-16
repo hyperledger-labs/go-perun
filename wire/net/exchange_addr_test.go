@@ -21,11 +21,11 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	ctxtest "perun.network/go-perun/pkg/context/test"
-	"perun.network/go-perun/pkg/test"
 	wallettest "perun.network/go-perun/wallet/test"
 	"perun.network/go-perun/wire"
 	wiretest "perun.network/go-perun/wire/test"
+	ctxtest "polycry.pt/poly-go/context/test"
+	"polycry.pt/poly-go/test"
 )
 
 func TestExchangeAddrs_ConnFail(t *testing.T) {

@@ -25,9 +25,9 @@ import (
 	"perun.network/go-perun/channel"
 	"perun.network/go-perun/channel/persistence"
 	"perun.network/go-perun/log"
-	pkgtest "perun.network/go-perun/pkg/test"
 	wtest "perun.network/go-perun/wallet/test"
 	"perun.network/go-perun/wire"
+	pkgtest "polycry.pt/poly-go/test"
 )
 
 // Client is a mock client that can be used to create channels.

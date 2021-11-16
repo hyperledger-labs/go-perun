@@ -18,8 +18,8 @@ import (
 	"math/rand"
 	"testing"
 
-	"perun.network/go-perun/pkg/test"
 	"perun.network/go-perun/wallet"
+	"polycry.pt/poly-go/test"
 )
 
 func TestRequireEqualSigsTX(t *testing.T) {

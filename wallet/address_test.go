@@ -21,10 +21,10 @@ import (
 	"github.com/stretchr/testify/require"
 
 	_ "perun.network/go-perun/backend/sim/wallet"
-	iotest "perun.network/go-perun/pkg/io/test"
-	pkgtest "perun.network/go-perun/pkg/test"
 	"perun.network/go-perun/wallet"
 	wallettest "perun.network/go-perun/wallet/test"
+	iotest "polycry.pt/poly-go/io/test"
+	pkgtest "polycry.pt/poly-go/test"
 )
 
 type testAddresses struct {

@@ -21,9 +21,9 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"perun.network/go-perun/pkg/test"
 	wallettest "perun.network/go-perun/wallet/test"
 	"perun.network/go-perun/wire"
+	"polycry.pt/poly-go/test"
 )
 
 // GenericBusTest tests the general functionality of a bus in the happy case: it

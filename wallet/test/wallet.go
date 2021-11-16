@@ -21,8 +21,8 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"perun.network/go-perun/pkg/io"
 	"perun.network/go-perun/wallet"
+	"polycry.pt/poly-go/io"
 )
 
 // InitWallet initializes a wallet.

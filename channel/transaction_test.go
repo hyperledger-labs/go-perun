@@ -19,8 +19,8 @@ import (
 
 	"perun.network/go-perun/channel"
 	"perun.network/go-perun/channel/test"
-	iotest "perun.network/go-perun/pkg/io/test"
-	pkgtest "perun.network/go-perun/pkg/test"
+	iotest "polycry.pt/poly-go/io/test"
+	pkgtest "polycry.pt/poly-go/test"
 )
 
 func TestTransactionSerialization(t *testing.T) {

@@ -28,7 +28,7 @@ import (
 	"perun.network/go-perun/backend/ethereum/channel/test"
 	"perun.network/go-perun/backend/ethereum/wallet"
 	"perun.network/go-perun/backend/ethereum/wallet/hd"
-	pkgtest "perun.network/go-perun/pkg/test"
+	pkgtest "polycry.pt/poly-go/test"
 )
 
 // missingAddr is the address for which key will not be contained in the wallet.

@@ -20,8 +20,8 @@ import (
 
 	"github.com/pkg/errors"
 
-	"perun.network/go-perun/pkg/sync"
 	"perun.network/go-perun/wire"
+	"polycry.pt/poly-go/sync"
 )
 
 // Endpoint is an authenticated connection to a Perun node.

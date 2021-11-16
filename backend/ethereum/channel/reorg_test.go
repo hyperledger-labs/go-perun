@@ -23,7 +23,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"perun.network/go-perun/backend/ethereum/channel/test"
-	pkgtest "perun.network/go-perun/pkg/test"
+	pkgtest "polycry.pt/poly-go/test"
 )
 
 // sendTXsBlockLen describes how many blocks the function `sendTXs` will create.

@@ -21,10 +21,10 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
-	pkgsync "perun.network/go-perun/pkg/sync"
 	"perun.network/go-perun/wallet"
 	"perun.network/go-perun/wire"
 	wirenet "perun.network/go-perun/wire/net"
+	pkgsync "polycry.pt/poly-go/sync"
 )
 
 // Dialer is a simple lookup-table based dialer that can dial known peers.

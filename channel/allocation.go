@@ -19,8 +19,8 @@ import (
 	"log"
 	"math/big"
 
-	perunio "perun.network/go-perun/pkg/io"
-	perunbig "perun.network/go-perun/pkg/math/big"
+	perunio "polycry.pt/poly-go/io"
+	perunbig "polycry.pt/poly-go/math/big"
 
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/pkg/errors"

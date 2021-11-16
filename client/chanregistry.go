@@ -18,7 +18,7 @@ import (
 	"sync"
 
 	"perun.network/go-perun/channel"
-	psync "perun.network/go-perun/pkg/sync"
+	psync "polycry.pt/poly-go/sync"
 )
 
 // chanRegistry is a registry for channels.

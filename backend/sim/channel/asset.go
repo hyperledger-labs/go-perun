@@ -19,7 +19,7 @@ import (
 	"math/rand"
 
 	"perun.network/go-perun/channel"
-	perunio "perun.network/go-perun/pkg/io"
+	perunio "polycry.pt/poly-go/io"
 )
 
 // Asset simulates a `channel.Asset` by only containing an `ID`.

@@ -23,8 +23,8 @@ import (
 
 	"perun.network/go-perun/channel"
 	"perun.network/go-perun/log"
-	perunio "perun.network/go-perun/pkg/io"
 	"perun.network/go-perun/wallet"
+	perunio "polycry.pt/poly-go/io"
 )
 
 // backend implements the utility interface defined in the channel package.

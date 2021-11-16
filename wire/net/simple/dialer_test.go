@@ -23,10 +23,10 @@ import (
 	"github.com/stretchr/testify/require"
 
 	simwallet "perun.network/go-perun/backend/sim/wallet"
-	ctxtest "perun.network/go-perun/pkg/context/test"
-	"perun.network/go-perun/pkg/test"
 	"perun.network/go-perun/wallet"
 	"perun.network/go-perun/wire"
+	ctxtest "polycry.pt/poly-go/context/test"
+	"polycry.pt/poly-go/test"
 )
 
 func TestNewTCPDialer(t *testing.T) {

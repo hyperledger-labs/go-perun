@@ -28,8 +28,8 @@ import (
 	ethchannel "perun.network/go-perun/backend/ethereum/channel"
 	"perun.network/go-perun/backend/ethereum/channel/test"
 	ethwallet "perun.network/go-perun/backend/ethereum/wallet"
-	pkgtest "perun.network/go-perun/pkg/test"
 	"perun.network/go-perun/wallet"
+	pkgtest "polycry.pt/poly-go/test"
 )
 
 func fromEthAddr(a common.Address) wallet.Address {

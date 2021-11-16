@@ -33,7 +33,7 @@ import (
 	cherrors "perun.network/go-perun/backend/ethereum/channel/errors"
 	"perun.network/go-perun/client"
 	"perun.network/go-perun/log"
-	pcontext "perun.network/go-perun/pkg/context"
+	pcontext "polycry.pt/poly-go/context"
 )
 
 const deployGasLimit = 6600000

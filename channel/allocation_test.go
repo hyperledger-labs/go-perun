@@ -24,10 +24,10 @@ import (
 
 	"perun.network/go-perun/channel"
 	"perun.network/go-perun/channel/test"
-	perunio "perun.network/go-perun/pkg/io"
-	iotest "perun.network/go-perun/pkg/io/test"
-	pkgbig "perun.network/go-perun/pkg/math/big"
-	pkgtest "perun.network/go-perun/pkg/test"
+	perunio "polycry.pt/poly-go/io"
+	iotest "polycry.pt/poly-go/io/test"
+	pkgbig "polycry.pt/poly-go/math/big"
+	pkgtest "polycry.pt/poly-go/test"
 )
 
 func TestAllocationNumParts(t *testing.T) {

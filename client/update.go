@@ -21,10 +21,10 @@ import (
 
 	"perun.network/go-perun/channel"
 	"perun.network/go-perun/log"
-	pcontext "perun.network/go-perun/pkg/context"
-	"perun.network/go-perun/pkg/sync/atomic"
 	"perun.network/go-perun/wallet"
 	"perun.network/go-perun/wire"
+	pcontext "polycry.pt/poly-go/context"
+	"polycry.pt/poly-go/sync/atomic"
 )
 
 // handleChannelUpdate forwards incoming channel update requests to the

@@ -23,10 +23,10 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	ctxtest "perun.network/go-perun/pkg/context/test"
-	"perun.network/go-perun/pkg/sync"
-	"perun.network/go-perun/pkg/test"
 	wallettest "perun.network/go-perun/wallet/test"
+	ctxtest "polycry.pt/poly-go/context/test"
+	"polycry.pt/poly-go/sync"
+	"polycry.pt/poly-go/test"
 )
 
 func TestProducer(t *testing.T) {

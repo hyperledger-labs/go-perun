@@ -19,8 +19,8 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	pkgtest "perun.network/go-perun/pkg/test"
 	"perun.network/go-perun/wallet/test"
+	pkgtest "polycry.pt/poly-go/test"
 )
 
 func TestListenerMap_find(t *testing.T) {

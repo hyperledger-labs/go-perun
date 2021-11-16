@@ -24,8 +24,8 @@ import (
 	chtest "perun.network/go-perun/channel/test"
 	"perun.network/go-perun/client"
 	ctest "perun.network/go-perun/client/test"
-	"perun.network/go-perun/pkg/test"
 	"perun.network/go-perun/wire"
+	"polycry.pt/poly-go/test"
 )
 
 func TestSubChannelHappy(t *testing.T) {

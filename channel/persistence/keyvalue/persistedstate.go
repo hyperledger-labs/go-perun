@@ -18,7 +18,7 @@ import (
 	"io"
 
 	"perun.network/go-perun/channel"
-	perunio "perun.network/go-perun/pkg/io"
+	perunio "polycry.pt/poly-go/io"
 )
 
 var _ perunio.Encoder = PersistedState{}

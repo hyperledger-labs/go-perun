@@ -31,8 +31,8 @@ import (
 	perunclient "perun.network/go-perun/client"
 	clienttest "perun.network/go-perun/client/test"
 	"perun.network/go-perun/log"
-	pkgtest "perun.network/go-perun/pkg/test"
 	"perun.network/go-perun/wire"
+	pkgtest "polycry.pt/poly-go/test"
 )
 
 func TestHappyAliceBob(t *testing.T) {

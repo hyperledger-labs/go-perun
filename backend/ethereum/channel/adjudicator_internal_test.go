@@ -22,7 +22,7 @@ import (
 	"perun.network/go-perun/backend/ethereum/bindings/adjudicator"
 	"perun.network/go-perun/channel"
 	channeltest "perun.network/go-perun/channel/test"
-	pkgtest "perun.network/go-perun/pkg/test"
+	pkgtest "polycry.pt/poly-go/test"
 )
 
 func Test_toEthSubStates(t *testing.T) {

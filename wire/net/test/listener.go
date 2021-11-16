@@ -20,8 +20,8 @@ import (
 
 	"github.com/pkg/errors"
 
-	"perun.network/go-perun/pkg/sync"
 	wirenet "perun.network/go-perun/wire/net"
+	"polycry.pt/poly-go/sync"
 )
 
 var _ wirenet.Listener = &Listener{}

@@ -13,4 +13,4 @@
 // limitations under the License.
 
 // Package test contains testing setup types and functions for package client.
-package test // import "perun.network/go-perun/pkg/test"
+package test // import "perun.network/go-perun/client/test"

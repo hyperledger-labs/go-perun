@@ -20,8 +20,8 @@ import (
 
 	"github.com/pkg/errors"
 
-	pkg "perun.network/go-perun/pkg/context"
 	"perun.network/go-perun/wire"
+	pkg "polycry.pt/poly-go/context"
 )
 
 // AuthenticationError describes an error which occures when the ExchangeAddrs

@@ -19,7 +19,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"perun.network/go-perun/pkg/test"
+	"polycry.pt/poly-go/test"
 )
 
 func TestProposalOpts_isNonce(t *testing.T) {

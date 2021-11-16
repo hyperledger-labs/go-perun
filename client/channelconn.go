@@ -22,8 +22,8 @@ import (
 
 	"perun.network/go-perun/channel"
 	"perun.network/go-perun/log"
-	"perun.network/go-perun/pkg/sync"
 	"perun.network/go-perun/wire"
+	"polycry.pt/poly-go/sync"
 )
 
 // A channelConn bundles the message sending and receiving infrastructure for a

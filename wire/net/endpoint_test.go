@@ -25,10 +25,10 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	_ "perun.network/go-perun/backend/sim" // backend init
-	"perun.network/go-perun/pkg/test"
 	wallettest "perun.network/go-perun/wallet/test"
 	"perun.network/go-perun/wire"
 	wiretest "perun.network/go-perun/wire/test"
+	"polycry.pt/poly-go/test"
 )
 
 // setup is a test setup consisting of two connected peers.

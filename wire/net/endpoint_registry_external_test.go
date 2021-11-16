@@ -22,13 +22,13 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	ctxtest "perun.network/go-perun/pkg/context/test"
-	"perun.network/go-perun/pkg/sync"
-	"perun.network/go-perun/pkg/test"
 	wallettest "perun.network/go-perun/wallet/test"
 	"perun.network/go-perun/wire"
 	"perun.network/go-perun/wire/net"
 	nettest "perun.network/go-perun/wire/net/test"
+	ctxtest "polycry.pt/poly-go/context/test"
+	"polycry.pt/poly-go/sync"
+	"polycry.pt/poly-go/test"
 )
 
 var timeout = 100 * time.Millisecond

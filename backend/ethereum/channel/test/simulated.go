@@ -32,7 +32,7 @@ import (
 	"perun.network/go-perun/channel"
 	"perun.network/go-perun/channel/test"
 	"perun.network/go-perun/log"
-	"perun.network/go-perun/pkg/sync"
+	"polycry.pt/poly-go/sync"
 )
 
 const (

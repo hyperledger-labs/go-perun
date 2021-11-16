@@ -15,7 +15,7 @@
 package wire
 
 import (
-	"perun.network/go-perun/pkg/sync"
+	"polycry.pt/poly-go/sync"
 )
 
 // Consumer consumes messages fed into it via Put().

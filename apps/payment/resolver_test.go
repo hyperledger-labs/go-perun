@@ -22,8 +22,8 @@ import (
 
 	_ "perun.network/go-perun/backend/sim" // backend init
 	"perun.network/go-perun/channel"
-	pkgtest "perun.network/go-perun/pkg/test"
 	"perun.network/go-perun/wallet/test"
+	pkgtest "polycry.pt/poly-go/test"
 )
 
 func TestResolver(t *testing.T) {

@@ -30,7 +30,7 @@ import (
 	ethwallettest "perun.network/go-perun/backend/ethereum/wallet/test"
 	"perun.network/go-perun/channel"
 	channeltest "perun.network/go-perun/channel/test"
-	pkgtest "perun.network/go-perun/pkg/test"
+	pkgtest "polycry.pt/poly-go/test"
 )
 
 const defaultTxTimeout = 2 * time.Second

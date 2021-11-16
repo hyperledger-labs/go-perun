@@ -21,7 +21,7 @@ import (
 	"github.com/pkg/errors"
 
 	"perun.network/go-perun/log"
-	"perun.network/go-perun/pkg/sync"
+	"polycry.pt/poly-go/sync"
 )
 
 // Relay handles (un)registering Consumers for a message Relay's messages.

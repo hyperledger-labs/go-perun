@@ -19,9 +19,9 @@ import (
 
 	"github.com/pkg/errors"
 
-	"perun.network/go-perun/pkg/sync/atomic"
 	"perun.network/go-perun/wire"
 	wirenet "perun.network/go-perun/wire/net"
+	"polycry.pt/poly-go/sync/atomic"
 )
 
 // Conn is a testing connection.

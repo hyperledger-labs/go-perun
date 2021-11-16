@@ -23,8 +23,8 @@ import (
 	chtest "perun.network/go-perun/channel/test"
 	"perun.network/go-perun/client"
 	ctest "perun.network/go-perun/client/test"
-	pkgtest "perun.network/go-perun/pkg/test"
 	"perun.network/go-perun/wire"
+	pkgtest "polycry.pt/poly-go/test"
 )
 
 func TestDispute(t *testing.T) {

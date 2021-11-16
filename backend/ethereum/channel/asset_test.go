@@ -26,7 +26,7 @@ import (
 	ethchannel "perun.network/go-perun/backend/ethereum/channel"
 	"perun.network/go-perun/backend/ethereum/channel/test"
 	ethwallettest "perun.network/go-perun/backend/ethereum/wallet/test"
-	pkgtest "perun.network/go-perun/pkg/test"
+	pkgtest "polycry.pt/poly-go/test"
 )
 
 func TestValidateAssetHolderETH(t *testing.T) {

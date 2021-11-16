@@ -21,8 +21,8 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	ctxtest "perun.network/go-perun/pkg/context/test"
-	"perun.network/go-perun/pkg/test"
+	ctxtest "polycry.pt/poly-go/context/test"
+	"polycry.pt/poly-go/test"
 )
 
 // timeout controls how long to wait until we decide that something will never

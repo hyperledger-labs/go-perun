@@ -21,7 +21,7 @@ import (
 
 	"github.com/pkg/errors"
 
-	"perun.network/go-perun/pkg/io"
+	"polycry.pt/poly-go/io"
 )
 
 // Address represents a identifier used in a cryptocurrency.

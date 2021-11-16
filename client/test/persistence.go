@@ -24,7 +24,7 @@ import (
 
 	"perun.network/go-perun/channel"
 	"perun.network/go-perun/client"
-	"perun.network/go-perun/pkg/test"
+	"polycry.pt/poly-go/test"
 )
 
 type (

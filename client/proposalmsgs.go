@@ -24,10 +24,10 @@ import (
 
 	"perun.network/go-perun/channel"
 	"perun.network/go-perun/log"
-	perunio "perun.network/go-perun/pkg/io"
-	perunbig "perun.network/go-perun/pkg/math/big"
 	"perun.network/go-perun/wallet"
 	"perun.network/go-perun/wire"
+	perunio "polycry.pt/poly-go/io"
+	perunbig "polycry.pt/poly-go/math/big"
 )
 
 func init() {

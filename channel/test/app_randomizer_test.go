@@ -19,7 +19,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"perun.network/go-perun/pkg/test"
+	"polycry.pt/poly-go/test"
 )
 
 func TestAppRandomizerSet(t *testing.T) {

@@ -22,7 +22,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	ethchannel "perun.network/go-perun/backend/ethereum/channel"
 	"perun.network/go-perun/backend/ethereum/channel/test"
-	pkgtest "perun.network/go-perun/pkg/test"
+	pkgtest "polycry.pt/poly-go/test"
 )
 
 func TestDeployReorgResistance(t *testing.T) {

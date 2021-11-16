@@ -23,8 +23,8 @@ import (
 	"perun.network/go-perun/channel/persistence"
 	"perun.network/go-perun/channel/persistence/test"
 	ctest "perun.network/go-perun/channel/test"
-	pkgtest "perun.network/go-perun/pkg/test"
 	wtest "perun.network/go-perun/wallet/test"
+	pkgtest "polycry.pt/poly-go/test"
 )
 
 // TestStateMachine tests the StateMachine embedding by advancing the

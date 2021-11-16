@@ -25,7 +25,7 @@ import (
 	"github.com/ethereum/go-ethereum/event"
 	cherrors "perun.network/go-perun/backend/ethereum/channel/errors"
 	"perun.network/go-perun/log"
-	pkgsync "perun.network/go-perun/pkg/sync"
+	pkgsync "polycry.pt/poly-go/sync"
 )
 
 type (

@@ -23,10 +23,10 @@ import (
 	"perun.network/go-perun/channel"
 	"perun.network/go-perun/channel/persistence"
 	"perun.network/go-perun/log"
-	"perun.network/go-perun/pkg/sync"
 	"perun.network/go-perun/wallet"
 	"perun.network/go-perun/watcher"
 	"perun.network/go-perun/wire"
+	"polycry.pt/poly-go/sync"
 )
 
 // Client is a state channel client. It is the central controller to interact

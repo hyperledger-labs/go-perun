@@ -25,8 +25,8 @@ import (
 
 	ethwallet "perun.network/go-perun/backend/ethereum/wallet"
 	ethwallettest "perun.network/go-perun/backend/ethereum/wallet/test"
-	pkgtest "perun.network/go-perun/pkg/test"
 	"perun.network/go-perun/wallet/test"
+	pkgtest "polycry.pt/poly-go/test"
 )
 
 var dataToSign = []byte("SomeLongDataThatShouldBeSignedPlease")

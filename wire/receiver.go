@@ -19,7 +19,7 @@ import (
 
 	"github.com/pkg/errors"
 
-	"perun.network/go-perun/pkg/sync"
+	"polycry.pt/poly-go/sync"
 )
 
 const (

@@ -22,9 +22,9 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	iotest "perun.network/go-perun/pkg/io/test"
-	"perun.network/go-perun/pkg/test"
 	wtest "perun.network/go-perun/wallet/test"
+	iotest "polycry.pt/poly-go/io/test"
+	"polycry.pt/poly-go/test"
 )
 
 // NewRandomEnvelope - copy from wire/test for internal tests.
