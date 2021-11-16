@@ -178,10 +178,10 @@ func (r *EndpointRegistry) setupConn(conn Conn) error {
 	return nil
 }
 
-// Get looks up an Endpoint via its perun address. If the Endpoint does not
+// Endpoint looks up an Endpoint via its perun address. If the Endpoint does not
 // exist yet, it is dialed. Does not return until the peer is dialed or the
 // context is closed.
-func (r *EndpointRegistry) Get(ctx context.Context, addr wire.Address) (*Endpoint, error) {
+func (r *EndpointRegistry) Endpoint(ctx context.Context, addr wire.Address) (*Endpoint, error) {
 	log := r.Log().WithField("peer", addr)
 	key := wallet.Key(addr)
 
@@ -200,7 +200,7 @@ func (r *EndpointRegistry) Get(ctx context.Context, addr wire.Address) (*Endpoin
 			return e, nil
 		}
 	}
-	de, created := r.getOrCreateDialingEndpoint(addr)
+	de, created := r.dialingEndpoint(addr)
 	r.mutex.Unlock()
 
 	log.Trace("EndpointRegistry.Get: peer not found, dialing...")
@@ -253,7 +253,8 @@ func (r *EndpointRegistry) authenticatedDial(
 	return r.addEndpoint(addr, conn, true), nil
 }
 
-func (r *EndpointRegistry) getOrCreateDialingEndpoint(a wallet.Address) (_ *dialingEndpoint, created bool) {
+// dialingEndpoint retrieves or creates a dialingEndpoint for the passed address.
+func (r *EndpointRegistry) dialingEndpoint(a wallet.Address) (_ *dialingEndpoint, created bool) {
 	key := wallet.Key(a)
 	entry, ok := r.dialing[key]
 	if !ok {
@@ -289,7 +290,7 @@ func (r *EndpointRegistry) addEndpoint(addr wire.Address, conn Conn, dialer bool
 	r.Log().WithField("peer", addr).Trace("EndpointRegistry.addEndpoint")
 
 	e := newEndpoint(addr, conn)
-	fe, created := r.getOrCreateFullEndpoint(addr, e)
+	fe, created := r.fullEndpoint(addr, e)
 	if !created {
 		if e, closed := fe.replace(e, r.id.Address(), dialer); closed {
 			return e
@@ -308,7 +309,8 @@ func (r *EndpointRegistry) addEndpoint(addr wire.Address, conn Conn, dialer bool
 	return e
 }
 
-func (r *EndpointRegistry) getOrCreateFullEndpoint(addr wire.Address, e *Endpoint) (_ *fullEndpoint, created bool) {
+// fullEndpoint retrieves or creates a fullEndpoint for the passed address.
+func (r *EndpointRegistry) fullEndpoint(addr wire.Address, e *Endpoint) (_ *fullEndpoint, created bool) {
 	key := wallet.Key(addr)
 	r.mutex.Lock()
 	defer r.mutex.Unlock()

@@ -393,7 +393,7 @@ func (c *Client) validTwoPartyProposal(
 }
 
 func (c *Client) validSubChannelProposal(proposal *SubChannelProposal) error {
-	parent, ok := c.channels.Get(proposal.Parent)
+	parent, ok := c.channels.Channel(proposal.Parent)
 	if !ok {
 		return errors.New("parent channel does not exist")
 	}
@@ -572,7 +572,7 @@ func (c *Client) proposalParent(prop ChannelProposal, partIdx channel.Index) (pa
 
 	if parentChannelID != nil {
 		var ok bool
-		if parent, ok = c.channels.Get(*parentChannelID); !ok {
+		if parent, ok = c.channels.Channel(*parentChannelID); !ok {
 			err = errors.New("referenced parent channel not found")
 			return
 		}
@@ -591,7 +591,7 @@ func (c *Client) mpcppParts(
 			p.Participant,
 			acc.(*LedgerChannelProposalAcc).Participant)
 	case *SubChannelProposal:
-		ch, ok := c.channels.Get(p.Parent)
+		ch, ok := c.channels.Channel(p.Parent)
 		if !ok {
 			c.log.Panic("unknown parent channel ID")
 		}
@@ -653,7 +653,7 @@ func (c *Client) fundLedgerChannel(ctx context.Context, ch *Channel, agreement c
 }
 
 func (c *Client) fundSubchannel(ctx context.Context, prop *SubChannelProposal, subChannel *Channel) (err error) {
-	parentChannel, ok := c.channels.Get(prop.Parent)
+	parentChannel, ok := c.channels.Channel(prop.Parent)
 	if !ok {
 		return errors.New("referenced parent channel not found")
 	}

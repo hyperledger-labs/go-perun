@@ -23,7 +23,7 @@ import (
 
 type peerChans map[string][]channel.ID
 
-func (pc peerChans) Get(p wire.Address) []channel.ID {
+func (pc peerChans) ID(p wire.Address) []channel.ID {
 	ids, ok := pc[peerKey(p)]
 	if !ok {
 		return nil

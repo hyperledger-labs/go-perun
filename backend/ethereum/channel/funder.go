@@ -74,7 +74,7 @@ func NewFunder(backend ContractBackend) *Funder {
 		ContractBackend: backend,
 		accounts:        make(map[wallet.Address]accounts.Account),
 		depositors:      make(map[wallet.Address]Depositor),
-		log:             log.Get(),
+		log:             log.Log(),
 	}
 }
 
@@ -317,7 +317,7 @@ func (f *Funder) waitForFundingConfirmation(ctx context.Context, request channel
 			log := f.log.WithField("fundingID", event.FundingID)
 
 			// Calculate the position in the participant array.
-			idx := getPartIdx(event.FundingID, fundingIDs)
+			idx := partIdx(event.FundingID, fundingIDs)
 
 			amount := agreement[idx]
 			if amount.Sign() == 0 {
@@ -350,7 +350,7 @@ func (f *Funder) waitForFundingConfirmation(ctx context.Context, request channel
 	return nil
 }
 
-func getPartIdx(partID [32]byte, fundingIDs [][32]byte) int {
+func partIdx(partID [32]byte, fundingIDs [][32]byte) int {
 	for i, id := range fundingIDs {
 		if id == partID {
 			return i

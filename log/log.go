@@ -39,8 +39,8 @@ func Set(l Logger) {
 	logger = l
 }
 
-// Get returns the currently set framework logger.
-func Get() Logger {
+// Log returns the currently set framework logger.
+func Log() Logger {
 	return logger
 }
 

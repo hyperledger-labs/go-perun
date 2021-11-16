@@ -104,7 +104,7 @@ func (p *Relay) Subscribe(c Consumer, predicate Predicate) error {
 
 	// Put cached messages into consumer in a go routine because receiving on it
 	// probably starts after subscription.
-	cached := p.cache.Get(predicate)
+	cached := p.cache.Messages(predicate)
 	go func() {
 		for _, m := range cached {
 			c.Put(m)

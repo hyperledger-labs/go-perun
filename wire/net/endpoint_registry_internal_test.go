@@ -128,7 +128,7 @@ func TestRegistry_Get(t *testing.T) {
 
 		r.endpoints[wallet.Key(peerAddr)] = newFullEndpoint(existing)
 		ctxtest.AssertTerminates(t, timeout, func() {
-			p, err := r.Get(context.Background(), peerAddr)
+			p, err := r.Endpoint(context.Background(), peerAddr)
 			assert.NoError(t, err)
 			assert.Same(t, p, existing)
 		})
@@ -142,7 +142,7 @@ func TestRegistry_Get(t *testing.T) {
 
 		dialer.Close()
 		ctxtest.AssertTerminates(t, timeout, func() {
-			p, err := r.Get(context.Background(), peerAddr)
+			p, err := r.Endpoint(context.Background(), peerAddr)
 			assert.Error(t, err)
 			assert.Nil(t, p)
 		})
@@ -167,7 +167,7 @@ func TestRegistry_Get(t *testing.T) {
 			_, err = b.Recv()
 			require.NoError(t, err)
 		})
-		p, err := r.Get(ctx, peerAddr)
+		p, err := r.Endpoint(ctx, peerAddr)
 		require.NoError(t, err)
 		require.NotNil(t, p)
 		require.NoError(t, p.Send(ctx, wiretest.NewRandomEnvelope(rng, wire.NewPingMsg())))
@@ -189,7 +189,7 @@ func TestRegistry_authenticatedDial(t *testing.T) {
 
 	t.Run("dial fail", func(t *testing.T) {
 		addr := wallettest.NewRandomAddress(rng)
-		de, created := r.getOrCreateDialingEndpoint(addr)
+		de, created := r.dialingEndpoint(addr)
 		go d.put(nil)
 		ctx, cancel := context.WithTimeout(context.Background(), timeout)
 		defer cancel()
@@ -214,7 +214,7 @@ func TestRegistry_authenticatedDial(t *testing.T) {
 				panic(err)
 			}
 		}()
-		de, created := r.getOrCreateDialingEndpoint(remoteAddr)
+		de, created := r.dialingEndpoint(remoteAddr)
 		ctx, cancel := context.WithTimeout(context.Background(), timeout)
 		defer cancel()
 		e, err := r.authenticatedDial(ctx, remoteAddr, de, created)
@@ -232,7 +232,7 @@ func TestRegistry_authenticatedDial(t *testing.T) {
 			_, err := ExchangeAddrsPassive(ctx, wallettest.NewRandomAccount(rng), b)
 			require.True(rt, IsAuthenticationError(err))
 		})
-		de, created := r.getOrCreateDialingEndpoint(remoteAddr)
+		de, created := r.dialingEndpoint(remoteAddr)
 		e, err := r.authenticatedDial(ctx, remoteAddr, de, created)
 		assert.Error(t, err)
 		assert.Nil(t, e)
@@ -252,7 +252,7 @@ func TestRegistry_authenticatedDial(t *testing.T) {
 		}()
 		ctx, cancel := context.WithTimeout(context.Background(), timeout)
 		defer cancel()
-		de, created := r.getOrCreateDialingEndpoint(remoteAddr)
+		de, created := r.dialingEndpoint(remoteAddr)
 		e, err := r.authenticatedDial(ctx, remoteAddr, de, created)
 		assert.NoError(t, err)
 		assert.NotNil(t, e)

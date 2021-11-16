@@ -173,7 +173,7 @@ func (a *Adjudicator) convertEvent(ctx context.Context, e *adjudicator.Adjudicat
 			return nil, errors.WithMessage(err, "fetching call data")
 		}
 
-		ch, ok := args.get(e.ChannelID)
+		ch, ok := args.signedState(e.ChannelID)
 		if !ok {
 			return nil, errors.Errorf("channel not found in calldata: %v", e.ChannelID)
 		}
@@ -239,7 +239,7 @@ type registerCallData struct {
 	SubChannels []adjudicator.AdjudicatorSignedState
 }
 
-func (args *registerCallData) get(id channel.ID) (*adjudicator.AdjudicatorSignedState, bool) {
+func (args *registerCallData) signedState(id channel.ID) (*adjudicator.AdjudicatorSignedState, bool) {
 	ch := &args.Channel
 	if ch.State.ChannelID == id {
 		return ch, true

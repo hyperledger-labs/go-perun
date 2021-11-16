@@ -189,7 +189,7 @@ func (ch *paymentChannel) settleImpl(secondary bool) {
 
 	if ch.IsSubChannel() {
 		// Track parent channel's balances.
-		parentChannel, ok := ch.r.chans.get(ch.Parent().ID())
+		parentChannel, ok := ch.r.chans.channel(ch.Parent().ID())
 		assert.True(ok, "parent channel not found")
 
 		for i, bal := range ch.bals {

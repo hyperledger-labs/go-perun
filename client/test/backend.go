@@ -53,7 +53,7 @@ type (
 // NewMockBackend creates a new backend object.
 func NewMockBackend(rng *rand.Rand) *MockBackend {
 	return &MockBackend{
-		log:          log.Get(),
+		log:          log.Log(),
 		rng:          newThreadSafePrng(rng),
 		latestEvents: make(map[channel.ID]channel.AdjudicatorEvent),
 		eventSubs:    make(map[channel.ID][]*mockSubscription),

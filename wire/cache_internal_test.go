@@ -51,7 +51,7 @@ func TestCache(t *testing.T) {
 	assert.True(c.Put(ping1), "Put into cache with predicate")
 	assert.Equal(2, c.Size())
 
-	empty := c.Get(func(*Envelope) bool { return false })
+	empty := c.Messages(func(*Envelope) bool { return false })
 	assert.Len(empty, 0)
 
 	cancel()
@@ -59,7 +59,7 @@ func TestCache(t *testing.T) {
 	assert.Equal(2, c.Size())
 	assert.Len(c.preds, 0, "internal: Put should have removed canceled predicate")
 
-	msgs := c.Get(func(e *Envelope) bool {
+	msgs := c.Messages(func(e *Envelope) bool {
 		return e.Msg.Type() == Ping &&
 			e.Msg.(*PingMsg).Created.Equal(ping0.Msg.(*PingMsg).Created)
 	})

@@ -45,12 +45,12 @@ func TestDialer_Register(t *testing.T) {
 	key := wallet.Key(addr)
 	d := NewTCPDialer(0)
 
-	_, ok := d.get(key)
+	_, ok := d.host(key)
 	require.False(t, ok)
 
 	d.Register(addr, "host")
 
-	host, ok := d.get(key)
+	host, ok := d.host(key)
 	assert.True(t, ok)
 	assert.Equal(t, host, "host")
 }

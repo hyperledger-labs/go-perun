@@ -459,7 +459,7 @@ func fundERC20(ctx context.Context, cb ethchannel.ContractBackend, from accounts
 
 // compareOnChainAlloc returns error if `alloc` differs from the on-chain allocation.
 func compareOnChainAlloc(ctx context.Context, params *channel.Params, balances channel.Balances, assets []channel.Asset, cb *ethchannel.ContractBackend) error {
-	onChain, err := getOnChainAllocation(ctx, cb, params, assets)
+	onChain, err := onChainAllocation(ctx, cb, params, assets)
 	if err != nil {
 		return errors.WithMessage(err, "getting on-chain allocation")
 	}
@@ -473,7 +473,7 @@ func compareOnChainAlloc(ctx context.Context, params *channel.Params, balances c
 	return nil
 }
 
-func getOnChainAllocation(ctx context.Context, cb *ethchannel.ContractBackend, params *channel.Params, _assets []channel.Asset) (channel.Balances, error) {
+func onChainAllocation(ctx context.Context, cb *ethchannel.ContractBackend, params *channel.Params, _assets []channel.Asset) (channel.Balances, error) {
 	partIDs := ethchannel.FundingIDs(params.ID(), params.Parts...)
 	alloc := make(channel.Balances, len(_assets))
 

@@ -151,7 +151,7 @@ func (c *Channel) awaitSubChannelWithdrawal(ctx context.Context, id channel.ID) 
 }
 
 func (c *Channel) awaitSubChannelUpdate(ctx context.Context, id channel.ID, interceptors *updateInterceptors) error {
-	ui, ok := interceptors.Get(id)
+	ui, ok := interceptors.UpdateInterceptor(id)
 
 	if !ok {
 		return errors.New("not registered")

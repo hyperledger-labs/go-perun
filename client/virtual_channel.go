@@ -38,7 +38,7 @@ func (c *Channel) IsVirtualChannel() bool {
 
 func (c *Client) fundVirtualChannel(ctx context.Context, virtual *Channel, prop *VirtualChannelProposal) error {
 	parentID := prop.Parents[virtual.Idx()]
-	parent, ok := c.channels.Get(parentID)
+	parent, ok := c.channels.Channel(parentID)
 	if !ok {
 		return errors.New("referenced parent channel not found")
 	}

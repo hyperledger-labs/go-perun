@@ -33,7 +33,7 @@ import (
 //
 // This handler is dispatched from the Client.Handle routine.
 func (c *Client) handleChannelUpdate(uh UpdateHandler, p wire.Address, m ChannelUpdateProposal) {
-	ch, ok := c.channels.Get(m.Base().ID())
+	ch, ok := c.channels.Channel(m.Base().ID())
 	if !ok {
 		if !c.cacheVersion1Update(uh, p, m) {
 			c.logChan(m.Base().ID()).WithField("peer", p).Error("received update for unknown channel")

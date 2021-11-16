@@ -270,7 +270,7 @@ func TestWithdrawNonFinal(t *testing.T) {
 
 func assertHoldingsZero(ctx context.Context, t *testing.T, cb *ethchannel.ContractBackend, params *channel.Params, _assets []channel.Asset) {
 	t.Helper()
-	alloc, err := getOnChainAllocation(ctx, cb, params, _assets)
+	alloc, err := onChainAllocation(ctx, cb, params, _assets)
 	require.NoError(t, err, "Getting on-chain allocs should succeed")
 	for i, assetalloc := range alloc {
 		for j, a := range assetalloc {

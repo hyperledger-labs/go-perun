@@ -76,10 +76,10 @@ func (r *chanRegistry) Has(id channel.ID) bool {
 	return ok
 }
 
-// Get retrieves a channel from the registry.
+// Channel retrieves a channel from the registry.
 // If the channel exists, returns the channel, and true. Otherwise, returns nil,
 // false.
-func (r *chanRegistry) Get(id channel.ID) (*Channel, bool) {
+func (r *chanRegistry) Channel(id channel.ID) (*Channel, bool) {
 	r.mutex.RLock()
 	defer r.mutex.RUnlock()
 

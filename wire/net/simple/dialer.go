@@ -62,7 +62,7 @@ func NewUnixDialer(defaultTimeout time.Duration) *Dialer {
 	return NewNetDialer("unix", defaultTimeout)
 }
 
-func (d *Dialer) get(key wallet.AddrKey) (string, bool) {
+func (d *Dialer) host(key wallet.AddrKey) (string, bool) {
 	d.mutex.RLock()
 	defer d.mutex.RUnlock()
 
@@ -75,7 +75,7 @@ func (d *Dialer) Dial(ctx context.Context, addr wire.Address) (wirenet.Conn, err
 	done := make(chan struct{})
 	defer close(done)
 
-	host, ok := d.get(wallet.Key(addr))
+	host, ok := d.host(wallet.Key(addr))
 	if !ok {
 		return nil, errors.New("peer not found")
 	}

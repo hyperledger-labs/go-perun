@@ -34,7 +34,7 @@ var syncReplyTimeout = 10 * time.Second
 // the channel is reverted to the Acting phase.
 func (c *Client) handleSyncMsg(peer wire.Address, msg *msgChannelSync) {
 	log := c.logChan(msg.ID()).WithField("peer", peer)
-	ch, ok := c.channels.Get(msg.ID())
+	ch, ok := c.channels.Channel(msg.ID())
 	if !ok {
 		log.Error("received sync message for unknown channel")
 		return
