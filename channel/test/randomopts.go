@@ -182,8 +182,10 @@ func WithVersion(version uint64) RandomOpt {
 	return RandomOpt{"version": version}
 }
 
-const nameLedgerChannel = "ledgerChannel"
-const nameVirtualChannel = "virtualChannel"
+const (
+	nameLedgerChannel  = "ledgerChannel"
+	nameVirtualChannel = "virtualChannel"
+)
 
 // WithLedgerChannel sets the `LedgerChannel` attribute.
 func WithLedgerChannel(ledger bool) RandomOpt {
@@ -370,7 +372,7 @@ func (o RandomOpt) LockedIDs(rng *rand.Rand) (ids []channel.ID) {
 // If not present, a random value is generated with `rng` as entropy source.
 func (o RandomOpt) Nonce(rng io.Reader) channel.Nonce {
 	if _, ok := o["nonce"]; !ok {
-		var n = make([]byte, channel.MaxNonceLen)
+		n := make([]byte, channel.MaxNonceLen)
 		if _, err := rng.Read(n); err != nil {
 			panic(fmt.Sprintf("reading rnd: %v", err))
 		}
@@ -383,7 +385,7 @@ func (o RandomOpt) Nonce(rng io.Reader) channel.Nonce {
 // If not present, a random value is generated with `rng` as entropy source.
 func (o RandomOpt) LedgerChannel(rng io.Reader) bool {
 	if _, ok := o[nameLedgerChannel]; !ok {
-		var a = make([]byte, 1)
+		a := make([]byte, 1)
 		_, err := rng.Read(a)
 		if err != nil {
 			panic(err)
@@ -397,7 +399,7 @@ func (o RandomOpt) LedgerChannel(rng io.Reader) bool {
 // If not present, a random value is generated with `rng` as entropy source.
 func (o RandomOpt) VirtualChannel(rng io.Reader) bool {
 	if _, ok := o[nameVirtualChannel]; !ok {
-		var a = make([]byte, 1)
+		a := make([]byte, 1)
 		_, err := rng.Read(a)
 		if err != nil {
 			panic(err)

@@ -42,7 +42,6 @@ var _ wallet.Address = (*Address)(nil)
 // provided by rng.
 func NewRandomAddress(rng io.Reader) *Address {
 	privateKey, err := ecdsa.GenerateKey(curve, rng)
-
 	if err != nil {
 		log.Panicf("Creation of account failed with error", err)
 	}

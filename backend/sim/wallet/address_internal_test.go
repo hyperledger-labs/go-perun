@@ -31,7 +31,8 @@ func TestAddress_ByteArray(t *testing.T) {
 
 		addr := &Address{
 			X: new(big.Int).SetBytes(dest[:32]),
-			Y: new(big.Int).SetBytes(dest[32:])}
+			Y: new(big.Int).SetBytes(dest[32:]),
+		}
 		result := addr.ByteArray()
 		assert.Equal(t, result[:], dest[:])
 	})
@@ -45,7 +46,8 @@ func TestAddress_ByteArray(t *testing.T) {
 
 		addr := &Address{
 			X: new(big.Int).SetBytes(dest[:32]),
-			Y: new(big.Int).SetBytes(dest[32:])}
+			Y: new(big.Int).SetBytes(dest[32:]),
+		}
 		result := addr.ByteArray()
 		assert.Equal(t, result[:], dest[:])
 	})

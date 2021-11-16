@@ -35,7 +35,6 @@ func benchAccountSign(b *testing.B, s *Setup) {
 
 	for n := 0; n < b.N; n++ {
 		_, err := perunAcc.SignData(s.DataToSign)
-
 		if err != nil {
 			b.Fatal(err)
 		}
@@ -73,7 +72,6 @@ func benchBackendDecodeAddress(b *testing.B, s *Setup) {
 	b.Helper()
 	for n := 0; n < b.N; n++ {
 		_, err := s.Backend.DecodeAddress(bytes.NewReader(s.AddressEncoded))
-
 		if err != nil {
 			b.Fatal(err)
 		}

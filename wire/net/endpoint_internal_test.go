@@ -96,8 +96,8 @@ type client struct {
 
 // makeClient creates a simulated test client.
 func makeClient(conn Conn, rng *rand.Rand, dialer Dialer) *client {
-	var receiver = wire.NewReceiver()
-	var registry = NewEndpointRegistry(wallettest.NewRandomAccount(rng), func(wire.Address) wire.Consumer {
+	receiver := wire.NewReceiver()
+	registry := NewEndpointRegistry(wallettest.NewRandomAccount(rng), func(wire.Address) wire.Consumer {
 		return receiver
 	}, dialer)
 

@@ -21,8 +21,10 @@ import (
 	perunio "polycry.pt/poly-go/io"
 )
 
-var _ perunio.Encoder = PersistedState{}
-var _ perunio.Decoder = (*PersistedState)(nil)
+var (
+	_ perunio.Encoder = PersistedState{}
+	_ perunio.Decoder = (*PersistedState)(nil)
+)
 
 // PersistedState is a helper struct to allow for de-/encoding of empty states.
 type PersistedState struct {
@@ -47,6 +49,7 @@ func (s *PersistedState) Decode(r io.Reader) error {
 type optChannelIDEnc struct {
 	ID *channel.ID
 }
+
 type optChannelIDDec struct {
 	ID **channel.ID
 }

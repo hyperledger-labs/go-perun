@@ -31,8 +31,10 @@ import (
 	pkgtest "polycry.pt/poly-go/test"
 )
 
-var dataToSign = []byte("SomeLongDataThatShouldBeSignedPlease")
-var sampleAddr = "1234560000000000000000000000000000000000"
+var (
+	dataToSign = []byte("SomeLongDataThatShouldBeSignedPlease")
+	sampleAddr = "1234560000000000000000000000000000000000"
+)
 
 func TestGenericSignatureTests(t *testing.T) {
 	s, _, _ := newSetup(t, pkgtest.Prng(t))

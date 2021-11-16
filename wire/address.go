@@ -21,8 +21,10 @@ import (
 	"polycry.pt/poly-go/io"
 )
 
-var _ io.Serializer = (*Addresses)(nil)
-var _ io.Serializer = (*AddressesWithLen)(nil)
+var (
+	_ io.Serializer = (*Addresses)(nil)
+	_ io.Serializer = (*AddressesWithLen)(nil)
+)
 
 // Address is a Perun node's network address, which is used as a permanent
 // identity within the Perun peer-to-peer network. For now, it is based on type

@@ -208,7 +208,8 @@ func TestRegistry_authenticatedDial(t *testing.T) {
 			err := b.Send(&wire.Envelope{
 				Sender:    remoteAddr,
 				Recipient: id.Address(),
-				Msg:       wire.NewPingMsg()})
+				Msg:       wire.NewPingMsg(),
+			})
 			if err != nil {
 				panic(err)
 			}
@@ -272,7 +273,8 @@ func TestRegistry_setupConn(t *testing.T) {
 			err := b.Send(&wire.Envelope{
 				Sender:    id.Address(),
 				Recipient: remoteID.Address(),
-				Msg:       wire.NewPingMsg()})
+				Msg:       wire.NewPingMsg(),
+			})
 			if err != nil {
 				panic(err)
 			}

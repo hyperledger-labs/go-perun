@@ -129,7 +129,7 @@ func (f *Funder) Fund(ctx context.Context, request channel.FundingReq) error {
 	f.mtx.RLock()
 	defer f.mtx.RUnlock()
 
-	var channelID = request.Params.ID()
+	channelID := request.Params.ID()
 	f.log.WithField("channel", channelID).Debug("Funding Channel.")
 
 	// We wait for the funding timeout in a go routine and cancel the funding

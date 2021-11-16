@@ -58,12 +58,12 @@ func init() {
 		})
 	wire.RegisterDecoder(wire.VirtualChannelProposal,
 		func(r io.Reader) (wire.Msg, error) {
-			var m = VirtualChannelProposal{}
+			m := VirtualChannelProposal{}
 			return &m, m.Decode(r)
 		})
 	wire.RegisterDecoder(wire.VirtualChannelProposalAcc,
 		func(r io.Reader) (wire.Msg, error) {
-			var m = VirtualChannelProposalAcc{}
+			m := VirtualChannelProposalAcc{}
 			return &m, m.Decode(r)
 		})
 }

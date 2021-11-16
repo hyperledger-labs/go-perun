@@ -64,8 +64,10 @@ type (
 	}
 )
 
-var _ Source = (*machine)(nil)
-var _ io.Serializer = (*Phase)(nil)
+var (
+	_ Source        = (*machine)(nil)
+	_ io.Serializer = (*Phase)(nil)
+)
 
 // Phases known to the channel machine.
 const (

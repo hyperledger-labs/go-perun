@@ -74,7 +74,8 @@ func TestDialer_Dial(t *testing.T) {
 		e := &wire.Envelope{
 			Sender:    daddr,
 			Recipient: laddr,
-			Msg:       wire.NewPingMsg()}
+			Msg:       wire.NewPingMsg(),
+		}
 		ct := test.NewConcurrent(t)
 		go ct.Stage("accept", func(rt test.ConcT) {
 			conn, err := l.Accept()

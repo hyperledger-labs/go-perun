@@ -33,8 +33,10 @@ import (
 	"polycry.pt/poly-go/test"
 )
 
-const challengeDuration = 10
-const testDuration = 10 * time.Second
+const (
+	challengeDuration = 10
+	testDuration      = 10 * time.Second
+)
 
 func TestVirtualChannelsOptimistic(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), testDuration)

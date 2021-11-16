@@ -54,11 +54,9 @@ type StdLogger interface {
 	Printf(format string, args ...interface{})
 	Print(...interface{})
 	Println(...interface{})
-
 	Fatalf(format string, args ...interface{})
 	Fatal(...interface{})
 	Fatalln(...interface{})
-
 	Panicf(format string, args ...interface{})
 	Panic(...interface{})
 	Panicln(...interface{})
@@ -67,19 +65,16 @@ type StdLogger interface {
 // LevelLogger is an extension to the StdLogger with different verbosity levels.
 type LevelLogger interface {
 	StdLogger
-
 	Tracef(format string, args ...interface{})
 	Debugf(format string, args ...interface{})
 	Infof(format string, args ...interface{})
 	Warnf(format string, args ...interface{})
 	Errorf(format string, args ...interface{})
-
 	Trace(...interface{})
 	Debug(...interface{})
 	Info(...interface{})
 	Warn(...interface{})
 	Error(...interface{})
-
 	Traceln(...interface{})
 	Debugln(...interface{})
 	Infoln(...interface{})
@@ -94,7 +89,6 @@ type Fields map[string]interface{}
 // This is the interface that needs to be passed to go-perun.
 type Logger interface {
 	LevelLogger
-
 	WithField(key string, value interface{}) Logger
 	WithFields(Fields) Logger
 	WithError(error) Logger

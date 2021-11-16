@@ -263,7 +263,8 @@ func TestAllocationValidLimits(t *testing.T) {
 		{
 			channel.MaxNumAssets + 2,
 			2 * channel.MaxNumParts,
-			4 * channel.MaxNumSubAllocations},
+			4 * channel.MaxNumSubAllocations,
+		},
 	}
 
 	for ti, x := range inputs {

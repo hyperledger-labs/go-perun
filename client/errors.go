@@ -34,8 +34,7 @@ type (
 
 	// ChainNotReachableError indicates problems in connecting to the blockchain
 	// network when trying to do on-chain transactions or reading from the blockchain.
-	ChainNotReachableError struct {
-	}
+	ChainNotReachableError struct{}
 )
 
 // Error implements the error interface.

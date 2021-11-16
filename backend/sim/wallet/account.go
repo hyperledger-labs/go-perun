@@ -46,7 +46,6 @@ const (
 // rng. It is not saved to any wallet.
 func NewRandomAccount(rng io.Reader) *Account {
 	privateKey, err := ecdsa.GenerateKey(curve, rng)
-
 	if err != nil {
 		log.Panicf("Creation of account failed with error", err)
 	}
@@ -71,7 +70,6 @@ func (a *Account) SignData(data []byte) ([]byte, error) {
 	// escda.Sign needs a digest as input
 	// ref https://golang.org/pkg/crypto/ecdsa/#Sign
 	r, s, err := ecdsa.Sign(rand.Reader, a.privKey, digest(data))
-
 	if err != nil {
 		return nil, errors.Wrap(err, "account could not sign data")
 	}
