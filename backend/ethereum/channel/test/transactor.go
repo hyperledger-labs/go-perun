@@ -27,6 +27,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"perun.network/go-perun/backend/ethereum/channel"
+	"perun.network/go-perun/backend/ethereum/wallet"
 )
 
 // TransactorSetup holds the setup for running generic tests on a transactor implementation.
@@ -38,13 +39,15 @@ type TransactorSetup struct {
 	MissingAcc accounts.Account // wallet should not contain key corresponding to this account.
 }
 
+const signerTestDataMaxLength = 100
+
 // GenericSignerTest tests that a transactor produces the correct signatures
 // for the passed signer.
 func GenericSignerTest(t *testing.T, rng *rand.Rand, setup TransactorSetup) {
 	t.Helper()
 	signer := setup.Signer
 	chainID := setup.ChainID
-	data := make([]byte, rng.Int31n(100)+1)
+	data := make([]byte, rng.Int31n(signerTestDataMaxLength)+1)
 	rng.Read(data)
 
 	t.Run("happy", func(t *testing.T) {
@@ -81,16 +84,22 @@ func GenericSignerTest(t *testing.T, rng *rand.Rand, setup TransactorSetup) {
 
 func sigFromRSV(t *testing.T, r, s, _v *big.Int, chainID int64) []byte {
 	t.Helper()
-	sig := make([]byte, 65)
-	copy(sig[32-len(r.Bytes()):32], r.Bytes())
-	copy(sig[64-len(s.Bytes()):64], s.Bytes())
+	const (
+		elemLen      = 32
+		sigLen       = elemLen*2 + 1
+		sigVAdd      = 35
+		sigVSubtract = 27
+	)
+	sig := make([]byte, wallet.SigLen)
+	copy(sig[elemLen-len(r.Bytes()):elemLen], r.Bytes())
+	copy(sig[elemLen*2-len(s.Bytes()):elemLen*2], s.Bytes())
 	v := byte(_v.Uint64()) // Needed for chain ids > 110.
 
 	if chainID == 0 {
-		sig[64] = v - 27
+		sig[sigLen-1] = v - sigVSubtract
 	} else {
-		sig[64] = v - byte(chainID*2+35) // Underflow is ok here.
+		sig[sigLen-1] = v - byte(chainID*2+sigVAdd) // Underflow is ok here.
 	}
-	require.Contains(t, []byte{0, 1}, sig[64], "Invalid v")
+	require.Contains(t, []byte{0, 1}, sig[sigLen-1], "Invalid v")
 	return sig
 }

@@ -41,7 +41,7 @@ func (r *Carol) HandleAdjudicatorEvent(e channel.AdjudicatorEvent) {
 func NewCarol(t *testing.T, setup RoleSetup) *Carol {
 	t.Helper()
 	return &Carol{
-		Responder:  *NewResponder(t, setup, 3),
+		Responder:  *NewResponder(t, setup, malloryCarolNumStages),
 		registered: make(chan *channel.RegisteredEvent),
 	}
 }

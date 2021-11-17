@@ -74,7 +74,7 @@ func NewFunder(backend ContractBackend) *Funder {
 		ContractBackend: backend,
 		accounts:        make(map[wallet.Address]accounts.Account),
 		depositors:      make(map[wallet.Address]Depositor),
-		log:             log.Log(),
+		log:             log.Default(),
 	}
 }
 
@@ -213,7 +213,7 @@ func (f *Funder) fundAssets(ctx context.Context, channelID channel.ID, req chann
 // funding request. It is idempotent.
 func (f *Funder) sendFundingTx(ctx context.Context, request channel.FundingReq, contract assetHolder, fundingID [32]byte) (txs []*types.Transaction, fatal error) {
 	bal := request.Agreement[contract.assetIndex][request.Idx]
-	// nolint: gocritic
+	//nolint:gocritic
 	if bal == nil || bal.Sign() <= 0 {
 		f.log.WithFields(log.Fields{"channel": request.Params.ID(), "idx": request.Idx}).Debug("Skipped zero funding.")
 	} else if alreadyFunded, err := f.checkFunded(ctx, bal, contract, fundingID); err != nil {

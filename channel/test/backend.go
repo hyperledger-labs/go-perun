@@ -361,8 +361,8 @@ func ensureBalanceVectorLength(bals []channel.Bal, l int) []channel.Bal {
 // GenericStateEqualTest tests the State.Equal function.
 func GenericStateEqualTest(t *testing.T, s1, s2 *channel.State, opts ...GenericTestOption) {
 	t.Helper()
-	assert.NoError(t, s1.Equal(s1)) // nolint: gocritic
-	assert.NoError(t, s2.Equal(s2)) // nolint: gocritic
+	assert.NoError(t, s1.Equal(s1)) //nolint:gocritic
+	assert.NoError(t, s2.Equal(s2)) //nolint:gocritic
 
 	for _, differentState := range buildModifiedStates(s1, s2, opts...) {
 		assert.Error(t, differentState.Equal(s1))

@@ -104,7 +104,7 @@ func TestContains(t *testing.T) {
 	assert.True(t, hdWallet.Contains(ethwallet.AsEthAddr(setup.AddressInWallet)), "should contain valid account")
 }
 
-// nolint:interfacer // rand.Rand is preferred over io.Reader here.
+// rand.Rand is preferred over io.Reader here.
 func newSetup(t require.TestingT, prng *rand.Rand) (*test.Setup, accounts.Wallet, *hd.Wallet) {
 	walletSeed := make([]byte, 20)
 	prng.Read(walletSeed)

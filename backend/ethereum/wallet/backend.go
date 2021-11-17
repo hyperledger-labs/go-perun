@@ -32,9 +32,9 @@ type Backend struct{}
 // ref https://github.com/ethereum/go-ethereum/blob/54b271a86dd748f3b0bcebeaf678dc34e0d6177a/crypto/signature_cgo.go#L66
 const SigLen = 65
 
-// SigVSubtract value that is subtracted from the last byte of a signature if
+// sigVSubtract value that is subtracted from the last byte of a signature if
 // the last bytes exceeds it.
-const SigVSubtract = 27
+const sigVSubtract = 27
 
 // compile-time check that the ethereum backend implements the perun backend.
 var _ wallet.Backend = (*Backend)(nil)
@@ -71,8 +71,8 @@ func VerifySignature(msg []byte, sig wallet.Sig, a wallet.Address) (bool, error)
 	hash := PrefixedHash(msg)
 	sigCopy := make([]byte, SigLen)
 	copy(sigCopy, sig)
-	if len(sigCopy) == SigLen && (sigCopy[SigLen-1] >= SigVSubtract) {
-		sigCopy[SigLen-1] -= SigVSubtract
+	if len(sigCopy) == SigLen && (sigCopy[SigLen-1] >= sigVSubtract) {
+		sigCopy[SigLen-1] -= sigVSubtract
 	}
 	pk, err := crypto.SigToPub(hash, sigCopy)
 	if err != nil {

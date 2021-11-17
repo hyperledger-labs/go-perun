@@ -203,7 +203,7 @@ func (s *ResistantEventSub) processEvent(event *Event, sink chan<- *Event) {
 	hash := event.Log.TxHash
 	log := log.WithField("hash", hash.Hex())
 
-	if event.Log.Removed { // nolint: nestif
+	if event.Log.Removed { //nolint:nestif
 		if _, found := s.events[hash]; !found {
 			log.Error("Race detected between event and header sub")
 		} else {

@@ -33,6 +33,8 @@ type MalloryCarolExecConfig struct {
 	TxAmounts   [2]*big.Int // amounts that are to be sent/requested by each role
 }
 
+const malloryCarolNumStages = 3
+
 // Mallory is a test client role. She proposes the new channel.
 type Mallory struct {
 	Proposer
@@ -41,7 +43,7 @@ type Mallory struct {
 // NewMallory creates a new party that executes the Mallory protocol.
 func NewMallory(t *testing.T, setup RoleSetup) *Mallory {
 	t.Helper()
-	return &Mallory{Proposer: *NewProposer(t, setup, 3)}
+	return &Mallory{Proposer: *NewProposer(t, setup, malloryCarolNumStages)}
 }
 
 // Execute executes the Mallory protocol.

@@ -39,8 +39,8 @@ func Set(l Logger) {
 	logger = l
 }
 
-// Log returns the currently set framework logger.
-func Log() Logger {
+// Default returns the currently set framework logger.
+func Default() Logger {
 	return logger
 }
 

@@ -26,6 +26,7 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/event"
+	"github.com/ethereum/go-ethereum/params"
 	"github.com/stretchr/testify/require"
 
 	"perun.network/go-perun/backend/ethereum/bindings"
@@ -55,6 +56,7 @@ const (
 	eventTimeout  = 100 * time.Millisecond
 	txGasLimit    = 100000
 	blockInterval = 100 * time.Millisecond
+	eventBuffSize = 10
 )
 
 // NewTokenSetup creates a new TokenSetup.
@@ -67,9 +69,10 @@ func NewTokenSetup(ctx context.Context, t *testing.T, rng *rand.Rand, txFinality
 	sb.FundAddress(ctx, acc1.Address)
 	acc2 := &ksWallet.NewRandomAccount(rng).(*keystore.Account).Account
 	sb.FundAddress(ctx, acc2.Address)
+	signer := types.NewEIP155Signer(params.AllEthashProtocolChanges.ChainID)
 	cb := ethchannel.NewContractBackend(
 		sb,
-		keystore.NewTransactor(*ksWallet, types.NewEIP155Signer(big.NewInt(1337))),
+		keystore.NewTransactor(*ksWallet, signer),
 		txFinalityDepth,
 	)
 
@@ -97,11 +100,11 @@ func NewTokenSetup(ctx context.Context, t *testing.T, rng *rand.Rand, txFinality
 // StartSubs starts the Approval and Transfer subscriptions.
 func (s *TokenSetup) StartSubs() {
 	// Approval sub.
-	sinkApproval := make(chan *peruntoken.ERC20Approval, 10)
+	sinkApproval := make(chan *peruntoken.ERC20Approval, eventBuffSize)
 	subApproval, err := s.Token.WatchApproval(&bind.WatchOpts{}, sinkApproval, nil, nil)
 	require.NoError(s.T, err)
 	// Transfer sub.
-	sinkTransfer := make(chan *peruntoken.ERC20Transfer, 10)
+	sinkTransfer := make(chan *peruntoken.ERC20Transfer, eventBuffSize)
 	subTransfer, err := s.Token.WatchTransfer(&bind.WatchOpts{}, sinkTransfer, nil, nil)
 	require.NoError(s.T, err)
 

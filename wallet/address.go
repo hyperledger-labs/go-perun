@@ -129,7 +129,6 @@ func (a AddressDec) Decode(r stdio.Reader) (err error) {
 // Key returns the `AddrKey` corresponding to the passed `Address`.
 // The `Address` can be retrieved with `FromKey`.
 // Panics when the `Address` can't be encoded.
-// nolint:interfacer
 func Key(a Address) AddrKey {
 	var buff strings.Builder
 	if err := a.Encode(&buff); err != nil {

@@ -24,11 +24,25 @@ import (
 	"perun.network/go-perun/wallet"
 )
 
-// MaxBalance is the maximum balance used for testing.
-// It is set to 2 ^ 128 - 1 since when 2 ^ 256 - 1 is used, the faucet
-// key is depleted.
-// The production limit can be found in `go-perun/channel.MaxBalance`.
-var MaxBalance = new(big.Int).Sub(new(big.Int).Lsh(big.NewInt(1), 128), big.NewInt(1))
+var (
+	// MaxBalance is the maximum balance used for testing.
+	// It is set to 2 ^ 128 - 1 since when 2 ^ 256 - 1 is used, the faucet
+	// key is depleted.
+	// The production limit can be found in `go-perun/channel.MaxBalance`.
+	MaxBalance = new(big.Int).Sub(new(big.Int).Lsh(big.NewInt(1), 128), big.NewInt(1)) //nolint:gomnd
+
+	// Highest balance that is returned by NewRandomBal. Set to MaxBalance / 2^30.
+	maxRandomBalance = new(big.Int).Rsh(MaxBalance, 30) //nolint:gomnd
+)
+
+const (
+	// maximal number of assets that NumAssets returns.
+	maxNumAssets = int32(10)
+	// maximal number of participants that NumParts returns.
+	maxNumParts = int32(10)
+	// minimal number of participants that NumParts returns.
+	minNumParts = int32(2)
+)
 
 // RandomOpt defines a map of options than can be passed
 // to `NewRandomX` functions in order to alter their default behaviour.
@@ -327,7 +341,7 @@ func (o RandomOpt) FirstPart() wallet.Address {
 // If not present, a random value is generated with `rng` as entropy source.
 func (o RandomOpt) IsFinal(rng *rand.Rand) bool {
 	if _, ok := o["isFinal"]; !ok {
-		o["isFinal"] = (rng.Int31n(2) == 0)
+		o["isFinal"] = (rng.Int31n(2) == 0) //nolint:gomnd
 	}
 	return o["isFinal"].(bool)
 }
@@ -390,7 +404,7 @@ func (o RandomOpt) LedgerChannel(rng io.Reader) bool {
 		if err != nil {
 			panic(err)
 		}
-		o[nameLedgerChannel] = a[0]%2 == 0
+		o[nameLedgerChannel] = a[0]%2 == 0 //nolint:gomnd
 	}
 	return o[nameLedgerChannel].(bool)
 }
@@ -404,7 +418,7 @@ func (o RandomOpt) VirtualChannel(rng io.Reader) bool {
 		if err != nil {
 			panic(err)
 		}
-		o[nameVirtualChannel] = a[0]%2 == 0
+		o[nameVirtualChannel] = a[0]%2 == 0 //nolint:gomnd
 	}
 	return o[nameVirtualChannel].(bool)
 }
@@ -413,7 +427,7 @@ func (o RandomOpt) VirtualChannel(rng io.Reader) bool {
 // If not present, a random value is generated with `rng` as entropy source.
 func (o RandomOpt) NumAssets(rng *rand.Rand) int {
 	if _, ok := o["numAssets"]; !ok {
-		o["numAssets"] = int(rng.Int31n(10) + 1)
+		o["numAssets"] = int(rng.Int31n(maxNumAssets) + 1)
 	}
 	return o["numAssets"].(int)
 }
@@ -433,7 +447,7 @@ func (o RandomOpt) NumLocked(rng *rand.Rand) int {
 // If not present, a random value between 2 and 11 is generated with `rng` as entropy source.
 func (o RandomOpt) NumParts(rng *rand.Rand) int {
 	if _, ok := o["numParts"]; !ok {
-		o["numParts"] = int(rng.Int31n(10) + 2)
+		o["numParts"] = int(rng.Int31n(maxNumParts) + minNumParts)
 	}
 	return o["numParts"].(int)
 }

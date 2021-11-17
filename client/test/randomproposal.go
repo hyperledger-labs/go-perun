@@ -24,20 +24,24 @@ import (
 	wiretest "perun.network/go-perun/wire/test"
 )
 
+// number of parts that the NewRandomProposal use.
+const randomProposalNumParts = 2
+
 // NewRandomLedgerChannelProposal creates a random channel proposal with the supplied
-// options. Number of participants is fixed to 2.
+// options. Number of participants is fixed to randomProposalNumParts.
 func NewRandomLedgerChannelProposal(rng *rand.Rand, opts ...client.ProposalOpts) *client.LedgerChannelProposal {
 	return NewRandomLedgerChannelProposalBy(rng, wallettest.NewRandomAddress(rng), opts...)
 }
 
 // NewRandomLedgerChannelProposalBy creates a random channel proposal with the
-// supplied options and proposer. Number of participants is fixed to 2.
+// supplied options and proposer. Number of participants is fixed to
+// randomProposalNumParts.
 func NewRandomLedgerChannelProposalBy(rng *rand.Rand, proposer wallet.Address, opts ...client.ProposalOpts) *client.LedgerChannelProposal {
 	prop, err := client.NewLedgerChannelProposal(
 		rng.Uint64(),
 		proposer,
-		channeltest.NewRandomAllocation(rng, channeltest.WithNumParts(2)),
-		wiretest.NewRandomAddresses(rng, 2),
+		channeltest.NewRandomAllocation(rng, channeltest.WithNumParts(randomProposalNumParts)),
+		wiretest.NewRandomAddresses(rng, randomProposalNumParts),
 		opts...)
 	if err != nil {
 		panic("Error generating random channel proposal: " + err.Error())
@@ -51,7 +55,7 @@ func NewRandomSubChannelProposal(rng *rand.Rand, opts ...client.ProposalOpts) (*
 	return client.NewSubChannelProposal(
 		channeltest.NewRandomChannelID(rng),
 		rng.Uint64(),
-		channeltest.NewRandomAllocation(rng, channeltest.WithNumParts(2)),
+		channeltest.NewRandomAllocation(rng, channeltest.WithNumParts(randomProposalNumParts)),
 		opts...)
 }
 

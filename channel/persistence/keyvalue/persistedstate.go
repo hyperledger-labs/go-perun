@@ -46,13 +46,15 @@ func (s *PersistedState) Decode(r io.Reader) error {
 	return (*s.State).Decode(r)
 }
 
-type optChannelIDEnc struct {
-	ID *channel.ID
-}
+type (
+	optChannelIDEnc struct {
+		ID *channel.ID
+	}
 
-type optChannelIDDec struct {
-	ID **channel.ID
-}
+	optChannelIDDec struct {
+		ID **channel.ID
+	}
+)
 
 func (id optChannelIDEnc) Encode(w io.Writer) error {
 	if id.ID != nil {

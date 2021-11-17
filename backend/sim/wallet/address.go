@@ -32,8 +32,12 @@ import (
 // Address represents a simulated address.
 type Address ecdsa.PublicKey
 
-// length of an encoded address in byte.
-const addrLen = 64
+const (
+	// ElemLen is the length of an encoded address element in byte.
+	ElemLen = 32
+	// AddrLen is the length of an encoded address in byte.
+	AddrLen = 2 * ElemLen
+)
 
 // compile time check that we implement the perun Address interface.
 var _ wallet.Address = (*Address)(nil)
@@ -70,25 +74,25 @@ func (a *Address) Bytes() []byte {
 
 // ByteArray converts an address into a 64-byte array. The returned array
 // consists of two 32-byte chunks representing the public key's X and Y values.
-func (a *Address) ByteArray() (data [addrLen]byte) {
+func (a *Address) ByteArray() (data [AddrLen]byte) {
 	xb := a.X.Bytes()
 	yb := a.Y.Bytes()
 
 	// Left-pad with 0 bytes.
-	copy(data[addrLen/2-len(xb):addrLen/2], xb)
-	copy(data[addrLen-len(yb):addrLen], yb)
+	copy(data[ElemLen-len(xb):ElemLen], xb)
+	copy(data[AddrLen-len(yb):AddrLen], yb)
 
 	return data
 }
 
 // String converts this address to a human-readable string.
 func (a *Address) String() string {
-	const bytePerNibble = 4
+	const length = 4
 	// Encode the address directly instead of using Address.Bytes() because
 	// * some addresses may have a very short encoding, e.g., the null address,
 	// * the Address.Bytes() output may contain encoding information, e.g., the
 	//   length.
-	bs := make([]byte, bytePerNibble)
+	bs := make([]byte, length)
 	copy(bs, a.X.Bytes())
 
 	return "0x" + hex.EncodeToString(bs)
@@ -134,12 +138,12 @@ func (a *Address) Encode(w io.Writer) error {
 // Decode decodes an address from an io.Reader. Part of the
 // go-perun/pkg/io.Serializer interface.
 func (a *Address) Decode(r io.Reader) error {
-	data := make([]byte, addrLen)
+	data := make([]byte, AddrLen)
 	if err := perunio.Decode(r, &data); err != nil {
 		return errors.WithMessage(err, "decoding address")
 	}
-	a.X = new(big.Int).SetBytes(data[:addrLen/2])
-	a.Y = new(big.Int).SetBytes(data[addrLen/2:])
+	a.X = new(big.Int).SetBytes(data[:ElemLen])
+	a.Y = new(big.Int).SetBytes(data[ElemLen:])
 	a.Curve = curve
 
 	return nil

@@ -39,7 +39,10 @@ type (
 	Robert struct{ multiClientRole }
 )
 
-const defaultTestTimeout = 10 * time.Second
+const (
+	defaultTestTimeout   = 10 * time.Second
+	petraRobertNumStages = 6
+)
 
 // ReplaceClient replaces the client instance of the Role. Useful for
 // persistence testing.
@@ -59,13 +62,13 @@ func makeMultiClientRole(t *testing.T, setup RoleSetup, stages int) multiClientR
 // NewPetra creates a new Proposer that executes the Petra protocol.
 func NewPetra(t *testing.T, setup RoleSetup) *Petra {
 	t.Helper()
-	return &Petra{makeMultiClientRole(t, setup, 6)}
+	return &Petra{makeMultiClientRole(t, setup, petraRobertNumStages)}
 }
 
 // NewRobert creates a new Responder that executes the Robert protocol.
 func NewRobert(t *testing.T, setup RoleSetup) *Robert {
 	t.Helper()
-	return &Robert{makeMultiClientRole(t, setup, 6)}
+	return &Robert{makeMultiClientRole(t, setup, petraRobertNumStages)}
 }
 
 // Execute executes the Petra protocol.

@@ -228,7 +228,7 @@ func assetToCommonAddresses(addr []channel.Asset) []common.Address {
 	for i, part := range addr {
 		asset, ok := part.(*Asset)
 		if !ok {
-			log.Panic("wrong address type")
+			log.Panicf("wrong address type: %T", part)
 		}
 		cAddrs[i] = common.Address(*asset)
 	}

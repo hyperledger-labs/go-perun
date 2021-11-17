@@ -43,7 +43,7 @@ type Setup struct {
 // TestAccountWithWalletAndBackend tests an account implementation together with
 // a corresponding wallet and backend implementation.
 // This function should be called by every implementation of the wallet interface.
-func TestAccountWithWalletAndBackend(t *testing.T, s *Setup) { // nolint: revive
+func TestAccountWithWalletAndBackend(t *testing.T, s *Setup) { //nolint:revive // `test.Test...` stutters, but we accept that here.
 	acc, err := s.Wallet.Unlock(s.AddressInWallet)
 	assert.NoError(t, err)
 	// Check unlocked account

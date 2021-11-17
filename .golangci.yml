@@ -47,7 +47,7 @@ linters-settings:
     template-path: ".scripts/copyright-notice"
   forbidigo:
     forbid:
-      # Forbidigo functions to start with "get" or "Get".
+      # Forbid functions to start with "get" or "Get".
       - ^[Gg]et.*$
       # Default values:
       - ^print.*$
@@ -59,8 +59,6 @@ issues:
       linters:
         # We often have long test or test helper functions.
         - funlen
-        # Magic numbers and constants are ok in test.
-        - gomnd
         # Can use panicing interface casts.
         - forcetypeassert
         # Can create dynamic errors with errors.New.

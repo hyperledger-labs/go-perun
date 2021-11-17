@@ -99,7 +99,7 @@ func (c *Client) syncChannel(ctx context.Context, ch *persistence.Channel, p wir
 	if err != nil {
 		return errors.WithMessage(err, "receiving sync message")
 	}
-	msg, ok := env.Msg.(*msgChannelSync) // safe by the predicate
+	msg, ok := env.Msg.(*msgChannelSync)
 	if !ok {
 		log.Panic("internal error: wrong message type")
 	}
@@ -148,7 +148,7 @@ func validateMessage(ch *persistence.Channel, msg *msgChannelSync) error {
 
 // nolint:unused
 func revisePhase(ch *persistence.Channel) error {
-	// nolint: gocritic
+	//nolint:gocritic
 	if ch.PhaseV <= channel.Funding && ch.CurrentTXV.Version == 0 {
 		return errors.New("channel in Funding phase - funding during restore not implemented yet")
 		// if version > 0, phase will be set to Acting/Final at the end

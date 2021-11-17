@@ -39,6 +39,9 @@ type Client struct {
 	ctx context.Context
 }
 
+// number of peers in a channel that are used for the tests.
+const channelNumPeers = 2
+
 // NewClient creates a client.
 func NewClient(ctx context.Context, t *testing.T, rng *rand.Rand, pr persistence.PersistRestorer) *Client {
 	t.Helper()
@@ -53,8 +56,8 @@ func NewClient(ctx context.Context, t *testing.T, rng *rand.Rand, pr persistence
 // NewChannel creates a new channel with the supplied peer as the other
 // participant. The client's participant index is randomly chosen.
 func (c *Client) NewChannel(t require.TestingT, p wire.Address, parent *Channel) *Channel {
-	idx := c.rng.Intn(2)
-	peers := make([]wire.Address, 2)
+	idx := c.rng.Intn(channelNumPeers)
+	peers := make([]wire.Address, channelNumPeers)
 	peers[idx] = c.addr
 	peers[idx^1] = p
 
@@ -121,7 +124,7 @@ func GenericPersistRestorerTest(
 				chIndex := iterIdx
 				log.Error(subSeed)
 				seed := pkgtest.Seed("", subSeed, numChans, numPeers, chIndex, ch.ID())
-				rng := rand.New(rand.NewSource(seed)) // nolint: gosec
+				rng := rand.New(rand.NewSource(seed)) //nolint:gosec
 
 				ch.Init(t, rng)
 				ch.SignAll(t)

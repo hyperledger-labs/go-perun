@@ -92,7 +92,7 @@ func (w *Wallet) NewRandomAccount(rnd *rand.Rand) wallet.Account {
 		acc = ethAcc
 	}
 
-	_, err = w.Unlock((*ethwallet.Address)(&address)) // Unlock will never return an error.
+	_, err = w.Unlock((*ethwallet.Address)(&address)) // Unlock should never return an error.
 	if err != nil {
 		log.Panic(err)
 	}

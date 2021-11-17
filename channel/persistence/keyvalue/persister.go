@@ -244,7 +244,6 @@ func decodeIdxFromDBKey(key string) (int, error) {
 	return strconv.Atoi(vals[len(vals)-1])
 }
 
-// nolint:interfacer
 func peerChannelKey(p wire.Address, ch channel.ID) (string, error) {
 	var key bytes.Buffer
 	if err := p.Encode(&key); err != nil {

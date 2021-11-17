@@ -57,6 +57,8 @@ func (w *Watcher) HandleAdjudicatorEvent(e channel.AdjudicatorEvent) {
 
 // ----------------- BEGIN PAUL -----------------
 
+const paulPaulaBalTransferAmount = 10
+
 // Paul is a test client role. He proposes the new channel.
 type Paul struct {
 	Proposer
@@ -97,7 +99,7 @@ func (r *Paul) exec(_cfg ExecConfig, ch *paymentChannel) {
 		bal := func(user channel.Index) int64 {
 			return s.Balances[assetIdx][user].Int64()
 		}
-		half := (bal(0) + bal(1)) / 2
+		half := (bal(0) + bal(1)) / 2 //nolint:gomnd
 		s.Balances[assetIdx][0] = big.NewInt(half)
 		s.Balances[assetIdx][1] = big.NewInt(half)
 	}))
@@ -168,9 +170,9 @@ func (r *Paula) exec(_cfg ExecConfig, ch *paymentChannel, _ *acceptNextPropHandl
 		bal := func(user channel.Index) int64 {
 			return s.Balances[assetIdx][user].Int64()
 		}
-		half := (bal(0) + bal(1)) / 2
-		s.Balances[assetIdx][0] = big.NewInt(half + 10)
-		s.Balances[assetIdx][1] = big.NewInt(half - 10)
+		half := (bal(0) + bal(1)) / 2 //nolint:gomnd
+		s.Balances[assetIdx][0] = big.NewInt(half + paulPaulaBalTransferAmount)
+		s.Balances[assetIdx][1] = big.NewInt(half - paulPaulaBalTransferAmount)
 	}))
 
 	// await our progression confirmation

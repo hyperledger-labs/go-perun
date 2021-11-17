@@ -79,7 +79,7 @@ func New(
 		log.Panic("address must not be nil")
 	}
 	log := log.WithField("id", address)
-	// nolint: gocritic
+	//nolint:gocritic
 	if bus == nil {
 		log.Panic("bus must not be nil")
 	} else if funder == nil {

@@ -131,6 +131,9 @@ type DisputeTim struct {
 	subCh      channel.ID
 }
 
+// time to wait until a parent channel watcher becomes active.
+const channelWatcherWait = 100 * time.Millisecond
+
 // HandleAdjudicatorEvent is the callback for adjudicator event handling.
 func (r *DisputeTim) HandleAdjudicatorEvent(e channel.AdjudicatorEvent) {
 	r.log.Infof("HandleAdjudicatorEvent: channelID = %x, version = %v, type = %T", e.ID(), e.Version(), e)
@@ -169,7 +172,7 @@ func (r *DisputeTim) exec(_cfg ExecConfig, ledgerChannel *paymentChannel, propHa
 		r.log.Infof("Ledger channel watcher returned: %v", err)
 	}()
 	// Start sub-channel watcher.
-	time.Sleep(100 * time.Millisecond) // Wait until parent channel watcher active.
+	time.Sleep(channelWatcherWait) // Wait until parent channel watcher active.
 	go func() {
 		r.log.Info("Starting sub-channel watcher.")
 		err := subChannel.Watch(r)

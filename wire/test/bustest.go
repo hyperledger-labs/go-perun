@@ -26,6 +26,9 @@ import (
 	"polycry.pt/poly-go/test"
 )
 
+// timeout testNoReceive sub-test.
+const testNoReceiveTimeout = 10 * time.Millisecond
+
 // GenericBusTest tests the general functionality of a bus in the happy case: it
 // tests that messages sent over the bus arrive at the correct destination. The
 // parameter numClients controls how many clients communicate over the bus, and
@@ -57,7 +60,7 @@ func GenericBusTest(t *testing.T, busAssigner func(wire.Account) wire.Bus, numCl
 	testNoReceive := func(t *testing.T) {
 		t.Helper()
 		ct := test.NewConcurrent(t)
-		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Millisecond)
+		ctx, cancel := context.WithTimeout(context.Background(), testNoReceiveTimeout)
 		defer cancel()
 		for i := range clients {
 			i := i

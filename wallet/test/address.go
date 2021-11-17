@@ -24,7 +24,7 @@ import (
 
 // TestAddress runs a test suite designed to test the general functionality of
 // an address implementation.
-func TestAddress(t *testing.T, s *Setup) { // nolint: revive
+func TestAddress(t *testing.T, s *Setup) { //nolint:revive // `test.Test...` stutters, but we accept that here.
 	null := s.ZeroAddress
 	addr, err := s.Backend.DecodeAddress(bytes.NewReader(s.AddressEncoded))
 	assert.NoError(t, err, "Byte deserialization of address should work")
@@ -38,11 +38,11 @@ func TestAddress(t *testing.T, s *Setup) { // nolint: revive
 
 	// Test Address.Equals.
 	assert.False(t, addr.Equals(null), "Expected inequality of zero, nonzero address")
-	assert.True(t, null.Equals(null), "Expected equality of zero address to itself") // nolint: gocritic
+	assert.True(t, null.Equals(null), "Expected equality of zero address to itself") //nolint:gocritic
 
 	// Test Address.Cmp.
 	assert.Positive(t, addr.Cmp(null), "Expected addr > zero")
-	assert.Zero(t, null.Cmp(null), "Expected zero = zero") // nolint: gocritic
+	assert.Zero(t, null.Cmp(null), "Expected zero = zero") //nolint:gocritic
 	assert.Negative(t, null.Cmp(addr), "Expected null < addr")
 
 	// Test Address.Bytes.
