@@ -39,7 +39,7 @@ func (c *Channel) equalParticipants(_c *Channel) bool {
 	}
 
 	for i, _a := range a {
-		if !_a.Equals(b[i]) {
+		if !_a.Equal(b[i]) {
 			return false
 		}
 	}

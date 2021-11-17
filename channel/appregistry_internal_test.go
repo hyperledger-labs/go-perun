@@ -86,7 +86,7 @@ func testAppRegistryIdentity(t *testing.T, rng *rand.Rand) {
 	assertIdentity(t, a0)
 
 	a1 := newRandomMockApp(rng)
-	RegisterAppResolver(a1.Def().Equals, &MockAppResolver{})
+	RegisterAppResolver(a1.Def().Equal, &MockAppResolver{})
 	assertIdentity(t, a1)
 
 	a2 := newRandomMockApp(rng)
@@ -98,7 +98,7 @@ func assertIdentity(t *testing.T, expected App) {
 	t.Helper()
 	actual, err := Resolve(expected.Def())
 	assert.NoError(t, err)
-	assert.True(t, actual.Def().Equals(expected.Def()))
+	assert.True(t, actual.Def().Equal(expected.Def()))
 }
 
 func newRandomMockApp(rng *rand.Rand) App {

@@ -94,7 +94,7 @@ func (a *AddressesWithLen) Decode(r stdio.Reader) error {
 // or -1 if it is not part of the slice.
 func IndexOfAddr(addrs []Address, addr Address) int {
 	for i, a := range addrs {
-		if addr.Equals(a) {
+		if addr.Equal(a) {
 			return i
 		}
 	}

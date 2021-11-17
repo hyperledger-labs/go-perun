@@ -330,7 +330,7 @@ func (c *Channel) withdraw(ctx context.Context, secondary bool) error {
 // hasParticipant returns we are participating in the channel.
 func (c *Channel) hasParticipant(id wire.Address) bool {
 	for _, p := range c.Peers() {
-		if id.Equals(p) {
+		if id.Equal(p) {
 			return true
 		}
 	}

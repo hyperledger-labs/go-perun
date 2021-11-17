@@ -98,7 +98,7 @@ func GenericBusTest(t *testing.T, busAssigner func(wire.Account) wire.Bus, numCl
 				// Only subscribe to the current sender.
 				recv := wire.NewReceiver()
 				err := clients[recipient].r.Subscribe(recv, func(e *wire.Envelope) bool {
-					return e.Sender.Equals(clients[sender].id.Address())
+					return e.Sender.Equal(clients[sender].id.Address())
 				})
 				require.NoError(t, err)
 

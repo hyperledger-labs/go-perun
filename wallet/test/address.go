@@ -37,8 +37,8 @@ func TestAddress(t *testing.T, s *Setup) { //nolint:revive // `test.Test...` stu
 	assert.NotEqual(t, addrString, nullString)
 
 	// Test Address.Equals.
-	assert.False(t, addr.Equals(null), "Expected inequality of zero, nonzero address")
-	assert.True(t, null.Equals(null), "Expected equality of zero address to itself") //nolint:gocritic
+	assert.False(t, addr.Equal(null), "Expected inequality of zero, nonzero address")
+	assert.True(t, null.Equal(null), "Expected equality of zero address to itself") //nolint:gocritic
 
 	// Test Address.Cmp.
 	assert.Positive(t, addr.Cmp(null), "Expected addr > zero")
@@ -51,13 +51,13 @@ func TestAddress(t *testing.T, s *Setup) { //nolint:revive // `test.Test...` stu
 	assert.False(t, bytes.Equal(addrBytes, nullBytes), "Expected inequality of byte representations of nonzero and zero address")
 	assert.True(t, bytes.Equal(addrBytes, addr.Bytes()), "Expected that byte representations do not change")
 
-	// a.Equals(Decode(Encode(a)))
-	t.Run("Serialize Equals Test", func(t *testing.T) {
+	// a.Equal(Decode(Encode(a)))
+	t.Run("Serialize Equal Test", func(t *testing.T) {
 		buff := new(bytes.Buffer)
 		require.NoError(t, addr.Encode(buff))
 		addr2, err := s.Backend.DecodeAddress(buff)
 		require.NoError(t, err)
 
-		assert.True(t, addr.Equals(addr2))
+		assert.True(t, addr.Equal(addr2))
 	})
 }

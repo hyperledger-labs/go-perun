@@ -173,7 +173,7 @@ func AppShouldEqual(expected, actual App) error {
 		return errors.New("(non-)nil App definitions")
 	}
 
-	if !expected.Def().Equals(actual.Def()) {
+	if !expected.Def().Equal(actual.Def()) {
 		return errors.New("different App definitions")
 	}
 

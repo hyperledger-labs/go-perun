@@ -369,12 +369,12 @@ func (c *Client) validTwoPartyProposal(
 
 	peerIdx := ourIdx ^ 1
 	// In the 2PCPP, the proposer is expected to have index 0
-	if !peers[peerIdx].Equals(peerAddr) {
+	if !peers[peerIdx].Equal(peerAddr) {
 		return errors.Errorf("remote peer doesn't have peer index %d", peerIdx)
 	}
 
 	// In the 2PCPP, the receiver is expected to have index 1
-	if !peers[ourIdx].Equals(c.address) {
+	if !peers[ourIdx].Equal(c.address) {
 		return errors.Errorf("we don't have peer index %d", ourIdx)
 	}
 

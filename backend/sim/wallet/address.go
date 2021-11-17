@@ -98,10 +98,10 @@ func (a *Address) String() string {
 	return "0x" + hex.EncodeToString(bs)
 }
 
-// Equals checks the equality of two addresses. The implementation must be
+// Equal checks the equality of two addresses. The implementation must be
 // equivalent to checking `Address.Cmp(Address) == 0`.
 // Pancis if the passed address is of the wrong type.
-func (a *Address) Equals(addr wallet.Address) bool {
+func (a *Address) Equal(addr wallet.Address) bool {
 	b, ok := addr.(*Address)
 	if !ok {
 		log.Panic("wrong address type")

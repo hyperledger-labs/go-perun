@@ -220,7 +220,7 @@ func (c *Client) Restore(ctx context.Context) error {
 
 	var eg errgroup.Group
 	for _, p := range ps {
-		if p.Equals(c.address) {
+		if p.Equal(c.address) {
 			continue // skip own peer
 		}
 		p := p

@@ -37,7 +37,7 @@ type listenerMap struct {
 // other functions.
 func (m *listenerMap) findEntry(key wire.Address) (listenerMapEntry, int, bool) {
 	for i, v := range m.entries {
-		if v.key.Equals(key) {
+		if v.key.Equal(key) {
 			return v, i, true
 		}
 	}

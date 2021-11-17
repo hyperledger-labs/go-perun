@@ -41,7 +41,7 @@ func TestClient_validTwoPartyProposal(t *testing.T) {
 	validProp := NewRandomLedgerChannelProposal(rng, channeltest.WithNumParts(2))
 	validProp.Peers[0] = c.address // set us as the proposer
 	peerAddr := validProp.Peers[1] // peer at 1 as receiver
-	require.False(t, peerAddr.Equals(c.address))
+	require.False(t, peerAddr.Equal(c.address))
 	require.Len(t, validProp.Peers, 2)
 
 	validProp3Peers := NewRandomLedgerChannelProposal(rng, channeltest.WithNumParts(3))
