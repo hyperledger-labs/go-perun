@@ -64,7 +64,7 @@ func (s *setup) Dial(ctx context.Context, addr wire.Address) (Conn, error) {
 	// a: Alice's end, b: Bob's end.
 	a, b := newPipeConnPair()
 
-	// nolint: gocritic
+	//nolint:gocritic
 	if addr.Equals(s.alice.endpoint.Address) { // Dialing Bob?
 		s.bob.Registry.addEndpoint(s.bob.endpoint.Address, b, true) // Bob accepts connection.
 		return a, nil
@@ -96,8 +96,8 @@ type client struct {
 
 // makeClient creates a simulated test client.
 func makeClient(conn Conn, rng *rand.Rand, dialer Dialer) *client {
-	var receiver = wire.NewReceiver()
-	var registry = NewEndpointRegistry(wallettest.NewRandomAccount(rng), func(wire.Address) wire.Consumer {
+	receiver := wire.NewReceiver()
+	registry := NewEndpointRegistry(wallettest.NewRandomAccount(rng), func(wire.Address) wire.Consumer {
 		return receiver
 	}, dialer)
 
@@ -166,7 +166,9 @@ func TestEndpoint_Send_Timeout_Mutex_TryLockCtx(t *testing.T) {
 	conn, remote := newPipeConnPair()
 	p := newEndpoint(nil, conn)
 
-	go remote.Recv()
+	go func() {
+		remote.Recv() //nolint:errcheck
+	}()
 	p.sending.Lock()
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()

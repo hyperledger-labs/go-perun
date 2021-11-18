@@ -51,12 +51,12 @@ func TestClient_New_NilArgs(t *testing.T) {
 	b, f, a, w := &DummyBus{t}, backend, backend, wtest.RandomWallet()
 	watcher, err := local.NewWatcher(backend)
 	require.NoError(t, err, "initializing the watcher should not error")
-	assert.Panics(t, func() { client.New(nil, b, f, a, w, watcher) })
-	assert.Panics(t, func() { client.New(id, nil, f, a, w, watcher) })
-	assert.Panics(t, func() { client.New(id, b, nil, a, w, watcher) })
-	assert.Panics(t, func() { client.New(id, b, f, nil, w, watcher) })
-	assert.Panics(t, func() { client.New(id, b, f, a, nil, watcher) })
-	assert.Panics(t, func() { client.New(id, b, f, a, w, nil) })
+	assert.Panics(t, func() { client.New(nil, b, f, a, w, watcher) })  //nolint:errcheck
+	assert.Panics(t, func() { client.New(id, nil, f, a, w, watcher) }) //nolint:errcheck
+	assert.Panics(t, func() { client.New(id, b, nil, a, w, watcher) }) //nolint:errcheck
+	assert.Panics(t, func() { client.New(id, b, f, nil, w, watcher) }) //nolint:errcheck
+	assert.Panics(t, func() { client.New(id, b, f, a, nil, watcher) }) //nolint:errcheck
+	assert.Panics(t, func() { client.New(id, b, f, a, w, nil) })       //nolint:errcheck
 }
 
 func TestClient_Handle_NilArgs(t *testing.T) {

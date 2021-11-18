@@ -63,6 +63,8 @@ type Funder struct {
 	log        log.Logger // structured logger
 }
 
+const funderEventBufSize = 10
+
 // compile time check that we implement the perun funder interface.
 var _ channel.Funder = (*Funder)(nil)
 
@@ -72,7 +74,7 @@ func NewFunder(backend ContractBackend) *Funder {
 		ContractBackend: backend,
 		accounts:        make(map[wallet.Address]accounts.Account),
 		depositors:      make(map[wallet.Address]Depositor),
-		log:             log.Get(),
+		log:             log.Default(),
 	}
 }
 
@@ -127,7 +129,7 @@ func (f *Funder) Fund(ctx context.Context, request channel.FundingReq) error {
 	f.mtx.RLock()
 	defer f.mtx.RUnlock()
 
-	var channelID = request.Params.ID()
+	channelID := request.Params.ID()
 	f.log.WithField("channel", channelID).Debug("Funding Channel.")
 
 	// We wait for the funding timeout in a go routine and cancel the funding
@@ -211,17 +213,20 @@ func (f *Funder) fundAssets(ctx context.Context, channelID channel.ID, req chann
 // funding request. It is idempotent.
 func (f *Funder) sendFundingTx(ctx context.Context, request channel.FundingReq, contract assetHolder, fundingID [32]byte) (txs []*types.Transaction, fatal error) {
 	bal := request.Agreement[contract.assetIndex][request.Idx]
-	// nolint: gocritic
 	if bal == nil || bal.Sign() <= 0 {
 		f.log.WithFields(log.Fields{"channel": request.Params.ID(), "idx": request.Idx}).Debug("Skipped zero funding.")
-	} else if alreadyFunded, err := f.checkFunded(ctx, bal, contract, fundingID); err != nil {
+		return nil, nil
+	}
+
+	alreadyFunded, err := f.checkFunded(ctx, bal, contract, fundingID)
+	if err != nil {
 		return nil, errors.WithMessage(err, "checking funded")
 	} else if alreadyFunded {
 		f.log.WithFields(log.Fields{"channel": request.Params.ID(), "idx": request.Idx}).Debug("Skipped second funding.")
-	} else {
-		return f.deposit(ctx, bal, wallet.Address(*contract.Address), fundingID)
+		return nil, nil
 	}
-	return nil, nil
+
+	return f.deposit(ctx, bal, wallet.Address(*contract.Address), fundingID)
 }
 
 // deposit deposits funds for one funding-ID by calling the associated Depositor.
@@ -241,7 +246,7 @@ func (f *Funder) deposit(ctx context.Context, bal *big.Int, asset Asset, funding
 
 // checkFunded returns whether `fundingID` holds at least `amount` funds.
 func (f *Funder) checkFunded(ctx context.Context, amount *big.Int, asset assetHolder, fundingID [32]byte) (bool, error) {
-	deposited := make(chan *subscription.Event, 10)
+	deposited := make(chan *subscription.Event, funderEventBufSize)
 	subErr := make(chan error, 1)
 	// Subscribe to events.
 	sub, err := f.depositedSub(ctx, asset.contract, fundingID)
@@ -257,7 +262,10 @@ func (f *Funder) checkFunded(ctx context.Context, amount *big.Int, asset assetHo
 
 	left := new(big.Int).Set(amount)
 	for _event := range deposited {
-		event := _event.Data.(*assetholder.AssetHolderDeposited)
+		event, ok := _event.Data.(*assetholder.AssetHolderDeposited)
+		if !ok {
+			log.Panic("wrong event type")
+		}
 		left.Sub(left, event.Amount)
 	}
 	return left.Sign() != 1, errors.WithMessagef(<-subErr, "filtering old Funding events for asset %d", asset.assetIndex)
@@ -305,11 +313,14 @@ func (f *Funder) waitForFundingConfirmation(ctx context.Context, request channel
 	for N > 0 {
 		select {
 		case rawEvent := <-deposited:
-			event := rawEvent.Data.(*assetholder.AssetHolderDeposited)
+			event, ok := rawEvent.Data.(*assetholder.AssetHolderDeposited)
+			if !ok {
+				log.Panic("wrong event type")
+			}
 			log := f.log.WithField("fundingID", event.FundingID)
 
 			// Calculate the position in the participant array.
-			idx := getPartIdx(event.FundingID, fundingIDs)
+			idx := partIdx(event.FundingID, fundingIDs)
 
 			amount := agreement[idx]
 			if amount.Sign() == 0 {
@@ -342,7 +353,7 @@ func (f *Funder) waitForFundingConfirmation(ctx context.Context, request channel
 	return nil
 }
 
-func getPartIdx(partID [32]byte, fundingIDs [][32]byte) int {
+func partIdx(partID [32]byte, fundingIDs [][32]byte) int {
 	for i, id := range fundingIDs {
 		if id == partID {
 			return i
@@ -366,7 +377,10 @@ func FundingIDs(channelID channel.ID, participants ...perunwallet.Address) [][32
 	ids := make([][32]byte, len(participants))
 	args := abi.Arguments{{Type: abiBytes32}, {Type: abiAddress}}
 	for idx, pID := range participants {
-		address := pID.(*wallet.Address)
+		address, ok := pID.(*wallet.Address)
+		if !ok {
+			log.Panic("wrong address type")
+		}
 		bytes, err := args.Pack(channelID, common.Address(*address))
 		if err != nil {
 			log.Panicf("error packing values: %v", err)

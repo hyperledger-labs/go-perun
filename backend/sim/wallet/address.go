@@ -32,6 +32,13 @@ import (
 // Address represents a simulated address.
 type Address ecdsa.PublicKey
 
+const (
+	// ElemLen is the length of an encoded address element in byte.
+	ElemLen = 32
+	// AddrLen is the length of an encoded address in byte.
+	AddrLen = 2 * ElemLen
+)
+
 // compile time check that we implement the perun Address interface.
 var _ wallet.Address = (*Address)(nil)
 
@@ -39,7 +46,6 @@ var _ wallet.Address = (*Address)(nil)
 // provided by rng.
 func NewRandomAddress(rng io.Reader) *Address {
 	privateKey, err := ecdsa.GenerateKey(curve, rng)
-
 	if err != nil {
 		log.Panicf("Creation of account failed with error", err)
 	}
@@ -68,24 +74,25 @@ func (a *Address) Bytes() []byte {
 
 // ByteArray converts an address into a 64-byte array. The returned array
 // consists of two 32-byte chunks representing the public key's X and Y values.
-func (a *Address) ByteArray() (data [64]byte) {
+func (a *Address) ByteArray() (data [AddrLen]byte) {
 	xb := a.X.Bytes()
 	yb := a.Y.Bytes()
 
 	// Left-pad with 0 bytes.
-	copy(data[32-len(xb):32], xb)
-	copy(data[64-len(yb):64], yb)
+	copy(data[ElemLen-len(xb):ElemLen], xb)
+	copy(data[AddrLen-len(yb):AddrLen], yb)
 
 	return data
 }
 
 // String converts this address to a human-readable string.
 func (a *Address) String() string {
+	const length = 4
 	// Encode the address directly instead of using Address.Bytes() because
 	// * some addresses may have a very short encoding, e.g., the null address,
 	// * the Address.Bytes() output may contain encoding information, e.g., the
 	//   length.
-	bs := make([]byte, 4)
+	bs := make([]byte, length)
 	copy(bs, a.X.Bytes())
 
 	return "0x" + hex.EncodeToString(bs)
@@ -93,8 +100,12 @@ func (a *Address) String() string {
 
 // Equals checks the equality of two addresses. The implementation must be
 // equivalent to checking `Address.Cmp(Address) == 0`.
+// Pancis if the passed address is of the wrong type.
 func (a *Address) Equals(addr wallet.Address) bool {
-	b := addr.(*Address)
+	b, ok := addr.(*Address)
+	if !ok {
+		log.Panic("wrong address type")
+	}
 	return (a.X.Cmp(b.X) == 0) && (a.Y.Cmp(b.Y) == 0)
 }
 
@@ -103,8 +114,12 @@ func (a *Address) Equals(addr wallet.Address) bool {
 //    0 if (a.X == addr.X) && (a.Y == addr.Y)
 //   +1 if (a.X >  addr.X) || ((a.X == addr.X) && (a.Y > addr.Y))
 // So the X coordinate is weighted higher.
+// Pancis if the passed address is of the wrong type.
 func (a *Address) Cmp(addr wallet.Address) int {
-	b := addr.(*Address)
+	b, ok := addr.(*Address)
+	if !ok {
+		log.Panic("wrong address type")
+	}
 	const EQ = 0
 	xCmp, yCmp := a.X.Cmp(b.X), a.Y.Cmp(b.Y)
 	if xCmp != EQ {
@@ -123,12 +138,12 @@ func (a *Address) Encode(w io.Writer) error {
 // Decode decodes an address from an io.Reader. Part of the
 // go-perun/pkg/io.Serializer interface.
 func (a *Address) Decode(r io.Reader) error {
-	data := make([]byte, 64)
+	data := make([]byte, AddrLen)
 	if err := perunio.Decode(r, &data); err != nil {
 		return errors.WithMessage(err, "decoding address")
 	}
-	a.X = new(big.Int).SetBytes(data[:32])
-	a.Y = new(big.Int).SetBytes(data[32:])
+	a.X = new(big.Int).SetBytes(data[:ElemLen])
+	a.Y = new(big.Int).SetBytes(data[ElemLen:])
 	a.Curve = curve
 
 	return nil

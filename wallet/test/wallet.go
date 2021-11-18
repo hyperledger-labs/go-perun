@@ -43,7 +43,7 @@ type Setup struct {
 // TestAccountWithWalletAndBackend tests an account implementation together with
 // a corresponding wallet and backend implementation.
 // This function should be called by every implementation of the wallet interface.
-func TestAccountWithWalletAndBackend(t *testing.T, s *Setup) {
+func TestAccountWithWalletAndBackend(t *testing.T, s *Setup) { //nolint:revive // `test.Test...` stutters, but we accept that here.
 	acc, err := s.Wallet.Unlock(s.AddressInWallet)
 	assert.NoError(t, err)
 	// Check unlocked account
@@ -103,6 +103,7 @@ func TestAccountWithWalletAndBackend(t *testing.T, s *Setup) {
 // GenericSignatureSizeTest tests that the size of the signatures produced by
 // Account.Sign(…) does not vary between executions (tested with 2048 samples).
 func GenericSignatureSizeTest(t *testing.T, s *Setup) {
+	t.Helper()
 	acc, err := s.Wallet.Unlock(s.AddressInWallet)
 	require.NoError(t, err)
 	// get a signature

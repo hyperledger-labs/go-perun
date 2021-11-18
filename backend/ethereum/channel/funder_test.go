@@ -49,7 +49,7 @@ const (
 func TestFunder_RegisterAsset_IsAssetRegistered(t *testing.T) {
 	rng := pkgtest.Prng(t)
 
-	funder, assets, depositors, accs := newFunderWithDummy_ETH_ERC20_Assets(rng)
+	funder, assets, depositors, accs := newFunderSetup(rng)
 	n := len(assets)
 
 	for i := 0; i < n; i++ {
@@ -69,7 +69,7 @@ func TestFunder_RegisterAsset_IsAssetRegistered(t *testing.T) {
 	}
 }
 
-func newFunderWithDummy_ETH_ERC20_Assets(rng *rand.Rand) (
+func newFunderSetup(rng *rand.Rand) (
 	*ethchannel.Funder, []ethchannel.Asset, []ethchannel.Depositor, []accounts.Account) {
 	n := 2
 	simBackend := test.NewSimulatedBackend()
@@ -105,6 +105,7 @@ func TestFunder_OneForAllFunding(t *testing.T) {
 }
 
 func testFunderOneForAllFunding(t *testing.T, n int) {
+	t.Helper()
 	t.Parallel()
 	rng := pkgtest.Prng(t, n)
 	ct := pkgtest.NewConcurrent(t)
@@ -156,6 +157,7 @@ func TestFunder_CrossOverFunding(t *testing.T) {
 }
 
 func testFunderCrossOverFunding(t *testing.T, n int) {
+	t.Helper()
 	t.Parallel()
 	ctx, cancel := context.WithTimeout(context.Background(), defaultTxTimeout*time.Duration(n))
 	defer cancel()
@@ -194,6 +196,7 @@ func TestFunder_ZeroBalance(t *testing.T) {
 }
 
 func testFunderZeroBalance(t *testing.T, n int) {
+	t.Helper()
 	t.Parallel()
 	rng := pkgtest.Prng(t, n)
 	ct := pkgtest.NewConcurrent(t)
@@ -242,7 +245,7 @@ func TestFunder_Multiple(t *testing.T) {
 	defer cancel()
 	parts, funders, params, alloc := newNFunders(ctx, t, rng, 1)
 	// Test invalid funding request
-	assert.Panics(t, func() { funders[0].Fund(ctx, channel.FundingReq{}) }, "Funding with invalid funding req should fail")
+	assert.Panics(t, func() { funders[0].Fund(ctx, channel.FundingReq{}) }, "Funding with invalid funding req should fail") //nolint:errcheck
 	// Test funding without assets
 	req := channel.NewFundingReq(&channel.Params{}, &channel.State{}, 0, make(channel.Balances, 0))
 	require.NoError(t, funders[0].Fund(ctx, *req), "Funding with no assets should succeed")
@@ -283,6 +286,7 @@ func TestFunder_PeerTimeout(t *testing.T) {
 }
 
 func testFundingTimeout(t *testing.T, faultyPeer, n int) {
+	t.Helper()
 	t.Parallel()
 	ctx, cancel := context.WithTimeout(context.Background(), defaultTxTimeout*time.Duration(n))
 	defer cancel()
@@ -292,14 +296,14 @@ func testFundingTimeout(t *testing.T, faultyPeer, n int) {
 	_, funders, params, alloc := newNFunders(ctx, t, rng, n)
 
 	for i, funder := range funders {
-		sleepTime := time.Duration(rng.Int63n(10) + 1)
+		sleepTime := time.Millisecond * time.Duration(rng.Int63n(10)+1)
 		i, funder := i, funder
 		go ct.StageN("funding loop", n, func(rt pkgtest.ConcT) {
 			// Faulty peer does not fund the channel.
 			if i == faultyPeer {
 				return
 			}
-			time.Sleep(sleepTime * time.Millisecond)
+			time.Sleep(sleepTime)
 			req := channel.NewFundingReq(params, &channel.State{Allocation: *alloc}, channel.Index(i), alloc.Balances)
 			err := funder.Fund(ctx, *req)
 			require.Error(t, err)
@@ -343,6 +347,7 @@ func TestFunder_Fund_multi(t *testing.T) {
 }
 
 func testFunderFunding(t *testing.T, n int) {
+	t.Helper()
 	t.Parallel()
 	ctx, cancel := context.WithTimeout(context.Background(), defaultTxTimeout*time.Duration(n))
 	defer cancel()
@@ -352,10 +357,10 @@ func testFunderFunding(t *testing.T, n int) {
 	_, funders, params, alloc := newNFunders(ctx, t, rng, n)
 
 	for i, funder := range funders {
-		sleepTime := time.Duration(rng.Int63n(10) + 1)
+		sleepTime := time.Millisecond * time.Duration(rng.Int63n(10)+1)
 		i, funder := i, funder
 		go ct.StageN("funding", n, func(rt pkgtest.ConcT) {
-			time.Sleep(sleepTime * time.Millisecond)
+			time.Sleep(sleepTime)
 			req := channel.NewFundingReq(params, &channel.State{Allocation: *alloc}, channel.Index(i), alloc.Balances)
 			err := funder.Fund(ctx, *req)
 			require.NoError(rt, err, "funding should succeed")
@@ -378,6 +383,7 @@ func newNFunders(
 	params *channel.Params,
 	allocation *channel.Allocation,
 ) {
+	t.Helper()
 	simBackend := test.NewSimulatedBackend()
 	// Start the auto-mining of blocks.
 	simBackend.StartMining(blockInterval)
@@ -415,7 +421,8 @@ func newNFunders(
 		parts[i] = ethwallet.AsWalletAddr(acc.Address)
 
 		simBackend.FundAddress(ctx, ethwallet.AsEthAddr(parts[i]))
-		fundERC20(ctx, cb, *tokenAcc, ethwallet.AsEthAddr(parts[i]), token, asset2)
+		err = fundERC20(ctx, cb, *tokenAcc, ethwallet.AsEthAddr(parts[i]), token, asset2)
+		require.NoError(t, err)
 
 		funders[i] = ethchannel.NewFunder(cb)
 		require.True(t, funders[i].RegisterAsset(asset1, ethchannel.NewETHDepositor(), acc))
@@ -427,7 +434,7 @@ func newNFunders(
 	// By using a large value, we make sure that longer running tests work.
 	params = channeltest.NewRandomParams(rng, channeltest.WithParts(parts...), channeltest.WithChallengeDuration(uint64(n)*40000))
 	allocation = channeltest.NewRandomAllocation(rng, channeltest.WithNumParts(n), channeltest.WithAssets((*ethchannel.Asset)(&assetAddr1), (*ethchannel.Asset)(&assetAddr2)))
-	return
+	return parts, funders, params, allocation
 }
 
 // fundERC20 funds `to` with ERC20 tokens from account `from`.
@@ -452,7 +459,7 @@ func fundERC20(ctx context.Context, cb ethchannel.ContractBackend, from accounts
 
 // compareOnChainAlloc returns error if `alloc` differs from the on-chain allocation.
 func compareOnChainAlloc(ctx context.Context, params *channel.Params, balances channel.Balances, assets []channel.Asset, cb *ethchannel.ContractBackend) error {
-	onChain, err := getOnChainAllocation(ctx, cb, params, assets)
+	onChain, err := onChainAllocation(ctx, cb, params, assets)
 	if err != nil {
 		return errors.WithMessage(err, "getting on-chain allocation")
 	}
@@ -466,7 +473,7 @@ func compareOnChainAlloc(ctx context.Context, params *channel.Params, balances c
 	return nil
 }
 
-func getOnChainAllocation(ctx context.Context, cb *ethchannel.ContractBackend, params *channel.Params, _assets []channel.Asset) (channel.Balances, error) {
+func onChainAllocation(ctx context.Context, cb *ethchannel.ContractBackend, params *channel.Params, _assets []channel.Asset) (channel.Balances, error) {
 	partIDs := ethchannel.FundingIDs(params.ID(), params.Parts...)
 	alloc := make(channel.Balances, len(_assets))
 

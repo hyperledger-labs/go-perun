@@ -29,6 +29,7 @@ func TestGenericTests(t *testing.T) {
 }
 
 func newChannelSetup(t *testing.T) *chtest.Setup {
+	t.Helper()
 	rng := pkgtest.Prng(t)
 
 	params, state := chtest.NewRandomParamsAndState(rng, chtest.WithNumLocked(int(rng.Int31n(4)+1)))

@@ -81,7 +81,7 @@ func (pr *PersistRestorer) ChannelRemoved(ctx context.Context, id channel.ID) er
 	db := pr.channelDB(id).NewBatch()
 	peerdb := sortedkv.NewTable(pr.db, prefix.PeerDB).NewBatch()
 	// All keys a channel has.
-	params, err := pr.getParamsForChan(id)
+	params, err := pr.paramsForChan(id)
 	if err != nil {
 		return err
 	}
@@ -114,9 +114,9 @@ func (pr *PersistRestorer) ChannelRemoved(ctx context.Context, id channel.ID) er
 	return errors.WithMessage(peerdb.Apply(), "applying peer batch")
 }
 
-// getParamsForChan returns the channel parameters for a given channel id from
+// paramsForChan returns the channel parameters for a given channel id from
 // the db.
-func (pr *PersistRestorer) getParamsForChan(id channel.ID) (channel.Params, error) {
+func (pr *PersistRestorer) paramsForChan(id channel.ID) (channel.Params, error) {
 	params := channel.Params{}
 	b, err := pr.channelDB(id).GetBytes("params")
 	if err != nil {
@@ -244,7 +244,6 @@ func decodeIdxFromDBKey(key string) (int, error) {
 	return strconv.Atoi(vals[len(vals)-1])
 }
 
-// nolint:interfacer
 func peerChannelKey(p wire.Address, ch channel.ID) (string, error) {
 	var key bytes.Buffer
 	if err := p.Encode(&key); err != nil {

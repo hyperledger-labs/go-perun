@@ -16,13 +16,13 @@ package test
 
 import (
 	"context"
-	"math/big"
 	"math/rand"
 	"testing"
 	"time"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
+	"github.com/ethereum/go-ethereum/params"
 	"github.com/stretchr/testify/require"
 
 	ethchannel "perun.network/go-perun/backend/ethereum/channel"
@@ -32,7 +32,10 @@ import (
 	wallettest "perun.network/go-perun/wallet/test"
 )
 
-const defaultTxTimeout = 5 * time.Second
+const (
+	defaultTxTimeout    = 5 * time.Second
+	defaultSetupTimeout = 5 * time.Second
+)
 
 type (
 	// SimSetup holds the test setup for a simulated backend.
@@ -57,10 +60,11 @@ type (
 // NewSimSetup return a simulated backend test setup. The rng is used to
 // generate the random account for sending of transaction.
 func NewSimSetup(t *testing.T, rng *rand.Rand, txFinalityDepth uint64, blockInterval time.Duration, opts ...SimBackendOpt) *SimSetup {
+	t.Helper()
 	simBackend := NewSimulatedBackend(opts...)
 	ksWallet := wallettest.RandomWallet().(*keystore.Wallet)
 	txAccount := ksWallet.NewRandomAccount(rng).(*keystore.Account)
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), defaultSetupTimeout)
 	defer cancel()
 	simBackend.FundAddress(ctx, txAccount.Account.Address)
 
@@ -69,9 +73,10 @@ func NewSimSetup(t *testing.T, rng *rand.Rand, txFinalityDepth uint64, blockInte
 		t.Cleanup(simBackend.StopMining)
 	}
 
+	signer := types.NewEIP155Signer(params.AllEthashProtocolChanges.ChainID)
 	contractBackend := ethchannel.NewContractBackend(
 		simBackend,
-		keystore.NewTransactor(*ksWallet, types.NewEIP155Signer(big.NewInt(1337))),
+		keystore.NewTransactor(*ksWallet, signer),
 		txFinalityDepth,
 	)
 
@@ -89,6 +94,7 @@ func NewSimSetup(t *testing.T, rng *rand.Rand, txFinalityDepth uint64, blockInte
 // Accs.
 // `blockInterval` enables the auto-mining feature if set to a value != 0.
 func NewSetup(t *testing.T, rng *rand.Rand, n int, blockInterval time.Duration, txFinalityDepth uint64) *Setup {
+	t.Helper()
 	s := &Setup{
 		SimSetup: *NewSimSetup(t, rng, txFinalityDepth, blockInterval),
 		Accs:     make([]*keystore.Account, n),
@@ -113,9 +119,10 @@ func NewSetup(t *testing.T, rng *rand.Rand, n int, blockInterval time.Duration, 
 		s.Parts[i] = s.Accs[i].Address()
 		s.SimBackend.FundAddress(ctx, s.Accs[i].Account.Address)
 		s.Recvs[i] = ksWallet.NewRandomAccount(rng).Address().(*ethwallet.Address)
+		signer := types.NewEIP155Signer(params.AllEthashProtocolChanges.ChainID)
 		cb := ethchannel.NewContractBackend(
 			s.SimBackend,
-			keystore.NewTransactor(*ksWallet, types.NewEIP155Signer(big.NewInt(1337))),
+			keystore.NewTransactor(*ksWallet, signer),
 			txFinalityDepth,
 		)
 		s.Funders[i] = ethchannel.NewFunder(cb)

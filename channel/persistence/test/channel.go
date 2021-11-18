@@ -78,7 +78,7 @@ func NewRandomChannel(
 
 	require.NoError(t, pr.ChannelCreated(ctx, c.StateMachine, c.peers, c.parent))
 	c.AssertPersisted(ctx, t)
-	return
+	return c
 }
 
 func requireEqualPeers(t require.TestingT, expected, actual []wire.Address) {
@@ -154,7 +154,7 @@ func isNilSigs(s []wallet.Sig) bool {
 func (c *Channel) Init(t require.TestingT, rng *rand.Rand) {
 	initAlloc := *ctest.NewRandomAllocation(rng, ctest.WithNumParts(len(c.accounts)))
 	initData := channel.NewMockOp(channel.OpValid)
-	err := c.StateMachine.Init(nil, initAlloc, initData)
+	err := c.StateMachine.Init(nil, initAlloc, initData) //nolint:staticcheck
 	require.NoError(t, err)
 	c.AssertPersisted(c.ctx, t)
 }
@@ -168,14 +168,14 @@ func (c *Channel) EnableInit(t require.TestingT) {
 
 // SignAll signs the current staged state by all parties.
 func (c *Channel) SignAll(t require.TestingT) {
-	_, err := c.Sig(nil) // trigger local signing
-	require.NoError(t, err)
+	// trigger local signing
+	c.Sig(nil) //nolint:errcheck,staticcheck
 	c.AssertPersisted(c.ctx, t)
 	// remote signers
 	for i := range c.accounts {
 		sig, err := channel.Sign(c.accounts[i], c.StagingState())
 		require.NoError(t, err)
-		c.AddSig(nil, channel.Index(i), sig)
+		c.AddSig(nil, channel.Index(i), sig) //nolint:errcheck,staticcheck
 		c.AssertPersisted(c.ctx, t)
 	}
 }

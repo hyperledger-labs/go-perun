@@ -18,6 +18,7 @@ import (
 	"io"
 
 	"github.com/ethereum/go-ethereum/crypto"
+	"github.com/pkg/errors"
 
 	"perun.network/go-perun/wallet"
 	perunio "polycry.pt/poly-go/io"
@@ -30,6 +31,10 @@ type Backend struct{}
 // ref https://godoc.org/github.com/ethereum/go-ethereum/crypto/secp256k1#Sign
 // ref https://github.com/ethereum/go-ethereum/blob/54b271a86dd748f3b0bcebeaf678dc34e0d6177a/crypto/signature_cgo.go#L66
 const SigLen = 65
+
+// sigVSubtract value that is subtracted from the last byte of a signature if
+// the last bytes exceeds it.
+const sigVSubtract = 27
 
 // compile-time check that the ethereum backend implements the perun backend.
 var _ wallet.Backend = (*Backend)(nil)
@@ -66,12 +71,12 @@ func VerifySignature(msg []byte, sig wallet.Sig, a wallet.Address) (bool, error)
 	hash := PrefixedHash(msg)
 	sigCopy := make([]byte, SigLen)
 	copy(sigCopy, sig)
-	if len(sigCopy) == SigLen && (sigCopy[SigLen-1] >= 27) {
-		sigCopy[SigLen-1] -= 27
+	if len(sigCopy) == SigLen && (sigCopy[SigLen-1] >= sigVSubtract) {
+		sigCopy[SigLen-1] -= sigVSubtract
 	}
 	pk, err := crypto.SigToPub(hash, sigCopy)
 	if err != nil {
-		return false, err
+		return false, errors.WithStack(err)
 	}
 	addr := crypto.PubkeyToAddress(*pk)
 	return a.Equals((*Address)(&addr)), nil

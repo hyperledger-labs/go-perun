@@ -45,6 +45,7 @@ type PersistRestorer struct {
 // NewPersistRestorer creates a new testing PersistRestorer that reports assert
 // errors on the passed *testing.T t.
 func NewPersistRestorer(t *testing.T) *PersistRestorer {
+	t.Helper()
 	return &PersistRestorer{
 		t:     t,
 		chans: make(map[channel.ID]*persistence.Channel),
@@ -88,7 +89,7 @@ func (pr *PersistRestorer) ChannelRemoved(_ context.Context, id channel.ID) erro
 // Staged only persists a channel's staged state, all its currently known
 // signatures and the phase.
 func (pr *PersistRestorer) Staged(_ context.Context, s channel.Source) error {
-	ch, ok := pr.get(s.ID())
+	ch, ok := pr.channel(s.ID())
 	if !ok {
 		return errors.Errorf("channel doesn't exist: %x", s.ID())
 	}
@@ -100,7 +101,7 @@ func (pr *PersistRestorer) Staged(_ context.Context, s channel.Source) error {
 
 // SigAdded only persists the signature for the given index.
 func (pr *PersistRestorer) SigAdded(_ context.Context, s channel.Source, idx channel.Index) error {
-	ch, ok := pr.get(s.ID())
+	ch, ok := pr.channel(s.ID())
 	if !ok {
 		return errors.Errorf("channel doesn't exist: %x", s.ID())
 	} else if ch.StagingTXV.State == nil {
@@ -114,7 +115,7 @@ func (pr *PersistRestorer) SigAdded(_ context.Context, s channel.Source, idx cha
 // Enabled fully persists the current and staging transaction and phase. The
 // staging transaction should be nil.
 func (pr *PersistRestorer) Enabled(_ context.Context, s channel.Source) error {
-	ch, ok := pr.get(s.ID())
+	ch, ok := pr.channel(s.ID())
 	if !ok {
 		return errors.Errorf("channel doesn't exist: %x", s.ID())
 	}
@@ -127,7 +128,7 @@ func (pr *PersistRestorer) Enabled(_ context.Context, s channel.Source) error {
 
 // PhaseChanged only persists the phase.
 func (pr *PersistRestorer) PhaseChanged(_ context.Context, s channel.Source) error {
-	ch, ok := pr.get(s.ID())
+	ch, ok := pr.channel(s.ID())
 	if !ok {
 		return errors.Errorf("channel doesn't exist: %x", s.ID())
 	}
@@ -146,7 +147,7 @@ func (pr *PersistRestorer) Close() error {
 // AssertEqual asserts that a channel of the same ID got persisted and that all
 // its data fields match the data coming from Source s.
 func (pr *PersistRestorer) AssertEqual(s channel.Source) {
-	ch, ok := pr.get(s.ID())
+	ch, ok := pr.channel(s.ID())
 	if !ok {
 		pr.t.Errorf("channel doesn't exist: %x", s.ID())
 		return
@@ -162,15 +163,15 @@ func (pr *PersistRestorer) AssertEqual(s channel.Source) {
 
 // AssertNotExists asserts that a channel with the given ID does not exist.
 func (pr *PersistRestorer) AssertNotExists(id channel.ID) {
-	_, ok := pr.get(id)
+	_, ok := pr.channel(id)
 	assert.Falsef(pr.t, ok, "channel shouldn't exist: %x", id)
 }
 
-// get is a mutexed access to the Channel stored at the given id.
+// channel is a mutexed access to the Channel stored at the given id.
 // Since persister access is guaranteed to be single-threaded per channel, it
 // makes sense for the Persister implementation methods to use this getter to
-// get the pointer to the channel storage.
-func (pr *PersistRestorer) get(id channel.ID) (*persistence.Channel, bool) {
+// channel the pointer to the channel storage.
+func (pr *PersistRestorer) channel(id channel.ID) (*persistence.Channel, bool) {
 	pr.mu.Lock()
 	defer pr.mu.Unlock()
 	ch, ok := pr.chans[id]
@@ -193,7 +194,7 @@ func (pr *PersistRestorer) RestorePeer(peer wire.Address) (persistence.ChannelIt
 	pr.mu.RLock()
 	defer pr.mu.RUnlock()
 
-	ids := pr.pcs.Get(peer)
+	ids := pr.pcs.ID(peer)
 	it := &chanIter{
 		chans: make([]*persistence.Channel, len(ids)),
 		idx:   -1,

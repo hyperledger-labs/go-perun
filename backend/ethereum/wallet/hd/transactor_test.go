@@ -87,8 +87,9 @@ func TestTransactor(t *testing.T) {
 	}
 }
 
-// nolint:interfacer // rand.Rand is preferred over io.Reader here.
+// rand.Rand is preferred over io.Reader here.
 func newTransactorSetup(t *testing.T, prng *rand.Rand, hideSignHash bool, signer types.Signer, chainID int64) test.TransactorSetup {
+	t.Helper()
 	walletSeed := make([]byte, 20)
 	prng.Read(walletSeed)
 	mnemonic, err := hdwallet.NewMnemonicFromEntropy(walletSeed)

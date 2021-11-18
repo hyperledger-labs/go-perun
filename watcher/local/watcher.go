@@ -16,7 +16,7 @@ package local
 
 import (
 	"context"
-	"fmt"
+	stderrors "errors"
 	"sync"
 	"time"
 
@@ -99,6 +99,16 @@ type (
 
 	chInitializer func() (*ch, error)
 )
+
+// ErrSubChannelsPresent signals that an operation failed because subchannels
+// were present.
+var ErrSubChannelsPresent = stderrors.New("sub-channels present")
+
+// IsErrSubChannelsPresent returns whether the cause of the error was an
+// ErrSubChannelsPresent error.
+func IsErrSubChannelsPresent(err error) bool {
+	return errors.Is(err, ErrSubChannelsPresent)
+}
 
 // Go executes a function in a goroutine, updating the channel's wait group
 // before and after execution.
@@ -322,7 +332,6 @@ func (ch *ch) handleEventsFromChain(registerer channel.Registerer, chRegistry *r
 					err := registerDispute(chRegistry, registerer, parent)
 					if err != nil {
 						log.Error("Error registering dispute")
-						// TODO: Should the subscription be closed with an error ?
 						return
 					}
 					log.Debug("Registered successfully")
@@ -438,7 +447,7 @@ func (w *Watcher) StopWatching(_ context.Context, id channel.ID) error {
 		}
 		delete(parent.subChs, id)
 	} else if len(ch.subChs) > 0 {
-		return fmt.Errorf("cannot de-register when sub-channels are present: %d %v", len(ch.subChs), ch.id)
+		return errors.WithMessagef(ErrSubChannelsPresent, "cannot de-register: %d %v", len(ch.subChs), ch.id)
 	}
 
 	closePubSubs(ch)

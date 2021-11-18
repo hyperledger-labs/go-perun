@@ -79,7 +79,7 @@ func (b *Bus) Publish(ctx context.Context, e *wire.Envelope) (err error) {
 	for attempt := 1; attempt <= PublishAttempts; attempt++ {
 		log.Tracef("Bus.Publish attempt: %d/%d", attempt, PublishAttempts)
 		var ep *Endpoint
-		if ep, err = b.reg.Get(ctx, e.Recipient); err == nil {
+		if ep, err = b.reg.Endpoint(ctx, e.Recipient); err == nil {
 			if err = ep.Send(ctx, e); err == nil {
 				return nil
 			}

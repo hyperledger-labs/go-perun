@@ -56,15 +56,16 @@ func TestAdjudicator_PureFunctions(t *testing.T) {
 }
 
 func testCalcID(t *testing.T, rng *rand.Rand, contr *adjudicator.Adjudicator, opts *bind.CallOpts) {
+	t.Helper()
 	for i := 0; i < 100; i++ {
 		params := test.NewRandomParams(rng)
 		ethParams := channel.ToEthParams(params)
-		ethId, err := contr.ChannelID(opts, ethParams)
+		ethID, err := contr.ChannelID(opts, ethParams)
 		require.NoError(t, err)
 		chID := channel.CalcID(params)
 
 		require.NoError(t, err)
-		require.Equal(t, chID, ethId)
+		require.Equal(t, chID, ethID)
 	}
 
 	assert.Panics(t, func() {
@@ -73,6 +74,7 @@ func testCalcID(t *testing.T, rng *rand.Rand, contr *adjudicator.Adjudicator, op
 }
 
 func testHashState(t *testing.T, rng *rand.Rand, contr *adjudicator.Adjudicator, opts *bind.CallOpts) {
+	t.Helper()
 	for i := 0; i < 100; i++ {
 		state := test.NewRandomState(rng)
 		ethState := channel.ToEthState(state)

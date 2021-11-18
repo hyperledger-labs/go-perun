@@ -27,7 +27,7 @@ func init() {
 	test.SetRandomizer(rnd)
 }
 
-// GetKeystore returns the currently set keystore for tests.
-func GetKeystore() *keystore.KeyStore {
+// Keystore returns the currently set keystore for tests.
+func Keystore() *keystore.KeyStore {
 	return ks
 }

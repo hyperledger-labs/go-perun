@@ -92,8 +92,10 @@ func (w *Wallet) NewRandomAccount(rnd *rand.Rand) wallet.Account {
 		acc = ethAcc
 	}
 
-	// nolint:errcheck, gosec	// Unlock will never return an error.
-	w.Unlock((*ethwallet.Address)(&address))
+	_, err = w.Unlock((*ethwallet.Address)(&address)) // Unlock should never return an error.
+	if err != nil {
+		log.Panic(err)
+	}
 	return NewAccountFromEth(w, &acc)
 }
 

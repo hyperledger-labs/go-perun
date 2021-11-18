@@ -35,16 +35,16 @@ func TestEndpointChans(t *testing.T) {
 	pc := make(peerChans)
 	pc.Add(id[0], ps...)
 	pc.Add(id[1], ps[0], ps[2]) // omit 2nd peer
-	assert.ElementsMatch(id, pc.Get(ps[0]))
-	assert.ElementsMatch(id, pc.Get(ps[2]))
-	assert.ElementsMatch(id[:1], pc.Get(ps[1]))
+	assert.ElementsMatch(id, pc.ID(ps[0]))
+	assert.ElementsMatch(id, pc.ID(ps[2]))
+	assert.ElementsMatch(id[:1], pc.ID(ps[1]))
 	assert.ElementsMatch(ps, pc.Peers())
 
 	pc.Delete(id[0]) // p[1] should be deleted as id[0] was their only channel
-	assert.ElementsMatch(id[1:], pc.Get(ps[0]))
-	assert.ElementsMatch(id[1:], pc.Get(ps[2]))
+	assert.ElementsMatch(id[1:], pc.ID(ps[0]))
+	assert.ElementsMatch(id[1:], pc.ID(ps[2]))
 	assert.ElementsMatch([]wire.Address{ps[0], ps[2]}, pc.Peers())
-	assert.Nil(pc.Get(ps[1]))
+	assert.Nil(pc.ID(ps[1]))
 
 	pc.Delete(id[1]) // now all peers should have been deleted
 	assert.Empty(pc.Peers())

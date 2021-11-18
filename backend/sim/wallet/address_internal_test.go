@@ -23,15 +23,16 @@ import (
 )
 
 func TestAddress_ByteArray(t *testing.T) {
-	dest := [64]byte{}
+	dest := [AddrLen]byte{}
 	t.Run("full length", func(t *testing.T) {
 		for i := range dest {
 			dest[i] = byte(i)
 		}
 
 		addr := &Address{
-			X: new(big.Int).SetBytes(dest[:32]),
-			Y: new(big.Int).SetBytes(dest[32:])}
+			X: new(big.Int).SetBytes(dest[:ElemLen]),
+			Y: new(big.Int).SetBytes(dest[ElemLen:]),
+		}
 		result := addr.ByteArray()
 		assert.Equal(t, result[:], dest[:])
 	})
@@ -40,12 +41,13 @@ func TestAddress_ByteArray(t *testing.T) {
 		const zeros = 5
 		for i := 0; i < zeros; i++ {
 			dest[i] = 0
-			dest[i+32] = 0
+			dest[i+ElemLen] = 0
 		}
 
 		addr := &Address{
-			X: new(big.Int).SetBytes(dest[:32]),
-			Y: new(big.Int).SetBytes(dest[32:])}
+			X: new(big.Int).SetBytes(dest[:ElemLen]),
+			Y: new(big.Int).SetBytes(dest[ElemLen:]),
+		}
 		result := addr.ByteArray()
 		assert.Equal(t, result[:], dest[:])
 	})

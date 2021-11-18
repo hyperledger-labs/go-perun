@@ -32,8 +32,8 @@ func TestSubChannelDispute(t *testing.T) {
 
 	setups := NewSetups(rng, []string{"DisputeSusie", "DisputeTim"})
 	roles := [2]ctest.Executer{
-		ctest.NewDisputeSusie(setups[0], t),
-		ctest.NewDisputeTim(setups[1], t),
+		ctest.NewDisputeSusie(t, setups[0]),
+		ctest.NewDisputeTim(t, setups[1]),
 	}
 
 	baseCfg := ctest.MakeBaseExecConfig(

@@ -48,7 +48,7 @@ func (p *fullEndpoint) Endpoint() *Endpoint {
 
 func newFullEndpoint(e *Endpoint) *fullEndpoint {
 	return &fullEndpoint{
-		endpoint: unsafe.Pointer(e), // nolint: gosec
+		endpoint: unsafe.Pointer(e),
 	}
 }
 
@@ -164,7 +164,6 @@ func (r *EndpointRegistry) setupConn(conn Conn) error {
 	var peerAddr wire.Address
 	var err error
 	if peerAddr, err = ExchangeAddrsPassive(ctx, r.id, conn); err != nil {
-		// nolint:errcheck,gosec
 		conn.Close()
 		r.Log().WithField("peer", peerAddr).Error("could not authenticate peer:", err)
 		return err
@@ -179,10 +178,10 @@ func (r *EndpointRegistry) setupConn(conn Conn) error {
 	return nil
 }
 
-// Get looks up an Endpoint via its perun address. If the Endpoint does not
+// Endpoint looks up an Endpoint via its perun address. If the Endpoint does not
 // exist yet, it is dialed. Does not return until the peer is dialed or the
 // context is closed.
-func (r *EndpointRegistry) Get(ctx context.Context, addr wire.Address) (*Endpoint, error) {
+func (r *EndpointRegistry) Endpoint(ctx context.Context, addr wire.Address) (*Endpoint, error) {
 	log := r.Log().WithField("peer", addr)
 	key := wallet.Key(addr)
 
@@ -201,7 +200,7 @@ func (r *EndpointRegistry) Get(ctx context.Context, addr wire.Address) (*Endpoin
 			return e, nil
 		}
 	}
-	de, created := r.getOrCreateDialingEndpoint(addr)
+	de, created := r.dialingEndpoint(addr)
 	r.mutex.Unlock()
 
 	log.Trace("EndpointRegistry.Get: peer not found, dialing...")
@@ -247,7 +246,6 @@ func (r *EndpointRegistry) authenticatedDial(
 	}
 
 	if err := ExchangeAddrsActive(ctx, r.id, addr, conn); err != nil {
-		// nolint:errcheck,gosec
 		conn.Close()
 		return nil, errors.WithMessage(err, "ExchangeAddrs failed")
 	}
@@ -255,7 +253,8 @@ func (r *EndpointRegistry) authenticatedDial(
 	return r.addEndpoint(addr, conn, true), nil
 }
 
-func (r *EndpointRegistry) getOrCreateDialingEndpoint(a wallet.Address) (_ *dialingEndpoint, created bool) {
+// dialingEndpoint retrieves or creates a dialingEndpoint for the passed address.
+func (r *EndpointRegistry) dialingEndpoint(a wallet.Address) (_ *dialingEndpoint, created bool) {
 	key := wallet.Key(a)
 	entry, ok := r.dialing[key]
 	if !ok {
@@ -291,7 +290,7 @@ func (r *EndpointRegistry) addEndpoint(addr wire.Address, conn Conn, dialer bool
 	r.Log().WithField("peer", addr).Trace("EndpointRegistry.addEndpoint")
 
 	e := newEndpoint(addr, conn)
-	fe, created := r.getOrCreateFullEndpoint(addr, e)
+	fe, created := r.fullEndpoint(addr, e)
 	if !created {
 		if e, closed := fe.replace(e, r.id.Address(), dialer); closed {
 			return e
@@ -310,7 +309,8 @@ func (r *EndpointRegistry) addEndpoint(addr wire.Address, conn Conn, dialer bool
 	return e
 }
 
-func (r *EndpointRegistry) getOrCreateFullEndpoint(addr wire.Address, e *Endpoint) (_ *fullEndpoint, created bool) {
+// fullEndpoint retrieves or creates a fullEndpoint for the passed address.
+func (r *EndpointRegistry) fullEndpoint(addr wire.Address, e *Endpoint) (_ *fullEndpoint, created bool) {
 	key := wallet.Key(addr)
 	r.mutex.Lock()
 	defer r.mutex.Unlock()
@@ -327,7 +327,7 @@ func (r *EndpointRegistry) getOrCreateFullEndpoint(addr wire.Address, e *Endpoin
 // tie resolving, and whether the supplied endpoint was closed in the process.
 func (p *fullEndpoint) replace(newValue *Endpoint, self wire.Address, dialer bool) (updated *Endpoint, closed bool) {
 	// If there was no previous endpoint, just set the new one.
-	wasNil := atomic.CompareAndSwapPointer(&p.endpoint, nil, unsafe.Pointer(newValue)) // nolint: gosec
+	wasNil := atomic.CompareAndSwapPointer(&p.endpoint, nil, unsafe.Pointer(newValue))
 	if wasNil {
 		return newValue, false
 	}
@@ -345,7 +345,7 @@ func (p *fullEndpoint) replace(newValue *Endpoint, self wire.Address, dialer boo
 	}
 
 	// Otherwise, install the new endpoint and close the old endpoint.
-	old := atomic.SwapPointer(&p.endpoint, unsafe.Pointer(newValue)) // nolint: gosec
+	old := atomic.SwapPointer(&p.endpoint, unsafe.Pointer(newValue))
 	if old != nil {
 		// It may be possible that in the meanwhile, the peer might have been
 		// replaced by another goroutine.
@@ -359,7 +359,7 @@ func (p *fullEndpoint) replace(newValue *Endpoint, self wire.Address, dialer boo
 
 // delete deletes an endpoint if it was not replaced previously.
 func (p *fullEndpoint) delete(expectedOldValue *Endpoint) {
-	atomic.CompareAndSwapPointer(&p.endpoint, unsafe.Pointer(expectedOldValue), nil) // nolint: gosec
+	atomic.CompareAndSwapPointer(&p.endpoint, unsafe.Pointer(expectedOldValue), nil)
 }
 
 func (r *EndpointRegistry) find(addr wire.Address) *Endpoint {

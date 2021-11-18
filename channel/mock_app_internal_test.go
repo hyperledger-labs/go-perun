@@ -62,6 +62,7 @@ func TestMockApp(t *testing.T) {
 }
 
 func MockStateAppTest(t *testing.T, app MockApp) {
+	t.Helper()
 	stateValid := createState(OpValid)
 	stateErr := createState(OpErr)
 	stateTransErr := createState(OpTransitionErr)
@@ -87,6 +88,7 @@ func MockStateAppTest(t *testing.T, app MockApp) {
 }
 
 func MockActionAppTest(t *testing.T, app MockApp) {
+	t.Helper()
 	actValid := NewMockOp(OpValid)
 	actErr := NewMockOp(OpErr)
 	actTransErr := NewMockOp(OpTransitionErr)
@@ -109,7 +111,7 @@ func MockActionAppTest(t *testing.T, app MockApp) {
 		_, _, err = app.InitState(nil, []Action{actActErr})
 		assert.True(t, IsActionError(err))
 
-		assert.Panics(t, func() { app.InitState(nil, []Action{actPanic}) })
+		assert.Panics(t, func() { app.InitState(nil, []Action{actPanic}) }) //nolint:errcheck
 	})
 
 	t.Run("ValidAction", func(t *testing.T) {
@@ -117,7 +119,7 @@ func MockActionAppTest(t *testing.T, app MockApp) {
 		assert.Error(t, app.ValidAction(nil, nil, 0, actErr))
 		assert.True(t, IsStateTransitionError(app.ValidAction(nil, nil, 0, actTransErr)))
 		assert.True(t, IsActionError(app.ValidAction(nil, nil, 0, actActErr)))
-		assert.Panics(t, func() { app.ValidAction(nil, nil, 0, actPanic) })
+		assert.Panics(t, func() { app.ValidAction(nil, nil, 0, actPanic) }) //nolint:errcheck
 	})
 
 	t.Run("ApplyActions", func(t *testing.T) {
@@ -135,7 +137,7 @@ func MockActionAppTest(t *testing.T, app MockApp) {
 		_, err = app.ApplyActions(nil, state, []Action{actActErr})
 		assert.True(t, IsActionError(err))
 
-		assert.Panics(t, func() { app.ApplyActions(nil, state, []Action{actPanic}) })
+		assert.Panics(t, func() { app.ApplyActions(nil, state, []Action{actPanic}) }) //nolint:errcheck
 	})
 }
 

@@ -60,7 +60,7 @@ func TestReconstructChannel(t *testing.T) {
 	restChild.Parent = &parentID
 	db[restChild.ID()] = restChild
 
-	c := &Client{log: log.Get()}
+	c := &Client{log: log.Default()}
 
 	t.Run("parent first", func(t *testing.T) {
 		chans := map[channel.ID]*Channel{}
@@ -87,7 +87,7 @@ func TestRestoreChannelCollection(t *testing.T) {
 
 	// Remember channels that have been published.
 	witnessedChans := make(map[channel.ID]struct{})
-	c := &Client{log: log.Get(), channels: makeChanRegistry()}
+	c := &Client{log: log.Default(), channels: makeChanRegistry()}
 	c.OnNewChannel(func(ch *Channel) {
 		_, ok := witnessedChans[ch.ID()]
 		require.False(t, ok)

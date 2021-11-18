@@ -47,6 +47,7 @@ func TestAdjudicator_MultipleWithdraws_FinalState(t *testing.T) {
 }
 
 func withdrawMultipleConcurrentFinal(t *testing.T, numParts int, parallel bool) {
+	t.Helper()
 	rng := pkgtest.Prng(t)
 	// create test setup
 	s := test.NewSetup(t, rng, numParts, blockInterval, TxFinalityDepth)
@@ -58,10 +59,10 @@ func withdrawMultipleConcurrentFinal(t *testing.T, numParts int, parallel bool) 
 	// fund the contract
 	ct := pkgtest.NewConcurrent(t)
 	for i, funder := range s.Funders {
-		sleepTime := time.Duration(rng.Int63n(10) + 1)
+		sleepTime := time.Millisecond * time.Duration(rng.Int63n(10)+1)
 		i, funder := i, funder
 		go ct.StageN("funding loop", numParts, func(rt pkgtest.ConcT) {
-			time.Sleep(sleepTime * time.Millisecond)
+			time.Sleep(sleepTime)
 			req := channel.NewFundingReq(params, state, channel.Index(i), state.Balances)
 			require.NoError(rt, funder.Fund(fundingCtx, *req), "funding should succeed")
 		})
@@ -119,6 +120,7 @@ func TestWithdrawZeroBalance(t *testing.T) {
 
 // shouldFunders decides who should fund. 1 indicates funding, 0 indicates skipping.
 func testWithdrawZeroBalance(t *testing.T, n int) {
+	t.Helper()
 	rng := pkgtest.Prng(t)
 	s := test.NewSetup(t, rng, n, blockInterval, TxFinalityDepth)
 	// create valid state and params
@@ -192,6 +194,7 @@ func TestWithdraw(t *testing.T) {
 	}
 
 	testWithdraw := func(t *testing.T, shouldWork bool) {
+		t.Helper()
 		ctx, cancel := context.WithTimeout(context.Background(), defaultTxTimeout)
 		defer cancel()
 		req.Tx = testSignState(t, s.Accs, state)
@@ -266,7 +269,8 @@ func TestWithdrawNonFinal(t *testing.T) {
 }
 
 func assertHoldingsZero(ctx context.Context, t *testing.T, cb *ethchannel.ContractBackend, params *channel.Params, _assets []channel.Asset) {
-	alloc, err := getOnChainAllocation(ctx, cb, params, _assets)
+	t.Helper()
+	alloc, err := onChainAllocation(ctx, cb, params, _assets)
 	require.NoError(t, err, "Getting on-chain allocs should succeed")
 	for i, assetalloc := range alloc {
 		for j, a := range assetalloc {

@@ -50,10 +50,13 @@ type (
 	}
 )
 
+// maximal amount of milliseconds that the Fund method waits before returning.
+const fundMaxSleepMs = 100
+
 // NewMockBackend creates a new backend object.
 func NewMockBackend(rng *rand.Rand) *MockBackend {
 	return &MockBackend{
-		log:          log.Get(),
+		log:          log.Default(),
 		rng:          newThreadSafePrng(rng),
 		latestEvents: make(map[channel.ID]channel.AdjudicatorEvent),
 		eventSubs:    make(map[channel.ID][]*mockSubscription),
@@ -77,7 +80,7 @@ func (g *threadSafeRng) Intn(n int) int {
 
 // Fund funds the channel.
 func (b *MockBackend) Fund(_ context.Context, req channel.FundingReq) error {
-	time.Sleep(time.Duration(b.rng.Intn(100)) * time.Millisecond)
+	time.Sleep(time.Duration(b.rng.Intn(fundMaxSleepMs+1)) * time.Millisecond)
 	b.log.Infof("Funding: %+v", req)
 	return nil
 }
@@ -360,8 +363,8 @@ func (b *MockBackend) removeSubscription(ch channel.ID, sub *mockSubscription) {
 
 	// Find subscription index.
 	i, ok := func() (int, bool) {
-		for i, sub_ := range b.eventSubs[ch] {
-			if sub == sub_ {
+		for i, s := range b.eventSubs[ch] {
+			if sub == s {
 				return i, true
 			}
 		}

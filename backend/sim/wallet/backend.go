@@ -42,7 +42,7 @@ func (b *Backend) DecodeAddress(r io.Reader) (wallet.Address, error) {
 
 // DecodeSig reads a []byte with length of a signature.
 func (b *Backend) DecodeSig(r io.Reader) (wallet.Sig, error) {
-	buf := make(wallet.Sig, curve.Params().BitSize/4)
+	buf := make(wallet.Sig, (curve.Params().BitSize/bitsPerByte)*pointsPerSig)
 	return buf, perunio.Decode(r, &buf)
 }
 

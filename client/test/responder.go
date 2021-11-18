@@ -27,8 +27,9 @@ type Responder struct {
 }
 
 // NewResponder creates a new party that executes the Responder protocol.
-func NewResponder(setup RoleSetup, t *testing.T, numStages int) *Responder {
-	return &Responder{role: makeRole(setup, t, numStages)}
+func NewResponder(t *testing.T, setup RoleSetup, numStages int) *Responder {
+	t.Helper()
+	return &Responder{role: makeRole(t, setup, numStages)}
 }
 
 // Execute executes the Responder protocol.

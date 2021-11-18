@@ -25,10 +25,15 @@ import (
 )
 
 const (
+	// DefaultTimeout is the default timeout for client tests.
 	DefaultTimeout = 5 * time.Second
-	BlockInterval  = 100 * time.Millisecond
+	// BlockInterval is the default block interval for the simulated chain.
+	BlockInterval = 100 * time.Millisecond
+	// challenge duration in blocks that is used by MakeRoleSetups.
+	challengeDurationBlocks = 60
 )
 
+// MakeRoleSetups creates a two party client test setup with the provided names.
 func MakeRoleSetups(s *ethctest.Setup, names [2]string) (setup [2]clienttest.RoleSetup) {
 	bus := wire.NewLocalBus()
 	for i := 0; i < len(setup); i++ {
@@ -37,15 +42,16 @@ func MakeRoleSetups(s *ethctest.Setup, names [2]string) (setup [2]clienttest.Rol
 			panic("Error initializing watcher: " + err.Error())
 		}
 		setup[i] = clienttest.RoleSetup{
-			Name:              names[i],
-			Identity:          s.Accs[i],
-			Bus:               bus,
-			Funder:            s.Funders[i],
-			Adjudicator:       s.Adjs[i],
-			Watcher:           watcher,
-			Wallet:            ethwtest.NewTmpWallet(),
-			Timeout:           DefaultTimeout,
-			ChallengeDuration: 60 * uint64(time.Second/BlockInterval), // Scaled due to simbackend automining progressing faster than real time.
+			Name:        names[i],
+			Identity:    s.Accs[i],
+			Bus:         bus,
+			Funder:      s.Funders[i],
+			Adjudicator: s.Adjs[i],
+			Watcher:     watcher,
+			Wallet:      ethwtest.NewTmpWallet(),
+			Timeout:     DefaultTimeout,
+			// Scaled due to simbackend automining progressing faster than real time.
+			ChallengeDuration: challengeDurationBlocks * uint64(time.Second/BlockInterval),
 		}
 	}
 	return

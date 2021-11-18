@@ -26,9 +26,14 @@ import (
 	cherrors "perun.network/go-perun/backend/ethereum/channel/errors"
 	"perun.network/go-perun/backend/ethereum/subscription"
 	"perun.network/go-perun/channel"
+	"perun.network/go-perun/log"
 )
 
-const secondaryWaitBlocks = 2
+const (
+	secondaryWaitBlocks = 2
+	adjEventBuffSize    = 10
+	adjHeaderBuffSize   = 10
+)
 
 // ensureConcluded ensures that conclude or concludeFinal (for non-final and
 // final states, resp.) is called on the adjudicator.
@@ -50,7 +55,7 @@ func (a *Adjudicator) ensureConcluded(ctx context.Context, req channel.Adjudicat
 		return nil
 	}
 
-	events := make(chan *subscription.Event, 10)
+	events := make(chan *subscription.Event, adjEventBuffSize)
 	subErr := make(chan error, 1)
 	waitCtx, cancel := context.WithCancel(ctx)
 	go func() {
@@ -58,17 +63,11 @@ func (a *Adjudicator) ensureConcluded(ctx context.Context, req channel.Adjudicat
 		subErr <- sub.Read(ctx, events)
 	}()
 
-	// In final Register calls, as the non-initiator, we optimistically wait for
-	// the other party to send the transaction first for
-	// `secondaryWaitBlocks + TxFinalityDepth` many blocks.
-	if req.Tx.IsFinal && req.Secondary {
-		waitBlocks := secondaryWaitBlocks + int(a.txFinalityDepth)
-		isConcluded, err := waitConcludedForNBlocks(waitCtx, a, events, waitBlocks)
-		if err != nil {
-			return err
-		} else if isConcluded {
-			return nil
-		}
+	concluded, err := a.waitConcludedSecondary(waitCtx, req, events)
+	if err != nil {
+		return errors.WithMessage(err, "waiting for secondary conclude")
+	} else if concluded {
+		return nil
 	}
 
 	// No conclude event found in the past, send transaction.
@@ -81,7 +80,10 @@ func (a *Adjudicator) ensureConcluded(ctx context.Context, req channel.Adjudicat
 	for {
 		select {
 		case _e := <-events:
-			e := _e.Data.(*adjudicator.AdjudicatorChannelUpdate)
+			e, ok := _e.Data.(*adjudicator.AdjudicatorChannelUpdate)
+			if !ok {
+				log.Panic("wrong event type")
+			}
 			if e.Phase == phaseConcluded {
 				return nil
 			}
@@ -94,6 +96,17 @@ func (a *Adjudicator) ensureConcluded(ctx context.Context, req channel.Adjudicat
 			return errors.New("subscription closed")
 		}
 	}
+}
+
+func (a *Adjudicator) waitConcludedSecondary(ctx context.Context, req channel.AdjudicatorReq, events chan *subscription.Event) (concluded bool, err error) {
+	// In final Register calls, as the non-initiator, we optimistically wait for
+	// the other party to send the transaction first for
+	// `secondaryWaitBlocks + TxFinalityDepth` many blocks.
+	if req.Tx.IsFinal && req.Secondary {
+		waitBlocks := secondaryWaitBlocks + int(a.txFinalityDepth)
+		return waitConcludedForNBlocks(ctx, a, events, waitBlocks)
+	}
+	return false, nil
 }
 
 func (a *Adjudicator) conclude(ctx context.Context, req channel.AdjudicatorReq, subStates channel.StateMap) error {
@@ -117,7 +130,7 @@ func (a *Adjudicator) conclude(ctx context.Context, req channel.AdjudicatorReq, 
 
 // isConcluded returns whether a channel is already concluded.
 func (a *Adjudicator) isConcluded(ctx context.Context, sub *subscription.ResistantEventSub) (bool, error) {
-	events := make(chan *subscription.Event, 10)
+	events := make(chan *subscription.Event, adjEventBuffSize)
 	subErr := make(chan error, 1)
 	// Write the events into events.
 	go func() {
@@ -126,7 +139,10 @@ func (a *Adjudicator) isConcluded(ctx context.Context, sub *subscription.Resista
 	}()
 	// Read all events and check for concluded.
 	for _e := range events {
-		e := _e.Data.(*adjudicator.AdjudicatorChannelUpdate)
+		e, ok := _e.Data.(*adjudicator.AdjudicatorChannelUpdate)
+		if !ok {
+			log.Panic("wrong event type")
+		}
 		if e.Phase == phaseConcluded {
 			return true, nil
 		}
@@ -143,7 +159,7 @@ func (a *Adjudicator) isForceExecuted(_ctx context.Context, c channel.ID) (bool,
 		return false, errors.WithMessage(err, "subscribing")
 	}
 	defer sub.Close()
-	events := make(chan *subscription.Event, 10)
+	events := make(chan *subscription.Event, adjEventBuffSize)
 	subErr := make(chan error, 1)
 	// Write the events into events.
 	go func() {
@@ -156,7 +172,10 @@ func (a *Adjudicator) isForceExecuted(_ctx context.Context, c channel.ID) (bool,
 		lastEvent = _e
 	}
 	if lastEvent != nil {
-		e := lastEvent.Data.(*adjudicator.AdjudicatorChannelUpdate)
+		e, ok := lastEvent.Data.(*adjudicator.AdjudicatorChannelUpdate)
+		if !ok {
+			log.Panic("wrong event type")
+		}
 		if e.Phase == phaseForceExec {
 			return true, nil
 		}
@@ -186,7 +205,7 @@ func waitConcludedForNBlocks(ctx context.Context,
 	concluded chan *subscription.Event,
 	numBlocks int,
 ) (bool, error) {
-	h := make(chan *types.Header, 10)
+	h := make(chan *types.Header, adjHeaderBuffSize)
 	hsub, err := cr.SubscribeNewHead(ctx, h)
 	if err != nil {
 		err = cherrors.CheckIsChainNotReachableError(err)
@@ -197,7 +216,10 @@ func waitConcludedForNBlocks(ctx context.Context,
 		select {
 		case <-h: // do nothing, wait another block
 		case _e := <-concluded: // other participant performed transaction
-			e := _e.Data.(*adjudicator.AdjudicatorChannelUpdate)
+			e, ok := _e.Data.(*adjudicator.AdjudicatorChannelUpdate)
+			if !ok {
+				log.Panic("wrong event type")
+			}
 			if e.Phase == phaseConcluded {
 				return true, nil
 			}

@@ -127,7 +127,7 @@ func TestBalancesEqualAndAssertEqual(t *testing.T) {
 		assert.False(b1.Equal(b2))
 		assert.Error(b1.AssertEqual(b2))
 
-		assert.True(b1.Equal(b1))
+		assert.True(b1.Equal(b1)) //nolint:gocritic
 		assert.NoError(b1.AssertEqual(b1))
 	})
 }
@@ -195,6 +195,7 @@ func TestBalancesSub(t *testing.T) {
 }
 
 func testBalancesOperation(t *testing.T, op func(channel.Balances, channel.Balances) channel.Balances, elementOp func(channel.Bal, channel.Bal) channel.Bal) {
+	t.Helper()
 	assert := assert.New(t)
 	rng := pkgtest.Prng(t)
 	const rngBase = 10
@@ -262,7 +263,8 @@ func TestAllocationValidLimits(t *testing.T) {
 		{
 			channel.MaxNumAssets + 2,
 			2 * channel.MaxNumParts,
-			4 * channel.MaxNumSubAllocations},
+			4 * channel.MaxNumSubAllocations,
+		},
 	}
 
 	for ti, x := range inputs {

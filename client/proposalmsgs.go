@@ -58,12 +58,12 @@ func init() {
 		})
 	wire.RegisterDecoder(wire.VirtualChannelProposal,
 		func(r io.Reader) (wire.Msg, error) {
-			var m = VirtualChannelProposal{}
+			m := VirtualChannelProposal{}
 			return &m, m.Decode(r)
 		})
 	wire.RegisterDecoder(wire.VirtualChannelProposalAcc,
 		func(r io.Reader) (wire.Msg, error) {
-			var m = VirtualChannelProposalAcc{}
+			m := VirtualChannelProposalAcc{}
 			return &m, m.Decode(r)
 		})
 }
@@ -133,7 +133,7 @@ func (c *Client) proposalPeers(p ChannelProposal) (peers []wire.Address) {
 	case *LedgerChannelProposal:
 		peers = prop.Peers
 	case *SubChannelProposal:
-		ch, ok := c.channels.Get(prop.Parent)
+		ch, ok := c.channels.Channel(prop.Parent)
 		if !ok {
 			c.log.Panic("ProposalPeers: invalid parent channel")
 		}

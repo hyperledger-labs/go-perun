@@ -27,6 +27,7 @@ import (
 	"github.com/ethereum/go-ethereum/core"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/crypto"
+	"github.com/ethereum/go-ethereum/params"
 	"github.com/pkg/errors"
 
 	"perun.network/go-perun/channel"
@@ -38,11 +39,12 @@ import (
 const (
 	// GasLimit is the max amount of gas we want to send per transaction.
 	GasLimit = 500000
-
 	// GasPrice is the gas price that is used for simulated transactions.
 	// This value is set to `maxFeePerGas` from go-ethereum to prevent
 	// "max fee per gas less than block base fee" errors.
 	GasPrice = 875000000
+	// internal gas limit of the simulated backend.
+	simBackendGasLimit = 8000000
 )
 
 // SimulatedBackend provides a simulated ethereum blockchain for tests.
@@ -82,11 +84,12 @@ func NewSimulatedBackend(opts ...SimBackendOpt) *SimulatedBackend {
 		common.BytesToAddress([]byte{6}): {Balance: big.NewInt(1)}, // ECAdd
 		common.BytesToAddress([]byte{7}): {Balance: big.NewInt(1)}, // ECScalarMul
 		common.BytesToAddress([]byte{8}): {Balance: big.NewInt(1)}, // ECPairing
-		faucetAddr:                       {Balance: new(big.Int).Sub(channel.MaxBalance, big.NewInt(9))},
 	}
+	addr[faucetAddr] = core.GenesisAccount{Balance: new(big.Int).Sub(channel.MaxBalance, big.NewInt(int64(len(addr))))}
+
 	alloc := core.GenesisAlloc(addr)
 	sb := &SimulatedBackend{
-		SimulatedBackend: *backends.NewSimulatedBackend(alloc, 8000000),
+		SimulatedBackend: *backends.NewSimulatedBackend(alloc, simBackendGasLimit),
 		faucetKey:        sk,
 		faucetAddr:       faucetAddr,
 		commitTx:         true,
@@ -120,7 +123,7 @@ func (s *SimulatedBackend) FundAddress(ctx context.Context, addr common.Address)
 		panic(err)
 	}
 	tx := types.NewTransaction(nonce, addr, test.MaxBalance, GasLimit, big.NewInt(GasPrice), nil)
-	signer := types.NewEIP155Signer(big.NewInt(1337))
+	signer := types.NewEIP155Signer(params.AllEthashProtocolChanges.ChainID)
 	signedTX, err := types.SignTx(tx, signer, s.faucetKey)
 	if err != nil {
 		panic(err)
@@ -220,6 +223,8 @@ func (s *SimulatedBackend) Reorg(ctx context.Context, depth uint64, reorder Reor
 	return nil
 }
 
+// WithCommitTx controls whether the simulated backend should automatically
+// mine a block after a transaction was sent.
 func WithCommitTx(b bool) SimBackendOpt {
 	return func(sb *SimulatedBackend) { sb.commitTx = b }
 }

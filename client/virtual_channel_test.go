@@ -33,8 +33,10 @@ import (
 	"polycry.pt/poly-go/test"
 )
 
-const challengeDuration = 10
-const testDuration = 10 * time.Second
+const (
+	challengeDuration = 10
+	testDuration      = 10 * time.Second
+)
 
 func TestVirtualChannelsOptimistic(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), testDuration)
@@ -99,6 +101,7 @@ func TestVirtualChannelsDispute(t *testing.T) {
 }
 
 func (vct *virtualChannelTest) testFinalBalancesDispute(t *testing.T) {
+	t.Helper()
 	assert := assert.New(t)
 	backend, asset := vct.balanceReader, vct.asset
 	got, expected := backend.Balance(vct.alice.Identity.Address(), asset), vct.finalBalsAlice[0]
@@ -129,6 +132,7 @@ type virtualChannelTest struct {
 }
 
 func setupVirtualChannelTest(t *testing.T, ctx context.Context) (vct virtualChannelTest) {
+	t.Helper()
 	rng := test.Prng(t)
 	require := require.New(t)
 
@@ -146,9 +150,9 @@ func setupVirtualChannelTest(t *testing.T, ctx context.Context) (vct virtualChan
 
 	// Setup clients.
 	clients := NewClients(
+		t,
 		rng,
 		[]string{"Alice", "Bob", "Ingrid"},
-		t,
 	)
 	alice, bob, ingrid := clients[0], clients[1], clients[2]
 	vct.alice, vct.bob, vct.ingrid = alice, bob, ingrid
@@ -275,5 +279,5 @@ func setupVirtualChannelTest(t *testing.T, ctx context.Context) (vct virtualChan
 		return nil
 	})
 	require.NoError(err, "updating virtual channel")
-	return
+	return vct
 }

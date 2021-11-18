@@ -39,6 +39,11 @@ type (
 	Robert struct{ multiClientRole }
 )
 
+const (
+	defaultTestTimeout   = 10 * time.Second
+	petraRobertNumStages = 6
+)
+
 // ReplaceClient replaces the client instance of the Role. Useful for
 // persistence testing.
 func (r *multiClientRole) ReplaceClient() {
@@ -49,18 +54,21 @@ func (r *multiClientRole) ReplaceClient() {
 	r.setClient(cl)
 }
 
-func makeMultiClientRole(setup RoleSetup, t *testing.T, stages int) multiClientRole {
-	return multiClientRole{role: makeRole(setup, t, stages)}
+func makeMultiClientRole(t *testing.T, setup RoleSetup, stages int) multiClientRole {
+	t.Helper()
+	return multiClientRole{role: makeRole(t, setup, stages)}
 }
 
 // NewPetra creates a new Proposer that executes the Petra protocol.
-func NewPetra(setup RoleSetup, t *testing.T) *Petra {
-	return &Petra{makeMultiClientRole(setup, t, 6)}
+func NewPetra(t *testing.T, setup RoleSetup) *Petra {
+	t.Helper()
+	return &Petra{makeMultiClientRole(t, setup, petraRobertNumStages)}
 }
 
 // NewRobert creates a new Responder that executes the Robert protocol.
-func NewRobert(setup RoleSetup, t *testing.T) *Robert {
-	return &Robert{makeMultiClientRole(setup, t, 6)}
+func NewRobert(t *testing.T, setup RoleSetup) *Robert {
+	t.Helper()
+	return &Robert{makeMultiClientRole(t, setup, petraRobertNumStages)}
 }
 
 // Execute executes the Petra protocol.
@@ -190,7 +198,9 @@ func (r *Robert) Execute(cfg ExecConfig) {
 func (r *multiClientRole) assertPersistedPeerAndChannel(cfg ExecConfig, state *channel.State) {
 	assrt := assert.New(r.t)
 	_, them := r.Idxs(cfg.Peers())
-	ps, err := r.setup.PR.ActivePeers(nil) // it should be a test persister, so no context needed
+	ctx, cancel := context.WithTimeout(context.Background(), defaultTestTimeout)
+	defer cancel()
+	ps, err := r.setup.PR.ActivePeers(ctx) // it should be a test persister, so no context needed
 	peerAddr := cfg.Peers()[them]
 	assrt.NoError(err)
 	assrt.Contains(ps, peerAddr)
@@ -199,7 +209,7 @@ func (r *multiClientRole) assertPersistedPeerAndChannel(cfg ExecConfig, state *c
 	}
 	chIt, err := r.setup.PR.RestorePeer(peerAddr)
 	assrt.NoError(err)
-	assrt.True(chIt.Next(nil))
+	assrt.True(chIt.Next(ctx))
 	restoredCh := chIt.Channel()
 	assrt.NoError(chIt.Close())
 	assrt.Equal(restoredCh.ID(), state.ID)

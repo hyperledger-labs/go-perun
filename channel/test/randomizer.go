@@ -260,7 +260,7 @@ func NewRandomBal(rng *rand.Rand, opts ...RandomOpt) channel.Bal {
 		min = big.NewInt(1)
 	}
 	if max == nil {
-		max = new(big.Int).Rsh(MaxBalance, 30) // 2^98
+		max = maxRandomBalance
 	}
 
 	// rng(max - min + 1)

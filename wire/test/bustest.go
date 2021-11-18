@@ -26,6 +26,9 @@ import (
 	"polycry.pt/poly-go/test"
 )
 
+// timeout testNoReceive sub-test.
+const testNoReceiveTimeout = 10 * time.Millisecond
+
 // GenericBusTest tests the general functionality of a bus in the happy case: it
 // tests that messages sent over the bus arrive at the correct destination. The
 // parameter numClients controls how many clients communicate over the bus, and
@@ -34,6 +37,7 @@ import (
 // perform any necessary work to make clients able to communicate with each
 // other (such as setting up dialers and listeners, in case of networking).
 func GenericBusTest(t *testing.T, busAssigner func(wire.Account) wire.Bus, numClients, numMsgs int) {
+	t.Helper()
 	require.Greater(t, numClients, 1)
 	require.Greater(t, numMsgs, 0)
 
@@ -54,16 +58,18 @@ func GenericBusTest(t *testing.T, busAssigner func(wire.Account) wire.Bus, numCl
 	// Here, we have common, reused code.
 
 	testNoReceive := func(t *testing.T) {
+		t.Helper()
 		ct := test.NewConcurrent(t)
-		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Millisecond)
+		ctx, cancel := context.WithTimeout(context.Background(), testNoReceiveTimeout)
 		defer cancel()
 		for i := range clients {
 			i := i
 			go ct.StageN("receive timeout", numClients, func(t test.ConcT) {
 				r := wire.NewReceiver()
 				defer r.Close()
-				clients[i].r.Subscribe(r, func(e *wire.Envelope) bool { return true })
-				_, err := r.Next(ctx)
+				err := clients[i].r.Subscribe(r, func(e *wire.Envelope) bool { return true })
+				require.NoError(t, err)
+				_, err = r.Next(ctx)
 				require.Error(t, err)
 			})
 		}
@@ -71,6 +77,7 @@ func GenericBusTest(t *testing.T, busAssigner func(wire.Account) wire.Bus, numCl
 	}
 
 	testPublishAndReceive := func(t *testing.T, waiting func()) {
+		t.Helper()
 		ct := test.NewConcurrent(t)
 		ctx, cancel := context.WithTimeout(
 			context.Background(),
@@ -90,9 +97,10 @@ func GenericBusTest(t *testing.T, busAssigner func(wire.Account) wire.Bus, numCl
 				}
 				// Only subscribe to the current sender.
 				recv := wire.NewReceiver()
-				clients[recipient].r.Subscribe(recv, func(e *wire.Envelope) bool {
+				err := clients[recipient].r.Subscribe(recv, func(e *wire.Envelope) bool {
 					return e.Sender.Equals(clients[sender].id.Address())
 				})
+				require.NoError(t, err)
 
 				go ct.StageN("receive", numClients*(numClients-1), func(t test.ConcT) {
 					defer recv.Close()

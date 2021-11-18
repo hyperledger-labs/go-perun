@@ -22,7 +22,7 @@ import (
 	"perun.network/go-perun/wire"
 )
 
-// nolint: deadcode, unused
+//nolint:deadcode,unused
 func newChannelCache() *channelCache {
 	return &channelCache{
 		peers:        make(map[channel.ID][]wire.Address),
@@ -31,14 +31,14 @@ func newChannelCache() *channelCache {
 }
 
 // channelCache contains all channels.
-// nolint: unused
+//nolint:unused
 type channelCache struct {
 	mutex        stdsync.RWMutex
 	peers        map[channel.ID][]wire.Address      // Used when closing a channel.
 	peerChannels map[string]map[channel.ID]struct{} // Address -> Set<chID>
 }
 
-// nolint: unused
+//nolint:unused
 func (c *channelCache) addPeerChannel(addr wire.Address, chID channel.ID) {
 	c.mutex.Lock()
 	defer c.mutex.Unlock()
@@ -54,7 +54,7 @@ func (c *channelCache) addPeerChannel(addr wire.Address, chID channel.ID) {
 	}
 }
 
-// nolint: unused
+//nolint:unused
 func (c *channelCache) deleteChannel(id channel.ID) []wire.Address {
 	c.mutex.Lock()
 	defer c.mutex.Unlock()
@@ -73,7 +73,7 @@ func (c *channelCache) deleteChannel(id channel.ID) []wire.Address {
 	return peers
 }
 
-// nolint: unused
+//nolint:unused
 func (c *channelCache) clear() {
 	c.mutex.Lock()
 	defer c.mutex.Unlock()

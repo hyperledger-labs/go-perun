@@ -33,7 +33,7 @@ import (
 //
 // This handler is dispatched from the Client.Handle routine.
 func (c *Client) handleChannelUpdate(uh UpdateHandler, p wire.Address, m ChannelUpdateProposal) {
-	ch, ok := c.channels.Get(m.Base().ID())
+	ch, ok := c.channels.Channel(m.Base().ID())
 	if !ok {
 		if !c.cacheVersion1Update(uh, p, m) {
 			c.logChan(m.Base().ID()).WithField("peer", p).Error("received update for unknown channel")
@@ -171,7 +171,6 @@ func (c *Channel) updateGeneric(
 		return errors.WithMessage(err, "updating machine")
 	}
 	// if anything goes wrong from now on, we discard the update.
-	// TODO: this is insecure after we sent our signature.
 	defer func() { c.handleUpdateError(ctx, err) }()
 
 	sig, err := c.machine.Sig(ctx)
@@ -183,7 +182,6 @@ func (c *Channel) updateGeneric(
 	if err != nil {
 		return errors.WithMessage(err, "creating update response receiver")
 	}
-	// nolint:errcheck
 	defer resRecv.Close()
 
 	msgUpdate := &msgChannelUpdate{
@@ -209,7 +207,10 @@ func (c *Channel) updateGeneric(
 		return newPeerRejectedError("channel update", rej.Reason)
 	}
 
-	acc := res.(*msgChannelUpdateAcc) // safe by predicate of the updateResRecv
+	acc, ok := res.(*msgChannelUpdateAcc) // safe by predicate of the updateResRecv
+	if !ok {
+		log.Panic("wrong message type")
+	}
 	if err := c.machine.AddSig(ctx, pidx, acc.Sig); err != nil {
 		return errors.WithMessage(err, "adding peer signature")
 	}
@@ -279,7 +280,6 @@ func (c *Channel) handleUpdateReq(
 	defer c.machMtx.Unlock()
 
 	if err := c.machine.CheckUpdate(req.Base().State, req.Base().ActorIdx, req.Base().Sig, pidx); err != nil {
-		// TODO: how to handle invalid updates? Just drop and ignore them?
 		c.logPeer(pidx).Warnf("invalid update received: %v", err)
 		return
 	}
@@ -308,7 +308,6 @@ func (c *Channel) handleUpdateReq(
 	}
 
 	if err := c.validTwoPartyUpdate(req.Base().ChannelUpdate, pidx); err != nil {
-		// TODO: how to handle invalid updates? Just drop and ignore them?
 		c.logPeer(pidx).Warnf("invalid update received: %v", err)
 		return
 	}
@@ -332,7 +331,6 @@ func (c *Channel) handleUpdateAcc(
 		return errors.WithMessage(err, "updating machine")
 	}
 	// if anything goes wrong from now on, we discard the update.
-	// TODO: this is insecure after we sent our signature.
 	defer func() {
 		if err != nil {
 			// we discard the update if anything went wrong

@@ -75,9 +75,9 @@ func (interceptors *updateInterceptors) Register(id channel.ID, ui *updateInterc
 	interceptors.entries[id] = ui
 }
 
-// Get gets the update interceptor for the given channel. The second return
+// UpdateInterceptor gets the update interceptor for the given channel. The second return
 // value indicates whether such an entry could be found.
-func (interceptors *updateInterceptors) Get(id channel.ID) (*updateInterceptor, bool) {
+func (interceptors *updateInterceptors) UpdateInterceptor(id channel.ID) (*updateInterceptor, bool) {
 	interceptors.RLock()
 	defer interceptors.RUnlock()
 	ui, ok := interceptors.entries[id]

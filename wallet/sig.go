@@ -43,6 +43,8 @@ func CloneSigs(sigs []Sig) []Sig {
 
 var _ perunio.Decoder = SigDec{}
 
+const bitsPerByte = 8
+
 // SigDec is a helper type to decode signatures.
 type SigDec struct {
 	Sig *Sig
@@ -59,10 +61,10 @@ func EncodeSparseSigs(w io.Writer, sigs []Sig) error {
 	n := len(sigs)
 
 	// Encode mask
-	mask := make([]uint8, int(math.Ceil(float64(n)/8.0)))
+	mask := make([]uint8, int(math.Ceil(float64(n)/float64(bitsPerByte))))
 	for i, sig := range sigs {
 		if sig != nil {
-			mask[i/8] |= 0x01 << (i % 8)
+			mask[i/bitsPerByte] |= 1 << (i % bitsPerByte)
 		}
 	}
 	if err := perunio.Encode(w, mask); err != nil {
@@ -82,7 +84,7 @@ func EncodeSparseSigs(w io.Writer, sigs []Sig) error {
 
 // DecodeSparseSigs decodes a collection of signatures in the form (mask, sig, sig, sig, ...).
 func DecodeSparseSigs(r io.Reader, sigs *[]Sig) (err error) {
-	masklen := int(math.Ceil(float64(len(*sigs)) / 8.0))
+	masklen := int(math.Ceil(float64(len(*sigs)) / float64(bitsPerByte)))
 	mask := make([]uint8, masklen)
 
 	// Decode mask
@@ -90,10 +92,11 @@ func DecodeSparseSigs(r io.Reader, sigs *[]Sig) (err error) {
 		return errors.WithMessage(err, "decoding mask")
 	}
 
+	const binaryModulo = 2
 	// Decoding mask's signatures
 	for maskIdx, sigIdx := 0, 0; maskIdx < len(mask); maskIdx++ {
-		for bitIdx := 0; bitIdx < 8 && sigIdx < len(*sigs); bitIdx, sigIdx = bitIdx+1, sigIdx+1 {
-			if ((mask[maskIdx] >> bitIdx) % 2) == 0 {
+		for bitIdx := 0; bitIdx < bitsPerByte && sigIdx < len(*sigs); bitIdx, sigIdx = bitIdx+1, sigIdx+1 {
+			if ((mask[maskIdx] >> bitIdx) % binaryModulo) == 0 {
 				(*sigs)[sigIdx] = nil
 			} else {
 				(*sigs)[sigIdx], err = DecodeSig(r)

@@ -48,7 +48,7 @@ func (*backend) CalcID(p *channel.Params) (id channel.ID) {
 		log.Panic("Could not write to sha256 hasher")
 	}
 
-	if copy(id[:], w.Sum(nil)) != 32 {
+	if copy(id[:], w.Sum(nil)) != channel.IDLen {
 		log.Panic("Could not copy id")
 	}
 	return

@@ -50,7 +50,7 @@ func TestChanRegistry_Put(t *testing.T) {
 	t.Run("single insert", func(t *testing.T) {
 		r := makeChanRegistry()
 		assert.True(t, r.Put(id, ch))
-		c, ok := r.Get(id)
+		c, ok := r.Channel(id)
 		require.True(t, ok)
 		require.Same(t, c, ch)
 	})
@@ -86,7 +86,7 @@ func TestChanRegistry_Get(t *testing.T) {
 
 	t.Run("nonexistent get", func(t *testing.T) {
 		r := makeChanRegistry()
-		c, ok := r.Get(id)
+		c, ok := r.Channel(id)
 		assert.False(t, ok)
 		assert.Nil(t, c)
 	})
@@ -94,7 +94,7 @@ func TestChanRegistry_Get(t *testing.T) {
 	t.Run("existing get", func(t *testing.T) {
 		r := makeChanRegistry()
 		require.True(t, r.Put(id, ch))
-		c, ok := r.Get(id)
+		c, ok := r.Channel(id)
 		assert.True(t, ok)
 		assert.Same(t, c, ch)
 	})
@@ -134,6 +134,6 @@ func TestChanRegistry_CloseAll(t *testing.T) {
 	ch := testCh()
 	reg := makeChanRegistry()
 	reg.Put(id, ch)
-	reg.CloseAll()
+	require.NoError(t, reg.CloseAll())
 	assert.True(t, ch.IsClosed())
 }

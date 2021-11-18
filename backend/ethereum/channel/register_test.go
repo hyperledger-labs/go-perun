@@ -46,6 +46,7 @@ func TestAdjudicator_MultipleRegisters(t *testing.T) {
 }
 
 func registerMultiple(t *testing.T, numParts int, parallel bool) {
+	t.Helper()
 	rng := pkgtest.Prng(t)
 	// create test setup
 	s := test.NewSetup(t, rng, numParts, blockInterval, TxFinalityDepth)
@@ -66,10 +67,10 @@ func registerMultiple(t *testing.T, numParts int, parallel bool) {
 	// fund the contract
 	ct := pkgtest.NewConcurrent(t)
 	for i, funder := range s.Funders {
-		sleepTime := time.Duration(rng.Int63n(10) + 1)
+		sleepTime := time.Millisecond * time.Duration(rng.Int63n(10)+1)
 		i, funder := i, funder
 		go ct.StageN("funding loop", numParts, func(rt pkgtest.ConcT) {
-			time.Sleep(sleepTime * time.Millisecond)
+			time.Sleep(sleepTime)
 			req := channel.NewFundingReq(params, state, channel.Index(i), state.Balances)
 			require.NoError(rt, funder.Fund(fundingCtx, *req), "funding should succeed")
 		})

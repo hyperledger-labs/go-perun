@@ -37,6 +37,9 @@ type ERC20Depositor struct {
 // An `IncreaseAllowance` uses ~45kGas and a `Deposit` call ~84kGas on average.
 const ERC20DepositorTXGasLimit = 100000
 
+// Return value of ERC20Depositor.NumTx.
+const erc20DepositorNumTx = 2
+
 // NewERC20Depositor creates a new ERC20Depositor.
 func NewERC20Depositor(token common.Address) *ERC20Depositor {
 	return &ERC20Depositor{Token: token}
@@ -77,5 +80,5 @@ func (d *ERC20Depositor) Deposit(ctx context.Context, req DepositReq) (types.Tra
 
 // NumTX returns 2 since it does IncreaseAllowance and Deposit.
 func (*ERC20Depositor) NumTX() uint32 {
-	return 2
+	return erc20DepositorNumTx
 }

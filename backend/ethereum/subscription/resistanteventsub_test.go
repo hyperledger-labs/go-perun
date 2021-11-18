@@ -146,9 +146,10 @@ func TestResistantEventSub_ReorgConfirm(t *testing.T) {
 		l := rng.Int63n(maxFinality/2-1) + 1
 		NoEvent(require, sub)
 		log.Debugf("[h=%d] Reorg with depth: %d, length: %d", h, d, l)
-		s.SB.Reorg(ctx, uint64(d), func(txs []types.Transactions) []types.Transactions {
+		err := s.SB.Reorg(ctx, uint64(d), func(txs []types.Transactions) []types.Transactions {
 			return append(txs, make([]types.Transactions, int(d+l)-len(txs))...)
 		})
+		require.NoError(err)
 		h += l
 	}
 	// Verify that the event arrived.
@@ -174,9 +175,10 @@ func TestResistantEventSub_ReorgRemove(t *testing.T) {
 	NoEvent(require, sub)
 
 	// Go back one block and remove the TX with a reorg.
-	s.SB.Reorg(ctx, 1, func(txs []types.Transactions) []types.Transactions {
+	err = s.SB.Reorg(ctx, 1, func(txs []types.Transactions) []types.Transactions {
 		return make([]types.Transactions, 2)
 	})
+	require.NoError(err)
 
 	NoEvent(require, sub)
 	// Verify that the event never arrives.
@@ -191,7 +193,7 @@ func TestResistantEventSub_ReorgRemove(t *testing.T) {
 // `finalityDepth` < 1.
 func TestResistantEventSub_New(t *testing.T) {
 	require.PanicsWithValue(t, "finalityDepth needs to be at least 1", func() {
-		subscription.NewResistantEventSub(context.Background(), nil, nil, 0)
+		subscription.NewResistantEventSub(context.Background(), nil, nil, 0) //nolint:errcheck
 	})
 }
 

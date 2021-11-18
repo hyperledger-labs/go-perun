@@ -57,6 +57,8 @@ func (w *Watcher) HandleAdjudicatorEvent(e channel.AdjudicatorEvent) {
 
 // ----------------- BEGIN PAUL -----------------
 
+const paulPaulaBalTransferAmount = 10
+
 // Paul is a test client role. He proposes the new channel.
 type Paul struct {
 	Proposer
@@ -65,7 +67,8 @@ type Paul struct {
 
 // NewPaul creates a new party that executes the Paul protocol.
 func NewPaul(t *testing.T, setup RoleSetup) *Paul {
-	p := NewProposer(setup, t, 1)
+	t.Helper()
+	p := NewProposer(t, setup, 1)
 	return &Paul{
 		Proposer: *p,
 		Watcher:  makeWatcher(p.log),
@@ -96,7 +99,7 @@ func (r *Paul) exec(_cfg ExecConfig, ch *paymentChannel) {
 		bal := func(user channel.Index) int64 {
 			return s.Balances[assetIdx][user].Int64()
 		}
-		half := (bal(0) + bal(1)) / 2
+		half := (bal(0) + bal(1)) / 2 //nolint:gomnd
 		s.Balances[assetIdx][0] = big.NewInt(half)
 		s.Balances[assetIdx][1] = big.NewInt(half)
 	}))
@@ -126,7 +129,8 @@ type Paula struct {
 
 // NewPaula creates a new party that executes the Paula protocol.
 func NewPaula(t *testing.T, setup RoleSetup) *Paula {
-	r := NewResponder(setup, t, 1)
+	t.Helper()
+	r := NewResponder(t, setup, 1)
 	return &Paula{
 		Responder: *r,
 		Watcher:   makeWatcher(r.log),
@@ -166,9 +170,9 @@ func (r *Paula) exec(_cfg ExecConfig, ch *paymentChannel, _ *acceptNextPropHandl
 		bal := func(user channel.Index) int64 {
 			return s.Balances[assetIdx][user].Int64()
 		}
-		half := (bal(0) + bal(1)) / 2
-		s.Balances[assetIdx][0] = big.NewInt(half + 10)
-		s.Balances[assetIdx][1] = big.NewInt(half - 10)
+		half := (bal(0) + bal(1)) / 2 //nolint:gomnd
+		s.Balances[assetIdx][0] = big.NewInt(half + paulPaulaBalTransferAmount)
+		s.Balances[assetIdx][1] = big.NewInt(half - paulPaulaBalTransferAmount)
 	}))
 
 	// await our progression confirmation

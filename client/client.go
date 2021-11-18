@@ -79,7 +79,7 @@ func New(
 		log.Panic("address must not be nil")
 	}
 	log := log.WithField("id", address)
-	// nolint: gocritic
+	//nolint:gocritic
 	if bus == nil {
 		log.Panic("bus must not be nil")
 	} else if funder == nil {
@@ -111,7 +111,7 @@ func New(
 
 	c.fundingWatcher = newStateWatcher(c.matchFundingProposal)
 	c.settlementWatcher = newStateWatcher(c.matchSettlementProposal)
-	return
+	return c, nil
 }
 
 // Close closes this state channel client.
@@ -147,7 +147,7 @@ func (c *Client) EnablePersistence(pr persistence.PersistRestorer) {
 
 // Channel queries a channel by its ID.
 func (c *Client) Channel(id channel.ID) (*Channel, error) {
-	if ch, ok := c.channels.Get(id); ok {
+	if ch, ok := c.channels.Channel(id); ok {
 		return ch, nil
 	}
 	return nil, errors.New("unknown channel ID")

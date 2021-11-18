@@ -15,7 +15,9 @@
 package persistence_test
 
 import (
+	"context"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/require"
 
@@ -27,11 +29,11 @@ import (
 	pkgtest "polycry.pt/poly-go/test"
 )
 
+const defaultTestTimeout = 10 * time.Second
+
 // TestStateMachine tests the StateMachine embedding by advancing the
 // StateMachine step by step and asserting that the persisted data matches the
 // expected.
-//
-// TODO: After #316 (custom random gens) this test can be greatly improved.
 func TestStateMachine(t *testing.T) {
 	require := require.New(t)
 	rng := pkgtest.Prng(t)
@@ -45,26 +47,30 @@ func TestStateMachine(t *testing.T) {
 	tpr := test.NewPersistRestorer(t)
 	sm := persistence.FromStateMachine(csm, tpr)
 
+	ctx, cancel := context.WithTimeout(context.Background(), defaultTestTimeout)
+	defer cancel()
 	// Newly created channel
-	tpr.ChannelCreated(nil, &sm, nil, nil) // nil peers since we only test StateMachine
+	err = tpr.ChannelCreated(ctx, &sm, nil, nil) // nil peers since we only test StateMachine
+	require.NoError(err)
 	tpr.AssertEqual(csm)
 
 	// Init state
 	initAlloc := *ctest.NewRandomAllocation(rng, ctest.WithNumParts(n))
 	initData := channel.NewMockOp(channel.OpValid)
-	err = sm.Init(nil, initAlloc, initData)
+	err = sm.Init(ctx, initAlloc, initData)
 	require.NoError(err)
 	tpr.AssertEqual(csm)
 
 	signAll := func() {
-		_, err := sm.Sig(nil) // trigger local signing
+		_, err := sm.Sig(ctx) // trigger local signing
 		require.NoError(err)
 		tpr.AssertEqual(csm)
 		// remote signers
 		for i := 1; i < n; i++ {
 			sig, err := channel.Sign(accs[i], csm.StagingState())
 			require.NoError(err)
-			sm.AddSig(nil, channel.Index(i), sig)
+			err = sm.AddSig(ctx, channel.Index(i), sig)
+			require.NoError(err)
 			tpr.AssertEqual(csm)
 		}
 	}
@@ -73,12 +79,12 @@ func TestStateMachine(t *testing.T) {
 	signAll()
 
 	// Enable init state
-	err = sm.EnableInit(nil)
+	err = sm.EnableInit(ctx)
 	require.NoError(err)
 	tpr.AssertEqual(csm)
 
 	// Set Funded
-	err = sm.SetFunded(nil)
+	err = sm.SetFunded(ctx)
 	require.NoError(err)
 	tpr.AssertEqual(csm)
 
@@ -86,14 +92,14 @@ func TestStateMachine(t *testing.T) {
 	state1 := sm.State().Clone()
 	state1.Version++
 	// Stage update.
-	err = sm.Update(nil, state1, sm.Idx())
+	err = sm.Update(ctx, state1, sm.Idx())
 	require.NoError(err)
 	tpr.AssertEqual(csm)
 	// Discard update.
-	require.NoError(sm.DiscardUpdate(nil))
+	require.NoError(sm.DiscardUpdate(ctx))
 	tpr.AssertEqual(csm)
 	// Re-stage update.
-	err = sm.Update(nil, state1, sm.Idx())
+	err = sm.Update(ctx, state1, sm.Idx())
 	require.NoError(err)
 	tpr.AssertEqual(csm)
 
@@ -101,7 +107,7 @@ func TestStateMachine(t *testing.T) {
 	signAll()
 
 	// Enable new state
-	err = sm.EnableUpdate(nil)
+	err = sm.EnableUpdate(ctx)
 	require.NoError(err)
 	tpr.AssertEqual(csm)
 
@@ -109,7 +115,7 @@ func TestStateMachine(t *testing.T) {
 	statef := sm.State().Clone()
 	statef.Version++
 	statef.IsFinal = true
-	err = sm.Update(nil, statef, n-1)
+	err = sm.Update(ctx, statef, n-1)
 	require.NoError(err)
 	tpr.AssertEqual(csm)
 
@@ -117,23 +123,23 @@ func TestStateMachine(t *testing.T) {
 	signAll()
 
 	// Enable final state
-	err = sm.EnableFinal(nil)
+	err = sm.EnableFinal(ctx)
 	require.NoError(err)
 	tpr.AssertEqual(csm)
 
 	// Set Registering
-	err = sm.SetRegistering(nil)
+	err = sm.SetRegistering(ctx)
 	require.NoError(err)
 	tpr.AssertEqual(csm)
 
 	// Set Registered
-	err = sm.SetRegistered(nil)
+	err = sm.SetRegistered(ctx)
 	require.NoError(err)
 	tpr.AssertEqual(csm)
 
 	// Set Progressing
 	s := ctest.NewRandomState(rng)
-	err = sm.SetProgressing(nil, s)
+	err = sm.SetProgressing(ctx, s)
 	require.NoError(err)
 	tpr.AssertEqual(csm)
 
@@ -141,17 +147,17 @@ func TestStateMachine(t *testing.T) {
 	timeout := ctest.NewRandomTimeout(rng)
 	idx := channel.Index(rng.Intn(s.NumParts()))
 	e := channel.NewProgressedEvent(s.ID, timeout, s, idx)
-	err = sm.SetProgressed(nil, e)
+	err = sm.SetProgressed(ctx, e)
 	require.NoError(err)
 	tpr.AssertEqual(csm)
 
 	// Set Withdrawing
-	err = sm.SetWithdrawing(nil)
+	err = sm.SetWithdrawing(ctx)
 	require.NoError(err)
 	tpr.AssertEqual(csm)
 
 	// Set Withdrawn
-	err = sm.SetWithdrawn(nil)
+	err = sm.SetWithdrawn(ctx)
 	require.NoError(err)
 	tpr.AssertNotExists(csm.ID())
 }

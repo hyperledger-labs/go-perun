@@ -97,10 +97,12 @@ type (
 	Asset perunio.Encoder
 )
 
-var _ perunio.Serializer = (*Allocation)(nil)
-var _ perunio.Serializer = (*Balances)(nil)
-var _ perunbig.Summer = (*Allocation)(nil)
-var _ perunbig.Summer = (*Balances)(nil)
+var (
+	_ perunio.Serializer = (*Allocation)(nil)
+	_ perunio.Serializer = (*Balances)(nil)
+	_ perunbig.Summer    = (*Allocation)(nil)
+	_ perunbig.Summer    = (*Balances)(nil)
+)
 
 // NewAllocation returns a new allocation for the given number of participants and assets.
 func NewAllocation(numParts int, assets ...Asset) *Allocation {

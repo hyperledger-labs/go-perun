@@ -35,8 +35,8 @@ func TestDispute(t *testing.T) {
 	const mallory, carol = 0, 1 // Indices of Mallory and Carol
 	setups := NewSetups(rng, []string{"Mallory", "Carol"})
 	roles := [2]ctest.Executer{
-		ctest.NewMallory(setups[0], t),
-		ctest.NewCarol(setups[1], t),
+		ctest.NewMallory(t, setups[0]),
+		ctest.NewCarol(t, setups[1]),
 	}
 
 	cfg := &ctest.MalloryCarolExecConfig{

@@ -9,95 +9,63 @@ run:
   modules-download-mode: readonly
 
 linters:
-  enable:
-    - bodyclose
-    - deadcode
-    - depguard
-    - dogsled
-    - dupl
-    - errcheck
-    - exportloopref
-    - funlen
-    # We use init() functions.
-    #- gochecknoinits
-    - goconst
-    - gocritic
-    - gocyclo
-    - gofmt
-    - goimports
-    # This is stupid since it reports every constant as magic-number.
-    #- gomnd
-    - goprintffuncname
-    - gosec
-    - gosimple
-    - govet
-    - ineffassign
-    # This thing reports long lines, but we have a lot of them…
-    #- lll
-    - misspell
-    # We often just have a 'return' when using named returns.
-    #- nakedret
-    - nolintlint
-    - rowserrcheck
-    - staticcheck
-    - structcheck
-    - stylecheck
-    - typecheck
-    - unconvert
-    - unparam
-    - unused
-    - varcheck
-    - whitespace
-    - asciicheck
-    # We often use globals for backend stuff
-    #- gochecknoglobals
-    - gocognit
-    - godot
-    # Reports TODO/BUG/FIXME
-    #- godox
-    # Keeps reporting 'do not define dynamic errors, use wrapped static errors instead'.
-    #- goerr113
-    # We don't care about alignment right now.
-    #- maligned
-    - nestif
-    - prealloc
-    # This always reports that tests should be Black Box.
-    #- testpackage
-    #- wsl
+  enable-all: true
+  disable:
+    # Disabled as a style choice:
+    - wrapcheck # We do not rewrap all errors from other packages.
+    - varnamelen # We often use single letter arguments.
+    - exhaustivestruct # We often have uninitialized fields of structs.
+    - errorlint # We have interface errors which an impl needs to return.
+    - lll # We use long lines.
+    - gochecknoglobals # We have a lot of globals.
+    - nlreturn # "new line before return"; not useful.
+    - paralleltest # We like parallel tests.
+    - ireturn # We often return interfaces.
+    - wsl # Formatting disabled for now.
+    - gochecknoinits # We use init functions.
+    - gci # We have our own import order.
+
+    # These could be enabled in the future:
+    - ifshort # we often don't use `if err := …` for readability.
+    - tparallel # We don't always use parallel tests.
+    - contextcheck # Wants contexts to be always passed down.
+
+    # Deprecated:
+    - maligned
+    - scopelint
+    - golint
+    - interfacer
+
+linters-settings:
+  cyclop:
+    # 15 is used by go-report-card as well.
+    max-complexity: 15
+  goheader:
+    values:
+      regexp:
+        ANY_YEAR: "20(19|20|21)" # 2019-2021
+    template-path: ".scripts/copyright-notice"
+  forbidigo:
+    forbid:
+      # Forbid functions to start with "get" or "Get".
+      - ^[Gg]et.*$
+      # Default values:
+      - ^print.*$
+      - 'fmt\.Print.*'
 
 issues:
   exclude-rules:
-    - path: pkg/test
-      linters:
-        - stylecheck
-
     - path: test
       linters:
-        # 'Error return value … not checked'
-        - errcheck 
+        # We often have long test or test helper functions.
         - funlen
-        # Tests do not need to prealloc everything.
-        - prealloc
-    # `Id` instead of `ID` is fine in tests.
-    - path: test
-      text: " should be "
-      linters:
-        - golint
-        - stylecheck
-    # Allow nil contexts in tests.
-    - path: test
-      text: "SA1012"
-      linters:
-        - staticcheck
-    # Allow unchecked errors in tests.
-    - path: test
-      text: "G104"
-      linters:
-        - gosec
+        # Can use panicing interface casts.
+        - forcetypeassert
+        # Can create dynamic errors with errors.New.
+        - goerr113
 
-    # Exclude lll issues for long lines with go:generate.
-    - linters:
-        - lll
-      source: "^//go:generate "
-
-  exclude-use-default: false
+    # We always use testing.T as first argument in testing functions,
+    # therefore disable the "context must be the first argument" check in tests.
+    - path: test
+      linters: [revive]
+      text: "context-as-argument"

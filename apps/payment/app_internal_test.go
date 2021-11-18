@@ -38,9 +38,9 @@ func TestApp_ValidInit(t *testing.T) {
 	app := new(App)
 
 	nildata := &channel.State{Data: nil}
-	assert.Panics(func() { app.ValidInit(nil, nildata) })
+	assert.Panics(func() { app.ValidInit(nil, nildata) }) //nolint:errcheck
 	wrongdata := &channel.State{Data: new(channel.MockOp)}
-	assert.Panics(func() { app.ValidInit(nil, wrongdata) })
+	assert.Panics(func() { app.ValidInit(nil, wrongdata) }) //nolint:errcheck
 
 	data := &channel.State{Data: Data()}
 	assert.Nil(app.ValidInit(nil, data))
@@ -121,7 +121,7 @@ func TestApp_ValidTransition(t *testing.T) {
 		from := test.NewRandomState(rng, test.WithApp(app), test.WithBalances(asBalances(tests[0].from...)...), test.WithNumAssets(len(tests[0].from)))
 		to := from.Clone()
 		to.Data = nil
-		assert.Panics(t, func() { app.ValidTransition(nil, from, to, 0) })
+		assert.Panics(t, func() { app.ValidTransition(nil, from, to, 0) }) //nolint:errcheck
 	})
 
 	// Note: we don't need to test other invalid input as the framework guarantees

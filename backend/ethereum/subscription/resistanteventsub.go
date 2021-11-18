@@ -46,6 +46,13 @@ type (
 	}
 )
 
+const (
+	// number of headers that a resistant event sub can buffer.
+	resistantSubHeadBuffSize = 128
+	// number of raw events that a resistant event sub can buffer.
+	resistantSubRawEventBuffSize = 128
+)
+
 // Subscribe is a convenience function which returns a `ResistantEventSub`.
 // It is equivalent to manually calling `NewEventSub` and `NewResistantEventSub`
 // with the given parameters.
@@ -79,7 +86,7 @@ func NewResistantEventSub(ctx context.Context, sub *EventSub, cr ethereum.ChainR
 	}
 	log.Debugf("Resistant Event sub started at block: %v", last.Number)
 	// Use a large buffer to not block geth.
-	heads := make(chan *types.Header, 128)
+	heads := make(chan *types.Header, resistantSubHeadBuffSize)
 	headSub, err := cr.SubscribeNewHead(ctx, heads)
 	if err != nil {
 		headSub.Unsubscribe()
@@ -111,7 +118,7 @@ func (s *ResistantEventSub) Read(_ctx context.Context, sink chan<- *Event) error
 	ctx, cancel := context.WithCancel(_ctx)
 	defer cancel()
 	subErr := make(chan error, 1)
-	rawEvents := make(chan *Event, 128)
+	rawEvents := make(chan *Event, resistantSubRawEventBuffSize)
 	// Read events from the underlying event subscription.
 	go func() {
 		subErr <- s.sub.Read(ctx, rawEvents)
@@ -148,7 +155,7 @@ func (s *ResistantEventSub) ReadPast(_ctx context.Context, sink chan<- *Event) e
 	ctx, cancel := context.WithCancel(_ctx)
 	defer cancel()
 	subErr := make(chan error, 1)
-	rawEvents := make(chan *Event, 128)
+	rawEvents := make(chan *Event, resistantSubRawEventBuffSize)
 	// Read events from the underlying event subscription.
 	go func() {
 		defer close(rawEvents)
@@ -196,7 +203,7 @@ func (s *ResistantEventSub) processEvent(event *Event, sink chan<- *Event) {
 	hash := event.Log.TxHash
 	log := log.WithField("hash", hash.Hex())
 
-	if event.Log.Removed { // nolint: nestif
+	if event.Log.Removed { //nolint:nestif
 		if _, found := s.events[hash]; !found {
 			log.Error("Race detected between event and header sub")
 		} else {
@@ -235,16 +242,16 @@ func (s *ResistantEventSub) isFinal(event *Event) bool {
 	if diff.Sign() < 0 {
 		log.Tracef("Event sub was faster than head sub, ignored")
 		return false
-	} else {
-		included := new(big.Int).Add(diff, big.NewInt(1))
-		if included.Cmp(s.finalityDepth) >= 0 {
-			log.Debugf("Event final after %d block(s)", included)
-			return true
-		} else {
-			log.Tracef("Event included %d time(s)", included)
-			return false
-		}
 	}
+
+	included := new(big.Int).Add(diff, big.NewInt(1))
+	if included.Cmp(s.finalityDepth) >= 0 {
+		log.Debugf("Event final after %d block(s)", included)
+		return true
+	}
+
+	log.Tracef("Event included %d time(s)", included)
+	return false
 }
 
 // Close closes the sub and the underlying `EventSub`.

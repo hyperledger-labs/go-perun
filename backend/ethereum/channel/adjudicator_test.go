@@ -36,6 +36,7 @@ import (
 const defaultTxTimeout = 2 * time.Second
 
 func testSignState(t *testing.T, accounts []*keystore.Account, state *channel.State) channel.Transaction {
+	t.Helper()
 	tx, err := signState(accounts, state)
 	assert.NoError(t, err, "Sign should not return error")
 	return tx

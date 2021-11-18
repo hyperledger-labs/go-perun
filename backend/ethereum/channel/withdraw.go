@@ -58,7 +58,7 @@ func (a *Adjudicator) ensureWithdrawn(ctx context.Context, req channel.Adjudicat
 			// Create subscription
 			contract := bindAssetHolder(a.ContractBackend, asset, channel.Index(index))
 			fundingID := FundingIDs(req.Params.ID(), req.Params.Parts[req.Idx])[0]
-			events := make(chan *subscription.Event, 10)
+			events := make(chan *subscription.Event, adjEventBuffSize)
 			subErr := make(chan error, 1)
 			sub, err := subscription.Subscribe(ctx, a.ContractBackend, contract.contract, withdrawnEventType(fundingID), startBlockOffset, a.txFinalityDepth)
 			if err != nil {

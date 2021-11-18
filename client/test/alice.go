@@ -27,14 +27,17 @@ type AliceBobExecConfig struct {
 	TxAmounts   [2]*big.Int // amounts that are to be sent/requested by each role
 }
 
+const aliceBobNumStages = 3
+
 // Alice is a Proposer. She proposes the new channel.
 type Alice struct {
 	Proposer
 }
 
 // NewAlice creates a new Proposer that executes the Alice protocol.
-func NewAlice(setup RoleSetup, t *testing.T) *Alice {
-	return &Alice{Proposer: *NewProposer(setup, t, 3)}
+func NewAlice(t *testing.T, setup RoleSetup) *Alice {
+	t.Helper()
+	return &Alice{Proposer: *NewProposer(t, setup, aliceBobNumStages)}
 }
 
 // Execute executes the Alice protocol.

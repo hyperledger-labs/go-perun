@@ -29,14 +29,18 @@ type MockApp struct {
 	definition wallet.Address
 }
 
-var _ ActionApp = (*MockApp)(nil)
-var _ StateApp = (*MockApp)(nil)
+var (
+	_ ActionApp = (*MockApp)(nil)
+	_ StateApp  = (*MockApp)(nil)
+)
 
 // MockOp serves as Action and State.Data for MockApp.
 type MockOp uint64
 
-var _ Action = (*MockOp)(nil)
-var _ Data = (*MockOp)(nil)
+var (
+	_ Action = (*MockOp)(nil)
+	_ Data   = (*MockOp)(nil)
+)
 
 const (
 	// OpValid function call should succeed.

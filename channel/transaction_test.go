@@ -26,7 +26,7 @@ import (
 func TestTransactionSerialization(t *testing.T) {
 	rng := pkgtest.Prng(t)
 	lengths := []int{2, 5, 10, 40}
-	var tests [][]bool
+	tests := [][]bool{}
 	for _, l := range lengths {
 		tests = append(tests,
 			newUniformBoolSlice(l, true), newUniformBoolSlice(l, false),

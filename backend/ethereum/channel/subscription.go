@@ -35,7 +35,7 @@ import (
 // Subscribe returns a new AdjudicatorSubscription to adjudicator events.
 func (a *Adjudicator) Subscribe(ctx context.Context, chID channel.ID) (channel.AdjudicatorSubscription, error) {
 	subErr := make(chan error, 1)
-	events := make(chan *subscription.Event, 10)
+	events := make(chan *subscription.Event, adjEventBuffSize)
 	eFact := func() *subscription.Event {
 		return &subscription.Event{
 			Name:   bindings.Events.AdjChannelUpdate,
@@ -111,7 +111,10 @@ func (r *RegisteredSub) processNext(ctx context.Context, a *Adjudicator, _next *
 	select {
 	// drain next-channel on new event
 	case current := <-r.next:
-		currentTimeout := current.Timeout().(*BlockTimeout)
+		currentTimeout, ok := current.Timeout().(*BlockTimeout)
+		if !ok {
+			log.Panic("wrong timeout type")
+		}
 		// if newer version or same version and newer timeout, replace
 		if current.Version() < next.Version || current.Version() == next.Version && currentTimeout.Time < next.Timeout {
 			var e channel.AdjudicatorEvent
@@ -133,7 +136,7 @@ func (r *RegisteredSub) processNext(ctx context.Context, a *Adjudicator, _next *
 
 		r.next <- e
 	}
-	return
+	return err
 }
 
 // Next returns the newest past or next blockchain event.
@@ -170,7 +173,7 @@ func (a *Adjudicator) convertEvent(ctx context.Context, e *adjudicator.Adjudicat
 			return nil, errors.WithMessage(err, "fetching call data")
 		}
 
-		ch, ok := args.get(e.ChannelID)
+		ch, ok := args.signedState(e.ChannelID)
 		if !ok {
 			return nil, errors.Errorf("channel not found in calldata: %v", e.ChannelID)
 		}
@@ -236,7 +239,7 @@ type registerCallData struct {
 	SubChannels []adjudicator.AdjudicatorSignedState
 }
 
-func (args *registerCallData) get(id channel.ID) (*adjudicator.AdjudicatorSignedState, bool) {
+func (args *registerCallData) signedState(id channel.ID) (*adjudicator.AdjudicatorSignedState, bool) {
 	ch := &args.Channel
 	if ch.State.ChannelID == id {
 		return ch, true

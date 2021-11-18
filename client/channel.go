@@ -205,7 +205,6 @@ func (c *Channel) initExchangeSigsAndEnable(ctx context.Context) error {
 	if err != nil {
 		return errors.WithMessage(err, "creating update response receiver")
 	}
-	// nolint:errcheck
 	defer resRecv.Close()
 
 	send := make(chan error)

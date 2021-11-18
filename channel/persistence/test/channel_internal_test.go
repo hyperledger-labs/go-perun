@@ -24,7 +24,7 @@ import (
 
 func TestRequireEqualSigsTX(t *testing.T) {
 	prng := test.Prng(t)
-	var equalSigsTableNegative = []struct {
+	equalSigsTableNegative := []struct {
 		s1 []wallet.Sig
 		s2 []wallet.Sig
 	}{
@@ -34,7 +34,7 @@ func TestRequireEqualSigsTX(t *testing.T) {
 		{make([]wallet.Sig, 5), make([]wallet.Sig, 10)},
 		{make([]wallet.Sig, 10), make([]wallet.Sig, 5)},
 	}
-	var equalSigsTablePositive = []struct {
+	equalSigsTablePositive := []struct {
 		s1 []wallet.Sig
 		s2 []wallet.Sig
 	}{

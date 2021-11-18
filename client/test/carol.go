@@ -38,9 +38,10 @@ func (r *Carol) HandleAdjudicatorEvent(e channel.AdjudicatorEvent) {
 }
 
 // NewCarol creates a new Responder that executes the Carol protocol.
-func NewCarol(setup RoleSetup, t *testing.T) *Carol {
+func NewCarol(t *testing.T, setup RoleSetup) *Carol {
+	t.Helper()
 	return &Carol{
-		Responder:  *NewResponder(setup, t, 3),
+		Responder:  *NewResponder(t, setup, malloryCarolNumStages),
 		registered: make(chan *channel.RegisteredEvent),
 	}
 }

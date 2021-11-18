@@ -56,9 +56,12 @@ type Susie struct {
 	Proposer
 }
 
+const susieTimNumStates = 7
+
 // NewSusie creates a new Proposer that executes the Susie protocol.
-func NewSusie(setup RoleSetup, t *testing.T) *Susie {
-	return &Susie{Proposer: *NewProposer(setup, t, 7)}
+func NewSusie(t *testing.T, setup RoleSetup) *Susie {
+	t.Helper()
+	return &Susie{Proposer: *NewProposer(t, setup, susieTimNumStates)}
 }
 
 // Execute executes the Susie protocol.
@@ -151,8 +154,9 @@ type Tim struct {
 }
 
 // NewTim creates a new Responder that executes the Tim protocol.
-func NewTim(setup RoleSetup, t *testing.T) *Tim {
-	return &Tim{Responder: *NewResponder(setup, t, 7)}
+func NewTim(t *testing.T, setup RoleSetup) *Tim {
+	t.Helper()
+	return &Tim{Responder: *NewResponder(t, setup, susieTimNumStates)}
 }
 
 // Execute executes the Tim protocol.

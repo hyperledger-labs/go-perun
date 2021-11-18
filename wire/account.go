@@ -38,8 +38,7 @@ var _ Msg = (*AuthResponseMsg)(nil)
 // AuthResponseMsg is the response message in the peer authentication protocol.
 //
 // This will be expanded later to contain signatures.
-type AuthResponseMsg struct {
-}
+type AuthResponseMsg struct{}
 
 // Type returns AuthResponse.
 func (m *AuthResponseMsg) Type() Type {

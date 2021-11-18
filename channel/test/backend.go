@@ -71,6 +71,7 @@ func mergeTestOpts(opts ...GenericTestOption) GenericTestOptions {
 
 // GenericBackendTest tests the interface functions of the global channel.Backend with the passed test data.
 func GenericBackendTest(t *testing.T, s *Setup, opts ...GenericTestOption) {
+	t.Helper()
 	require := require.New(t)
 	ID := channel.CalcID(s.Params)
 	require.Equal(ID, s.State.ID, "ChannelID(params) should match the States ID")
@@ -92,6 +93,7 @@ func GenericBackendTest(t *testing.T, s *Setup, opts ...GenericTestOption) {
 }
 
 func genericChannelIDTest(t *testing.T, s *Setup) {
+	t.Helper()
 	require.NotNil(t, s.Params.Parts, "params.Parts can not be nil")
 	assert.Panics(t, func() { channel.CalcID(nil) }, "ChannelID(nil) should panic")
 
@@ -104,11 +106,13 @@ func genericChannelIDTest(t *testing.T, s *Setup) {
 }
 
 func genericSignTest(t *testing.T, s *Setup) {
+	t.Helper()
 	_, err := channel.Sign(s.Account, s.State)
 	assert.NoError(t, err, "Sign should not return an error")
 }
 
 func genericVerifyTest(t *testing.T, s *Setup, opts ...GenericTestOption) {
+	t.Helper()
 	addr := s.Account.Address()
 	require.Equal(t, channel.CalcID(s.Params), s.Params.ID(), "Invalid test params")
 	sig, err := channel.Sign(s.Account, s.State)
@@ -174,7 +178,7 @@ func buildModifiedParams(p1, p2 *channel.Params, s *Setup) (ret []channel.Params
 		}
 	}
 
-	return
+	return ret
 }
 
 func appendModParams(a []channel.Params, modParams channel.Params) []channel.Params {
@@ -311,7 +315,7 @@ func buildModifiedStates(s1, s2 *channel.State, _opts ...GenericTestOption) (ret
 		}
 	}
 
-	return
+	return ret
 }
 
 func ensureConsistentBalances(s *channel.State) *channel.State {
@@ -356,8 +360,9 @@ func ensureBalanceVectorLength(bals []channel.Bal, l int) []channel.Bal {
 
 // GenericStateEqualTest tests the State.Equal function.
 func GenericStateEqualTest(t *testing.T, s1, s2 *channel.State, opts ...GenericTestOption) {
-	assert.NoError(t, s1.Equal(s1))
-	assert.NoError(t, s2.Equal(s2))
+	t.Helper()
+	assert.NoError(t, s1.Equal(s1)) //nolint:gocritic
+	assert.NoError(t, s2.Equal(s2)) //nolint:gocritic
 
 	for _, differentState := range buildModifiedStates(s1, s2, opts...) {
 		assert.Error(t, differentState.Equal(s1))

@@ -35,11 +35,17 @@ type Account struct {
 	references int32
 }
 
+const (
+	// how many points a sig consists of.
+	pointsPerSig = 2
+	// how many bits are in a byte.
+	bitsPerByte = 8
+)
+
 // NewRandomAccount generates a new account, reading randomness form the given
 // rng. It is not saved to any wallet.
 func NewRandomAccount(rng io.Reader) *Account {
 	privateKey, err := ecdsa.GenerateKey(curve, rng)
-
 	if err != nil {
 		log.Panicf("Creation of account failed with error", err)
 	}
@@ -64,7 +70,6 @@ func (a *Account) SignData(data []byte) ([]byte, error) {
 	// escda.Sign needs a digest as input
 	// ref https://golang.org/pkg/crypto/ecdsa/#Sign
 	r, s, err := ecdsa.Sign(rand.Reader, a.privKey, digest(data))
-
 	if err != nil {
 		return nil, errors.Wrap(err, "account could not sign data")
 	}
@@ -75,7 +80,7 @@ func (a *Account) SignData(data []byte) ([]byte, error) {
 // serializeSignature serializes a signature into a []byte or returns an error.
 // The length of the []byte is dictated by the curves parameters and padded with 0 bytes if necessary.
 func serializeSignature(r, s *big.Int) ([]byte, error) {
-	pointSize := curve.Params().BitSize / 8
+	pointSize := curve.Params().BitSize / bitsPerByte
 	rBytes := append(make([]byte, pointSize-len(r.Bytes())), r.Bytes()...)
 	sBytes := append(make([]byte, pointSize-len(s.Bytes())), s.Bytes()...)
 
@@ -85,14 +90,15 @@ func serializeSignature(r, s *big.Int) ([]byte, error) {
 // deserializeSignature deserializes a signature from a byteslice and returns `r` and `s`
 // or an error.
 func deserializeSignature(b []byte) (*big.Int, *big.Int, error) {
-	pointSize := curve.Params().BitSize / 8
-	if len(b) != pointSize*2 {
-		return nil, nil, errors.Errorf("expected %d bytes for a signature but got: %d", pointSize*2, len(b))
+	pointSize := curve.Params().BitSize / bitsPerByte
+	sigSize := pointsPerSig * pointSize
+	if len(b) != sigSize {
+		return nil, nil, errors.Errorf("expected %d bytes for a signature but got: %d", sigSize, len(b))
 	}
 
 	var r, s big.Int
 	rBytes := b[0:pointSize]
-	sBytes := b[pointSize : pointSize*2]
+	sBytes := b[pointSize:sigSize]
 	r.SetBytes(rBytes)
 	s.SetBytes(sBytes)
 

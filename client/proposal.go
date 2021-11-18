@@ -33,6 +33,9 @@ import (
 
 const proposerIdx, proposeeIdx = 0, 1
 
+// number of participants that is used unless specified otherwise.
+const proposalNumParts = 2
+
 type (
 	// A ProposalHandler decides how to handle incoming channel proposals from
 	// other channel network peers.
@@ -305,7 +308,6 @@ func (c *Client) proposeTwoPartyChannel(
 				e.Msg.(*ChannelProposalRej).ProposalID == proposalID)
 	}
 	receiver := wire.NewReceiver()
-	// nolint:errcheck
 	defer receiver.Close()
 
 	if err := c.conn.Subscribe(receiver, isResponse); err != nil {
@@ -327,7 +329,10 @@ func (c *Client) proposeTwoPartyChannel(
 		return nil, newPeerRejectedError("channel proposal", rej.Reason)
 	}
 
-	acc := env.Msg.(ChannelProposalAccept) // this is safe because of predicate isResponse
+	acc, ok := env.Msg.(ChannelProposalAccept) // this is safe because of predicate isResponse
+	if !ok {
+		log.Panic("internal error: wrong message type")
+	}
 
 	if err := c.validChannelProposalAcc(proposal, acc); err != nil {
 		return nil, errors.WithMessage(err, "validating channel proposal acceptance")
@@ -354,7 +359,7 @@ func (c *Client) validTwoPartyProposal(
 		return errors.Errorf("participants (%d) and peers (%d) dimension mismatch",
 			proposal.Base().NumPeers(), len(peers))
 	}
-	if len(peers) != 2 {
+	if len(peers) != proposalNumParts {
 		return errors.Errorf("expected 2 peers, got %d", len(peers))
 	}
 
@@ -388,7 +393,7 @@ func (c *Client) validTwoPartyProposal(
 }
 
 func (c *Client) validSubChannelProposal(proposal *SubChannelProposal) error {
-	parent, ok := c.channels.Get(proposal.Parent)
+	parent, ok := c.channels.Channel(proposal.Parent)
 	if !ok {
 		return errors.New("parent channel does not exist")
 	}
@@ -467,14 +472,14 @@ func (c *Client) validChannelProposalAcc(
 }
 
 func participants(proposer, proposee wallet.Address) []wallet.Address {
-	parts := make([]wallet.Address, 2)
+	parts := make([]wallet.Address, proposalNumParts)
 	parts[proposerIdx] = proposer
 	parts[proposeeIdx] = proposee
 	return parts
 }
 
 func nonceShares(proposer, proposee NonceShare) []NonceShare {
-	shares := make([]NonceShare, 2)
+	shares := make([]NonceShare, proposalNumParts)
 	shares[proposerIdx] = proposer
 	shares[proposeeIdx] = proposee
 	return shares
@@ -567,7 +572,7 @@ func (c *Client) proposalParent(prop ChannelProposal, partIdx channel.Index) (pa
 
 	if parentChannelID != nil {
 		var ok bool
-		if parent, ok = c.channels.Get(*parentChannelID); !ok {
+		if parent, ok = c.channels.Channel(*parentChannelID); !ok {
 			err = errors.New("referenced parent channel not found")
 			return
 		}
@@ -586,7 +591,7 @@ func (c *Client) mpcppParts(
 			p.Participant,
 			acc.(*LedgerChannelProposalAcc).Participant)
 	case *SubChannelProposal:
-		ch, ok := c.channels.Get(p.Parent)
+		ch, ok := c.channels.Channel(p.Parent)
 		if !ok {
 			c.log.Panic("unknown parent channel ID")
 		}
@@ -648,7 +653,7 @@ func (c *Client) fundLedgerChannel(ctx context.Context, ch *Channel, agreement c
 }
 
 func (c *Client) fundSubchannel(ctx context.Context, prop *SubChannelProposal, subChannel *Channel) (err error) {
-	parentChannel, ok := c.channels.Get(prop.Parent)
+	parentChannel, ok := c.channels.Channel(prop.Parent)
 	if !ok {
 		return errors.New("referenced parent channel not found")
 	}

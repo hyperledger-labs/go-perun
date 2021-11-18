@@ -68,9 +68,9 @@ func (c *Cache) Put(e *Envelope) bool {
 	return any
 }
 
-// Get retrieves all messages from the cache that match the predicate. They are
+// Messages retrieves all messages from the cache that match the predicate. They are
 // removed from the Cache.
-func (c *Cache) Get(p Predicate) []*Envelope {
+func (c *Cache) Messages(p Predicate) []*Envelope {
 	msgs := c.msgs[:0]
 	// Usually, Get is called with the assumption to match at least one message
 	matches := make([]*Envelope, 0, 1)

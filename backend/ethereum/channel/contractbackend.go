@@ -33,11 +33,13 @@ import (
 	pcontext "polycry.pt/poly-go/context"
 )
 
-// How many blocks we query into the past for events.
-const startBlockOffset = 100
-
-// GasLimit is the max amount of gas we want to send per transaction.
-const GasLimit = 1000000
+const (
+	// GasLimit is the max amount of gas we want to send per transaction.
+	GasLimit = 1000000
+	// How many blocks we query into the past for events.
+	startBlockOffset            = 100
+	contractBackendHeadBuffSize = 10
+)
 
 // errTxTimedOut is an internal named error that with an empty message.
 // Because calling function is expected to check for this error and
@@ -209,7 +211,7 @@ func (c *ContractBackend) confirmNTimes(ctx context.Context, tx *types.Transacti
 	}
 
 	// Set up header sub for future blocks.
-	heads := make(chan *types.Header, 10)
+	heads := make(chan *types.Header, contractBackendHeadBuffSize)
 	heads <- head // Include the current head.
 	hsub, err := c.SubscribeNewHead(ctx, heads)
 	if err != nil {
@@ -271,7 +273,7 @@ var ErrTxFailed = stderrors.New("transaction failed")
 
 // IsErrTxFailed returns whether the cause of the error was a failed transaction.
 func IsErrTxFailed(err error) bool {
-	return errors.Cause(err) == ErrTxFailed
+	return errors.Is(err, ErrTxFailed)
 }
 
 func errorReason(ctx context.Context, b *ContractBackend, tx *types.Transaction, blockNum *big.Int, acc accounts.Account) (string, error) {
@@ -297,5 +299,5 @@ var ErrInvalidContractCode = stderrors.New("invalid bytecode at address")
 
 // IsErrInvalidContractCode returns whether the cause of the error was a invalid bytecode.
 func IsErrInvalidContractCode(err error) bool {
-	return errors.Cause(err) == ErrInvalidContractCode
+	return errors.Is(err, ErrInvalidContractCode)
 }

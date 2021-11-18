@@ -35,6 +35,9 @@ type ID = [IDLen]byte
 // MaxNonceLen is the maximum byte count of a nonce.
 const MaxNonceLen = 32
 
+// MinNumParts is the minimal number of participants of a channel.
+const MinNumParts = 2
+
 // Nonce is the channel parameters' nonce type.
 type Nonce = *big.Int
 
@@ -47,7 +50,7 @@ func NonceFromBytes(b []byte) Nonce {
 }
 
 // Zero is the default channelID.
-var Zero ID = ID{}
+var Zero = ID{}
 
 var _ io.Serializer = (*Params)(nil)
 
@@ -98,7 +101,7 @@ func ValidateProposalParameters(challengeDuration uint64, numParts int, app App)
 	switch {
 	case challengeDuration == 0:
 		return errors.New("challengeDuration must be != 0")
-	case numParts < 2:
+	case numParts < MinNumParts:
 		return errors.New("need at least two participants")
 	case numParts > MaxNumParts:
 		return errors.Errorf("too many participants, got: %d max: %d", numParts, MaxNumParts)

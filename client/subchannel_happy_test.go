@@ -33,8 +33,8 @@ func TestSubChannelHappy(t *testing.T) {
 
 	setups := NewSetups(rng, []string{"Susie", "Tim"})
 	roles := [2]ctest.Executer{
-		ctest.NewSusie(setups[0], t),
-		ctest.NewTim(setups[1], t),
+		ctest.NewSusie(t, setups[0]),
+		ctest.NewTim(t, setups[1]),
 	}
 
 	cfg := ctest.NewSusieTimExecConfig(

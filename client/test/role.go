@@ -25,6 +25,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/require"
 	"perun.network/go-perun/channel"
 	"perun.network/go-perun/channel/persistence"
 	"perun.network/go-perun/client"
@@ -168,7 +169,8 @@ func (c *BaseExecConfig) App() client.ProposalOpts {
 }
 
 // makeRole creates a client for the given setup and wraps it into a Role.
-func makeRole(setup RoleSetup, t *testing.T, numStages int) (r role) {
+func makeRole(t *testing.T, setup RoleSetup, numStages int) (r role) {
+	t.Helper()
 	r = role{
 		chans:             &channelMap{entries: make(map[channel.ID]*paymentChannel)},
 		setup:             setup,
@@ -202,7 +204,7 @@ func (r *role) setClient(cl *client.Client) {
 	r.log = log.AppendField(cl, "role", r.setup.Name)
 }
 
-func (chs *channelMap) get(ch channel.ID) (_ch *paymentChannel, ok bool) {
+func (chs *channelMap) channel(ch channel.ID) (_ch *paymentChannel, ok bool) {
 	chs.RLock()
 	defer chs.RUnlock()
 	_ch, ok = chs.entries[ch]
@@ -275,7 +277,7 @@ func (r *role) ProposeChannel(req client.ChannelProposal) (*paymentChannel, erro
 		return nil, err
 	}
 	// Client.OnNewChannel callback adds paymentChannel wrapper to the chans map
-	ch, ok := r.chans.get(_ch.ID())
+	ch, ok := r.chans.channel(_ch.ID())
 	if !ok {
 		return ch, errors.New("channel not found")
 	}
@@ -410,7 +412,7 @@ func (h *acceptNextPropHandler) Next() (*paymentChannel, error) {
 		return nil, err
 	}
 	// Client.OnNewChannel callback adds paymentChannel wrapper to the chans map
-	payCh, ok := h.r.chans.get(ch.ID())
+	payCh, ok := h.r.chans.channel(ch.ID())
 	if !ok {
 		panic("channel not found")
 	}
@@ -423,12 +425,13 @@ func (r *role) UpdateHandler() *roleUpdateHandler { return (*roleUpdateHandler)(
 
 // HandleUpdate implements the Role as its own UpdateHandler.
 func (h *roleUpdateHandler) HandleUpdate(_ *channel.State, up client.ChannelUpdate, res *client.UpdateResponder) {
-	ch, ok := h.chans.get(up.State.ID)
+	ch, ok := h.chans.channel(up.State.ID)
 	if !ok {
 		h.t.Errorf("unknown channel: %v", up.State.ID)
 		ctx, cancel := context.WithTimeout(context.Background(), h.setup.Timeout)
 		defer cancel()
-		res.Reject(ctx, "unknown channel")
+		err := res.Reject(ctx, "unknown channel")
+		require.NoError(h.t, err)
 		return
 	}
 

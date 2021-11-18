@@ -53,6 +53,7 @@ func (nonPersistRestorer) RestoreAll() (ChannelIterator, error) {
 func (nonPersistRestorer) RestorePeer(wire.Address) (ChannelIterator, error) {
 	return emptyChanIterator{}, nil
 }
+
 func (nonPersistRestorer) RestoreChannel(context.Context, channel.ID) (*Channel, error) {
 	return nil, errors.New("channel not found")
 }

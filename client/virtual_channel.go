@@ -26,6 +26,9 @@ import (
 	"perun.network/go-perun/wire"
 )
 
+// number of peers that gatherPeers supports.
+const gatherNumPeers = 2
+
 // IsVirtualChannel returns whether the channel is a virtual channel.
 // A virtual channel is a channel that has a parent channel with different
 // participants.
@@ -35,7 +38,7 @@ func (c *Channel) IsVirtualChannel() bool {
 
 func (c *Client) fundVirtualChannel(ctx context.Context, virtual *Channel, prop *VirtualChannelProposal) error {
 	parentID := prop.Parents[virtual.Idx()]
-	parent, ok := c.channels.Get(parentID)
+	parent, ok := c.channels.Channel(parentID)
 	if !ok {
 		return errors.New("referenced parent channel not found")
 	}
@@ -74,9 +77,11 @@ func (c *Channel) proposeVirtualChannelFunding(ctx context.Context, virtual *Cha
 	return err
 }
 
-const responseTimeout = 10 * time.Second          // How long we wait until the proposal response must be transmitted.
-const virtualFundingTimeout = 10 * time.Second    // How long we wait for a matching funding proposal.
-const virtualSettlementTimeout = 10 * time.Second // How long we wait for a matching settlement proposal.
+const (
+	responseTimeout          = 10 * time.Second // How long we wait until the proposal response must be transmitted.
+	virtualFundingTimeout    = 10 * time.Second // How long we wait for a matching funding proposal.
+	virtualSettlementTimeout = 10 * time.Second // How long we wait for a matching settlement proposal.
+)
 
 func (c *Client) handleVirtualChannelFundingProposal(
 	ch *Channel,
@@ -377,7 +382,7 @@ func (c *Client) gatherPeers(channels ...*Channel) (peers []wire.Address) {
 	peers = make([]wire.Address, len(channels))
 	for i, ch := range channels {
 		chPeers := ch.Peers()
-		if len(chPeers) != 2 {
+		if len(chPeers) != gatherNumPeers {
 			panic("unsupported number of participants")
 		}
 		peers[i] = chPeers[1-ch.Idx()]

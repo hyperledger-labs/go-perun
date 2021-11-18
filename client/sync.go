@@ -16,6 +16,7 @@ package client
 
 import (
 	"context"
+	"log"
 	"time"
 
 	"github.com/pkg/errors"
@@ -33,13 +34,11 @@ var syncReplyTimeout = 10 * time.Second
 // the channel is reverted to the Acting phase.
 func (c *Client) handleSyncMsg(peer wire.Address, msg *msgChannelSync) {
 	log := c.logChan(msg.ID()).WithField("peer", peer)
-	ch, ok := c.channels.Get(msg.ID())
+	ch, ok := c.channels.Channel(msg.ID())
 	if !ok {
 		log.Error("received sync message for unknown channel")
 		return
 	}
-
-	// TODO: cancel ongoing protocol, like Update
 
 	ctx, cancel := context.WithTimeout(c.Ctx(), syncReplyTimeout)
 	defer cancel()
@@ -71,7 +70,6 @@ func (c *Client) handleSyncMsg(peer wire.Address, msg *msgChannelSync) {
 // nolint:unused
 func (c *Client) syncChannel(ctx context.Context, ch *persistence.Channel, p wire.Address) (err error) {
 	recv := wire.NewReceiver()
-	// nolint:errcheck
 	defer recv.Close() // ignore error
 	id := ch.ID()
 	err = c.conn.Subscribe(recv, func(m *wire.Envelope) bool {
@@ -101,7 +99,10 @@ func (c *Client) syncChannel(ctx context.Context, ch *persistence.Channel, p wir
 	if err != nil {
 		return errors.WithMessage(err, "receiving sync message")
 	}
-	msg := env.Msg.(*msgChannelSync) // safe by the predicate
+	msg, ok := env.Msg.(*msgChannelSync)
+	if !ok {
+		log.Panic("internal error: wrong message type")
+	}
 	// Validate sync message.
 	if err := validateMessage(ch, msg); err != nil {
 		return errors.WithMessage(err, "invalid message")
@@ -147,7 +148,7 @@ func validateMessage(ch *persistence.Channel, msg *msgChannelSync) error {
 
 // nolint:unused
 func revisePhase(ch *persistence.Channel) error {
-	// nolint: gocritic
+	//nolint:gocritic
 	if ch.PhaseV <= channel.Funding && ch.CurrentTXV.Version == 0 {
 		return errors.New("channel in Funding phase - funding during restore not implemented yet")
 		// if version > 0, phase will be set to Acting/Final at the end

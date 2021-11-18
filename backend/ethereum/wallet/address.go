@@ -27,6 +27,9 @@ import (
 // compile time check that we implement the perun Address interface.
 var _ wallet.Address = (*Address)(nil)
 
+// AddrLen is the length of an encoded address in byte.
+const AddrLen = common.AddressLength
+
 // Address represents an ethereum address as a perun address.
 type Address common.Address
 
@@ -39,13 +42,13 @@ func (a *Address) Bytes() []byte {
 // go-perun/pkg/io.Serializer interface.
 func (a *Address) Encode(w io.Writer) error {
 	_, err := w.Write(a.Bytes())
-	return err
+	return errors.WithStack(err)
 }
 
 // Decode decodes an address from a io.Reader. Part of the
 // go-perun/pkg/io.Serializer interface.
 func (a *Address) Decode(r io.Reader) error {
-	buf := make([]byte, common.AddressLength)
+	buf := make([]byte, AddrLen)
 	_, err := io.ReadFull(r, buf)
 	(*common.Address)(a).SetBytes(buf)
 	return errors.Wrap(err, "error decoding address")

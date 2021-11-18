@@ -20,8 +20,7 @@ import (
 	"perun.network/go-perun/channel"
 )
 
-type randomizer struct {
-}
+type randomizer struct{}
 
 func (randomizer) NewRandomAsset(rng *rand.Rand) channel.Asset {
 	return NewRandomAsset(rng)

@@ -92,7 +92,7 @@ func (pr *PersistRestorer) RestorePeer(addr wire.Address) (persistence.ChannelIt
 		return nil, errors.WithMessage(err, "restoring peer")
 	}
 	itPeer := sortedkv.NewTable(pr.db, prefix.PeerDB+key).NewIterator()
-	defer itPeer.Close() // nolint: errcheck
+	defer itPeer.Close()
 
 	var id channel.ID
 	for itPeer.Next() {
@@ -106,7 +106,6 @@ func (pr *PersistRestorer) RestorePeer(addr wire.Address) (persistence.ChannelIt
 }
 
 // peerChannelsKey creates a db-key-string for a given wire.Address.
-// nolint: interfacer
 func peerChannelsKey(addr wire.Address) (string, error) {
 	var key strings.Builder
 	if err := addr.Encode(&key); err != nil {
@@ -134,7 +133,7 @@ func (pr *PersistRestorer) RestoreChannel(ctx context.Context, id channel.ID) (*
 }
 
 // decodePeerChanID decodes the channel.ID and peer.Address from a key.
-// nolint: deadcode, unused
+//nolint:deadcode,unused
 func decodePeerChanID(key string) (wire.Address, channel.ID, error) {
 	buf := bytes.NewBufferString(key)
 	addr, err := wire.DecodeAddress(buf)
@@ -152,7 +151,7 @@ func decodePeerChanID(key string) (wire.Address, channel.ID, error) {
 
 // eatExpect consumes bytes from a Reader and asserts that they are equal to
 // the expected string.
-// nolint: unused
+//nolint:unused
 func eatExpect(r io.Reader, tok string) error {
 	buf := make([]byte, len(tok))
 	if _, err := io.ReadFull(r, buf); err != nil {

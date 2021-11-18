@@ -34,8 +34,10 @@ import (
 	pkgtest "polycry.pt/poly-go/test"
 )
 
-const twoPartyTestTimeout = 10 * time.Second
-const TxFinalityDepth = 3
+const (
+	twoPartyTestTimeout = 10 * time.Second
+	TxFinalityDepth     = 3
+)
 
 func TestDisputeMalloryCarol(t *testing.T) {
 	log.Info("Starting dispute test")
@@ -51,8 +53,8 @@ func TestDisputeMalloryCarol(t *testing.T) {
 	s := test.NewSetup(t, rng, 2, ctest.BlockInterval, TxFinalityDepth)
 	setup = ctest.MakeRoleSetups(s, name)
 
-	role[A] = clienttest.NewMallory(setup[A], t)
-	role[B] = clienttest.NewCarol(setup[B], t)
+	role[A] = clienttest.NewMallory(t, setup[A])
+	role[B] = clienttest.NewCarol(t, setup[B])
 
 	execConfig := &clienttest.MalloryCarolExecConfig{
 		BaseExecConfig: clienttest.MakeBaseExecConfig(
@@ -75,7 +77,8 @@ func TestDisputeMalloryCarol(t *testing.T) {
 		int64(execConfig.NumPayments[B])*execConfig.TxAmounts[B].Int64())
 	finalBal := [2]*big.Int{
 		new(big.Int).Sub(execConfig.InitBals()[A], netTransfer),
-		new(big.Int).Add(execConfig.InitBals()[B], netTransfer)}
+		new(big.Int).Add(execConfig.InitBals()[B], netTransfer),
+	}
 	// reset context timeout
 	ctx, cancel = context.WithTimeout(context.Background(), ctest.DefaultTimeout)
 	defer cancel()
