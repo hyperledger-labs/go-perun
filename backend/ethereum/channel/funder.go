@@ -213,17 +213,20 @@ func (f *Funder) fundAssets(ctx context.Context, channelID channel.ID, req chann
 // funding request. It is idempotent.
 func (f *Funder) sendFundingTx(ctx context.Context, request channel.FundingReq, contract assetHolder, fundingID [32]byte) (txs []*types.Transaction, fatal error) {
 	bal := request.Agreement[contract.assetIndex][request.Idx]
-	//nolint:gocritic
 	if bal == nil || bal.Sign() <= 0 {
 		f.log.WithFields(log.Fields{"channel": request.Params.ID(), "idx": request.Idx}).Debug("Skipped zero funding.")
-	} else if alreadyFunded, err := f.checkFunded(ctx, bal, contract, fundingID); err != nil {
+		return nil, nil
+	}
+
+	alreadyFunded, err := f.checkFunded(ctx, bal, contract, fundingID)
+	if err != nil {
 		return nil, errors.WithMessage(err, "checking funded")
 	} else if alreadyFunded {
 		f.log.WithFields(log.Fields{"channel": request.Params.ID(), "idx": request.Idx}).Debug("Skipped second funding.")
-	} else {
-		return f.deposit(ctx, bal, wallet.Address(*contract.Address), fundingID)
+		return nil, nil
 	}
-	return nil, nil
+
+	return f.deposit(ctx, bal, wallet.Address(*contract.Address), fundingID)
 }
 
 // deposit deposits funds for one funding-ID by calling the associated Depositor.
