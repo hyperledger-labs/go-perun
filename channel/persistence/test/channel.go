@@ -84,7 +84,7 @@ func NewRandomChannel(
 func requireEqualPeers(t require.TestingT, expected, actual []wire.Address) {
 	require.Equal(t, len(expected), len(actual))
 	for i, p := range expected {
-		if !p.Equals(actual[i]) {
+		if !p.Equal(actual[i]) {
 			t.Errorf("restored peers for channel do not match\nexpected: %v\nactual: %v",
 				actual, expected)
 			t.FailNow()

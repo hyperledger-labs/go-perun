@@ -52,7 +52,7 @@ func TestAddresses_Serializer(t *testing.T) {
 	iotest.GenericSerializerTest(t, &testAddresses{addrs})
 }
 
-func TestAddrKey_Equals(t *testing.T) {
+func TestAddrKey_Equal(t *testing.T) {
 	rng := pkgtest.Prng(t)
 	addrs := wallettest.NewRandomAddresses(rng, 10)
 
@@ -60,20 +60,20 @@ func TestAddrKey_Equals(t *testing.T) {
 	for i, a := range addrs {
 		for j, b := range addrs {
 			// Symmetry.
-			require.Equal(t, wallet.Key(a).Equals(b), wallet.Key(b).Equals(a))
-			// Test that Equals is equivalent to ==.
-			require.Equal(t, wallet.Key(a).Equals(b), wallet.Key(a) == wallet.Key(b))
+			require.Equal(t, wallet.Key(a).Equal(b), wallet.Key(b).Equal(a))
+			// Test that Equal is equivalent to ==.
+			require.Equal(t, wallet.Key(a).Equal(b), wallet.Key(a) == wallet.Key(b))
 			// Test that it is not trivially set to true or false.
-			require.Equal(t, i == j, wallet.Key(a).Equals(b))
+			require.Equal(t, i == j, wallet.Key(a).Equal(b))
 			// Transitivity.
 			for _, c := range addrs {
-				if wallet.Key(a).Equals(b) && wallet.Key(b).Equals(c) {
-					require.True(t, wallet.Key(a).Equals(c))
+				if wallet.Key(a).Equal(b) && wallet.Key(b).Equal(c) {
+					require.True(t, wallet.Key(a).Equal(c))
 				}
 			}
 		}
 		// Reflexivity.
-		require.True(t, wallet.Key(a).Equals(a))
+		require.True(t, wallet.Key(a).Equal(a))
 	}
 }
 
@@ -85,6 +85,6 @@ func TestAddrKey(t *testing.T) {
 		// Test that Key and FromKey are dual to each other.
 		require.Equal(t, wallet.Key(a), wallet.Key(wallet.FromKey(wallet.Key(a))))
 		// Test that FromKey returns the correct Address.
-		require.True(t, a.Equals(wallet.FromKey(wallet.Key(a))))
+		require.True(t, a.Equal(wallet.FromKey(wallet.Key(a))))
 	}
 }

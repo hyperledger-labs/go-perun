@@ -32,6 +32,6 @@ func TestRandomizer(t *testing.T) {
 	channel.RegisterApp(app)
 	regApp, err := channel.Resolve(app.Def())
 	assert.NoError(t, err)
-	assert.True(t, app.Def().Equals(regApp.Def()))
+	assert.True(t, app.Def().Equal(regApp.Def()))
 	assert.True(t, IsData(r.NewRandomData(rng)))
 }

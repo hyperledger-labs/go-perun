@@ -79,7 +79,7 @@ func VerifySignature(msg []byte, sig wallet.Sig, a wallet.Address) (bool, error)
 		return false, errors.WithStack(err)
 	}
 	addr := crypto.PubkeyToAddress(*pk)
-	return a.Equals((*Address)(&addr)), nil
+	return a.Equal((*Address)(&addr)), nil
 }
 
 // PrefixedHash adds an ethereum specific prefix to the hash of given data, rehashes the results

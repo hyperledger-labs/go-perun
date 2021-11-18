@@ -65,10 +65,10 @@ func (s *setup) Dial(ctx context.Context, addr wire.Address) (Conn, error) {
 	a, b := newPipeConnPair()
 
 	//nolint:gocritic
-	if addr.Equals(s.alice.endpoint.Address) { // Dialing Bob?
+	if addr.Equal(s.alice.endpoint.Address) { // Dialing Bob?
 		s.bob.Registry.addEndpoint(s.bob.endpoint.Address, b, true) // Bob accepts connection.
 		return a, nil
-	} else if addr.Equals(s.bob.endpoint.Address) { // Dialing Alice?
+	} else if addr.Equal(s.bob.endpoint.Address) { // Dialing Alice?
 		s.alice.Registry.addEndpoint(s.alice.endpoint.Address, a, true) // Alice accepts connection.
 		return b, nil
 	} else {

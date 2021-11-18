@@ -30,7 +30,7 @@ func TestApp_Def(t *testing.T) {
 	rng := pkgtest.Prng(t)
 	def := wallettest.NewRandomAddress(rng)
 	app := &App{def}
-	assert.True(t, def.Equals(app.Def()))
+	assert.True(t, def.Equal(app.Def()))
 }
 
 func TestApp_ValidInit(t *testing.T) {

@@ -59,9 +59,9 @@ func (a *Address) String() string {
 	return (*common.Address)(a).String()
 }
 
-// Equals checks the equality of two addresses. The implementation must be
+// Equal checks the equality of two addresses. The implementation must be
 // equivalent to checking `Address.Cmp(Address) == 0`.
-func (a *Address) Equals(addr wallet.Address) bool {
+func (a *Address) Equal(addr wallet.Address) bool {
 	return bytes.Equal(a.Bytes(), addr.(*Address).Bytes())
 }
 

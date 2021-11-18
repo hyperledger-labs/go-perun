@@ -33,9 +33,9 @@ type Address interface {
 	Bytes() []byte
 	// String converts this address to a string.
 	fmt.Stringer
-	// Equals returns wether the two addresses are equal. The implementation
+	// Equal returns wether the two addresses are equal. The implementation
 	// must be equivalent to checking `Address.Cmp(Address) == 0`.
-	Equals(Address) bool
+	Equal(Address) bool
 	// Cmp compares the byte representation of two addresses. For `a.Cmp(b)`
 	// returns -1 if a < b, 0 if a == b, 1 if a > b.
 	Cmp(Address) int
@@ -45,7 +45,7 @@ type Address interface {
 // or -1 if it is not part of the slice.
 func IndexOfAddr(addrs []Address, addr Address) int {
 	for i, a := range addrs {
-		if addr.Equals(a) {
+		if addr.Equal(a) {
 			return i
 		}
 	}
@@ -148,8 +148,8 @@ func FromKey(k AddrKey) Address {
 	return a
 }
 
-// Equals Returns whether the passed `Address` has the same key as the
+// Equal Returns whether the passed `Address` has the same key as the
 // receiving `AddrKey`.
-func (k AddrKey) Equals(a Address) bool {
+func (k AddrKey) Equal(a Address) bool {
 	return k == Key(a)
 }

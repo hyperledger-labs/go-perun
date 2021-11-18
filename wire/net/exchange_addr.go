@@ -74,8 +74,8 @@ func ExchangeAddrsActive(ctx context.Context, id wire.Account, peer wire.Address
 			err = errors.WithMessage(err, "receiving message")
 		} else if _, ok := e.Msg.(*wire.AuthResponseMsg); !ok {
 			err = errors.Errorf("expected AuthResponse wire msg, got %v", e.Msg.Type())
-		} else if !e.Recipient.Equals(id.Address()) &&
-			!e.Sender.Equals(peer) {
+		} else if !e.Recipient.Equal(id.Address()) &&
+			!e.Sender.Equal(peer) {
 			err = NewAuthenticationError(e.Sender, e.Recipient, id.Address(), "unmatched response sender or recipient")
 		}
 	})
@@ -99,7 +99,7 @@ func ExchangeAddrsPassive(ctx context.Context, id wire.Account, conn Conn) (wire
 			err = errors.WithMessage(err, "receiving auth message")
 		} else if _, ok := e.Msg.(*wire.AuthResponseMsg); !ok {
 			err = errors.Errorf("expected AuthResponse wire msg, got %v", e.Msg.Type())
-		} else if !e.Recipient.Equals(id.Address()) {
+		} else if !e.Recipient.Equal(id.Address()) {
 			err = NewAuthenticationError(e.Sender, e.Recipient, id.Address(), "unmatched response sender or recipient")
 		}
 		if err != nil {

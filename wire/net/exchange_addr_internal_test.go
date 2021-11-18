@@ -51,7 +51,7 @@ func TestExchangeAddrs_Success(t *testing.T) {
 
 		recvAddr0, err := ExchangeAddrsPassive(context.Background(), account1, conn1)
 		assert.NoError(t, err)
-		assert.True(t, recvAddr0.Equals(account0.Address()))
+		assert.True(t, recvAddr0.Equal(account0.Address()))
 	}()
 
 	err := ExchangeAddrsActive(context.Background(), account0, account1.Address(), conn0)

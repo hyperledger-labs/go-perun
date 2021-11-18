@@ -49,6 +49,7 @@ linters-settings:
     forbid:
       # Forbid functions to start with "get" or "Get".
       - ^[Gg]et.*$
+      - ^[Ee]quals$
       # Default values:
       - ^print.*$
       - 'fmt\.Print.*'

@@ -33,12 +33,12 @@ func TestResolver(t *testing.T) {
 	assert, require := assert.New(t), require.New(t)
 
 	def := test.NewRandomAddress(rng)
-	channel.RegisterAppResolver(def.Equals, &Resolver{})
+	channel.RegisterAppResolver(def.Equal, &Resolver{})
 
 	app, err := channel.Resolve(def)
 	assert.NoError(err)
 	require.NotNil(app)
-	assert.True(def.Equals(app.Def()))
+	assert.True(def.Equal(app.Def()))
 }
 
 func TestData(t *testing.T) {

@@ -169,7 +169,7 @@ func (r *EndpointRegistry) setupConn(conn Conn) error {
 		return err
 	}
 
-	if peerAddr.Equals(r.id.Address()) {
+	if peerAddr.Equal(r.id.Address()) {
 		r.Log().Error("dialed by self")
 		return errors.New("dialed by self")
 	}
@@ -185,7 +185,7 @@ func (r *EndpointRegistry) Endpoint(ctx context.Context, addr wire.Address) (*En
 	log := r.Log().WithField("peer", addr)
 	key := wallet.Key(addr)
 
-	if addr.Equals(r.id.Address()) {
+	if addr.Equal(r.id.Address()) {
 		log.Panic("tried to dial self")
 	}
 
