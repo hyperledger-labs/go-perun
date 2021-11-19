@@ -28,7 +28,6 @@ linters:
     # These could be enabled in the future:
     - ifshort # we often don't use `if err := …` for readability.
     - tparallel # We don't always use parallel tests.
-    - contextcheck # Wants contexts to be always passed down.
 
     # Deprecated:
     - maligned
@@ -64,6 +63,8 @@ issues:
         - forcetypeassert
         # Can create dynamic errors with errors.New.
         - goerr113
+        # Can derive contexts from context.Background() in nested calls.
+        - contextcheck
 
     # We always use testing.T as first argument in testing functions,
     # therefore disable the "context must be the first argument" check in tests.
