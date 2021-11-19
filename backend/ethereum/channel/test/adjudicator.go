@@ -121,7 +121,7 @@ func (t *SimTimeout) IsElapsed(ctx context.Context) bool {
 	}
 	defer t.sb.clockMu.Unlock()
 
-	return t.timeLeft() <= 0
+	return t.timeLeft(ctx) <= 0
 }
 
 // Wait advances the clock of the simulated blockchain past the timeout.
@@ -132,7 +132,7 @@ func (t *SimTimeout) Wait(ctx context.Context) error {
 	}
 	defer t.sb.clockMu.Unlock()
 
-	if d := t.timeLeft(); d > 0 {
+	if d := t.timeLeft(ctx); d > 0 {
 		if err := t.sb.AdjustTime(time.Duration(d) * time.Second); err != nil {
 			return errors.Wrap(err, "adjusting time")
 		}
@@ -141,10 +141,10 @@ func (t *SimTimeout) Wait(ctx context.Context) error {
 	return nil
 }
 
-func (t *SimTimeout) timeLeft() int64 {
+func (t *SimTimeout) timeLeft(ctx context.Context) int64 {
 	// context is ignored by sim blockchain anyways
-	h, err := t.sb.HeaderByNumber(nil, nil) //nolint:staticcheck
-	if err != nil {                         // should never happen with a sim blockchain
+	h, err := t.sb.HeaderByNumber(ctx, nil)
+	if err != nil { // should never happen with a sim blockchain
 		panic(fmt.Sprint("Error getting latest block: ", err))
 	}
 	return int64(t.Time) - int64(h.Time)
