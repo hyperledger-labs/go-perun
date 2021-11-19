@@ -18,7 +18,7 @@ import (
 	"bufio"
 	"bytes"
 	"crypto/ecdsa"
-	"encoding/hex"
+	"fmt"
 	"io"
 	"math/big"
 
@@ -87,15 +87,7 @@ func (a *Address) ByteArray() (data [AddrLen]byte) {
 
 // String converts this address to a human-readable string.
 func (a *Address) String() string {
-	const length = 4
-	// Encode the address directly instead of using Address.Bytes() because
-	// * some addresses may have a very short encoding, e.g., the null address,
-	// * the Address.Bytes() output may contain encoding information, e.g., the
-	//   length.
-	bs := make([]byte, length)
-	copy(bs, a.X.Bytes())
-
-	return "0x" + hex.EncodeToString(bs)
+	return fmt.Sprintf("0x%x", a.ByteArray())
 }
 
 // Equal checks the equality of two addresses. The implementation must be
