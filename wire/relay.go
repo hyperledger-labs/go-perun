@@ -44,6 +44,15 @@ func NewRelay() *Relay {
 	return &Relay{defaultMsgHandler: logUnhandledMsg}
 }
 
+// NewRelayNeverForget returns a new Relay which caches all messages
+// until it is closed.
+func NewRelayNeverForget() *Relay {
+	relay := NewRelay()
+	relay.Cache(context.Background(), func(*Envelope) bool { return true })
+
+	return relay
+}
+
 // Close closes the relay.
 func (p *Relay) Close() error {
 	if err := p.Closer.Close(); err != nil {

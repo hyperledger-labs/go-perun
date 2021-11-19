@@ -44,9 +44,7 @@ type channelConn struct {
 // subscribes on the subscriber to all messages regarding this channel.
 func newChannelConn(id channel.ID, peers []wire.Address, idx channel.Index, sub wire.Subscriber, pub wire.Publisher) (_ *channelConn, err error) {
 	// relay to receive all update responses
-	relay := wire.NewRelay()
-	// we cache all responses for the lifetime of the relay
-	relay.Cache(context.Background(), func(*wire.Envelope) bool { return true })
+	relay := wire.NewRelayNeverForget()
 	// Close the relay if anything goes wrong in the following.
 	// We could have a leaky subscription otherwise.
 	defer func() {
