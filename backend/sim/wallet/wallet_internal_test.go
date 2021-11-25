@@ -78,12 +78,13 @@ func TestGenericTests(t *testing.T) {
 		assert.NotEqual(
 			t, addr0, addr1, "Two random accounts should not be the same")
 
+		addrStrLen := AddrLen*2 + 2 // hex encoded and prefixed with 0x
 		str0 := addr0.String()
 		str1 := addr1.String()
 		assert.Equal(
-			t, 10, len(str0), "First address '%v' has wrong length", str0)
+			t, addrStrLen, len(str0), "First address '%v' has wrong length", str0)
 		assert.Equal(
-			t, 10, len(str1), "Second address '%v' has wrong length", str1)
+			t, addrStrLen, len(str1), "Second address '%v' has wrong length", str1)
 		assert.NotEqual(
 			t, str0, str1, "Printed addresses are unlikely to be identical")
 	}
