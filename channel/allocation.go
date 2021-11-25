@@ -15,7 +15,6 @@
 package channel
 
 import (
-	"bytes"
 	"encoding"
 	"io"
 	"log"
@@ -123,7 +122,7 @@ func NewAllocation(numParts int, assets ...Asset) *Allocation {
 // AssetIndex returns the index of the asset in the allocation.
 func (a *Allocation) AssetIndex(asset Asset) (Index, bool) {
 	for idx, _asset := range a.Assets {
-		if ok, err := equalMarshaling(asset, _asset); ok && err == nil {
+		if ok, err := perunio.EqualBinary(asset, _asset); ok && err == nil {
 			return Index(idx), true
 		}
 	}
@@ -601,7 +600,7 @@ func AssetsAssertEqual(a []Asset, b []Asset) error {
 	}
 
 	for i, asset := range a {
-		if ok, err := equalMarshaling(asset, b[i]); err != nil {
+		if ok, err := perunio.EqualBinary(asset, b[i]); err != nil {
 			return errors.WithMessagef(err, "comparing encoding at index %d", i)
 		} else if !ok {
 			return errors.Errorf("value mismatch at index %d", i)
@@ -609,28 +608,6 @@ func AssetsAssertEqual(a []Asset, b []Asset) error {
 	}
 
 	return nil
-}
-
-func equalMarshaling(a, b encoding.BinaryMarshaler) (bool, error) {
-	// golang does not have a XOR
-	if (a == nil) != (b == nil) {
-		return false, errors.New("only one argument was nil")
-	}
-	// just using a == b would be too easy here since go panics
-	if (a == nil) && (b == nil) {
-		return true, nil
-	}
-
-	encodedA, err := a.MarshalBinary()
-	if err != nil {
-		return false, errors.Wrap(err, "EqualEncoding encode error")
-	}
-	encodedB, err := b.MarshalBinary()
-	if err != nil {
-		return false, errors.Wrap(err, "EqualEncoding encode error")
-	}
-
-	return bytes.Equal(encodedA, encodedB), nil
 }
 
 var _ perunio.Serializer = new(SubAlloc)
