@@ -42,7 +42,7 @@ func TestAddressMarshalling(t *testing.T) {
 			X: new(big.Int).SetBytes(dest[:ElemLen]),
 			Y: new(big.Int).SetBytes(dest[ElemLen:]),
 		}
-		result := addr.ByteArray()
+		result := addr.Bytes()
 		assert.Equal(t, result[:], dest[:])
 	})
 
@@ -57,7 +57,7 @@ func TestAddressMarshalling(t *testing.T) {
 			X: new(big.Int).SetBytes(dest[:ElemLen]),
 			Y: new(big.Int).SetBytes(dest[ElemLen:]),
 		}
-		result := addr.ByteArray()
+		result := addr.Bytes()
 		assert.Equal(t, result[:], dest[:])
 	})
 }

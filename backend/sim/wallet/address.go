@@ -57,13 +57,13 @@ func NewRandomAddress(rng io.Reader) *Address {
 
 // Bytes converts this address to bytes.
 func (a *Address) Bytes() []byte {
-	data := a.ByteArray()
+	data := a.byteArray()
 	return data[:]
 }
 
 // ByteArray converts an address into a 64-byte array. The returned array
 // consists of two 32-byte chunks representing the public key's X and Y values.
-func (a *Address) ByteArray() (data [AddressBinaryLen]byte) {
+func (a *Address) byteArray() (data [AddressBinaryLen]byte) {
 	xb := a.X.Bytes()
 	yb := a.Y.Bytes()
 
@@ -76,7 +76,7 @@ func (a *Address) ByteArray() (data [AddressBinaryLen]byte) {
 
 // String converts this address to a human-readable string.
 func (a *Address) String() string {
-	return fmt.Sprintf("0x%x", a.ByteArray())
+	return fmt.Sprintf("0x%x", a.byteArray())
 }
 
 // Equal checks the equality of two addresses. The implementation must be
@@ -112,7 +112,7 @@ func (a *Address) Cmp(addr wallet.Address) int {
 // MarshalBinary marshals the address into its binary representation.
 // Error will always be nil, it is for implementing BinaryMarshaler.
 func (a *Address) MarshalBinary() ([]byte, error) {
-	data := a.ByteArray()
+	data := a.byteArray()
 	return data[:], nil
 }
 
