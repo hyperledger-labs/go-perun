@@ -49,10 +49,11 @@ func TestAddress(t *testing.T, s *Setup) { //nolint:revive // `test.Test...` stu
 	assert.Negative(t, null.Cmp(addr), "Expected null < addr")
 
 	// Test Address.Bytes.
-	addrBytes := addr.Bytes()
-	nullBytes := null.Bytes()
+	addrBytes, err := addr.MarshalBinary()
+	assert.NoError(t, err, "Marshaling address should not error")
+	nullBytes, err := null.MarshalBinary()
+	assert.NoError(t, err, "Marshaling zero address should not error")
 	assert.False(t, bytes.Equal(addrBytes, nullBytes), "Expected inequality of byte representations of nonzero and zero address")
-	assert.True(t, bytes.Equal(addrBytes, addr.Bytes()), "Expected that byte representations do not change")
 
 	// a.Equal(Decode(Encode(a)))
 	t.Run("Serialize Equal Test", func(t *testing.T) {

@@ -36,8 +36,6 @@ type Address interface {
 	// binary format (a byte array).
 	encoding.BinaryUnmarshaler
 
-	// Bytes should return the representation of the address as byte slice.
-	Bytes() []byte
 	// String converts this address to a string.
 	fmt.Stringer
 	// Equal returns wether the two addresses are equal. The implementation

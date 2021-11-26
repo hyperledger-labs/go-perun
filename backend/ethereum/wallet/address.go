@@ -33,8 +33,8 @@ var _ wallet.Address = (*Address)(nil)
 // Address represents an ethereum address as a perun address.
 type Address common.Address
 
-// Bytes returns the address as a byte slice.
-func (a *Address) Bytes() []byte {
+// bytes returns the address as a byte slice.
+func (a *Address) bytes() []byte {
 	return (*common.Address)(a).Bytes()
 }
 
@@ -62,7 +62,7 @@ func (a *Address) String() string {
 // Equal checks the equality of two addresses. The implementation must be
 // equivalent to checking `Address.Cmp(Address) == 0`.
 func (a *Address) Equal(addr wallet.Address) bool {
-	return bytes.Equal(a.Bytes(), addr.(*Address).Bytes())
+	return bytes.Equal(a.bytes(), addr.(*Address).bytes())
 }
 
 // Cmp checks ordering of two addresses.
@@ -71,7 +71,7 @@ func (a *Address) Equal(addr wallet.Address) bool {
 // +1 if a > b.
 // https://godoc.org/bytes#Compare
 func (a *Address) Cmp(addr wallet.Address) int {
-	return bytes.Compare(a.Bytes(), addr.(*Address).Bytes())
+	return bytes.Compare(a.bytes(), addr.(*Address).bytes())
 }
 
 // AsEthAddr is a helper function to convert an address interface back into an

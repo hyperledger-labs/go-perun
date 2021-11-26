@@ -42,7 +42,8 @@ func TestAddressMarshalling(t *testing.T) {
 			X: new(big.Int).SetBytes(dest[:ElemLen]),
 			Y: new(big.Int).SetBytes(dest[ElemLen:]),
 		}
-		result := addr.Bytes()
+		result, err := addr.MarshalBinary()
+		assert.NoError(t, err, "marshaling address should not error")
 		assert.Equal(t, result[:], dest[:])
 	})
 
@@ -57,7 +58,8 @@ func TestAddressMarshalling(t *testing.T) {
 			X: new(big.Int).SetBytes(dest[:ElemLen]),
 			Y: new(big.Int).SetBytes(dest[ElemLen:]),
 		}
-		result := addr.Bytes()
+		result, err := addr.MarshalBinary()
+		assert.NoError(t, err, "marshaling address should not error")
 		assert.Equal(t, result[:], dest[:])
 	})
 }
