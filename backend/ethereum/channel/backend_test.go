@@ -29,12 +29,45 @@ import (
 	"perun.network/go-perun/backend/ethereum/channel"
 	ethchanneltest "perun.network/go-perun/backend/ethereum/channel/test"
 	ethwallettest "perun.network/go-perun/backend/ethereum/wallet/test"
+	perunchannel "perun.network/go-perun/channel"
 	"perun.network/go-perun/channel/test"
 	perunwallet "perun.network/go-perun/wallet"
 	wallettest "perun.network/go-perun/wallet/test"
 	iotest "polycry.pt/poly-go/io/test"
 	pkgtest "polycry.pt/poly-go/test"
 )
+
+func TestState_ToAndFromEth(t *testing.T) {
+	t.Parallel()
+
+	t.Run("without-sub-channels", func(t *testing.T) {
+		t.Parallel()
+		rng := pkgtest.Prng(t)
+
+		for i := 0; i < 100; i++ {
+			state := test.NewRandomState(rng)
+			testToAndFromEthState(t, state)
+		}
+	})
+	t.Run("with-sub-channels", func(t *testing.T) {
+		t.Parallel()
+		rng := pkgtest.Prng(t)
+
+		for i := 0; i < 100; i++ {
+			state := test.NewRandomState(rng, test.WithNumLocked(int(rng.Int31n(10))))
+			testToAndFromEthState(t, state)
+		}
+	})
+}
+
+// testToAndFromEthState tests that ToEthState and FromEthState work together.
+func testToAndFromEthState(t *testing.T, state *perunchannel.State) {
+	t.Helper()
+	ethState := channel.ToEthState(state)
+	recovered := channel.FromEthState(state.App, &ethState)
+
+	assert.NoError(t, state.Equal(&recovered))
+}
 
 func TestAdjudicator_PureFunctions(t *testing.T) {
 	rng := pkgtest.Prng(t)
