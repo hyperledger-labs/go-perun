@@ -54,10 +54,12 @@ func (env *Envelope) Encode(w io.Writer) error {
 
 // Decode decodes an Envelope from an io.Reader.
 func (env *Envelope) Decode(r io.Reader) (err error) {
-	if env.Sender, err = DecodeAddress(r); err != nil {
+	env.Sender = NewAddress()
+	if err = perunio.Decode(r, env.Sender); err != nil {
 		return err
 	}
-	if env.Recipient, err = DecodeAddress(r); err != nil {
+	env.Recipient = NewAddress()
+	if err = perunio.Decode(r, env.Recipient); err != nil {
 		return err
 	}
 	env.Msg, err = Decode(r)
