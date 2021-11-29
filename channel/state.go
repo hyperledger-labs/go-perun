@@ -50,9 +50,14 @@ type (
 	}
 
 	// Data is the data of the application running in this app channel.
-	// Decoding happens with App.DecodeData.
+	//
+	// It is sent as binary data over the wire. For unmarshaling a data from
+	// binary representation, use App.NewData() to create an instance of Data
+	// specific to this application and then unmarshal using it.
 	Data interface {
-		perunio.Encoder
+		encoding.BinaryMarshaler
+		encoding.BinaryUnmarshaler
+
 		// Clone should return a deep copy of the Data object.
 		// It should return nil if the Data object is nil.
 		Clone() Data
