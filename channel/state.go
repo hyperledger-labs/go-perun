@@ -104,20 +104,16 @@ func (s *State) Clone() *State {
 
 // Encode encodes a state into an `io.Writer` or returns an `error`.
 func (s State) Encode(w io.Writer) error {
-	err := perunio.Encode(w, s.ID, s.Version, s.Allocation, s.IsFinal, OptAppEnc{s.App}, s.Data)
-	return errors.WithMessage(err, "state encode")
+	return errors.WithMessage(
+		perunio.Encode(w, s.ID, s.Version, s.Allocation, s.IsFinal, OptAppAndDataEnc{s.App, s.Data}),
+		"state encode")
 }
 
 // Decode decodes a state from an `io.Reader` or returns an `error`.
 func (s *State) Decode(r io.Reader) error {
-	// Decode ID, Version, Allocation, IsFinal, App
-	err := perunio.Decode(r, &s.ID, &s.Version, &s.Allocation, &s.IsFinal, OptAppDec{&s.App})
-	if err != nil {
-		return errors.WithMessage(err, "id or version decode")
-	}
-	// Decode app data
-	s.Data, err = s.App.DecodeData(r)
-	return errors.WithMessage(err, "app decode data")
+	return errors.WithMessage(
+		perunio.Decode(r, &s.ID, &s.Version, &s.Allocation, &s.IsFinal, &OptAppAndDataDec{&s.App, &s.Data}),
+		"app decode")
 }
 
 // Equal returns whether two `State` objects are equal.

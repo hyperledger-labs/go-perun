@@ -187,9 +187,9 @@ func (p BaseChannelProposal) NumPeers() int {
 
 // Encode encodes the BaseChannelProposal into an io.Writer.
 func (p BaseChannelProposal) Encode(w io.Writer) error {
-	return perunio.Encode(w,
-		p.ChallengeDuration, p.NonceShare,
-		OptAppAndDataEnc{p.App, p.InitData}, p.InitBals, p.FundingAgreement)
+	optAppAndDataEnc := channel.OptAppAndDataEnc{App: p.App, Data: p.InitData}
+	return perunio.Encode(w, p.ChallengeDuration, p.NonceShare,
+		optAppAndDataEnc, p.InitBals, p.FundingAgreement)
 }
 
 // ProposalID returns the identifier of this channel proposal.
@@ -203,40 +203,14 @@ func (p BaseChannelProposal) ProposalID() (propID ProposalID) {
 	return
 }
 
-// OptAppAndDataEnc makes an optional pair of App definition and Data encodable.
-type OptAppAndDataEnc struct {
-	channel.App
-	channel.Data
-}
-
-// Encode encodes an optional pair of App definition and Data.
-func (o OptAppAndDataEnc) Encode(w io.Writer) error {
-	return perunio.Encode(w, channel.OptAppEnc{App: o.App}, o.Data)
-}
-
-// OptAppAndDataDec makes an optional pair of App definition and Data decodable.
-type OptAppAndDataDec struct {
-	App  *channel.App
-	Data *channel.Data
-}
-
-// Decode decodes an optional pair of App definition and Data.
-func (o OptAppAndDataDec) Decode(r io.Reader) (err error) {
-	if err = perunio.Decode(r, channel.OptAppDec{App: o.App}); err != nil {
-		return err
-	}
-	*o.Data, err = (*o.App).DecodeData(r)
-	return err
-}
-
 // Decode decodes a BaseChannelProposal from an io.Reader.
 func (p *BaseChannelProposal) Decode(r io.Reader) (err error) {
 	if p.InitBals == nil {
 		p.InitBals = new(channel.Allocation)
 	}
-
+	optAppAndDataDec := channel.OptAppAndDataDec{App: &p.App, Data: &p.InitData}
 	return perunio.Decode(r, &p.ChallengeDuration, &p.NonceShare,
-		OptAppAndDataDec{&p.App, &p.InitData}, p.InitBals, &p.FundingAgreement)
+		optAppAndDataDec, p.InitBals, &p.FundingAgreement)
 }
 
 // Valid checks that the channel proposal is valid:

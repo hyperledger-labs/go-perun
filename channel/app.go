@@ -163,6 +163,33 @@ func (d OptAppDec) Decode(r io.Reader) (err error) {
 	return errors.WithMessage(err, "resolve app")
 }
 
+// OptAppAndDataEnc makes an optional pair of App definition and Data encodable.
+type OptAppAndDataEnc struct {
+	App  App
+	Data Data
+}
+
+// Encode encodes an optional pair of App definition and Data.
+func (o OptAppAndDataEnc) Encode(w io.Writer) error {
+	return perunio.Encode(w, OptAppEnc{App: o.App}, o.Data)
+}
+
+// OptAppAndDataDec makes an optional pair of App definition and Data decodable.
+type OptAppAndDataDec struct {
+	App  *App
+	Data *Data
+}
+
+// Decode decodes an optional pair of App definition and Data.
+func (o OptAppAndDataDec) Decode(r io.Reader) (err error) {
+	if err = perunio.Decode(r, OptAppDec{App: o.App}); err != nil {
+		return err
+	}
+
+	*o.Data = (*o.App).NewData()
+	return perunio.Decode(r, *o.Data)
+}
+
 // AppShouldEqual compares two Apps for equality.
 func AppShouldEqual(expected, actual App) error {
 	if IsNoApp(expected) && IsNoApp(actual) {
