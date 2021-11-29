@@ -19,8 +19,8 @@ import (
 
 	"github.com/pkg/errors"
 
+	perunio "perun.network/go-perun/pkg/io"
 	"perun.network/go-perun/wallet"
-	perunio "polycry.pt/poly-go/io"
 )
 
 // MockApp a mocked App whose behaviour is determined by the MockOp passed to it either as State.Data or Action.

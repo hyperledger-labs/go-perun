@@ -20,7 +20,7 @@ import (
 	_ "perun.network/go-perun/backend/sim" // backend init
 	"perun.network/go-perun/channel"
 	"perun.network/go-perun/channel/test"
-	iotest "polycry.pt/poly-go/io/test"
+	iotest "perun.network/go-perun/pkg/io/test"
 	pkgtest "polycry.pt/poly-go/test"
 )
 

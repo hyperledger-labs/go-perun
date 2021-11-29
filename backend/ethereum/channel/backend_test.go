@@ -31,9 +31,9 @@ import (
 	ethwallettest "perun.network/go-perun/backend/ethereum/wallet/test"
 	perunchannel "perun.network/go-perun/channel"
 	"perun.network/go-perun/channel/test"
+	iotest "perun.network/go-perun/pkg/io/test"
 	perunwallet "perun.network/go-perun/wallet"
 	wallettest "perun.network/go-perun/wallet/test"
-	iotest "polycry.pt/poly-go/io/test"
 	pkgtest "polycry.pt/poly-go/test"
 )
 

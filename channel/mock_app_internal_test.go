@@ -19,8 +19,8 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
+	iotest "perun.network/go-perun/pkg/io/test"
 	wallettest "perun.network/go-perun/wallet/test"
-	iotest "polycry.pt/poly-go/io/test"
 	pkgtest "polycry.pt/poly-go/test"
 )
 

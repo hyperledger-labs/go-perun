@@ -21,7 +21,7 @@ import (
 
 	"github.com/pkg/errors"
 
-	perunio "polycry.pt/poly-go/io"
+	perunio "perun.network/go-perun/pkg/io"
 )
 
 type (
