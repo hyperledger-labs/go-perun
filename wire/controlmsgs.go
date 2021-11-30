@@ -18,7 +18,7 @@ import (
 	"io"
 	"time"
 
-	perunio "polycry.pt/poly-go/io"
+	perunio "perun.network/go-perun/pkg/io"
 )
 
 func init() {

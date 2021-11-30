@@ -12,29 +12,5 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package wire
-
-import (
-	"io"
-	"testing"
-
-	"perun.network/go-perun/pkg/io/test"
-)
-
-type serializerMsg struct {
-	Msg Msg
-}
-
-func (msg *serializerMsg) Encode(writer io.Writer) error {
-	return Encode(msg.Msg, writer)
-}
-
-func (msg *serializerMsg) Decode(reader io.Reader) (err error) {
-	msg.Msg, err = Decode(reader)
-	return err
-}
-
-// TestMsg performs generic tests on a wire.Msg object.
-func TestMsg(t *testing.T, msg Msg) {
-	test.GenericSerializerTest(t, &serializerMsg{msg})
-}
+// Package io contains functionality for the serialization of standard Go types.
+package io // import "perun.network/go-perun/pkg/io"

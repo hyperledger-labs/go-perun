@@ -12,34 +12,30 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package channel
+package io
 
 import (
 	"io"
-	"math/rand"
-
-	"perun.network/go-perun/channel"
-	perunio "perun.network/go-perun/pkg/io"
 )
 
-// Asset simulates a `channel.Asset` by only containing an `ID`.
-type Asset struct {
-	ID int64
-}
+type (
+	// Serializer objects can be serialized into and from streams.
+	Serializer interface {
+		Encoder
+		Decoder
+	}
 
-var _ channel.Asset = new(Asset)
+	// An Encoder can encode itself into a stream.
+	Encoder interface {
+		// Encode writes itself to a stream.
+		// If the stream fails, the underlying error is returned.
+		Encode(io.Writer) error
+	}
 
-// NewRandomAsset returns a new random sim Asset.
-func NewRandomAsset(rng *rand.Rand) *Asset {
-	return &Asset{ID: rng.Int63()}
-}
-
-// Encode encodes a sim Asset into the io.Writer `w`.
-func (a Asset) Encode(w io.Writer) error {
-	return perunio.Encode(w, a.ID)
-}
-
-// Decode decodes a sim Asset from the io.Reader `r`.
-func (a *Asset) Decode(r io.Reader) error {
-	return perunio.Decode(r, &a.ID)
-}
+	// A Decoder can decode itself from a stream.
+	Decoder interface {
+		// Decode reads an object from a stream.
+		// If the stream fails, the underlying error is returned.
+		Decode(io.Reader) error
+	}
+)

@@ -25,8 +25,8 @@ import (
 
 	"perun.network/go-perun/channel"
 	"perun.network/go-perun/log"
+	"perun.network/go-perun/pkg/io"
 	"perun.network/go-perun/wallet"
-	"polycry.pt/poly-go/io"
 )
 
 type (

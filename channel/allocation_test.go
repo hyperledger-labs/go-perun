@@ -24,8 +24,8 @@ import (
 
 	"perun.network/go-perun/channel"
 	"perun.network/go-perun/channel/test"
-	perunio "polycry.pt/poly-go/io"
-	iotest "polycry.pt/poly-go/io/test"
+	perunio "perun.network/go-perun/pkg/io"
+	iotest "perun.network/go-perun/pkg/io/test"
 	pkgbig "polycry.pt/poly-go/math/big"
 	pkgtest "polycry.pt/poly-go/test"
 )

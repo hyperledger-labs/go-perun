@@ -24,10 +24,10 @@ import (
 
 	"perun.network/go-perun/channel"
 	"perun.network/go-perun/log"
+	"perun.network/go-perun/pkg/io"
 	"perun.network/go-perun/wallet"
 	"perun.network/go-perun/wire"
 	pcontext "polycry.pt/poly-go/context"
-	"polycry.pt/poly-go/io"
 	"polycry.pt/poly-go/sync/atomic"
 )
 
