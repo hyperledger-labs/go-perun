@@ -44,7 +44,7 @@ func TestAddressMarshalling(t *testing.T) {
 		}
 		result, err := addr.MarshalBinary()
 		assert.NoError(t, err, "marshaling address should not error")
-		assert.Equal(t, result[:], dest[:])
+		assert.Equal(t, result, dest[:])
 	})
 
 	t.Run("half length", func(t *testing.T) {
@@ -60,7 +60,7 @@ func TestAddressMarshalling(t *testing.T) {
 		}
 		result, err := addr.MarshalBinary()
 		assert.NoError(t, err, "marshaling address should not error")
-		assert.Equal(t, result[:], dest[:])
+		assert.Equal(t, result, dest[:])
 	})
 }
 

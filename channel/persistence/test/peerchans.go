@@ -75,7 +75,7 @@ func (pc peerChans) Delete(id channel.ID) {
 }
 
 func peerKey(a wire.Address) string {
-	var key = new(bytes.Buffer)
+	key := new(bytes.Buffer)
 	err := io.Encode(key, a)
 	if err != nil {
 		panic("error encoding peer key: " + err.Error())
