@@ -47,7 +47,7 @@ func (a *Address) MarshalBinary() ([]byte, error) {
 // UnmarshalBinary unmarshals the address from its binary representation.
 func (a *Address) UnmarshalBinary(data []byte) error {
 	if len(data) != AddressBinaryLen {
-		return fmt.Errorf("unexpected address length %d, want %d", len(data), AddressBinaryLen)
+		return fmt.Errorf("unexpected address length %d, want %d", len(data), AddressBinaryLen) //nolint: goerr113
 	}
 
 	(*common.Address)(a).SetBytes(data)

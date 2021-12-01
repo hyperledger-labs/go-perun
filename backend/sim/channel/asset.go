@@ -50,7 +50,7 @@ func (a Asset) MarshalBinary() ([]byte, error) {
 // UnmarshalBinary unmarshals the asset from its binary representation.
 func (a *Asset) UnmarshalBinary(data []byte) error {
 	if len(data) != AssetBinaryLen {
-		return fmt.Errorf("unexpected address length %d, want %d", len(data), AssetBinaryLen)
+		return fmt.Errorf("unexpected address length %d, want %d", len(data), AssetBinaryLen) //nolint: goerr113
 	}
 	return perunio.Decode(bytes.NewBuffer(data), &a.ID)
 }
