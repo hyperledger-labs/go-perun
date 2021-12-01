@@ -19,10 +19,19 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	"polycry.pt/poly-go/test"
+	pkgtest "polycry.pt/poly-go/test"
+
+	"perun.network/go-perun/pkg/io/test"
 )
 
-func TestAddress_ByteArray(t *testing.T) {
+func TestGenericMarshaler(t *testing.T) {
+	rng := pkgtest.Prng(t)
+	for n := 0; n < 10; n++ {
+		test.GenericMarshalerTest(t, NewRandomAddress(rng))
+	}
+}
+
+func TestAddressMarshalling(t *testing.T) {
 	dest := [AddressBinaryLen]byte{}
 	t.Run("full length", func(t *testing.T) {
 		for i := range dest {
@@ -55,7 +64,7 @@ func TestAddress_ByteArray(t *testing.T) {
 
 func TestAddressOrdering(t *testing.T) {
 	const EQ, LT, GT = 0, -1, 1
-	rng := test.Prng(t)
+	rng := pkgtest.Prng(t)
 
 	type addrTest struct {
 		addr     [2]*Address
