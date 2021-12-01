@@ -15,9 +15,10 @@
 package test
 
 import (
-	"strings"
+	"bytes"
 
 	"perun.network/go-perun/channel"
+	"perun.network/go-perun/pkg/io"
 	"perun.network/go-perun/wire"
 )
 
@@ -73,10 +74,17 @@ func (pc peerChans) Delete(id channel.ID) {
 	}
 }
 
-func peerKey(a wire.Address) string { return string(a.Bytes()) }
+func peerKey(a wire.Address) string {
+	var key = new(bytes.Buffer)
+	err := io.Encode(key, a)
+	if err != nil {
+		panic("error encoding peer key: " + err.Error())
+	}
+	return key.String()
+}
 
 func peerFromKey(s string) wire.Address {
-	p, err := wire.DecodeAddress(strings.NewReader(s))
+	p, err := wire.DecodeAddress(bytes.NewBuffer([]byte(s)))
 	if err != nil {
 		panic("error decoding peer key: " + err.Error())
 	}
