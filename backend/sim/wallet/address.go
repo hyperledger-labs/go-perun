@@ -31,10 +31,13 @@ import (
 type Address ecdsa.PublicKey
 
 const (
-	// ElemLen is the length of an encoded address element in byte.
+	// ElemLen is the length of the binary representation of a single element
+	// of the address in bytes.
 	ElemLen = 32
-	// AddrLen is the length of an encoded address in byte.
-	AddrLen = 2 * ElemLen
+
+	// AddressBinaryLength is the length of the binary representation of
+	// Address in bytes.
+	AddressBinaryLen = 2 * ElemLen
 )
 
 // compile time check that we implement the perun Address interface.
@@ -63,13 +66,13 @@ func (a *Address) Bytes() []byte {
 
 // ByteArray converts an address into a 64-byte array. The returned array
 // consists of two 32-byte chunks representing the public key's X and Y values.
-func (a *Address) ByteArray() (data [AddrLen]byte) {
+func (a *Address) ByteArray() (data [AddressBinaryLen]byte) {
 	xb := a.X.Bytes()
 	yb := a.Y.Bytes()
 
 	// Left-pad with 0 bytes.
 	copy(data[ElemLen-len(xb):ElemLen], xb)
-	copy(data[AddrLen-len(yb):AddrLen], yb)
+	copy(data[AddressBinaryLen-len(yb):AddressBinaryLen], yb)
 
 	return data
 }
@@ -119,7 +122,16 @@ func (a *Address) MarshalBinary() ([]byte, error) {
 // Decode decodes an address from an io.Reader. Part of the
 // go-perun/pkg/io.Serializer interface.
 func (a *Address) Decode(r io.Reader) error {
-	data := make([]byte, AddrLen)
+	var length uint16
+	err := perunio.Decode(r, &length)
+	if err != nil {
+		return err
+	}
+	if length != AddressBinaryLen {
+		return fmt.Errorf("unexpected address length %d, want %d", length, AddressBinaryLen)
+	}
+
+	data := make([]byte, length)
 	if err := perunio.Decode(r, &data); err != nil {
 		return errors.WithMessage(err, "decoding address")
 	}

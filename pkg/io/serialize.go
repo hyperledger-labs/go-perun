@@ -25,6 +25,8 @@ import (
 	"github.com/pkg/errors"
 )
 
+const uint16MaxValue = 0xFFFF
+
 var byteOrder = binary.LittleEndian
 
 // Encode encodes multiple primitive values into a writer.
@@ -50,6 +52,16 @@ func Encode(writer io.Writer, values ...interface{}) (err error) {
 			if err != nil {
 				return errors.WithMessage(err, "marshaling to byte array")
 			}
+
+			length := len(data)
+			if length > uint16MaxValue {
+				panic(fmt.Sprintf("lenth of marshaled data is %d, should be <= %d", len(data), uint16MaxValue))
+			}
+			err = binary.Write(writer, byteOrder, uint16(length))
+			if err != nil {
+				return errors.WithMessage(err, "writing length of marshalled data to byte array")
+			}
+
 			err = ByteSlice(data).Encode(writer)
 		default:
 			if enc, ok := value.(Encoder); ok {

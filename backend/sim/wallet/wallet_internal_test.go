@@ -23,8 +23,8 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"perun.network/go-perun/pkg/io"
-	pkgtest "polycry.pt/poly-go/test"
 	"perun.network/go-perun/wallet/test"
+	pkgtest "polycry.pt/poly-go/test"
 )
 
 // TestSignatureSerialize tests serializeSignature and deserializeSignature since
@@ -79,7 +79,7 @@ func TestGenericTests(t *testing.T) {
 		assert.NotEqual(
 			t, addr0, addr1, "Two random accounts should not be the same")
 
-		addrStrLen := AddrLen*2 + 2 // hex encoded and prefixed with 0x
+		addrStrLen := AddressBinaryLen*2 + 2 // hex encoded and prefixed with 0x
 		str0 := addr0.String()
 		str1 := addr1.String()
 		assert.Equal(

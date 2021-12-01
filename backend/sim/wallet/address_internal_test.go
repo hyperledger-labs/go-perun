@@ -23,7 +23,7 @@ import (
 )
 
 func TestAddress_ByteArray(t *testing.T) {
-	dest := [AddrLen]byte{}
+	dest := [AddressBinaryLen]byte{}
 	t.Run("full length", func(t *testing.T) {
 		for i := range dest {
 			dest[i] = byte(i)

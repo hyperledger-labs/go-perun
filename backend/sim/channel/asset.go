@@ -16,6 +16,7 @@ package channel
 
 import (
 	"bytes"
+	"fmt"
 	"io"
 	"math/rand"
 
@@ -49,5 +50,14 @@ func (a Asset) MarshalBinary() ([]byte, error) {
 
 // Decode decodes a sim Asset from the io.Reader `r`.
 func (a *Asset) Decode(r io.Reader) error {
+	var length uint16
+	err := perunio.Decode(r, &length)
+	if err != nil {
+		return err
+	}
+	if length != AssetBinaryLen {
+		return fmt.Errorf("unexpected address length %d, want %d", length, AssetBinaryLen)
+	}
+
 	return perunio.Decode(r, &a.ID)
 }
