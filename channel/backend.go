@@ -15,8 +15,6 @@
 package channel
 
 import (
-	"io"
-
 	"perun.network/go-perun/wallet"
 )
 
@@ -42,8 +40,9 @@ type Backend interface {
 	// provided address.
 	Verify(addr wallet.Address, state *State, sig wallet.Sig) (bool, error)
 
-	// DecodeAsset decodes an asset from a stream.
-	DecodeAsset(io.Reader) (Asset, error)
+	// NewAsset returns a variable of type Asset, which can be used
+	// for unmarshalling an asset from its binary representation.
+	NewAsset() Asset
 }
 
 // SetBackend sets the global channel backend. Must not be called directly but
@@ -70,7 +69,8 @@ func Verify(addr wallet.Address, state *State, sig wallet.Sig) (bool, error) {
 	return backend.Verify(addr, state, sig)
 }
 
-// DecodeAsset decodes an Asset from an io.Reader.
-func DecodeAsset(r io.Reader) (Asset, error) {
-	return backend.DecodeAsset(r)
+// NewAsset returns a variable of type Asset, which can be used
+// for unmarshalling an asset from its binary representation.
+func NewAsset() Asset {
+	return backend.NewAsset()
 }

@@ -354,8 +354,8 @@ func (a *Allocation) Decode(r io.Reader) error {
 	// decode assets
 	a.Assets = make([]Asset, numAssets)
 	for i := range a.Assets {
-		asset, err := DecodeAsset(r)
-		if err != nil {
+		asset := NewAsset()
+		if err := perunio.Decode(r, asset); err != nil {
 			return errors.WithMessagef(err, "decoding asset %d", i)
 		}
 		a.Assets[i] = asset

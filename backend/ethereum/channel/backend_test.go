@@ -175,7 +175,8 @@ func TestAssetSerialization(t *testing.T) {
 	}()
 
 	backend := new(channel.Backend)
-	asset2, err := backend.DecodeAsset(reader)
+	asset2 := backend.NewAsset()
+	err := perunio.Decode(reader, asset2)
 	assert.NoError(t, err, "Decode asset should not produce error")
 	assert.Equal(t, &asset, asset2, "Decode asset should return the initial asset")
 	<-done

@@ -17,7 +17,6 @@ package channel
 import (
 	"bytes"
 	"crypto/sha256"
-	"io"
 
 	"github.com/pkg/errors"
 
@@ -74,7 +73,9 @@ func (b *backend) Verify(addr wallet.Address, state *channel.State, sig []byte) 
 	return wallet.VerifySignature(buff.Bytes(), sig, addr)
 }
 
-func (*backend) DecodeAsset(r io.Reader) (channel.Asset, error) {
-	var asset Asset
-	return &asset, perunio.Decode(r, &asset)
+// NewAsset returns a variable of type Asset, which can be used
+// for unmarshalling an asset from its binary representation.
+func (b *backend) NewAsset() channel.Asset {
+	addr := Asset{}
+	return &addr
 }
