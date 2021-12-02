@@ -195,7 +195,7 @@ func (w *Watcher) startWatching(
 		Sigs:  signedState.Sigs,
 	}
 	ch.Go(func() { ch.handleStatesFromClient(initialTx) })
-	ch.Go(func() { ch.handleEventsFromChain(w.rs, w.registry) })
+	ch.Go(func() { ch.handleEventsFromChain(w.rs, w.registry) }) //nolint:contextcheck
 
 	return statesPubSub, eventsToClientPubSub, nil
 }
@@ -329,7 +329,7 @@ func (ch *ch) handleEventsFromChain(registerer channel.Registerer, chRegistry *r
 					}
 
 					log.Debugf("Registering latest version (%d)", latestTx.Version)
-					err := registerDispute(chRegistry, registerer, parent)
+					err := registerDispute(chRegistry, registerer, parent) //nolint:contextcheck
 					if err != nil {
 						log.Error("Error registering dispute")
 						return
@@ -355,15 +355,13 @@ func (ch *ch) handleEventsFromChain(registerer channel.Registerer, chRegistry *r
 }
 
 // registerDispute collects the latest transaction for the parent channel and
-// each of its children. It then registers dispute for the channel tree.
+// each of its children. It then registers a dispute for the channel tree.
 //
 // This function assumes the callers has locked the parent channel.
 func registerDispute(r *registry, registerer channel.Registerer, parentCh *ch) error {
 	parentTx, subStates := retreiveLatestSubStates(r, parentCh)
 
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-	err := registerer.Register(ctx, makeAdjudicatorReq(parentCh.params, parentTx), subStates)
+	err := registerer.Register(context.TODO(), makeAdjudicatorReq(parentCh.params, parentTx), subStates)
 	if err != nil {
 		return err
 	}
