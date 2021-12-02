@@ -15,7 +15,6 @@
 package wire
 
 import (
-	"context"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -28,7 +27,7 @@ func TestCache(t *testing.T) {
 	assert, require := assert.New(t), require.New(t)
 	rng := test.Prng(t)
 
-	var c Cache
+	c := MakeCache()
 	require.Zero(c.Size())
 
 	ping0 := NewRandomEnvelope(rng, NewPingMsg())
@@ -42,8 +41,7 @@ func TestCache(t *testing.T) {
 	assert.Zero(c.Size())
 
 	isPing := func(e *Envelope) bool { return e.Msg.Type() == Ping }
-	ctx, cancel := context.WithCancel(context.Background())
-	c.Cache(ctx, isPing)
+	c.Cache(&isPing)
 	assert.True(c.Put(ping0), "Put into cache with predicate")
 	assert.Equal(1, c.Size())
 	assert.False(c.Put(pong), "Put into cache with non-matching prediacte")
@@ -54,7 +52,7 @@ func TestCache(t *testing.T) {
 	empty := c.Messages(func(*Envelope) bool { return false })
 	assert.Len(empty, 0)
 
-	cancel()
+	c.Release(&isPing)
 	assert.False(c.Put(ping2), "Put into cache with canceled predicate")
 	assert.Equal(2, c.Size())
 	assert.Len(c.preds, 0, "internal: Put should have removed canceled predicate")
@@ -67,7 +65,7 @@ func TestCache(t *testing.T) {
 	require.Len(msgs, 1)
 	assert.Same(msgs[0], ping0)
 
-	c.Cache(context.Background(), isPing)
+	c.Cache(&isPing)
 	c.Flush()
 	assert.Equal(0, c.Size())
 	assert.False(c.Put(ping0), "flushed cache should not hold any predicates")

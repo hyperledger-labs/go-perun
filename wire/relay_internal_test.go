@@ -126,7 +126,7 @@ func TestProducer_caching(t *testing.T) {
 	prod.SetDefaultMsgHandler(func(e *Envelope) { unhandlesMsg = append(unhandlesMsg, e) })
 
 	ctx := context.Background()
-	prod.Cache(ctx, isPing)
+	prod.Cache(&isPing)
 
 	rng := test.Prng(t)
 	ping0 := NewRandomEnvelope(rng, NewPingMsg())
@@ -141,7 +141,7 @@ func TestProducer_caching(t *testing.T) {
 	assert.Equal(1, prod.cache.Size())
 	assert.Len(unhandlesMsg, 1)
 
-	prod.Cache(ctx, isPong)
+	prod.Cache(&isPong)
 	prod.Put(pong2)
 	assert.Equal(2, prod.cache.Size())
 	assert.Len(unhandlesMsg, 1)
@@ -161,7 +161,8 @@ func TestProducer_caching(t *testing.T) {
 	assert.Contains(err.Error(), "cache")
 	assert.Zero(prod.cache.Size(), "producer.Close should flush the cache")
 
-	prod.Cache(ctx, func(*Envelope) bool { return true })
+	p := func(*Envelope) bool { return true }
+	prod.Cache(&p)
 	prod.cache.Put(ping0)
 	assert.Zero(prod.cache.Size(), "Cache on closed producer should not enable caching")
 }

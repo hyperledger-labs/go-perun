@@ -14,57 +14,53 @@
 
 package wire
 
-import "context"
-
 type (
-	// Cache is a message cache. The default value is a valid empty cache.
+	// Cache is a message cache.
 	Cache struct {
 		msgs  []*Envelope
-		preds []ctxPredicate
+		preds map[*Predicate]struct{}
 	}
 
 	// A Predicate defines a message filter.
 	Predicate = func(*Envelope) bool
 
-	ctxPredicate struct {
-		ctx context.Context
-		p   Predicate
-	}
-
 	// A Cacher has the Cache method to enable caching of messages.
 	Cacher interface {
 		// Cache should enable the caching of messages
-		Cache(context.Context, Predicate)
+		Cache(*Predicate)
 	}
 )
 
+// MakeCache creates a new cache.
+func MakeCache() Cache {
+	return Cache{
+		preds: make(map[*func(*Envelope) bool]struct{}),
+	}
+}
+
 // Cache is a message cache. The default value is a valid empty cache.
-func (c *Cache) Cache(ctx context.Context, p Predicate) {
-	c.preds = append(c.preds, ctxPredicate{ctx, p})
+func (c *Cache) Cache(p *Predicate) {
+	c.preds[p] = struct{}{}
+}
+
+// Release releases the cache predicate.
+func (c *Cache) Release(p *Predicate) {
+	delete(c.preds, p)
 }
 
 // Put puts the message into the cache if it matches any active predicate.
 // If it matches several predicates, it is still only added once to the cache.
 func (c *Cache) Put(e *Envelope) bool {
 	// we filter the predicates for non-active and lazily remove them
-	preds := c.preds[:0]
 	any := false
-	for _, p := range c.preds {
-		select {
-		case <-p.ctx.Done():
-			continue // skip done predicate
-		default:
-			preds = append(preds, p)
-		}
-
-		any = any || p.p(e)
+	for p := range c.preds {
+		any = any || (*p)(e)
 	}
 
 	if any {
 		c.msgs = append(c.msgs, e)
 	}
 
-	c.preds = preds
 	return any
 }
 

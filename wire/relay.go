@@ -15,7 +15,6 @@
 package wire
 
 import (
-	"context"
 	stdsync "sync"
 
 	"github.com/pkg/errors"
@@ -41,7 +40,10 @@ type subscription struct {
 
 // NewRelay returns a new Relay which logs unhandled messages.
 func NewRelay() *Relay {
-	return &Relay{defaultMsgHandler: logUnhandledMsg}
+	return &Relay{
+		defaultMsgHandler: logUnhandledMsg,
+		cache:             MakeCache(),
+	}
 }
 
 // Close closes the relay.
@@ -64,8 +66,8 @@ func (p *Relay) Close() error {
 }
 
 // Cache enables caching of messages that don't match any consumer. They are
-// only cached if they match the given predicate, within the given context.
-func (p *Relay) Cache(ctx context.Context, predicate Predicate) {
+// only cached if they match the given predicate.
+func (p *Relay) Cache(predicate *Predicate) {
 	p.mutex.Lock()
 	defer p.mutex.Unlock()
 
@@ -73,7 +75,15 @@ func (p *Relay) Cache(ctx context.Context, predicate Predicate) {
 		return
 	}
 
-	p.cache.Cache(ctx, predicate)
+	p.cache.Cache(predicate)
+}
+
+// ReleaseCache disable caching for the given predicate.
+func (p *Relay) ReleaseCache(predicate *Predicate) {
+	p.mutex.Lock()
+	defer p.mutex.Unlock()
+
+	p.cache.Release(predicate)
 }
 
 // Subscribe adds a Consumer to the subscriptions.

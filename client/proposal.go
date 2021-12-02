@@ -265,7 +265,8 @@ func (c *Client) acceptChannelProposal(
 	// enables caching of incoming version 0 signatures before sending any message
 	// that might trigger a fast peer to send those. We don't know the channel id
 	// yet so the cache predicate is coarser than the later subscription.
-	enableVer0Cache(ctx, c.conn)
+	pred := enableVer0Cache(c.conn)
+	defer c.conn.ReleaseCache(pred)
 
 	if err := c.conn.pubMsg(ctx, acc, p); err != nil {
 		c.logPeer(p).Errorf("error sending proposal acceptance: %v", err)
@@ -302,7 +303,8 @@ func (c *Client) proposeTwoPartyChannel(
 	// enables caching of incoming version 0 signatures before sending any message
 	// that might trigger a fast peer to send those. We don't know the channel id
 	// yet so the cache predicate is coarser than the later subscription.
-	enableVer0Cache(ctx, c.conn)
+	pred := enableVer0Cache(c.conn)
+	defer c.conn.ReleaseCache(pred)
 
 	proposalID := proposal.ProposalID()
 	isResponse := func(e *wire.Envelope) bool {
@@ -680,11 +682,13 @@ func (c *Client) fundSubchannel(ctx context.Context, prop *SubChannelProposal, s
 }
 
 // enableVer0Cache enables caching of incoming version 0 signatures.
-func enableVer0Cache(ctx context.Context, c wire.Cacher) {
-	c.Cache(ctx, func(m *wire.Envelope) bool {
+func enableVer0Cache(c wire.Cacher) *wire.Predicate {
+	p := func(m *wire.Envelope) bool {
 		return m.Msg.Type() == wire.ChannelUpdateAcc &&
 			m.Msg.(*msgChannelUpdateAcc).Version == 0
-	})
+	}
+	c.Cache(&p)
+	return &p
 }
 
 func (c *Client) enableVer1Cache() {
