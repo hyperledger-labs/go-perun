@@ -154,7 +154,8 @@ func (d OptAppDec) Decode(r io.Reader) (err error) {
 		*d.App = NoApp()
 		return nil
 	}
-	appDef, err := wallet.DecodeAddress(r)
+	appDef := wallet.NewAddress()
+	err = perunio.Decode(r, appDef)
 	if err != nil {
 		return errors.WithMessage(err, "decode app address")
 	}

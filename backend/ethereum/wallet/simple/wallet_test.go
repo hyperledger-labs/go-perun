@@ -15,8 +15,8 @@
 package simple_test
 
 import (
+	"bytes"
 	"crypto/ecdsa"
-	"encoding/hex"
 	"math/rand"
 	"testing"
 
@@ -28,13 +28,13 @@ import (
 
 	ethwallet "perun.network/go-perun/backend/ethereum/wallet"
 	"perun.network/go-perun/backend/ethereum/wallet/simple"
+	ethwallettest "perun.network/go-perun/backend/ethereum/wallet/test"
+	"perun.network/go-perun/pkg/io"
 	"perun.network/go-perun/wallet/test"
 	pkgtest "polycry.pt/poly-go/test"
 )
 
 var dataToSign = []byte("SomeLongDataThatShouldBeSignedPlease")
-
-const sampleAddr = "1234560000000000000000000000000000000000"
 
 func TestGenericSignatureTests(t *testing.T) {
 	setup, _ := newSetup(t, pkgtest.Prng(t))
@@ -102,14 +102,19 @@ func newSetup(t require.TestingT, prng *rand.Rand) (*test.Setup, *simple.Wallet)
 	require.NoError(t, err)
 	require.NotNil(t, acc)
 
-	validAddrBytes, err := hex.DecodeString(sampleAddr)
-	require.NoError(t, err, "invalid sample address")
+	addressNotInWallet := ethwallettest.NewRandomAddress(prng)
+	var buff bytes.Buffer
+	err = io.Encode(&buff, &addressNotInWallet)
+	if err != nil {
+		panic(err)
+	}
+	addrEncoded := buff.Bytes()
 
 	return &test.Setup{
 		Wallet:          simpleWallet,
 		AddressInWallet: acc.Address(),
 		Backend:         new(ethwallet.Backend),
-		AddressEncoded:  validAddrBytes,
+		AddressEncoded:  addrEncoded,
 		ZeroAddress:     ethwallet.AsWalletAddr(common.Address{}),
 		DataToSign:      dataToSign,
 	}, simpleWallet

@@ -53,7 +53,8 @@ func TestAccountWithWalletAndBackend(t *testing.T, s *Setup) { //nolint:revive /
 	assert.True(t, valid, "Verification should succeed")
 	assert.NoError(t, err, "Verification should not produce error")
 
-	addr, err := s.Backend.DecodeAddress(bytes.NewBuffer(s.AddressEncoded))
+	addr := s.Backend.NewAddress()
+	err = io.Decode(bytes.NewReader(s.AddressEncoded), addr)
 	assert.NoError(t, err, "Byte deserialization of address should work")
 	valid, err = s.Backend.VerifySignature(s.DataToSign, sig, addr)
 	assert.False(t, valid, "Verification with wrong address should fail")

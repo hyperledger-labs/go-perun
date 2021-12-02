@@ -12,8 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Package test contains the generic serializer tests.
-package test // import "perun.network/go-perun/pkg/io/test"
+package test
 
 import (
 	"io"

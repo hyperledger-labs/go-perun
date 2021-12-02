@@ -47,7 +47,8 @@ func (pr *PersistRestorer) ActivePeers(ctx context.Context) ([]wire.Address, err
 
 	peermap := make(map[wallet.AddrKey]wire.Address)
 	for it.Next() {
-		addr, err := wire.DecodeAddress(bytes.NewBufferString(it.Key()))
+		addr := wire.NewAddress()
+		err := perunio.Decode(bytes.NewBufferString(it.Key()), addr)
 		if err != nil {
 			return nil, errors.WithMessagef(err, "decoding peer key (%x)", it.Key())
 		}
@@ -108,7 +109,7 @@ func (pr *PersistRestorer) RestorePeer(addr wire.Address) (persistence.ChannelIt
 // peerChannelsKey creates a db-key-string for a given wire.Address.
 func peerChannelsKey(addr wire.Address) (string, error) {
 	var key strings.Builder
-	if err := addr.Encode(&key); err != nil {
+	if err := perunio.Encode(&key, addr); err != nil {
 		return "", errors.WithMessage(err, "encoding peer address")
 	}
 	key.WriteString(":channel:")
@@ -136,7 +137,8 @@ func (pr *PersistRestorer) RestoreChannel(ctx context.Context, id channel.ID) (*
 //nolint:deadcode,unused
 func decodePeerChanID(key string) (wire.Address, channel.ID, error) {
 	buf := bytes.NewBufferString(key)
-	addr, err := wire.DecodeAddress(buf)
+	addr := wire.NewAddress()
+	err := perunio.Decode(buf, addr)
 	if err != nil {
 		return addr, channel.ID{}, errors.WithMessage(err, "decode peer address")
 	}

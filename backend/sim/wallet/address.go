@@ -15,17 +15,12 @@
 package wallet
 
 import (
-	"bufio"
-	"bytes"
 	"crypto/ecdsa"
 	"fmt"
 	"io"
 	"math/big"
 
-	"github.com/pkg/errors"
-
 	"perun.network/go-perun/log"
-	perunio "perun.network/go-perun/pkg/io"
 	"perun.network/go-perun/wallet"
 )
 
@@ -33,10 +28,13 @@ import (
 type Address ecdsa.PublicKey
 
 const (
-	// ElemLen is the length of an encoded address element in byte.
+	// ElemLen is the length of the binary representation of a single element
+	// of the address in bytes.
 	ElemLen = 32
-	// AddrLen is the length of an encoded address in byte.
-	AddrLen = 2 * ElemLen
+
+	// AddressBinaryLength is the length of the binary representation of
+	// Address in bytes.
+	AddressBinaryLen = 2 * ElemLen
 )
 
 // compile time check that we implement the perun Address interface.
@@ -59,35 +57,26 @@ func NewRandomAddress(rng io.Reader) *Address {
 
 // Bytes converts this address to bytes.
 func (a *Address) Bytes() []byte {
-	// Serialize the Address into a buffer and return the buffers bytes
-	buff := new(bytes.Buffer)
-	w := bufio.NewWriter(buff)
-	if err := a.Encode(w); err != nil {
-		log.Panic("address encode error ", err)
-	}
-	if err := w.Flush(); err != nil {
-		log.Panic("bufio flush ", err)
-	}
-
-	return buff.Bytes()
+	data := a.byteArray()
+	return data[:]
 }
 
 // ByteArray converts an address into a 64-byte array. The returned array
 // consists of two 32-byte chunks representing the public key's X and Y values.
-func (a *Address) ByteArray() (data [AddrLen]byte) {
+func (a *Address) byteArray() (data [AddressBinaryLen]byte) {
 	xb := a.X.Bytes()
 	yb := a.Y.Bytes()
 
 	// Left-pad with 0 bytes.
 	copy(data[ElemLen-len(xb):ElemLen], xb)
-	copy(data[AddrLen-len(yb):AddrLen], yb)
+	copy(data[AddressBinaryLen-len(yb):AddressBinaryLen], yb)
 
 	return data
 }
 
 // String converts this address to a human-readable string.
 func (a *Address) String() string {
-	return fmt.Sprintf("0x%x", a.ByteArray())
+	return fmt.Sprintf("0x%x", a.byteArray())
 }
 
 // Equal checks the equality of two addresses. The implementation must be
@@ -120,19 +109,17 @@ func (a *Address) Cmp(addr wallet.Address) int {
 	return yCmp
 }
 
-// Encode encodes this address into an io.Writer. Part of the
-// go-perun/pkg/io.Serializer interface.
-func (a *Address) Encode(w io.Writer) error {
-	data := a.ByteArray()
-	return perunio.Encode(w, data[:])
+// MarshalBinary marshals the address into its binary representation.
+// Error will always be nil, it is for implementing BinaryMarshaler.
+func (a *Address) MarshalBinary() ([]byte, error) {
+	data := a.byteArray()
+	return data[:], nil
 }
 
-// Decode decodes an address from an io.Reader. Part of the
-// go-perun/pkg/io.Serializer interface.
-func (a *Address) Decode(r io.Reader) error {
-	data := make([]byte, AddrLen)
-	if err := perunio.Decode(r, &data); err != nil {
-		return errors.WithMessage(err, "decoding address")
+// UnmarshalBinary unmarshals the address from its binary representation.
+func (a *Address) UnmarshalBinary(data []byte) error {
+	if len(data) != AddressBinaryLen {
+		return fmt.Errorf("unexpected address length %d, want %d", len(data), AddressBinaryLen) //nolint: goerr113
 	}
 	a.X = new(big.Int).SetBytes(data[:ElemLen])
 	a.Y = new(big.Int).SetBytes(data[ElemLen:])

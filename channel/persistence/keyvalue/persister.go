@@ -246,7 +246,7 @@ func decodeIdxFromDBKey(key string) (int, error) {
 
 func peerChannelKey(p wire.Address, ch channel.ID) (string, error) {
 	var key bytes.Buffer
-	if err := p.Encode(&key); err != nil {
+	if err := perunio.Encode(&key, p); err != nil {
 		return "", errors.WithMessage(err, "encoding peer address")
 	}
 	key.WriteString(":channel:")

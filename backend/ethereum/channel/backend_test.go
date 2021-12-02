@@ -16,7 +16,6 @@ package channel_test
 
 import (
 	"context"
-	"io"
 	"math/rand"
 	"testing"
 	"time"
@@ -28,10 +27,8 @@ import (
 	"perun.network/go-perun/backend/ethereum/bindings/adjudicator"
 	"perun.network/go-perun/backend/ethereum/channel"
 	ethchanneltest "perun.network/go-perun/backend/ethereum/channel/test"
-	ethwallettest "perun.network/go-perun/backend/ethereum/wallet/test"
 	perunchannel "perun.network/go-perun/channel"
 	"perun.network/go-perun/channel/test"
-	iotest "perun.network/go-perun/pkg/io/test"
 	perunwallet "perun.network/go-perun/wallet"
 	wallettest "perun.network/go-perun/wallet/test"
 	pkgtest "polycry.pt/poly-go/test"
@@ -145,28 +142,5 @@ func newChannelSetup(rng *rand.Rand) *test.Setup {
 		State2:        state2,
 		Account:       wallettest.NewRandomAccount(rng),
 		RandomAddress: createAddr,
-	}
-}
-
-func TestAssetSerialization(t *testing.T) {
-	rng := pkgtest.Prng(t)
-	asset := ethwallettest.NewRandomAddress(rng)
-	reader, writer := io.Pipe()
-	done := make(chan struct{})
-
-	go func() {
-		defer close(done)
-		assert.NoError(t, asset.Encode(writer))
-	}()
-
-	backend := new(channel.Backend)
-	asset2, err := backend.DecodeAsset(reader)
-	assert.NoError(t, err, "Decode asset should not produce error")
-	assert.Equal(t, &asset, asset2, "Decode asset should return the initial asset")
-	<-done
-
-	for i := 0; i < 10; i++ {
-		asset := ethwallettest.NewRandomAddress(rng)
-		iotest.GenericSerializerTest(t, &asset)
 	}
 }

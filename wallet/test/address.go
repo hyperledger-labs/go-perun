@@ -20,13 +20,16 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"perun.network/go-perun/pkg/io"
 )
 
 // TestAddress runs a test suite designed to test the general functionality of
 // an address implementation.
 func TestAddress(t *testing.T, s *Setup) { //nolint:revive // `test.Test...` stutters, but we accept that here.
 	null := s.ZeroAddress
-	addr, err := s.Backend.DecodeAddress(bytes.NewReader(s.AddressEncoded))
+	addr := s.Backend.NewAddress()
+	err := io.Decode(bytes.NewReader(s.AddressEncoded), addr)
 	assert.NoError(t, err, "Byte deserialization of address should work")
 
 	// Test Address.String.
@@ -46,16 +49,18 @@ func TestAddress(t *testing.T, s *Setup) { //nolint:revive // `test.Test...` stu
 	assert.Negative(t, null.Cmp(addr), "Expected null < addr")
 
 	// Test Address.Bytes.
-	addrBytes := addr.Bytes()
-	nullBytes := null.Bytes()
+	addrBytes, err := addr.MarshalBinary()
+	assert.NoError(t, err, "Marshaling address should not error")
+	nullBytes, err := null.MarshalBinary()
+	assert.NoError(t, err, "Marshaling zero address should not error")
 	assert.False(t, bytes.Equal(addrBytes, nullBytes), "Expected inequality of byte representations of nonzero and zero address")
-	assert.True(t, bytes.Equal(addrBytes, addr.Bytes()), "Expected that byte representations do not change")
 
 	// a.Equal(Decode(Encode(a)))
 	t.Run("Serialize Equal Test", func(t *testing.T) {
 		buff := new(bytes.Buffer)
-		require.NoError(t, addr.Encode(buff))
-		addr2, err := s.Backend.DecodeAddress(buff)
+		require.NoError(t, io.Encode(buff, addr))
+		addr2 := s.Backend.NewAddress()
+		err := io.Decode(buff, addr2)
 		require.NoError(t, err)
 
 		assert.True(t, addr.Equal(addr2))

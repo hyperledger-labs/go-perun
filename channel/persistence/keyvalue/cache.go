@@ -46,7 +46,11 @@ func (c *channelCache) addPeerChannel(addr wire.Address, chID channel.ID) {
 	peers := c.peers[chID]
 	c.peers[chID] = append(peers, addr)
 
-	addrKey := string(addr.Bytes())
+	addrBytes, err := addr.MarshalBinary()
+	if err != nil {
+		panic("error marshaling address: " + err.Error())
+	}
+	addrKey := string(addrBytes)
 	if chans, ok := c.peerChannels[addrKey]; ok {
 		chans[chID] = struct{}{}
 	} else {
@@ -67,7 +71,11 @@ func (c *channelCache) deleteChannel(id channel.ID) []wire.Address {
 
 	// Delete the channel from all its peers.
 	for _, addr := range peers {
-		delete(c.peerChannels[string(addr.Bytes())], id)
+		addrBytes, err := addr.MarshalBinary()
+		if err != nil {
+			panic("error marshaling address: " + err.Error())
+		}
+		delete(c.peerChannels[string(addrBytes)], id)
 	}
 
 	return peers

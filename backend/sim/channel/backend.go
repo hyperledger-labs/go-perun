@@ -17,7 +17,6 @@ package channel
 import (
 	"bytes"
 	"crypto/sha256"
-	"io"
 
 	"github.com/pkg/errors"
 
@@ -38,7 +37,7 @@ func (*backend) CalcID(p *channel.Params) (id channel.ID) {
 
 	// Write Parts
 	for _, addr := range p.Parts {
-		if err := addr.Encode(w); err != nil {
+		if err := perunio.Encode(w, addr); err != nil {
 			log.Panic("Could not write to sha256 hasher")
 		}
 	}
@@ -74,7 +73,9 @@ func (b *backend) Verify(addr wallet.Address, state *channel.State, sig []byte) 
 	return wallet.VerifySignature(buff.Bytes(), sig, addr)
 }
 
-func (*backend) DecodeAsset(r io.Reader) (channel.Asset, error) {
-	var asset Asset
-	return &asset, asset.Decode(r)
+// NewAsset returns a variable of type Asset, which can be used
+// for unmarshalling an asset from its binary representation.
+func (b *backend) NewAsset() channel.Asset {
+	addr := Asset{}
+	return &addr
 }

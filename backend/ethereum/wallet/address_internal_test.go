@@ -20,8 +20,18 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/stretchr/testify/require"
 
+	"perun.network/go-perun/pkg/io/test"
 	pkgtest "polycry.pt/poly-go/test"
 )
+
+func Test_GenericMarshaler(t *testing.T) {
+	rng := pkgtest.Prng(t)
+	for n := 0; n < 10; n++ {
+		var commonAddr common.Address
+		rng.Read(commonAddr[:])
+		test.GenericMarshalerTest(t, AsWalletAddr(commonAddr))
+	}
+}
 
 func TestAsWalletAddr(t *testing.T) {
 	t.Run("non-zero-value", func(t *testing.T) {

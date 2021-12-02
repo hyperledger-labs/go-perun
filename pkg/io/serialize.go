@@ -15,6 +15,7 @@
 package io
 
 import (
+	"encoding"
 	"encoding/binary"
 	"fmt"
 	"io"
@@ -23,6 +24,8 @@ import (
 
 	"github.com/pkg/errors"
 )
+
+const uint16MaxValue = 0xFFFF
 
 var byteOrder = binary.LittleEndian
 
@@ -43,6 +46,23 @@ func Encode(writer io.Writer, values ...interface{}) (err error) {
 			err = ByteSlice(v).Encode(writer)
 		case string:
 			err = encodeString(writer, v)
+		case encoding.BinaryMarshaler:
+			var data []byte
+			data, err = v.MarshalBinary()
+			if err != nil {
+				return errors.WithMessage(err, "marshaling to byte array")
+			}
+
+			length := len(data)
+			if length > uint16MaxValue {
+				panic(fmt.Sprintf("lenth of marshaled data is %d, should be <= %d", len(data), uint16MaxValue))
+			}
+			err = binary.Write(writer, byteOrder, uint16(length))
+			if err != nil {
+				return errors.WithMessage(err, "writing length of marshalled data")
+			}
+
+			err = ByteSlice(data).Encode(writer)
 		default:
 			if enc, ok := value.(Encoder); ok {
 				err = enc.Encode(writer)
@@ -81,6 +101,21 @@ func Decode(reader io.Reader, values ...interface{}) (err error) {
 			err = d.Decode(reader)
 		case *string:
 			err = decodeString(reader, v)
+		case encoding.BinaryUnmarshaler:
+			var length uint16
+			err = binary.Read(reader, byteOrder, &length)
+			if err != nil {
+				return errors.WithMessage(err, "reading length of binary data")
+			}
+
+			var data ByteSlice = make([]byte, length)
+			err = data.Decode(reader)
+			if err != nil {
+				return errors.WithMessage(err, "reading binary data")
+			}
+
+			err = v.UnmarshalBinary(data)
+			err = errors.WithMessage(err, "unmarshaling binary data")
 		default:
 			if dec, ok := value.(Decoder); ok {
 				err = dec.Decode(reader)

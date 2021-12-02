@@ -16,7 +16,6 @@ package channel
 
 import (
 	"bytes"
-	"io"
 	"log"
 	"math/big"
 	"strings"
@@ -99,9 +98,10 @@ func (*Backend) Verify(addr wallet.Address, s *channel.State, sig wallet.Sig) (b
 	return Verify(addr, s, sig)
 }
 
-// DecodeAsset decodes an asset from a stream.
-func (*Backend) DecodeAsset(r io.Reader) (channel.Asset, error) {
-	return DecodeAsset(r)
+// NewAsset returns a variable of type Asset, which can be used
+// for unmarshalling an asset from its binary representation.
+func (b *Backend) NewAsset() channel.Asset {
+	return NewAsset()
 }
 
 // CalcID calculates the channelID as needed by the ethereum smart contracts.
@@ -145,10 +145,11 @@ func Verify(addr wallet.Address, s *channel.State, sig wallet.Sig) (bool, error)
 	return ethwallet.VerifySignature(enc, sig, addr)
 }
 
-// DecodeAsset decodes an asset from a stream.
-func DecodeAsset(r io.Reader) (channel.Asset, error) {
-	var asset Asset
-	return &asset, asset.Decode(r)
+// NewAsset returns a variable of type Asset, which can be used
+// for unmarshalling an asset from its binary representation.
+func NewAsset() channel.Asset {
+	addr := Asset{}
+	return &addr
 }
 
 // ToEthParams converts a channel.Params to a ChannelParams struct.

@@ -39,9 +39,11 @@ const sigVSubtract = 27
 // compile-time check that the ethereum backend implements the perun backend.
 var _ wallet.Backend = (*Backend)(nil)
 
-// DecodeAddress decodes an address from an io.Reader.
-func (*Backend) DecodeAddress(r io.Reader) (wallet.Address, error) {
-	return DecodeAddress(r)
+// NewAddress returns a variable of type Address, which can be used
+// for unmarshalling an address from its binary representation.
+func (b *Backend) NewAddress() wallet.Address {
+	addr := Address{}
+	return &addr
 }
 
 // DecodeSig reads a []byte with length of an ethereum signature.
@@ -52,12 +54,6 @@ func (*Backend) DecodeSig(r io.Reader) (wallet.Sig, error) {
 // VerifySignature verifies a signature.
 func (*Backend) VerifySignature(msg []byte, sig wallet.Sig, a wallet.Address) (bool, error) {
 	return VerifySignature(msg, sig, a)
-}
-
-// DecodeAddress decodes an address from an io.Reader.
-func DecodeAddress(r io.Reader) (wallet.Address, error) {
-	addr := new(Address)
-	return addr, addr.Decode(r)
 }
 
 // DecodeSig reads a []byte with length of an ethereum signature.

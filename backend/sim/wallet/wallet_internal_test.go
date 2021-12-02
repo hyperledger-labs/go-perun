@@ -22,6 +22,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
+	"perun.network/go-perun/pkg/io"
 	"perun.network/go-perun/wallet/test"
 	pkgtest "polycry.pt/poly-go/test"
 )
@@ -78,7 +79,7 @@ func TestGenericTests(t *testing.T) {
 		assert.NotEqual(
 			t, addr0, addr1, "Two random accounts should not be the same")
 
-		addrStrLen := AddrLen*2 + 2 // hex encoded and prefixed with 0x
+		addrStrLen := AddressBinaryLen*2 + 2 // hex encoded and prefixed with 0x
 		str0 := addr0.String()
 		str1 := addr1.String()
 		assert.Equal(
@@ -92,8 +93,6 @@ func TestGenericTests(t *testing.T) {
 
 func newWalletSetup(rng *rand.Rand) *test.Setup {
 	w := NewWallet()
-	acc := w.NewRandomAccount(rng)
-	accountB := NewRandomAccount(rng)
 
 	data := make([]byte, 128)
 	_, err := rng.Read(data)
@@ -101,18 +100,24 @@ func newWalletSetup(rng *rand.Rand) *test.Setup {
 		panic(err)
 	}
 
-	backend := new(Backend)
-	addrEncoded := accountB.Address().Bytes()
-	addrLen := len(addrEncoded)
-	zeroAddr, err := backend.DecodeAddress(bytes.NewReader(make([]byte, addrLen)))
+	addressNotInWallet := NewRandomAccount(rng).Address()
+	var buff bytes.Buffer
+	err = io.Encode(&buff, addressNotInWallet)
 	if err != nil {
 		panic(err)
 	}
+	addrEncoded := buff.Bytes()
+
+	zeroAddr := &Address{
+		Curve: curve,
+		X:     big.NewInt(0),
+		Y:     big.NewInt(0),
+	}
 
 	return &test.Setup{
-		Backend:         backend,
+		Backend:         new(Backend),
 		Wallet:          w,
-		AddressInWallet: acc.Address(),
+		AddressInWallet: w.NewRandomAccount(rng).Address(),
 		AddressEncoded:  addrEncoded,
 		ZeroAddress:     zeroAddr,
 		DataToSign:      data,

@@ -19,11 +19,20 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	"polycry.pt/poly-go/test"
+	pkgtest "polycry.pt/poly-go/test"
+
+	"perun.network/go-perun/pkg/io/test"
 )
 
-func TestAddress_ByteArray(t *testing.T) {
-	dest := [AddrLen]byte{}
+func TestGenericMarshaler(t *testing.T) {
+	rng := pkgtest.Prng(t)
+	for n := 0; n < 10; n++ {
+		test.GenericMarshalerTest(t, NewRandomAddress(rng))
+	}
+}
+
+func TestAddressMarshalling(t *testing.T) {
+	dest := [AddressBinaryLen]byte{}
 	t.Run("full length", func(t *testing.T) {
 		for i := range dest {
 			dest[i] = byte(i)
@@ -33,8 +42,9 @@ func TestAddress_ByteArray(t *testing.T) {
 			X: new(big.Int).SetBytes(dest[:ElemLen]),
 			Y: new(big.Int).SetBytes(dest[ElemLen:]),
 		}
-		result := addr.ByteArray()
-		assert.Equal(t, result[:], dest[:])
+		result, err := addr.MarshalBinary()
+		assert.NoError(t, err, "marshaling address should not error")
+		assert.Equal(t, result, dest[:])
 	})
 
 	t.Run("half length", func(t *testing.T) {
@@ -48,14 +58,15 @@ func TestAddress_ByteArray(t *testing.T) {
 			X: new(big.Int).SetBytes(dest[:ElemLen]),
 			Y: new(big.Int).SetBytes(dest[ElemLen:]),
 		}
-		result := addr.ByteArray()
-		assert.Equal(t, result[:], dest[:])
+		result, err := addr.MarshalBinary()
+		assert.NoError(t, err, "marshaling address should not error")
+		assert.Equal(t, result, dest[:])
 	})
 }
 
 func TestAddressOrdering(t *testing.T) {
 	const EQ, LT, GT = 0, -1, 1
-	rng := test.Prng(t)
+	rng := pkgtest.Prng(t)
 
 	type addrTest struct {
 		addr     [2]*Address

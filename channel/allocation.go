@@ -15,6 +15,8 @@
 package channel
 
 import (
+	"bytes"
+	"encoding"
 	"io"
 	"log"
 	"math/big"
@@ -93,8 +95,14 @@ type (
 	// Asset identifies an asset. E.g., it may be the address of the multi-sig
 	// where all participants' assets are deposited.
 	// The same Asset should be shareable by multiple Allocation instances.
-	// Decoding happens with AppBackend.DecodeAsset.
-	Asset perunio.Encoder
+	Asset interface {
+		// BinaryMarshaler marshals the blockchain specific address to
+		// binary format (a byte array).
+		encoding.BinaryMarshaler
+		// BinaryUnmarshaler unmarshals the blockchain specific address
+		// from binary format (a byte array).
+		encoding.BinaryUnmarshaler
+	}
 )
 
 var (
@@ -115,7 +123,7 @@ func NewAllocation(numParts int, assets ...Asset) *Allocation {
 // AssetIndex returns the index of the asset in the allocation.
 func (a *Allocation) AssetIndex(asset Asset) (Index, bool) {
 	for idx, _asset := range a.Assets {
-		if ok, err := perunio.EqualEncoding(asset, _asset); ok && err == nil {
+		if ok, err := equalMarshaling(asset, _asset); ok && err == nil {
 			return Index(idx), true
 		}
 	}
@@ -314,7 +322,7 @@ func (a Allocation) Encode(w io.Writer) error {
 	}
 	// encode assets
 	for i, a := range a.Assets {
-		if err := a.Encode(w); err != nil {
+		if err := perunio.Encode(w, a); err != nil {
 			return errors.WithMessagef(err, "encoding asset %d", i)
 		}
 	}
@@ -346,8 +354,8 @@ func (a *Allocation) Decode(r io.Reader) error {
 	// decode assets
 	a.Assets = make([]Asset, numAssets)
 	for i := range a.Assets {
-		asset, err := DecodeAsset(r)
-		if err != nil {
+		asset := NewAsset()
+		if err := perunio.Decode(r, asset); err != nil {
 			return errors.WithMessagef(err, "decoding asset %d", i)
 		}
 		a.Assets[i] = asset
@@ -593,7 +601,7 @@ func AssetsAssertEqual(a []Asset, b []Asset) error {
 	}
 
 	for i, asset := range a {
-		if ok, err := perunio.EqualEncoding(asset, b[i]); err != nil {
+		if ok, err := equalMarshaling(asset, b[i]); err != nil {
 			return errors.WithMessagef(err, "comparing encoding at index %d", i)
 		} else if !ok {
 			return errors.Errorf("value mismatch at index %d", i)
@@ -601,6 +609,28 @@ func AssetsAssertEqual(a []Asset, b []Asset) error {
 	}
 
 	return nil
+}
+
+func equalMarshaling(a, b encoding.BinaryMarshaler) (bool, error) {
+	// golang does not have a XOR
+	if (a == nil) != (b == nil) {
+		return false, errors.New("only one argument was nil")
+	}
+	// just using a == b would be too easy here since go panics
+	if (a == nil) && (b == nil) {
+		return true, nil
+	}
+
+	encodedA, err := a.MarshalBinary()
+	if err != nil {
+		return false, errors.Wrap(err, "EqualEncoding encode error")
+	}
+	encodedB, err := b.MarshalBinary()
+	if err != nil {
+		return false, errors.Wrap(err, "EqualEncoding encode error")
+	}
+
+	return bytes.Equal(encodedA, encodedB), nil
 }
 
 var _ perunio.Serializer = new(SubAlloc)
