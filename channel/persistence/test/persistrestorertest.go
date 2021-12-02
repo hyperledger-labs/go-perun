@@ -126,8 +126,8 @@ func GenericPersistRestorerTest(
 				seed := pkgtest.Seed("", subSeed, numChans, numPeers, chIndex, ch.ID())
 				rng := rand.New(rand.NewSource(seed)) //nolint:gosec
 
-				ch.Init(t, rng)
-				ch.SignAll(t)
+				ch.Init(ctx, t, rng)
+				ch.SignAll(ctx, t)
 				ch.EnableInit(t)
 
 				ch.SetFunded(t)
@@ -140,7 +140,7 @@ func GenericPersistRestorerTest(
 				ch.DiscardUpdate(t)
 				err = ch.Update(t, state1, ch.Idx())
 				require.NoError(t, err)
-				ch.SignAll(t)
+				ch.SignAll(ctx, t)
 				ch.EnableUpdate(t)
 
 				// Final state
@@ -149,7 +149,7 @@ func GenericPersistRestorerTest(
 				statef.IsFinal = true
 				err = ch.Update(t, statef, ch.Idx()^1)
 				require.NoError(t, err)
-				ch.SignAll(t)
+				ch.SignAll(ctx, t)
 				ch.EnableFinal(t)
 
 				ch.SetRegistering(t)
