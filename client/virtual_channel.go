@@ -90,7 +90,7 @@ func (c *Client) handleVirtualChannelFundingProposal(
 ) {
 	err := c.validateVirtualChannelFundingProposal(ch, prop)
 	if err != nil {
-		c.rejectProposal(responder, err.Error())
+		c.rejectProposal(responder, err.Error()) //nolint:contextcheck
 	}
 
 	ctx, cancel := context.WithTimeout(c.Ctx(), virtualFundingTimeout)
@@ -98,10 +98,10 @@ func (c *Client) handleVirtualChannelFundingProposal(
 
 	err = c.fundingWatcher.Await(ctx, prop)
 	if err != nil {
-		c.rejectProposal(responder, err.Error())
+		c.rejectProposal(responder, err.Error()) //nolint:contextcheck
 	}
 
-	c.acceptProposal(responder)
+	c.acceptProposal(responder) //nolint:contextcheck
 }
 
 func (c *Channel) watchVirtual() error {
@@ -348,7 +348,7 @@ func (c *Client) matchFundingProposal(ctx context.Context, a, b interface{}) boo
 	}
 
 	go func() {
-		err := virtual.watchVirtual()
+		err := virtual.watchVirtual() //nolint:contextcheck // The context will be derived from the channel context.
 		c.log.Debugf("channel %v: watcher stopped: %v", virtual.ID(), err)
 	}()
 	return true

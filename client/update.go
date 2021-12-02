@@ -41,7 +41,7 @@ func (c *Client) handleChannelUpdate(uh UpdateHandler, p wire.Address, m Channel
 		return
 	}
 	pidx := ch.Idx() ^ 1
-	ch.handleUpdateReq(pidx, m, uh)
+	ch.handleUpdateReq(pidx, m, uh) //nolint:contextcheck
 }
 
 func (c *Client) cacheVersion1Update(uh UpdateHandler, p wire.Address, m ChannelUpdateProposal) bool {
@@ -288,12 +288,12 @@ func (c *Channel) handleUpdateReq(
 	client := c.client
 
 	if prop, ok := req.(*virtualChannelFundingProposal); ok {
-		client.handleVirtualChannelFundingProposal(c, prop, responder)
+		client.handleVirtualChannelFundingProposal(c, prop, responder) //nolint:contextcheck
 		return
 	}
 
 	if prop, ok := req.(*virtualChannelSettlementProposal); ok {
-		client.handleVirtualChannelSettlementProposal(c, prop, responder)
+		client.handleVirtualChannelSettlementProposal(c, prop, responder) //nolint:contextcheck
 		return
 	}
 
