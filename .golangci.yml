@@ -28,7 +28,6 @@ linters:
     # These could be enabled in the future:
     - ifshort # we often don't use `if err := …` for readability.
     - tparallel # We don't always use parallel tests.
-    - contextcheck # Wants contexts to be always passed down.
 
     # Deprecated:
     - maligned
