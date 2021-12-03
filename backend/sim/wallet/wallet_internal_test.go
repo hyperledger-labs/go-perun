@@ -79,7 +79,7 @@ func TestGenericTests(t *testing.T) {
 		assert.NotEqual(
 			t, addr0, addr1, "Two random accounts should not be the same")
 
-		addrStrLen := AddressBinaryLen*2 + 2 // hex encoded and prefixed with 0x
+		addrStrLen := addrLen*2 + 2 // hex encoded and prefixed with 0x
 		str0 := addr0.String()
 		str1 := addr1.String()
 		assert.Equal(

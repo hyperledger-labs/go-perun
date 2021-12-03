@@ -28,13 +28,12 @@ import (
 type Address ecdsa.PublicKey
 
 const (
-	// ElemLen is the length of the binary representation of a single element
+	// elemLen is the length of the binary representation of a single element
 	// of the address in bytes.
-	ElemLen = 32
+	elemLen = 32
 
-	// AddressBinaryLength is the length of the binary representation of
-	// Address in bytes.
-	AddressBinaryLen = 2 * ElemLen
+	// addrLen is the length of the binary representation of Address in bytes.
+	addrLen = 2 * elemLen
 )
 
 // compile time check that we implement the perun Address interface.
@@ -63,13 +62,13 @@ func (a *Address) Bytes() []byte {
 
 // ByteArray converts an address into a 64-byte array. The returned array
 // consists of two 32-byte chunks representing the public key's X and Y values.
-func (a *Address) byteArray() (data [AddressBinaryLen]byte) {
+func (a *Address) byteArray() (data [addrLen]byte) {
 	xb := a.X.Bytes()
 	yb := a.Y.Bytes()
 
 	// Left-pad with 0 bytes.
-	copy(data[ElemLen-len(xb):ElemLen], xb)
-	copy(data[AddressBinaryLen-len(yb):AddressBinaryLen], yb)
+	copy(data[elemLen-len(xb):elemLen], xb)
+	copy(data[addrLen-len(yb):addrLen], yb)
 
 	return data
 }
@@ -118,11 +117,11 @@ func (a *Address) MarshalBinary() ([]byte, error) {
 
 // UnmarshalBinary unmarshals the address from its binary representation.
 func (a *Address) UnmarshalBinary(data []byte) error {
-	if len(data) != AddressBinaryLen {
-		return fmt.Errorf("unexpected address length %d, want %d", len(data), AddressBinaryLen) //nolint: goerr113
+	if len(data) != addrLen {
+		return fmt.Errorf("unexpected address length %d, want %d", len(data), addrLen) //nolint: goerr113
 	}
-	a.X = new(big.Int).SetBytes(data[:ElemLen])
-	a.Y = new(big.Int).SetBytes(data[ElemLen:])
+	a.X = new(big.Int).SetBytes(data[:elemLen])
+	a.Y = new(big.Int).SetBytes(data[elemLen:])
 	a.Curve = curve
 
 	return nil
