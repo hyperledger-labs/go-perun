@@ -51,34 +51,58 @@ var _ StdLogger = &log.Logger{}
 // It is the base for more complex loggers. A StdLogger can be converted into a
 // LevelLogger by wrapping it with a Levellified struct.
 type StdLogger interface {
+	// Printf prints to the logger. Arguments are handled in the manner of fmt.Printf.
 	Printf(format string, args ...interface{})
+	// Print prints to the logger. Arguments are handled in the manner of fmt.Print.
 	Print(...interface{})
+	// Println prints to the logger. Arguments are handled in the manner of fmt.Println.
 	Println(...interface{})
+	// Fatalf is equivalent to Printf() followed by a call to os.Exit(1).
 	Fatalf(format string, args ...interface{})
+	// Fatal is equivalent to Print() followed by a call to os.Exit(1).
 	Fatal(...interface{})
+	// Fatalln is equivalent to Println() followed by a call to os.Exit(1).
 	Fatalln(...interface{})
+	// Panicf is equivalent to Printf() followed by a call to panic().
 	Panicf(format string, args ...interface{})
+	// Panic is equivalent to Print() followed by a call to panic().
 	Panic(...interface{})
+	// Panicln is equivalent to Println() followed by a call to panic().
 	Panicln(...interface{})
 }
 
 // LevelLogger is an extension to the StdLogger with different verbosity levels.
 type LevelLogger interface {
 	StdLogger
+	// Tracef logs a message at level Trace. Arguments are handled in the manner of fmt.Printf.
 	Tracef(format string, args ...interface{})
+	// Debugf logs a message at level Debug. Arguments are handled in the manner of fmt.Printf.
 	Debugf(format string, args ...interface{})
+	// Infof logs a message at level Info. Arguments are handled in the manner of fmt.Printf.
 	Infof(format string, args ...interface{})
+	// Warnf logs a message at level Warn. Arguments are handled in the manner of fmt.Printf.
 	Warnf(format string, args ...interface{})
+	// Errorf logs a message at level Error. Arguments are handled in the manner of fmt.Printf.
 	Errorf(format string, args ...interface{})
+	// Trace logs a message at level Trace.
 	Trace(...interface{})
+	// Debug logs a message at level Debug.
 	Debug(...interface{})
+	// Info logs a message at level Info.
 	Info(...interface{})
+	// Warn logs a message at level Warn.
 	Warn(...interface{})
+	// Error logs a message at level Error.
 	Error(...interface{})
+	// Traceln logs a message at level Trace. Arguments are handled in the manner of fmt.Println.
 	Traceln(...interface{})
+	// Debugln logs a message at level Debug. Arguments are handled in the manner of fmt.Println.
 	Debugln(...interface{})
+	// Infoln logs a message at level Info. Arguments are handled in the manner of fmt.Println.
 	Infoln(...interface{})
+	// Warnln logs a message at level Warn. Arguments are handled in the manner of fmt.Println.
 	Warnln(...interface{})
+	// Errorln logs a message at level Error. Arguments are handled in the manner of fmt.Println.
 	Errorln(...interface{})
 }
 
