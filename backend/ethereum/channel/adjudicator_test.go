@@ -66,7 +66,7 @@ func TestSubscribeRegistered(t *testing.T) {
 		rng,
 		channeltest.WithChallengeDuration(uint64(100*time.Second)),
 		channeltest.WithParts(s.Parts...),
-		channeltest.WithAssets((*ethchannel.Asset)(&s.Asset)),
+		channeltest.WithAssets(s.Asset),
 		channeltest.WithIsFinal(false),
 		channeltest.WithLedgerChannel(true),
 		channeltest.WithVirtualChannel(false),

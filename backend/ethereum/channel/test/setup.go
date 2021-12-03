@@ -53,7 +53,7 @@ type (
 		Recvs   []*ethwallet.Address // on-chain receivers of withdrawn funds
 		Funders []*ethchannel.Funder // funders, bound to respective account
 		Adjs    []*SimAdjudicator    // adjudicator, withdrawal bound to respecive receivers
-		Asset   common.Address       // the asset
+		Asset   *ethchannel.Asset    // the asset
 	}
 )
 
@@ -108,9 +108,9 @@ func NewSetup(t *testing.T, rng *rand.Rand, n int, blockInterval time.Duration, 
 	defer cancel()
 	adjudicator, err := ethchannel.DeployAdjudicator(ctx, *s.CB, s.TxSender.Account)
 	require.NoError(t, err)
-	s.Asset, err = ethchannel.DeployETHAssetholder(ctx, *s.CB, adjudicator, s.TxSender.Account)
+	ethAsset, err := ethchannel.DeployETHAssetholder(ctx, *s.CB, adjudicator, s.TxSender.Account)
 	require.NoError(t, err)
-	asset := ethchannel.Asset(s.Asset)
+	s.Asset = ethchannel.NewAssetFromAddress(ethAsset)
 
 	ksWallet := wallettest.RandomWallet().(*keystore.Wallet)
 	require.NoErrorf(t, err, "initializing wallet from test keystore")
@@ -126,7 +126,7 @@ func NewSetup(t *testing.T, rng *rand.Rand, n int, blockInterval time.Duration, 
 			txFinalityDepth,
 		)
 		s.Funders[i] = ethchannel.NewFunder(cb)
-		require.True(t, s.Funders[i].RegisterAsset(asset, ethchannel.NewETHDepositor(), s.Accs[i].Account))
+		require.True(t, s.Funders[i].RegisterAsset(*s.Asset, ethchannel.NewETHDepositor(), s.Accs[i].Account))
 		s.Adjs[i] = NewSimAdjudicator(cb, adjudicator, common.Address(*s.Recvs[i]), s.Accs[i].Account)
 	}
 

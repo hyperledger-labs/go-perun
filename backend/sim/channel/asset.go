@@ -54,3 +54,12 @@ func (a *Asset) UnmarshalBinary(data []byte) error {
 	}
 	return perunio.Decode(bytes.NewBuffer(data), &a.ID)
 }
+
+// Equal returns true iff the asset equals the given asset.
+func (a Asset) Equal(b channel.Asset) bool {
+	simAsset, ok := b.(*Asset)
+	if !ok {
+		return false
+	}
+	return a.ID == simAsset.ID
+}

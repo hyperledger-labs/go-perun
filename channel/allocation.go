@@ -101,6 +101,8 @@ type (
 		// BinaryUnmarshaler unmarshals the blockchain specific address
 		// from binary format (a byte array).
 		encoding.BinaryUnmarshaler
+		// Equal returns true iff this asset is equal to the given asset.
+		Equal(Asset) bool
 	}
 )
 

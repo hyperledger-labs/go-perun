@@ -72,8 +72,8 @@ var _ channel.Funder = (*Funder)(nil)
 func NewFunder(backend ContractBackend) *Funder {
 	return &Funder{
 		ContractBackend: backend,
-		accounts:        make(map[wallet.Address]accounts.Account),
-		depositors:      make(map[wallet.Address]Depositor),
+		accounts:        make(map[Asset]accounts.Account),
+		depositors:      make(map[Asset]Depositor),
 		log:             log.Default(),
 	}
 }
@@ -226,7 +226,7 @@ func (f *Funder) sendFundingTx(ctx context.Context, request channel.FundingReq, 
 		return nil, nil
 	}
 
-	return f.deposit(ctx, bal, wallet.Address(*contract.Address), fundingID)
+	return f.deposit(ctx, bal, *NewAssetFromAddress(*contract.Address), fundingID)
 }
 
 // deposit deposits funds for one funding-ID by calling the associated Depositor.

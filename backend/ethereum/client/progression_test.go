@@ -51,7 +51,7 @@ func TestProgression(t *testing.T) {
 	execConfig := &clienttest.ProgressionExecConfig{
 		BaseExecConfig: clienttest.MakeBaseExecConfig(
 			clientAddresses(roleSetups),
-			(*ethwallet.Address)(&backendSetup.Asset),
+			backendSetup.Asset,
 			[2]*big.Int{big.NewInt(99), big.NewInt(1)},
 			client.WithApp(app, channel.NewMockOp(channel.OpValid)),
 		),

@@ -26,7 +26,6 @@ import (
 
 	"perun.network/go-perun/backend/ethereum/channel/test"
 	ctest "perun.network/go-perun/backend/ethereum/client/test"
-	"perun.network/go-perun/backend/ethereum/wallet"
 	"perun.network/go-perun/client"
 	clienttest "perun.network/go-perun/client/test"
 	"perun.network/go-perun/log"
@@ -59,7 +58,7 @@ func TestDisputeMalloryCarol(t *testing.T) {
 	execConfig := &clienttest.MalloryCarolExecConfig{
 		BaseExecConfig: clienttest.MakeBaseExecConfig(
 			[2]wire.Address{setup[A].Identity.Address(), setup[B].Identity.Address()},
-			(*wallet.Address)(&s.Asset),
+			s.Asset,
 			[2]*big.Int{big.NewInt(100), big.NewInt(1)},
 			client.WithoutApp(),
 		),

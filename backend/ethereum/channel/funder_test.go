@@ -85,7 +85,7 @@ func newFunderSetup(rng *rand.Rand) (
 	accs := make([]accounts.Account, n)
 
 	for i := 0; i < n; i++ {
-		assets[i] = *(wallettest.NewRandomAddress(rng).(*ethwallet.Address))
+		assets[i] = *test.NewRandomAsset(rng)
 		accs[i] = accounts.Account{Address: ethwallet.AsEthAddr(wallettest.NewRandomAddress(rng))}
 	}
 	// Use an ETH depositor with random addresses at index 0.
@@ -404,7 +404,7 @@ func newNFunders(
 	assetAddr1, err := ethchannel.DeployETHAssetholder(ctx, cb, deployAccount.Address, *deployAccount)
 	require.NoError(t, err, "Deployment should succeed")
 	t.Logf("asset holder #1 address is %s", assetAddr1.Hex())
-	asset1 := ethchannel.Asset(assetAddr1)
+	asset1 := ethchannel.NewAssetFromAddress(assetAddr1)
 	// Deploy PerunToken + ETHAssetholder.
 
 	token, err := ethchannel.DeployPerunToken(ctx, cb, *deployAccount, []common.Address{tokenAcc.Address}, channeltest.MaxBalance)
@@ -412,7 +412,7 @@ func newNFunders(
 	assetAddr2, err := ethchannel.DeployERC20Assetholder(ctx, cb, common.Address{}, token, *deployAccount)
 	require.NoError(t, err, "Deployment should succeed")
 	t.Logf("asset holder #2 address is %s", assetAddr2.Hex())
-	asset2 := ethchannel.Asset(assetAddr2)
+	asset2 := ethchannel.NewAssetFromAddress(assetAddr2)
 
 	parts = make([]wallet.Address, n)
 	funders = make([]*ethchannel.Funder, n)
@@ -421,19 +421,30 @@ func newNFunders(
 		parts[i] = ethwallet.AsWalletAddr(acc.Address)
 
 		simBackend.FundAddress(ctx, ethwallet.AsEthAddr(parts[i]))
-		err = fundERC20(ctx, cb, *tokenAcc, ethwallet.AsEthAddr(parts[i]), token, asset2)
+		err = fundERC20(ctx, cb, *tokenAcc, ethwallet.AsEthAddr(parts[i]), token, *asset2)
 		require.NoError(t, err)
 
 		funders[i] = ethchannel.NewFunder(cb)
-		require.True(t, funders[i].RegisterAsset(asset1, ethchannel.NewETHDepositor(), acc))
-		require.True(t, funders[i].RegisterAsset(asset2, ethchannel.NewERC20Depositor(token), acc))
+		require.True(t, funders[i].RegisterAsset(*asset1, ethchannel.NewETHDepositor(), acc))
+		require.True(t, funders[i].RegisterAsset(*asset2, ethchannel.NewERC20Depositor(token), acc))
 	}
 
 	// The challenge duration needs to be really large, since the auto-mining of
 	// SimBackend advances the block time with 100 seconds/second.
 	// By using a large value, we make sure that longer running tests work.
-	params = channeltest.NewRandomParams(rng, channeltest.WithParts(parts...), channeltest.WithChallengeDuration(uint64(n)*40000))
-	allocation = channeltest.NewRandomAllocation(rng, channeltest.WithNumParts(n), channeltest.WithAssets((*ethchannel.Asset)(&assetAddr1), (*ethchannel.Asset)(&assetAddr2)))
+	params = channeltest.NewRandomParams(
+		rng,
+		channeltest.WithParts(parts...),
+		channeltest.WithChallengeDuration(uint64(n)*40000),
+	)
+	allocation = channeltest.NewRandomAllocation(
+		rng,
+		channeltest.WithNumParts(n),
+		channeltest.WithAssets(
+			ethchannel.NewAssetFromAddress(assetAddr1),
+			ethchannel.NewAssetFromAddress(assetAddr2),
+		),
+	)
 	return parts, funders, params, allocation
 }
 
@@ -479,7 +490,7 @@ func onChainAllocation(ctx context.Context, cb *ethchannel.ContractBackend, para
 
 	for k, asset := range _assets {
 		alloc[k] = make([]channel.Bal, len(params.Parts))
-		contract, err := assetholder.NewAssetHolder(common.Address(*asset.(*ethchannel.Asset)), cb)
+		contract, err := assetholder.NewAssetHolder(asset.(*ethchannel.Asset).EthAddress(), cb)
 		if err != nil {
 			return nil, err
 		}
