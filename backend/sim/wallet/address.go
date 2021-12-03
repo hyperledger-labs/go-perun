@@ -60,7 +60,7 @@ func (a *Address) Bytes() []byte {
 	return data[:]
 }
 
-// ByteArray converts an address into a 64-byte array. The returned array
+// byteArray converts an address into a 64-byte array. The returned array
 // consists of two 32-byte chunks representing the public key's X and Y values.
 func (a *Address) byteArray() (data [addrLen]byte) {
 	xb := a.X.Bytes()
