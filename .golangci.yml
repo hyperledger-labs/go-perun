@@ -55,6 +55,13 @@ linters-settings:
       - 'fmt\.Print.*'
 
 issues:
+  # Re-enable default excludes.
+  include:
+    - EXC0012 # revive: exported (.+) should have comment or be unexported
+    - EXC0013 # revive: package comment should be of the form "(.+)..."
+    - EXC0014 # revive: comment on exported (.+) should be of the form "(.+)..."
+    - EXC0015 # revive: package should have comment
+
   exclude-rules:
     - path: test
       linters:

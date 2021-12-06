@@ -32,15 +32,15 @@ func TestGenericMarshaler(t *testing.T) {
 }
 
 func TestAddressMarshalling(t *testing.T) {
-	dest := [AddressBinaryLen]byte{}
+	dest := [addrLen]byte{}
 	t.Run("full length", func(t *testing.T) {
 		for i := range dest {
 			dest[i] = byte(i)
 		}
 
 		addr := &Address{
-			X: new(big.Int).SetBytes(dest[:ElemLen]),
-			Y: new(big.Int).SetBytes(dest[ElemLen:]),
+			X: new(big.Int).SetBytes(dest[:elemLen]),
+			Y: new(big.Int).SetBytes(dest[elemLen:]),
 		}
 		result, err := addr.MarshalBinary()
 		assert.NoError(t, err, "marshaling address should not error")
@@ -51,12 +51,12 @@ func TestAddressMarshalling(t *testing.T) {
 		const zeros = 5
 		for i := 0; i < zeros; i++ {
 			dest[i] = 0
-			dest[i+ElemLen] = 0
+			dest[i+elemLen] = 0
 		}
 
 		addr := &Address{
-			X: new(big.Int).SetBytes(dest[:ElemLen]),
-			Y: new(big.Int).SetBytes(dest[ElemLen:]),
+			X: new(big.Int).SetBytes(dest[:elemLen]),
+			Y: new(big.Int).SetBytes(dest[elemLen:]),
 		}
 		result, err := addr.MarshalBinary()
 		assert.NoError(t, err, "marshaling address should not error")
