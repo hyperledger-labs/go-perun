@@ -15,6 +15,7 @@
 package channel
 
 import (
+	"encoding"
 	"io"
 
 	"github.com/pkg/errors"
@@ -139,7 +140,7 @@ func (s *State) Equal(t *State) error {
 	if err := s.Allocation.Equal(&t.Allocation); err != nil {
 		return errors.WithMessage(err, "different Allocations")
 	}
-	if ok, err := perunio.EqualEncoding(s.Data, t.Data); err != nil {
+	if ok, err := perunio.EqualBinary(s.Data, t.Data); err != nil {
 		return errors.WithMessage(err, "comparing App data encoding")
 	} else if !ok {
 		return errors.Errorf("different App data")

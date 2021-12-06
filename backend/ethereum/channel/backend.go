@@ -29,6 +29,7 @@ import (
 	"perun.network/go-perun/backend/ethereum/bindings/adjudicator"
 	ethwallet "perun.network/go-perun/backend/ethereum/wallet"
 	"perun.network/go-perun/channel"
+	perunio "perun.network/go-perun/pkg/io"
 	"perun.network/go-perun/wallet"
 )
 
@@ -197,7 +198,7 @@ func ToEthState(s *channel.State) adjudicator.ChannelState {
 		log.Panic("invalid allocation dimensions")
 	}
 	appData := new(bytes.Buffer)
-	if err := s.Data.Encode(appData); err != nil {
+	if err := perunio.Encode(appData, s.Data); err != nil {
 		log.Panicf("error encoding app data: %v", err)
 	}
 	return adjudicator.ChannelState{
@@ -262,8 +263,8 @@ func FromEthState(app channel.App, s *adjudicator.ChannelState) channel.State {
 		log.Panic("invalid allocation dimensions")
 	}
 
-	data, err := app.DecodeData(bytes.NewReader(s.AppData))
-	if err != nil {
+	data := app.NewData()
+	if err := perunio.Decode(bytes.NewReader(s.AppData), data); err != nil {
 		log.Panicf("decoding app data: %v", err)
 	}
 

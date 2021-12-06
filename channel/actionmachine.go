@@ -20,6 +20,7 @@ import (
 
 	"github.com/pkg/errors"
 
+	perunio "perun.network/go-perun/pkg/io"
 	"perun.network/go-perun/wallet"
 )
 
@@ -128,11 +129,11 @@ func (m *ActionMachine) Clone() *ActionMachine {
 	for i, action := range m.stagingActions {
 		if action != nil {
 			var buff bytes.Buffer
-			if err := action.Encode(&buff); err != nil {
+			if err := perunio.Encode(&buff, action); err != nil {
 				log.Panicf("Could not encode action: %v", err)
 			}
-			clonedAction, err := m.app.DecodeAction(&buff)
-			if err != nil {
+			clonedAction := m.app.NewAction()
+			if err := perunio.Decode(&buff, clonedAction); err != nil {
 				log.Panicf("App could not decode Action: %v", err)
 			}
 			clonedActions[i] = clonedAction
