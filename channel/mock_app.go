@@ -15,11 +15,11 @@
 package channel
 
 import (
-	"io"
+	"encoding/binary"
+	"fmt"
 
 	"github.com/pkg/errors"
 
-	perunio "perun.network/go-perun/pkg/io"
 	"perun.network/go-perun/wallet"
 )
 
@@ -37,9 +37,16 @@ var (
 // MockOp serves as Action and State.Data for MockApp.
 type MockOp uint64
 
+// mockOpLen is the length of binary representation of mockOp, in bytes.
+const mockOpLen = 8
+
 var (
 	_ Action = (*MockOp)(nil)
 	_ Data   = (*MockOp)(nil)
+
+	// byteOrder used for marshalling/unmarshalling mockOp to/from its binary
+	// representation.
+	byteOrder = binary.BigEndian
 )
 
 const (
@@ -61,14 +68,21 @@ func NewMockOp(op MockOp) *MockOp {
 	return &op
 }
 
-// Encode encodes a MockOp into an io.Writer.
-func (o MockOp) Encode(w io.Writer) error {
-	return perunio.Encode(w, uint64(o))
+// MarshalBinary marshals MockOp to its binary representation.
+func (o MockOp) MarshalBinary() ([]byte, error) {
+	data := make([]byte, mockOpLen)
+	byteOrder.PutUint64(data, uint64(o))
+	return data, nil
 }
 
-// Decode decodes a MockOp from an io.Reader.
-func (o *MockOp) Decode(r io.Reader) error {
-	return perunio.Decode(r, (*uint64)(o))
+// UnmarshalBinary unmarshals MockOp from its binary representation.
+func (o *MockOp) UnmarshalBinary(data []byte) error {
+	if len(data) != mockOpLen {
+		//nolint: goerr113  // We do not want to define this as constant error.
+		return fmt.Errorf("unexpected length %d, want %d", len(data), mockOpLen)
+	}
+	*o = MockOp(byteOrder.Uint64(data))
+	return nil
 }
 
 // Clone returns a deep copy of a MockOp.
@@ -86,16 +100,18 @@ func (a MockApp) Def() wallet.Address {
 	return a.definition
 }
 
-// DecodeAction returns a decoded MockOp or an error.
-func (a MockApp) DecodeAction(r io.Reader) (Action, error) {
-	var act MockOp
-	return &act, act.Decode(r)
+// NewAction returns an instance of Action specific to MockApp.
+func (a MockApp) NewAction() Action {
+	return new(MockOp)
 }
 
-// DecodeData returns a decoded MockOp or an error.
-func (a MockApp) DecodeData(r io.Reader) (Data, error) {
-	var data MockOp
-	return &data, data.Decode(r)
+// NewData returns a new instance of data specific to MockApp, intialized to
+// its zero value.
+//
+// This should be used for unmarshalling the data from its binary
+// representation.
+func (a MockApp) NewData() Data {
+	return new(MockOp)
 }
 
 // ValidTransition checks the transition for validity.
