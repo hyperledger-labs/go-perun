@@ -15,6 +15,7 @@
 package channel
 
 import (
+	"encoding"
 	"io"
 
 	"github.com/pkg/errors"
@@ -34,11 +35,15 @@ type (
 		// returns false.
 		Def() wallet.Address
 
-		// DecodeData decodes data specific to this application. This has to be
-		// defined on an application-level because every app can have completely
-		// different data; during decoding the application needs to be known to
-		// know how to decode the data.
-		DecodeData(io.Reader) (Data, error)
+		// NewData returns a new instance of data specific to NoApp, intialized
+		// to its zero value.
+		//
+		// This should be used for unmarshalling the data from its binary
+		// representation.
+		//
+		// This has to be defined on an application-level because every app can
+		// have completely different data.
+		NewData() Data
 	}
 
 	// A StateApp is advanced by full state updates. The validity of state
@@ -90,18 +95,24 @@ type (
 		// parameters and version must be 0.
 		InitState(*Params, []Action) (Allocation, Data, error)
 
-		// DecodeAction decodes actions specific to this application. This has to be
-		// defined on an application-level because every app can have completely
-		// different actions; during decoding the application needs to be known to
-		// know how to decode an action.
-		DecodeAction(io.Reader) (Action, error)
+		// NewAction returns an instance of action specific to this
+		// application. This has to be defined on an application-level because
+		// every app can have completely different action. This instance should
+		// be used for unmarshalling the binary representation of the action.
+		//
+		// It is zero-value is safe to use.
+		NewAction() Action
 	}
 
 	// An Action is applied to a channel state to result in new state.
-	// Actions need to be Encoders so they can be sent over the wire.
-	// Decoding happens with ActionApp.DecodeAction() since the app context needs
-	// to be known at the point of decoding.
-	Action = perunio.Encoder
+	//
+	// It is sent as binary data over the wire. For unmarshalling an action from
+	// its binary representation, use ActionApp.NewAction() to create an Action
+	// instance specific to the application and then unmarshal using it.
+	Action interface {
+		encoding.BinaryMarshaler
+		encoding.BinaryUnmarshaler
+	}
 
 	// AppResolver provides functionality to create an App from an Address.
 	// The AppResolver needs to be implemented for every state channel application.
@@ -161,6 +172,33 @@ func (d OptAppDec) Decode(r io.Reader) (err error) {
 	}
 	*d.App, err = Resolve(appDef)
 	return errors.WithMessage(err, "resolve app")
+}
+
+// OptAppAndDataEnc makes an optional pair of App definition and Data encodable.
+type OptAppAndDataEnc struct {
+	App  App
+	Data Data
+}
+
+// Encode encodes an optional pair of App definition and Data.
+func (o OptAppAndDataEnc) Encode(w io.Writer) error {
+	return perunio.Encode(w, OptAppEnc{App: o.App}, o.Data)
+}
+
+// OptAppAndDataDec makes an optional pair of App definition and Data decodable.
+type OptAppAndDataDec struct {
+	App  *App
+	Data *Data
+}
+
+// Decode decodes an optional pair of App definition and Data.
+func (o OptAppAndDataDec) Decode(r io.Reader) (err error) {
+	if err = perunio.Decode(r, OptAppDec{App: o.App}); err != nil {
+		return err
+	}
+
+	*o.Data = (*o.App).NewData()
+	return perunio.Decode(r, *o.Data)
 }
 
 // AppShouldEqual compares two Apps for equality.

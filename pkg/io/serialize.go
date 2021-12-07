@@ -31,7 +31,8 @@ var byteOrder = binary.LittleEndian
 
 // Encode encodes multiple primitive values into a writer.
 // All passed values must be copies, not references.
-func Encode(writer io.Writer, values ...interface{}) (err error) {
+func Encode(writer io.Writer, values ...interface{}) (err error) { //nolint: cyclop // by design,
+	// encode function has many paths. Hence, we accept a higher complexity  here.
 	for i, value := range values {
 		switch v := value.(type) {
 		case bool, int8, uint8, int16, uint16, int32, uint32, int64, uint64:
@@ -62,6 +63,10 @@ func Encode(writer io.Writer, values ...interface{}) (err error) {
 				return errors.WithMessage(err, "writing length of marshalled data")
 			}
 
+			// Nothing to be encoded when length is zero.
+			if length == 0 {
+				break
+			}
 			err = ByteSlice(data).Encode(writer)
 		default:
 			if enc, ok := value.(Encoder); ok {
@@ -108,6 +113,10 @@ func Decode(reader io.Reader, values ...interface{}) (err error) {
 				return errors.WithMessage(err, "reading length of binary data")
 			}
 
+			// Nothing to be decoded when length is zero.
+			if length == 0 {
+				break
+			}
 			var data ByteSlice = make([]byte, length)
 			err = data.Decode(reader)
 			if err != nil {

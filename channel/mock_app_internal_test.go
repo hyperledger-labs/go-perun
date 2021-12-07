@@ -43,11 +43,11 @@ func TestMockApp(t *testing.T) {
 	})
 
 	t.Run("GenericSerializeable", func(t *testing.T) {
-		iotest.GenericSerializerTest(t, NewMockOp(OpValid))
-		iotest.GenericSerializerTest(t, NewMockOp(OpErr))
-		iotest.GenericSerializerTest(t, NewMockOp(OpTransitionErr))
-		iotest.GenericSerializerTest(t, NewMockOp(OpActionErr))
-		iotest.GenericSerializerTest(t, NewMockOp(OpPanic))
+		iotest.GenericMarshalerTest(t, NewMockOp(OpValid))
+		iotest.GenericMarshalerTest(t, NewMockOp(OpErr))
+		iotest.GenericMarshalerTest(t, NewMockOp(OpTransitionErr))
+		iotest.GenericMarshalerTest(t, NewMockOp(OpActionErr))
+		iotest.GenericMarshalerTest(t, NewMockOp(OpPanic))
 	})
 
 	// We cant use VerifyClone here since it requires that the same type is returned by

@@ -46,13 +46,14 @@ func TestData(t *testing.T) {
 
 	assert.NotPanics(func() {
 		data := Data()
-		assert.Nil(data.Encode(nil))
+		_, err := data.MarshalBinary()
+		assert.Nil(err)
 	})
 
 	assert.NotPanics(func() {
 		app := new(App)
-		data, err := app.DecodeData(nil)
-		assert.NoError(err)
+		data := app.NewData()
+		assert.NoError(data.UnmarshalBinary(nil))
 		assert.NotNil(data)
 		assert.True(IsData(data))
 	})

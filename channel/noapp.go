@@ -15,8 +15,6 @@
 package channel
 
 import (
-	"io"
-
 	"github.com/pkg/errors"
 
 	"perun.network/go-perun/log"
@@ -45,9 +43,13 @@ func (noApp) Def() wallet.Address {
 	return nil // needed to keep the compiler happy.
 }
 
-// DecodeData reads nothing and just returns NoData.
-func (noApp) DecodeData(io.Reader) (Data, error) {
-	return NoData(), nil
+// NewData returns a new instance of data specific to NoApp, intialized to its
+// zero value.
+//
+// This should be used for unmarshalling the data from its binary
+// representation.
+func (noApp) NewData() Data {
+	return NoData()
 }
 
 // ValidTransition allows all transitions.
@@ -64,16 +66,19 @@ func (noApp) ValidInit(_ *Params, s *State) error {
 }
 
 // NoData creates an empty app data value.
-func NoData() Data { return noData{} }
+func NoData() Data { return &noData{} }
 
 // IsNoData returns whether an app data is NoData.
 func IsNoData(d Data) bool {
-	_, ok := d.(noData)
+	_, ok := d.(*noData)
 	return ok
 }
 
-// Encode does nothing.
-func (noData) Encode(io.Writer) error { return nil }
+// MarshalBinary does nothing and always returns an empty byte array and nil.
+func (noData) MarshalBinary() ([]byte, error) { return []byte{}, nil }
+
+// UnmarshalBinary does nothing and always returns nil.
+func (*noData) UnmarshalBinary(_ []byte) error { return nil }
 
 // Clone returns NoData().
 func (noData) Clone() Data { return NoData() }
