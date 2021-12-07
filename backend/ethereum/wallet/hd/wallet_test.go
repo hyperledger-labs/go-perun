@@ -28,8 +28,8 @@ import (
 	ethwallet "perun.network/go-perun/backend/ethereum/wallet"
 	"perun.network/go-perun/backend/ethereum/wallet/hd"
 	ethwallettest "perun.network/go-perun/backend/ethereum/wallet/test"
-	"perun.network/go-perun/pkg/io"
 	"perun.network/go-perun/wallet/test"
+	"perun.network/go-perun/wire/perunio"
 	pkgtest "polycry.pt/poly-go/test"
 )
 
@@ -123,7 +123,7 @@ func newSetup(t require.TestingT, prng *rand.Rand) (*test.Setup, accounts.Wallet
 
 	addressNotInWallet := ethwallettest.NewRandomAddress(prng)
 	var buff bytes.Buffer
-	err = io.Encode(&buff, &addressNotInWallet)
+	err = perunio.Encode(&buff, &addressNotInWallet)
 	if err != nil {
 		panic(err)
 	}

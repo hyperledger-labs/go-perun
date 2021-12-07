@@ -17,13 +17,13 @@ package wire
 import (
 	stdio "io"
 
-	"perun.network/go-perun/pkg/io"
 	"perun.network/go-perun/wallet"
+	"perun.network/go-perun/wire/perunio"
 )
 
 var (
-	_ io.Serializer = (*Addresses)(nil)
-	_ io.Serializer = (*AddressesWithLen)(nil)
+	_ perunio.Serializer = (*Addresses)(nil)
+	_ perunio.Serializer = (*AddressesWithLen)(nil)
 )
 
 // Address is a Perun node's network address, which is used as a permanent

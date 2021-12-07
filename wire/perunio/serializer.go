@@ -12,29 +12,30 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package wire
+package perunio
 
 import (
 	"io"
-	"testing"
-
-	"perun.network/go-perun/wire/perunio/test"
 )
 
-type serializerMsg struct {
-	Msg Msg
-}
+type (
+	// Serializer objects can be serialized into and from streams.
+	Serializer interface {
+		Encoder
+		Decoder
+	}
 
-func (msg *serializerMsg) Encode(writer io.Writer) error {
-	return Encode(msg.Msg, writer)
-}
+	// An Encoder can encode itself into a stream.
+	Encoder interface {
+		// Encode writes itself to a stream.
+		// If the stream fails, the underlying error is returned.
+		Encode(io.Writer) error
+	}
 
-func (msg *serializerMsg) Decode(reader io.Reader) (err error) {
-	msg.Msg, err = Decode(reader)
-	return err
-}
-
-// TestMsg performs generic tests on a wire.Msg object.
-func TestMsg(t *testing.T, msg Msg) {
-	test.GenericSerializerTest(t, &serializerMsg{msg})
-}
+	// A Decoder can decode itself from a stream.
+	Decoder interface {
+		// Decode reads an object from a stream.
+		// If the stream fails, the underlying error is returned.
+		Decode(io.Reader) error
+	}
+)

@@ -18,8 +18,8 @@ import (
 	"bytes"
 
 	"perun.network/go-perun/channel"
-	"perun.network/go-perun/pkg/io"
 	"perun.network/go-perun/wire"
+	"perun.network/go-perun/wire/perunio"
 )
 
 type peerChans map[string][]channel.ID
@@ -76,7 +76,7 @@ func (pc peerChans) Delete(id channel.ID) {
 
 func peerKey(a wire.Address) string {
 	key := new(bytes.Buffer)
-	err := io.Encode(key, a)
+	err := perunio.Encode(key, a)
 	if err != nil {
 		panic("error encoding peer key: " + err.Error())
 	}
@@ -85,7 +85,7 @@ func peerKey(a wire.Address) string {
 
 func peerFromKey(s string) wire.Address {
 	p := wire.NewAddress()
-	err := io.Decode(bytes.NewBuffer([]byte(s)), p)
+	err := perunio.Decode(bytes.NewBuffer([]byte(s)), p)
 	if err != nil {
 		panic("error decoding peer key: " + err.Error())
 	}

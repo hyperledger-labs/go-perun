@@ -23,7 +23,7 @@ import (
 
 	"github.com/pkg/errors"
 
-	"perun.network/go-perun/pkg/io"
+	"perun.network/go-perun/wire/perunio"
 )
 
 // Address represents a identifier used in a cryptocurrency.
@@ -86,7 +86,7 @@ type AddrKey string
 // following decode operation.
 func (a Addresses) Encode(w stdio.Writer) error {
 	for i, addr := range a {
-		if err := io.Encode(w, addr); err != nil {
+		if err := perunio.Encode(w, addr); err != nil {
 			return errors.WithMessagef(err, "encoding %d-th address", i)
 		}
 	}
@@ -97,7 +97,7 @@ func (a Addresses) Encode(w stdio.Writer) error {
 // Encode encodes a wallet address slice, the length of which is unknown to the
 // following decode operation.
 func (a AddressesWithLen) Encode(w stdio.Writer) error {
-	return io.Encode(w,
+	return perunio.Encode(w,
 		addressSliceLen(len(a)),
 		(Addresses)(a))
 }
@@ -107,7 +107,7 @@ func (a AddressesWithLen) Encode(w stdio.Writer) error {
 func (a Addresses) Decode(r stdio.Reader) (err error) {
 	for i := range a {
 		a[i] = NewAddress()
-		err = io.Decode(r, a[i])
+		err = perunio.Decode(r, a[i])
 		if err != nil {
 			return errors.WithMessagef(err, "decoding %d-th address", i)
 		}
@@ -118,7 +118,7 @@ func (a Addresses) Decode(r stdio.Reader) (err error) {
 // Decode decodes a wallet address slice of unknown length.
 func (a *AddressesWithLen) Decode(r stdio.Reader) (err error) {
 	var parts addressSliceLen
-	if err = io.Decode(r, &parts); err != nil {
+	if err = perunio.Decode(r, &parts); err != nil {
 		return errors.WithMessage(err, "decoding count")
 	}
 
@@ -129,7 +129,7 @@ func (a *AddressesWithLen) Decode(r stdio.Reader) (err error) {
 // Decode decodes a single wallet address.
 func (a AddressDec) Decode(r stdio.Reader) (err error) {
 	*a.Addr = NewAddress()
-	err = io.Decode(r, *a.Addr)
+	err = perunio.Decode(r, *a.Addr)
 	return err
 }
 
@@ -138,7 +138,7 @@ func (a AddressDec) Decode(r stdio.Reader) (err error) {
 // Panics when the `Address` can't be encoded.
 func Key(a Address) AddrKey {
 	var buff strings.Builder
-	if err := io.Encode(&buff, a); err != nil {
+	if err := perunio.Encode(&buff, a); err != nil {
 		panic("Could not encode address in AddrKey: " + err.Error())
 	}
 	return AddrKey(buff.String())
@@ -149,7 +149,7 @@ func Key(a Address) AddrKey {
 // Panics when the `Address` can't be decoded.
 func FromKey(k AddrKey) Address {
 	a := NewAddress()
-	err := io.Decode(bytes.NewBuffer([]byte(k)), a)
+	err := perunio.Decode(bytes.NewBuffer([]byte(k)), a)
 	if err != nil {
 		panic("Could not decode address in FromKey: " + err.Error())
 	}

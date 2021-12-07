@@ -20,7 +20,7 @@ import (
 	"math/rand"
 
 	"perun.network/go-perun/channel"
-	perunio "perun.network/go-perun/pkg/io"
+	"perun.network/go-perun/wire/perunio"
 )
 
 // AssetBinaryLen is the length of binary representation of asset, in bytes.

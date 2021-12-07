@@ -26,8 +26,8 @@ import (
 
 	ethwallet "perun.network/go-perun/backend/ethereum/wallet"
 	ethwallettest "perun.network/go-perun/backend/ethereum/wallet/test"
-	"perun.network/go-perun/pkg/io"
 	"perun.network/go-perun/wallet/test"
+	"perun.network/go-perun/wire/perunio"
 	pkgtest "polycry.pt/poly-go/test"
 )
 
@@ -75,12 +75,12 @@ func TestBackend(t *testing.T) {
 
 	buff := bytes.NewReader(s.AddressEncoded)
 	addr := backend.NewAddress()
-	err := io.Decode(buff, addr)
+	err := perunio.Decode(buff, addr)
 	assert.NoError(t, err, "NewAddress from Bytes should work")
 
 	buff = bytes.NewReader([]byte(invalidAddr))
 	addr = backend.NewAddress()
-	err = io.Decode(buff, addr)
+	err = perunio.Decode(buff, addr)
 	assert.Error(t, err, "Conversion from wrong address should fail")
 }
 
@@ -89,7 +89,7 @@ func newSetup(t require.TestingT, prng *rand.Rand) *test.Setup {
 
 	addressNotInWallet := ethwallettest.NewRandomAddress(prng)
 	var buff bytes.Buffer
-	err := io.Encode(&buff, &addressNotInWallet)
+	err := perunio.Encode(&buff, &addressNotInWallet)
 	if err != nil {
 		panic(err)
 	}

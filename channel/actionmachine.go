@@ -20,8 +20,8 @@ import (
 
 	"github.com/pkg/errors"
 
-	perunio "perun.network/go-perun/pkg/io"
 	"perun.network/go-perun/wallet"
+	"perun.network/go-perun/wire/perunio"
 )
 
 // An ActionMachine is the channel pushdown automaton around an ActionApp.

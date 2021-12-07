@@ -21,7 +21,7 @@ import (
 
 	"github.com/pkg/errors"
 
-	perunio "perun.network/go-perun/pkg/io"
+	"perun.network/go-perun/wire/perunio"
 )
 
 type (

@@ -24,9 +24,9 @@ import (
 
 	"perun.network/go-perun/channel"
 	"perun.network/go-perun/log"
-	"perun.network/go-perun/pkg/io"
 	"perun.network/go-perun/wallet"
 	"perun.network/go-perun/wire"
+	"perun.network/go-perun/wire/perunio"
 	pcontext "polycry.pt/poly-go/context"
 	"polycry.pt/poly-go/sync/atomic"
 )
@@ -496,7 +496,7 @@ func nonceShares(proposer, proposee NonceShare) []NonceShare {
 func calcNonce(nonceShares []NonceShare) channel.Nonce {
 	hasher := newHasher()
 	for i, share := range nonceShares {
-		if err := io.Encode(hasher, share); err != nil {
+		if err := perunio.Encode(hasher, share); err != nil {
 			log.Panicf("Failed to encode nonce share %d for hashing", i)
 		}
 	}

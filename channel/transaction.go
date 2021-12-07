@@ -19,8 +19,8 @@ import (
 
 	"github.com/pkg/errors"
 
-	perunio "perun.network/go-perun/pkg/io"
 	"perun.network/go-perun/wallet"
+	"perun.network/go-perun/wire/perunio"
 )
 
 // Transaction is a channel state together with valid signatures from the

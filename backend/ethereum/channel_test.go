@@ -20,7 +20,7 @@ import (
 	pkgtest "polycry.pt/poly-go/test"
 
 	ethwallettest "perun.network/go-perun/backend/ethereum/wallet/test"
-	"perun.network/go-perun/pkg/io/test"
+	"perun.network/go-perun/wire/perunio/test"
 )
 
 func Test_Asset_GenericMarshaler(t *testing.T) {

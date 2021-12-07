@@ -21,8 +21,8 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"perun.network/go-perun/pkg/io"
 	"perun.network/go-perun/wallet"
+	"perun.network/go-perun/wire/perunio"
 )
 
 // InitWallet initializes a wallet.
@@ -54,7 +54,7 @@ func TestAccountWithWalletAndBackend(t *testing.T, s *Setup) { //nolint:revive /
 	assert.NoError(t, err, "Verification should not produce error")
 
 	addr := s.Backend.NewAddress()
-	err = io.Decode(bytes.NewReader(s.AddressEncoded), addr)
+	err = perunio.Decode(bytes.NewReader(s.AddressEncoded), addr)
 	assert.NoError(t, err, "Byte deserialization of address should work")
 	valid, err = s.Backend.VerifySignature(s.DataToSign, sig, addr)
 	assert.False(t, valid, "Verification with wrong address should fail")
@@ -87,14 +87,14 @@ func TestAccountWithWalletAndBackend(t *testing.T, s *Setup) { //nolint:revive /
 	require.NoError(t, err, "Sign with unlocked account should succeed")
 
 	buff := new(bytes.Buffer)
-	err = io.Encode(buff, sig)
+	err = perunio.Encode(buff, sig)
 	require.NoError(t, err, "encode sig")
 	sign2, err := s.Backend.DecodeSig(buff)
 	assert.NoError(t, err, "Decoded signature should work")
 	assert.Equal(t, sig, sign2, "Decoded signature should be equal to the original")
 
 	// Test DecodeSig on short stream
-	err = io.Encode(buff, sig)
+	err = perunio.Encode(buff, sig)
 	require.NoError(t, err, "encode sig")
 	shortBuff := bytes.NewBuffer(buff.Bytes()[:len(buff.Bytes())-1]) // remove one byte
 	_, err = s.Backend.DecodeSig(shortBuff)

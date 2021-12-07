@@ -21,8 +21,8 @@ import (
 	"github.com/pkg/errors"
 
 	"perun.network/go-perun/log"
-	"perun.network/go-perun/pkg/io"
 	"perun.network/go-perun/wallet"
+	"perun.network/go-perun/wire/perunio"
 	"polycry.pt/poly-go/math/big"
 )
 
@@ -31,13 +31,13 @@ type Index uint16
 
 // Encode encodes the object onto an io.Writer.
 func (i Index) Encode(w stdio.Writer) error {
-	return io.Encode(w, uint16(i))
+	return perunio.Encode(w, uint16(i))
 }
 
 // Decode decodes an object from an io.Reader.
 func (i *Index) Decode(r stdio.Reader) error {
 	var _i uint16
-	err := io.Decode(r, &_i)
+	err := perunio.Decode(r, &_i)
 	*i = Index(_i)
 	return err
 }
@@ -65,8 +65,8 @@ type (
 )
 
 var (
-	_ Source        = (*machine)(nil)
-	_ io.Serializer = (*Phase)(nil)
+	_ Source             = (*machine)(nil)
+	_ perunio.Serializer = (*Phase)(nil)
 )
 
 // Phases known to the channel machine.
@@ -106,12 +106,12 @@ func (p Phase) String() string {
 
 // Encode serializes a Phase.
 func (p Phase) Encode(w stdio.Writer) error {
-	return io.Encode(w, uint8(p))
+	return perunio.Encode(w, uint8(p))
 }
 
 // Decode deserializes a Phase.
 func (p *Phase) Decode(r stdio.Reader) error {
-	return io.Decode(r, (*uint8)(p))
+	return perunio.Decode(r, (*uint8)(p))
 }
 
 func (t PhaseTransition) String() string {

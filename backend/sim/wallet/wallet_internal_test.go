@@ -22,8 +22,8 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"perun.network/go-perun/pkg/io"
 	"perun.network/go-perun/wallet/test"
+	"perun.network/go-perun/wire/perunio"
 	pkgtest "polycry.pt/poly-go/test"
 )
 
@@ -102,7 +102,7 @@ func newWalletSetup(rng *rand.Rand) *test.Setup {
 
 	addressNotInWallet := NewRandomAccount(rng).Address()
 	var buff bytes.Buffer
-	err = io.Encode(&buff, addressNotInWallet)
+	err = perunio.Encode(&buff, addressNotInWallet)
 	if err != nil {
 		panic(err)
 	}

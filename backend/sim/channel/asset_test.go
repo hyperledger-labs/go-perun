@@ -17,7 +17,7 @@ import (
 	"testing"
 
 	"perun.network/go-perun/backend/sim/channel"
-	"perun.network/go-perun/pkg/io/test"
+	"perun.network/go-perun/wire/perunio/test"
 	pkgtest "polycry.pt/poly-go/test"
 )
 
