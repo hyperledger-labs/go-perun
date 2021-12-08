@@ -21,9 +21,9 @@ import (
 	"github.com/stretchr/testify/require"
 
 	_ "perun.network/go-perun/backend/sim/wallet"
-	iotest "perun.network/go-perun/pkg/io/test"
 	"perun.network/go-perun/wallet"
 	wallettest "perun.network/go-perun/wallet/test"
+	iotest "perun.network/go-perun/wire/perunio/test"
 	pkgtest "polycry.pt/poly-go/test"
 )
 

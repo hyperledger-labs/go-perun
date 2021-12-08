@@ -22,8 +22,8 @@ import (
 	"github.com/pkg/errors"
 
 	"perun.network/go-perun/log"
-	"perun.network/go-perun/pkg/io"
 	"perun.network/go-perun/wallet"
+	"perun.network/go-perun/wire/perunio"
 )
 
 // IDLen the length of a channelID.
@@ -52,7 +52,7 @@ func NonceFromBytes(b []byte) Nonce {
 // Zero is the default channelID.
 var Zero = ID{}
 
-var _ io.Serializer = (*Params)(nil)
+var _ perunio.Serializer = (*Params)(nil)
 
 // Params are a channel's immutable parameters. A channel's id is the hash of
 // (some of) its parameter, as determined by the backend. All fields should be
@@ -150,12 +150,12 @@ func (p *Params) Clone() *Params {
 	clonedParts := make([]wallet.Address, len(p.Parts))
 	for i, v := range p.Parts {
 		var buff bytes.Buffer
-		if err := io.Encode(&buff, v); err != nil {
+		if err := perunio.Encode(&buff, v); err != nil {
 			log.WithError(err).Panic("Could not encode part")
 		}
 
 		addr := wallet.NewAddress()
-		if err := io.Decode(&buff, addr); err != nil {
+		if err := perunio.Decode(&buff, addr); err != nil {
 			log.WithError(err).Panic("Could not clone params' addresses")
 		}
 		clonedParts[i] = addr
@@ -174,7 +174,7 @@ func (p *Params) Clone() *Params {
 
 // Encode uses the pkg/io module to serialize a params instance.
 func (p *Params) Encode(w stdio.Writer) error {
-	return io.Encode(w,
+	return perunio.Encode(w,
 		p.ChallengeDuration,
 		wallet.AddressesWithLen(p.Parts),
 		OptAppEnc{p.App},
@@ -195,7 +195,7 @@ func (p *Params) Decode(r stdio.Reader) error {
 		virtual           bool
 	)
 
-	err := io.Decode(r,
+	err := perunio.Decode(r,
 		&challengeDuration,
 		&parts,
 		OptAppDec{App: &app},

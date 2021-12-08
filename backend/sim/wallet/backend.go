@@ -23,8 +23,8 @@ import (
 	"github.com/pkg/errors"
 
 	"perun.network/go-perun/log"
-	perunio "perun.network/go-perun/pkg/io"
 	"perun.network/go-perun/wallet"
+	"perun.network/go-perun/wire/perunio"
 )
 
 var curve = elliptic.P256()

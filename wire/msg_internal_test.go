@@ -22,8 +22,8 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	iotest "perun.network/go-perun/pkg/io/test"
 	wtest "perun.network/go-perun/wallet/test"
+	iotest "perun.network/go-perun/wire/perunio/test"
 	"polycry.pt/poly-go/test"
 )
 

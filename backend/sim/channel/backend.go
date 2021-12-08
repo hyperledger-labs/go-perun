@@ -22,8 +22,8 @@ import (
 
 	"perun.network/go-perun/channel"
 	"perun.network/go-perun/log"
-	perunio "perun.network/go-perun/pkg/io"
 	"perun.network/go-perun/wallet"
+	"perun.network/go-perun/wire/perunio"
 )
 
 // backend implements the utility interface defined in the channel package.

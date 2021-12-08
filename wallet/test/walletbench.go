@@ -19,7 +19,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
-	"perun.network/go-perun/pkg/io"
+	"perun.network/go-perun/wire/perunio"
 )
 
 // GenericAccountBenchmark runs a suite designed to benchmark the general speed of an implementation of an Account.
@@ -72,7 +72,7 @@ func benchBackendVerifySig(b *testing.B, s *Setup) {
 func benchBackendDecodeAddress(b *testing.B, s *Setup) {
 	b.Helper()
 	for n := 0; n < b.N; n++ {
-		err := io.Decode(bytes.NewReader(s.AddressEncoded), s.Backend.NewAddress())
+		err := perunio.Decode(bytes.NewReader(s.AddressEncoded), s.Backend.NewAddress())
 		if err != nil {
 			b.Fatal(err)
 		}

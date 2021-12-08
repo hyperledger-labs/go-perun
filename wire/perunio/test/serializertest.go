@@ -21,7 +21,7 @@ import (
 	"testing/iotest"
 
 	"github.com/stretchr/testify/assert"
-	perunio "perun.network/go-perun/pkg/io"
+	"perun.network/go-perun/wire/perunio"
 )
 
 // GenericSerializerTest runs multiple tests to check whether encoding

@@ -21,7 +21,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"perun.network/go-perun/pkg/io"
+	"perun.network/go-perun/wire/perunio"
 )
 
 // TestAddress runs a test suite designed to test the general functionality of
@@ -29,7 +29,7 @@ import (
 func TestAddress(t *testing.T, s *Setup) { //nolint:revive // `test.Test...` stutters, but we accept that here.
 	null := s.ZeroAddress
 	addr := s.Backend.NewAddress()
-	err := io.Decode(bytes.NewReader(s.AddressEncoded), addr)
+	err := perunio.Decode(bytes.NewReader(s.AddressEncoded), addr)
 	assert.NoError(t, err, "Byte deserialization of address should work")
 
 	// Test Address.String.
@@ -58,9 +58,9 @@ func TestAddress(t *testing.T, s *Setup) { //nolint:revive // `test.Test...` stu
 	// a.Equal(Decode(Encode(a)))
 	t.Run("Serialize Equal Test", func(t *testing.T) {
 		buff := new(bytes.Buffer)
-		require.NoError(t, io.Encode(buff, addr))
+		require.NoError(t, perunio.Encode(buff, addr))
 		addr2 := s.Backend.NewAddress()
-		err := io.Decode(buff, addr2)
+		err := perunio.Decode(buff, addr2)
 		require.NoError(t, err)
 
 		assert.True(t, addr.Equal(addr2))

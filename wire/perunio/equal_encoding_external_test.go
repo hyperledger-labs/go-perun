@@ -12,13 +12,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package io_test
+package perunio_test
 
 import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	"perun.network/go-perun/pkg/io"
+	"perun.network/go-perun/wire/perunio"
 
 	polytest "polycry.pt/poly-go/test"
 )
@@ -26,9 +26,9 @@ import (
 // TestEqualEncoding tests EqualEncoding.
 func TestEqualEncoding(t *testing.T) {
 	rng := polytest.Prng(t)
-	a := make(io.ByteSlice, 10)
-	b := make(io.ByteSlice, 10)
-	c := make(io.ByteSlice, 12)
+	a := make(perunio.ByteSlice, 10)
+	b := make(perunio.ByteSlice, 10)
+	c := make(perunio.ByteSlice, 12)
 
 	rng.Read(a)
 	rng.Read(b)
@@ -36,19 +36,19 @@ func TestEqualEncoding(t *testing.T) {
 	c2 := c
 
 	tests := []struct {
-		a         io.Encoder
-		b         io.Encoder
+		a         perunio.Encoder
+		b         perunio.Encoder
 		shouldOk  bool
 		shouldErr bool
 		name      string
 	}{
 		{a, nil, false, true, "one Encoder set to nil"},
 		{nil, a, false, true, "one Encoder set to nil"},
-		{io.Encoder(nil), b, false, true, "one Encoder set to nil"},
-		{b, io.Encoder(nil), false, true, "one Encoder set to nil"},
+		{perunio.Encoder(nil), b, false, true, "one Encoder set to nil"},
+		{b, perunio.Encoder(nil), false, true, "one Encoder set to nil"},
 
 		{nil, nil, true, false, "both Encoders set to nil"},
-		{io.Encoder(nil), io.Encoder(nil), true, false, "both Encoders set to nil"},
+		{perunio.Encoder(nil), perunio.Encoder(nil), true, false, "both Encoders set to nil"},
 
 		{a, a, true, false, "same Encoders"},
 		{a, &a, true, false, "same Encoders"},
@@ -62,7 +62,7 @@ func TestEqualEncoding(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		ok, err := io.EqualEncoding(tt.a, tt.b)
+		ok, err := perunio.EqualEncoding(tt.a, tt.b)
 
 		assert.Equalf(t, ok, tt.shouldOk, "EqualEncoding with %s should return %t as bool but got: %t", tt.name, tt.shouldOk, ok)
 		assert.Falsef(t, (err == nil) && tt.shouldErr, "EqualEncoding with %s should return an error but got nil", tt.name)

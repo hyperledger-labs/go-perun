@@ -20,8 +20,8 @@ import (
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/pkg/errors"
 
-	perunio "perun.network/go-perun/pkg/io"
 	"perun.network/go-perun/wallet"
+	"perun.network/go-perun/wire/perunio"
 )
 
 // Backend implements the utility interface defined in the wallet package.

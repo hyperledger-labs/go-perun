@@ -19,7 +19,7 @@ import (
 
 	"github.com/pkg/errors"
 	"perun.network/go-perun/channel"
-	perunio "perun.network/go-perun/pkg/io"
+	"perun.network/go-perun/wire/perunio"
 )
 
 type (

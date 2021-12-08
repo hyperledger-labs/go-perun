@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package io
+package perunio
 
 import (
 	"encoding"
@@ -72,7 +72,7 @@ func Encode(writer io.Writer, values ...interface{}) (err error) { //nolint: cyc
 			if enc, ok := value.(Encoder); ok {
 				err = enc.Encode(writer)
 			} else {
-				panic(fmt.Sprintf("polyio.Encode(): Invalid type %T", v))
+				panic(fmt.Sprintf("perunio.Encode(): Invalid type %T", v))
 			}
 		}
 
@@ -129,7 +129,7 @@ func Decode(reader io.Reader, values ...interface{}) (err error) {
 			if dec, ok := value.(Decoder); ok {
 				err = dec.Decode(reader)
 			} else {
-				panic(fmt.Sprintf("polyio.Decode(): Invalid type %T", v))
+				panic(fmt.Sprintf("perunio.Decode(): Invalid type %T", v))
 			}
 		}
 

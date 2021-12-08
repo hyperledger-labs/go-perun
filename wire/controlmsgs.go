@@ -18,7 +18,7 @@ import (
 	"io"
 	"time"
 
-	perunio "perun.network/go-perun/pkg/io"
+	"perun.network/go-perun/wire/perunio"
 )
 
 func init() {
