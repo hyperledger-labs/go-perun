@@ -151,12 +151,12 @@ func isNilSigs(s []wallet.Sig) bool {
 }
 
 // Init calls Init on the state machine and then checks the persistence.
-func (c *Channel) Init(t require.TestingT, rng *rand.Rand) {
+func (c *Channel) Init(ctx context.Context, t require.TestingT, rng *rand.Rand) {
 	initAlloc := *ctest.NewRandomAllocation(rng, ctest.WithNumParts(len(c.accounts)))
 	initData := channel.NewMockOp(channel.OpValid)
-	err := c.StateMachine.Init(nil, initAlloc, initData) //nolint:staticcheck
+	err := c.StateMachine.Init(ctx, initAlloc, initData)
 	require.NoError(t, err)
-	c.AssertPersisted(c.ctx, t)
+	c.AssertPersisted(ctx, t)
 }
 
 // EnableInit calls EnableInit on the state machine and then checks the persistence.
@@ -167,16 +167,16 @@ func (c *Channel) EnableInit(t require.TestingT) {
 }
 
 // SignAll signs the current staged state by all parties.
-func (c *Channel) SignAll(t require.TestingT) {
+func (c *Channel) SignAll(ctx context.Context, t require.TestingT) {
 	// trigger local signing
-	c.Sig(nil) //nolint:errcheck,staticcheck
-	c.AssertPersisted(c.ctx, t)
+	c.Sig(ctx) //nolint:errcheck
+	c.AssertPersisted(ctx, t)
 	// remote signers
 	for i := range c.accounts {
 		sig, err := channel.Sign(c.accounts[i], c.StagingState())
 		require.NoError(t, err)
-		c.AddSig(nil, channel.Index(i), sig) //nolint:errcheck,staticcheck
-		c.AssertPersisted(c.ctx, t)
+		c.AddSig(ctx, channel.Index(i), sig) //nolint:errcheck
+		c.AssertPersisted(ctx, t)
 	}
 }
 

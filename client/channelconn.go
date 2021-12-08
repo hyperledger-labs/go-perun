@@ -46,7 +46,8 @@ func newChannelConn(id channel.ID, peers []wire.Address, idx channel.Index, sub 
 	// relay to receive all update responses
 	relay := wire.NewRelay()
 	// we cache all responses for the lifetime of the relay
-	relay.Cache(context.Background(), func(*wire.Envelope) bool { return true })
+	cacheAll := func(*wire.Envelope) bool { return true }
+	relay.Cache(&cacheAll)
 	// Close the relay if anything goes wrong in the following.
 	// We could have a leaky subscription otherwise.
 	defer func() {

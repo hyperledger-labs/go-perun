@@ -118,7 +118,7 @@ func (s *SimulatedBackend) SendTransaction(ctx context.Context, tx *types.Transa
 
 // FundAddress funds a given address with `test.MaxBalance` eth from a faucet.
 func (s *SimulatedBackend) FundAddress(ctx context.Context, addr common.Address) {
-	nonce, err := s.PendingNonceAt(context.Background(), s.faucetAddr)
+	nonce, err := s.PendingNonceAt(ctx, s.faucetAddr)
 	if err != nil {
 		panic(err)
 	}
@@ -132,7 +132,7 @@ func (s *SimulatedBackend) FundAddress(ctx context.Context, addr common.Address)
 		panic(err)
 	}
 	s.Commit()
-	if _, err := bind.WaitMined(context.Background(), s, signedTX); err != nil {
+	if _, err := bind.WaitMined(ctx, s, signedTX); err != nil {
 		panic(err)
 	}
 }
