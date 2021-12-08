@@ -17,7 +17,6 @@ package channel
 import (
 	"context"
 
-	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/pkg/errors"
 
@@ -44,7 +43,7 @@ func NewETHDepositor() *ETHDepositor {
 func (d *ETHDepositor) Deposit(ctx context.Context, req DepositReq) (types.Transactions, error) {
 	// Bind an `AssetHolderETH` instance. Using `AssetHolder` is also possible
 	// since we only use the interface functions here.
-	contract, err := assetholdereth.NewAssetHolderETH(common.Address(req.Asset), req.CB)
+	contract, err := assetholdereth.NewAssetHolderETH(req.Asset.EthAddress(), req.CB)
 	if err != nil {
 		return nil, errors.Wrapf(err, "binding AssetHolderETH contract at: %x", req.Asset)
 	}

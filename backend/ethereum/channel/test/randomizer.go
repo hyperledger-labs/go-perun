@@ -17,6 +17,7 @@ package test
 import (
 	"math/rand"
 
+	"github.com/ethereum/go-ethereum/common"
 	ethchannel "perun.network/go-perun/backend/ethereum/channel"
 	ethwtest "perun.network/go-perun/backend/ethereum/wallet/test"
 	"perun.network/go-perun/channel"
@@ -31,5 +32,5 @@ func (randomizer) NewRandomAsset(rng *rand.Rand) channel.Asset {
 // NewRandomAsset returns a new random ethereum Asset.
 func NewRandomAsset(rng *rand.Rand) *ethchannel.Asset {
 	asset := ethwtest.NewRandomAddress(rng)
-	return &asset
+	return ethchannel.NewAssetFromAddress(common.Address(asset))
 }

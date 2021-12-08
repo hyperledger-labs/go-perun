@@ -49,7 +49,7 @@ func testConcludeFinal(t *testing.T, numParts int) {
 	params, state := channeltest.NewRandomParamsAndState(
 		rng,
 		channeltest.WithParts(s.Parts...),
-		channeltest.WithAssets((*ethchannel.Asset)(&s.Asset)),
+		channeltest.WithAssets(s.Asset),
 		channeltest.WithIsFinal(true),
 		channeltest.WithLedgerChannel(true),
 	)
@@ -120,7 +120,7 @@ func TestAdjudicator_ConcludeWithSubChannels(t *testing.T) {
 		adj               = s.Adjs[0]
 		accounts          = s.Accs
 		participants      = s.Parts
-		asset             = (*ethchannel.Asset)(&s.Asset)
+		asset             = s.Asset
 		challengeDuration = uint64(rng.Intn(maxChallengeDuration))
 		makeRandomChannel = func(rng *rand.Rand, ledger bool) paramsAndState {
 			return makeRandomChannel(rng, participants, asset, challengeDuration, ledger)

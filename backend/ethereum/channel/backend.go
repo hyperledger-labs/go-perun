@@ -189,7 +189,7 @@ func ToEthState(s *channel.State) adjudicator.ChannelState {
 		locked[i] = adjudicator.ChannelSubAlloc{ID: sub.ID, Balances: sub.Bals, IndexMap: indexMap}
 	}
 	outcome := adjudicator.ChannelAllocation{
-		Assets:   assetToCommonAddresses(s.Allocation.Assets),
+		Assets:   assetsToCommonAddresses(s.Allocation.Assets),
 		Balances: s.Balances,
 		Locked:   locked,
 	}
@@ -224,15 +224,15 @@ func EncodeState(state *adjudicator.ChannelState) ([]byte, error) {
 	return enc, errors.WithStack(err)
 }
 
-// assetToCommonAddresses converts an array of Assets to common.Addresses.
-func assetToCommonAddresses(addr []channel.Asset) []common.Address {
+// assetsToCommonAddresses converts an array of Assets to common.Addresses.
+func assetsToCommonAddresses(addr []channel.Asset) []common.Address {
 	cAddrs := make([]common.Address, len(addr))
 	for i, part := range addr {
 		asset, ok := part.(*Asset)
 		if !ok {
 			log.Panicf("wrong address type: %T", part)
 		}
-		cAddrs[i] = common.Address(*asset)
+		cAddrs[i] = common.Address(asset.Address)
 	}
 	return cAddrs
 }
@@ -289,7 +289,7 @@ func makeIndexMap(m []uint16) []channel.Index {
 func fromEthAssets(assets []common.Address) []channel.Asset {
 	_assets := make([]channel.Asset, len(assets))
 	for i, a := range assets {
-		_assets[i] = ethwallet.AsWalletAddr(a)
+		_assets[i] = NewAssetFromAddress(a)
 	}
 	return _assets
 }

@@ -32,7 +32,28 @@ import (
 )
 
 // Asset is an Ethereum asset.
-type Asset = wallet.Address
+type Asset struct {
+	wallet.Address
+}
+
+// NewAssetFromAddress creates a new asset from an Ethereum address.
+func NewAssetFromAddress(a common.Address) *Asset {
+	return &Asset{*wallet.AsWalletAddr(a)}
+}
+
+// EthAddress returns the Ethereum address representation of the asset.
+func (a Asset) EthAddress() common.Address {
+	return common.Address(a.Address)
+}
+
+// Equal returns true iff the asset equals the given asset.
+func (a Asset) Equal(b channel.Asset) bool {
+	ethAsset, ok := b.(*Asset)
+	if !ok {
+		return false
+	}
+	return a.EthAddress() == ethAsset.EthAddress()
+}
 
 var _ channel.Asset = new(Asset)
 

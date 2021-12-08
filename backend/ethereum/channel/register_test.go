@@ -55,7 +55,7 @@ func registerMultiple(t *testing.T, numParts int, parallel bool) {
 		rng,
 		channeltest.WithChallengeDuration(uint64(100*time.Second)),
 		channeltest.WithParts(s.Parts...),
-		channeltest.WithAssets((*ethchannel.Asset)(&s.Asset)),
+		channeltest.WithAssets(s.Asset),
 		channeltest.WithIsFinal(false),
 		channeltest.WithLedgerChannel(true),
 		channeltest.WithVirtualChannel(false),
@@ -147,7 +147,14 @@ func TestRegister_FinalState(t *testing.T) {
 	// create new Adjudicator
 	s := test.NewSetup(t, rng, 1, blockInterval, TxFinalityDepth)
 	// create valid state and params
-	params, state := channeltest.NewRandomParamsAndState(rng, channeltest.WithChallengeDuration(uint64(100*time.Second)), channeltest.WithParts(s.Parts...), channeltest.WithAssets((*ethchannel.Asset)(&s.Asset)), channeltest.WithIsFinal(true), channeltest.WithLedgerChannel(true))
+	params, state := channeltest.NewRandomParamsAndState(
+		rng,
+		channeltest.WithChallengeDuration(uint64(100*time.Second)),
+		channeltest.WithParts(s.Parts...),
+		channeltest.WithAssets(s.Asset),
+		channeltest.WithIsFinal(true),
+		channeltest.WithLedgerChannel(true),
+	)
 	// we need to properly fund the channel
 	fundingCtx, funCancel := context.WithTimeout(context.Background(), defaultTxTimeout)
 	defer funCancel()
@@ -182,7 +189,14 @@ func TestRegister_CancelledContext(t *testing.T) {
 	// create test setup
 	s := test.NewSetup(t, rng, 1, blockInterval, TxFinalityDepth)
 	// create valid state and params
-	params, state := channeltest.NewRandomParamsAndState(rng, channeltest.WithChallengeDuration(uint64(100*time.Second)), channeltest.WithParts(s.Parts...), channeltest.WithAssets((*ethchannel.Asset)(&s.Asset)), channeltest.WithIsFinal(false), channeltest.WithLedgerChannel(true))
+	params, state := channeltest.NewRandomParamsAndState(
+		rng,
+		channeltest.WithChallengeDuration(uint64(100*time.Second)),
+		channeltest.WithParts(s.Parts...),
+		channeltest.WithAssets(s.Asset),
+		channeltest.WithIsFinal(false),
+		channeltest.WithLedgerChannel(true),
+	)
 	// we need to properly fund the channel
 	fundingCtx, funCancel := context.WithTimeout(context.Background(), defaultTxTimeout)
 	defer funCancel()

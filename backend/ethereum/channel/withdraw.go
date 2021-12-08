@@ -19,7 +19,6 @@ import (
 
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
-	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/pkg/errors"
 	"golang.org/x/sync/errgroup"
@@ -114,7 +113,7 @@ func withdrawnEventType(fundingID [32]byte) subscription.EventFactory {
 
 func bindAssetHolder(cb ContractBackend, asset channel.Asset, assetIndex channel.Index) assetHolder {
 	// Decode and set the asset address.
-	assetAddr := common.Address(*asset.(*Asset))
+	assetAddr := asset.(*Asset).EthAddress()
 	ctr, err := assetholder.NewAssetHolder(assetAddr, cb)
 	if err != nil {
 		log.Panic("Invalid AssetHolder ABI definition.")

@@ -58,7 +58,7 @@ func TestHappyAliceBob(t *testing.T) {
 	execConfig := &clienttest.AliceBobExecConfig{
 		BaseExecConfig: clienttest.MakeBaseExecConfig(
 			[2]wire.Address{setup[A].Identity.Address(), setup[B].Identity.Address()},
-			(*wallet.Address)(&s.Asset),
+			s.Asset,
 			[2]*big.Int{big.NewInt(100), big.NewInt(100)},
 			perunclient.WithApp(chtest.NewRandomAppAndData(rng)),
 		),

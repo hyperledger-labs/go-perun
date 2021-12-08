@@ -52,7 +52,13 @@ func withdrawMultipleConcurrentFinal(t *testing.T, numParts int, parallel bool) 
 	// create test setup
 	s := test.NewSetup(t, rng, numParts, blockInterval, TxFinalityDepth)
 	// create valid state and params
-	params, state := channeltest.NewRandomParamsAndState(rng, channeltest.WithParts(s.Parts...), channeltest.WithAssets((*ethchannel.Asset)(&s.Asset)), channeltest.WithIsFinal(false), channeltest.WithLedgerChannel(true))
+	params, state := channeltest.NewRandomParamsAndState(
+		rng,
+		channeltest.WithParts(s.Parts...),
+		channeltest.WithAssets(s.Asset),
+		channeltest.WithIsFinal(false),
+		channeltest.WithLedgerChannel(true),
+	)
 	// we need to properly fund the channel
 	fundingCtx, funCancel := context.WithTimeout(context.Background(), defaultTxTimeout*time.Duration(numParts))
 	defer funCancel()
@@ -124,7 +130,13 @@ func testWithdrawZeroBalance(t *testing.T, n int) {
 	rng := pkgtest.Prng(t)
 	s := test.NewSetup(t, rng, n, blockInterval, TxFinalityDepth)
 	// create valid state and params
-	params, state := channeltest.NewRandomParamsAndState(rng, channeltest.WithParts(s.Parts...), channeltest.WithAssets((*ethchannel.Asset)(&s.Asset)), channeltest.WithIsFinal(true), channeltest.WithLedgerChannel(true))
+	params, state := channeltest.NewRandomParamsAndState(
+		rng,
+		channeltest.WithParts(s.Parts...),
+		channeltest.WithAssets(s.Asset),
+		channeltest.WithIsFinal(true),
+		channeltest.WithLedgerChannel(true),
+	)
 	agreement := state.Balances.Clone()
 
 	for i := range params.Parts {
@@ -180,7 +192,13 @@ func TestWithdraw(t *testing.T) {
 	// create test setup
 	s := test.NewSetup(t, rng, 1, blockInterval, TxFinalityDepth)
 	// create valid state and params
-	params, state := channeltest.NewRandomParamsAndState(rng, channeltest.WithParts(s.Parts...), channeltest.WithAssets((*ethchannel.Asset)(&s.Asset)), channeltest.WithIsFinal(false), channeltest.WithLedgerChannel(true))
+	params, state := channeltest.NewRandomParamsAndState(
+		rng,
+		channeltest.WithParts(s.Parts...),
+		channeltest.WithAssets(s.Asset),
+		channeltest.WithIsFinal(false),
+		channeltest.WithLedgerChannel(true),
+	)
 	// we need to properly fund the channel
 	fundingCtx, funCancel := context.WithTimeout(context.Background(), defaultTxTimeout)
 	defer funCancel()
@@ -237,7 +255,15 @@ func TestWithdrawNonFinal(t *testing.T) {
 	// create test setup
 	s := test.NewSetup(t, rng, 1, blockInterval, TxFinalityDepth)
 	// create valid state and params
-	params, state := channeltest.NewRandomParamsAndState(rng, channeltest.WithChallengeDuration(60), channeltest.WithParts(s.Parts...), channeltest.WithAssets((*ethchannel.Asset)(&s.Asset)), channeltest.WithIsFinal(false), channeltest.WithoutApp(), channeltest.WithLedgerChannel(true))
+	params, state := channeltest.NewRandomParamsAndState(
+		rng,
+		channeltest.WithChallengeDuration(60),
+		channeltest.WithParts(s.Parts...),
+		channeltest.WithAssets(s.Asset),
+		channeltest.WithIsFinal(false),
+		channeltest.WithoutApp(),
+		channeltest.WithLedgerChannel(true),
+	)
 
 	ctx, cancel := context.WithTimeout(context.Background(), defaultTxTimeout)
 	defer cancel()

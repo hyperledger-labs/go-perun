@@ -18,8 +18,8 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"perun.network/go-perun/pkg/io"
 
-	"polycry.pt/poly-go/io"
 	polytest "polycry.pt/poly-go/test"
 )
 

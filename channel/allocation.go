@@ -101,6 +101,8 @@ type (
 		// BinaryUnmarshaler unmarshals the blockchain specific address
 		// from binary format (a byte array).
 		encoding.BinaryUnmarshaler
+		// Equal returns true iff this asset is equal to the given asset.
+		Equal(Asset) bool
 	}
 )
 
@@ -122,7 +124,7 @@ func NewAllocation(numParts int, assets ...Asset) *Allocation {
 // AssetIndex returns the index of the asset in the allocation.
 func (a *Allocation) AssetIndex(asset Asset) (Index, bool) {
 	for idx, _asset := range a.Assets {
-		if ok, err := perunio.EqualBinary(asset, _asset); ok && err == nil {
+		if asset.Equal(_asset) {
 			return Index(idx), true
 		}
 	}
@@ -600,9 +602,7 @@ func AssetsAssertEqual(a []Asset, b []Asset) error {
 	}
 
 	for i, asset := range a {
-		if ok, err := perunio.EqualBinary(asset, b[i]); err != nil {
-			return errors.WithMessagef(err, "comparing encoding at index %d", i)
-		} else if !ok {
+		if !asset.Equal(b[i]) {
 			return errors.Errorf("value mismatch at index %d", i)
 		}
 	}
