@@ -15,16 +15,19 @@
 package channel
 
 import (
-	"bytes"
+	"encoding/binary"
 	"fmt"
 	"math/rand"
 
 	"perun.network/go-perun/channel"
-	"perun.network/go-perun/wire/perunio"
 )
 
-// AssetBinaryLen is the length of binary representation of asset, in bytes.
-const AssetBinaryLen = 8
+// assetLen is the length of binary representation of asset, in bytes.
+const assetLen = 8
+
+// byteOrder used for marshalling/unmarshalling asset to/from its binary
+// representation.
+var byteOrder = binary.BigEndian
 
 // Asset simulates a `channel.Asset` by only containing an `ID`.
 type Asset struct {
@@ -40,19 +43,18 @@ func NewRandomAsset(rng *rand.Rand) *Asset {
 
 // MarshalBinary marshals the address into its binary representation.
 func (a Asset) MarshalBinary() ([]byte, error) {
-	buff := bytes.NewBuffer(make([]byte, 0, AssetBinaryLen))
-	if err := perunio.Encode(buff, a.ID); err != nil {
-		return nil, err
-	}
-	return buff.Bytes(), nil
+	data := make([]byte, assetLen)
+	byteOrder.PutUint64(data, uint64(a.ID))
+	return data, nil
 }
 
 // UnmarshalBinary unmarshals the asset from its binary representation.
 func (a *Asset) UnmarshalBinary(data []byte) error {
-	if len(data) != AssetBinaryLen {
-		return fmt.Errorf("unexpected address length %d, want %d", len(data), AssetBinaryLen) //nolint: goerr113
+	if len(data) != assetLen {
+		return fmt.Errorf("unexpected length %d, want %d", len(data), assetLen) //nolint:goerr113  // We do not want to define this as constant error.
 	}
-	return perunio.Decode(bytes.NewBuffer(data), &a.ID)
+	a.ID = int64(byteOrder.Uint64(data))
+	return nil
 }
 
 // Equal returns true iff the asset equals the given asset.
