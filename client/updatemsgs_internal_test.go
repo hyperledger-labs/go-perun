@@ -22,7 +22,7 @@ import (
 	"perun.network/go-perun/channel/test"
 	"perun.network/go-perun/wallet"
 	wallettest "perun.network/go-perun/wallet/test"
-	iotest "perun.network/go-perun/wire/perunio/test"
+	wiretest "perun.network/go-perun/wire/test"
 	pkgtest "polycry.pt/poly-go/test"
 )
 
@@ -30,7 +30,7 @@ func TestChannelUpdateSerialization(t *testing.T) {
 	rng := pkgtest.Prng(t)
 	for i := 0; i < 4; i++ {
 		m := newRandomMsgChannelUpdate(rng)
-		iotest.MsgSerializerTest(t, m)
+		wiretest.MsgSerializerTest(t, m)
 	}
 }
 
@@ -60,7 +60,7 @@ func TestSerialization_VirtualChannelFundingProposal(t *testing.T) {
 			},
 			IndexMap: test.NewRandomIndexMap(rng, state.NumParts(), msgUp.State.NumParts()),
 		}
-		iotest.MsgSerializerTest(t, m)
+		wiretest.MsgSerializerTest(t, m)
 	}
 }
 
@@ -77,7 +77,7 @@ func TestSerialization_VirtualChannelSettlementProposal(t *testing.T) {
 				Sigs:   newRandomSigs(rng, state.NumParts()),
 			},
 		}
-		iotest.MsgSerializerTest(t, m)
+		wiretest.MsgSerializerTest(t, m)
 	}
 }
 
@@ -90,7 +90,7 @@ func TestChannelUpdateAccSerialization(t *testing.T) {
 			Version:   uint64(rng.Int63()),
 			Sig:       sig,
 		}
-		iotest.MsgSerializerTest(t, m)
+		wiretest.MsgSerializerTest(t, m)
 	}
 }
 
@@ -102,7 +102,7 @@ func TestChannelUpdateRejSerialization(t *testing.T) {
 			Version:   uint64(rng.Int63()),
 			Reason:    newRandomString(rng, 16, 16),
 		}
-		iotest.MsgSerializerTest(t, m)
+		wiretest.MsgSerializerTest(t, m)
 	}
 }
 

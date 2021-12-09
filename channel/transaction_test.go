@@ -19,7 +19,7 @@ import (
 
 	"perun.network/go-perun/channel"
 	"perun.network/go-perun/channel/test"
-	iotest "perun.network/go-perun/wire/perunio/test"
+	wiretest "perun.network/go-perun/wire/test"
 	pkgtest "polycry.pt/poly-go/test"
 )
 
@@ -39,11 +39,11 @@ func TestTransactionSerialization(t *testing.T) {
 
 	for _, tt := range tests {
 		tx := test.NewRandomTransaction(rng, tt)
-		iotest.GenericSerializerTest(t, tx)
+		wiretest.GenericSerializerTest(t, tx)
 	}
 
 	tx := new(channel.Transaction)
-	iotest.GenericSerializerTest(t, tx)
+	wiretest.GenericSerializerTest(t, tx)
 }
 
 // newUniformBoolSlice generates a slice long size with all the elements set to choice.

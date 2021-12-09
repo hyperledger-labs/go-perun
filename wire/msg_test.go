@@ -22,7 +22,6 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"perun.network/go-perun/wire"
-	iotest "perun.network/go-perun/wire/perunio/test"
 	wiretest "perun.network/go-perun/wire/test"
 	"polycry.pt/poly-go/test"
 )
@@ -62,5 +61,5 @@ func TestRegisterExternalDecoder(t *testing.T) {
 
 func TestEnvelope_EncodeDecode(t *testing.T) {
 	ping := wiretest.NewRandomEnvelope(test.Prng(t), wire.NewPingMsg())
-	iotest.GenericSerializerTest(t, ping)
+	wiretest.GenericSerializerTest(t, ping)
 }
