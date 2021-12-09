@@ -267,26 +267,26 @@ func (c *Channel) handleUpdateReq(
 	responder := &UpdateResponder{channel: c, pidx: pidx, req: req}
 	client := c.client
 
-	if prop, ok := req.(*virtualChannelFundingProposal); ok {
+	// Check whether we have an update related to a virtual channel.
+	switch prop := req.(type) {
+	case *virtualChannelFundingProposal:
 		client.handleVirtualChannelFundingProposal(c, prop, responder) //nolint:contextcheck
 		return
-	}
-
-	if prop, ok := req.(*virtualChannelSettlementProposal); ok {
+	case *virtualChannelSettlementProposal:
 		client.handleVirtualChannelSettlementProposal(c, prop, responder) //nolint:contextcheck
 		return
 	}
 
+	// Check whether we have an update related to a sub-channel.
 	if ui, ok := c.subChannelFundings.Filter(req.Base().ChannelUpdate); ok {
 		ui.HandleUpdate(req.Base().ChannelUpdate, responder)
 		return
-	}
-
-	if ui, ok := c.subChannelWithdrawals.Filter(req.Base().ChannelUpdate); ok {
+	} else if ui, ok := c.subChannelWithdrawals.Filter(req.Base().ChannelUpdate); ok {
 		ui.HandleUpdate(req.Base().ChannelUpdate, responder)
 		return
 	}
 
+	// Check whether this is a valid two-party update.
 	if err := c.validTwoPartyUpdate(req.Base().ChannelUpdate, pidx); err != nil {
 		c.logPeer(pidx).Warnf("invalid update received: %v", err)
 		return
