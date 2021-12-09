@@ -210,14 +210,14 @@ func (c *Channel) handleUpdateError(ctx context.Context, updateErr error) {
 	}
 }
 
-// UpdateBy updates the channel state using the update function and proposes the
+// Update updates the channel state using the update function and proposes the
 // new state to all other channel participants. The update function must not
 // update the version counter.
 //
 // Returns nil if all peers accept the update. Returns RequestTimedOutError if
 // any peer did not respond before the context expires or is cancelled. Returns
 // an error if any runtime error occurs or any peer rejects the update.
-func (c *Channel) UpdateBy(ctx context.Context, update func(*channel.State) error) (err error) {
+func (c *Channel) Update(ctx context.Context, update func(*channel.State) error) (err error) {
 	if ctx == nil {
 		return errors.New("context must not be nil")
 	}
