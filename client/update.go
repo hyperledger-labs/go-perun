@@ -131,31 +131,14 @@ func (r *UpdateResponder) Reject(ctx context.Context, reason string) error {
 	return r.channel.handleUpdateRej(ctx, r.pidx, r.req, reason)
 }
 
-// Update proposes the `next` state to all channel participants.
+// update proposes the `next` state to all channel participants.
 // `next` should not be modified while this function runs.
+//
+// It assumes that the channel is locked and the update is validated.
 //
 // Returns nil if all peers accept the update. Returns RequestTimedOutError if
 // any peer did not respond before the context expires or is cancelled. Returns
 // an error if any runtime error occurs or any peer rejects the update.
-func (c *Channel) Update(ctx context.Context, next *channel.State) (err error) {
-	if ctx == nil {
-		return errors.New("context must not be nil")
-	}
-
-	// Lock machine while update is in progress.
-	if !c.machMtx.TryLockCtx(ctx) {
-		return errors.Errorf("locking machine mutex in time: %v", ctx.Err())
-	}
-	defer c.machMtx.Unlock()
-
-	if err := c.validTwoPartyUpdateState(next); err != nil {
-		return err
-	}
-
-	return c.update(ctx, next)
-}
-
-// Like Update, but assumes channel locked and update validated.
 func (c *Channel) update(ctx context.Context, next *channel.State) (err error) {
 	return c.updateGeneric(ctx, next, func(mcu *msgChannelUpdate) wire.Msg { return mcu })
 }
