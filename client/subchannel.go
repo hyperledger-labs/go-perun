@@ -49,7 +49,7 @@ func (c *Channel) equalParticipants(_c *Channel) bool {
 
 func (c *Channel) fundSubChannel(ctx context.Context, id channel.ID, alloc *channel.Allocation) error {
 	// We assume that the channel is locked.
-	return c.updateBy(ctx, func(state *channel.State) error {
+	return c.update(ctx, func(state *channel.State) error {
 		// equal assets and sufficient balances are already checked when validating the sub-channel proposal
 
 		// withdraw initial balances into sub-allocation
@@ -91,7 +91,7 @@ func (c *Channel) withdrawSubChannel(ctx context.Context, sub *Channel) error {
 	}
 	defer c.machMtx.Unlock()
 
-	err := c.updateBy(ctx, func(parentState *channel.State) error {
+	err := c.update(ctx, func(parentState *channel.State) error {
 		subAlloc, ok := parentState.SubAlloc(sub.ID())
 		if !ok {
 			c.Log().Panicf("sub-allocation %x not found", subAlloc.ID)
