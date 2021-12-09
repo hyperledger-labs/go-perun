@@ -12,17 +12,30 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package wire
+package test
 
 import (
+	"io"
 	"testing"
 
-	_ "perun.network/go-perun/backend/ethereum/wallet/test" // random init
-	wallettest "perun.network/go-perun/wallet/test"
-	pkgtest "polycry.pt/poly-go/test"
+	"perun.network/go-perun/wire"
 )
 
-func TestAuthResponseMsg(t *testing.T) {
-	rng := pkgtest.Prng(t)
-	TestMsg(t, NewAuthResponseMsg(wallettest.NewRandomAccount(rng)))
+type serializerMsg struct {
+	Msg wire.Msg
+}
+
+func (msg *serializerMsg) Encode(writer io.Writer) error {
+	return wire.Encode(msg.Msg, writer)
+}
+
+func (msg *serializerMsg) Decode(reader io.Reader) (err error) {
+	msg.Msg, err = wire.Decode(reader)
+	return err
+}
+
+// MsgSerializerTest performs generic serializer tests on a wire.Msg object.
+func MsgSerializerTest(t *testing.T, msg wire.Msg) {
+	t.Helper()
+	GenericSerializerTest(t, &serializerMsg{msg})
 }

@@ -20,7 +20,7 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	wallettest "perun.network/go-perun/wallet/test"
-	iotest "perun.network/go-perun/wire/perunio/test"
+	wiretest "perun.network/go-perun/wire/test"
 	pkgtest "polycry.pt/poly-go/test"
 )
 
@@ -43,11 +43,11 @@ func TestMockApp(t *testing.T) {
 	})
 
 	t.Run("GenericSerializeable", func(t *testing.T) {
-		iotest.GenericMarshalerTest(t, NewMockOp(OpValid))
-		iotest.GenericMarshalerTest(t, NewMockOp(OpErr))
-		iotest.GenericMarshalerTest(t, NewMockOp(OpTransitionErr))
-		iotest.GenericMarshalerTest(t, NewMockOp(OpActionErr))
-		iotest.GenericMarshalerTest(t, NewMockOp(OpPanic))
+		wiretest.GenericMarshalerTest(t, NewMockOp(OpValid))
+		wiretest.GenericMarshalerTest(t, NewMockOp(OpErr))
+		wiretest.GenericMarshalerTest(t, NewMockOp(OpTransitionErr))
+		wiretest.GenericMarshalerTest(t, NewMockOp(OpActionErr))
+		wiretest.GenericMarshalerTest(t, NewMockOp(OpPanic))
 	})
 
 	// We cant use VerifyClone here since it requires that the same type is returned by

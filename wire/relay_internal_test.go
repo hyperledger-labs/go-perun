@@ -129,9 +129,9 @@ func TestProducer_caching(t *testing.T) {
 	prod.Cache(&isPing)
 
 	rng := test.Prng(t)
-	ping0 := NewRandomEnvelope(rng, NewPingMsg())
-	pong1 := NewRandomEnvelope(rng, NewPongMsg())
-	pong2 := NewRandomEnvelope(rng, NewPongMsg())
+	ping0 := newRandomEnvelope(rng, NewPingMsg())
+	pong1 := newRandomEnvelope(rng, NewPongMsg())
+	pong2 := newRandomEnvelope(rng, NewPongMsg())
 
 	prod.Put(ping0)
 	assert.Equal(1, prod.cache.Size())

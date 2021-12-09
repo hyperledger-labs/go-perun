@@ -20,7 +20,7 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/stretchr/testify/require"
 
-	"perun.network/go-perun/wire/perunio/test"
+	"perun.network/go-perun/wire/test"
 	pkgtest "polycry.pt/poly-go/test"
 )
 

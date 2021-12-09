@@ -21,7 +21,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	pkgtest "polycry.pt/poly-go/test"
 
-	"perun.network/go-perun/wire/perunio/test"
+	"perun.network/go-perun/wire/test"
 )
 
 func TestGenericMarshaler(t *testing.T) {

@@ -20,7 +20,7 @@ import (
 	_ "perun.network/go-perun/backend/sim" // backend init
 	"perun.network/go-perun/channel"
 	"perun.network/go-perun/channel/test"
-	iotest "perun.network/go-perun/wire/perunio/test"
+	wiretest "perun.network/go-perun/wire/test"
 	pkgtest "polycry.pt/poly-go/test"
 )
 
@@ -29,10 +29,10 @@ func TestStateSerialization(t *testing.T) {
 	state := test.NewRandomState(rng, test.WithNumLocked(int(rng.Int31n(4)+1)))
 	state2 := test.NewRandomState(rng, test.WithIsFinal(!state.IsFinal), test.WithNumLocked(int(rng.Int31n(4)+1)))
 
-	iotest.GenericSerializerTest(t, state)
+	wiretest.GenericSerializerTest(t, state)
 	test.GenericStateEqualTest(t, state, state2)
 
 	state.App = channel.NoApp()
 	state.Data = channel.NoData()
-	iotest.GenericSerializerTest(t, state)
+	wiretest.GenericSerializerTest(t, state)
 }

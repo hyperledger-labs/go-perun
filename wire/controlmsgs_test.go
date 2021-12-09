@@ -1,4 +1,4 @@
-// Copyright 2021 - See NOTICE file for copyright holders.
+// Copyright 2019 - See NOTICE file for copyright holders.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,5 +12,23 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Package test contains the generic serializer tests.
-package test // import "perun.network/go-perun/wire/perunio/test"
+package wire_test
+
+import (
+	"testing"
+
+	"perun.network/go-perun/wire"
+	wiretest "perun.network/go-perun/wire/test"
+)
+
+func TestPingMsg(t *testing.T) {
+	wiretest.MsgSerializerTest(t, wire.NewPingMsg())
+}
+
+func TestPongMsg(t *testing.T) {
+	wiretest.MsgSerializerTest(t, wire.NewPongMsg())
+}
+
+func TestShutdownMsg(t *testing.T) {
+	wiretest.MsgSerializerTest(t, &wire.ShutdownMsg{"m2384ordkln fb30954390582"})
+}
