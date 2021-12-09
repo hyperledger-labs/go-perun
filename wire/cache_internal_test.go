@@ -15,13 +15,24 @@
 package wire
 
 import (
+	"math/rand"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	wtest "perun.network/go-perun/wallet/test"
 	"polycry.pt/poly-go/test"
 )
+
+// newRandomEnvelope - copy from wire/test for internal tests.
+func newRandomEnvelope(rng *rand.Rand, m Msg) *Envelope {
+	return &Envelope{
+		Sender:    wtest.NewRandomAddress(rng),
+		Recipient: wtest.NewRandomAddress(rng),
+		Msg:       m,
+	}
+}
 
 func TestCache(t *testing.T) {
 	assert, require := assert.New(t), require.New(t)
@@ -30,10 +41,10 @@ func TestCache(t *testing.T) {
 	c := MakeCache()
 	require.Zero(c.Size())
 
-	ping0 := NewRandomEnvelope(rng, NewPingMsg())
-	pong := NewRandomEnvelope(rng, NewPongMsg())
-	ping1 := NewRandomEnvelope(rng, NewPingMsg())
-	ping2 := NewRandomEnvelope(rng, NewPingMsg())
+	ping0 := newRandomEnvelope(rng, NewPingMsg())
+	pong := newRandomEnvelope(rng, NewPongMsg())
+	ping1 := newRandomEnvelope(rng, NewPingMsg())
+	ping2 := newRandomEnvelope(rng, NewPingMsg())
 	// we want to uniquely identify messages by their timestamp
 	require.False(ping0.Msg.(*PingMsg).Created.Equal(ping1.Msg.(*PingMsg).Created))
 

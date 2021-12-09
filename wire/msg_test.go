@@ -12,42 +12,33 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package wire
+package wire_test
 
 import (
 	"io"
-	"math/rand"
 	"strconv"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 
-	wtest "perun.network/go-perun/wallet/test"
+	"perun.network/go-perun/wire"
 	iotest "perun.network/go-perun/wire/perunio/test"
+	wiretest "perun.network/go-perun/wire/test"
 	"polycry.pt/poly-go/test"
 )
 
-// NewRandomEnvelope - copy from wire/test for internal tests.
-func NewRandomEnvelope(rng *rand.Rand, m Msg) *Envelope {
-	return &Envelope{
-		Sender:    wtest.NewRandomAddress(rng),
-		Recipient: wtest.NewRandomAddress(rng),
-		Msg:       m,
-	}
-}
-
-var nilDecoder = func(io.Reader) (Msg, error) { return nil, nil } //nolint:nilnil
+var nilDecoder = func(io.Reader) (wire.Msg, error) { return nil, nil }
 
 func TestType_Valid_String(t *testing.T) {
 	test.OnlyOnce(t)
 
 	const testTypeVal, testTypeStr = 252, "testTypeA"
-	testType := Type(testTypeVal)
+	testType := wire.Type(testTypeVal)
 	assert.False(t, testType.Valid(), "unregistered type should not be valid")
 	assert.Equal(t, strconv.Itoa(testTypeVal), testType.String(),
 		"unregistered type's String() should return its integer value")
 
-	RegisterExternalDecoder(testTypeVal, nilDecoder, testTypeStr)
+	wire.RegisterExternalDecoder(testTypeVal, nilDecoder, testTypeStr)
 	assert.True(t, testType.Valid(), "registered type should be valid")
 	assert.Equal(t, testTypeStr, testType.String(),
 		"registered type's String() should be 'testType'")
@@ -58,18 +49,18 @@ func TestRegisterExternalDecoder(t *testing.T) {
 
 	const testTypeVal, testTypeStr = 251, "testTypeB"
 
-	RegisterExternalDecoder(testTypeVal, nilDecoder, testTypeStr)
+	wire.RegisterExternalDecoder(testTypeVal, nilDecoder, testTypeStr)
 	assert.Panics(t,
-		func() { RegisterExternalDecoder(testTypeVal, nilDecoder, testTypeStr) },
+		func() { wire.RegisterExternalDecoder(testTypeVal, nilDecoder, testTypeStr) },
 		"second registration of same type should fail",
 	)
 	assert.Panics(t,
-		func() { RegisterExternalDecoder(Ping, nilDecoder, "PingFail") },
+		func() { wire.RegisterExternalDecoder(wire.Ping, nilDecoder, "PingFail") },
 		"registration of internal type should fail",
 	)
 }
 
 func TestEnvelope_EncodeDecode(t *testing.T) {
-	ping := NewRandomEnvelope(test.Prng(t), NewPingMsg())
+	ping := wiretest.NewRandomEnvelope(test.Prng(t), wire.NewPingMsg())
 	iotest.GenericSerializerTest(t, ping)
 }

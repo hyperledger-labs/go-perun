@@ -12,29 +12,23 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package wire
+package wire_test
 
 import (
-	"io"
 	"testing"
 
-	"perun.network/go-perun/wire/perunio/test"
+	"perun.network/go-perun/wire"
+	iotest "perun.network/go-perun/wire/perunio/test"
 )
 
-type serializerMsg struct {
-	Msg Msg
+func TestPingMsg(t *testing.T) {
+	iotest.MsgSerializerTest(t, wire.NewPingMsg())
 }
 
-func (msg *serializerMsg) Encode(writer io.Writer) error {
-	return Encode(msg.Msg, writer)
+func TestPongMsg(t *testing.T) {
+	iotest.MsgSerializerTest(t, wire.NewPongMsg())
 }
 
-func (msg *serializerMsg) Decode(reader io.Reader) (err error) {
-	msg.Msg, err = Decode(reader)
-	return err
-}
-
-// TestMsg performs generic tests on a wire.Msg object.
-func TestMsg(t *testing.T, msg Msg) {
-	test.GenericSerializerTest(t, &serializerMsg{msg})
+func TestShutdownMsg(t *testing.T) {
+	iotest.MsgSerializerTest(t, &wire.ShutdownMsg{"m2384ordkln fb30954390582"})
 }

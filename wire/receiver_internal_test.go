@@ -39,7 +39,7 @@ func TestReceiver_Close(t *testing.T) {
 
 func TestReceiver_Next(t *testing.T) {
 	t.Parallel()
-	e := NewRandomEnvelope(test.Prng(t), NewPingMsg())
+	e := newRandomEnvelope(test.Prng(t), NewPingMsg())
 
 	t.Run("Happy case", func(t *testing.T) {
 		t.Parallel()
