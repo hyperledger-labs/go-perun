@@ -103,7 +103,7 @@ func (ch *paymentChannel) sendUpdate(update func(*channel.State) error, desc str
 	ctx, cancel := context.WithTimeout(context.Background(), ch.r.timeout)
 	defer cancel()
 
-	err := ch.UpdateBy(ctx, update)
+	err := ch.Update(ctx, update)
 	ch.log.Infof("Sent update: %s, err: %v", desc, err)
 	assert.NoError(ch.r.t, err)
 }

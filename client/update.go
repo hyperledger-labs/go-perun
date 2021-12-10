@@ -131,13 +131,14 @@ func (r *UpdateResponder) Reject(ctx context.Context, reason string) error {
 	return r.channel.handleUpdateRej(ctx, r.pidx, r.req, reason)
 }
 
-// Update proposes the `next` state to all channel participants.
-// `next` should not be modified while this function runs.
+// Update updates the channel state using the update function and proposes the
+// new state to all other channel participants. The update function must not
+// update the version counter.
 //
 // Returns nil if all peers accept the update. Returns RequestTimedOutError if
 // any peer did not respond before the context expires or is cancelled. Returns
 // an error if any runtime error occurs or any peer rejects the update.
-func (c *Channel) Update(ctx context.Context, next *channel.State) (err error) {
+func (c *Channel) Update(ctx context.Context, update func(*channel.State) error) (err error) {
 	if ctx == nil {
 		return errors.New("context must not be nil")
 	}
@@ -148,19 +149,28 @@ func (c *Channel) Update(ctx context.Context, next *channel.State) (err error) {
 	}
 	defer c.machMtx.Unlock()
 
-	if err := c.validTwoPartyUpdateState(next); err != nil {
-		return err
-	}
+	return c.update(ctx,
+		func(state *channel.State) error {
+			// apply update
+			if err := update(state); err != nil {
+				return err
+			}
 
-	return c.update(ctx, next)
+			// validate
+			return c.validTwoPartyUpdateState(state)
+		},
+	)
 }
 
-// Like Update, but assumes channel locked and update validated.
-func (c *Channel) update(ctx context.Context, next *channel.State) (err error) {
-	return c.updateGeneric(ctx, next, func(mcu *msgChannelUpdate) wire.Msg { return mcu })
-}
-
-// Like update, but for generic update types.
+// updateGeneric proposes the `next` state to all channel participants.
+// `prepareMsg` allows to control which message type is being used.
+// `next` should not be modified while this function runs.
+//
+// It assumes that the channel is locked and the update is validated.
+//
+// Returns nil if all peers accept the update. Returns RequestTimedOutError if
+// any peer did not respond before the context expires or is cancelled. Returns
+// an error if any runtime error occurs or any peer rejects the update.
 func (c *Channel) updateGeneric(
 	ctx context.Context,
 	next *channel.State,
@@ -171,7 +181,7 @@ func (c *Channel) updateGeneric(
 		return errors.WithMessage(err, "updating machine")
 	}
 	// if anything goes wrong from now on, we discard the update.
-	defer func() { c.handleUpdateError(ctx, err) }()
+	defer func() { c.checkUpdateError(ctx, err) }()
 
 	sig, err := c.machine.Sig(ctx)
 	if err != nil {
@@ -218,7 +228,9 @@ func (c *Channel) updateGeneric(
 	return c.enableNotifyUpdate(ctx)
 }
 
-func (c *Channel) handleUpdateError(ctx context.Context, updateErr error) {
+// checkUpdateError is a helper function that checks whether an error occurred
+// and in this case attempts to discard the update.
+func (c *Channel) checkUpdateError(ctx context.Context, updateErr error) {
 	if updateErr != nil {
 		if derr := c.machine.DiscardUpdate(ctx); derr != nil {
 			// discarding update should never fail
@@ -227,46 +239,14 @@ func (c *Channel) handleUpdateError(ctx context.Context, updateErr error) {
 	}
 }
 
-// UpdateBy updates the channel state using the update function and proposes the
-// new state to all other channel participants. The update function must not
-// update the version counter.
-//
-// Returns nil if all peers accept the update. Returns RequestTimedOutError if
-// any peer did not respond before the context expires or is cancelled. Returns
-// an error if any runtime error occurs or any peer rejects the update.
-func (c *Channel) UpdateBy(ctx context.Context, update func(*channel.State) error) (err error) {
-	if ctx == nil {
-		return errors.New("context must not be nil")
-	}
-
-	// Lock machine while update is in progress.
-	if !c.machMtx.TryLockCtx(ctx) {
-		return errors.Errorf("locking machine mutex in time: %v", ctx.Err())
-	}
-	defer c.machMtx.Unlock()
-
-	return c.updateBy(ctx,
-		func(state *channel.State) error {
-			// apply update
-			if err := update(state); err != nil {
-				return err
-			}
-
-			// validate
-			return c.validTwoPartyUpdateState(state)
-		},
-	)
-}
-
-// Like UpdateBy, but assumes channel locked and update validated.
-func (c *Channel) updateBy(ctx context.Context, update func(*channel.State) error) (err error) {
+func (c *Channel) update(ctx context.Context, update func(*channel.State) error) (err error) {
 	state := c.machine.State().Clone()
 	if err := update(state); err != nil {
 		return err
 	}
 	state.Version++
 
-	return c.update(ctx, state)
+	return c.updateGeneric(ctx, state, func(mcu *msgChannelUpdate) wire.Msg { return mcu })
 }
 
 // handleUpdateReq is called by the controller on incoming channel update
@@ -287,26 +267,26 @@ func (c *Channel) handleUpdateReq(
 	responder := &UpdateResponder{channel: c, pidx: pidx, req: req}
 	client := c.client
 
-	if prop, ok := req.(*virtualChannelFundingProposal); ok {
+	// Check whether we have an update related to a virtual channel.
+	switch prop := req.(type) {
+	case *virtualChannelFundingProposal:
 		client.handleVirtualChannelFundingProposal(c, prop, responder) //nolint:contextcheck
 		return
-	}
-
-	if prop, ok := req.(*virtualChannelSettlementProposal); ok {
+	case *virtualChannelSettlementProposal:
 		client.handleVirtualChannelSettlementProposal(c, prop, responder) //nolint:contextcheck
 		return
 	}
 
+	// Check whether we have an update related to a sub-channel.
 	if ui, ok := c.subChannelFundings.Filter(req.Base().ChannelUpdate); ok {
 		ui.HandleUpdate(req.Base().ChannelUpdate, responder)
 		return
-	}
-
-	if ui, ok := c.subChannelWithdrawals.Filter(req.Base().ChannelUpdate); ok {
+	} else if ui, ok := c.subChannelWithdrawals.Filter(req.Base().ChannelUpdate); ok {
 		ui.HandleUpdate(req.Base().ChannelUpdate, responder)
 		return
 	}
 
+	// Check whether this is a valid two-party update.
 	if err := c.validTwoPartyUpdate(req.Base().ChannelUpdate, pidx); err != nil {
 		c.logPeer(pidx).Warnf("invalid update received: %v", err)
 		return
