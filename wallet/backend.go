@@ -14,10 +14,6 @@
 
 package wallet
 
-import (
-	"io"
-)
-
 // backend is set to the global wallet backend. Must not be set directly but
 // through importing the needed backend.
 var backend Backend
@@ -28,9 +24,9 @@ type Backend interface {
 	// for unmarshalling an address from its binary representation.
 	NewAddress() Address
 
-	// DecodeSig reads a signature from the provided stream. It is needed for
-	// decoding of wire messages.
-	DecodeSig(io.Reader) (Sig, error)
+	// NewSig returns a variable of type Sig, which can be used for
+	// unmarshalling a signature from its binary representation.
+	NewSig() Sig
 
 	// VerifySignature verifies if this signature was signed by this address.
 	// It should return an error iff the signature or message are malformed.
@@ -53,9 +49,10 @@ func NewAddress() Address {
 	return backend.NewAddress()
 }
 
-// DecodeSig calls DecodeSig of the current backend.
-func DecodeSig(r io.Reader) (Sig, error) {
-	return backend.DecodeSig(r)
+// NewSig returns a variable of type Sig, which can be used for unmarshalling a
+// signature from its binary representation.
+func NewSig() Sig {
+	return backend.NewSig()
 }
 
 // VerifySignature calls VerifySignature of the current backend.

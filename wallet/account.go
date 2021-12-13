@@ -21,5 +21,5 @@ type Account interface {
 
 	// SignData requests a signature from this account.
 	// It returns the signature or an error.
-	SignData(data []byte) ([]byte, error)
+	SignData(data []byte) (Sig, error)
 }

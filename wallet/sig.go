@@ -15,7 +15,7 @@
 package wallet
 
 import (
-	"bytes"
+	"encoding"
 	"io"
 	"math"
 
@@ -24,8 +24,22 @@ import (
 	"perun.network/go-perun/wire/perunio"
 )
 
-// Sig is a single signature.
-type Sig = []byte
+// Sig represents a single signature generated over a given data using an
+// account. It is usually a byte array and the length depends upon the specific
+// signature scheme being used, which in turn depends upon the wallet backend.
+//
+// It is sent over wire as a binary data.
+type Sig interface {
+	// BinaryMarshaler marshals the blockchain specific signature to binary
+	// format (a byte array).
+	encoding.BinaryMarshaler
+	// BinaryUnmarshaler unmarshals the blockchain specific signature from
+	// binary format (a byte array).
+	encoding.BinaryUnmarshaler
+
+	// Clone returns a deep copy of the signature.
+	Clone() Sig
+}
 
 // CloneSigs returns a deep copy of a slice of signatures.
 func CloneSigs(sigs []Sig) []Sig {
@@ -35,7 +49,7 @@ func CloneSigs(sigs []Sig) []Sig {
 	clonedSigs := make([]Sig, len(sigs))
 	for i, sig := range sigs {
 		if sig != nil {
-			clonedSigs[i] = bytes.Repeat(sig, 1)
+			clonedSigs[i] = sig.Clone()
 		}
 	}
 	return clonedSigs
@@ -52,11 +66,13 @@ type SigDec struct {
 
 // Decode decodes a single signature.
 func (s SigDec) Decode(r io.Reader) (err error) {
-	*s.Sig, err = DecodeSig(r)
+	*s.Sig = NewSig()
+	err = perunio.Decode(r, *s.Sig)
 	return err
 }
 
-// EncodeSparseSigs encodes a collection of signatures in the form ( mask, sig, sig, sig, ...).
+// EncodeSparseSigs encodes a collection of signatures in the form ( mask, sig,
+// sig, sig, ...).
 func EncodeSparseSigs(w io.Writer, sigs []Sig) error {
 	n := len(sigs)
 
@@ -82,7 +98,8 @@ func EncodeSparseSigs(w io.Writer, sigs []Sig) error {
 	return nil
 }
 
-// DecodeSparseSigs decodes a collection of signatures in the form (mask, sig, sig, sig, ...).
+// DecodeSparseSigs decodes a collection of signatures in the form (mask, sig,
+// sig, sig, ...).
 func DecodeSparseSigs(r io.Reader, sigs *[]Sig) (err error) {
 	masklen := int(math.Ceil(float64(len(*sigs)) / float64(bitsPerByte)))
 	mask := make([]uint8, masklen)
@@ -99,7 +116,8 @@ func DecodeSparseSigs(r io.Reader, sigs *[]Sig) (err error) {
 			if ((mask[maskIdx] >> bitIdx) % binaryModulo) == 0 {
 				(*sigs)[sigIdx] = nil
 			} else {
-				(*sigs)[sigIdx], err = DecodeSig(r)
+				(*sigs)[sigIdx] = NewSig()
+				err = perunio.Decode(r, (*sigs)[sigIdx])
 				if err != nil {
 					return errors.WithMessagef(err, "decoding signature %d", sigIdx)
 				}
