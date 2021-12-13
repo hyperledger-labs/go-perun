@@ -18,13 +18,10 @@ import (
 	"crypto/ecdsa"
 	"crypto/elliptic"
 	"crypto/sha256"
-	"io"
 
 	"github.com/pkg/errors"
 
-	"perun.network/go-perun/log"
 	"perun.network/go-perun/wallet"
-	"perun.network/go-perun/wire/perunio"
 )
 
 var curve = elliptic.P256()
@@ -41,28 +38,28 @@ func (b *Backend) NewAddress() wallet.Address {
 	return &addr
 }
 
-// DecodeSig reads a []byte with length of a signature.
-func (b *Backend) DecodeSig(r io.Reader) (wallet.Sig, error) {
-	buf := make(wallet.Sig, (curve.Params().BitSize/bitsPerByte)*pointsPerSig)
-	return buf, perunio.Decode(r, &buf)
+// NewSig returns a variable of type Sig, which can be used for unmarshalling a
+// signature from its binary representation.
+func (*Backend) NewSig() wallet.Sig {
+	return &Sig{}
 }
 
-// VerifySignature verifies if a signature was made by this account.
+// VerifySignature verifies if the signature on the given message was made by
+// this account.
 func (b *Backend) VerifySignature(msg []byte, sig wallet.Sig, a wallet.Address) (bool, error) {
+	ecdsaSig, ok := sig.(*Sig)
+	if !ok {
+		return false, errors.New("Wrong signature type passed to Backend.VerifySignature")
+	}
+
 	addr, ok := a.(*Address)
 	if !ok {
-		log.Panic("Wrong address type passed to Backend.VerifySignature")
-	}
-	pk := (*ecdsa.PublicKey)(addr)
-
-	r, s, err := deserializeSignature(sig)
-	if err != nil {
-		return false, errors.WithMessage(err, "could not deserialize signature")
+		return false, errors.New("Wrong address type passed to Backend.VerifySignature")
 	}
 
 	// escda.Verify needs a digest as input
 	// ref https://golang.org/pkg/crypto/ecdsa/#Verify
-	return ecdsa.Verify(pk, digest(msg), r, s), nil
+	return ecdsa.Verify((*ecdsa.PublicKey)(addr), digest(msg), ecdsaSig.r, ecdsaSig.s), nil
 }
 
 func digest(msg []byte) []byte {

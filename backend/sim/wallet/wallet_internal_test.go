@@ -24,36 +24,19 @@ import (
 
 	"perun.network/go-perun/wallet/test"
 	"perun.network/go-perun/wire/perunio"
+	wiretest "perun.network/go-perun/wire/test"
+
 	pkgtest "polycry.pt/poly-go/test"
 )
 
-// TestSignatureSerialize tests serializeSignature and deserializeSignature since
-// a signature is only a []byte, we cant use io.serializer here.
-func TestSignatureSerialize(t *testing.T) {
-	a := assert.New(t)
-	// Constant seed for determinism
+func Test_Sig_GenericMarshaler(t *testing.T) {
 	rng := pkgtest.Prng(t)
-
-	// More iterations are better for catching value dependent bugs
 	for i := 0; i < 10; i++ {
-		rBytes := make([]byte, 32)
-		sBytes := make([]byte, 32)
-
-		// These always return nil error
-		rng.Read(rBytes)
-		rng.Read(sBytes)
-
-		r := new(big.Int).SetBytes(rBytes)
-		s := new(big.Int).SetBytes(sBytes)
-
-		sig, err1 := serializeSignature(r, s)
-		a.Nil(err1, "Serialization should not fail")
-		a.Equal(curve.Params().BitSize/4, len(sig), "Signature has wrong size")
-		R, S, err2 := deserializeSignature(sig)
-
-		a.Nil(err2, "Deserialization should not fail")
-		a.Equal(r, R, "Serialized and deserialized r values should be equal")
-		a.Equal(s, S, "Serialized and deserialized s values should be equal")
+		sig := Sig{
+			r: big.NewInt(rng.Int63()),
+			s: big.NewInt(rng.Int63()),
+		}
+		wiretest.GenericMarshalerTest(t, &sig)
 	}
 }
 

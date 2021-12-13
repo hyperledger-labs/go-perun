@@ -54,7 +54,7 @@ func (*backend) CalcID(p *channel.Params) (id channel.ID) {
 }
 
 // Sign signs `state`.
-func (b *backend) Sign(addr wallet.Account, state *channel.State) ([]byte, error) {
+func (b *backend) Sign(addr wallet.Account, state *channel.State) (wallet.Sig, error) {
 	log.WithFields(log.Fields{"channel": state.ID, "version": state.Version}).Tracef("Signing state")
 
 	buff := new(bytes.Buffer)
@@ -65,7 +65,7 @@ func (b *backend) Sign(addr wallet.Account, state *channel.State) ([]byte, error
 }
 
 // Verify verifies the signature for `state`.
-func (b *backend) Verify(addr wallet.Address, state *channel.State, sig []byte) (bool, error) {
+func (b *backend) Verify(addr wallet.Address, state *channel.State, sig wallet.Sig) (bool, error) {
 	buff := new(bytes.Buffer)
 	if err := state.Encode(buff); err != nil {
 		return false, errors.WithMessage(err, "pack state")
