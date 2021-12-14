@@ -157,7 +157,7 @@ func (a *dummyAccount) Address() wallet.Address {
 	return a.address
 }
 
-func (a *dummyAccount) SignData([]byte) ([]byte, error) {
+func (a *dummyAccount) SignData([]byte) (wallet.Sig, error) {
 	panic("dummy")
 }
 
