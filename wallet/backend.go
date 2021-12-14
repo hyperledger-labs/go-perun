@@ -27,11 +27,6 @@ type Backend interface {
 	// NewSig returns a variable of type Sig, which can be used for
 	// unmarshalling a signature from its binary representation.
 	NewSig() Sig
-
-	// VerifySignature verifies if this signature was signed by this address.
-	// It should return an error iff the signature or message are malformed.
-	// If the signature does not match the address it should return false, nil
-	VerifySignature(msg []byte, sign Sig, a Address) (bool, error)
 }
 
 // SetBackend sets the global wallet backend. Must not be called directly but
@@ -53,9 +48,4 @@ func NewAddress() Address {
 // signature from its binary representation.
 func NewSig() Sig {
 	return backend.NewSig()
-}
-
-// VerifySignature calls VerifySignature of the current backend.
-func VerifySignature(msg []byte, sign Sig, a Address) (bool, error) {
-	return backend.VerifySignature(msg, sign, a)
 }
