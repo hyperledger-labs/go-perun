@@ -70,7 +70,7 @@ func (b *backend) Verify(addr wallet.Address, state *channel.State, sig wallet.S
 	if err := state.Encode(buff); err != nil {
 		return false, errors.WithMessage(err, "pack state")
 	}
-	return wallet.VerifySignature(buff.Bytes(), sig, addr)
+	return sig.Verify(buff.Bytes(), addr)
 }
 
 // NewAsset returns a variable of type Asset, which can be used

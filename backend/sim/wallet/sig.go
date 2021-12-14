@@ -15,9 +15,12 @@
 package wallet
 
 import (
+	"crypto/ecdsa"
+	"crypto/sha256"
 	"fmt"
 	"math/big"
 
+	"github.com/pkg/errors"
 	"perun.network/go-perun/wallet"
 )
 
@@ -54,6 +57,24 @@ func (sig *Sig) UnmarshalBinary(data []byte) (err error) {
 	sig.s = new(big.Int).SetBytes(sBytes)
 
 	return nil
+}
+
+// Verify verifies if the signature on the given message was made by the given
+// address.
+func (sig Sig) Verify(msg []byte, addr wallet.Address) (bool, error) {
+	ethAddr, ok := addr.(*Address)
+	if !ok {
+		return false, errors.New("Wrong address type passed to Backend.VerifySignature")
+	}
+
+	// escda.Verify needs a digest as input
+	// ref https://golang.org/pkg/crypto/ecdsa/#Verify
+	return ecdsa.Verify((*ecdsa.PublicKey)(ethAddr), digest(msg), sig.r, sig.s), nil
+}
+
+func digest(msg []byte) []byte {
+	digest := sha256.Sum256(msg)
+	return digest[:]
 }
 
 // Clone returns a deep copy of the signature.
