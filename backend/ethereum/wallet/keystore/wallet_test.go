@@ -15,7 +15,6 @@
 package keystore_test
 
 import (
-	"bytes"
 	"encoding/hex"
 	"math/rand"
 	"testing"
@@ -27,7 +26,6 @@ import (
 	ethwallet "perun.network/go-perun/backend/ethereum/wallet"
 	ethwallettest "perun.network/go-perun/backend/ethereum/wallet/test"
 	"perun.network/go-perun/wallet/test"
-	"perun.network/go-perun/wire/perunio"
 	pkgtest "polycry.pt/poly-go/test"
 )
 
@@ -71,38 +69,28 @@ func TestBackend(t *testing.T) {
 	backend := new(ethwallet.Backend)
 
 	s := newSetup(t, pkgtest.Prng(t))
-
-	buff := bytes.NewReader(s.AddressEncoded)
 	addr := backend.NewAddress()
-	err := perunio.Decode(buff, addr)
-	assert.NoError(t, err, "NewAddress from Bytes should work")
+	err := addr.UnmarshalBinary(s.AddressMarshalled)
+	assert.NoError(t, err, "UnmarshalBinary should work")
 
-	buff = bytes.NewReader([]byte(invalidAddr))
 	addr = backend.NewAddress()
-	err = perunio.Decode(buff, addr)
-	assert.Error(t, err, "Conversion from wrong address should fail")
+	err = addr.UnmarshalBinary([]byte(invalidAddr))
+	assert.Error(t, err, "UnmarshalBinary for an invalid address should fail")
 }
 
 func newSetup(t require.TestingT, prng *rand.Rand) *test.Setup {
 	w := ethwallettest.NewTmpWallet()
-
 	addressNotInWallet := ethwallettest.NewRandomAddress(prng)
-	var buff bytes.Buffer
-	err := perunio.Encode(&buff, &addressNotInWallet)
-	if err != nil {
-		panic(err)
-	}
-	addrEncoded := buff.Bytes()
-
-	require.NoError(t, err, "decoding valid address should not fail")
+	addrMarshalled, err := addressNotInWallet.MarshalBinary()
+	require.NoError(t, err)
 
 	return &test.Setup{
-		Wallet:          w,
-		AddressInWallet: w.NewAccount().Address(),
-		Backend:         new(ethwallet.Backend),
-		AddressEncoded:  addrEncoded,
-		ZeroAddress:     ethwallet.AsWalletAddr(common.Address{}),
-		DataToSign:      dataToSign,
+		Wallet:            w,
+		AddressInWallet:   w.NewAccount().Address(),
+		Backend:           new(ethwallet.Backend),
+		AddressMarshalled: addrMarshalled,
+		ZeroAddress:       ethwallet.AsWalletAddr(common.Address{}),
+		DataToSign:        dataToSign,
 	}
 }
 

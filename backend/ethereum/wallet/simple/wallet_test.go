@@ -15,7 +15,6 @@
 package simple_test
 
 import (
-	"bytes"
 	"crypto/ecdsa"
 	"math/rand"
 	"testing"
@@ -30,7 +29,6 @@ import (
 	"perun.network/go-perun/backend/ethereum/wallet/simple"
 	ethwallettest "perun.network/go-perun/backend/ethereum/wallet/test"
 	"perun.network/go-perun/wallet/test"
-	"perun.network/go-perun/wire/perunio"
 	pkgtest "polycry.pt/poly-go/test"
 )
 
@@ -54,7 +52,7 @@ func TestNewWallet(t *testing.T) {
 func TestUnlock(t *testing.T) {
 	setup, simpleWallet := newSetup(t, pkgtest.Prng(t))
 
-	missingAddr := common.BytesToAddress(setup.AddressEncoded)
+	missingAddr := common.BytesToAddress(setup.AddressMarshalled)
 	_, err := simpleWallet.Unlock(ethwallet.AsWalletAddr(missingAddr))
 	assert.Error(t, err, "should error on unlocking missing address")
 
@@ -66,7 +64,7 @@ func TestUnlock(t *testing.T) {
 func TestWallet_Contains(t *testing.T) {
 	setup, simpleWallet := newSetup(t, pkgtest.Prng(t))
 
-	missingAddr := common.BytesToAddress(setup.AddressEncoded)
+	missingAddr := common.BytesToAddress(setup.AddressMarshalled)
 	assert.False(t, simpleWallet.Contains(missingAddr))
 
 	assert.True(t, simpleWallet.Contains(ethwallet.AsEthAddr(setup.AddressInWallet)))
@@ -102,19 +100,15 @@ func newSetup(t require.TestingT, prng *rand.Rand) (*test.Setup, *simple.Wallet)
 	require.NotNil(t, acc)
 
 	addressNotInWallet := ethwallettest.NewRandomAddress(prng)
-	var buff bytes.Buffer
-	err = perunio.Encode(&buff, &addressNotInWallet)
-	if err != nil {
-		panic(err)
-	}
-	addrEncoded := buff.Bytes()
+	addrMarshalled, err := addressNotInWallet.MarshalBinary()
+	require.NoError(t, err)
 
 	return &test.Setup{
-		Wallet:          simpleWallet,
-		AddressInWallet: acc.Address(),
-		Backend:         new(ethwallet.Backend),
-		AddressEncoded:  addrEncoded,
-		ZeroAddress:     ethwallet.AsWalletAddr(common.Address{}),
-		DataToSign:      dataToSign,
+		Wallet:            simpleWallet,
+		AddressInWallet:   acc.Address(),
+		Backend:           new(ethwallet.Backend),
+		AddressMarshalled: addrMarshalled,
+		ZeroAddress:       ethwallet.AsWalletAddr(common.Address{}),
+		DataToSign:        dataToSign,
 	}, simpleWallet
 }

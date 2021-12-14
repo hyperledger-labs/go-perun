@@ -15,11 +15,9 @@
 package test
 
 import (
-	"bytes"
 	"testing"
 
 	"github.com/stretchr/testify/require"
-	"perun.network/go-perun/wire/perunio"
 )
 
 // GenericAccountBenchmark runs a suite designed to benchmark the general speed of an implementation of an Account.
@@ -42,12 +40,15 @@ func benchAccountSign(b *testing.B, s *Setup) {
 	}
 }
 
-// GenericBackendBenchmark runs a suite designed to benchmark the general speed of an implementation of a Backend.
-// This function should be called by every implementation of the Backend interface.
+// GenericBackendBenchmark runs a suite designed to benchmark the general speed
+// of an implementation of a Backend.
+//
+// This function should be called by every implementation of the Backend
+// interface.
 func GenericBackendBenchmark(b *testing.B, s *Setup) {
 	b.Helper()
 	b.Run("VerifySig", func(b *testing.B) { benchBackendVerifySig(b, s) })
-	b.Run("DecodeAddress", func(b *testing.B) { benchBackendDecodeAddress(b, s) })
+	b.Run("UnmarshalAddress", func(b *testing.B) { benchUnmarshalAddress(b, s) })
 }
 
 func benchBackendVerifySig(b *testing.B, s *Setup) {
@@ -69,10 +70,11 @@ func benchBackendVerifySig(b *testing.B, s *Setup) {
 	}
 }
 
-func benchBackendDecodeAddress(b *testing.B, s *Setup) {
+func benchUnmarshalAddress(b *testing.B, s *Setup) {
 	b.Helper()
 	for n := 0; n < b.N; n++ {
-		err := perunio.Decode(bytes.NewReader(s.AddressEncoded), s.Backend.NewAddress())
+		addr := s.Backend.NewAddress()
+		err := addr.UnmarshalBinary(s.AddressMarshalled)
 		if err != nil {
 			b.Fatal(err)
 		}

@@ -15,14 +15,12 @@
 package test
 
 import (
-	"bytes"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"perun.network/go-perun/wallet"
-	"perun.network/go-perun/wire/perunio"
 )
 
 // InitWallet initializes a wallet.
@@ -32,12 +30,12 @@ type UnlockedAccount func() (wallet.Account, error)
 
 // Setup provides all objects needed for the generic tests.
 type Setup struct {
-	Backend         wallet.Backend // backend implementation
-	Wallet          wallet.Wallet  // the wallet instance used for testing
-	AddressInWallet wallet.Address // an address of an account in the test wallet
-	ZeroAddress     wallet.Address // an address that is less or equal to any other address
-	DataToSign      []byte         // some data to sign
-	AddressEncoded  []byte         // a valid nonzero address not in the wallet
+	Backend           wallet.Backend // backend implementation
+	Wallet            wallet.Wallet  // the wallet instance used for testing
+	AddressInWallet   wallet.Address // an address of an account in the test wallet
+	ZeroAddress       wallet.Address // an address that is less or equal to any other address
+	DataToSign        []byte         // some data to sign
+	AddressMarshalled []byte         // a valid nonzero address not in the wallet
 }
 
 // TestAccountWithWalletAndBackend tests an account implementation together with
@@ -54,7 +52,7 @@ func TestAccountWithWalletAndBackend(t *testing.T, s *Setup) { //nolint:revive /
 	assert.NoError(t, err, "Verification should not produce error")
 
 	addr := s.Backend.NewAddress()
-	err = perunio.Decode(bytes.NewReader(s.AddressEncoded), addr)
+	err = addr.UnmarshalBinary(s.AddressMarshalled)
 	assert.NoError(t, err, "Byte deserialization of address should work")
 	valid, err = sig.Verify(s.DataToSign, addr)
 	assert.False(t, valid, "Verification with wrong address should fail")
@@ -78,24 +76,20 @@ func TestAccountWithWalletAndBackend(t *testing.T, s *Setup) { //nolint:revive /
 	tampered = s.Backend.NewSig()
 	require.Error(t, tampered.UnmarshalBinary(tamperedBytes), "unmarshalling should fail when length is incorrect")
 
-	// Test DecodeSig
 	sig, err = acc.SignData(s.DataToSign)
 	require.NoError(t, err, "Sign with unlocked account should succeed")
 
-	buff := new(bytes.Buffer)
-	err = perunio.Encode(buff, sig)
-	require.NoError(t, err, "encode sig")
-	sign2 := s.Backend.NewSig()
-	err = perunio.Decode(buff, sign2)
-	assert.NoError(t, err, "Decoded signature should work")
-	assert.Equal(t, sig, sign2, "Decoded signature should be equal to the original")
+	sigBytes, err := sig.MarshalBinary()
+	require.NoError(t, err, "marshalling sig")
+	sig2 := s.Backend.NewSig()
+	assert.NoError(t, sig2.UnmarshalBinary(sigBytes), "unmarshalling signature should work")
+	assert.Equal(t, sig, sig2, "Unmarshalled signature should be equal to the original")
 
 	// Test DecodeSig on short stream
-	err = perunio.Encode(buff, sig)
-	require.NoError(t, err, "encode sig")
-	shortBuff := bytes.NewBuffer(buff.Bytes()[:len(buff.Bytes())-1]) // remove one byte
-	sign3 := s.Backend.NewSig()
-	err = perunio.Decode(shortBuff, sign3)
+	sigBytes, err = sig.MarshalBinary()
+	require.NoError(t, err, "marshalling sig")
+	truncatedSigBytes := (sigBytes[:len(sigBytes)-1]) // remove one byte
+	err = s.Backend.NewSig().UnmarshalBinary(truncatedSigBytes)
 	assert.Error(t, err, "DecodeSig on short stream should error")
 }
 

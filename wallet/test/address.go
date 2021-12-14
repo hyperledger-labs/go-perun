@@ -29,8 +29,7 @@ import (
 func TestAddress(t *testing.T, s *Setup) { //nolint:revive // `test.Test...` stutters, but we accept that here.
 	null := s.ZeroAddress
 	addr := s.Backend.NewAddress()
-	err := perunio.Decode(bytes.NewReader(s.AddressEncoded), addr)
-	assert.NoError(t, err, "Byte deserialization of address should work")
+	assert.NoError(t, addr.UnmarshalBinary(s.AddressMarshalled), "Byte deserialization of address should work")
 
 	// Test Address.String.
 	nullString := null.String()
