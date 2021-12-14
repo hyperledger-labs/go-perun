@@ -17,7 +17,6 @@
 package test // import "perun.network/go-perun/channel/persistence/test"
 
 import (
-	"bytes"
 	"context"
 	"sync"
 	"testing"
@@ -108,7 +107,7 @@ func (pr *PersistRestorer) SigAdded(_ context.Context, s channel.Source, idx cha
 		return errors.Errorf("no staging transaction set")
 	}
 
-	ch.StagingTXV.Sigs[idx] = bytes.Repeat(s.StagingTX().Sigs[idx], 1)
+	ch.StagingTXV.Sigs[idx] = s.StagingTX().Sigs[idx].Clone()
 	return nil
 }
 
