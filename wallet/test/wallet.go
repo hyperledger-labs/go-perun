@@ -49,14 +49,14 @@ func TestAccountWithWalletAndBackend(t *testing.T, s *Setup) { //nolint:revive /
 	// Check unlocked account
 	sig, err := acc.SignData(s.DataToSign)
 	assert.NoError(t, err, "Sign with unlocked account should succeed")
-	valid, err := s.Backend.VerifySignature(s.DataToSign, sig, acc.Address())
+	valid, err := sig.Verify(s.DataToSign, acc.Address())
 	assert.True(t, valid, "Verification should succeed")
 	assert.NoError(t, err, "Verification should not produce error")
 
 	addr := s.Backend.NewAddress()
 	err = perunio.Decode(bytes.NewReader(s.AddressEncoded), addr)
 	assert.NoError(t, err, "Byte deserialization of address should work")
-	valid, err = s.Backend.VerifySignature(s.DataToSign, sig, addr)
+	valid, err = sig.Verify(s.DataToSign, addr)
 	assert.False(t, valid, "Verification with wrong address should fail")
 	assert.NoError(t, err, "Verification of valid signature should not produce error")
 
@@ -64,7 +64,7 @@ func TestAccountWithWalletAndBackend(t *testing.T, s *Setup) { //nolint:revive /
 	tamperedBytes := marshalAndTamper(t, sig, func(sigBytes *[]byte) { (*sigBytes)[0] = ^(*sigBytes)[0] })
 	tampered := s.Backend.NewSig()
 	require.NoError(t, tampered.UnmarshalBinary(tamperedBytes))
-	valid, err = s.Backend.VerifySignature(s.DataToSign, tampered, acc.Address())
+	valid, err = tampered.Verify(s.DataToSign, acc.Address())
 	if valid && err == nil {
 		t.Error("Verification of invalid signature should produce error or return false")
 	}
