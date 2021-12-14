@@ -15,22 +15,33 @@
 package test
 
 import (
-	"math/rand"
 	"testing"
 
+	"github.com/stretchr/testify/require"
 	"perun.network/go-perun/wallet"
-	"polycry.pt/poly-go/test"
+	"perun.network/go-perun/wallet/test"
+	pkgtest "polycry.pt/poly-go/test"
 )
 
 func TestRequireEqualSigsTX(t *testing.T) {
-	prng := test.Prng(t)
+	prng := pkgtest.Prng(t)
+	acc := test.NewRandomAccount(prng)
+	data1 := make([]byte, prng.Int63n(50))
+	prng.Read(data1)
+	data2 := make([]byte, prng.Int63n(50))
+	prng.Read(data2)
+
+	sig1, err := acc.SignData(data1)
+	require.NoError(t, err)
+	sig2, err := acc.SignData(data2)
+	require.NoError(t, err)
+
 	equalSigsTableNegative := []struct {
 		s1 []wallet.Sig
 		s2 []wallet.Sig
 	}{
-		{initSigSlice(10, prng), make([]wallet.Sig, 10)},
-		{make([]wallet.Sig, 10), initSigSlice(10, prng)},
-		{[]wallet.Sig{{4, 3, 2, 1}}, []wallet.Sig{{1, 2, 3, 4}}},
+		{[]wallet.Sig{sig1, sig2}, make([]wallet.Sig, 2)},
+		{make([]wallet.Sig, 2), []wallet.Sig{sig1, sig2}},
 		{make([]wallet.Sig, 5), make([]wallet.Sig, 10)},
 		{make([]wallet.Sig, 10), make([]wallet.Sig, 5)},
 	}
@@ -42,26 +53,16 @@ func TestRequireEqualSigsTX(t *testing.T) {
 		{nil, make([]wallet.Sig, 10)},
 		{make([]wallet.Sig, 10), nil},
 		{make([]wallet.Sig, 10), make([]wallet.Sig, 10)},
-		{[]wallet.Sig{{1, 2, 3, 4}}, []wallet.Sig{{1, 2, 3, 4}}},
+		{[]wallet.Sig{sig1, sig2}, []wallet.Sig{sig1, sig2}},
+		{[]wallet.Sig{sig2}, []wallet.Sig{sig2}},
 	}
 
-	tt := test.NewTester(t)
+	tt := pkgtest.NewTester(t)
 	for _, _c := range equalSigsTableNegative {
 		c := _c
-		tt.AssertFatal(func(t test.T) { requireEqualSigs(t, c.s1, c.s2) })
+		tt.AssertFatal(func(t pkgtest.T) { requireEqualSigs(t, c.s1, c.s2) })
 	}
 	for _, c := range equalSigsTablePositive {
 		requireEqualSigs(t, c.s1, c.s2)
 	}
-}
-
-func initSigSlice(length int, prng *rand.Rand) []wallet.Sig {
-	s := make([]wallet.Sig, length)
-	for i := range s {
-		s[i] = make(wallet.Sig, 32)
-		for j := 0; j < 32; j++ {
-			s[i][j] = byte(prng.Int())
-		}
-	}
-	return s
 }
