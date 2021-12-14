@@ -34,14 +34,15 @@ func (a *Account) Address() wallet.Address {
 }
 
 // SignData is used to sign data with this account.
-func (a *Account) SignData(data []byte) ([]byte, error) {
+func (a *Account) SignData(data []byte) (wallet.Sig, error) {
 	hash := ethwallet.PrefixedHash(data)
 	sig, err := a.wallet.Ks.SignHash(a.Account, hash)
 	if err != nil {
 		return nil, errors.Wrap(err, "SignHash")
 	}
 	sig[64] += 27
-	return sig, nil
+	ethSig := (ethwallet.Sig)(sig)
+	return &ethSig, nil
 }
 
 // NewAccountFromEth creates a new perun account from a given ethereum account.

@@ -27,7 +27,6 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"perun.network/go-perun/backend/ethereum/channel"
-	"perun.network/go-perun/backend/ethereum/wallet"
 )
 
 // TransactorSetup holds the setup for running generic tests on a transactor implementation.
@@ -90,7 +89,7 @@ func sigFromRSV(t *testing.T, r, s, _v *big.Int, chainID int64) []byte {
 		sigVAdd      = 35
 		sigVSubtract = 27
 	)
-	sig := make([]byte, wallet.SigLen)
+	sig := make([]byte, sigLen)
 	copy(sig[elemLen-len(r.Bytes()):elemLen], r.Bytes())
 	copy(sig[elemLen*2-len(s.Bytes()):elemLen*2], s.Bytes())
 	v := byte(_v.Uint64()) // Needed for chain ids > 110.

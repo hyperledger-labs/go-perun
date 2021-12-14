@@ -62,7 +62,6 @@ func TestSignatures(t *testing.T) {
 	acc := ethwallettest.NewTmpWallet().NewAccount()
 	sign, err := acc.SignData(dataToSign)
 	assert.NoError(t, err, "Sign with new account should succeed")
-	assert.Equal(t, len(sign), ethwallet.SigLen, "Ethereum signature has wrong length")
 	valid, err := new(ethwallet.Backend).VerifySignature(dataToSign, sign, acc.Address())
 	assert.True(t, valid, "Verification should succeed")
 	assert.NoError(t, err, "Verification should succeed")
@@ -113,7 +112,8 @@ func TestCurve_SigningAndVerifying(t *testing.T) {
 	sig, err := hex.DecodeString("538da6430f7915832de165f89c69239020461b80861559a00d4f5a2a7705765219eb3969eb7095f8addb6bf9c9f96f6adf44cfd4a8136516f88b337a428bf1bb1b")
 	require.NoError(t, err, "decode sig should not error")
 	addr := ethwallet.Address(common.HexToAddress("f17f52151EbEF6C7334FAD080c5704D77216b732"))
-	b, err := ethwallet.VerifySignature(msg, sig, &addr)
+	ethSig := ethwallet.Sig(sig)
+	b, err := ethwallet.VerifySignature(msg, &ethSig, &addr)
 	assert.NoError(t, err, "VerifySignature should not error")
 	assert.True(t, b, "VerifySignature")
 }

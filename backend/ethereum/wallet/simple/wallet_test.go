@@ -78,7 +78,6 @@ func TestSignatures(t *testing.T) {
 	sig, err := acc.SignData(dataToSign)
 	assert.NoError(t, err, "Sign with new account should succeed")
 	assert.NotNil(t, sig)
-	assert.Equal(t, len(sig), ethwallet.SigLen, "Ethereum signature has wrong length")
 	valid, err := new(ethwallet.Backend).VerifySignature(dataToSign, sig, acc.Address())
 	assert.True(t, valid, "Verification should succeed")
 	assert.NoError(t, err, "Verification should succeed")
