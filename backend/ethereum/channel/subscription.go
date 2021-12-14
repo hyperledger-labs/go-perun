@@ -193,7 +193,7 @@ func (a *Adjudicator) convertEvent(ctx context.Context, e *adjudicator.Adjudicat
 		return &channel.RegisteredEvent{
 			AdjudicatorEventBase: *base,
 			State:                &state,
-			Sigs:                 ch.Sigs,
+			Sigs:                 byteArraysToSigs(ch.Sigs),
 		}, nil
 
 	case phaseForceExec:

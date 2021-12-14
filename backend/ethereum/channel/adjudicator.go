@@ -27,9 +27,11 @@ import (
 	"perun.network/go-perun/backend/ethereum/bindings"
 	"perun.network/go-perun/backend/ethereum/bindings/adjudicator"
 	cherrors "perun.network/go-perun/backend/ethereum/channel/errors"
+	ethwallet "perun.network/go-perun/backend/ethereum/wallet"
 	"perun.network/go-perun/channel"
 	"perun.network/go-perun/client"
 	"perun.network/go-perun/log"
+	"perun.network/go-perun/wallet"
 	psync "polycry.pt/poly-go/sync"
 )
 
@@ -81,7 +83,11 @@ func (a *Adjudicator) Progress(ctx context.Context, req channel.ProgressReq) err
 		state adjudicator.ChannelState,
 		_ [][]byte,
 	) (*types.Transaction, error) {
-		return a.contract.Progress(opts, params, state, ethNewState, ethActorIndex, req.Sig)
+		sigBytes, err := req.Sig.MarshalBinary()
+		if err != nil {
+			return nil, errors.WithMessage(err, "converting to byte array")
+		}
+		return a.contract.Progress(opts, params, state, ethNewState, ethActorIndex, sigBytes)
 	}
 	return a.call(ctx, req.AdjudicatorReq, progress, Progress)
 }
@@ -105,10 +111,33 @@ func toEthSignedStates(subChannels []channel.SignedState) (ethSubChannels []adju
 		ethSubChannels[i] = adjudicator.AdjudicatorSignedState{
 			Params: ToEthParams(x.Params),
 			State:  ToEthState(x.State),
-			Sigs:   x.Sigs,
+			Sigs:   sigsToByteArrays(x.Sigs),
 		}
 	}
 	return
+}
+
+func sigsToByteArrays(signs []wallet.Sig) [][]byte {
+	byteArrays := make([][]byte, len(signs))
+	var err error
+	for i := range signs {
+		if signs[i] != nil {
+			byteArrays[i], err = signs[i].MarshalBinary()
+			if err != nil {
+				panic("Marshalling to Binary should not error: " + err.Error())
+			}
+		}
+	}
+	return byteArrays
+}
+
+func byteArraysToSigs(byteArrays [][]byte) []wallet.Sig {
+	sigs := make([]wallet.Sig, len(byteArrays))
+	for i := range byteArrays {
+		sig := (ethwallet.Sig)(byteArrays[i])
+		sigs[i] = &sig
+	}
+	return sigs
 }
 
 func (a *Adjudicator) callConclude(ctx context.Context, req channel.AdjudicatorReq, subStates channel.StateMap) error {
@@ -153,7 +182,7 @@ func (a *Adjudicator) call(ctx context.Context, req channel.AdjudicatorReq, fn a
 		if err != nil {
 			return nil, errors.WithMessage(err, "creating transactor")
 		}
-		tx, err := fn(trans, ethParams, ethState, req.Tx.Sigs)
+		tx, err := fn(trans, ethParams, ethState, sigsToByteArrays(req.Tx.Sigs))
 		if err != nil {
 			err = cherrors.CheckIsChainNotReachableError(err)
 			return nil, errors.WithMessage(err, "calling adjudicator function")

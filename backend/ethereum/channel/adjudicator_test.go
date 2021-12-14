@@ -30,6 +30,7 @@ import (
 	ethwallettest "perun.network/go-perun/backend/ethereum/wallet/test"
 	"perun.network/go-perun/channel"
 	channeltest "perun.network/go-perun/channel/test"
+	"perun.network/go-perun/wallet"
 	pkgtest "polycry.pt/poly-go/test"
 )
 
@@ -43,7 +44,7 @@ func testSignState(t *testing.T, accounts []*keystore.Account, state *channel.St
 }
 
 func signState(accounts []*keystore.Account, state *channel.State) (channel.Transaction, error) {
-	sigs := make([][]byte, len(accounts))
+	sigs := make([]wallet.Sig, len(accounts))
 	for i := range accounts {
 		sig, err := channel.Sign(accounts[i], state)
 		if err != nil {

@@ -168,7 +168,12 @@ func (a *Adjudicator) newWithdrawalAuth(request channel.AdjudicatorReq, asset as
 	}
 
 	sig, err := request.Acc.SignData(enc)
-	return auth, sig, errors.WithMessage(err, "sign data")
+	if err != nil {
+		return assetholder.AssetHolderWithdrawalAuth{}, nil, errors.WithMessage(err, "sign data")
+	}
+	sigBytes, err := sig.MarshalBinary()
+
+	return auth, sigBytes, errors.WithMessage(err, "marshalling signature into bytes")
 }
 
 func encodeAssetHolderWithdrawalAuth(auth assetholder.AssetHolderWithdrawalAuth) ([]byte, error) {
