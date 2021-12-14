@@ -78,7 +78,7 @@ func TestSignatures(t *testing.T) {
 	sig, err := acc.SignData(dataToSign)
 	assert.NoError(t, err, "Sign with new account should succeed")
 	assert.NotNil(t, sig)
-	valid, err := new(ethwallet.Backend).VerifySignature(dataToSign, sig, acc.Address())
+	valid, err := sig.Verify(dataToSign, acc.Address())
 	assert.True(t, valid, "Verification should succeed")
 	assert.NoError(t, err, "Verification should succeed")
 }

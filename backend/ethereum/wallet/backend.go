@@ -16,7 +16,6 @@ package wallet
 
 import (
 	"github.com/ethereum/go-ethereum/crypto"
-	"github.com/pkg/errors"
 
 	"perun.network/go-perun/wallet"
 )
@@ -39,35 +38,6 @@ func (b *Backend) NewAddress() wallet.Address {
 func (*Backend) NewSig() wallet.Sig {
 	sig := Sig(make([]byte, sigLen))
 	return &sig
-}
-
-// VerifySignature verifies if the signature on the given message was made by
-// this account.
-func (*Backend) VerifySignature(msg []byte, sig wallet.Sig, a wallet.Address) (bool, error) {
-	return VerifySignature(msg, sig, a)
-}
-
-// VerifySignature verifies if the signature on the given message was made by
-// this account.
-func VerifySignature(msg []byte, sig wallet.Sig, a wallet.Address) (bool, error) {
-	ethSig, ok := sig.(*Sig)
-	if !ok {
-		return false, errors.New("signature was not of the expected type")
-	}
-
-	hash := PrefixedHash(msg)
-	ethSigCopy := make([]byte, sigLen)
-	copy(ethSigCopy, *ethSig)
-	if ethSigCopy[sigLen-1] >= sigVSubtract {
-		ethSigCopy[sigLen-1] -= sigVSubtract
-	}
-
-	pk, err := crypto.SigToPub(hash, ethSigCopy)
-	if err != nil {
-		return false, errors.WithStack(err)
-	}
-	addr := crypto.PubkeyToAddress(*pk)
-	return a.Equal((*Address)(&addr)), nil
 }
 
 // PrefixedHash adds an ethereum specific prefix to the hash of given data, rehashes the results

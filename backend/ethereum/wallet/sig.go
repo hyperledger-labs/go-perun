@@ -17,6 +17,8 @@ package wallet
 import (
 	"fmt"
 
+	"github.com/ethereum/go-ethereum/crypto"
+	"github.com/pkg/errors"
 	"perun.network/go-perun/wallet"
 )
 
@@ -47,6 +49,24 @@ func (s *Sig) UnmarshalBinary(data []byte) error {
 	}
 	copy(*s, data)
 	return nil
+}
+
+// Verify verifies if the signature on the given message was made by the given
+// address.
+func (s *Sig) Verify(msg []byte, addr wallet.Address) (bool, error) {
+	hash := PrefixedHash(msg)
+	sigCopy := make([]byte, sigLen)
+	copy(sigCopy, *s)
+	if sigCopy[sigLen-1] >= sigVSubtract {
+		sigCopy[sigLen-1] -= sigVSubtract
+	}
+
+	pk, err := crypto.SigToPub(hash, sigCopy)
+	if err != nil {
+		return false, errors.WithStack(err)
+	}
+	addrInSig := crypto.PubkeyToAddress(*pk)
+	return addr.Equal((*Address)(&addrInSig)), nil
 }
 
 // Clone returns a deep copy of the signature.

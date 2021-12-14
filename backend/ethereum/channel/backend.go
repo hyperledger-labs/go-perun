@@ -143,7 +143,7 @@ func Verify(addr wallet.Address, s *channel.State, sig wallet.Sig) (bool, error)
 	if err != nil {
 		return false, errors.WithMessage(err, "encoding state")
 	}
-	return ethwallet.VerifySignature(enc, sig, addr)
+	return sig.Verify(enc, addr)
 }
 
 // NewAsset returns a variable of type Asset, which can be used
