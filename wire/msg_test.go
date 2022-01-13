@@ -22,7 +22,6 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"perun.network/go-perun/wire"
-	wiretest "perun.network/go-perun/wire/test"
 	"polycry.pt/poly-go/test"
 )
 
@@ -57,9 +56,4 @@ func TestRegisterExternalDecoder(t *testing.T) {
 		func() { wire.RegisterExternalDecoder(wire.Ping, nilDecoder, "PingFail") },
 		"registration of internal type should fail",
 	)
-}
-
-func TestEnvelope_EncodeDecode(t *testing.T) {
-	ping := wiretest.NewRandomEnvelope(test.Prng(t), wire.NewPingMsg())
-	wiretest.GenericSerializerTest(t, ping)
 }
