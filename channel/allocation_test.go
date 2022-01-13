@@ -25,7 +25,7 @@ import (
 	"perun.network/go-perun/channel"
 	"perun.network/go-perun/channel/test"
 	"perun.network/go-perun/wire/perunio"
-	wiretest "perun.network/go-perun/wire/test"
+	peruniotest "perun.network/go-perun/wire/perunio/test"
 	pkgbig "polycry.pt/poly-go/math/big"
 	pkgtest "polycry.pt/poly-go/test"
 )
@@ -234,7 +234,7 @@ func TestBalancesSerialization(t *testing.T) {
 	for n := 0; n < 10; n++ {
 		alloc := test.NewRandomAllocation(rng)
 		if alloc.Valid() == nil {
-			wiretest.GenericSerializerTest(t, alloc)
+			peruniotest.GenericSerializerTest(t, alloc)
 		}
 	}
 }
@@ -247,7 +247,7 @@ func TestAllocationSerialization(t *testing.T) {
 		test.NewRandomAllocation(rng, test.WithNumParts(3), test.WithNumAssets(2), test.WithNumLocked(1)),
 	}
 
-	wiretest.GenericSerializerTest(t, inputs...)
+	peruniotest.GenericSerializerTest(t, inputs...)
 }
 
 func TestAllocationValidLimits(t *testing.T) {
@@ -563,7 +563,7 @@ func TestSuballocSerialization(t *testing.T) {
 		channel.NewSubAlloc(channel.ID{4}, []channel.Bal{big.NewInt(5), big.NewInt(1 << 62)}, nil),
 	}
 
-	wiretest.GenericSerializerTest(t, ss...)
+	peruniotest.GenericSerializerTest(t, ss...)
 }
 
 func TestRemoveSubAlloc(t *testing.T) {

@@ -14,8 +14,4 @@
 
 // Package test contains implementations of the peer interfaces that are useful
 // for testing.
-
-// Package test contains implementations of peer interfaces that are useful for
-// testing and test helper functions for running generic tests for different
-// wire protocol implementations.
 package test // import "perun.network/go-perun/wire/test"

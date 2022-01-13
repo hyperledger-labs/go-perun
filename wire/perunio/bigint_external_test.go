@@ -21,7 +21,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"perun.network/go-perun/wire/perunio"
-	"perun.network/go-perun/wire/test"
+	peruniotest "perun.network/go-perun/wire/perunio/test"
 )
 
 func TestBigInt_Generic(t *testing.T) {
@@ -31,7 +31,7 @@ func TestBigInt_Generic(t *testing.T) {
 		&perunio.BigInt{Int: big.NewInt(123456)},
 		&perunio.BigInt{Int: new(big.Int).SetBytes([]byte{1, 2, 3, 4, 5, 6, 7, 8, 9, 10})}, // larger than uint64
 	}
-	test.GenericSerializerTest(t, vars...)
+	peruniotest.GenericSerializerTest(t, vars...)
 }
 
 func TestBigInt_DecodeZeroLength(t *testing.T) {

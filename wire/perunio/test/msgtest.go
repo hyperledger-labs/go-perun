@@ -20,6 +20,7 @@ import (
 	"testing"
 
 	"perun.network/go-perun/wire"
+	wiretest "perun.network/go-perun/wire/test"
 	pkgtest "polycry.pt/poly-go/test"
 )
 
@@ -39,7 +40,7 @@ func (e *serializableEnvelope) Decode(reader io.Reader) (err error) {
 }
 
 func newSerializableEnvelope(rng *rand.Rand, msg wire.Msg) *serializableEnvelope {
-	return &serializableEnvelope{env: NewRandomEnvelope(rng, msg)}
+	return &serializableEnvelope{env: wiretest.NewRandomEnvelope(rng, msg)}
 }
 
 // MsgSerializerTest performs generic serializer tests on a wire.Msg object.

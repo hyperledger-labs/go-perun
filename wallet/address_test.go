@@ -23,7 +23,7 @@ import (
 	_ "perun.network/go-perun/backend/sim/wallet"
 	"perun.network/go-perun/wallet"
 	wallettest "perun.network/go-perun/wallet/test"
-	wiretest "perun.network/go-perun/wire/test"
+	peruniotest "perun.network/go-perun/wire/perunio/test"
 	pkgtest "polycry.pt/poly-go/test"
 )
 
@@ -43,13 +43,13 @@ func TestAddresses_Serializer(t *testing.T) {
 	rng := pkgtest.Prng(t)
 
 	addrs := wallettest.NewRandomAddresses(rng, 0)
-	wiretest.GenericSerializerTest(t, &testAddresses{addrs})
+	peruniotest.GenericSerializerTest(t, &testAddresses{addrs})
 
 	addrs = wallettest.NewRandomAddresses(rng, 1)
-	wiretest.GenericSerializerTest(t, &testAddresses{addrs})
+	peruniotest.GenericSerializerTest(t, &testAddresses{addrs})
 
 	addrs = wallettest.NewRandomAddresses(rng, 5)
-	wiretest.GenericSerializerTest(t, &testAddresses{addrs})
+	peruniotest.GenericSerializerTest(t, &testAddresses{addrs})
 }
 
 func TestAddrKey_Equal(t *testing.T) {
