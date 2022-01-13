@@ -15,7 +15,6 @@
 package wallet
 
 import (
-	"bytes"
 	"math/big"
 	"math/rand"
 	"testing"
@@ -23,7 +22,6 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"perun.network/go-perun/wallet/test"
-	"perun.network/go-perun/wire/perunio"
 	pkgtest "polycry.pt/poly-go/test"
 )
 
@@ -101,12 +99,10 @@ func newWalletSetup(rng *rand.Rand) *test.Setup {
 	}
 
 	addressNotInWallet := NewRandomAccount(rng).Address()
-	var buff bytes.Buffer
-	err = perunio.Encode(&buff, addressNotInWallet)
+	addrMarshalled, err := addressNotInWallet.MarshalBinary()
 	if err != nil {
 		panic(err)
 	}
-	addrEncoded := buff.Bytes()
 
 	zeroAddr := &Address{
 		Curve: curve,
@@ -115,11 +111,11 @@ func newWalletSetup(rng *rand.Rand) *test.Setup {
 	}
 
 	return &test.Setup{
-		Backend:         new(Backend),
-		Wallet:          w,
-		AddressInWallet: w.NewRandomAccount(rng).Address(),
-		AddressEncoded:  addrEncoded,
-		ZeroAddress:     zeroAddr,
-		DataToSign:      data,
+		Backend:           new(Backend),
+		Wallet:            w,
+		AddressInWallet:   w.NewRandomAccount(rng).Address(),
+		AddressMarshalled: addrMarshalled,
+		ZeroAddress:       zeroAddr,
+		DataToSign:        data,
 	}
 }
