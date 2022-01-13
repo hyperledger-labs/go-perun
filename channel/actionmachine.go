@@ -15,13 +15,11 @@
 package channel
 
 import (
-	"bytes"
 	"log"
 
 	"github.com/pkg/errors"
 
 	"perun.network/go-perun/wallet"
-	"perun.network/go-perun/wire/perunio"
 )
 
 // An ActionMachine is the channel pushdown automaton around an ActionApp.
@@ -128,12 +126,12 @@ func (m *ActionMachine) Clone() *ActionMachine {
 	clonedActions := make([]Action, m.N())
 	for i, action := range m.stagingActions {
 		if action != nil {
-			var buff bytes.Buffer
-			if err := perunio.Encode(&buff, action); err != nil {
+			marshalledAction, err := action.MarshalBinary()
+			if err != nil {
 				log.Panicf("Could not encode action: %v", err)
 			}
 			clonedAction := m.app.NewAction()
-			if err := perunio.Decode(&buff, clonedAction); err != nil {
+			if err := clonedAction.UnmarshalBinary(marshalledAction); err != nil {
 				log.Panicf("App could not decode Action: %v", err)
 			}
 			clonedActions[i] = clonedAction
