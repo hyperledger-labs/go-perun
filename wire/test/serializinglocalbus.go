@@ -37,15 +37,17 @@ func NewSerializingLocalBus() *SerializingLocalBus {
 
 // Publish publishes the message on the bus.
 func (b *SerializingLocalBus) Publish(ctx context.Context, e *wire.Envelope) (err error) {
+	// Serialize and deserialize the envelope before publishing it on the local
+	// bus, to simulate envelope serialization.
 	var buf bytes.Buffer
 	err = wire.EncodeEnvelope(&buf, e)
 	if err != nil {
 		return
 	}
 
-	_e, err := wire.DecodeEnvelope(&buf)
+	deserializedEnvelope, err := wire.DecodeEnvelope(&buf)
 	if err != nil {
 		return
 	}
-	return b.LocalBus.Publish(ctx, _e)
+	return b.LocalBus.Publish(ctx, deserializedEnvelope)
 }
