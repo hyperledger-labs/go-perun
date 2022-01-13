@@ -24,6 +24,17 @@ import (
 	"perun.network/go-perun/wire/perunio"
 )
 
+var envelopeSerializer EnvelopeSerializer
+
+// SetEnvelopeSerializer sets the global envelope serializer instance. Must not
+// be called directly but through importing the needed backend.
+func SetEnvelopeSerializer(e EnvelopeSerializer) {
+	if envelopeSerializer != nil {
+		panic("envelope serializer already set")
+	}
+	envelopeSerializer = e
+}
+
 type (
 	// Msg is the top-level abstraction for all messages sent between Perun
 	// nodes.
@@ -42,28 +53,24 @@ type (
 		// Msg contained in this Envelope. Not embedded so Envelope doesn't implement Msg.
 		Msg Msg
 	}
+
+	// EnvelopeSerializer serializes/deserializes envelopes into/from streams.
+	EnvelopeSerializer interface {
+		Encode(w io.Writer, env *Envelope) error
+		Decode(r io.Reader) (*Envelope, error)
+	}
 )
 
-// Encode encodes an Envelope into an io.Writer.
-func (env *Envelope) Encode(w io.Writer) error {
-	if err := perunio.Encode(w, env.Sender, env.Recipient); err != nil {
-		return err
-	}
-	return EncodeMsg(env.Msg, w)
+// EncodeEnvelope serializes the envelope into the writer, using the global
+// envelope serialzer instance.
+func EncodeEnvelope(w io.Writer, env *Envelope) error {
+	return envelopeSerializer.Encode(w, env)
 }
 
-// Decode decodes an Envelope from an io.Reader.
-func (env *Envelope) Decode(r io.Reader) (err error) {
-	env.Sender = NewAddress()
-	if err = perunio.Decode(r, env.Sender); err != nil {
-		return err
-	}
-	env.Recipient = NewAddress()
-	if err = perunio.Decode(r, env.Recipient); err != nil {
-		return err
-	}
-	env.Msg, err = DecodeMsg(r)
-	return err
+// DecodeEnvelope deserializes an envelope from the reader, using the global
+// envelope serialzer instance.
+func DecodeEnvelope(r io.Reader) (*Envelope, error) {
+	return envelopeSerializer.Decode(r)
 }
 
 // EncodeMsg encodes a message into an io.Writer. It also encodes the message
