@@ -41,8 +41,6 @@ type (
 	Msg interface {
 		// Type returns the message's type.
 		Type() Type
-		// encoding of payload. Type byte should not be encoded.
-		perunio.Encoder
 	}
 
 	// An Envelope encapsulates a message with routing information, that is, the
