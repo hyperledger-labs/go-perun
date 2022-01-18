@@ -19,6 +19,8 @@ import (
 	"context"
 
 	"perun.network/go-perun/wire"
+	// nolint: blank-imports  // allow blank import package that is not main or test.
+	_ "perun.network/go-perun/wire/perunio/serializer"
 )
 
 // SerializingLocalBus is a local bus that also serializes messages for testing.
@@ -35,16 +37,17 @@ func NewSerializingLocalBus() *SerializingLocalBus {
 
 // Publish publishes the message on the bus.
 func (b *SerializingLocalBus) Publish(ctx context.Context, e *wire.Envelope) (err error) {
+	// Serialize and deserialize the envelope before publishing it on the local
+	// bus, to simulate envelope serialization.
 	var buf bytes.Buffer
-	err = e.Encode(&buf)
+	err = wire.EncodeEnvelope(&buf, e)
 	if err != nil {
 		return
 	}
 
-	var _e wire.Envelope
-	err = _e.Decode(&buf)
+	deserializedEnvelope, err := wire.DecodeEnvelope(&buf)
 	if err != nil {
 		return
 	}
-	return b.LocalBus.Publish(ctx, &_e)
+	return b.LocalBus.Publish(ctx, deserializedEnvelope)
 }

@@ -1,4 +1,4 @@
-// Copyright 2019 - See NOTICE file for copyright holders.
+// Copyright 2022 - See NOTICE file for copyright holders.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,19 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package wire_test
-
-import (
-	"testing"
-
-	_ "perun.network/go-perun/backend/ethereum/wallet/test" // random init
-	wallettest "perun.network/go-perun/wallet/test"
-	"perun.network/go-perun/wire"
-	peruniotest "perun.network/go-perun/wire/perunio/test"
-	pkgtest "polycry.pt/poly-go/test"
-)
-
-func TestAuthResponseMsg(t *testing.T) {
-	rng := pkgtest.Prng(t)
-	peruniotest.MsgSerializerTest(t, wire.NewAuthResponseMsg(wallettest.NewRandomAccount(rng)))
-}
+// Package test contains test helper functions for running generic tests for
+// types implementing perunio serializer.
+package test // import "perun.network/go-perun/wire/perunio/test"

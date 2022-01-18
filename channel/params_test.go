@@ -20,7 +20,7 @@ import (
 	"perun.network/go-perun/channel"
 	"perun.network/go-perun/channel/test"
 	"perun.network/go-perun/wire/perunio"
-	wiretest "perun.network/go-perun/wire/test"
+	peruniotest "perun.network/go-perun/wire/perunio/test"
 	pkgtest "polycry.pt/poly-go/test"
 )
 
@@ -43,5 +43,5 @@ func TestParams_Serializer(t *testing.T) {
 		params[i] = p
 	}
 
-	wiretest.GenericSerializerTest(t, params...)
+	peruniotest.GenericSerializerTest(t, params...)
 }

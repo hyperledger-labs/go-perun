@@ -24,14 +24,23 @@ import (
 	"perun.network/go-perun/wire/perunio"
 )
 
+var envelopeSerializer EnvelopeSerializer
+
+// SetEnvelopeSerializer sets the global envelope serializer instance. Must not
+// be called directly but through importing the needed backend.
+func SetEnvelopeSerializer(e EnvelopeSerializer) {
+	if envelopeSerializer != nil {
+		panic("envelope serializer already set")
+	}
+	envelopeSerializer = e
+}
+
 type (
 	// Msg is the top-level abstraction for all messages sent between Perun
 	// nodes.
 	Msg interface {
 		// Type returns the message's type.
 		Type() Type
-		// encoding of payload. Type byte should not be encoded.
-		perunio.Encoder
 	}
 
 	// An Envelope encapsulates a message with routing information, that is, the
@@ -42,40 +51,35 @@ type (
 		// Msg contained in this Envelope. Not embedded so Envelope doesn't implement Msg.
 		Msg Msg
 	}
+
+	// EnvelopeSerializer serializes/deserializes envelopes into/from streams.
+	EnvelopeSerializer interface {
+		Encode(w io.Writer, env *Envelope) error
+		Decode(r io.Reader) (*Envelope, error)
+	}
 )
 
-// Encode encodes an Envelope into an io.Writer.
-func (env *Envelope) Encode(w io.Writer) error {
-	if err := perunio.Encode(w, env.Sender, env.Recipient); err != nil {
-		return err
-	}
-	return Encode(env.Msg, w)
+// EncodeEnvelope serializes the envelope into the writer, using the global
+// envelope serialzer instance.
+func EncodeEnvelope(w io.Writer, env *Envelope) error {
+	return envelopeSerializer.Encode(w, env)
 }
 
-// Decode decodes an Envelope from an io.Reader.
-func (env *Envelope) Decode(r io.Reader) (err error) {
-	env.Sender = NewAddress()
-	if err = perunio.Decode(r, env.Sender); err != nil {
-		return err
-	}
-	env.Recipient = NewAddress()
-	if err = perunio.Decode(r, env.Recipient); err != nil {
-		return err
-	}
-	env.Msg, err = Decode(r)
-	return err
+// DecodeEnvelope deserializes an envelope from the reader, using the global
+// envelope serialzer instance.
+func DecodeEnvelope(r io.Reader) (*Envelope, error) {
+	return envelopeSerializer.Decode(r)
 }
 
-// Encode encodes a message into an io.Writer. It also encodes the
-// message type whereas the Msg.Encode implementation is assumed not to write
-// the type.
-func Encode(msg Msg, w io.Writer) error {
+// EncodeMsg encodes a message into an io.Writer. It also encodes the message
+// type whereas the Msg.Encode implementation is assumed not to write the type.
+func EncodeMsg(msg Msg, w io.Writer) error {
 	// Encode the message type and payload
 	return perunio.Encode(w, byte(msg.Type()), msg)
 }
 
-// Decode decodes a message from an io.Reader.
-func Decode(r io.Reader) (Msg, error) {
+// DecodeMsg decodes a message from an io.Reader.
+func DecodeMsg(r io.Reader) (Msg, error) {
 	var t Type
 	if err := perunio.Decode(r, (*byte)(&t)); err != nil {
 		return nil, errors.WithMessage(err, "failed to decode message Type")
