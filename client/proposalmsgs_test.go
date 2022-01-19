@@ -21,6 +21,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"perun.network/go-perun/channel"
 	"perun.network/go-perun/channel/test"
 	"perun.network/go-perun/client"
 	clienttest "perun.network/go-perun/client/test"
@@ -145,18 +146,52 @@ func TestSubChannelProposalReqProposalID(t *testing.T) {
 func TestVirtualChannelProposalReqProposalID(t *testing.T) {
 	rng := pkgtest.Prng(t)
 
-	prop, err := clienttest.NewRandomVirtualChannelProposal(rng)
+	original, err := clienttest.NewRandomVirtualChannelProposal(rng)
 	require.NoError(t, err)
+	assert.Equal(t, channel.NoApp(), original.App, "virtual channel should always has no app")
+	assert.Equal(t, channel.NoData(), original.InitData, "virtual channel should always has no data")
 
-	testProp := *prop
-	assert.Equal(t, prop.ProposalID(), testProp.ProposalID())
-
-	prop2, err := clienttest.NewRandomVirtualChannelProposal(rng)
+	fake, err := clienttest.NewRandomVirtualChannelProposal(rng)
 	require.NoError(t, err)
-	assert.NotEqual(t, prop.ProposalID(), prop2.ProposalID())
+	assert.Equal(t, channel.NoApp(), fake.App, "virtual channel should always has no app")
+	assert.Equal(t, channel.NoData(), fake.InitData, "virtual channel should always has no data")
 
-	testProp.NonceShare = prop2.NonceShare
-	assert.NotEqual(t, prop.ProposalID(), prop2.ProposalID())
+	assert.NotEqual(t, original.ChallengeDuration, fake.ChallengeDuration)
+	assert.NotEqual(t, original.NonceShare, fake.NonceShare)
+	assert.NotEqual(t, original.InitBals, fake.InitBals)
+	assert.NotEqual(t, original.FundingAgreement, fake.FundingAgreement)
+	assert.NotEqual(t, original.Proposer, fake.Proposer)
+	assert.NotEqual(t, original.Peers, fake.Peers)
+	assert.NotEqual(t, original.Parents, fake.Parents)
+	assert.NotEqual(t, original.IndexMaps, fake.IndexMaps)
+
+	testProp := *original
+	testProp.ChallengeDuration = fake.ChallengeDuration
+	assert.NotEqual(t, original.ProposalID(), testProp.ProposalID())
+
+	testProp = *original
+	testProp.NonceShare = fake.NonceShare
+	assert.NotEqual(t, original.ProposalID(), testProp.ProposalID())
+
+	testProp = *original
+	testProp.InitBals = fake.InitBals
+	assert.NotEqual(t, original.ProposalID(), testProp.ProposalID())
+
+	testProp = *original
+	testProp.FundingAgreement = fake.FundingAgreement
+	assert.NotEqual(t, original.ProposalID(), testProp.ProposalID())
+
+	testProp = *original
+	testProp.Proposer = fake.Proposer
+	assert.NotEqual(t, original.ProposalID(), testProp.ProposalID())
+
+	testProp = *original
+	testProp.Peers = fake.Peers
+	assert.NotEqual(t, original.ProposalID(), testProp.ProposalID())
+
+	testProp = *original
+	testProp.IndexMaps = fake.IndexMaps
+	assert.NotEqual(t, original.ProposalID(), testProp.ProposalID())
 }
 
 func TestChannelProposalAccSerialization(t *testing.T) {

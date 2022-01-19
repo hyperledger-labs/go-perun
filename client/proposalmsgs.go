@@ -192,17 +192,6 @@ func (p BaseChannelProposal) Encode(w io.Writer) error {
 		optAppAndDataEnc, p.InitBals, p.FundingAgreement)
 }
 
-// ProposalID returns the identifier of this channel proposal.
-func (p BaseChannelProposal) ProposalID() (propID ProposalID) {
-	hasher := newHasher()
-	if err := perunio.Encode(hasher, p.Base()); err != nil {
-		log.Panicf("proposal ID base encoding: %v", err)
-	}
-
-	copy(propID[:], hasher.Sum(nil))
-	return
-}
-
 // Decode decodes a BaseChannelProposal from an io.Reader.
 func (p *BaseChannelProposal) Decode(r io.Reader) (err error) {
 	if p.InitBals == nil {
@@ -618,6 +607,16 @@ func (p *VirtualChannelProposal) Decode(r io.Reader) error {
 // Type returns the message type.
 func (VirtualChannelProposal) Type() wire.Type {
 	return wire.VirtualChannelProposal
+}
+
+// ProposalID returns the identifier of this channel proposal.
+func (p VirtualChannelProposal) ProposalID() (propID ProposalID) {
+	hasher := newHasher()
+	if err := perunio.Encode(hasher, p); err != nil {
+		log.Panicf("proposal ID base encoding: %v", err)
+	}
+	copy(propID[:], hasher.Sum(nil))
+	return
 }
 
 // Accept constructs an accept message that belongs to a proposal message.
