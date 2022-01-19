@@ -32,12 +32,12 @@ type UnlockedAccount func() (wallet.Account, error)
 
 // Setup provides all objects needed for the generic tests.
 type Setup struct {
-	Backend         wallet.Backend // backend implementation
-	Wallet          wallet.Wallet  // the wallet instance used for testing
-	AddressInWallet wallet.Address // an address of an account in the test wallet
-	ZeroAddress     wallet.Address // an address that is less or equal to any other address
-	DataToSign      []byte         // some data to sign
-	AddressEncoded  []byte         // a valid nonzero address not in the wallet
+	Backend           wallet.Backend // backend implementation
+	Wallet            wallet.Wallet  // the wallet instance used for testing
+	AddressInWallet   wallet.Address // an address of an account in the test wallet
+	ZeroAddress       wallet.Address // an address that is less or equal to any other address
+	DataToSign        []byte         // some data to sign
+	AddressMarshalled []byte         // a valid nonzero address not in the wallet
 }
 
 // TestAccountWithWalletAndBackend tests an account implementation together with
@@ -54,8 +54,8 @@ func TestAccountWithWalletAndBackend(t *testing.T, s *Setup) { //nolint:revive /
 	assert.NoError(t, err, "Verification should not produce error")
 
 	addr := s.Backend.NewAddress()
-	err = perunio.Decode(bytes.NewReader(s.AddressEncoded), addr)
-	assert.NoError(t, err, "Byte deserialization of address should work")
+	err = addr.UnmarshalBinary(s.AddressMarshalled)
+	assert.NoError(t, err, "Binary unmarshalling of address should work")
 	valid, err = s.Backend.VerifySignature(s.DataToSign, sig, addr)
 	assert.False(t, valid, "Verification with wrong address should fail")
 	assert.NoError(t, err, "Verification of valid signature should not produce error")

@@ -15,7 +15,6 @@
 package hd_test
 
 import (
-	"bytes"
 	"math/rand"
 	"testing"
 
@@ -29,7 +28,6 @@ import (
 	"perun.network/go-perun/backend/ethereum/wallet/hd"
 	ethwallettest "perun.network/go-perun/backend/ethereum/wallet/test"
 	"perun.network/go-perun/wallet/test"
-	"perun.network/go-perun/wire/perunio"
 	pkgtest "polycry.pt/poly-go/test"
 )
 
@@ -73,7 +71,7 @@ func TestNewWallet(t *testing.T) {
 func TestSignWithMissingKey(t *testing.T) {
 	setup, accsWallet, _ := newSetup(t, pkgtest.Prng(t))
 
-	missingAddr := common.BytesToAddress(setup.AddressEncoded)
+	missingAddr := common.BytesToAddress(setup.AddressMarshalled)
 	acc := hd.NewAccountFromEth(accsWallet, accounts.Account{Address: missingAddr})
 	require.NotNil(t, acc)
 	_, err := acc.SignData(setup.DataToSign)
@@ -83,7 +81,7 @@ func TestSignWithMissingKey(t *testing.T) {
 func TestUnlock(t *testing.T) {
 	setup, _, hdWallet := newSetup(t, pkgtest.Prng(t))
 
-	missingAddr := common.BytesToAddress(setup.AddressEncoded)
+	missingAddr := common.BytesToAddress(setup.AddressMarshalled)
 	_, err := hdWallet.Unlock(ethwallet.AsWalletAddr(missingAddr))
 	assert.Error(t, err, "should error on unlocking missing address")
 
@@ -97,7 +95,7 @@ func TestContains(t *testing.T) {
 
 	assert.False(t, hdWallet.Contains(common.Address{}), "should not contain nil account")
 
-	missingAddr := common.BytesToAddress(setup.AddressEncoded)
+	missingAddr := common.BytesToAddress(setup.AddressMarshalled)
 	assert.False(t, hdWallet.Contains(missingAddr), "should not contain address of the missing account")
 
 	assert.True(t, hdWallet.Contains(ethwallet.AsEthAddr(setup.AddressInWallet)), "should contain valid account")
@@ -122,19 +120,15 @@ func newSetup(t require.TestingT, prng *rand.Rand) (*test.Setup, accounts.Wallet
 	require.NotNil(t, acc)
 
 	addressNotInWallet := ethwallettest.NewRandomAddress(prng)
-	var buff bytes.Buffer
-	err = perunio.Encode(&buff, &addressNotInWallet)
-	if err != nil {
-		panic(err)
-	}
-	addrEncoded := buff.Bytes()
+	addrMarshalled, err := addressNotInWallet.MarshalBinary()
+	require.NoError(t, err)
 
 	return &test.Setup{
-		Wallet:          hdWallet,
-		AddressInWallet: acc.Address(),
-		Backend:         new(ethwallet.Backend),
-		AddressEncoded:  addrEncoded,
-		ZeroAddress:     ethwallet.AsWalletAddr(common.Address{}),
-		DataToSign:      dataToSign,
+		Wallet:            hdWallet,
+		AddressInWallet:   acc.Address(),
+		Backend:           new(ethwallet.Backend),
+		AddressMarshalled: addrMarshalled,
+		ZeroAddress:       ethwallet.AsWalletAddr(common.Address{}),
+		DataToSign:        dataToSign,
 	}, rawHDWallet, hdWallet
 }
