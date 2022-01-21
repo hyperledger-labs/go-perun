@@ -506,10 +506,14 @@ func (m *machine) validTransition(to *State) error {
 		return newError(fmt.Sprintf("invalid allocation: %v", err))
 	}
 
+	if err := AssetsAssertEqual(m.currentTX.Assets, to.Assets); err != nil {
+		return newError(fmt.Sprintf("unequal assets: %v", err))
+	}
+
 	if eq, err := big.EqualSum(m.currentTX.Allocation, to.Allocation); err != nil {
 		return newError(fmt.Sprintf("allocation: %v", err))
 	} else if !eq {
-		return newError("allocations must be preserved")
+		return newError("unequal allocation")
 	}
 
 	return nil
