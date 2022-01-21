@@ -506,7 +506,7 @@ func (m *machine) validTransition(to *State) error {
 		return newError(fmt.Sprintf("invalid allocation: %v", err))
 	}
 
-	if err := AssetsAssertEqual(m.currentTX.Assets, to.Assets); err != nil {
+	if err := AssertAssetsEqual(m.currentTX.Assets, to.Assets); err != nil {
 		return newError(fmt.Sprintf("unequal assets: %v", err))
 	}
 
