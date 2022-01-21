@@ -582,7 +582,7 @@ func (a *Allocation) Equal(b *Allocation) error {
 		return nil
 	}
 	// Compare Assets
-	if err := AssetsAssertEqual(a.Assets, b.Assets); err != nil {
+	if err := AssertAssetsEqual(a.Assets, b.Assets); err != nil {
 		return errors.WithMessage(err, "comparing assets")
 	}
 
@@ -595,8 +595,8 @@ func (a *Allocation) Equal(b *Allocation) error {
 	return errors.WithMessage(SubAllocsAssertEqual(a.Locked, b.Locked), "comparing sub-allocations")
 }
 
-// AssetsAssertEqual returns an error if the given assets are not equal.
-func AssetsAssertEqual(a []Asset, b []Asset) error {
+// AssertAssetsEqual returns an error if the given assets are not equal.
+func AssertAssetsEqual(a []Asset, b []Asset) error {
 	if len(a) != len(b) {
 		return errors.New("length mismatch")
 	}

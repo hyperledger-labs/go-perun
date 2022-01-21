@@ -406,7 +406,7 @@ func (c *Client) validSubChannelProposal(proposal *SubChannelProposal) error {
 	base := proposal.Base()
 	parentState := parent.state() // We assume that the channel is locked.
 
-	if err := channel.AssetsAssertEqual(parentState.Assets, base.InitBals.Assets); err != nil {
+	if err := channel.AssertAssetsEqual(parentState.Assets, base.InitBals.Assets); err != nil {
 		return errors.WithMessage(err, "parent channel and sub-channel assets do not match")
 	}
 
@@ -431,7 +431,7 @@ func (c *Client) validVirtualChannelProposal(prop *VirtualChannelProposal, ourId
 
 	parentState := parent.state() // We assume that the channel is locked.
 
-	if err := channel.AssetsAssertEqual(parentState.Assets, prop.InitBals.Assets); err != nil {
+	if err := channel.AssertAssetsEqual(parentState.Assets, prop.InitBals.Assets); err != nil {
 		return errors.WithMessage(err, "unequal assets")
 	}
 

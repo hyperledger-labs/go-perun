@@ -120,7 +120,7 @@ func (c *Client) validateVirtualChannelSettlementProposal(
 	// Validate allocation.
 
 	// Assert equal assets.
-	if err := channel.AssetsAssertEqual(parent.state().Assets, prop.Final.State.Assets); err != nil {
+	if err := channel.AssertAssetsEqual(parent.state().Assets, prop.Final.State.Assets); err != nil {
 		return errors.WithMessage(err, "assets do not match")
 	}
 
