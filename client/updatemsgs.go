@@ -26,27 +26,27 @@ import (
 func init() {
 	wire.RegisterDecoder(wire.ChannelUpdate,
 		func(r io.Reader) (wire.Msg, error) {
-			var m msgChannelUpdate
+			var m ChannelUpdateMsg
 			return &m, m.Decode(r)
 		})
 	wire.RegisterDecoder(wire.ChannelUpdateAcc,
 		func(r io.Reader) (wire.Msg, error) {
-			var m msgChannelUpdateAcc
+			var m ChannelUpdateAccMsg
 			return &m, m.Decode(r)
 		})
 	wire.RegisterDecoder(wire.ChannelUpdateRej,
 		func(r io.Reader) (wire.Msg, error) {
-			var m msgChannelUpdateRej
+			var m ChannelUpdateRejMsg
 			return &m, m.Decode(r)
 		})
 	wire.RegisterDecoder(wire.VirtualChannelFundingProposal,
 		func(r io.Reader) (wire.Msg, error) {
-			var m virtualChannelFundingProposal
+			var m VirtualChannelFundingProposalMsg
 			return &m, m.Decode(r)
 		})
 	wire.RegisterDecoder(wire.VirtualChannelSettlementProposal,
 		func(r io.Reader) (wire.Msg, error) {
-			var m virtualChannelSettlementProposal
+			var m VirtualChannelSettlementProposalMsg
 			return &m, m.Decode(r)
 		})
 }
@@ -64,9 +64,9 @@ type (
 		Ver() uint64
 	}
 
-	// msgChannelUpdate is the wire message of a channel update proposal. It
+	// ChannelUpdateMsg is the wire message of a channel update proposal. It
 	// additionally holds the signature on the proposed state.
-	msgChannelUpdate struct {
+	ChannelUpdateMsg struct {
 		ChannelUpdate
 		// Sig is the signature on the proposed state by the peer sending the
 		// ChannelUpdate.
@@ -77,13 +77,13 @@ type (
 	ChannelUpdateProposal interface {
 		wire.Msg
 		perunio.Decoder
-		Base() *msgChannelUpdate
+		Base() *ChannelUpdateMsg
 	}
 
-	// msgChannelUpdateAcc is the wire message sent as a positive reply to a
+	// ChannelUpdateAccMsg is the wire message sent as a positive reply to a
 	// ChannelUpdate.  It references the channel ID and version and contains the
 	// signature on the accepted new state by the sender.
-	msgChannelUpdateAcc struct {
+	ChannelUpdateAccMsg struct {
 		// ChannelID is the channel ID.
 		ChannelID channel.ID
 		// Version of the state that is accepted.
@@ -92,10 +92,10 @@ type (
 		Sig wallet.Sig
 	}
 
-	// msgChannelUpdateRej is the wire message sent as a negative reply to a
+	// ChannelUpdateRejMsg is the wire message sent as a negative reply to a
 	// ChannelUpdate.  It references the channel ID and version and states a
 	// reason for the rejection.
-	msgChannelUpdateRej struct {
+	ChannelUpdateRejMsg struct {
 		// ChannelID is the channel ID.
 		ChannelID channel.ID
 		// Version of the state that is accepted.
@@ -106,36 +106,38 @@ type (
 )
 
 var (
-	_ ChannelMsg          = (*msgChannelUpdate)(nil)
-	_ channelUpdateResMsg = (*msgChannelUpdateAcc)(nil)
-	_ channelUpdateResMsg = (*msgChannelUpdateRej)(nil)
+	_ ChannelMsg          = (*ChannelUpdateMsg)(nil)
+	_ channelUpdateResMsg = (*ChannelUpdateAccMsg)(nil)
+	_ channelUpdateResMsg = (*ChannelUpdateRejMsg)(nil)
 )
 
 // Type returns this message's type: ChannelUpdate.
-func (*msgChannelUpdate) Type() wire.Type {
+func (*ChannelUpdateMsg) Type() wire.Type {
 	return wire.ChannelUpdate
 }
 
 // Type returns this message's type: ChannelUpdateAcc.
-func (*msgChannelUpdateAcc) Type() wire.Type {
+func (*ChannelUpdateAccMsg) Type() wire.Type {
 	return wire.ChannelUpdateAcc
 }
 
 // Type returns this message's type: ChannelUpdateRej.
-func (*msgChannelUpdateRej) Type() wire.Type {
+func (*ChannelUpdateRejMsg) Type() wire.Type {
 	return wire.ChannelUpdateRej
 }
 
 // Base returns the core channel update message.
-func (c *msgChannelUpdate) Base() *msgChannelUpdate {
+func (c *ChannelUpdateMsg) Base() *ChannelUpdateMsg {
 	return c
 }
 
-func (c msgChannelUpdate) Encode(w io.Writer) error {
+// Encode encodes the ChannelUpdateMsg into the io.Writer.
+func (c ChannelUpdateMsg) Encode(w io.Writer) error {
 	return perunio.Encode(w, c.State, c.ActorIdx, c.Sig)
 }
 
-func (c *msgChannelUpdate) Decode(r io.Reader) (err error) {
+// Decode decodes the ChannelUpdateMsg from the io.Reader.
+func (c *ChannelUpdateMsg) Decode(r io.Reader) (err error) {
 	if c.State == nil {
 		c.State = new(channel.State)
 	}
@@ -146,11 +148,13 @@ func (c *msgChannelUpdate) Decode(r io.Reader) (err error) {
 	return err
 }
 
-func (c msgChannelUpdateAcc) Encode(w io.Writer) error {
+// Encode encodes the ChannelUpdateAccMsg into the io.Writer.
+func (c ChannelUpdateAccMsg) Encode(w io.Writer) error {
 	return perunio.Encode(w, c.ChannelID, c.Version, c.Sig)
 }
 
-func (c *msgChannelUpdateAcc) Decode(r io.Reader) (err error) {
+// Decode decodes the ChannelUpdateAccMsg from the io.Reader.
+func (c *ChannelUpdateAccMsg) Decode(r io.Reader) (err error) {
 	if err := perunio.Decode(r, &c.ChannelID, &c.Version); err != nil {
 		return err
 	}
@@ -158,36 +162,38 @@ func (c *msgChannelUpdateAcc) Decode(r io.Reader) (err error) {
 	return err
 }
 
-func (c msgChannelUpdateRej) Encode(w io.Writer) error {
+// Encode encodes the ChannelUpdateRejMsg into the io.Writer.
+func (c ChannelUpdateRejMsg) Encode(w io.Writer) error {
 	return perunio.Encode(w, c.ChannelID, c.Version, c.Reason)
 }
 
-func (c *msgChannelUpdateRej) Decode(r io.Reader) (err error) {
+// Decode decodes the ChannelUpdateRejMsg from the io.Reader.
+func (c *ChannelUpdateRejMsg) Decode(r io.Reader) (err error) {
 	return perunio.Decode(r, &c.ChannelID, &c.Version, &c.Reason)
 }
 
 // ID returns the id of the channel this update refers to.
-func (c *msgChannelUpdate) ID() channel.ID {
+func (c *ChannelUpdateMsg) ID() channel.ID {
 	return c.State.ID
 }
 
 // ID returns the id of the channel this update acceptance refers to.
-func (c *msgChannelUpdateAcc) ID() channel.ID {
+func (c *ChannelUpdateAccMsg) ID() channel.ID {
 	return c.ChannelID
 }
 
 // ID returns the id of the channel this update rejection refers to.
-func (c *msgChannelUpdateRej) ID() channel.ID {
+func (c *ChannelUpdateRejMsg) ID() channel.ID {
 	return c.ChannelID
 }
 
 // Ver returns the version of the state this update acceptance refers to.
-func (c *msgChannelUpdateAcc) Ver() uint64 {
+func (c *ChannelUpdateAccMsg) Ver() uint64 {
 	return c.Version
 }
 
 // Ver returns the version of the state this update rejection refers to.
-func (c *msgChannelUpdateRej) Ver() uint64 {
+func (c *ChannelUpdateRejMsg) Ver() uint64 {
 	return c.Version
 }
 
@@ -196,28 +202,29 @@ Virtual channel
 */
 
 type (
-	// virtualChannelFundingProposal is a channel update that proposes the funding of a virtual channel.
-	virtualChannelFundingProposal struct {
-		msgChannelUpdate
+	// VirtualChannelFundingProposalMsg is a channel update that proposes the funding of a virtual channel.
+	VirtualChannelFundingProposalMsg struct {
+		ChannelUpdateMsg
 		Initial  channel.SignedState
 		IndexMap []channel.Index
 	}
 
-	// virtualChannelSettlementProposal is a channel update that proposes the settlement of a virtual channel.
-	virtualChannelSettlementProposal struct {
-		msgChannelUpdate
+	// VirtualChannelSettlementProposalMsg is a channel update that proposes the settlement of a virtual channel.
+	VirtualChannelSettlementProposalMsg struct {
+		ChannelUpdateMsg
 		Final channel.SignedState
 	}
 )
 
 // Type returns the message type.
-func (*virtualChannelFundingProposal) Type() wire.Type {
+func (*VirtualChannelFundingProposalMsg) Type() wire.Type {
 	return wire.VirtualChannelFundingProposal
 }
 
-func (m virtualChannelFundingProposal) Encode(w io.Writer) (err error) {
+// Encode encodes the VirtualChannelFundingProposalMsg into the io.Writer.
+func (m VirtualChannelFundingProposalMsg) Encode(w io.Writer) (err error) {
 	err = perunio.Encode(w,
-		m.msgChannelUpdate,
+		m.ChannelUpdateMsg,
 		m.Initial.Params,
 		*m.Initial.State,
 		indexMapWithLen(m.IndexMap),
@@ -229,13 +236,14 @@ func (m virtualChannelFundingProposal) Encode(w io.Writer) (err error) {
 	return wallet.EncodeSparseSigs(w, m.Initial.Sigs)
 }
 
-func (m *virtualChannelFundingProposal) Decode(r io.Reader) (err error) {
+// Decode decodes the VirtualChannelFundingProposalMsg from the io.Reader.
+func (m *VirtualChannelFundingProposalMsg) Decode(r io.Reader) (err error) {
 	m.Initial = channel.SignedState{
 		Params: &channel.Params{},
 		State:  &channel.State{},
 	}
 	err = perunio.Decode(r,
-		&m.msgChannelUpdate,
+		&m.ChannelUpdateMsg,
 		m.Initial.Params,
 		m.Initial.State,
 		(*indexMapWithLen)(&m.IndexMap),
@@ -249,13 +257,14 @@ func (m *virtualChannelFundingProposal) Decode(r io.Reader) (err error) {
 }
 
 // Type returns the message type.
-func (*virtualChannelSettlementProposal) Type() wire.Type {
+func (*VirtualChannelSettlementProposalMsg) Type() wire.Type {
 	return wire.VirtualChannelSettlementProposal
 }
 
-func (m virtualChannelSettlementProposal) Encode(w io.Writer) (err error) {
+// Encode encodes the VirtualChannelSettlementProposalMsg into the io.Writer.
+func (m VirtualChannelSettlementProposalMsg) Encode(w io.Writer) (err error) {
 	err = perunio.Encode(w,
-		m.msgChannelUpdate,
+		m.ChannelUpdateMsg,
 		m.Final.Params,
 		*m.Final.State,
 	)
@@ -266,13 +275,14 @@ func (m virtualChannelSettlementProposal) Encode(w io.Writer) (err error) {
 	return wallet.EncodeSparseSigs(w, m.Final.Sigs)
 }
 
-func (m *virtualChannelSettlementProposal) Decode(r io.Reader) (err error) {
+// Decode decodes the VirtualChannelSettlementProposalMsg from the io.Reader.
+func (m *VirtualChannelSettlementProposalMsg) Decode(r io.Reader) (err error) {
 	m.Final = channel.SignedState{
 		Params: &channel.Params{},
 		State:  &channel.State{},
 	}
 	err = perunio.Decode(r,
-		&m.msgChannelUpdate,
+		&m.ChannelUpdateMsg,
 		m.Final.Params,
 		m.Final.State,
 	)

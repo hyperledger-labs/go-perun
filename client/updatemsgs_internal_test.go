@@ -34,10 +34,10 @@ func TestChannelUpdateSerialization(t *testing.T) {
 	}
 }
 
-func newRandomMsgChannelUpdate(rng *rand.Rand) *msgChannelUpdate {
+func newRandomMsgChannelUpdate(rng *rand.Rand) *ChannelUpdateMsg {
 	state := test.NewRandomState(rng)
 	sig := newRandomSig(rng)
-	return &msgChannelUpdate{
+	return &ChannelUpdateMsg{
 		ChannelUpdate: ChannelUpdate{
 			State:    state,
 			ActorIdx: channel.Index(rng.Intn(state.NumParts())),
@@ -51,8 +51,8 @@ func TestSerialization_VirtualChannelFundingProposal(t *testing.T) {
 	for i := 0; i < 4; i++ {
 		msgUp := newRandomMsgChannelUpdate(rng)
 		params, state := test.NewRandomParamsAndState(rng)
-		m := &virtualChannelFundingProposal{
-			msgChannelUpdate: *msgUp,
+		m := &VirtualChannelFundingProposalMsg{
+			ChannelUpdateMsg: *msgUp,
 			Initial: channel.SignedState{
 				Params: params,
 				State:  state,
@@ -69,8 +69,8 @@ func TestSerialization_VirtualChannelSettlementProposal(t *testing.T) {
 	for i := 0; i < 4; i++ {
 		msgUp := newRandomMsgChannelUpdate(rng)
 		params, state := test.NewRandomParamsAndState(rng)
-		m := &virtualChannelSettlementProposal{
-			msgChannelUpdate: *msgUp,
+		m := &VirtualChannelSettlementProposalMsg{
+			ChannelUpdateMsg: *msgUp,
 			Final: channel.SignedState{
 				Params: params,
 				State:  state,
@@ -85,7 +85,7 @@ func TestChannelUpdateAccSerialization(t *testing.T) {
 	rng := pkgtest.Prng(t)
 	for i := 0; i < 4; i++ {
 		sig := newRandomSig(rng)
-		m := &msgChannelUpdateAcc{
+		m := &ChannelUpdateAccMsg{
 			ChannelID: test.NewRandomChannelID(rng),
 			Version:   uint64(rng.Int63()),
 			Sig:       sig,
@@ -97,7 +97,7 @@ func TestChannelUpdateAccSerialization(t *testing.T) {
 func TestChannelUpdateRejSerialization(t *testing.T) {
 	rng := pkgtest.Prng(t)
 	for i := 0; i < 4; i++ {
-		m := &msgChannelUpdateRej{
+		m := &ChannelUpdateRejMsg{
 			ChannelID: test.NewRandomChannelID(rng),
 			Version:   uint64(rng.Int63()),
 			Reason:    newRandomString(rng, 16, 16),
