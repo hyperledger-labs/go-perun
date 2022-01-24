@@ -183,7 +183,7 @@ func (c *Client) Handle(ph ProposalHandler, uh UpdateHandler) {
 			go c.handleChannelUpdate(uh, env.Sender, msg)
 		case *VirtualChannelSettlementProposalMsg:
 			go c.handleChannelUpdate(uh, env.Sender, msg)
-		case *msgChannelSync:
+		case *ChannelSyncMsg:
 			go c.handleSyncMsg(env.Sender, msg)
 		default:
 			c.log.Error("Unexpected %T message received in request loop")

@@ -25,45 +25,47 @@ import (
 func init() {
 	wire.RegisterDecoder(wire.ChannelSync,
 		func(r io.Reader) (wire.Msg, error) {
-			var m msgChannelSync
+			var m ChannelSyncMsg
 			return &m, m.Decode(r)
 		})
 }
 
-type msgChannelSync struct {
+// ChannelSyncMsg is the wire message for syncing channel states across
+// multiple clients.
+type ChannelSyncMsg struct {
 	Phase     channel.Phase       // Phase is the phase of the sender.
 	CurrentTX channel.Transaction // CurrentTX is the sender's current transaction.
 }
 
-var _ ChannelMsg = (*msgChannelSync)(nil)
+var _ ChannelMsg = (*ChannelSyncMsg)(nil)
 
-func newChannelSyncMsg(s channel.Source) *msgChannelSync {
-	return &msgChannelSync{
+func newChannelSyncMsg(s channel.Source) *ChannelSyncMsg {
+	return &ChannelSyncMsg{
 		Phase:     s.Phase(),
 		CurrentTX: s.CurrentTX(),
 	}
 }
 
 // Encode implements perunio.Encode.
-func (m *msgChannelSync) Encode(w io.Writer) error {
+func (m *ChannelSyncMsg) Encode(w io.Writer) error {
 	return perunio.Encode(w,
 		m.Phase,
 		m.CurrentTX)
 }
 
 // Decode implements perunio.Decode.
-func (m *msgChannelSync) Decode(r io.Reader) error {
+func (m *ChannelSyncMsg) Decode(r io.Reader) error {
 	return perunio.Decode(r,
 		&m.Phase,
 		&m.CurrentTX)
 }
 
 // ID returns the channel's ID.
-func (m *msgChannelSync) ID() channel.ID {
+func (m *ChannelSyncMsg) ID() channel.ID {
 	return m.CurrentTX.ID
 }
 
 // Type implements wire.Type.
-func (m *msgChannelSync) Type() wire.Type {
+func (m *ChannelSyncMsg) Type() wire.Type {
 	return wire.ChannelSync
 }
