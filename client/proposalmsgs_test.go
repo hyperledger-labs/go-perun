@@ -228,7 +228,7 @@ func TestChannelProposalAccSerialization(t *testing.T) {
 func TestChannelProposalRejSerialization(t *testing.T) {
 	rng := pkgtest.Prng(t)
 	for i := 0; i < 16; i++ {
-		m := &client.ChannelProposalRej{
+		m := &client.ChannelProposalRejMsg{
 			ProposalID: newRandomProposalID(rng),
 			Reason:     newRandomString(rng, 16, 16),
 		}

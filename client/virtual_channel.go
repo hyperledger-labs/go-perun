@@ -36,7 +36,7 @@ func (c *Channel) IsVirtualChannel() bool {
 	return c.Parent() != nil && !c.equalParticipants(c.Parent())
 }
 
-func (c *Client) fundVirtualChannel(ctx context.Context, virtual *Channel, prop *VirtualChannelProposal) error {
+func (c *Client) fundVirtualChannel(ctx context.Context, virtual *Channel, prop *VirtualChannelProposalMsg) error {
 	parentID := prop.Parents[virtual.Idx()]
 	parent, ok := c.channels.Channel(parentID)
 	if !ok {

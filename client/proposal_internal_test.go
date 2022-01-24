@@ -45,12 +45,12 @@ func TestClient_validTwoPartyProposal(t *testing.T) {
 	require.Len(t, validProp.Peers, 2)
 
 	validProp3Peers := NewRandomLedgerChannelProposal(rng, channeltest.WithNumParts(3))
-	invalidProp := &LedgerChannelProposal{}
+	invalidProp := &LedgerChannelProposalMsg{}
 	*invalidProp = *validProp                // shallow copy
 	invalidProp.Base().ChallengeDuration = 0 // invalidate
 
 	tests := []struct {
-		prop     *LedgerChannelProposal
+		prop     *LedgerChannelProposalMsg
 		ourIdx   channel.Index
 		peerAddr wallet.Address
 		valid    bool
@@ -104,7 +104,7 @@ func TestChannelProposal_assertValidNumParts(t *testing.T) {
 
 func TestProposalResponder_Accept_Nil(t *testing.T) {
 	p := new(ProposalResponder)
-	_, err := p.Accept(nil, new(LedgerChannelProposalAcc)) //nolint:staticcheck
+	_, err := p.Accept(nil, new(LedgerChannelProposalAccMsg)) //nolint:staticcheck
 	assert.Error(t, err, "context")
 }
 
@@ -149,11 +149,11 @@ func NewRandomBaseChannelProposal(rng *rand.Rand, opts ...channeltest.RandomOpt)
 	return prop
 }
 
-func NewRandomLedgerChannelProposal(rng *rand.Rand, opts ...channeltest.RandomOpt) *LedgerChannelProposal {
+func NewRandomLedgerChannelProposal(rng *rand.Rand, opts ...channeltest.RandomOpt) *LedgerChannelProposalMsg {
 	opt := make(channeltest.RandomOpt).Append(opts...)
 	base := NewRandomBaseChannelProposal(rng, opt)
 	peers := wiretest.NewRandomAddresses(rng, base.NumPeers())
-	return &LedgerChannelProposal{
+	return &LedgerChannelProposalMsg{
 		BaseChannelProposal: base,
 		Participant:         wallettest.NewRandomAddress(rng),
 		Peers:               peers,

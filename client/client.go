@@ -171,11 +171,11 @@ func (c *Client) Handle(ph ProposalHandler, uh UpdateHandler) {
 		msg := env.Msg
 
 		switch msg := msg.(type) {
-		case *LedgerChannelProposal:
+		case *LedgerChannelProposalMsg:
 			go c.handleChannelProposal(ph, env.Sender, msg)
-		case *SubChannelProposal:
+		case *SubChannelProposalMsg:
 			go c.handleChannelProposal(ph, env.Sender, msg)
-		case *VirtualChannelProposal:
+		case *VirtualChannelProposalMsg:
 			go c.handleChannelProposal(ph, env.Sender, msg)
 		case *msgChannelUpdate:
 			go c.handleChannelUpdate(uh, env.Sender, msg)
