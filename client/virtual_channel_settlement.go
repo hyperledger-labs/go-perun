@@ -53,9 +53,9 @@ func (c *Channel) withdrawVirtualChannel(ctx context.Context, virtual *Channel) 
 		c.Log().WithError(err).Panicf("removing sub-allocation with id %x", virtualAlloc.ID)
 	}
 
-	err := c.updateGeneric(ctx, state, func(mcu *msgChannelUpdate) wire.Msg {
-		return &virtualChannelSettlementProposal{
-			msgChannelUpdate: *mcu,
+	err := c.updateGeneric(ctx, state, func(mcu *ChannelUpdateMsg) wire.Msg {
+		return &VirtualChannelSettlementProposalMsg{
+			ChannelUpdateMsg: *mcu,
 			Final: channel.SignedState{
 				Params: virtual.Params(),
 				State:  virtual.state(),
@@ -68,13 +68,13 @@ func (c *Channel) withdrawVirtualChannel(ctx context.Context, virtual *Channel) 
 }
 
 type proposalAndResponder struct {
-	prop *virtualChannelSettlementProposal
+	prop *VirtualChannelSettlementProposalMsg
 	resp *UpdateResponder
 }
 
 func (c *Client) handleVirtualChannelSettlementProposal(
 	parent *Channel,
-	prop *virtualChannelSettlementProposal,
+	prop *VirtualChannelSettlementProposalMsg,
 	responder *UpdateResponder,
 ) {
 	err := c.validateVirtualChannelSettlementProposal(parent, prop)
@@ -96,7 +96,7 @@ func (c *Client) handleVirtualChannelSettlementProposal(
 
 func (c *Client) validateVirtualChannelSettlementProposal(
 	parent *Channel,
-	prop *virtualChannelSettlementProposal,
+	prop *VirtualChannelSettlementProposalMsg,
 ) error {
 	// Validate parameters.
 	if prop.Final.Params.ID() != prop.Final.State.ID {
@@ -156,7 +156,7 @@ func (c *Client) matchSettlementProposal(ctx context.Context, a, b interface{}) 
 
 	// Cast.
 	inputs := []interface{}{a, b}
-	props := make([]*virtualChannelSettlementProposal, len(inputs))
+	props := make([]*VirtualChannelSettlementProposalMsg, len(inputs))
 	resps := make([]*UpdateResponder, len(inputs))
 	for i, x := range inputs {
 		pr, ok := x.(*proposalAndResponder)

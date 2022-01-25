@@ -36,7 +36,7 @@ func (c *Channel) IsVirtualChannel() bool {
 	return c.Parent() != nil && !c.equalParticipants(c.Parent())
 }
 
-func (c *Client) fundVirtualChannel(ctx context.Context, virtual *Channel, prop *VirtualChannelProposal) error {
+func (c *Client) fundVirtualChannel(ctx context.Context, virtual *Channel, prop *VirtualChannelProposalMsg) error {
 	parentID := prop.Parents[virtual.Idx()]
 	parent, ok := c.channels.Channel(parentID)
 	if !ok {
@@ -63,9 +63,9 @@ func (c *Channel) proposeVirtualChannelFunding(ctx context.Context, virtual *Cha
 	state.Allocation.Balances = state.Allocation.Balances.Sub(balances)
 	state.AddSubAlloc(*channel.NewSubAlloc(virtual.ID(), balances.Sum(), indexMap))
 
-	err := c.updateGeneric(ctx, state, func(mcu *msgChannelUpdate) wire.Msg {
-		return &virtualChannelFundingProposal{
-			msgChannelUpdate: *mcu,
+	err := c.updateGeneric(ctx, state, func(mcu *ChannelUpdateMsg) wire.Msg {
+		return &VirtualChannelFundingProposalMsg{
+			ChannelUpdateMsg: *mcu,
 			Initial: channel.SignedState{
 				Params: virtual.Params(),
 				State:  virtual.State(),
@@ -85,7 +85,7 @@ const (
 
 func (c *Client) handleVirtualChannelFundingProposal(
 	ch *Channel,
-	prop *virtualChannelFundingProposal,
+	prop *VirtualChannelFundingProposalMsg,
 	responder *UpdateResponder,
 ) {
 	err := c.validateVirtualChannelFundingProposal(ch, prop)
@@ -236,7 +236,7 @@ func (c *Channel) pushVirtualUpdate(ctx context.Context, state *channel.State, s
 
 func (c *Client) validateVirtualChannelFundingProposal(
 	ch *Channel,
-	prop *virtualChannelFundingProposal,
+	prop *VirtualChannelFundingProposalMsg,
 ) error {
 	switch {
 	case prop.Initial.Params.ID() != prop.Initial.State.ID:
@@ -354,11 +354,11 @@ func (c *Client) matchFundingProposal(ctx context.Context, a, b interface{}) boo
 	return true
 }
 
-func castToFundingProposals(inputs ...interface{}) ([]*virtualChannelFundingProposal, error) {
+func castToFundingProposals(inputs ...interface{}) ([]*VirtualChannelFundingProposalMsg, error) {
 	var ok bool
-	props := make([]*virtualChannelFundingProposal, len(inputs))
+	props := make([]*VirtualChannelFundingProposalMsg, len(inputs))
 	for i, x := range inputs {
-		props[i], ok = x.(*virtualChannelFundingProposal)
+		props[i], ok = x.(*VirtualChannelFundingProposalMsg)
 		if !ok {
 			return nil, errors.Errorf("casting %d", i)
 		}
@@ -366,7 +366,7 @@ func castToFundingProposals(inputs ...interface{}) ([]*virtualChannelFundingProp
 	return props, nil
 }
 
-func (c *Client) gatherChannels(props ...*virtualChannelFundingProposal) ([]*Channel, error) {
+func (c *Client) gatherChannels(props ...*VirtualChannelFundingProposalMsg) ([]*Channel, error) {
 	var err error
 	channels := make([]*Channel, len(props))
 	for i, prop := range props {

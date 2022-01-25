@@ -174,7 +174,7 @@ func (c *Channel) Update(ctx context.Context, update func(*channel.State) error)
 func (c *Channel) updateGeneric(
 	ctx context.Context,
 	next *channel.State,
-	prepareMsg func(*msgChannelUpdate) wire.Msg,
+	prepareMsg func(*ChannelUpdateMsg) wire.Msg,
 ) (err error) {
 	up := makeChannelUpdate(next, c.machine.Idx())
 	if err = c.machine.Update(ctx, up.State, up.ActorIdx); err != nil {
@@ -194,7 +194,7 @@ func (c *Channel) updateGeneric(
 	}
 	defer resRecv.Close()
 
-	msgUpdate := &msgChannelUpdate{
+	msgUpdate := &ChannelUpdateMsg{
 		ChannelUpdate: up,
 		Sig:           sig,
 	}
@@ -213,11 +213,11 @@ func (c *Channel) updateGeneric(
 	}
 	c.Log().Tracef("Received update response (%T): %v", res, res)
 
-	if rej, ok := res.(*msgChannelUpdateRej); ok {
+	if rej, ok := res.(*ChannelUpdateRejMsg); ok {
 		return newPeerRejectedError("channel update", rej.Reason)
 	}
 
-	acc, ok := res.(*msgChannelUpdateAcc) // safe by predicate of the updateResRecv
+	acc, ok := res.(*ChannelUpdateAccMsg) // safe by predicate of the updateResRecv
 	if !ok {
 		log.Panic("wrong message type")
 	}
@@ -246,7 +246,7 @@ func (c *Channel) update(ctx context.Context, update func(*channel.State) error)
 	}
 	state.Version++
 
-	return c.updateGeneric(ctx, state, func(mcu *msgChannelUpdate) wire.Msg { return mcu })
+	return c.updateGeneric(ctx, state, func(mcu *ChannelUpdateMsg) wire.Msg { return mcu })
 }
 
 // handleUpdateReq is called by the controller on incoming channel update
@@ -269,10 +269,10 @@ func (c *Channel) handleUpdateReq(
 
 	// Check whether we have an update related to a virtual channel.
 	switch prop := req.(type) {
-	case *virtualChannelFundingProposal:
+	case *VirtualChannelFundingProposalMsg:
 		client.handleVirtualChannelFundingProposal(c, prop, responder) //nolint:contextcheck
 		return
-	case *virtualChannelSettlementProposal:
+	case *VirtualChannelSettlementProposalMsg:
 		client.handleVirtualChannelSettlementProposal(c, prop, responder) //nolint:contextcheck
 		return
 	}
@@ -336,7 +336,7 @@ func (c *Channel) handleUpdateAcc(
 		c.Parent().registerSubChannelSettlement(c.ID(), req.Base().State.Balances)
 	}
 
-	msgUpAcc := &msgChannelUpdateAcc{
+	msgUpAcc := &ChannelUpdateAccMsg{
 		ChannelID: c.ID(),
 		Version:   req.Base().State.Version,
 		Sig:       sig,
@@ -360,7 +360,7 @@ func (c *Channel) handleUpdateRej(
 		}
 	}()
 
-	msgUpRej := &msgChannelUpdateRej{
+	msgUpRej := &ChannelUpdateRejMsg{
 		ChannelID: c.ID(),
 		Version:   req.Base().State.Version,
 		Reason:    reason,

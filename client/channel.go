@@ -209,7 +209,7 @@ func (c *Channel) initExchangeSigsAndEnable(ctx context.Context) error {
 
 	send := make(chan error)
 	go func() {
-		send <- c.conn.Send(ctx, &msgChannelUpdateAcc{
+		send <- c.conn.Send(ctx, &ChannelUpdateAccMsg{
 			ChannelID: c.ID(),
 			Version:   0,
 			Sig:       sig,
@@ -220,7 +220,7 @@ func (c *Channel) initExchangeSigsAndEnable(ctx context.Context) error {
 	if err != nil {
 		return errors.WithMessage(err, "receiving initial state sig")
 	}
-	acc, ok := cm.(*msgChannelUpdateAcc)
+	acc, ok := cm.(*ChannelUpdateAccMsg)
 	if !ok {
 		return errors.Errorf(
 			"received unexpected message of type (%T) from peer[%d]: %v",

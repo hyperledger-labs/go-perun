@@ -315,7 +315,7 @@ func (r *role) GoHandle(rng *rand.Rand) (h *acceptNextPropHandler, wait func()) 
 	}
 }
 
-func (r *role) LedgerChannelProposal(rng *rand.Rand, cfg ExecConfig) *client.LedgerChannelProposal {
+func (r *role) LedgerChannelProposal(rng *rand.Rand, cfg ExecConfig) *client.LedgerChannelProposalMsg {
 	if !cfg.App().SetsApp() {
 		r.log.Panic("Invalid ExecConfig: App does not specify an app.")
 	}
@@ -343,7 +343,7 @@ func (r *role) SubChannelProposal(
 	parent *client.Channel,
 	initBals *channel.Allocation,
 	app client.ProposalOpts,
-) *client.SubChannelProposal {
+) *client.SubChannelProposalMsg {
 	if !cfg.App().SetsApp() {
 		r.log.Panic("Invalid ExecConfig: App does not specify an app.")
 	}
@@ -394,12 +394,12 @@ func (h *acceptNextPropHandler) Next() (*paymentChannel, error) {
 
 	var acc client.ChannelProposalAccept
 	switch p := prop.(type) {
-	case *client.LedgerChannelProposal:
+	case *client.LedgerChannelProposalMsg:
 		part := h.r.setup.Wallet.NewRandomAccount(h.rng).Address()
 		acc = p.Accept(part, client.WithNonceFrom(h.rng))
 		h.r.log.Debugf("Accepting ledger channel proposal with participant: %v", part)
 
-	case *client.SubChannelProposal:
+	case *client.SubChannelProposalMsg:
 		acc = p.Accept(client.WithNonceFrom(h.rng))
 		h.r.log.Debug("Accepting sub-channel proposal")
 

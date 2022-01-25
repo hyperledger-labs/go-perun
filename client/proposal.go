@@ -279,7 +279,7 @@ func (c *Client) handleChannelProposalRej(
 	ctx context.Context, p wire.Address,
 	req ChannelProposal, reason string,
 ) error {
-	msgReject := &ChannelProposalRej{
+	msgReject := &ChannelProposalRejMsg{
 		ProposalID: req.ProposalID(),
 		Reason:     reason,
 	}
@@ -310,7 +310,7 @@ func (c *Client) proposeTwoPartyChannel(
 		acc, isAcc := e.Msg.(ChannelProposalAccept)
 		return (isAcc && acc.Base().ProposalID == proposalID) ||
 			(e.Msg.Type() == wire.ChannelProposalRej &&
-				e.Msg.(*ChannelProposalRej).ProposalID == proposalID)
+				e.Msg.(*ChannelProposalRejMsg).ProposalID == proposalID)
 	}
 	receiver := wire.NewReceiver()
 	defer receiver.Close()
@@ -330,7 +330,7 @@ func (c *Client) proposeTwoPartyChannel(
 		}
 		return nil, errors.WithMessage(err, "receiving proposal response")
 	}
-	if rej, ok := env.Msg.(*ChannelProposalRej); ok {
+	if rej, ok := env.Msg.(*ChannelProposalRejMsg); ok {
 		return nil, newPeerRejectedError("channel proposal", rej.Reason)
 	}
 
@@ -384,11 +384,11 @@ func (c *Client) validTwoPartyProposal(
 	}
 
 	switch prop := proposal.(type) {
-	case *SubChannelProposal:
+	case *SubChannelProposalMsg:
 		if err := c.validSubChannelProposal(prop); err != nil {
 			return errors.WithMessage(err, "validate subchannel proposal")
 		}
-	case *VirtualChannelProposal:
+	case *VirtualChannelProposalMsg:
 		if err := c.validVirtualChannelProposal(prop, ourIdx); err != nil {
 			return errors.WithMessage(err, "validate subchannel proposal")
 		}
@@ -397,7 +397,7 @@ func (c *Client) validTwoPartyProposal(
 	return nil
 }
 
-func (c *Client) validSubChannelProposal(proposal *SubChannelProposal) error {
+func (c *Client) validSubChannelProposal(proposal *SubChannelProposalMsg) error {
 	parent, ok := c.channels.Channel(proposal.Parent)
 	if !ok {
 		return errors.New("parent channel does not exist")
@@ -417,7 +417,7 @@ func (c *Client) validSubChannelProposal(proposal *SubChannelProposal) error {
 	return nil
 }
 
-func (c *Client) validVirtualChannelProposal(prop *VirtualChannelProposal, ourIdx channel.Index) error {
+func (c *Client) validVirtualChannelProposal(prop *VirtualChannelProposalMsg, ourIdx channel.Index) error {
 	numParents := len(prop.Parents)
 	numPeers := prop.NumPeers()
 	if numParents != numPeers {
@@ -569,9 +569,9 @@ func (c *Client) completeCPP(
 
 func (c *Client) proposalParent(prop ChannelProposal, partIdx channel.Index) (parentChannelID *channel.ID, parent *Channel, err error) {
 	switch prop := prop.(type) {
-	case *SubChannelProposal:
+	case *SubChannelProposalMsg:
 		parentChannelID = &prop.Parent
-	case *VirtualChannelProposal:
+	case *VirtualChannelProposalMsg:
 		parentChannelID = &prop.Parents[partIdx]
 	}
 
@@ -591,20 +591,20 @@ func (c *Client) mpcppParts(
 	acc ChannelProposalAccept,
 ) (parts []wallet.Address) {
 	switch p := prop.(type) {
-	case *LedgerChannelProposal:
+	case *LedgerChannelProposalMsg:
 		parts = participants(
 			p.Participant,
-			acc.(*LedgerChannelProposalAcc).Participant)
-	case *SubChannelProposal:
+			acc.(*LedgerChannelProposalAccMsg).Participant)
+	case *SubChannelProposalMsg:
 		ch, ok := c.channels.Channel(p.Parent)
 		if !ok {
 			c.log.Panic("unknown parent channel ID")
 		}
 		parts = ch.Params().Parts
-	case *VirtualChannelProposal:
+	case *VirtualChannelProposalMsg:
 		parts = participants(
 			p.Proposer,
-			acc.(*VirtualChannelProposalAcc).Responder,
+			acc.(*VirtualChannelProposalAccMsg).Responder,
 		)
 	default:
 		c.log.Panicf("unhandled %T", p)
@@ -614,13 +614,13 @@ func (c *Client) mpcppParts(
 
 func (c *Client) fundChannel(ctx context.Context, ch *Channel, prop ChannelProposal) error {
 	switch prop := prop.(type) {
-	case *LedgerChannelProposal:
+	case *LedgerChannelProposalMsg:
 		err := c.fundLedgerChannel(ctx, ch, prop.Base().FundingAgreement)
 		return errors.WithMessage(err, "funding ledger channel")
-	case *SubChannelProposal:
+	case *SubChannelProposalMsg:
 		err := c.fundSubchannel(ctx, prop, ch)
 		return errors.WithMessage(err, "funding subchannel")
-	case *VirtualChannelProposal:
+	case *VirtualChannelProposalMsg:
 		err := c.fundVirtualChannel(ctx, ch, prop)
 		return errors.WithMessage(err, "funding virtual channel")
 	}
@@ -657,7 +657,7 @@ func (c *Client) fundLedgerChannel(ctx context.Context, ch *Channel, agreement c
 	return c.completeFunding(ctx, ch)
 }
 
-func (c *Client) fundSubchannel(ctx context.Context, prop *SubChannelProposal, subChannel *Channel) (err error) {
+func (c *Client) fundSubchannel(ctx context.Context, prop *SubChannelProposalMsg, subChannel *Channel) (err error) {
 	parentChannel, ok := c.channels.Channel(prop.Parent)
 	if !ok {
 		return errors.New("referenced parent channel not found")
@@ -684,7 +684,7 @@ func (c *Client) fundSubchannel(ctx context.Context, prop *SubChannelProposal, s
 func enableVer0Cache(c wire.Cacher) *wire.Predicate {
 	p := func(m *wire.Envelope) bool {
 		return m.Msg.Type() == wire.ChannelUpdateAcc &&
-			m.Msg.(*msgChannelUpdateAcc).Version == 0
+			m.Msg.(*ChannelUpdateAccMsg).Version == 0
 	}
 	c.Cache(&p)
 	return &p

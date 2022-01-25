@@ -29,14 +29,14 @@ const randomProposalNumParts = 2
 
 // NewRandomLedgerChannelProposal creates a random channel proposal with the supplied
 // options. Number of participants is fixed to randomProposalNumParts.
-func NewRandomLedgerChannelProposal(rng *rand.Rand, opts ...client.ProposalOpts) *client.LedgerChannelProposal {
+func NewRandomLedgerChannelProposal(rng *rand.Rand, opts ...client.ProposalOpts) *client.LedgerChannelProposalMsg {
 	return NewRandomLedgerChannelProposalBy(rng, wallettest.NewRandomAddress(rng), opts...)
 }
 
 // NewRandomLedgerChannelProposalBy creates a random channel proposal with the
 // supplied options and proposer. Number of participants is fixed to
 // randomProposalNumParts.
-func NewRandomLedgerChannelProposalBy(rng *rand.Rand, proposer wallet.Address, opts ...client.ProposalOpts) *client.LedgerChannelProposal {
+func NewRandomLedgerChannelProposalBy(rng *rand.Rand, proposer wallet.Address, opts ...client.ProposalOpts) *client.LedgerChannelProposalMsg {
 	prop, err := client.NewLedgerChannelProposal(
 		rng.Uint64(),
 		proposer,
@@ -51,7 +51,7 @@ func NewRandomLedgerChannelProposalBy(rng *rand.Rand, proposer wallet.Address, o
 
 // NewRandomSubChannelProposal creates a random subchannel proposal with the
 // supplied options. Number of participants is fixed to 2.
-func NewRandomSubChannelProposal(rng *rand.Rand, opts ...client.ProposalOpts) (*client.SubChannelProposal, error) {
+func NewRandomSubChannelProposal(rng *rand.Rand, opts ...client.ProposalOpts) (*client.SubChannelProposalMsg, error) {
 	return client.NewSubChannelProposal(
 		channeltest.NewRandomChannelID(rng),
 		rng.Uint64(),
@@ -61,7 +61,7 @@ func NewRandomSubChannelProposal(rng *rand.Rand, opts ...client.ProposalOpts) (*
 
 // NewRandomVirtualChannelProposal creates a random virtual channel proposal with the
 // supplied options. Number of participants is fixed to 2.
-func NewRandomVirtualChannelProposal(rng *rand.Rand, opts ...client.ProposalOpts) (*client.VirtualChannelProposal, error) {
+func NewRandomVirtualChannelProposal(rng *rand.Rand, opts ...client.ProposalOpts) (*client.VirtualChannelProposalMsg, error) {
 	numParts := 2
 	return client.NewVirtualChannelProposal(
 		rng.Uint64(),

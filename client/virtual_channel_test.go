@@ -161,7 +161,7 @@ func setupVirtualChannelTest(t *testing.T, ctx context.Context) (vct virtualChan
 	_channelsIngrid := make(chan *client.Channel, 1)
 	var openingProposalHandlerIngrid client.ProposalHandlerFunc = func(cp client.ChannelProposal, pr *client.ProposalResponder) {
 		switch cp := cp.(type) {
-		case *client.LedgerChannelProposal:
+		case *client.LedgerChannelProposalMsg:
 			ch, err := pr.Accept(ctx, cp.Accept(ingrid.Identity.Address(), client.WithRandomNonce()))
 			if err != nil {
 				vct.errs <- errors.WithMessage(err, "accepting ledger channel proposal")
@@ -223,7 +223,7 @@ func setupVirtualChannelTest(t *testing.T, ctx context.Context) (vct virtualChan
 		cp client.ChannelProposal, pr *client.ProposalResponder,
 	) {
 		switch cp := cp.(type) {
-		case *client.VirtualChannelProposal:
+		case *client.VirtualChannelProposalMsg:
 			ch, err := pr.Accept(ctx, cp.Accept(bob.Identity.Address()))
 			if err != nil {
 				vct.errs <- errors.WithMessage(err, "accepting virtual channel proposal")

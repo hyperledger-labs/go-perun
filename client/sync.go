@@ -32,7 +32,7 @@ var syncReplyTimeout = 10 * time.Second
 // exists, it just sends the current channel data to the requester. If the
 // own channel is in the Signing phase, the ongoing update is discarded so that
 // the channel is reverted to the Acting phase.
-func (c *Client) handleSyncMsg(peer wire.Address, msg *msgChannelSync) {
+func (c *Client) handleSyncMsg(peer wire.Address, msg *ChannelSyncMsg) {
 	log := c.logChan(msg.ID()).WithField("peer", peer)
 	ch, ok := c.channels.Channel(msg.ID())
 	if !ok {
@@ -99,7 +99,7 @@ func (c *Client) syncChannel(ctx context.Context, ch *persistence.Channel, p wir
 	if err != nil {
 		return errors.WithMessage(err, "receiving sync message")
 	}
-	msg, ok := env.Msg.(*msgChannelSync)
+	msg, ok := env.Msg.(*ChannelSyncMsg)
 	if !ok {
 		log.Panic("internal error: wrong message type")
 	}
@@ -117,7 +117,7 @@ func (c *Client) syncChannel(ctx context.Context, ch *persistence.Channel, p wir
 
 // validateMessage validates the remote channel sync message.
 // nolint:unused, nestif
-func validateMessage(ch *persistence.Channel, msg *msgChannelSync) error {
+func validateMessage(ch *persistence.Channel, msg *ChannelSyncMsg) error {
 	v := ch.CurrentTX().Version
 	mv := msg.CurrentTX.Version
 
