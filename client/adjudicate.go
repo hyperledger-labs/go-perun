@@ -210,6 +210,11 @@ func (c *Channel) ForceUpdate(ctx context.Context, updater func(*channel.State))
 	updater(state)
 	state.Version++
 
+	// Check state transition.
+	if err := c.machine.ValidTransition(state); err != nil {
+		return errors.WithMessage(err, "validating state transition")
+	}
+
 	// Apply state in machine and generate signature
 	if err := c.machine.SetProgressing(ctx, state); err != nil {
 		return errors.WithMessage(err, "updating machine")

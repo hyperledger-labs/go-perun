@@ -134,7 +134,7 @@ func (m *StateMachine) validTransition(to *State, actor Index) (err error) {
 	if actor >= m.N() {
 		return errors.New("actor index is out of range")
 	}
-	if err := m.machine.validTransition(to); err != nil {
+	if err := m.machine.ValidTransition(to); err != nil {
 		return err
 	}
 
