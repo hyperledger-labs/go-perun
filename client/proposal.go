@@ -280,7 +280,7 @@ func (c *Client) handleChannelProposalRej(
 	req ChannelProposal, reason string,
 ) error {
 	msgReject := &ChannelProposalRejMsg{
-		ProposalID: req.ProposalID(),
+		ProposalID: req.Base().ProposalID,
 		Reason:     reason,
 	}
 	if err := c.conn.pubMsg(ctx, msgReject, p); err != nil {
@@ -305,7 +305,7 @@ func (c *Client) proposeTwoPartyChannel(
 	pred := enableVer0Cache(c.conn)
 	defer c.conn.ReleaseCache(pred)
 
-	proposalID := proposal.ProposalID()
+	proposalID := proposal.Base().ProposalID
 	isResponse := func(e *wire.Envelope) bool {
 		acc, isAcc := e.Msg.(ChannelProposalAccept)
 		return (isAcc && acc.Base().ProposalID == proposalID) ||
@@ -467,7 +467,7 @@ func (c *Client) validChannelProposalAcc(
 		return errors.Errorf("Received invalid accept message %T to proposal %T", response, proposal)
 	}
 
-	propID := proposal.ProposalID()
+	propID := proposal.Base().ProposalID
 	accID := response.Base().ProposalID
 	if !bytes.Equal(propID[:], accID[:]) {
 		return errors.Errorf("mismatched proposal ID %b and accept ID %b", propID, accID)

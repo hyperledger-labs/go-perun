@@ -94,9 +94,6 @@ type (
 
 		// Valid checks whether a channel proposal is valid.
 		Valid() error
-
-		// ProposalID calculates the proposal's unique identifier.
-		ProposalID() ProposalID
 	}
 
 	// BaseChannelProposal contains all data necessary to propose a new
@@ -105,7 +102,7 @@ type (
 	// BaseChannelProposal implements the channel proposal messages from the
 	// Multi-Party Channel Proposal Protocol (MPCPP).
 	BaseChannelProposal struct {
-		proposalID        ProposalID          // Unique ID for the proposal.
+		ProposalID        ProposalID          // Unique ID for the proposal.
 		ChallengeDuration uint64              // Dispute challenge duration.
 		NonceShare        NonceShare          // Proposer's channel nonce share.
 		App               channel.App         // App definition, or nil.
@@ -183,11 +180,6 @@ func makeBaseChannelProposal(
 	}, nil
 }
 
-// ProposalID returns the proposal id for this channel proposal.
-func (p *BaseChannelProposal) ProposalID() ProposalID {
-	return p.proposalID
-}
-
 // Base returns the channel proposal's common values.
 func (p *BaseChannelProposal) Base() *BaseChannelProposal {
 	return p
@@ -201,7 +193,7 @@ func (p BaseChannelProposal) NumPeers() int {
 // Encode encodes the BaseChannelProposal into an io.Writer.
 func (p BaseChannelProposal) Encode(w io.Writer) error {
 	optAppAndDataEnc := channel.OptAppAndDataEnc{App: p.App, Data: p.InitData}
-	return perunio.Encode(w, p.ProposalID(), p.ChallengeDuration, p.NonceShare,
+	return perunio.Encode(w, p.ProposalID, p.ChallengeDuration, p.NonceShare,
 		optAppAndDataEnc, p.InitBals, p.FundingAgreement)
 }
 
@@ -211,7 +203,7 @@ func (p *BaseChannelProposal) Decode(r io.Reader) (err error) {
 		p.InitBals = new(channel.Allocation)
 	}
 	optAppAndDataDec := channel.OptAppAndDataDec{App: &p.App, Data: &p.InitData}
-	return perunio.Decode(r, &p.proposalID, &p.ChallengeDuration, &p.NonceShare,
+	return perunio.Decode(r, &p.ProposalID, &p.ChallengeDuration, &p.NonceShare,
 		optAppAndDataDec, p.InitBals, &p.FundingAgreement)
 }
 
@@ -242,12 +234,12 @@ func (p LedgerChannelProposalMsg) Accept(
 	nonceShare ProposalOpts,
 ) *LedgerChannelProposalAccMsg {
 	if !nonceShare.isNonce() {
-		log.WithField("proposal", p.ProposalID()).
+		log.WithField("proposal", p.ProposalID).
 			Panic("LedgerChannelProposal.Accept: nonceShare has no configured nonce")
 	}
 	return &LedgerChannelProposalAccMsg{
 		BaseChannelProposalAcc: makeBaseChannelProposalAcc(
-			p.ProposalID(), nonceShare.nonce()),
+			p.ProposalID, nonceShare.nonce()),
 		Participant: participant,
 	}
 }
@@ -370,14 +362,13 @@ func (SubChannelProposalMsg) Type() wire.Type {
 func (p SubChannelProposalMsg) Accept(
 	nonceShare ProposalOpts,
 ) *SubChannelProposalAccMsg {
-	propID := p.ProposalID()
 	if !nonceShare.isNonce() {
-		log.WithField("proposal", propID).
+		log.WithField("proposal", p.ProposalID).
 			Panic("SubChannelProposal.Accept: nonceShare has no configured nonce")
 	}
 	return &SubChannelProposalAccMsg{
 		BaseChannelProposalAcc: makeBaseChannelProposalAcc(
-			propID, nonceShare.nonce()),
+			p.ProposalID, nonceShare.nonce()),
 	}
 }
 
@@ -600,10 +591,9 @@ func (p VirtualChannelProposalMsg) Accept(
 	responder wallet.Address,
 	opts ...ProposalOpts,
 ) *VirtualChannelProposalAccMsg {
-	propID := p.ProposalID()
 	_opts := union(opts...)
 	return &VirtualChannelProposalAccMsg{
-		BaseChannelProposalAcc: makeBaseChannelProposalAcc(propID, _opts.nonce()),
+		BaseChannelProposalAcc: makeBaseChannelProposalAcc(p.ProposalID, _opts.nonce()),
 		Responder:              responder,
 	}
 }
