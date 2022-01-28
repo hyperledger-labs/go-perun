@@ -475,7 +475,7 @@ func (m *machine) expect(tr PhaseTransition) error {
 	return nil
 }
 
-// validTransition checks that the transition from the current to the provided
+// ValidTransition checks that the transition from the current to the provided
 // state is valid. The following checks are run:
 // * matching channel ids
 // * no transition from final state
@@ -483,7 +483,7 @@ func (m *machine) expect(tr PhaseTransition) error {
 // * preservation of balances
 // A StateMachine will additionally check the validity of the app-specific
 // transition whereas an ActionMachine checks each Action as being valid.
-func (m *machine) validTransition(to *State) error {
+func (m *machine) ValidTransition(to *State) error {
 	if to.ID != m.params.id {
 		return errors.New("new state's ID doesn't match")
 	}

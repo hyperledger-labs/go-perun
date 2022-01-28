@@ -95,14 +95,13 @@ func (r *Paul) exec(_cfg ExecConfig, ch *paymentChannel) {
 	r.waitStage() // wait for setup complete
 
 	// progress
-	assert.NoError(ch.ForceUpdate(ctx, func(s *channel.State) error {
+	assert.NoError(ch.ForceUpdate(ctx, func(s *channel.State) {
 		bal := func(user channel.Index) int64 {
 			return s.Balances[assetIdx][user].Int64()
 		}
 		half := (bal(0) + bal(1)) / 2 //nolint:gomnd
 		s.Balances[assetIdx][0] = big.NewInt(half)
 		s.Balances[assetIdx][1] = big.NewInt(half)
-		return nil
 	}))
 
 	// await our progression confirmation
@@ -167,14 +166,13 @@ func (r *Paula) exec(_cfg ExecConfig, ch *paymentChannel, _ *acceptNextPropHandl
 	r.t.Logf("%v received progression confirmation 1", r.setup.Name)
 
 	// we progress
-	assert.NoError(ch.ForceUpdate(ctx, func(s *channel.State) error {
+	assert.NoError(ch.ForceUpdate(ctx, func(s *channel.State) {
 		bal := func(user channel.Index) int64 {
 			return s.Balances[assetIdx][user].Int64()
 		}
 		half := (bal(0) + bal(1)) / 2 //nolint:gomnd
 		s.Balances[assetIdx][0] = big.NewInt(half + paulPaulaBalTransferAmount)
 		s.Balances[assetIdx][1] = big.NewInt(half - paulPaulaBalTransferAmount)
-		return nil
 	}))
 
 	// await our progression confirmation

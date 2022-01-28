@@ -146,7 +146,7 @@ func main() {
 	}()
 
 	// send a channel update request to the other channel peer(s)
-	err = ch.Update(ctx, func(s *channel.State) error {
+	err = ch.Update(ctx, func(s *channel.State) {
 		// update state s, e.g., moving funds or changing app data
 	})
 	if err != nil { /* handle error */ }

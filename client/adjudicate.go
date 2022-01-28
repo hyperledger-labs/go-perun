@@ -178,16 +178,19 @@ func (c *Channel) registerDispute(ctx context.Context) error {
 	return nil
 }
 
-// ForceUpdate enforces a channel update on the adjudicator. `update` gets as
-// input a copy of the current state and is expected to modify the state as
-// intended. It should not to increment the version number as this is
-// automatically.
+// ForceUpdate enforces a state update through the adjudicator as specified by
+// the `updater` function.
+//
+// The updater function must adhere to the following rules:
+// - The version must not be changed. It is incremented automatically.
+// - The assets must not be changed.
+// - The locked allocation must not be changed.
 //
 // Returns TxTimedoutError when the program times out waiting for a transaction
 // to be mined. Returns ChainNotReachableError if the connection to the
 // blockchain network fails when sending a transaction to / reading from the
 // blockchain.
-func (c *Channel) ForceUpdate(ctx context.Context, update func(*channel.State) error) error {
+func (c *Channel) ForceUpdate(ctx context.Context, updater func(*channel.State)) error {
 	err := c.ensureRegistered(ctx)
 	if err != nil {
 		return err
@@ -204,10 +207,12 @@ func (c *Channel) ForceUpdate(ctx context.Context, update func(*channel.State) e
 
 	// Update state
 	state := ar.Tx.State.Clone()
+	updater(state)
 	state.Version++
-	err = update(state)
-	if err != nil {
-		return errors.WithMessage(err, "updating state")
+
+	// Check state transition.
+	if err := c.machine.ValidTransition(state); err != nil {
+		return errors.WithMessage(err, "validating state transition")
 	}
 
 	// Apply state in machine and generate signature
