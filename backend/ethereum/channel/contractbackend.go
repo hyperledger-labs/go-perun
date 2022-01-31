@@ -227,7 +227,8 @@ func (c *ContractBackend) confirmNTimes(ctx context.Context, tx *types.Transacti
 			receipt, err := c.ContractInterface.TransactionReceipt(ctx, tx.Hash())
 			if err != nil {
 				err = cherrors.CheckIsChainNotReachableError(err)
-				return nil, errors.WithMessage(err, "pulling receipt")
+				log.Warnf("Failed to get tx receipt: %v", err)
+				break
 			}
 			if receipt != nil && isFinal(receipt, head, finalityDepth) {
 				return receipt, nil
