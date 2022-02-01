@@ -79,68 +79,21 @@ func TestChannelProposalReqSerialization(t *testing.T) {
 func TestLedgerChannelProposalReqProposalID(t *testing.T) {
 	rng := pkgtest.Prng(t)
 	original := *client.NewRandomLedgerChannelProposal(rng)
-	s := original.ProposalID()
+
 	fake := *client.NewRandomLedgerChannelProposal(rng)
 
-	assert.NotEqual(t, original.ChallengeDuration, fake.ChallengeDuration)
-	assert.NotEqual(t, original.NonceShare, fake.NonceShare)
-	assert.NotEqual(t, original.App, fake.App)
-
-	c0 := original
-	c0.ChallengeDuration = fake.ChallengeDuration
-	assert.NotEqual(t, s, c0.ProposalID())
-
-	c1 := original
-	c1.NonceShare = fake.NonceShare
-	assert.NotEqual(t, s, c1.ProposalID())
-
-	c2 := original
-	c2.Participant = fake.Participant
-	assert.NotEqual(t, s, c2.ProposalID())
-
-	c3 := original
-	c3.App = fake.App
-	assert.NotEqual(t, s, c3.ProposalID())
-
-	c4 := original
-	c4.InitData = fake.InitData
-	assert.NotEqual(t, s, c4.ProposalID())
-
-	c5 := original
-	c5.InitBals = fake.InitBals
-	assert.NotEqual(t, s, c5.ProposalID())
-
-	c6 := original
-	c6.Peers = fake.Peers
-	assert.NotEqual(t, s, c6.ProposalID())
+	assert.NotEqual(t, original.ProposalID, fake.ProposalID)
 }
 
 func TestSubChannelProposalReqProposalID(t *testing.T) {
 	rng := pkgtest.Prng(t)
 	original, err := clienttest.NewRandomSubChannelProposal(rng)
 	require.NoError(t, err)
-	s := original.ProposalID()
+
 	fake, err := clienttest.NewRandomSubChannelProposal(rng)
 	require.NoError(t, err)
 
-	assert.NotEqual(t, original.ChallengeDuration, fake.ChallengeDuration)
-	assert.NotEqual(t, original.NonceShare, fake.NonceShare)
-
-	c0 := original
-	c0.ChallengeDuration = fake.ChallengeDuration
-	assert.NotEqual(t, s, c0.ProposalID())
-
-	c1 := original
-	c1.NonceShare = fake.NonceShare
-	assert.NotEqual(t, s, c1.ProposalID())
-
-	c2 := original
-	c2.Parent = fake.Parent
-	assert.NotEqual(t, s, c2.ProposalID())
-
-	c3 := original
-	c3.InitBals = fake.InitBals
-	assert.NotEqual(t, s, c3.ProposalID())
+	assert.NotEqual(t, original.ProposalID, fake.ProposalID)
 }
 
 func TestVirtualChannelProposalReqProposalID(t *testing.T) {
@@ -156,42 +109,7 @@ func TestVirtualChannelProposalReqProposalID(t *testing.T) {
 	assert.Equal(t, channel.NoApp(), fake.App, "virtual channel should always has no app")
 	assert.Equal(t, channel.NoData(), fake.InitData, "virtual channel should always has no data")
 
-	assert.NotEqual(t, original.ChallengeDuration, fake.ChallengeDuration)
-	assert.NotEqual(t, original.NonceShare, fake.NonceShare)
-	assert.NotEqual(t, original.InitBals, fake.InitBals)
-	assert.NotEqual(t, original.FundingAgreement, fake.FundingAgreement)
-	assert.NotEqual(t, original.Proposer, fake.Proposer)
-	assert.NotEqual(t, original.Peers, fake.Peers)
-	assert.NotEqual(t, original.Parents, fake.Parents)
-	assert.NotEqual(t, original.IndexMaps, fake.IndexMaps)
-
-	testProp := *original
-	testProp.ChallengeDuration = fake.ChallengeDuration
-	assert.NotEqual(t, original.ProposalID(), testProp.ProposalID())
-
-	testProp = *original
-	testProp.NonceShare = fake.NonceShare
-	assert.NotEqual(t, original.ProposalID(), testProp.ProposalID())
-
-	testProp = *original
-	testProp.InitBals = fake.InitBals
-	assert.NotEqual(t, original.ProposalID(), testProp.ProposalID())
-
-	testProp = *original
-	testProp.FundingAgreement = fake.FundingAgreement
-	assert.NotEqual(t, original.ProposalID(), testProp.ProposalID())
-
-	testProp = *original
-	testProp.Proposer = fake.Proposer
-	assert.NotEqual(t, original.ProposalID(), testProp.ProposalID())
-
-	testProp = *original
-	testProp.Peers = fake.Peers
-	assert.NotEqual(t, original.ProposalID(), testProp.ProposalID())
-
-	testProp = *original
-	testProp.IndexMaps = fake.IndexMaps
-	assert.NotEqual(t, original.ProposalID(), testProp.ProposalID())
+	assert.NotEqual(t, original.ProposalID, fake.ProposalID)
 }
 
 func TestChannelProposalAccSerialization(t *testing.T) {
