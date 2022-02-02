@@ -298,7 +298,7 @@ func testFundingTimeout(t *testing.T, faultyPeer, n int) {
 	for i, funder := range funders {
 		sleepTime := time.Millisecond * time.Duration(rng.Int63n(10)+1)
 		i, funder := i, funder
-		go ct.StageN("funding loop", n, func(rt pkgtest.ConcT) {
+		go ct.StageN("funding loop", n, func(t pkgtest.ConcT) {
 			// Faulty peer does not fund the channel.
 			if i == faultyPeer {
 				return
@@ -307,13 +307,13 @@ func testFundingTimeout(t *testing.T, faultyPeer, n int) {
 			req := channel.NewFundingReq(params, &channel.State{Allocation: *alloc}, channel.Index(i), alloc.Balances)
 			err := funder.Fund(ctx, *req)
 			require.Error(t, err)
-			require.True(rt, channel.IsFundingTimeoutError(err), "funder should return FundingTimeoutError")
+			require.True(t, channel.IsFundingTimeoutError(err), "funder should return FundingTimeoutError")
 			pErr := errors.Cause(err).(channel.FundingTimeoutError) // unwrap error
 			// Check that `faultyPeer` is reported as faulty.
 			require.Len(t, pErr.Errors, len(alloc.Assets))
 			for _, e := range pErr.Errors {
 				require.Len(t, e.TimedOutPeers, 1)
-				assert.Equal(t, channel.Index(faultyPeer), e.TimedOutPeers[0], "Peer should be detected as erroneous")
+				require.Equal(t, channel.Index(faultyPeer), e.TimedOutPeers[0], "Peer should be detected as erroneous")
 			}
 		outer:
 			for a := 0; a < len(alloc.Assets); a++ {

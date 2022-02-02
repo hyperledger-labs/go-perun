@@ -336,19 +336,29 @@ func (f *Funder) waitForFundingConfirmation(ctx context.Context, request channel
 			log.Debugf("peer[%d]: got: %v, remaining for [%d,%d] = %v. N: %d", request.Idx, event.Amount, asset.assetIndex, idx, amount, N)
 
 		case <-ctx.Done():
-			var indices []channel.Index
-			for k, bals := range agreement {
-				if bals.Sign() == 1 {
-					indices = append(indices, channel.Index(k))
-				}
-			}
-			if len(indices) != 0 {
-				return &channel.AssetFundingError{Asset: asset.assetIndex, TimedOutPeers: indices}
-			}
-			return nil
+			return fundingTimeoutError(agreement, asset)
 		case err := <-subErr:
+			// Resolve race between ctx and subErr, as ctx fires both events.
+			select {
+			case <-ctx.Done():
+				return fundingTimeoutError(agreement, asset)
+			default:
+			}
 			return err
 		}
+	}
+	return nil
+}
+
+func fundingTimeoutError(agreement []channel.Bal, asset assetHolder) error {
+	var indices []channel.Index
+	for k, bals := range agreement {
+		if bals.Sign() == 1 {
+			indices = append(indices, channel.Index(k))
+		}
+	}
+	if len(indices) != 0 {
+		return &channel.AssetFundingError{Asset: asset.assetIndex, TimedOutPeers: indices}
 	}
 	return nil
 }
