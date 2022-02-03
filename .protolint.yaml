@@ -1,0 +1,21 @@
+lint:
+  ignores:
+    # Sometimes, when variable names are long line length exceeds 80 char.
+    - id: MAX_LINE_LENGTH
+      files:
+      - wire/protobuf/wire.proto
+
+    # Some fields with repeated type intentionally have non plural names.
+    # Eg: balance, index_map etc.,
+    - id: REPEATED_FIELD_NAMES_PLURALIZED
+      files:
+      - wire/protobuf/wire.proto
+
+  rules:
+
+    # Enable a few additional linters, that are not part of official style
+    # guide for protonbuf.
+    add:
+      - MESSAGES_HAVE_COMMENT
+      - FILE_HAS_COMMENT
+      - SYNTAX_CONSISTENT
