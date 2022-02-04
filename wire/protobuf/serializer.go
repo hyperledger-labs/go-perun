@@ -66,6 +66,16 @@ func (Serializer) Encode(w io.Writer, env *wire.Envelope) error {
 				Created: msg.Created.UnixNano(),
 			},
 		}
+	case wire.Shutdown:
+		msg, ok := env.Msg.(*wire.ShutdownMsg)
+		if !ok {
+			return errors.New("message type and content mismatch")
+		}
+		grpcMsg = &Envelope_ShutdownMsg{
+			ShutdownMsg: &ShutdownMsg{
+				Reason: msg.Reason,
+			},
+		}
 	}
 
 	protoEnv := Envelope{
@@ -125,6 +135,10 @@ func (Serializer) Decode(r io.Reader) (*wire.Envelope, error) {
 			PingPongMsg: wire.PingPongMsg{
 				Created: time.Unix(0, protoEnv.GetPongMsg().Created),
 			},
+		}
+	case *Envelope_ShutdownMsg:
+		env.Msg = &wire.ShutdownMsg{
+			Reason: protoEnv.GetShutdownMsg().Reason,
 		}
 	}
 

@@ -33,5 +33,7 @@ func TestPongMsg(t *testing.T) {
 }
 
 func TestShutdownMsg(t *testing.T) {
-	peruniotest.MsgSerializerTest(t, &wire.ShutdownMsg{"m2384ordkln fb30954390582"})
+	msg := &wire.ShutdownMsg{"m2384ordkln fb30954390582"}
+	peruniotest.MsgSerializerTest(t, msg)
+	protobuftest.MsgSerializerTest(t, msg)
 }
