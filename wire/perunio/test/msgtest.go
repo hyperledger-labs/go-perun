@@ -20,6 +20,8 @@ import (
 	"testing"
 
 	"perun.network/go-perun/wire"
+	perunioserializer "perun.network/go-perun/wire/perunio/serializer"
+
 	wiretest "perun.network/go-perun/wire/test"
 	pkgtest "polycry.pt/poly-go/test"
 )
@@ -31,11 +33,11 @@ type serializableEnvelope struct {
 }
 
 func (e *serializableEnvelope) Encode(writer io.Writer) error {
-	return wire.EncodeEnvelope(writer, e.env)
+	return (perunioserializer.Serializer{}).Encode(writer, e.env)
 }
 
 func (e *serializableEnvelope) Decode(reader io.Reader) (err error) {
-	e.env, err = wire.DecodeEnvelope(reader)
+	e.env, err = (perunioserializer.Serializer{}).Decode(reader)
 	return err
 }
 

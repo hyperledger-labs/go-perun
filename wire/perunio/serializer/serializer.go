@@ -22,14 +22,16 @@ import (
 	"perun.network/go-perun/wire/perunio"
 )
 
-type serializer struct{}
+// Serializer implements methods for encoding/decoding
+// envelopes using perunio encoding.
+type Serializer struct{}
 
 func init() {
-	wire.SetEnvelopeSerializer(serializer{})
+	wire.SetEnvelopeSerializer(Serializer{})
 }
 
 // Encode encodes the envelope into the wire using perunio encoding format.
-func (serializer) Encode(w io.Writer, env *wire.Envelope) error {
+func (Serializer) Encode(w io.Writer, env *wire.Envelope) error {
 	if err := perunio.Encode(w, env.Sender, env.Recipient); err != nil {
 		return err
 	}
@@ -37,7 +39,7 @@ func (serializer) Encode(w io.Writer, env *wire.Envelope) error {
 }
 
 // Decode decodes an envelope from the wire using perunio encoding format.
-func (serializer) Decode(r io.Reader) (env *wire.Envelope, err error) {
+func (Serializer) Decode(r io.Reader) (env *wire.Envelope, err error) {
 	env = &wire.Envelope{}
 	env.Sender = wire.NewAddress()
 	if err = perunio.Decode(r, env.Sender); err != nil {
