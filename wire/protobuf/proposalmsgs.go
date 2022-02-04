@@ -88,6 +88,36 @@ func toVirtualChannelProposal(in *VirtualChannelProposalMsg) (*client.VirtualCha
 	}, nil
 }
 
+func toLedgerChannelProposalAcc(in *LedgerChannelProposalAccMsg) (*client.LedgerChannelProposalAccMsg, error) {
+	participant, err := toWalletAddr(in.Participant)
+	if err != nil {
+		return nil, err
+	}
+
+	return &client.LedgerChannelProposalAccMsg{
+		BaseChannelProposalAcc: toBaseChannelProposalAcc(in.BaseChannelProposalAcc),
+		Participant:            participant,
+	}, nil
+}
+
+func toSubChannelProposalAcc(in *SubChannelProposalAccMsg) *client.SubChannelProposalAccMsg {
+	return &client.SubChannelProposalAccMsg{
+		BaseChannelProposalAcc: toBaseChannelProposalAcc(in.BaseChannelProposalAcc),
+	}
+}
+
+func toVirtualChannelProposalAcc(in *VirtualChannelProposalAccMsg) (*client.VirtualChannelProposalAccMsg, error) {
+	responder, err := toWalletAddr(in.Responder)
+	if err != nil {
+		return nil, err
+	}
+
+	return &client.VirtualChannelProposalAccMsg{
+		BaseChannelProposalAcc: toBaseChannelProposalAcc(in.BaseChannelProposalAcc),
+		Responder:              responder,
+	}, nil
+}
+
 func toWalletAddr(in []byte) (wallet.Address, error) {
 	out := wallet.NewAddress()
 	return out, out.UnmarshalBinary(in)
@@ -128,6 +158,12 @@ func toBaseChannelProposal(in *BaseChannelProposal) (client.BaseChannelProposal,
 	copy(out.ProposalID[:], in.ProposalId)
 	copy(out.NonceShare[:], in.NonceShare)
 	return out, nil
+}
+
+func toBaseChannelProposalAcc(in *BaseChannelProposalAcc) (out client.BaseChannelProposalAcc) {
+	copy(out.ProposalID[:], in.ProposalId)
+	copy(out.NonceShare[:], in.NonceShare)
+	return
 }
 
 func toAppAndData(appIn, dataIn []byte) (appOut channel.App, dataOut channel.Data, err error) {
@@ -281,6 +317,38 @@ func fromVirtualChannelProposal(in *client.VirtualChannelProposalMsg) (*VirtualC
 	}, nil
 }
 
+func fromLedgerChannelProposalAcc(in *client.LedgerChannelProposalAccMsg) (*LedgerChannelProposalAccMsg, error) {
+	baseChannelProposalAcc := fromBaseChannelProposalAcc(in.BaseChannelProposalAcc)
+	participant, err := fromWalletAddr(in.Participant)
+	if err != nil {
+		return nil, err
+	}
+
+	return &LedgerChannelProposalAccMsg{
+		BaseChannelProposalAcc: baseChannelProposalAcc,
+		Participant:            participant,
+	}, nil
+}
+
+func fromSubChannelProposalAcc(in *client.SubChannelProposalAccMsg) *SubChannelProposalAccMsg {
+	return &SubChannelProposalAccMsg{
+		BaseChannelProposalAcc: fromBaseChannelProposalAcc(in.BaseChannelProposalAcc),
+	}
+}
+
+func fromVirtualChannelProposalAcc(in *client.VirtualChannelProposalAccMsg) (*VirtualChannelProposalAccMsg, error) {
+	baseChannelProposalAcc := fromBaseChannelProposalAcc(in.BaseChannelProposalAcc)
+	responder, err := fromWalletAddr(in.Responder)
+	if err != nil {
+		return nil, err
+	}
+
+	return &VirtualChannelProposalAccMsg{
+		BaseChannelProposalAcc: baseChannelProposalAcc,
+		Responder:              responder,
+	}, nil
+}
+
 func fromWalletAddr(in wallet.Address) ([]byte, error) {
 	return in.MarshalBinary()
 }
@@ -318,6 +386,15 @@ func fromBaseChannelProposal(in client.BaseChannelProposal) (*BaseChannelProposa
 		InitBals:          initBals,
 		FundingAgreement:  fundingAgreement,
 	}, nil
+}
+
+func fromBaseChannelProposalAcc(in client.BaseChannelProposalAcc) (out *BaseChannelProposalAcc) {
+	out = &BaseChannelProposalAcc{}
+	out.ProposalId = make([]byte, len(in.ProposalID))
+	out.NonceShare = make([]byte, len(in.NonceShare))
+	copy(out.ProposalId, in.ProposalID[:])
+	copy(out.NonceShare, in.NonceShare[:])
+	return
 }
 
 func fromAppAndData(appIn channel.App, dataIn channel.Data) (appOut, dataOut []byte, err error) {

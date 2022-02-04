@@ -123,6 +123,7 @@ func TestChannelProposalAccSerialization(t *testing.T) {
 				wallettest.NewRandomAddress(rng),
 				client.WithNonceFrom(rng))
 			peruniotest.MsgSerializerTest(t, m)
+			protobuftest.MsgSerializerTest(t, m)
 		}
 	})
 	t.Run("sub channel", func(t *testing.T) {
@@ -132,6 +133,7 @@ func TestChannelProposalAccSerialization(t *testing.T) {
 			require.NoError(t, err)
 			m := proposal.Accept(client.WithNonceFrom(rng))
 			peruniotest.MsgSerializerTest(t, m)
+			protobuftest.MsgSerializerTest(t, m)
 		}
 	})
 	t.Run("virtual channel", func(t *testing.T) {
@@ -141,6 +143,7 @@ func TestChannelProposalAccSerialization(t *testing.T) {
 			require.NoError(t, err)
 			m := proposal.Accept(wallettest.NewRandomAddress(rng))
 			peruniotest.MsgSerializerTest(t, m)
+			protobuftest.MsgSerializerTest(t, m)
 		}
 	})
 }

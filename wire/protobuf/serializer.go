@@ -35,7 +35,7 @@ type Serializer struct{}
 
 // Encode encodes the envelope into the wire using perunio
 // encoding format.
-func (Serializer) Encode(w io.Writer, env *wire.Envelope) error { // nolint: funlen, cyclop
+func (Serializer) Encode(w io.Writer, env *wire.Envelope) error { // nolint: funlen, cyclop, gocognit
 	sender, err := env.Sender.MarshalBinary()
 	if err != nil {
 		return errors.WithMessage(err, "marshalling sender address")
@@ -117,6 +117,38 @@ func (Serializer) Encode(w io.Writer, env *wire.Envelope) error { // nolint: fun
 		grpcMsg = &Envelope_VirtualChannelProposalMsg{
 			VirtualChannelProposalMsg: virtualChannelProposal,
 		}
+	case wire.LedgerChannelProposalAcc:
+		msg, ok := env.Msg.(*client.LedgerChannelProposalAccMsg)
+		if !ok {
+			return errors.New("message type and content mismatch")
+		}
+		ledgerChannelProposalAcc, err := fromLedgerChannelProposalAcc(msg)
+		if err != nil {
+			return err
+		}
+		grpcMsg = &Envelope_LedgerChannelProposalAccMsg{
+			LedgerChannelProposalAccMsg: ledgerChannelProposalAcc,
+		}
+	case wire.SubChannelProposalAcc:
+		msg, ok := env.Msg.(*client.SubChannelProposalAccMsg)
+		if !ok {
+			return errors.New("message type and content mismatch")
+		}
+		grpcMsg = &Envelope_SubChannelProposalAccMsg{
+			SubChannelProposalAccMsg: fromSubChannelProposalAcc(msg),
+		}
+	case wire.VirtualChannelProposalAcc:
+		msg, ok := env.Msg.(*client.VirtualChannelProposalAccMsg)
+		if !ok {
+			return errors.New("message type and content mismatch")
+		}
+		virtualChannelProposalAcc, err := fromVirtualChannelProposalAcc(msg)
+		if err != nil {
+			return err
+		}
+		grpcMsg = &Envelope_VirtualChannelProposalAccMsg{
+			VirtualChannelProposalAccMsg: virtualChannelProposalAcc,
+		}
 	}
 
 	protoEnv := Envelope{
@@ -139,7 +171,7 @@ func (Serializer) Encode(w io.Writer, env *wire.Envelope) error { // nolint: fun
 }
 
 // Decode decodes an envelope from the wire using perunio encoding format.
-func (Serializer) Decode(r io.Reader) (*wire.Envelope, error) {
+func (Serializer) Decode(r io.Reader) (*wire.Envelope, error) { // nolint: cyclop
 	var length uint16
 	if err := binary.Read(r, binary.BigEndian, &length); err != nil {
 		return nil, errors.Wrap(err, "reading length from wire")
@@ -189,6 +221,12 @@ func (Serializer) Decode(r io.Reader) (*wire.Envelope, error) {
 		env.Msg, err = toSubChannelProposal(protoEnv.GetSubChannelProposalMsg())
 	case *Envelope_VirtualChannelProposalMsg:
 		env.Msg, err = toVirtualChannelProposal(protoEnv.GetVirtualChannelProposalMsg())
+	case *Envelope_LedgerChannelProposalAccMsg:
+		env.Msg, err = toLedgerChannelProposalAcc(protoEnv.GetLedgerChannelProposalAccMsg())
+	case *Envelope_SubChannelProposalAccMsg:
+		env.Msg = toSubChannelProposalAcc(protoEnv.GetSubChannelProposalAccMsg())
+	case *Envelope_VirtualChannelProposalAccMsg:
+		env.Msg, err = toVirtualChannelProposalAcc(protoEnv.GetVirtualChannelProposalAccMsg())
 	}
 
 	return &env, err
