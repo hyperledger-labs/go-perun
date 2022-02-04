@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package client
+package client_test
 
 import (
 	"math/rand"
@@ -20,6 +20,7 @@ import (
 
 	"perun.network/go-perun/channel"
 	"perun.network/go-perun/channel/test"
+	"perun.network/go-perun/client"
 	"perun.network/go-perun/wallet"
 	wallettest "perun.network/go-perun/wallet/test"
 	peruniotest "perun.network/go-perun/wire/perunio/test"
@@ -34,11 +35,11 @@ func TestChannelUpdateSerialization(t *testing.T) {
 	}
 }
 
-func newRandomMsgChannelUpdate(rng *rand.Rand) *ChannelUpdateMsg {
+func newRandomMsgChannelUpdate(rng *rand.Rand) *client.ChannelUpdateMsg {
 	state := test.NewRandomState(rng)
 	sig := newRandomSig(rng)
-	return &ChannelUpdateMsg{
-		ChannelUpdate: ChannelUpdate{
+	return &client.ChannelUpdateMsg{
+		ChannelUpdate: client.ChannelUpdate{
 			State:    state,
 			ActorIdx: channel.Index(rng.Intn(state.NumParts())),
 		},
@@ -51,7 +52,7 @@ func TestSerialization_VirtualChannelFundingProposal(t *testing.T) {
 	for i := 0; i < 4; i++ {
 		msgUp := newRandomMsgChannelUpdate(rng)
 		params, state := test.NewRandomParamsAndState(rng)
-		m := &VirtualChannelFundingProposalMsg{
+		m := &client.VirtualChannelFundingProposalMsg{
 			ChannelUpdateMsg: *msgUp,
 			Initial: channel.SignedState{
 				Params: params,
@@ -69,7 +70,7 @@ func TestSerialization_VirtualChannelSettlementProposal(t *testing.T) {
 	for i := 0; i < 4; i++ {
 		msgUp := newRandomMsgChannelUpdate(rng)
 		params, state := test.NewRandomParamsAndState(rng)
-		m := &VirtualChannelSettlementProposalMsg{
+		m := &client.VirtualChannelSettlementProposalMsg{
 			ChannelUpdateMsg: *msgUp,
 			Final: channel.SignedState{
 				Params: params,
@@ -85,7 +86,7 @@ func TestChannelUpdateAccSerialization(t *testing.T) {
 	rng := pkgtest.Prng(t)
 	for i := 0; i < 4; i++ {
 		sig := newRandomSig(rng)
-		m := &ChannelUpdateAccMsg{
+		m := &client.ChannelUpdateAccMsg{
 			ChannelID: test.NewRandomChannelID(rng),
 			Version:   uint64(rng.Int63()),
 			Sig:       sig,
@@ -97,7 +98,7 @@ func TestChannelUpdateAccSerialization(t *testing.T) {
 func TestChannelUpdateRejSerialization(t *testing.T) {
 	rng := pkgtest.Prng(t)
 	for i := 0; i < 4; i++ {
-		m := &ChannelUpdateRejMsg{
+		m := &client.ChannelUpdateRejMsg{
 			ChannelID: test.NewRandomChannelID(rng),
 			Version:   uint64(rng.Int63()),
 			Reason:    newRandomString(rng, 16, 16),
