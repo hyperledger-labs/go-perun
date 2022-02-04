@@ -214,6 +214,9 @@ func MakeBalances(numAssets, numParticipants int) Balances {
 	balances := make([][]*big.Int, numAssets)
 	for i := range balances {
 		balances[i] = make([]*big.Int, numParticipants)
+		for j := range balances[i] {
+			balances[i][j] = big.NewInt(0)
+		}
 	}
 	return balances
 }
