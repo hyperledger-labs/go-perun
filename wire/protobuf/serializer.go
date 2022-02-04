@@ -21,6 +21,7 @@ import (
 
 	"github.com/pkg/errors"
 	"google.golang.org/protobuf/proto"
+	"perun.network/go-perun/client"
 	"perun.network/go-perun/wire"
 )
 
@@ -34,7 +35,7 @@ type Serializer struct{}
 
 // Encode encodes the envelope into the wire using perunio
 // encoding format.
-func (Serializer) Encode(w io.Writer, env *wire.Envelope) error {
+func (Serializer) Encode(w io.Writer, env *wire.Envelope) error { // nolint: funlen, cyclop
 	sender, err := env.Sender.MarshalBinary()
 	if err != nil {
 		return errors.WithMessage(err, "marshalling sender address")
@@ -80,6 +81,42 @@ func (Serializer) Encode(w io.Writer, env *wire.Envelope) error {
 		grpcMsg = &Envelope_AuthResponseMsg{
 			AuthResponseMsg: &AuthResponseMsg{},
 		}
+	case wire.LedgerChannelProposal:
+		msg, ok := env.Msg.(*client.LedgerChannelProposalMsg)
+		if !ok {
+			return errors.New("message type and content mismatch")
+		}
+		ledgerChannelProposal, err := fromLedgerChannelProposal(msg)
+		if err != nil {
+			return err
+		}
+		grpcMsg = &Envelope_LedgerChannelProposalMsg{
+			LedgerChannelProposalMsg: ledgerChannelProposal,
+		}
+	case wire.SubChannelProposal:
+		msg, ok := env.Msg.(*client.SubChannelProposalMsg)
+		if !ok {
+			return errors.New("message type and content mismatch")
+		}
+		subChannelProposal, err := fromSubChannelProposal(msg)
+		if err != nil {
+			return err
+		}
+		grpcMsg = &Envelope_SubChannelProposalMsg{
+			SubChannelProposalMsg: subChannelProposal,
+		}
+	case wire.VirtualChannelProposal:
+		msg, ok := env.Msg.(*client.VirtualChannelProposalMsg)
+		if !ok {
+			return errors.New("message type and content mismatch")
+		}
+		virtualChannelProposal, err := fromVirtualChannelProposal(msg)
+		if err != nil {
+			return err
+		}
+		grpcMsg = &Envelope_VirtualChannelProposalMsg{
+			VirtualChannelProposalMsg: virtualChannelProposal,
+		}
 	}
 
 	protoEnv := Envelope{
@@ -99,7 +136,6 @@ func (Serializer) Encode(w io.Writer, env *wire.Envelope) error {
 
 	_, err = w.Write(data)
 	return errors.Wrap(err, "writing data to wire")
-
 }
 
 // Decode decodes an envelope from the wire using perunio encoding format.
@@ -127,6 +163,7 @@ func (Serializer) Decode(r io.Reader) (*wire.Envelope, error) {
 		return nil, errors.Wrap(err, "unmarshalling recipient address")
 	}
 
+	var err error
 	switch protoEnv.Msg.(type) {
 	case *Envelope_PingMsg:
 		env.Msg = &wire.PingMsg{
@@ -146,8 +183,13 @@ func (Serializer) Decode(r io.Reader) (*wire.Envelope, error) {
 		}
 	case *Envelope_AuthResponseMsg:
 		env.Msg = &wire.AuthResponseMsg{}
+	case *Envelope_LedgerChannelProposalMsg:
+		env.Msg, err = toLedgerChannelProposal(protoEnv.GetLedgerChannelProposalMsg())
+	case *Envelope_SubChannelProposalMsg:
+		env.Msg, err = toSubChannelProposal(protoEnv.GetSubChannelProposalMsg())
+	case *Envelope_VirtualChannelProposalMsg:
+		env.Msg, err = toVirtualChannelProposal(protoEnv.GetVirtualChannelProposalMsg())
 	}
 
-	return &env, nil
-
+	return &env, err
 }

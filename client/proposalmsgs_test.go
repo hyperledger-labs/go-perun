@@ -28,6 +28,7 @@ import (
 	wallettest "perun.network/go-perun/wallet/test"
 	"perun.network/go-perun/wire"
 	peruniotest "perun.network/go-perun/wire/perunio/test"
+	protobuftest "perun.network/go-perun/wire/protobuf/test"
 	pkgtest "polycry.pt/poly-go/test"
 )
 
@@ -73,6 +74,7 @@ func TestChannelProposalReqSerialization(t *testing.T) {
 			require.NoError(t, err)
 		}
 		peruniotest.MsgSerializerTest(t, m)
+		protobuftest.MsgSerializerTest(t, m)
 	}
 }
 
