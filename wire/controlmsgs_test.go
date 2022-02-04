@@ -18,6 +18,7 @@ import (
 	"testing"
 
 	"perun.network/go-perun/wire"
+	_ "perun.network/go-perun/wire/perunio/serializer" // wire serialzer init
 	peruniotest "perun.network/go-perun/wire/perunio/test"
 )
 
