@@ -57,6 +57,15 @@ func toState(in *State) (*channel.State, error) {
 	return out, nil
 }
 
+func toChannelUpdateRej(in *ChannelUpdateRejMsg) (out *client.ChannelUpdateRejMsg) {
+	out = &client.ChannelUpdateRejMsg{
+		Version: in.Version,
+		Reason:  in.Reason,
+	}
+	copy(out.ChannelID[:], in.ChannelId)
+	return
+}
+
 func fromChannelUpdate(in *client.ChannelUpdateMsg) (*ChannelUpdateMsg, error) {
 	state, err := fromState(in.ChannelUpdate.State)
 	if err != nil {
@@ -93,4 +102,14 @@ func fromState(in *channel.State) (*State, error) {
 	}
 	copy(out.Id, in.ID[:])
 	return out, nil
+}
+
+func fromChannelUpdateRej(in *client.ChannelUpdateRejMsg) (out *ChannelUpdateRejMsg) {
+	out = &ChannelUpdateRejMsg{
+		ChannelId: make([]byte, len(in.ChannelID)),
+		Version:   in.Version,
+		Reason:    in.Reason,
+	}
+	copy(out.ChannelId, in.ChannelID[:])
+	return
 }

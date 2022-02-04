@@ -103,9 +103,11 @@ func TestChannelUpdateRejSerialization(t *testing.T) {
 		m := &client.ChannelUpdateRejMsg{
 			ChannelID: test.NewRandomChannelID(rng),
 			Version:   uint64(rng.Int63()),
-			Reason:    newRandomString(rng, 16, 16),
+			Reason:    "random-string",
+			// Reason:    newRandomString(rng, 16, 16),
 		}
 		peruniotest.MsgSerializerTest(t, m)
+		protobuftest.MsgSerializerTest(t, m)
 	}
 }
 
