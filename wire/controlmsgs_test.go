@@ -29,6 +29,7 @@ func TestPingMsg(t *testing.T) {
 
 func TestPongMsg(t *testing.T) {
 	peruniotest.MsgSerializerTest(t, wire.NewPongMsg())
+	protobuftest.MsgSerializerTest(t, wire.NewPongMsg())
 }
 
 func TestShutdownMsg(t *testing.T) {

@@ -56,6 +56,16 @@ func (Serializer) Encode(w io.Writer, env *wire.Envelope) error {
 				Created: msg.Created.UnixNano(),
 			},
 		}
+	case wire.Pong:
+		msg, ok := env.Msg.(*wire.PongMsg)
+		if !ok {
+			return errors.New("message type and content mismatch")
+		}
+		grpcMsg = &Envelope_PongMsg{
+			PongMsg: &PongMsg{
+				Created: msg.Created.UnixNano(),
+			},
+		}
 	}
 
 	protoEnv := Envelope{
@@ -108,6 +118,12 @@ func (Serializer) Decode(r io.Reader) (*wire.Envelope, error) {
 		env.Msg = &wire.PingMsg{
 			PingPongMsg: wire.PingPongMsg{
 				Created: time.Unix(0, protoEnv.GetPingMsg().Created),
+			},
+		}
+	case *Envelope_PongMsg:
+		env.Msg = &wire.PongMsg{
+			PingPongMsg: wire.PingPongMsg{
+				Created: time.Unix(0, protoEnv.GetPongMsg().Created),
 			},
 		}
 	}
