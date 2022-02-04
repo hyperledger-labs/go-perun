@@ -44,14 +44,14 @@ import "perun.network/go-perun/client"
 _go-perun_ implements the core state channel protocol in a blockchain-agnostic fashion by following the dependency inversion principle.
 For this reason, a blockchain backend has to be chosen and blockchain-specific initializations need to be executed at program startup.
 
-### Tutorial
-
-The [walkthrough tutorial](http://tutorial.perun.network) describes how _go-perun_ is used to build a simple micro-payment application on top of Ethereum.
-
 ### Documentation
 
-More in-depth documentation can be found [here](https://labs.hyperledger.org/perun-doc/)
+In-depth documentation can be found at [perun-doc](https://labs.hyperledger.org/perun-doc/)
 and on [go-perun's pkg.go.dev site](https://pkg.go.dev/perun.network/go-perun).
+
+Our [walkthrough tutorial](http://tutorial.perun.network) describes how _go-perun_ is used to build a simple micro-payment application on top of Ethereum.
+
+A bunch of examples can be found at [perun-examples](https://github.com/perun-network/perun-examples).
 
 ## Features
 
