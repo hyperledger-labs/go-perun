@@ -68,10 +68,10 @@ func (c *Channel) withdrawSubChannelIntoParent(ctx context.Context) error {
 	}
 
 	switch c.Idx() {
-	case proposerIdx:
+	case ProposerIdx:
 		err := c.Parent().withdrawSubChannel(ctx, c)
 		return errors.WithMessage(err, "updating parent channel")
-	case proposeeIdx:
+	case ProposeeIdx:
 		err := c.Parent().awaitSubChannelWithdrawal(ctx, c.ID())
 		return errors.WithMessage(err, "awaiting parent channel update")
 	default:

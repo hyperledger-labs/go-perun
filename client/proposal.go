@@ -30,7 +30,12 @@ import (
 	"polycry.pt/poly-go/sync/atomic"
 )
 
-const proposerIdx, proposeeIdx = 0, 1
+const (
+	// ProposerIdx is the index of the channel proposer.
+	ProposerIdx = 0
+	// ProposeeIdx is the index of the channel proposal receiver.
+	ProposeeIdx = 1
+)
 
 // number of participants that is used unless specified otherwise.
 const proposalNumParts = 2
@@ -151,15 +156,15 @@ func (c *Client) ProposeChannel(ctx context.Context, prop ChannelProposal) (*Cha
 	}
 
 	// Prepare and cleanup, e.g., for locking and unlocking parent channel.
-	err := c.prepareChannelOpening(ctx, prop, proposerIdx)
+	err := c.prepareChannelOpening(ctx, prop, ProposerIdx)
 	if err != nil {
 		return nil, errors.WithMessage(err, "preparing channel opening")
 	}
-	defer c.cleanupChannelOpening(prop, proposerIdx)
+	defer c.cleanupChannelOpening(prop, ProposerIdx)
 
 	// 1. validate input
-	peer := c.proposalPeers(prop)[proposeeIdx]
-	if err := c.validTwoPartyProposal(prop, proposerIdx, peer); err != nil {
+	peer := c.proposalPeers(prop)[ProposeeIdx]
+	if err := c.validTwoPartyProposal(prop, ProposerIdx, peer); err != nil {
 		return nil, errors.WithMessage(err, "invalid channel proposal")
 	}
 
@@ -208,7 +213,7 @@ func (c *Client) cleanupChannelOpening(prop ChannelProposal, ourIdx channel.Inde
 //
 // This handler is dispatched from the Client.Handle routine.
 func (c *Client) handleChannelProposal(handler ProposalHandler, p wire.Address, req ChannelProposal) {
-	ourIdx := channel.Index(proposeeIdx)
+	ourIdx := channel.Index(ProposeeIdx)
 
 	// Prepare and cleanup, e.g., for locking and unlocking parent channel.
 	err := c.prepareChannelOpening(c.Ctx(), req, ourIdx)
@@ -272,7 +277,7 @@ func (c *Client) acceptChannelProposal(
 		return nil, errors.WithMessage(err, "sending proposal acceptance")
 	}
 
-	return c.completeCPP(ctx, prop, acc, proposeeIdx)
+	return c.completeCPP(ctx, prop, acc, ProposeeIdx)
 }
 
 func (c *Client) handleChannelProposalRej(
@@ -297,7 +302,7 @@ func (c *Client) proposeTwoPartyChannel(
 	ctx context.Context,
 	proposal ChannelProposal,
 ) (*Channel, error) {
-	peer := c.proposalPeers(proposal)[proposeeIdx]
+	peer := c.proposalPeers(proposal)[ProposeeIdx]
 
 	// enables caching of incoming version 0 signatures before sending any message
 	// that might trigger a fast peer to send those. We don't know the channel id
@@ -343,7 +348,7 @@ func (c *Client) proposeTwoPartyChannel(
 		return nil, errors.WithMessage(err, "validating channel proposal acceptance")
 	}
 
-	return c.completeCPP(ctx, proposal, acc, proposerIdx)
+	return c.completeCPP(ctx, proposal, acc, ProposerIdx)
 }
 
 // validTwoPartyProposal checks that the proposal is valid in the two-party
@@ -368,7 +373,7 @@ func (c *Client) validTwoPartyProposal(
 		return errors.Errorf("expected 2 peers, got %d", len(peers))
 	}
 
-	if !(ourIdx == proposerIdx || ourIdx == proposeeIdx) {
+	if !(ourIdx == ProposerIdx || ourIdx == ProposeeIdx) {
 		return errors.Errorf("invalid index: %d", ourIdx)
 	}
 
@@ -478,15 +483,15 @@ func (c *Client) validChannelProposalAcc(
 
 func participants(proposer, proposee wallet.Address) []wallet.Address {
 	parts := make([]wallet.Address, proposalNumParts)
-	parts[proposerIdx] = proposer
-	parts[proposeeIdx] = proposee
+	parts[ProposerIdx] = proposer
+	parts[ProposeeIdx] = proposee
 	return parts
 }
 
 func nonceShares(proposer, proposee NonceShare) []NonceShare {
 	shares := make([]NonceShare, proposalNumParts)
-	shares[proposerIdx] = proposer
-	shares[proposeeIdx] = proposee
+	shares[ProposerIdx] = proposer
+	shares[ProposeeIdx] = proposee
 	return shares
 }
 
@@ -549,7 +554,7 @@ func (c *Client) completeCPP(
 	}
 
 	// If subchannel proposal receiver, setup register funding update.
-	if prop.Type() == wire.SubChannelProposal && partIdx == proposeeIdx {
+	if prop.Type() == wire.SubChannelProposal && partIdx == ProposeeIdx {
 		parent.registerSubChannelFunding(ch.ID(), propBase.InitBals.Sum())
 	}
 
@@ -664,12 +669,12 @@ func (c *Client) fundSubchannel(ctx context.Context, prop *SubChannelProposalMsg
 	}
 
 	switch subChannel.Idx() {
-	case proposerIdx:
+	case ProposerIdx:
 		if err := parentChannel.fundSubChannel(ctx, subChannel.ID(), prop.InitBals); err != nil {
 			return errors.WithMessage(err, "parent channel update failed")
 		}
 
-	case proposeeIdx:
+	case ProposeeIdx:
 		if err := parentChannel.awaitSubChannelFunding(ctx, subChannel.ID()); err != nil {
 			return errors.WithMessage(err, "await subchannel funding update")
 		}
