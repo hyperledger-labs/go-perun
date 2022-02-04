@@ -157,6 +157,18 @@ func (Serializer) Encode(w io.Writer, env *wire.Envelope) error { // nolint: fun
 		grpcMsg = &Envelope_ChannelProposalRejMsg{
 			ChannelProposalRejMsg: fromChannelProposalRej(msg),
 		}
+	case wire.ChannelUpdate:
+		msg, ok := env.Msg.(*client.ChannelUpdateMsg)
+		if !ok {
+			return errors.New("message type and content mismatch")
+		}
+		channelUpdate, err := fromChannelUpdate(msg)
+		if err != nil {
+			return err
+		}
+		grpcMsg = &Envelope_ChannelUpdateMsg{
+			ChannelUpdateMsg: channelUpdate,
+		}
 	}
 
 	protoEnv := Envelope{
@@ -179,7 +191,7 @@ func (Serializer) Encode(w io.Writer, env *wire.Envelope) error { // nolint: fun
 }
 
 // Decode decodes an envelope from the wire using perunio encoding format.
-func (Serializer) Decode(r io.Reader) (*wire.Envelope, error) { // nolint: cyclop
+func (Serializer) Decode(r io.Reader) (*wire.Envelope, error) { // nolint: funlen,cyclop,gocyclo
 	var length uint16
 	if err := binary.Read(r, binary.BigEndian, &length); err != nil {
 		return nil, errors.Wrap(err, "reading length from wire")
@@ -237,6 +249,8 @@ func (Serializer) Decode(r io.Reader) (*wire.Envelope, error) { // nolint: cyclo
 		env.Msg, err = toVirtualChannelProposalAcc(protoEnv.GetVirtualChannelProposalAccMsg())
 	case *Envelope_ChannelProposalRejMsg:
 		env.Msg = toChannelProposalRej(protoEnv.GetChannelProposalRejMsg())
+	case *Envelope_ChannelUpdateMsg:
+		env.Msg, err = toChannelUpdate(protoEnv.GetChannelUpdateMsg())
 	}
 
 	return &env, err

@@ -24,6 +24,7 @@ import (
 	"perun.network/go-perun/wallet"
 	wallettest "perun.network/go-perun/wallet/test"
 	peruniotest "perun.network/go-perun/wire/perunio/test"
+	protobuftest "perun.network/go-perun/wire/protobuf/test"
 	pkgtest "polycry.pt/poly-go/test"
 )
 
@@ -32,6 +33,7 @@ func TestChannelUpdateSerialization(t *testing.T) {
 	for i := 0; i < 4; i++ {
 		m := newRandomMsgChannelUpdate(rng)
 		peruniotest.MsgSerializerTest(t, m)
+		protobuftest.MsgSerializerTest(t, m)
 	}
 }
 
