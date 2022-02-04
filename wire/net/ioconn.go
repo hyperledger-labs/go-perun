@@ -20,8 +20,6 @@ import (
 	"github.com/pkg/errors"
 
 	"perun.network/go-perun/wire"
-	// nolint: blank-imports  // allow blank import package that is not main or test.
-	_ "perun.network/go-perun/wire/perunio/serializer"
 	"polycry.pt/poly-go/sync/atomic"
 )
 
