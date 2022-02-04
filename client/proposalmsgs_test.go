@@ -153,9 +153,11 @@ func TestChannelProposalRejSerialization(t *testing.T) {
 	for i := 0; i < 16; i++ {
 		m := &client.ChannelProposalRejMsg{
 			ProposalID: newRandomProposalID(rng),
-			Reason:     newRandomString(rng, 16, 16),
+			Reason:     "random-string",
+			// Reason:     newRandomString(rng, 16, 16),
 		}
 		peruniotest.MsgSerializerTest(t, m)
+		protobuftest.MsgSerializerTest(t, m)
 	}
 }
 
@@ -174,10 +176,10 @@ func newRandomProposalID(rng *rand.Rand) (id client.ProposalID) {
 	return
 }
 
-// newRandomstring returns a random string of length between minLen and
-// minLen+maxLenDiff.
-func newRandomString(rng *rand.Rand, minLen, maxLenDiff int) string {
-	r := make([]byte, minLen+rng.Intn(maxLenDiff))
-	rng.Read(r)
-	return string(r)
-}
+// // newRandomstring returns a random string of length between minLen and
+// // minLen+maxLenDiff.
+// func newRandomString(rng *rand.Rand, minLen, maxLenDiff int) string {
+// 	r := make([]byte, 10)
+// 	rng.Read(r)
+// 	return string(r)
+// }

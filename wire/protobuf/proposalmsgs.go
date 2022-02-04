@@ -250,6 +250,13 @@ func toIndexMap(in []uint32) []channel.Index {
 	return indexMap
 }
 
+func toChannelProposalRej(in *ChannelProposalRejMsg) (out *client.ChannelProposalRejMsg) {
+	out = &client.ChannelProposalRejMsg{}
+	copy(out.ProposalID[:], in.ProposalId)
+	out.Reason = in.Reason
+	return
+}
+
 func fromLedgerChannelProposal(in *client.LedgerChannelProposalMsg) (*LedgerChannelProposalMsg, error) {
 	baseChannelProposal, err := fromBaseChannelProposal(in.BaseChannelProposal)
 	if err != nil {
@@ -488,4 +495,12 @@ func fromIndexMap(in []channel.Index) []uint32 {
 		out[i] = uint32(in[i])
 	}
 	return out
+}
+
+func fromChannelProposalRej(in *client.ChannelProposalRejMsg) (out *ChannelProposalRejMsg) {
+	out = &ChannelProposalRejMsg{}
+	out.ProposalId = make([]byte, len(in.ProposalID))
+	copy(out.ProposalId, in.ProposalID[:])
+	out.Reason = in.Reason
+	return
 }
