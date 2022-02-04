@@ -24,8 +24,8 @@ import (
 	pkgtest "polycry.pt/poly-go/test"
 )
 
-// ControlMsgsTest runs serialization tests on control messages.
-func ControlMsgsTest(t *testing.T, serializerTest func(t *testing.T, msg wire.Msg)) {
+// ControlMsgsSerializationTest runs serialization tests on control messages.
+func ControlMsgsSerializationTest(t *testing.T, serializerTest func(t *testing.T, msg wire.Msg)) {
 	t.Helper()
 
 	serializerTest(t, wire.NewPingMsg())

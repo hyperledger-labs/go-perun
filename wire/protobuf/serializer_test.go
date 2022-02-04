@@ -12,16 +12,17 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package wire_test
+package protobuf_test
 
 import (
 	"testing"
 
-	_ "perun.network/go-perun/wire/perunio/serializer" // wire serialzer init
-	peruniotest "perun.network/go-perun/wire/perunio/test"
+	_ "perun.network/go-perun/backend/sim/wallet"
+	_ "perun.network/go-perun/wire/protobuf"
+	protobuftest "perun.network/go-perun/wire/protobuf/test"
 	wiretest "perun.network/go-perun/wire/test"
 )
 
-func TestControlMsgs(t *testing.T) {
-	wiretest.ControlMsgsSerializationTest(t, peruniotest.MsgSerializerTest)
+func TestControlMsgsSerialization(t *testing.T) {
+	wiretest.ControlMsgsSerializationTest(t, protobuftest.MsgSerializerTest)
 }
