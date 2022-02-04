@@ -21,10 +21,12 @@ import (
 	wallettest "perun.network/go-perun/wallet/test"
 	"perun.network/go-perun/wire"
 	peruniotest "perun.network/go-perun/wire/perunio/test"
+	protobuftest "perun.network/go-perun/wire/protobuf/test"
 	pkgtest "polycry.pt/poly-go/test"
 )
 
 func TestAuthResponseMsg(t *testing.T) {
 	rng := pkgtest.Prng(t)
 	peruniotest.MsgSerializerTest(t, wire.NewAuthResponseMsg(wallettest.NewRandomAccount(rng)))
+	protobuftest.MsgSerializerTest(t, wire.NewAuthResponseMsg(wallettest.NewRandomAccount(rng)))
 }

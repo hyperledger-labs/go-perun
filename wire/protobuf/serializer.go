@@ -76,6 +76,10 @@ func (Serializer) Encode(w io.Writer, env *wire.Envelope) error {
 				Reason: msg.Reason,
 			},
 		}
+	case wire.AuthResponse:
+		grpcMsg = &Envelope_AuthResponseMsg{
+			AuthResponseMsg: &AuthResponseMsg{},
+		}
 	}
 
 	protoEnv := Envelope{
@@ -140,6 +144,8 @@ func (Serializer) Decode(r io.Reader) (*wire.Envelope, error) {
 		env.Msg = &wire.ShutdownMsg{
 			Reason: protoEnv.GetShutdownMsg().Reason,
 		}
+	case *Envelope_AuthResponseMsg:
+		env.Msg = &wire.AuthResponseMsg{}
 	}
 
 	return &env, nil
