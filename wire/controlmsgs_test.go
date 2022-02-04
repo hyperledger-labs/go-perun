@@ -19,10 +19,12 @@ import (
 
 	"perun.network/go-perun/wire"
 	peruniotest "perun.network/go-perun/wire/perunio/test"
+	protobuftest "perun.network/go-perun/wire/protobuf/test"
 )
 
 func TestPingMsg(t *testing.T) {
 	peruniotest.MsgSerializerTest(t, wire.NewPingMsg())
+	protobuftest.MsgSerializerTest(t, wire.NewPingMsg())
 }
 
 func TestPongMsg(t *testing.T) {
