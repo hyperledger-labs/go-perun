@@ -15,10 +15,74 @@
 package protobuf
 
 import (
+	"math/big"
+
 	"github.com/pkg/errors"
 	"perun.network/go-perun/channel"
 	"perun.network/go-perun/client"
 )
+
+func toVirtualChannelFundingProposal(in *VirtualChannelFundingProposalMsg) (
+	*client.VirtualChannelFundingProposalMsg,
+	error,
+) {
+	initial, err := toSignedState(in.Initial)
+	if err != nil {
+		return nil, errors.WithMessage(err, "encoding state")
+	}
+	update, err := toChannelUpdate(in.ChannelUpdateMsg)
+	if err != nil {
+		return nil, err
+	}
+	out := &client.VirtualChannelFundingProposalMsg{
+		ChannelUpdateMsg: *update,
+		Initial:          *initial,
+		IndexMap:         toIndexMap(in.IndexMap.IndexMap),
+	}
+	return out, nil
+}
+
+func toSignedState(in *SignedState) (*channel.SignedState, error) {
+	params, err := toParams(in.Params)
+	if err != nil {
+		return nil, err
+	}
+	state, err := toState(in.State)
+	if err != nil {
+		return nil, err
+	}
+	sigs := make([][]byte, len(in.Sigs))
+	for i := range in.Sigs {
+		sigs[i] = make([]byte, len(in.Sigs[i]))
+		copy(sigs[i], in.Sigs[i])
+	}
+	out := &channel.SignedState{
+		Params: params,
+		State:  state,
+		Sigs:   sigs,
+	}
+	return out, nil
+}
+
+func toParams(in *Params) (*channel.Params, error) {
+	app, err := toApp(in.App)
+	if err != nil {
+		return nil, err
+	}
+	parts, err := toWalletAddrs(in.Parts)
+	if err != nil {
+		return nil, err
+	}
+	out := channel.NewParamsUnsafe(
+		in.ChallengeDuration,
+		parts,
+		app,
+		(new(big.Int)).SetBytes(in.Nonce),
+		in.LedgerChannel,
+		in.VirtualChannel)
+
+	return out, nil
+}
 
 func toChannelUpdate(in *ChannelUpdateMsg) (*client.ChannelUpdateMsg, error) {
 	state, err := toState(in.GetChannelUpdate().GetState())
@@ -74,6 +138,71 @@ func toChannelUpdateRej(in *ChannelUpdateRejMsg) (out *client.ChannelUpdateRejMs
 	}
 	copy(out.ChannelID[:], in.ChannelId)
 	return
+}
+
+func fromVirtualChannelFundingProposal(in *client.VirtualChannelFundingProposalMsg) (
+	*VirtualChannelFundingProposalMsg,
+	error,
+) {
+	update, err := fromChannelUpdate(&in.ChannelUpdateMsg)
+	if err != nil {
+		return nil, err
+	}
+	initial, err := fromSignedState(&in.Initial)
+	if err != nil {
+		return nil, errors.WithMessage(err, "encoding state")
+	}
+	out := &VirtualChannelFundingProposalMsg{
+		ChannelUpdateMsg: update,
+		Initial:          initial,
+		IndexMap:         &IndexMap{IndexMap: fromIndexMap(in.IndexMap)},
+	}
+	return out, nil
+}
+
+func fromSignedState(in *channel.SignedState) (*SignedState, error) {
+	params, err := fromParams(in.Params)
+	if err != nil {
+		return nil, errors.WithMessage(err, "encoding params")
+	}
+	state, err := fromState(in.State)
+	if err != nil {
+		return nil, errors.WithMessage(err, "encoding state")
+	}
+	sigs := make([][]byte, len(in.Sigs))
+	for i := range in.Sigs {
+		sigs[i] = make([]byte, len(in.Sigs[i]))
+		copy(sigs[i], in.Sigs[i])
+	}
+	out := &SignedState{
+		Params: params,
+		State:  state,
+		Sigs:   sigs,
+	}
+	return out, nil
+}
+
+func fromParams(in *channel.Params) (*Params, error) {
+	app, err := fromApp(in.App)
+	if err != nil {
+		return nil, err
+	}
+	parts, err := fromWalletAddrs(in.Parts)
+	if err != nil {
+		return nil, err
+	}
+	nonce := in.Nonce.Bytes()
+	out := &Params{
+		ChallengeDuration: in.ChallengeDuration,
+		Parts:             parts,
+		App:               make([]byte, len(app)),
+		Nonce:             make([]byte, len(nonce)),
+		LedgerChannel:     in.LedgerChannel,
+		VirtualChannel:    in.VirtualChannel,
+	}
+	copy(out.App, app)
+	copy(out.Nonce, nonce)
+	return out, nil
 }
 
 func fromChannelUpdate(in *client.ChannelUpdateMsg) (*ChannelUpdateMsg, error) {

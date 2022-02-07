@@ -64,6 +64,7 @@ func TestSerialization_VirtualChannelFundingProposal(t *testing.T) {
 			IndexMap: test.NewRandomIndexMap(rng, state.NumParts(), msgUp.State.NumParts()),
 		}
 		peruniotest.MsgSerializerTest(t, m)
+		protobuftest.MsgSerializerTest(t, m)
 	}
 }
 

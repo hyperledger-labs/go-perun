@@ -123,6 +123,18 @@ func toWalletAddr(in []byte) (wallet.Address, error) {
 	return out, out.UnmarshalBinary(in)
 }
 
+func toWalletAddrs(in [][]byte) ([]wallet.Address, error) {
+	out := make([]wallet.Address, len(in))
+	for i := range in {
+		out[i] = wire.NewAddress()
+		err := out[i].UnmarshalBinary(in[i])
+		if err != nil {
+			return nil, err
+		}
+	}
+	return out, nil
+}
+
 func toWireAddrs(in [][]byte) ([]wire.Address, error) {
 	out := make([]wire.Address, len(in))
 	for i := range in {
@@ -163,6 +175,23 @@ func toBaseChannelProposal(in *BaseChannelProposal) (client.BaseChannelProposal,
 func toBaseChannelProposalAcc(in *BaseChannelProposalAcc) (out client.BaseChannelProposalAcc) {
 	copy(out.ProposalID[:], in.ProposalId)
 	copy(out.NonceShare[:], in.NonceShare)
+	return
+}
+
+func toApp(appIn []byte) (appOut channel.App, err error) {
+	if len(appIn) == 0 {
+		appOut = channel.NoApp()
+		return
+	}
+	appDef := wallet.NewAddress()
+	err = appDef.UnmarshalBinary(appIn)
+	if err != nil {
+		return
+	}
+	appOut, err = channel.Resolve(appDef)
+	if err != nil {
+		return
+	}
 	return
 }
 
@@ -360,6 +389,17 @@ func fromWalletAddr(in wallet.Address) ([]byte, error) {
 	return in.MarshalBinary()
 }
 
+func fromWalletAddrs(in []wallet.Address) (out [][]byte, err error) {
+	out = make([][]byte, len(in))
+	for i := range in {
+		out[i], err = in[i].MarshalBinary()
+		if err != nil {
+			return nil, err
+		}
+	}
+	return out, nil
+}
+
 func fromWireAddrs(in []wire.Address) (out [][]byte, err error) {
 	out = make([][]byte, len(in))
 	for i := range in {
@@ -402,6 +442,14 @@ func fromBaseChannelProposalAcc(in client.BaseChannelProposalAcc) (out *BaseChan
 	copy(out.ProposalId, in.ProposalID[:])
 	copy(out.NonceShare, in.NonceShare[:])
 	return
+}
+
+func fromApp(appIn channel.App) (appOut []byte, err error) {
+	if channel.IsNoApp(appIn) {
+		return
+	}
+	appOut, err = appIn.Def().MarshalBinary()
+	return appOut, errors.WithMessage(err, "marshalling app")
 }
 
 func fromAppAndData(appIn channel.App, dataIn channel.Data) (appOut, dataOut []byte, err error) {
