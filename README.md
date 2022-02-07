@@ -44,14 +44,14 @@ import "perun.network/go-perun/client"
 _go-perun_ implements the core state channel protocol in a blockchain-agnostic fashion by following the dependency inversion principle.
 For this reason, a blockchain backend has to be chosen and blockchain-specific initializations need to be executed at program startup.
 
-### Tutorial
-
-The [walkthrough tutorial](http://tutorial.perun.network) describes how _go-perun_ is used to build a simple micro-payment application on top of Ethereum.
-
 ### Documentation
 
-More in-depth documentation can be found [here](https://labs.hyperledger.org/perun-doc/)
+In-depth documentation can be found at [perun-doc](https://labs.hyperledger.org/perun-doc/)
 and on [go-perun's pkg.go.dev site](https://pkg.go.dev/perun.network/go-perun).
+
+Our [walkthrough tutorial](http://tutorial.perun.network) describes how _go-perun_ is used to build a simple micro-payment application on top of Ethereum.
+
+A bunch of examples can be found at [perun-examples](https://github.com/perun-network/perun-examples).
 
 ## Features
 
@@ -73,9 +73,11 @@ The following features are planned for future releases:
 
 ### Backends
 
-There are multiple **blockchain backends** available as part of the current release: Ethereum (`backend/ethereum`), and a simulated, ideal blockchain backend (`backend/sim`).
-A backend is automatically initialized when its top-level package `backend/<name>` is imported.
-The Ethereum smart contracts can be found in the [contracts-eth](https://github.com/hyperledger-labs/perun-eth-contracts/) repository.
+There are multiple **blockchain backends** available. A backend is automatically initialized when its top-level package `backend/<name>` is imported.
+- **Ethereum.** The Ethereum backend is integrated in the repository at `backend/ethereum`. The smart contracts can be found at [contracts-eth](https://github.com/hyperledger-labs/perun-eth-contracts/).
+- **Polkadot.** The Polkadot backend is available at [perun-polkadot-backend](https://github.com/perun-network/perun-polkadot-backend).
+- **Cosmos.** The Cosmos backend is available at [perun-cosmwasm-backend](https://github.com/hyperledger-labs/perun-cosmwasm-backend).
+- **SimBackend.** The SimBackend represents an ideal blockchain backend (`backend/sim`) implementation that can be used for testing.
 
 **Logging and networking** capabilities can also be injected by the user.
 A default [logrus](https://github.com/sirupsen/logrus) implementation of the `log.Logger` interface can be set using `log/logrus.Set`.
