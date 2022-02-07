@@ -24,7 +24,9 @@ import (
 	_ "perun.network/go-perun/backend/sim" // backend init
 	wallettest "perun.network/go-perun/wallet/test"
 	"perun.network/go-perun/wire"
-	_ "perun.network/go-perun/wire/perunio/serializer" // wire serialzer init
+
+	// _ "perun.network/go-perun/wire/perunio/serializer" // wire serialzer init
+	_ "perun.network/go-perun/wire/protobuf" // wire serialzer init
 	wiretest "perun.network/go-perun/wire/test"
 	ctxtest "polycry.pt/poly-go/context/test"
 	"polycry.pt/poly-go/sync"

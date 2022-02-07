@@ -26,9 +26,9 @@ import (
 // envelopes using perunio encoding.
 type Serializer struct{}
 
-func init() {
-	wire.SetEnvelopeSerializer(Serializer{})
-}
+// func init() {
+// 	wire.SetEnvelopeSerializer(Serializer{})
+// }
 
 // Encode encodes the envelope into the wire using perunio encoding format.
 func (Serializer) Encode(w io.Writer, env *wire.Envelope) error {

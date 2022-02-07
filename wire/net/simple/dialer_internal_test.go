@@ -25,7 +25,9 @@ import (
 	simwallet "perun.network/go-perun/backend/sim/wallet"
 	"perun.network/go-perun/wallet"
 	"perun.network/go-perun/wire"
-	_ "perun.network/go-perun/wire/perunio/serializer" // wire serialzer init
+
+	// _ "perun.network/go-perun/wire/perunio/serializer" // wire serialzer init
+	_ "perun.network/go-perun/wire/protobuf" // wire serialzer init
 	ctxtest "polycry.pt/poly-go/context/test"
 	"polycry.pt/poly-go/test"
 )

@@ -29,9 +29,9 @@ import (
 // envelopes using protobuf encoding.
 type Serializer struct{}
 
-// func init() {
-// 	wire.SetEnvelopeSerializer(Serializer{})
-// }
+func init() {
+	wire.SetEnvelopeSerializer(Serializer{})
+}
 
 // Encode encodes the envelope into the wire using perunio
 // encoding format.
