@@ -197,6 +197,18 @@ func (Serializer) Encode(w io.Writer, env *wire.Envelope) error { // nolint: fun
 		grpcMsg = &Envelope_VirtualChannelFundingProposalMsg{
 			VirtualChannelFundingProposalMsg: virtualChannelFundingProposal,
 		}
+	case wire.VirtualChannelSettlementProposal:
+		msg, ok := env.Msg.(*client.VirtualChannelSettlementProposalMsg)
+		if !ok {
+			return errors.New("message type and content mismatch")
+		}
+		virtualChannelSettlementProposal, err := fromVirtualChannelSettlementProposal(msg)
+		if err != nil {
+			return err
+		}
+		grpcMsg = &Envelope_VirtualChannelSettlementProposalMsg{
+			VirtualChannelSettlementProposalMsg: virtualChannelSettlementProposal,
+		}
 	}
 
 	protoEnv := Envelope{
@@ -285,6 +297,8 @@ func (Serializer) Decode(r io.Reader) (*wire.Envelope, error) { // nolint: funle
 		env.Msg = toChannelUpdateRej(protoEnv.GetChannelUpdateRejMsg())
 	case *Envelope_VirtualChannelFundingProposalMsg:
 		env.Msg, err = toVirtualChannelFundingProposal(protoEnv.GetVirtualChannelFundingProposalMsg())
+	case *Envelope_VirtualChannelSettlementProposalMsg:
+		env.Msg, err = toVirtualChannelSettlementProposal(protoEnv.GetVirtualChannelSettlementProposalMsg())
 	}
 
 	return &env, err

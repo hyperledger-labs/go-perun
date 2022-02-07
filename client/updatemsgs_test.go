@@ -82,6 +82,7 @@ func TestSerialization_VirtualChannelSettlementProposal(t *testing.T) {
 			},
 		}
 		peruniotest.MsgSerializerTest(t, m)
+		protobuftest.MsgSerializerTest(t, m)
 	}
 }
 

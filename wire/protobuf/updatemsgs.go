@@ -22,6 +22,25 @@ import (
 	"perun.network/go-perun/client"
 )
 
+func toVirtualChannelSettlementProposal(in *VirtualChannelSettlementProposalMsg) (
+	*client.VirtualChannelSettlementProposalMsg,
+	error,
+) {
+	final, err := toSignedState(in.Final)
+	if err != nil {
+		return nil, errors.WithMessage(err, "encoding state")
+	}
+	update, err := toChannelUpdate(in.ChannelUpdateMsg)
+	if err != nil {
+		return nil, err
+	}
+	out := &client.VirtualChannelSettlementProposalMsg{
+		ChannelUpdateMsg: *update,
+		Final:            *final,
+	}
+	return out, nil
+}
+
 func toVirtualChannelFundingProposal(in *VirtualChannelFundingProposalMsg) (
 	*client.VirtualChannelFundingProposalMsg,
 	error,
@@ -138,6 +157,25 @@ func toChannelUpdateRej(in *ChannelUpdateRejMsg) (out *client.ChannelUpdateRejMs
 	}
 	copy(out.ChannelID[:], in.ChannelId)
 	return
+}
+
+func fromVirtualChannelSettlementProposal(in *client.VirtualChannelSettlementProposalMsg) (
+	*VirtualChannelSettlementProposalMsg,
+	error,
+) {
+	update, err := fromChannelUpdate(&in.ChannelUpdateMsg)
+	if err != nil {
+		return nil, err
+	}
+	final, err := fromSignedState(&in.Final)
+	if err != nil {
+		return nil, errors.WithMessage(err, "encoding state")
+	}
+	out := &VirtualChannelSettlementProposalMsg{
+		ChannelUpdateMsg: update,
+		Final:            final,
+	}
+	return out, nil
 }
 
 func fromVirtualChannelFundingProposal(in *client.VirtualChannelFundingProposalMsg) (
