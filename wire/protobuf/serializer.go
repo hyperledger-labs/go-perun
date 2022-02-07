@@ -169,6 +169,14 @@ func (Serializer) Encode(w io.Writer, env *wire.Envelope) error { // nolint: fun
 		grpcMsg = &Envelope_ChannelUpdateMsg{
 			ChannelUpdateMsg: channelUpdate,
 		}
+	case wire.ChannelUpdateAcc:
+		msg, ok := env.Msg.(*client.ChannelUpdateAccMsg)
+		if !ok {
+			return errors.New("message type and content mismatch")
+		}
+		grpcMsg = &Envelope_ChannelUpdateAccMsg{
+			ChannelUpdateAccMsg: fromChannelUpdateAcc(msg),
+		}
 	case wire.ChannelUpdateRej:
 		msg, ok := env.Msg.(*client.ChannelUpdateRejMsg)
 		if !ok {
@@ -259,6 +267,8 @@ func (Serializer) Decode(r io.Reader) (*wire.Envelope, error) { // nolint: funle
 		env.Msg = toChannelProposalRej(protoEnv.GetChannelProposalRejMsg())
 	case *Envelope_ChannelUpdateMsg:
 		env.Msg, err = toChannelUpdate(protoEnv.GetChannelUpdateMsg())
+	case *Envelope_ChannelUpdateAccMsg:
+		env.Msg = toChannelUpdateAcc(protoEnv.GetChannelUpdateAccMsg())
 	case *Envelope_ChannelUpdateRejMsg:
 		env.Msg = toChannelUpdateRej(protoEnv.GetChannelUpdateRejMsg())
 	}

@@ -94,6 +94,7 @@ func TestChannelUpdateAccSerialization(t *testing.T) {
 			Sig:       sig,
 		}
 		peruniotest.MsgSerializerTest(t, m)
+		protobuftest.MsgSerializerTest(t, m)
 	}
 }
 
