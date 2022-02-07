@@ -21,6 +21,7 @@ import (
 	"perun.network/go-perun/channel/test"
 	"perun.network/go-perun/client"
 	peruniotest "perun.network/go-perun/wire/perunio/test"
+	protobuftest "perun.network/go-perun/wire/protobuf/test"
 	pkgtest "polycry.pt/poly-go/test"
 )
 
@@ -36,5 +37,6 @@ func TestChannelSyncSerialization(t *testing.T) {
 			},
 		}
 		peruniotest.MsgSerializerTest(t, m)
+		protobuftest.MsgSerializerTest(t, m)
 	}
 }
