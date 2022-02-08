@@ -90,6 +90,8 @@ func NewPongMsg() *PongMsg {
 }
 
 // ShutdownMsg is sent when orderly shutting down a connection.
+//
+// Reason should be a UTF-8 encodable string.
 type ShutdownMsg struct {
 	Reason string
 }
