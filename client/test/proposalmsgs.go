@@ -53,7 +53,7 @@ func channelProposalReqSerializationTest(t *testing.T, serializerTest func(t *te
 		case 1:
 			m, err = NewRandomSubChannelProposal(rng, client.WithNonceFrom(rng), app)
 			require.NoError(t, err)
-		case 2:
+		case 2: //nolint: gomnd 	// This is not a magic number.
 			m, err = NewRandomVirtualChannelProposal(rng, client.WithNonceFrom(rng), app)
 			require.NoError(t, err)
 		}
@@ -93,11 +93,13 @@ func channelProposalAccSerializationTest(t *testing.T, serializerTest func(t *te
 
 func channelProposalRejSerializationTest(t *testing.T, serializerTest func(t *testing.T, msg wire.Msg)) {
 	t.Helper()
+	minLen := 16
+	maxLenDiff := 16
 	rng := pkgtest.Prng(t)
 	for i := 0; i < 16; i++ {
 		m := &client.ChannelProposalRejMsg{
 			ProposalID: newRandomProposalID(rng),
-			Reason:     newRandomString(rng, 16, 16),
+			Reason:     newRandomString(rng, minLen, maxLenDiff),
 		}
 		serializerTest(t, m)
 	}

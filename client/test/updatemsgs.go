@@ -107,11 +107,13 @@ func channelUpdateAccSerializationTest(t *testing.T, serializerTest func(t *test
 func channelUpdateRejSerializationTest(t *testing.T, serializerTest func(t *testing.T, msg wire.Msg)) {
 	t.Helper()
 	rng := pkgtest.Prng(t)
+	minLen := 16
+	maxLenDiff := 16
 	for i := 0; i < 4; i++ {
 		m := &client.ChannelUpdateRejMsg{
 			ChannelID: test.NewRandomChannelID(rng),
 			Version:   uint64(rng.Int63()),
-			Reason:    newRandomString(rng, 16, 16),
+			Reason:    newRandomString(rng, minLen, maxLenDiff),
 		}
 		serializerTest(t, m)
 	}
@@ -133,7 +135,8 @@ func newRandomMsgChannelUpdate(rng *rand.Rand) *client.ChannelUpdateMsg {
 // some random data.
 func newRandomSig(rng *rand.Rand) wallet.Sig {
 	acc := wallettest.NewRandomAccount(rng)
-	data := make([]byte, 8)
+	maxLenOfData := 256
+	data := make([]byte, rng.Intn(maxLenOfData))
 	rng.Read(data)
 	sig, err := acc.SignData(data)
 	if err != nil {
