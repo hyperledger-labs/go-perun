@@ -28,9 +28,10 @@ import (
 func ControlMsgsTest(t *testing.T, serializerTest func(t *testing.T, msg wire.Msg)) {
 	t.Helper()
 
+	rng := pkgtest.Prng(t)
 	serializerTest(t, wire.NewPingMsg())
 	serializerTest(t, wire.NewPongMsg())
-	serializerTest(t, &wire.ShutdownMsg{Reason: "m2384ordkln fb30954390582"})
+	serializerTest(t, &wire.ShutdownMsg{Reason: newRandomString(rng, 16, 16)})
 }
 
 // AuthMsgsTest runs serialization tests on auth message.
