@@ -102,10 +102,13 @@ func TestAdjudicator_ConcludeWithSubChannels(t *testing.T) {
 	// 0. setup
 
 	const (
-		numParts               = 2
-		maxCountSubChannels    = 3
-		maxCountSubSubChannels = 3
-		maxChallengeDuration   = 3600
+		numParts                  = 2
+		maxCountSubChannels       = 3
+		maxCountSubSubChannels    = 3
+		minFundingTXBlocksTimeout = 200
+		minChallengeDuration      = minFundingTXBlocksTimeout
+		maxChallengeDuration      = 3600
+		challengeDurationSpread   = maxChallengeDuration - minChallengeDuration
 	)
 	ctx, cancel := newDefaultTestContext()
 	defer cancel()
@@ -121,7 +124,7 @@ func TestAdjudicator_ConcludeWithSubChannels(t *testing.T) {
 		accounts          = s.Accs
 		participants      = s.Parts
 		asset             = s.Asset
-		challengeDuration = uint64(rng.Intn(maxChallengeDuration))
+		challengeDuration = uint64(rng.Intn(challengeDurationSpread) + minChallengeDuration)
 		makeRandomChannel = func(rng *rand.Rand, ledger bool) paramsAndState {
 			return makeRandomChannel(rng, participants, asset, challengeDuration, ledger)
 		}
