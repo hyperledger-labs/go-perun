@@ -106,11 +106,6 @@ func NewSimulatedBackend(opts ...SimBackendOpt) *SimulatedBackend {
 	return sb
 }
 
-// SuggestGasPrice always returns `GasPrice`.
-func (*SimulatedBackend) SuggestGasPrice(context.Context) (*big.Int, error) {
-	return big.NewInt(GasPrice), nil
-}
-
 // SendTransaction executes a transaction.
 func (s *SimulatedBackend) SendTransaction(ctx context.Context, tx *types.Transaction) error {
 	if err := s.SimulatedBackend.SendTransaction(ctx, tx); err != nil {
