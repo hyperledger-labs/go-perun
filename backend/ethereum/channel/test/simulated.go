@@ -52,11 +52,12 @@ type SimulatedBackend struct {
 	backends.SimulatedBackend
 	sbMtx sync.Mutex // protects SimulatedBackend
 
-	faucetKey  *ecdsa.PrivateKey
-	faucetAddr common.Address
-	clockMu    sync.Mutex    // Mutex for clock adjustments. Locked by SimTimeouts.
-	mining     chan struct{} // Used for auto-mining blocks.
-	commitTx   bool          // Whether each transaction is committed.
+	faucetKey     *ecdsa.PrivateKey
+	faucetAddr    common.Address
+	clockMu       sync.Mutex    // Mutex for clock adjustments. Locked by SimTimeouts.
+	mining        chan struct{} // Used for auto-mining blocks.
+	stoppedMining chan struct{} // For making sure that mining stopped.
+	commitTx      bool          // Whether each transaction is committed.
 }
 
 type (
@@ -146,9 +147,11 @@ func (s *SimulatedBackend) StartMining(interval time.Duration) {
 	}
 
 	s.mining = make(chan struct{})
+	s.stoppedMining = make(chan struct{})
 	go func() {
 		log.Trace("Started mining")
 		defer log.Trace("Stopped mining")
+		defer close(s.stoppedMining)
 
 		for {
 			s.Commit()
@@ -165,8 +168,10 @@ func (s *SimulatedBackend) StartMining(interval time.Duration) {
 
 // StopMining stops the auto-mining of the simulated blockchain.
 // Must be called exactly once to free resources iff `StartMining` was called.
+// Waits until the auto-mining routine terminates.
 func (s *SimulatedBackend) StopMining() {
 	close(s.mining)
+	<-s.stoppedMining
 }
 
 // Reorg applies a chain reorg.
