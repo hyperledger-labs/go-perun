@@ -37,15 +37,20 @@ import (
 )
 
 const (
-	// GasLimit is the max amount of gas we want to send per transaction.
-	GasLimit = 500000
-	// GasPrice is the gas price that is used for simulated transactions.
-	// This value is set to `maxFeePerGas` from go-ethereum to prevent
-	// "max fee per gas less than block base fee" errors.
-	GasPrice = 875000000
+	// InitialGasBaseFee is the simulated backend's initial base fee.
+	// It should only decrease from the first block onwards, as no gas auctions
+	// are taking place.
+	//
+	// When constructing a transaction manually, GasFeeCap can be set to this
+	// value to avoid the error 'max fee per gas less than block base fee'.
+	InitialGasBaseFee = 875_000_000
 	// internal gas limit of the simulated backend.
-	simBackendGasLimit = 8000000
+	simBackendGasLimit = 8_000_000
 )
+
+// SimSigner is the latest types.Signer that can be used with the simulated
+// backend.
+var SimSigner = types.LatestSigner(params.AllEthashProtocolChanges)
 
 // SimulatedBackend provides a simulated ethereum blockchain for tests.
 type SimulatedBackend struct {
@@ -123,17 +128,22 @@ func (s *SimulatedBackend) FundAddress(ctx context.Context, addr common.Address)
 	if err != nil {
 		panic(err)
 	}
-	tx := types.NewTransaction(nonce, addr, test.MaxBalance, GasLimit, big.NewInt(GasPrice), nil)
-	signer := types.NewEIP155Signer(params.AllEthashProtocolChanges.ChainID)
-	signedTX, err := types.SignTx(tx, signer, s.faucetKey)
+	txdata := &types.DynamicFeeTx{
+		Nonce:     nonce,
+		GasFeeCap: big.NewInt(InitialGasBaseFee),
+		Gas:       21000,
+		To:        &addr,
+		Value:     test.MaxBalance,
+	}
+	tx, err := types.SignNewTx(s.faucetKey, SimSigner, txdata)
 	if err != nil {
 		panic(err)
 	}
-	if err := s.SimulatedBackend.SendTransaction(ctx, signedTX); err != nil {
+	if err := s.SimulatedBackend.SendTransaction(ctx, tx); err != nil {
 		panic(err)
 	}
 	s.Commit()
-	if _, err := bind.WaitMined(ctx, s, signedTX); err != nil {
+	if _, err := bind.WaitMined(ctx, s, tx); err != nil {
 		panic(err)
 	}
 }

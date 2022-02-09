@@ -22,7 +22,6 @@ import (
 
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/stretchr/testify/require"
 
 	"perun.network/go-perun/backend/ethereum/bindings"
@@ -62,7 +61,7 @@ func TestEventSub(t *testing.T) {
 	sb.FundAddress(ctx, account.Address)
 	cb := ethchannel.NewContractBackend(
 		sb,
-		keystore.NewTransactor(*ksWallet, types.NewEIP155Signer(big.NewInt(1337))),
+		keystore.NewTransactor(*ksWallet, test.SimSigner),
 		txFinalityDepth,
 	)
 
@@ -150,7 +149,7 @@ func TestEventSub_Filter(t *testing.T) {
 	sb.FundAddress(ctx, account.Address)
 	cb := ethchannel.NewContractBackend(
 		sb,
-		keystore.NewTransactor(*ksWallet, types.NewEIP155Signer(big.NewInt(1337))),
+		keystore.NewTransactor(*ksWallet, test.SimSigner),
 		txFinalityDepth,
 	)
 

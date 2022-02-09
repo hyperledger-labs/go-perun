@@ -24,7 +24,6 @@ import (
 	"github.com/ethereum/go-ethereum/accounts"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -76,7 +75,7 @@ func newFunderSetup(rng *rand.Rand) (
 	ksWallet := wallettest.RandomWallet().(*keystore.Wallet)
 	cb := ethchannel.NewContractBackend(
 		simBackend,
-		keystore.NewTransactor(*ksWallet, types.NewEIP155Signer(big.NewInt(1337))),
+		keystore.NewTransactor(*ksWallet, test.SimSigner),
 		TxFinalityDepth,
 	)
 	funder := ethchannel.NewFunder(cb)
@@ -396,7 +395,7 @@ func newNFunders(
 	simBackend.FundAddress(ctx, tokenAcc.Address)
 	cb := ethchannel.NewContractBackend(
 		simBackend,
-		keystore.NewTransactor(*ksWallet, types.NewEIP155Signer(big.NewInt(1337))),
+		keystore.NewTransactor(*ksWallet, test.SimSigner),
 		TxFinalityDepth,
 	)
 

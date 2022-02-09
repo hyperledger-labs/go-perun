@@ -32,6 +32,8 @@ import (
 	pkgtest "polycry.pt/poly-go/test"
 )
 
+const valueTxGas = 21_000
+
 func fromEthAddr(a common.Address) wallet.Address {
 	return (*ethwallet.Address)(&a)
 }
@@ -126,15 +128,14 @@ func Test_ConfirmTransaction(t *testing.T) {
 	defer cancel()
 
 	// Create the Transaction.
-	rawTx := types.NewTx(&types.LegacyTx{
-		Nonce:    0,
-		To:       &common.Address{},
-		Value:    big.NewInt(1),
-		Gas:      test.GasLimit,
-		GasPrice: big.NewInt(test.GasPrice),
-		Data:     nil,
+	rawTx := types.NewTx(&types.DynamicFeeTx{
+		Nonce:     0,
+		GasFeeCap: big.NewInt(test.InitialGasBaseFee),
+		Gas:       valueTxGas,
+		To:        &common.Address{},
+		Value:     big.NewInt(1),
 	})
-	opts, err := s.CB.NewTransactor(ctx, 1, s.TxSender.Account)
+	opts, err := s.CB.NewTransactor(ctx, valueTxGas, s.TxSender.Account)
 	require.NoError(t, err)
 	signed, err := opts.Signer(s.TxSender.Account.Address, rawTx)
 	require.NoError(t, err)

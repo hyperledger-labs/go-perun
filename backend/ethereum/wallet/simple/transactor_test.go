@@ -57,6 +57,11 @@ func TestTxOptsBackend(t *testing.T) {
 			signer:  types.NewEIP155Signer(big.NewInt(chainID)),
 			chainID: chainID,
 		},
+		{
+			title:   "LatestSigner",
+			signer:  types.LatestSignerForChainID(big.NewInt(chainID)),
+			chainID: chainID,
+		},
 	}
 
 	for _, _t := range tests {

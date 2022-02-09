@@ -26,7 +26,6 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/event"
-	"github.com/ethereum/go-ethereum/params"
 	"github.com/stretchr/testify/require"
 
 	"perun.network/go-perun/backend/ethereum/bindings"
@@ -69,10 +68,9 @@ func NewTokenSetup(ctx context.Context, t *testing.T, rng *rand.Rand, txFinality
 	sb.FundAddress(ctx, acc1.Address)
 	acc2 := &ksWallet.NewRandomAccount(rng).(*keystore.Account).Account
 	sb.FundAddress(ctx, acc2.Address)
-	signer := types.NewEIP155Signer(params.AllEthashProtocolChanges.ChainID)
 	cb := ethchannel.NewContractBackend(
 		sb,
-		keystore.NewTransactor(*ksWallet, signer),
+		keystore.NewTransactor(*ksWallet, SimSigner),
 		txFinalityDepth,
 	)
 
