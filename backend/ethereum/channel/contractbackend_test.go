@@ -22,6 +22,7 @@ import (
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
+	"github.com/ethereum/go-ethereum/params"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -31,8 +32,6 @@ import (
 	"perun.network/go-perun/wallet"
 	pkgtest "polycry.pt/poly-go/test"
 )
-
-const valueTxGas = 21_000
 
 func fromEthAddr(a common.Address) wallet.Address {
 	return (*ethwallet.Address)(&a)
@@ -131,11 +130,11 @@ func Test_ConfirmTransaction(t *testing.T) {
 	rawTx := types.NewTx(&types.DynamicFeeTx{
 		Nonce:     0,
 		GasFeeCap: big.NewInt(test.InitialGasBaseFee),
-		Gas:       valueTxGas,
+		Gas:       params.TxGas,
 		To:        &common.Address{},
 		Value:     big.NewInt(1),
 	})
-	opts, err := s.CB.NewTransactor(ctx, valueTxGas, s.TxSender.Account)
+	opts, err := s.CB.NewTransactor(ctx, params.TxGas, s.TxSender.Account)
 	require.NoError(t, err)
 	signed, err := opts.Signer(s.TxSender.Account.Address, rawTx)
 	require.NoError(t, err)

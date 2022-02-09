@@ -126,7 +126,7 @@ func (s *SimulatedBackend) FundAddress(ctx context.Context, addr common.Address)
 	txdata := &types.DynamicFeeTx{
 		Nonce:     nonce,
 		GasFeeCap: big.NewInt(InitialGasBaseFee),
-		Gas:       21000,
+		Gas:       params.TxGas,
 		To:        &addr,
 		Value:     test.MaxBalance,
 	}
