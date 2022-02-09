@@ -257,8 +257,6 @@ func (s *ResistantEventSub) isFinal(event *Event) bool {
 // Close closes the sub and the underlying `EventSub`.
 // Can be called more than once. Is thread safe.
 func (s *ResistantEventSub) Close() {
-	if err := s.closer.Close(); err != nil && !pkgsync.IsAlreadyClosedError(err) {
-		log.WithError(err).Error("could not close EventSub")
-	}
+	s.closer.Close() // Silently ignore repeated close calls, as it is allowed in this function's specification.
 	// NOTE: The underlying `EventSub` is closed in the `OnCloseAlways` hook.
 }
