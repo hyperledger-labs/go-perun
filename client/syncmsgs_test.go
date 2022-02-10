@@ -17,24 +17,10 @@ package client_test
 import (
 	"testing"
 
-	"perun.network/go-perun/channel"
-	"perun.network/go-perun/channel/test"
-	"perun.network/go-perun/client"
+	clienttest "perun.network/go-perun/client/test"
 	peruniotest "perun.network/go-perun/wire/perunio/test"
-	pkgtest "polycry.pt/poly-go/test"
 )
 
 func TestChannelSyncSerialization(t *testing.T) {
-	rng := pkgtest.Prng(t)
-	for i := 0; i < 4; i++ {
-		state := test.NewRandomState(rng)
-		m := &client.ChannelSyncMsg{
-			Phase: channel.Phase(rng.Intn(channel.LastPhase)),
-			CurrentTX: channel.Transaction{
-				State: state,
-				Sigs:  newRandomSigs(rng, state.NumParts()),
-			},
-		}
-		peruniotest.MsgSerializerTest(t, m)
-	}
+	clienttest.ChannelSyncMsgSerializationTest(t, peruniotest.MsgSerializerTest)
 }

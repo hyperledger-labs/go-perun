@@ -1,4 +1,4 @@
-// Copyright 2019 - See NOTICE file for copyright holders.
+// Copyright 2022 - See NOTICE file for copyright holders.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -17,18 +17,10 @@ package wire_test
 import (
 	"testing"
 
-	"perun.network/go-perun/wire"
 	peruniotest "perun.network/go-perun/wire/perunio/test"
+	wiretest "perun.network/go-perun/wire/test"
 )
 
-func TestPingMsg(t *testing.T) {
-	peruniotest.MsgSerializerTest(t, wire.NewPingMsg())
-}
-
-func TestPongMsg(t *testing.T) {
-	peruniotest.MsgSerializerTest(t, wire.NewPongMsg())
-}
-
-func TestShutdownMsg(t *testing.T) {
-	peruniotest.MsgSerializerTest(t, &wire.ShutdownMsg{"m2384ordkln fb30954390582"})
+func TestControlMsgs(t *testing.T) {
+	wiretest.ControlMsgsTest(t, peruniotest.MsgSerializerTest)
 }
