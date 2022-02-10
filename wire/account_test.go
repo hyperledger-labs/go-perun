@@ -23,5 +23,5 @@ import (
 )
 
 func TestAuthResponseMsg(t *testing.T) {
-	wiretest.AuthMsgsTest(t, peruniotest.MsgSerializerTest)
+	wiretest.AuthMsgsSerializationTest(t, peruniotest.MsgSerializerTest)
 }

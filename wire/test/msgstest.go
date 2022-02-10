@@ -36,8 +36,8 @@ func ControlMsgsSerializationTest(t *testing.T, serializerTest func(t *testing.T
 	serializerTest(t, &wire.ShutdownMsg{Reason: newRandomASCIIString(rng, minLen, maxLenDiff)})
 }
 
-// AuthMsgsTest runs serialization tests on auth message.
-func AuthMsgsTest(t *testing.T, serializerTest func(t *testing.T, msg wire.Msg)) {
+// AuthMsgsSerializationTest runs serialization tests on auth message.
+func AuthMsgsSerializationTest(t *testing.T, serializerTest func(t *testing.T, msg wire.Msg)) {
 	t.Helper()
 
 	rng := pkgtest.Prng(t)

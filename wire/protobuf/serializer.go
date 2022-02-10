@@ -41,6 +41,8 @@ func (serializer) Encode(w io.Writer, env *wire.Envelope) (err error) {
 		protoEnv.Msg = fromPongMsg(msg)
 	case *wire.ShutdownMsg:
 		protoEnv.Msg = fromShutdownMsg(msg)
+	case *wire.AuthResponseMsg:
+		protoEnv.Msg = &Envelope_AuthResponseMsg{}
 	}
 
 	protoEnv.Sender, protoEnv.Recipient, err = marshalSenderRecipient(env)
@@ -94,6 +96,8 @@ func (serializer) Decode(r io.Reader) (env *wire.Envelope, err error) {
 		env.Msg = toPongMsg(protoMsg)
 	case *Envelope_ShutdownMsg:
 		env.Msg = toShutdownMsg(protoMsg)
+	case *Envelope_AuthResponseMsg:
+		env.Msg = &wire.AuthResponseMsg{}
 	}
 
 	return env, nil
