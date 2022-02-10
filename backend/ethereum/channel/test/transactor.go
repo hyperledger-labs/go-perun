@@ -20,7 +20,6 @@ import (
 	"testing"
 
 	"github.com/ethereum/go-ethereum/accounts"
-	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/stretchr/testify/assert"
@@ -30,10 +29,24 @@ import (
 	"perun.network/go-perun/backend/ethereum/wallet"
 )
 
+// TxType is a transaction type, specifying how it is hashed for signing and how
+// the v value of the signature is coded.
+type TxType int
+
+const (
+	// LegacyTx - legacy transaction with v = {0,1} + 27.
+	LegacyTx TxType = iota
+	// EIP155Tx - EIP155 transaction with v = {0,1} + CHAIN_ID * 2 + 35.
+	EIP155Tx
+	// EIP1559Tx - EIP1559 transaction with v = {0,1}.
+	EIP1559Tx
+)
+
 // TransactorSetup holds the setup for running generic tests on a transactor implementation.
 type TransactorSetup struct {
 	Signer     types.Signer
 	ChainID    int64
+	TxType     TxType // Transaction type to generate and check against this signer
 	Tr         channel.Transactor
 	ValidAcc   accounts.Account // wallet should contain key corresponding to this account.
 	MissingAcc accounts.Account // wallet should not contain key corresponding to this account.
@@ -45,22 +58,37 @@ const signerTestDataMaxLength = 100
 // for the passed signer.
 func GenericSignerTest(t *testing.T, rng *rand.Rand, setup TransactorSetup) {
 	t.Helper()
-	signer := setup.Signer
-	chainID := setup.ChainID
-	data := make([]byte, rng.Int31n(signerTestDataMaxLength)+1)
-	rng.Read(data)
+
+	newTx := func() *types.Transaction {
+		data := make([]byte, rng.Int31n(signerTestDataMaxLength)+1)
+		rng.Read(data)
+		switch setup.TxType {
+		case LegacyTx, EIP155Tx:
+			return types.NewTx(&types.LegacyTx{
+				Value: big.NewInt(rng.Int63()),
+				Data:  data,
+			})
+		case EIP1559Tx:
+			return types.NewTx(&types.DynamicFeeTx{
+				ChainID: big.NewInt(setup.ChainID),
+				Value:   big.NewInt(rng.Int63()),
+				Data:    data,
+			})
+		}
+		panic("unsupported tx type")
+	}
 
 	t.Run("happy", func(t *testing.T) {
 		transactOpts, err := setup.Tr.NewTransactor(setup.ValidAcc)
 		require.NoError(t, err)
-		rawTx := types.NewTransaction(uint64(1), common.Address{}, big.NewInt(1), uint64(1), big.NewInt(1), data)
-		signedTx, err := transactOpts.Signer(setup.ValidAcc.Address, rawTx)
+		tx := newTx()
+		signedTx, err := transactOpts.Signer(setup.ValidAcc.Address, tx)
 		assert.NoError(t, err)
 		require.NotNil(t, signedTx)
 
-		txHash := signer.Hash(rawTx).Bytes()
+		txHash := setup.Signer.Hash(tx).Bytes()
 		v, r, s := signedTx.RawSignatureValues()
-		sig := sigFromRSV(t, r, s, v, chainID)
+		sig := sigFromRSV(t, r, s, v, &setup)
 		pk, err := crypto.SigToPub(txHash, sig)
 		require.NoError(t, err)
 		addr := crypto.PubkeyToAddress(*pk)
@@ -76,30 +104,39 @@ func GenericSignerTest(t *testing.T, rng *rand.Rand, setup TransactorSetup) {
 		transactOpts, err := setup.Tr.NewTransactor(setup.ValidAcc)
 		require.NoError(t, err)
 
-		rawTx := types.NewTransaction(uint64(1), common.Address{}, big.NewInt(1), uint64(1), big.NewInt(1), data)
-		_, err = transactOpts.Signer(setup.MissingAcc.Address, rawTx)
+		_, err = transactOpts.Signer(setup.MissingAcc.Address, newTx())
 		assert.Error(t, err)
 	})
 }
 
-func sigFromRSV(t *testing.T, r, s, _v *big.Int, chainID int64) []byte {
+func sigFromRSV(t *testing.T, r, s, _v *big.Int, setup *TransactorSetup) []byte {
 	t.Helper()
 	const (
-		elemLen      = 32
-		sigLen       = elemLen*2 + 1
-		sigVAdd      = 35
-		sigVSubtract = 27
+		elemLen         = 32
+		sigVEIP155Shift = 35
+		sigVLegacyShift = 27
 	)
-	sig := make([]byte, wallet.SigLen)
-	copy(sig[elemLen-len(r.Bytes()):elemLen], r.Bytes())
-	copy(sig[elemLen*2-len(s.Bytes()):elemLen*2], s.Bytes())
-	v := byte(_v.Uint64()) // Needed for chain ids > 110.
+	var (
+		sig = make([]byte, wallet.SigLen)
+		rb  = r.Bytes()
+		sb  = s.Bytes()
+		v   = byte(_v.Uint64()) // truncation anticipated for large ChainIDs
+	)
+	copy(sig[elemLen-len(rb):elemLen], rb)
+	copy(sig[elemLen*2-len(sb):elemLen*2], sb)
 
-	if chainID == 0 {
-		sig[sigLen-1] = v - sigVSubtract
-	} else {
-		sig[sigLen-1] = v - byte(chainID*2+sigVAdd) // Underflow is ok here.
+	switch setup.TxType {
+	case LegacyTx:
+		v -= sigVLegacyShift
+	case EIP155Tx:
+		v -= byte(setup.ChainID*2 + sigVEIP155Shift) // underflow anticipated
+	case EIP1559Tx:
+		// EIP1559 transactions simply code the y-parity into v, so no correction
+		// necessary.
 	}
-	require.Contains(t, []byte{0, 1}, sig[sigLen-1], "Invalid v")
+	require.Containsf(t, []byte{0, 1}, v,
+		"Invalid v (txType: %v; chainID: %d)", setup.TxType, setup.ChainID)
+
+	sig[wallet.SigLen-1] = v
 	return sig
 }
