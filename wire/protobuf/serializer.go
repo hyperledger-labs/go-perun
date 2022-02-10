@@ -20,6 +20,7 @@ import (
 
 	"github.com/pkg/errors"
 	"google.golang.org/protobuf/proto"
+	"perun.network/go-perun/client"
 	"perun.network/go-perun/wire"
 )
 
@@ -43,8 +44,24 @@ func (serializer) Encode(w io.Writer, env *wire.Envelope) (err error) {
 		protoEnv.Msg = fromShutdownMsg(msg)
 	case *wire.AuthResponseMsg:
 		protoEnv.Msg = &Envelope_AuthResponseMsg{}
+	case *client.LedgerChannelProposalMsg:
+		protoEnv.Msg, err = fromLedgerChannelProposalMsg(msg)
+	case *client.SubChannelProposalMsg:
+		protoEnv.Msg, err = fromSubChannelProposalMsg(msg)
+	case *client.VirtualChannelProposalMsg:
+		protoEnv.Msg, err = fromVirtualChannelProposalMsg(msg)
+	case *client.LedgerChannelProposalAccMsg:
+		protoEnv.Msg, err = fromLedgerChannelProposalAccMsg(msg)
+	case *client.SubChannelProposalAccMsg:
+		protoEnv.Msg = fromSubChannelProposalAccMsg(msg)
+	case *client.VirtualChannelProposalAccMsg:
+		protoEnv.Msg, err = fromVirtualChannelProposalAccMsg(msg)
+	case *client.ChannelProposalRejMsg:
+		protoEnv.Msg = fromChannelProposalRejMsg(msg)
 	}
-
+	if err != nil {
+		return err
+	}
 	protoEnv.Sender, protoEnv.Recipient, err = marshalSenderRecipient(env)
 	if err != nil {
 		return err
@@ -98,9 +115,23 @@ func (serializer) Decode(r io.Reader) (env *wire.Envelope, err error) {
 		env.Msg = toShutdownMsg(protoMsg)
 	case *Envelope_AuthResponseMsg:
 		env.Msg = &wire.AuthResponseMsg{}
+	case *Envelope_LedgerChannelProposalMsg:
+		env.Msg, err = toLedgerChannelProposalMsg(protoMsg)
+	case *Envelope_SubChannelProposalMsg:
+		env.Msg, err = toSubChannelProposalMsg(protoMsg)
+	case *Envelope_VirtualChannelProposalMsg:
+		env.Msg, err = toVirtualChannelProposalMsg(protoMsg)
+	case *Envelope_LedgerChannelProposalAccMsg:
+		env.Msg, err = toLedgerChannelProposalAccMsg(protoMsg)
+	case *Envelope_SubChannelProposalAccMsg:
+		env.Msg = toSubChannelProposalAccMsg(protoMsg)
+	case *Envelope_VirtualChannelProposalAccMsg:
+		env.Msg, err = toVirtualChannelProposalAccMsg(protoMsg)
+	case *Envelope_ChannelProposalRejMsg:
+		env.Msg = toChannelProposalRejMsg(protoMsg)
 	}
 
-	return env, nil
+	return env, err
 }
 
 func readEnvelope(r io.Reader) (*Envelope, error) {

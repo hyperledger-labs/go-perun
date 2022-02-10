@@ -17,7 +17,9 @@ package protobuf_test
 import (
 	"testing"
 
+	_ "perun.network/go-perun/backend/sim/channel"
 	_ "perun.network/go-perun/backend/sim/wallet"
+	clienttest "perun.network/go-perun/client/test"
 	_ "perun.network/go-perun/wire/protobuf"
 	protobuftest "perun.network/go-perun/wire/protobuf/test"
 	wiretest "perun.network/go-perun/wire/test"
@@ -29,4 +31,8 @@ func TestControlMsgsSerialization(t *testing.T) {
 
 func TestAuthResponseMsgSerialization(t *testing.T) {
 	wiretest.AuthMsgsSerializationTest(t, protobuftest.MsgSerializerTest)
+}
+
+func TestProposalMsgsSerialization(t *testing.T) {
+	clienttest.ProposalMsgsSerializationTest(t, protobuftest.MsgSerializerTest)
 }
