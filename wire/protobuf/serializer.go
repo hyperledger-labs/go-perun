@@ -72,6 +72,7 @@ func (serializer) Encode(w io.Writer, env *wire.Envelope) (err error) { //nolint
 	case *client.ChannelSyncMsg:
 		protoEnv.Msg, err = fromChannelSyncMsg(msg)
 	default:
+		//nolint: goerr113  // We do not want to define this as constant error.
 		err = fmt.Errorf("unknown message type: %T", msg)
 	}
 	if err != nil {
@@ -157,6 +158,7 @@ func (serializer) Decode(r io.Reader) (env *wire.Envelope, err error) { //nolint
 	case *Envelope_ChannelSyncMsg:
 		env.Msg, err = toChannelSyncMsg(protoMsg)
 	default:
+		//nolint: goerr113  // We do not want to define this as constant error.
 		err = fmt.Errorf("unknown message type: %T", protoMsg)
 	}
 

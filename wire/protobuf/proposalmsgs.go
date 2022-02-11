@@ -249,7 +249,7 @@ func toIndexMap(protoIndexMap []uint32) (indexMap []channel.Index, err error) {
 	indexMap = make([]channel.Index, len(protoIndexMap))
 	for i := range protoIndexMap {
 		if protoIndexMap[i] > math.MaxUint16 {
-			return nil, fmt.Errorf("%d'th index is invalid", i)
+			return nil, fmt.Errorf("%d'th index is invalid", i) //nolint:goerr113  // We do not want to define this as constant error.
 		}
 		indexMap[i] = channel.Index(uint16(protoIndexMap[i]))
 	}
@@ -446,10 +446,10 @@ func fromBalance(balance []channel.Bal) (protoBalance *Balance, err error) {
 	}
 	for i := range balance {
 		if balance[i] == nil {
-			return nil, fmt.Errorf("%d'th amount is nil", i)
+			return nil, fmt.Errorf("%d'th amount is nil", i) //nolint:goerr113  // We do not want to define this as constant error.
 		}
 		if balance[i].Sign() == -1 {
-			return nil, fmt.Errorf("%d'th amount is negative", i)
+			return nil, fmt.Errorf("%d'th amount is negative", i) //nolint:goerr113  // We do not want to define this as constant error.
 		}
 		protoBalance.Balance[i] = balance[i].Bytes()
 	}
