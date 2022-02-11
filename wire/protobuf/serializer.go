@@ -68,6 +68,8 @@ func (serializer) Encode(w io.Writer, env *wire.Envelope) (err error) {
 		protoEnv.Msg = fromChannelUpdateAccMsg(msg)
 	case *client.ChannelUpdateRejMsg:
 		protoEnv.Msg = fromChannelUpdateRejMsg(msg)
+	case *client.ChannelSyncMsg:
+		protoEnv.Msg, err = fromChannelSyncMsg(msg)
 	}
 	if err != nil {
 		return err
@@ -149,6 +151,8 @@ func (serializer) Decode(r io.Reader) (env *wire.Envelope, err error) {
 		env.Msg = toChannelUpdateAccMsg(protoMsg)
 	case *Envelope_ChannelUpdateRejMsg:
 		env.Msg = toChannelUpdateRejMsg(protoMsg)
+	case *Envelope_ChannelSyncMsg:
+		env.Msg, err = toChannelSyncMsg(protoMsg)
 	}
 
 	return env, err

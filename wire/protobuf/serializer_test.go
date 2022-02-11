@@ -40,3 +40,7 @@ func TestProposalMsgsSerialization(t *testing.T) {
 func TestUpdateMsgsSerialization(t *testing.T) {
 	clienttest.UpdateMsgsSerializationTest(t, protobuftest.MsgSerializerTest)
 }
+
+func TestChannelSyncMsgSerialization(t *testing.T) {
+	clienttest.ChannelSyncMsgSerializationTest(t, protobuftest.MsgSerializerTest)
+}
