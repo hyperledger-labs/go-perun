@@ -58,6 +58,16 @@ func (serializer) Encode(w io.Writer, env *wire.Envelope) (err error) {
 		protoEnv.Msg, err = fromVirtualChannelProposalAccMsg(msg)
 	case *client.ChannelProposalRejMsg:
 		protoEnv.Msg = fromChannelProposalRejMsg(msg)
+	case *client.ChannelUpdateMsg:
+		protoEnv.Msg, err = fromChannelUpdateMsg(msg)
+	case *client.VirtualChannelFundingProposalMsg:
+		protoEnv.Msg, err = fromVirtualChannelFundingProposalMsg(msg)
+	case *client.VirtualChannelSettlementProposalMsg:
+		protoEnv.Msg, err = fromVirtualChannelSettlementProposalMsg(msg)
+	case *client.ChannelUpdateAccMsg:
+		protoEnv.Msg = fromChannelUpdateAccMsg(msg)
+	case *client.ChannelUpdateRejMsg:
+		protoEnv.Msg = fromChannelUpdateRejMsg(msg)
 	}
 	if err != nil {
 		return err
@@ -129,6 +139,16 @@ func (serializer) Decode(r io.Reader) (env *wire.Envelope, err error) {
 		env.Msg, err = toVirtualChannelProposalAccMsg(protoMsg)
 	case *Envelope_ChannelProposalRejMsg:
 		env.Msg = toChannelProposalRejMsg(protoMsg)
+	case *Envelope_ChannelUpdateMsg:
+		env.Msg, err = toChannelUpdateMsg(protoMsg)
+	case *Envelope_VirtualChannelFundingProposalMsg:
+		env.Msg, err = toVirtualChannelFundingProposalMsg(protoMsg)
+	case *Envelope_VirtualChannelSettlementProposalMsg:
+		env.Msg, err = toVirtualChannelSettlementProposalMsg(protoMsg)
+	case *Envelope_ChannelUpdateAccMsg:
+		env.Msg = toChannelUpdateAccMsg(protoMsg)
+	case *Envelope_ChannelUpdateRejMsg:
+		env.Msg = toChannelUpdateRejMsg(protoMsg)
 	}
 
 	return env, err

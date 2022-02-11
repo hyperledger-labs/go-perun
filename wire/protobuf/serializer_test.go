@@ -36,3 +36,7 @@ func TestAuthResponseMsgSerialization(t *testing.T) {
 func TestProposalMsgsSerialization(t *testing.T) {
 	clienttest.ProposalMsgsSerializationTest(t, protobuftest.MsgSerializerTest)
 }
+
+func TestUpdateMsgsSerialization(t *testing.T) {
+	clienttest.UpdateMsgsSerializationTest(t, protobuftest.MsgSerializerTest)
+}

@@ -118,6 +118,18 @@ func toWalletAddr(protoAddr []byte) (wallet.Address, error) {
 	return addr, addr.UnmarshalBinary(protoAddr)
 }
 
+func toWalletAddrs(protoAddrs [][]byte) ([]wallet.Address, error) {
+	addrs := make([]wallet.Address, len(protoAddrs))
+	for i := range protoAddrs {
+		addrs[i] = wire.NewAddress()
+		err := addrs[i].UnmarshalBinary(protoAddrs[i])
+		if err != nil {
+			return nil, errors.WithMessagef(err, "%d'th address", i)
+		}
+	}
+	return addrs, nil
+}
+
 func toWireAddrs(protoAddrs [][]byte) ([]wire.Address, error) {
 	addrs := make([]wire.Address, len(protoAddrs))
 	for i := range protoAddrs {
@@ -150,6 +162,20 @@ func toBaseChannelProposalAcc(protoPropAcc *BaseChannelProposalAcc) (propAcc cli
 	copy(propAcc.ProposalID[:], protoPropAcc.ProposalId)
 	copy(propAcc.NonceShare[:], protoPropAcc.NonceShare)
 	return
+}
+
+func toApp(protoApp []byte) (app channel.App, err error) {
+	if len(protoApp) == 0 {
+		app = channel.NoApp()
+		return app, nil
+	}
+	appDef := wallet.NewAddress()
+	err = appDef.UnmarshalBinary(protoApp)
+	if err != nil {
+		return app, err
+	}
+	app, err = channel.Resolve(appDef)
+	return app, err
 }
 
 func toAppAndData(protoApp, protoData []byte) (app channel.App, data channel.Data, err error) {
@@ -307,6 +333,17 @@ func fromWalletAddr(addr wallet.Address) ([]byte, error) {
 	return addr.MarshalBinary()
 }
 
+func fromWalletAddrs(addrs []wallet.Address) (protoAddrs [][]byte, err error) {
+	protoAddrs = make([][]byte, len(addrs))
+	for i := range addrs {
+		protoAddrs[i], err = addrs[i].MarshalBinary()
+		if err != nil {
+			return nil, errors.WithMessagef(err, "%d'th address", i)
+		}
+	}
+	return protoAddrs, nil
+}
+
 func fromWireAddrs(addrs []wire.Address) (protoAddrs [][]byte, err error) {
 	protoAddrs = make([][]byte, len(addrs))
 	for i := range addrs {
@@ -348,6 +385,14 @@ func fromBaseChannelProposalAcc(propAcc client.BaseChannelProposalAcc) (protoPro
 	copy(protoPropAcc.ProposalId, propAcc.ProposalID[:])
 	copy(protoPropAcc.NonceShare, propAcc.NonceShare[:])
 	return protoPropAcc
+}
+
+func fromApp(app channel.App) (protoApp []byte, err error) {
+	if channel.IsNoApp(app) {
+		return []byte{}, nil
+	}
+	protoApp, err = app.Def().MarshalBinary()
+	return protoApp, err
 }
 
 func fromAppAndData(app channel.App, data channel.Data) (protoApp, protoData []byte, err error) {
