@@ -33,7 +33,7 @@ func init() {
 
 // Encode encodes an envelope from the reader using protocol buffers
 // serialization format.
-func (serializer) Encode(w io.Writer, env *wire.Envelope) (err error) {
+func (serializer) Encode(w io.Writer, env *wire.Envelope) (err error) { //nolint: funlen, cyclop
 	protoEnv := &Envelope{}
 
 	switch msg := env.Msg.(type) {
@@ -108,7 +108,7 @@ func writeEnvelope(w io.Writer, env *Envelope) error {
 
 // Decode decodes an envelope from the reader, that was encoded using protocol
 // buffers serialization format.
-func (serializer) Decode(r io.Reader) (env *wire.Envelope, err error) {
+func (serializer) Decode(r io.Reader) (env *wire.Envelope, err error) { //nolint: funlen, cyclop
 	env = &wire.Envelope{}
 
 	protoEnv, err := readEnvelope(r)
