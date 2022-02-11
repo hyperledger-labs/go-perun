@@ -99,7 +99,7 @@ func channelProposalRejSerializationTest(t *testing.T, serializerTest func(t *te
 	for i := 0; i < 16; i++ {
 		m := &client.ChannelProposalRejMsg{
 			ProposalID: newRandomProposalID(rng),
-			Reason:     newRandomString(rng, minLen, maxLenDiff),
+			Reason:     newRandomASCIIString(rng, minLen, maxLenDiff),
 		}
 		serializerTest(t, m)
 	}
@@ -110,10 +110,14 @@ func newRandomProposalID(rng *rand.Rand) (id client.ProposalID) {
 	return
 }
 
-// newRandomstring returns a random ascii string of length between minLen and
+// newRandomASCIIString returns a random ascii string of length between minLen and
 // minLen+maxLenDiff.
-func newRandomString(rng *rand.Rand, minLen, maxLenDiff int) string {
-	r := make([]byte, minLen+rng.Intn(maxLenDiff))
-	rng.Read(r)
-	return string(r)
+func newRandomASCIIString(rng *rand.Rand, minLen, maxLenDiff int) string {
+	str := make([]byte, minLen+rng.Intn(maxLenDiff))
+	const firstPrintableASCII = 32
+	const lastPrintableASCII = 126
+	for i := range str {
+		str[i] = byte(firstPrintableASCII + rng.Intn(lastPrintableASCII-firstPrintableASCII))
+	}
+	return string(str)
 }

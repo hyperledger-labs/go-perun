@@ -95,6 +95,8 @@ type (
 	// ChannelUpdateRejMsg is the wire message sent as a negative reply to a
 	// ChannelUpdate.  It references the channel ID and version and states a
 	// reason for the rejection.
+	//
+	// Reason should be a UTF-8 encodable string.
 	ChannelUpdateRejMsg struct {
 		// ChannelID is the channel ID.
 		ChannelID channel.ID

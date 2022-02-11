@@ -113,7 +113,7 @@ func channelUpdateRejSerializationTest(t *testing.T, serializerTest func(t *test
 		m := &client.ChannelUpdateRejMsg{
 			ChannelID: test.NewRandomChannelID(rng),
 			Version:   uint64(rng.Int63()),
-			Reason:    newRandomString(rng, minLen, maxLenDiff),
+			Reason:    newRandomASCIIString(rng, minLen, maxLenDiff),
 		}
 		serializerTest(t, m)
 	}
