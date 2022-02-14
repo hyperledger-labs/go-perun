@@ -47,33 +47,41 @@ func TestTransactor(t *testing.T) {
 		title        string
 		signer       types.Signer
 		chainID      int64
+		txType       test.TxType
 		hideSignHash bool
 	}{
 		{
-			title:   "FrontierSigner",
-			signer:  &types.FrontierSigner{},
-			chainID: 0,
+			title:  "FrontierSigner",
+			signer: &types.FrontierSigner{},
+			txType: test.LegacyTx,
 		},
 		{
-			title:   "HomesteadSigner",
-			signer:  &types.HomesteadSigner{},
-			chainID: 0,
+			title:  "HomesteadSigner",
+			signer: &types.HomesteadSigner{},
+			txType: test.LegacyTx,
 		},
 		{
 			title:        "FrontierSigner (hideSignHash)",
 			signer:       &types.FrontierSigner{},
-			chainID:      0,
+			txType:       test.LegacyTx,
 			hideSignHash: true,
 		},
 		{
 			title:        "HomesteadSigner (hideSignHash)",
 			signer:       &types.HomesteadSigner{},
-			chainID:      0,
+			txType:       test.LegacyTx,
 			hideSignHash: true,
 		},
 		{
 			title:   "EIP155Signer",
 			signer:  types.NewEIP155Signer(big.NewInt(chainID)),
+			txType:  test.EIP155Tx,
+			chainID: chainID,
+		},
+		{
+			title:   "LatestSigner",
+			signer:  types.LatestSignerForChainID(big.NewInt(chainID)),
+			txType:  test.EIP1559Tx,
 			chainID: chainID,
 		},
 	}
@@ -81,14 +89,14 @@ func TestTransactor(t *testing.T) {
 	for _, _t := range tests {
 		_t := _t
 		t.Run(_t.title, func(t *testing.T) {
-			s := newTransactorSetup(t, rng, _t.hideSignHash, _t.signer, _t.chainID)
+			s := newTransactorSetup(t, rng, _t.hideSignHash, _t.signer, _t.chainID, _t.txType)
 			test.GenericSignerTest(t, rng, s)
 		})
 	}
 }
 
 // rand.Rand is preferred over io.Reader here.
-func newTransactorSetup(t *testing.T, prng *rand.Rand, hideSignHash bool, signer types.Signer, chainID int64) test.TransactorSetup {
+func newTransactorSetup(t *testing.T, prng *rand.Rand, hideSignHash bool, signer types.Signer, chainID int64, txType test.TxType) test.TransactorSetup {
 	t.Helper()
 	walletSeed := make([]byte, 20)
 	prng.Read(walletSeed)
@@ -114,6 +122,7 @@ func newTransactorSetup(t *testing.T, prng *rand.Rand, hideSignHash bool, signer
 	return test.TransactorSetup{
 		Signer:     signer,
 		ChainID:    chainID,
+		TxType:     txType,
 		Tr:         hd.NewTransactor(hdWallet.Wallet(), signer),
 		ValidAcc:   accounts.Account{Address: wallet.AsEthAddr(validAcc.Address())},
 		MissingAcc: accounts.Account{Address: common.HexToAddress(missingAddr)},

@@ -145,11 +145,6 @@ func (c *ContractBackend) NewTransactor(ctx context.Context, gasLimit uint64,
 		return nil, errors.WithMessage(err, "creating transactor")
 	}
 
-	auth.GasPrice, err = c.SuggestGasPrice(ctx)
-	if err != nil {
-		return nil, errors.Wrapf(err, "estimating gas price")
-	}
-
 	auth.GasLimit = gasLimit
 	auth.Context = ctx
 

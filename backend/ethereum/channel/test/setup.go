@@ -21,8 +21,6 @@ import (
 	"time"
 
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/core/types"
-	"github.com/ethereum/go-ethereum/params"
 	"github.com/stretchr/testify/require"
 
 	ethchannel "perun.network/go-perun/backend/ethereum/channel"
@@ -73,10 +71,9 @@ func NewSimSetup(t *testing.T, rng *rand.Rand, txFinalityDepth uint64, blockInte
 		t.Cleanup(simBackend.StopMining)
 	}
 
-	signer := types.NewEIP155Signer(params.AllEthashProtocolChanges.ChainID)
 	contractBackend := ethchannel.NewContractBackend(
 		simBackend,
-		keystore.NewTransactor(*ksWallet, signer),
+		keystore.NewTransactor(*ksWallet, SimSigner),
 		txFinalityDepth,
 	)
 
@@ -119,10 +116,9 @@ func NewSetup(t *testing.T, rng *rand.Rand, n int, blockInterval time.Duration, 
 		s.Parts[i] = s.Accs[i].Address()
 		s.SimBackend.FundAddress(ctx, s.Accs[i].Account.Address)
 		s.Recvs[i] = ksWallet.NewRandomAccount(rng).Address().(*ethwallet.Address)
-		signer := types.NewEIP155Signer(params.AllEthashProtocolChanges.ChainID)
 		cb := ethchannel.NewContractBackend(
 			s.SimBackend,
-			keystore.NewTransactor(*ksWallet, signer),
+			keystore.NewTransactor(*ksWallet, SimSigner),
 			txFinalityDepth,
 		)
 		s.Funders[i] = ethchannel.NewFunder(cb)
