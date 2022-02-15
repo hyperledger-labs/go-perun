@@ -16,6 +16,7 @@ package protobuf
 
 import (
 	"encoding/binary"
+	"fmt"
 	"io"
 
 	"github.com/pkg/errors"
@@ -70,6 +71,8 @@ func (serializer) Encode(w io.Writer, env *wire.Envelope) (err error) {
 		protoEnv.Msg = fromChannelUpdateRejMsg(msg)
 	case *client.ChannelSyncMsg:
 		protoEnv.Msg, err = fromChannelSyncMsg(msg)
+	default:
+		err = fmt.Errorf("unknown message type: %T", msg)
 	}
 	if err != nil {
 		return err
@@ -153,6 +156,8 @@ func (serializer) Decode(r io.Reader) (env *wire.Envelope, err error) {
 		env.Msg = toChannelUpdateRejMsg(protoMsg)
 	case *Envelope_ChannelSyncMsg:
 		env.Msg, err = toChannelSyncMsg(protoMsg)
+	default:
+		err = fmt.Errorf("unknown message type: %T", protoMsg)
 	}
 
 	return env, err
