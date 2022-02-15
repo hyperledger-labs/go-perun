@@ -12,16 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package wire_test
-
-import (
-	"testing"
-
-	_ "perun.network/go-perun/backend/ethereum/wallet/test" // random init
-	peruniotest "perun.network/go-perun/wire/perunio/test"
-	wiretest "perun.network/go-perun/wire/test"
-)
-
-func TestAuthResponseMsg(t *testing.T) {
-	wiretest.AuthMsgsSerializationTest(t, peruniotest.MsgSerializerTest)
-}
+// Package test contains test helper functions for running generic tests for
+// protobuf serialization.
+package test // import "perun.network/go-perun/wire/protobuf/test"

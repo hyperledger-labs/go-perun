@@ -12,16 +12,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package wire_test
+package protobuf
 
-import (
-	"testing"
+// This command generates the bindings for serializing wire messages using
+// protocol buffers serialization protocol.
+//
+// It requires protoc and protoc-gen-go to be installed.
 
-	_ "perun.network/go-perun/backend/ethereum/wallet/test" // random init
-	peruniotest "perun.network/go-perun/wire/perunio/test"
-	wiretest "perun.network/go-perun/wire/test"
-)
-
-func TestAuthResponseMsg(t *testing.T) {
-	wiretest.AuthMsgsSerializationTest(t, peruniotest.MsgSerializerTest)
-}
+//go:generate protoc --go_out=. wire.proto

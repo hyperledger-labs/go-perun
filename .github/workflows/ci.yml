@@ -25,12 +25,19 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v2
+
       - name: Check vanity import
         run: .scripts/check-vanity-imports.sh $GITHUB_WORKSPACE
-      - name: Lint
+
+      - name: Lint golang files
         uses: golangci/golangci-lint-action@v2
         with:
           version: v1.43
+
+      - name: Lint proto files
+        uses: plexsystems/protolint-action@v0.6.0
+        with:
+          configDirectory: .
 
   tests:
     name: Tests

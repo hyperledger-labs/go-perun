@@ -68,6 +68,8 @@ type (
 
 	// PeerRejectedError indicates the channel proposal or channel update was
 	// rejected by the peer.
+	//
+	// Reason should be a UTF-8 encodable string.
 	PeerRejectedError struct {
 		ItemType string // ItemType indicates the type of item rejected (channel proposal or channel update).
 		Reason   string // Reason sent by the peer for the rejection.

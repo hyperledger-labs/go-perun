@@ -29,31 +29,36 @@ func init() {
 
 // Since ping and pong messages are essentially the same, this is a common
 // implementation for both.
-type pingPongMsg struct {
+
+// PingPongMsg is the common message type used by ping and pong msgs, since
+// both the messages are essentially the same.
+type PingPongMsg struct {
 	Created time.Time
 }
 
-func (m pingPongMsg) Encode(writer io.Writer) error {
+// Encode implements msg.Encode.
+func (m PingPongMsg) Encode(writer io.Writer) error {
 	return perunio.Encode(writer, m.Created)
 }
 
-func (m *pingPongMsg) Decode(reader io.Reader) error {
+// Decode implements msg.Decode.
+func (m *PingPongMsg) Decode(reader io.Reader) error {
 	return perunio.Decode(reader, &m.Created)
 }
 
-func newPingPongMsg() pingPongMsg {
+func newPingPongMsg() PingPongMsg {
 	// do not use `time.Now()` directly because it contains monotonic clock
 	// data specific to the current process which breaks, e.g.,
 	// `reflect.DeepEqual`, cf. "Marshal/Unmarshal functions are asymmetrical"
 	// https://github.com/golang/go/issues/19502
-	return pingPongMsg{Created: time.Unix(0, time.Now().UnixNano())}
+	return PingPongMsg{Created: time.Unix(0, time.Now().UnixNano())}
 }
 
 // PingMsg is a ping request.
 // It contains the time at which it was sent, so that the recipient can also
 // measure the time it took to transmit the ping request.
 type PingMsg struct {
-	pingPongMsg
+	PingPongMsg
 }
 
 // Type returns Ping.
@@ -71,7 +76,7 @@ func NewPingMsg() *PingMsg {
 // long the ping request took to be transmitted, and how quickly the response
 // was sent.
 type PongMsg struct {
-	pingPongMsg
+	PingPongMsg
 }
 
 // Type returns Pong.
@@ -85,6 +90,8 @@ func NewPongMsg() *PongMsg {
 }
 
 // ShutdownMsg is sent when orderly shutting down a connection.
+//
+// Reason should be a UTF-8 encodable string.
 type ShutdownMsg struct {
 	Reason string
 }

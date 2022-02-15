@@ -19,8 +19,6 @@ import (
 	"context"
 
 	"perun.network/go-perun/wire"
-	// nolint: blank-imports  // allow blank import package that is not main or test.
-	_ "perun.network/go-perun/wire/perunio/serializer"
 )
 
 // SerializingLocalBus is a local bus that also serializes messages for testing.

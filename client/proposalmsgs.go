@@ -487,6 +487,8 @@ func (acc *SubChannelProposalAccMsg) Decode(r io.Reader) error {
 //
 // The message is one of two possible responses in the
 // Multi-Party Channel Proposal Protocol (MPCPP).
+//
+// Reason should be a UTF-8 encodable string.
 type ChannelProposalRejMsg struct {
 	ProposalID ProposalID // The channel proposal to reject.
 	Reason     string     // The rejection reason.
