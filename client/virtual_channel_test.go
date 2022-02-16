@@ -268,13 +268,15 @@ func setupVirtualChannelTest(t *testing.T, ctx context.Context) (vct virtualChan
 		t.Fatalf("Error in go-routine: %v", err)
 	}
 
-	err = vct.chAliceBob.Update(ctx, func(s *channel.State) {
+	err = vct.chAliceBob.Update(ctx, func(s *channel.State) error {
 		s.Balances = channel.Balances{vct.virtualBalsUpdated}
+		return nil
 	})
 	require.NoError(err, "updating virtual channel")
 
-	err = vct.chAliceBob.Update(ctx, func(s *channel.State) {
+	err = vct.chAliceBob.Update(ctx, func(s *channel.State) error {
 		s.IsFinal = true
+		return nil
 	})
 	require.NoError(err, "updating virtual channel")
 	return vct

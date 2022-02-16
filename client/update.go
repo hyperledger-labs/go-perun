@@ -131,8 +131,8 @@ func (r *UpdateResponder) Reject(ctx context.Context, reason string) error {
 	return r.channel.handleUpdateRej(ctx, r.pidx, r.req, reason)
 }
 
-// Update proposes a state update to the channel participants as
-// specified by the `updater` function.
+// Update proposes a state update to the channel participants as specified by
+// the `updater` function. If `updater` returns an error, the update is aborted.
 //
 // The updater function must adhere to the following rules:
 // - The version must not be changed. It is incremented automatically.
@@ -142,7 +142,7 @@ func (r *UpdateResponder) Reject(ctx context.Context, reason string) error {
 // Returns nil if all peers accept the update. Returns RequestTimedOutError if
 // any peer did not respond before the context expires or is cancelled. Returns
 // an error if any runtime error occurs or any peer rejects the update.
-func (c *Channel) Update(ctx context.Context, updater func(*channel.State)) error {
+func (c *Channel) Update(ctx context.Context, updater func(*channel.State) error) error {
 	if ctx == nil {
 		return errors.New("context must not be nil")
 	}
@@ -156,7 +156,9 @@ func (c *Channel) Update(ctx context.Context, updater func(*channel.State)) erro
 	return c.update(ctx,
 		func(state *channel.State) error {
 			// apply update
-			updater(state)
+			if err := updater(state); err != nil {
+				return err
+			}
 
 			// validate
 			return c.validTwoPartyUpdateState(state)
