@@ -28,6 +28,7 @@ import (
 	"perun.network/go-perun/wallet"
 	wallettest "perun.network/go-perun/wallet/test"
 	"perun.network/go-perun/wire"
+	perunio "perun.network/go-perun/wire/perunio/serializer"
 	wiretest "perun.network/go-perun/wire/test"
 	ctxtest "polycry.pt/poly-go/context/test"
 	"polycry.pt/poly-go/sync/atomic"
@@ -52,7 +53,7 @@ func (d *mockDialer) Close() error {
 	return nil
 }
 
-func (d *mockDialer) Dial(ctx context.Context, addr wire.Address) (Conn, error) {
+func (d *mockDialer) Dial(ctx context.Context, addr wire.Address, _ wire.EnvelopeSerializer) (Conn, error) {
 	d.mutex.Lock()
 	defer d.mutex.Unlock()
 
@@ -85,8 +86,8 @@ type mockListener struct {
 	dialer mockDialer
 }
 
-func (l *mockListener) Accept() (Conn, error) {
-	return l.dialer.Dial(context.Background(), nil)
+func (l *mockListener) Accept(ser wire.EnvelopeSerializer) (Conn, error) {
+	return l.dialer.Dial(context.Background(), nil, ser)
 }
 
 func (l *mockListener) Close() error {
@@ -123,7 +124,7 @@ func TestRegistry_Get(t *testing.T) {
 		t.Parallel()
 
 		dialer := newMockDialer()
-		r := NewEndpointRegistry(id, nilConsumer, dialer)
+		r := NewEndpointRegistry(id, nilConsumer, dialer, perunio.Serializer())
 		existing := newEndpoint(peerAddr, newMockConn())
 
 		r.endpoints[wallet.Key(peerAddr)] = newFullEndpoint(existing)
@@ -138,7 +139,7 @@ func TestRegistry_Get(t *testing.T) {
 		t.Parallel()
 
 		dialer := newMockDialer()
-		r := NewEndpointRegistry(id, nilConsumer, dialer)
+		r := NewEndpointRegistry(id, nilConsumer, dialer, perunio.Serializer())
 
 		dialer.Close()
 		ctxtest.AssertTerminates(t, timeout, func() {
@@ -154,7 +155,7 @@ func TestRegistry_Get(t *testing.T) {
 		t.Parallel()
 
 		dialer := newMockDialer()
-		r := NewEndpointRegistry(id, nilConsumer, dialer)
+		r := NewEndpointRegistry(id, nilConsumer, dialer, perunio.Serializer())
 
 		ct := test.NewConcurrent(t)
 		a, b := newPipeConnPair()
@@ -182,7 +183,7 @@ func TestRegistry_authenticatedDial(t *testing.T) {
 	rng := test.Prng(t)
 	id := wallettest.NewRandomAccount(rng)
 	d := &mockDialer{dial: make(chan Conn)}
-	r := NewEndpointRegistry(id, nilConsumer, d)
+	r := NewEndpointRegistry(id, nilConsumer, d, perunio.Serializer())
 
 	remoteID := wallettest.NewRandomAccount(rng)
 	remoteAddr := remoteID.Address()
@@ -267,7 +268,7 @@ func TestRegistry_setupConn(t *testing.T) {
 
 	t.Run("ExchangeAddrs fail", func(t *testing.T) {
 		d := &mockDialer{dial: make(chan Conn)}
-		r := NewEndpointRegistry(id, nilConsumer, d)
+		r := NewEndpointRegistry(id, nilConsumer, d, perunio.Serializer())
 		a, b := newPipeConnPair()
 		go func() {
 			err := b.Send(&wire.Envelope{
@@ -286,7 +287,7 @@ func TestRegistry_setupConn(t *testing.T) {
 
 	t.Run("ExchangeAddrs success (peer already exists)", func(t *testing.T) {
 		d := &mockDialer{dial: make(chan Conn)}
-		r := NewEndpointRegistry(id, nilConsumer, d)
+		r := NewEndpointRegistry(id, nilConsumer, d, perunio.Serializer())
 		a, b := newPipeConnPair()
 		go func() {
 			err := ExchangeAddrsActive(context.Background(), remoteID, id.Address(), b)
@@ -303,7 +304,7 @@ func TestRegistry_setupConn(t *testing.T) {
 
 	t.Run("ExchangeAddrs success (peer did not exist)", func(t *testing.T) {
 		d := &mockDialer{dial: make(chan Conn)}
-		r := NewEndpointRegistry(id, nilConsumer, d)
+		r := NewEndpointRegistry(id, nilConsumer, d, perunio.Serializer())
 		a, b := newPipeConnPair()
 		go func() {
 			err := ExchangeAddrsActive(context.Background(), remoteID, id.Address(), b)
@@ -331,7 +332,7 @@ func TestRegistry_Listen(t *testing.T) {
 
 	d := newMockDialer()
 	l := newMockListener()
-	r := NewEndpointRegistry(id, nilConsumer, d)
+	r := NewEndpointRegistry(id, nilConsumer, d, perunio.Serializer())
 
 	go func() {
 		// Listen() will only terminate if the listener is closed.
@@ -365,7 +366,12 @@ func TestRegistry_addEndpoint_Subscribe(t *testing.T) {
 	t.Parallel()
 	rng := test.Prng(t)
 	called := false
-	r := NewEndpointRegistry(wallettest.NewRandomAccount(rng), func(wire.Address) wire.Consumer { called = true; return nil }, nil)
+	r := NewEndpointRegistry(
+		wallettest.NewRandomAccount(rng),
+		func(wire.Address) wire.Consumer { called = true; return nil },
+		nil,
+		perunio.Serializer(),
+	)
 
 	assert.False(t, called, "onNewEndpoint must not have been called yet")
 	r.addEndpoint(wallettest.NewRandomAddress(rng), newMockConn(), false)
@@ -378,7 +384,12 @@ func TestRegistry_Close(t *testing.T) {
 	rng := test.Prng(t)
 
 	t.Run("double close error", func(t *testing.T) {
-		r := NewEndpointRegistry(wallettest.NewRandomAccount(rng), nilConsumer, nil)
+		r := NewEndpointRegistry(
+			wallettest.NewRandomAccount(rng),
+			nilConsumer,
+			nil,
+			perunio.Serializer(),
+		)
 		r.Close()
 		assert.Error(t, r.Close())
 	})
@@ -386,7 +397,12 @@ func TestRegistry_Close(t *testing.T) {
 	t.Run("dialer close error", func(t *testing.T) {
 		d := &mockDialer{dial: make(chan Conn)}
 		d.Close()
-		r := NewEndpointRegistry(wallettest.NewRandomAccount(rng), nilConsumer, d)
+		r := NewEndpointRegistry(
+			wallettest.NewRandomAccount(rng),
+			nilConsumer,
+			d,
+			perunio.Serializer(),
+		)
 
 		assert.Error(t, r.Close())
 	})
@@ -395,5 +411,6 @@ func TestRegistry_Close(t *testing.T) {
 // newPipeConnPair creates endpoints that are connected via pipes.
 func newPipeConnPair() (a Conn, b Conn) {
 	c0, c1 := net.Pipe()
-	return NewIoConn(c0), NewIoConn(c1)
+	ser := perunio.Serializer()
+	return NewIoConn(c0, ser), NewIoConn(c1, ser)
 }

@@ -45,14 +45,14 @@ const (
 
 // NewBus creates a new network bus. The dialer and listener are used to
 // establish new connections internally, while id is this node's identity.
-func NewBus(id wire.Account, d Dialer) *Bus {
+func NewBus(id wire.Account, d Dialer, s wire.EnvelopeSerializer) *Bus {
 	b := &Bus{
 		mainRecv: wire.NewReceiver(),
 		recvs:    make(map[wallet.AddrKey]wire.Consumer),
 	}
 
 	onNewEndpoint := func(wire.Address) wire.Consumer { return b.mainRecv }
-	b.reg = NewEndpointRegistry(id, onNewEndpoint, d)
+	b.reg = NewEndpointRegistry(id, onNewEndpoint, d, s)
 	go b.dispatchMsgs()
 
 	return b

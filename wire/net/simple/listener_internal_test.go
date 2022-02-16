@@ -20,6 +20,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	perunio "perun.network/go-perun/wire/perunio/serializer"
 
 	"polycry.pt/poly-go/context/test"
 )
@@ -73,6 +74,7 @@ func TestNewListener(t *testing.T) {
 func TestListener_Accept(t *testing.T) {
 	// Happy case already tested in TestDialer_Dial.
 
+	ser := perunio.Serializer()
 	timeout := 100 * time.Millisecond
 	t.Run("timeout", func(t *testing.T) {
 		l, err := NewTCPListener(addr)
@@ -80,7 +82,7 @@ func TestListener_Accept(t *testing.T) {
 		defer l.Close()
 
 		test.AssertNotTerminates(t, timeout, func() {
-			l.Accept() //nolint:errcheck
+			l.Accept(ser) //nolint:errcheck
 		})
 	})
 
@@ -90,7 +92,7 @@ func TestListener_Accept(t *testing.T) {
 		l.Close()
 
 		test.AssertTerminates(t, timeout, func() {
-			conn, err := l.Accept()
+			conn, err := l.Accept(ser)
 			assert.Nil(t, conn)
 			assert.Error(t, err)
 		})

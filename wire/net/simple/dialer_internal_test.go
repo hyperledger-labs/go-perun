@@ -25,7 +25,7 @@ import (
 	simwallet "perun.network/go-perun/backend/sim/wallet"
 	"perun.network/go-perun/wallet"
 	"perun.network/go-perun/wire"
-	_ "perun.network/go-perun/wire/protobuf" // wire serialzer init
+	perunio "perun.network/go-perun/wire/perunio/serializer"
 	ctxtest "polycry.pt/poly-go/context/test"
 	"polycry.pt/poly-go/test"
 )
@@ -66,6 +66,7 @@ func TestDialer_Dial(t *testing.T) {
 	require.NoError(t, err)
 	defer l.Close()
 
+	ser := perunio.Serializer()
 	d := NewTCPDialer(timeout)
 	d.Register(laddr, lhost)
 	daddr := simwallet.NewRandomAddress(rng)
@@ -79,7 +80,7 @@ func TestDialer_Dial(t *testing.T) {
 		}
 		ct := test.NewConcurrent(t)
 		go ct.Stage("accept", func(rt test.ConcT) {
-			conn, err := l.Accept()
+			conn, err := l.Accept(ser)
 			assert.NoError(t, err)
 			require.NotNil(rt, conn)
 
@@ -90,7 +91,7 @@ func TestDialer_Dial(t *testing.T) {
 
 		ct.Stage("dial", func(rt test.ConcT) {
 			ctxtest.AssertTerminates(t, timeout, func() {
-				conn, err := d.Dial(context.Background(), laddr)
+				conn, err := d.Dial(context.Background(), laddr, ser)
 				assert.NoError(t, err)
 				require.NotNil(rt, conn)
 
@@ -105,7 +106,7 @@ func TestDialer_Dial(t *testing.T) {
 		ctx, cancel := context.WithCancel(context.Background())
 		cancel()
 		ctxtest.AssertTerminates(t, timeout, func() {
-			conn, err := d.Dial(ctx, laddr)
+			conn, err := d.Dial(ctx, laddr, ser)
 			assert.Nil(t, conn)
 			assert.Error(t, err)
 		})
@@ -116,7 +117,7 @@ func TestDialer_Dial(t *testing.T) {
 		d.Register(noHostAddr, "no such host")
 
 		ctxtest.AssertTerminates(t, timeout, func() {
-			conn, err := d.Dial(context.Background(), noHostAddr)
+			conn, err := d.Dial(context.Background(), noHostAddr, ser)
 			assert.Nil(t, conn)
 			assert.Error(t, err)
 		})
@@ -125,7 +126,7 @@ func TestDialer_Dial(t *testing.T) {
 	t.Run("unknown address", func(t *testing.T) {
 		ctxtest.AssertTerminates(t, timeout, func() {
 			unkownAddr := simwallet.NewRandomAddress(rng)
-			conn, err := d.Dial(context.Background(), unkownAddr)
+			conn, err := d.Dial(context.Background(), unkownAddr, ser)
 			assert.Error(t, err)
 			assert.Nil(t, conn)
 		})

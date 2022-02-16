@@ -17,7 +17,6 @@ package wire_test
 import (
 	"testing"
 
-	_ "perun.network/go-perun/wire/perunio/serializer" // wire serialzer init
 	peruniotest "perun.network/go-perun/wire/perunio/test"
 	wiretest "perun.network/go-perun/wire/test"
 )

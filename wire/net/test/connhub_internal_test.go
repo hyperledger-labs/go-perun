@@ -24,7 +24,7 @@ import (
 	_ "perun.network/go-perun/backend/sim" // backend init
 	wallettest "perun.network/go-perun/wallet/test"
 	"perun.network/go-perun/wire"
-	_ "perun.network/go-perun/wire/protobuf" // wire serialzer init
+	perunio "perun.network/go-perun/wire/perunio/serializer"
 	wiretest "perun.network/go-perun/wire/test"
 	ctxtest "polycry.pt/poly-go/context/test"
 	"polycry.pt/poly-go/sync"
@@ -33,6 +33,7 @@ import (
 
 func TestConnHub_Create(t *testing.T) {
 	rng := pkgtest.Prng(t)
+	ser := perunio.Serializer()
 	t.Run("create and dial existing", func(t *testing.T) {
 		assert := assert.New(t)
 
@@ -45,7 +46,7 @@ func TestConnHub_Create(t *testing.T) {
 		ct := pkgtest.NewConcurrent(t)
 		go ctxtest.AssertTerminates(t, timeout, func() {
 			ct.Stage("accept", func(rt pkgtest.ConcT) {
-				conn, err := l.Accept()
+				conn, err := l.Accept(ser)
 				assert.NoError(err)
 				require.NotNil(rt, conn)
 				assert.NoError(conn.Send(wiretest.NewRandomEnvelope(rng, wire.NewPingMsg())))
@@ -54,7 +55,7 @@ func TestConnHub_Create(t *testing.T) {
 
 		ctxtest.AssertTerminates(t, timeout, func() {
 			ct.Stage("dial", func(rt pkgtest.ConcT) {
-				conn, err := d.Dial(context.Background(), addr)
+				conn, err := d.Dial(context.Background(), addr, ser)
 				assert.NoError(err)
 				require.NotNil(rt, conn)
 				m, err := conn.Recv()
@@ -85,7 +86,7 @@ func TestConnHub_Create(t *testing.T) {
 
 		d := c.NewNetDialer()
 		ctxtest.AssertTerminates(t, timeout, func() {
-			conn, err := d.Dial(context.Background(), wallettest.NewRandomAddress(rng))
+			conn, err := d.Dial(context.Background(), wallettest.NewRandomAddress(rng), ser)
 			assert.Nil(conn)
 			assert.Error(err)
 		})

@@ -22,11 +22,12 @@ import (
 	"perun.network/go-perun/wire/perunio"
 )
 
-type serializer struct{}
-
-func init() {
-	wire.SetEnvelopeSerializer(serializer{})
+// Serializer returns a perunio serializer.
+func Serializer() wire.EnvelopeSerializer {
+	return serializer{}
 }
+
+type serializer struct{}
 
 // Encode encodes the envelope into the wire using perunio encoding format.
 func (serializer) Encode(w io.Writer, env *wire.Envelope) error {

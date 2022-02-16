@@ -27,6 +27,7 @@ import (
 	_ "perun.network/go-perun/backend/sim" // backend init
 	wallettest "perun.network/go-perun/wallet/test"
 	"perun.network/go-perun/wire"
+	perunio "perun.network/go-perun/wire/perunio/serializer"
 	wiretest "perun.network/go-perun/wire/test"
 	"polycry.pt/poly-go/test"
 )
@@ -53,7 +54,7 @@ func makeSetup(rng *rand.Rand) *setup {
 }
 
 // Dial simulates creating a connection to a.
-func (s *setup) Dial(ctx context.Context, addr wire.Address) (Conn, error) {
+func (s *setup) Dial(ctx context.Context, addr wire.Address, _ wire.EnvelopeSerializer) (Conn, error) {
 	s.mutex.RLock()
 	defer s.mutex.RUnlock()
 
@@ -99,7 +100,7 @@ func makeClient(conn Conn, rng *rand.Rand, dialer Dialer) *client {
 	receiver := wire.NewReceiver()
 	registry := NewEndpointRegistry(wallettest.NewRandomAccount(rng), func(wire.Address) wire.Consumer {
 		return receiver
-	}, dialer)
+	}, dialer, perunio.Serializer())
 
 	return &client{
 		endpoint: registry.addEndpoint(wallettest.NewRandomAddress(rng), conn, true),

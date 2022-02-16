@@ -21,6 +21,7 @@ import (
 
 	"perun.network/go-perun/wire"
 	wirenet "perun.network/go-perun/wire/net"
+	perunio "perun.network/go-perun/wire/perunio/serializer"
 	"polycry.pt/poly-go/sync/atomic"
 )
 
@@ -63,5 +64,6 @@ func (c *Conn) IsClosed() bool {
 func NewTestConnPair() (a wirenet.Conn, b wirenet.Conn) {
 	closed := new(atomic.Bool)
 	c0, c1 := net.Pipe()
-	return &Conn{closed, wirenet.NewIoConn(c0)}, &Conn{closed, wirenet.NewIoConn(c1)}
+	ser := perunio.Serializer()
+	return &Conn{closed, wirenet.NewIoConn(c0, ser)}, &Conn{closed, wirenet.NewIoConn(c1, ser)}
 }

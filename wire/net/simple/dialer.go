@@ -44,6 +44,7 @@ var _ wirenet.Dialer = (*Dialer)(nil)
 // attempts. Leaving the timeout as 0 will result in no timeouts. Standard OS
 // timeouts may still apply even when no timeout is selected. The network string
 // controls the type of connection that the dialer can dial.
+// `serializer` defines the message encoding.
 func NewNetDialer(network string, defaultTimeout time.Duration) *Dialer {
 	return &Dialer{
 		peers:   make(map[wallet.AddrKey]string),
@@ -71,7 +72,7 @@ func (d *Dialer) host(key wallet.AddrKey) (string, bool) {
 }
 
 // Dial implements Dialer.Dial().
-func (d *Dialer) Dial(ctx context.Context, addr wire.Address) (wirenet.Conn, error) {
+func (d *Dialer) Dial(ctx context.Context, addr wire.Address, ser wire.EnvelopeSerializer) (wirenet.Conn, error) {
 	done := make(chan struct{})
 	defer close(done)
 
@@ -97,7 +98,7 @@ func (d *Dialer) Dial(ctx context.Context, addr wire.Address) (wirenet.Conn, err
 		return nil, errors.Wrap(err, "failed to dial peer")
 	}
 
-	return wirenet.NewIoConn(conn), nil
+	return wirenet.NewIoConn(conn, ser), nil
 }
 
 // Register registers a network address for a peer address.

@@ -27,19 +27,21 @@ var _ Conn = (*ioConn)(nil)
 
 // ioConn is a connection that communicates its messages over an io stream.
 type ioConn struct {
-	closed atomic.Bool
-	conn   io.ReadWriteCloser
+	closed     atomic.Bool
+	conn       io.ReadWriteCloser
+	serializer wire.EnvelopeSerializer
 }
 
 // NewIoConn creates a peer message connection from an io stream.
-func NewIoConn(conn io.ReadWriteCloser) Conn {
+func NewIoConn(conn io.ReadWriteCloser, serializer wire.EnvelopeSerializer) Conn {
 	return &ioConn{
-		conn: conn,
+		conn:       conn,
+		serializer: serializer,
 	}
 }
 
 func (c *ioConn) Send(e *wire.Envelope) error {
-	if err := wire.EncodeEnvelope(c.conn, e); err != nil {
+	if err := c.serializer.Encode(c.conn, e); err != nil {
 		c.conn.Close()
 		return err
 	}
@@ -47,7 +49,7 @@ func (c *ioConn) Send(e *wire.Envelope) error {
 }
 
 func (c *ioConn) Recv() (*wire.Envelope, error) {
-	e, err := wire.DecodeEnvelope(c.conn)
+	e, err := c.serializer.Decode(c.conn)
 	if err != nil {
 		c.conn.Close()
 		return nil, err

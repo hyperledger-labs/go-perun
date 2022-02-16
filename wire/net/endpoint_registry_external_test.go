@@ -26,6 +26,7 @@ import (
 	"perun.network/go-perun/wire"
 	"perun.network/go-perun/wire/net"
 	nettest "perun.network/go-perun/wire/net/test"
+	perunio "perun.network/go-perun/wire/perunio/serializer"
 	ctxtest "polycry.pt/poly-go/context/test"
 	"polycry.pt/poly-go/sync"
 	"polycry.pt/poly-go/test"
@@ -43,8 +44,8 @@ func TestEndpointRegistry_Get_Pair(t *testing.T) {
 	var hub nettest.ConnHub
 	dialerID := wallettest.NewRandomAccount(rng)
 	listenerID := wallettest.NewRandomAccount(rng)
-	dialerReg := net.NewEndpointRegistry(dialerID, nilConsumer, hub.NewNetDialer())
-	listenerReg := net.NewEndpointRegistry(listenerID, nilConsumer, nil)
+	dialerReg := net.NewEndpointRegistry(dialerID, nilConsumer, hub.NewNetDialer(), perunio.Serializer())
+	listenerReg := net.NewEndpointRegistry(listenerID, nilConsumer, nil, perunio.Serializer())
 	listener := hub.NewNetListener(listenerID.Address())
 
 	done := make(chan struct{})
@@ -88,8 +89,8 @@ func TestEndpointRegistry_Get_Multiple(t *testing.T) {
 		t.Logf("subscribing %s\n", addr)
 		return nil
 	}
-	dialerReg := net.NewEndpointRegistry(dialerID, logPeer, dialer)
-	listenerReg := net.NewEndpointRegistry(listenerID, logPeer, nil)
+	dialerReg := net.NewEndpointRegistry(dialerID, logPeer, dialer, perunio.Serializer())
+	listenerReg := net.NewEndpointRegistry(listenerID, logPeer, nil, perunio.Serializer())
 	listener := hub.NewNetListener(listenerID.Address())
 
 	done := make(chan struct{})

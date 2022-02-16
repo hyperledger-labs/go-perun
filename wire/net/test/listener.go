@@ -20,6 +20,7 @@ import (
 
 	"github.com/pkg/errors"
 
+	"perun.network/go-perun/wire"
 	wirenet "perun.network/go-perun/wire/net"
 	"polycry.pt/poly-go/sync"
 )
@@ -47,7 +48,7 @@ func NewNetListener() *Listener {
 
 // Accept returns the next connection that is enqueued via Put(). This function
 // blocks until either Put() is called or until the listener is closed.
-func (l *Listener) Accept() (wirenet.Conn, error) {
+func (l *Listener) Accept(wire.EnvelopeSerializer) (wirenet.Conn, error) {
 	if l.IsClosed() {
 		return nil, errors.New("listener closed")
 	}
