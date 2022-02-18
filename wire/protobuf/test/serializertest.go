@@ -23,6 +23,7 @@ import (
 	"github.com/stretchr/testify/require"
 	wallettest "perun.network/go-perun/wallet/test"
 	"perun.network/go-perun/wire"
+	"perun.network/go-perun/wire/protobuf"
 	pkgtest "polycry.pt/poly-go/test"
 )
 
@@ -36,9 +37,10 @@ func MsgSerializerTest(t *testing.T, msg wire.Msg) {
 	envelope.Msg = msg
 
 	var buff bytes.Buffer
-	require.NoError(t, wire.EncodeEnvelope(&buff, envelope))
+	ser := protobuf.Serializer()
+	require.NoError(t, ser.Encode(&buff, envelope))
 
-	gotEnvelope, err := wire.DecodeEnvelope(&buff)
+	gotEnvelope, err := ser.Decode(&buff)
 	require.NoError(t, err)
 	assert.EqualValues(t, envelope, gotEnvelope)
 }

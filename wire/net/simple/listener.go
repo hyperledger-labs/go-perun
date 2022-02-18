@@ -18,6 +18,7 @@ import (
 	"net"
 
 	"github.com/pkg/errors"
+	"perun.network/go-perun/wire"
 	wirenet "perun.network/go-perun/wire/net"
 )
 
@@ -50,11 +51,11 @@ func NewUnixListener(address string) (*Listener, error) {
 }
 
 // Accept implements peer.Dialer.Accept().
-func (l *Listener) Accept() (wirenet.Conn, error) {
+func (l *Listener) Accept(ser wire.EnvelopeSerializer) (wirenet.Conn, error) {
 	conn, err := l.Listener.Accept()
 	if err != nil {
 		return nil, errors.Wrap(err, "accept failed")
 	}
 
-	return wirenet.NewIoConn(conn), nil
+	return wirenet.NewIoConn(conn, ser), nil
 }

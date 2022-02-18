@@ -24,7 +24,6 @@ import (
 	"perun.network/go-perun/channel/test"
 	"perun.network/go-perun/client"
 	clienttest "perun.network/go-perun/client/test"
-	_ "perun.network/go-perun/wire/perunio/serializer" // wire serialzer init
 	peruniotest "perun.network/go-perun/wire/perunio/test"
 	pkgtest "polycry.pt/poly-go/test"
 )

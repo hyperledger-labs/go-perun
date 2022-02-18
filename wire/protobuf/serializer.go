@@ -27,8 +27,9 @@ import (
 
 type serializer struct{}
 
-func init() {
-	wire.SetEnvelopeSerializer(serializer{})
+// Serializer returns a protobuf serializer.
+func Serializer() wire.EnvelopeSerializer {
+	return serializer{}
 }
 
 // Encode encodes an envelope from the reader using protocol buffers

@@ -22,6 +22,7 @@ import (
 	"perun.network/go-perun/wire"
 	"perun.network/go-perun/wire/net"
 	nettest "perun.network/go-perun/wire/net/test"
+	perunio "perun.network/go-perun/wire/perunio/serializer"
 	wiretest "perun.network/go-perun/wire/test"
 )
 
@@ -32,7 +33,7 @@ func TestBus(t *testing.T) {
 	var hub nettest.ConnHub
 
 	wiretest.GenericBusTest(t, func(acc wire.Account) wire.Bus {
-		bus := net.NewBus(acc, hub.NewNetDialer())
+		bus := net.NewBus(acc, hub.NewNetDialer(), perunio.Serializer())
 		hub.OnClose(func() { bus.Close() })
 		go bus.Listen(hub.NewNetListener(acc.Address()))
 		return bus

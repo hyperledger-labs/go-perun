@@ -21,17 +21,19 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"perun.network/go-perun/wallet/test"
+	perunio "perun.network/go-perun/wire/perunio/serializer"
 	pkgtest "polycry.pt/poly-go/test"
 )
 
 func TestDialer_Dial(t *testing.T) {
 	rng := pkgtest.Prng(t)
+	ser := perunio.Serializer()
 	// Closed dialer must always fail.
 	t.Run("closed", func(t *testing.T) {
 		var d Dialer
 		d.Close()
 
-		conn, err := d.Dial(context.Background(), test.NewRandomAddress(rng))
+		conn, err := d.Dial(context.Background(), test.NewRandomAddress(rng), ser)
 		assert.Nil(t, conn)
 		assert.Error(t, err)
 	})
@@ -41,7 +43,7 @@ func TestDialer_Dial(t *testing.T) {
 		var d Dialer
 		ctx, cancel := context.WithCancel(context.Background())
 		cancel()
-		conn, err := d.Dial(ctx, test.NewRandomAddress(rng))
+		conn, err := d.Dial(ctx, test.NewRandomAddress(rng), ser)
 		assert.Nil(t, conn)
 		assert.Error(t, err)
 	})

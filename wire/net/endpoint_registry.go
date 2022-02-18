@@ -67,6 +67,7 @@ type EndpointRegistry struct {
 	id            wire.Account                     // The identity of the node.
 	dialer        Dialer                           // Used for dialing peers.
 	onNewEndpoint func(wire.Address) wire.Consumer // Selects Consumer for new Endpoints' receive loop.
+	ser           wire.EnvelopeSerializer
 
 	endpoints map[wallet.AddrKey]*fullEndpoint // The list of all of all established Endpoints.
 	dialing   map[wallet.AddrKey]*dialingEndpoint
@@ -81,11 +82,17 @@ const exchangeAddrsTimeout = 10 * time.Second
 // NewEndpointRegistry creates a new registry.
 // The provided callback is used to set up new peer's subscriptions and it is
 // called before the peer starts receiving messages.
-func NewEndpointRegistry(id wire.Account, onNewEndpoint func(wire.Address) wire.Consumer, dialer Dialer) *EndpointRegistry {
+func NewEndpointRegistry(
+	id wire.Account,
+	onNewEndpoint func(wire.Address) wire.Consumer,
+	dialer Dialer,
+	ser wire.EnvelopeSerializer,
+) *EndpointRegistry {
 	return &EndpointRegistry{
 		id:            id,
 		onNewEndpoint: onNewEndpoint,
 		dialer:        dialer,
+		ser:           ser,
 
 		endpoints: make(map[wallet.AddrKey]*fullEndpoint),
 		dialing:   make(map[wallet.AddrKey]*dialingEndpoint),
@@ -138,7 +145,7 @@ func (r *EndpointRegistry) Listen(listener Listener) {
 	// Start listener and accept all incoming peer connections, writing them to
 	// the registry.
 	for {
-		conn, err := listener.Accept()
+		conn, err := listener.Accept(r.ser)
 		if err != nil {
 			r.Log().Debugf("EndpointRegistry.Listen: Accept() loop: %v", err)
 			return
@@ -240,7 +247,7 @@ func (r *EndpointRegistry) authenticatedDial(
 		close(de.created)
 	}()
 
-	conn, err := r.dialer.Dial(ctx, addr)
+	conn, err := r.dialer.Dial(ctx, addr, r.ser)
 	if err != nil {
 		return nil, errors.WithMessage(err, "failed to dial")
 	}

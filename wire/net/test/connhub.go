@@ -65,7 +65,7 @@ func (h *ConnHub) NewNetDialer() *Dialer {
 		panic("ConnHub already closed")
 	}
 
-	dialer := &Dialer{hub: h}
+	dialer := NewDialer(h)
 	h.dialers.insert(dialer)
 	dialer.OnClose(func() {
 		h.dialers.erase(dialer) //nolint:errcheck

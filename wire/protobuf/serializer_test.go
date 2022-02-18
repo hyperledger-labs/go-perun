@@ -20,7 +20,6 @@ import (
 	_ "perun.network/go-perun/backend/sim/channel"
 	_ "perun.network/go-perun/backend/sim/wallet"
 	clienttest "perun.network/go-perun/client/test"
-	_ "perun.network/go-perun/wire/protobuf"
 	protobuftest "perun.network/go-perun/wire/protobuf/test"
 	wiretest "perun.network/go-perun/wire/test"
 )

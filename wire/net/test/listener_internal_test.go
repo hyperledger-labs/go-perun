@@ -23,6 +23,7 @@ import (
 
 	"perun.network/go-perun/wire"
 	wirenet "perun.network/go-perun/wire/net"
+	perunio "perun.network/go-perun/wire/perunio/serializer"
 	ctxtest "polycry.pt/poly-go/context/test"
 )
 
@@ -47,7 +48,7 @@ func TestListener_Accept_Put(t *testing.T) {
 		defer close(done)
 
 		ctxtest.AssertTerminates(t, timeout, func() {
-			conn, err := l.Accept()
+			conn, err := l.Accept(perunio.Serializer())
 			assert.NoError(t, err, "Accept must not fail")
 			assert.Same(t, connection, conn,
 				"Accept must receive connection from Put")
@@ -67,12 +68,13 @@ func TestListener_Accept_Put(t *testing.T) {
 
 func TestListener_Accept_Close(t *testing.T) {
 	t.Parallel()
+	ser := perunio.Serializer()
 
 	t.Run("close before accept", func(t *testing.T) {
 		l := NewNetListener()
 		l.Close()
 		ctxtest.AssertTerminates(t, timeout, func() {
-			conn, err := l.Accept()
+			conn, err := l.Accept(ser)
 			assert.Error(t, err, "Accept must fail")
 			assert.Nil(t, conn)
 			assert.Zero(t, l.NumAccepted())
@@ -87,7 +89,7 @@ func TestListener_Accept_Close(t *testing.T) {
 		}()
 
 		ctxtest.AssertTerminates(t, 2*timeout, func() {
-			conn, err := l.Accept()
+			conn, err := l.Accept(ser)
 			assert.Error(t, err, "Accept must fail")
 			assert.Nil(t, conn)
 			assert.Zero(t, l.NumAccepted())
@@ -117,7 +119,7 @@ func TestListener_Put(t *testing.T) {
 			// Closed listener must abort Put() calls.
 			assert.False(t, l.Put(context.Background(), connection))
 			// Accept() must always fail when closed.
-			conn, err := l.Accept()
+			conn, err := l.Accept(perunio.Serializer())
 			assert.Nil(t, conn)
 			assert.Error(t, err)
 			assert.Zero(t, l.NumAccepted())

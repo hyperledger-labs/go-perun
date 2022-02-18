@@ -20,6 +20,7 @@ import (
 	"testing"
 
 	"perun.network/go-perun/wire"
+	perunio "perun.network/go-perun/wire/perunio/serializer"
 	wiretest "perun.network/go-perun/wire/test"
 	pkgtest "polycry.pt/poly-go/test"
 )
@@ -30,17 +31,21 @@ type serializableEnvelope struct {
 	env *wire.Envelope
 }
 
+var serializer = perunio.Serializer()
+
 func (e *serializableEnvelope) Encode(writer io.Writer) error {
-	return wire.EncodeEnvelope(writer, e.env)
+	return serializer.Encode(writer, e.env)
 }
 
 func (e *serializableEnvelope) Decode(reader io.Reader) (err error) {
-	e.env, err = wire.DecodeEnvelope(reader)
+	e.env, err = serializer.Decode(reader)
 	return err
 }
 
 func newSerializableEnvelope(rng *rand.Rand, msg wire.Msg) *serializableEnvelope {
-	return &serializableEnvelope{env: wiretest.NewRandomEnvelope(rng, msg)}
+	return &serializableEnvelope{
+		env: wiretest.NewRandomEnvelope(rng, msg),
+	}
 }
 
 // MsgSerializerTest performs generic serializer tests on a wire.Msg object.
@@ -48,6 +53,6 @@ func newSerializableEnvelope(rng *rand.Rand, msg wire.Msg) *serializableEnvelope
 // and the registration of the corresponding decoders.
 func MsgSerializerTest(t *testing.T, msg wire.Msg) {
 	t.Helper()
-
-	GenericSerializerTest(t, newSerializableEnvelope(pkgtest.Prng(t), msg))
+	e := newSerializableEnvelope(pkgtest.Prng(t), msg)
+	GenericSerializerTest(t, e)
 }

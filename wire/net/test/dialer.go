@@ -36,8 +36,15 @@ type Dialer struct {
 
 var _ wirenet.Dialer = (*Dialer)(nil)
 
+// NewDialer creates a new test dialer.
+func NewDialer(hub *ConnHub) *Dialer {
+	return &Dialer{
+		hub: hub,
+	}
+}
+
 // Dial tries to connect to a wire.
-func (d *Dialer) Dial(ctx context.Context, address wire.Address) (wirenet.Conn, error) {
+func (d *Dialer) Dial(ctx context.Context, address wire.Address, ser wire.EnvelopeSerializer) (wirenet.Conn, error) {
 	if d.IsClosed() {
 		return nil, errors.New("dialer closed")
 	}
@@ -54,13 +61,13 @@ func (d *Dialer) Dial(ctx context.Context, address wire.Address) (wirenet.Conn, 
 	}
 
 	local, remote := net.Pipe()
-	if !l.Put(ctx, wirenet.NewIoConn(remote)) {
+	if !l.Put(ctx, wirenet.NewIoConn(remote, ser)) {
 		local.Close()
 		remote.Close()
 		return nil, errors.New("Put() failed")
 	}
 	atomic.AddInt32(&d.dialed, 1)
-	return wirenet.NewIoConn(local), nil
+	return wirenet.NewIoConn(local, ser), nil
 }
 
 // Close closes a connection.
