@@ -17,9 +17,19 @@ package wire_test
 import (
 	"testing"
 
+	"github.com/stretchr/testify/require"
+
 	. "perun.network/go-perun/wire"
 	"perun.network/go-perun/wire/test"
 )
+
+func TestHybridBus_New(t *testing.T) {
+	require.Panics(t, func() { NewHybridBus() })
+	require.Panics(t, func() { NewHybridBus(nil) })
+	require.NotPanics(t, func() { NewHybridBus(NewLocalBus()) })
+	require.Panics(t, func() { NewHybridBus(NewLocalBus(), nil) })
+	require.NotPanics(t, func() { NewHybridBus(NewLocalBus(), NewLocalBus()) })
+}
 
 func TestHybridBus(t *testing.T) {
 	nBuses := 2
