@@ -1,4 +1,4 @@
-//// Copyright 2022 - See NOTICE file for copyright holders.
+// Copyright 2022 - See NOTICE file for copyright holders.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -32,7 +32,7 @@ func TestHybridBus_New(t *testing.T) {
 }
 
 func TestHybridBus(t *testing.T) {
-	nBuses := 2
+	nBuses := 5
 	buses := make([]Bus, nBuses)
 	for i := range buses {
 		buses[i] = NewLocalBus()
