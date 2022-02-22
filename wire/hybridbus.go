@@ -16,6 +16,7 @@ package wire
 
 import (
 	"context"
+	"fmt"
 
 	"polycry.pt/poly-go/errors"
 	"polycry.pt/poly-go/sync/atomic"
@@ -44,6 +45,12 @@ func NewHybridBus(buses ...Bus) Bus {
 	if len(buses) == 0 {
 		panic("expected at least one sub-bus.")
 	}
+	for i, bus := range buses {
+		if bus == nil {
+			panic(fmt.Sprintf("nil Bus[%d] passed to NewHybridBus", i))
+		}
+	}
+
 	return &hybridBus{buses: buses}
 }
 
