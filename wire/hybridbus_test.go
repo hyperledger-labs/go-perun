@@ -48,3 +48,10 @@ func TestHybridBus(t *testing.T) {
 		return hybridBus, buses[i%nBuses]
 	}, 16, 10)
 }
+
+func TestHybridBus_Single(t *testing.T) {
+	hybridBus := NewHybridBus(NewLocalBus())
+	test.GenericBusTest(t, func(Account) (Bus, Bus) {
+		return hybridBus, hybridBus
+	}, 16, 10)
+}
