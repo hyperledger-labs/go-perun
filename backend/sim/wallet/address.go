@@ -16,6 +16,7 @@ package wallet
 
 import (
 	"crypto/ecdsa"
+	"encoding/json"
 	"fmt"
 	"io"
 	"math/big"
@@ -124,5 +125,24 @@ func (a *Address) UnmarshalBinary(data []byte) error {
 	a.Y = new(big.Int).SetBytes(data[elemLen:])
 	a.Curve = curve
 
+	return nil
+}
+
+type jsonAddress struct {
+	X *big.Int `json:"x"`
+	Y *big.Int `json:"y"`
+}
+
+// MarshalJSON returns the JSON encoding of the Address.
+func (a *Address) MarshalJSON() ([]byte, error) {
+	return json.Marshal(jsonAddress{X: a.X, Y: a.Y})
+}
+
+// UnmarshalJSON decodes the given json data into the Address.
+func (a *Address) UnmarshalJSON(data []byte) error {
+	if err := json.Unmarshal(data, (*ecdsa.PublicKey)(a)); err != nil {
+		return fmt.Errorf("unmarshaling into jsonAddress: %w", err)
+	}
+	a.Curve = curve
 	return nil
 }
