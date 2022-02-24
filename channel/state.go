@@ -31,23 +31,23 @@ type (
 	// during disputes.
 	State struct {
 		// id is the immutable id of the channel this state belongs to
-		ID ID
+		ID ID `json:"id"`
 		// version counter
-		Version uint64
+		Version uint64 `json:"version"`
 		// App identifies the application that this channel is running.
 		// We do not want a deep copy here, since the Apps are just an immutable reference.
 		// They are only included in the State to support serialization of the `Data` field.
-		App App `cloneable:"shallow"`
+		App App `cloneable:"shallow" json:"-"`
 		// Allocation is the current allocation of channel assets to
 		// the channel participants and apps running inside this channel.
-		Allocation
+		Allocation `json:"allocation"`
 		// Data is the app-specific data.
-		Data Data
+		Data Data `json:"-"`
 		// IsFinal indicates that the channel is in its final state. Such a state
 		// can immediately be settled on the blockchain or a funding channel, in
 		// case of sub- or virtual channels.
 		// A final state cannot be further progressed.
-		IsFinal bool
+		IsFinal bool `json:"final"`
 	}
 
 	// Data is the data of the application running in this app channel.
@@ -72,14 +72,7 @@ var _ perunio.Serializer = new(State)
 // package would usually not create a State directly. The user receives the
 // initial state from the machine instead.
 func newState(params *Params, initBals Allocation, initData Data) (*State, error) {
-	// sanity checks
-	n := len(params.Parts)
-	for _, asset := range initBals.Balances {
-		if n != len(asset) {
-			return nil, errors.New("number of participants in parameters and initial balances don't match")
-		}
-	}
-	if err := initBals.Valid(); err != nil {
+	if err := ValidateState(len(params.Parts), initBals); err != nil {
 		return nil, err
 	}
 	return &State{
@@ -89,6 +82,17 @@ func newState(params *Params, initBals Allocation, initData Data) (*State, error
 		Allocation: initBals,
 		Data:       initData,
 	}, nil
+}
+
+// ValidateState validates that the Allocation is valid for the given number of
+// participants, so that they can be used to construct a valid State.
+func ValidateState(numParts int, alloc Allocation) error {
+	for i, asset := range alloc.Balances {
+		if n := len(asset); numParts != n {
+			return errors.Errorf("balances size %d, expected %d (asset[%d])", n, numParts, i)
+		}
+	}
+	return alloc.Valid()
 }
 
 // Clone makes a deep copy of the State object.

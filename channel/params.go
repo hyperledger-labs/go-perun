@@ -61,18 +61,18 @@ type Params struct {
 	// ChannelID is the channel ID as calculated by the backend
 	id ID
 	// ChallengeDuration in seconds during disputes
-	ChallengeDuration uint64
+	ChallengeDuration uint64 `json:"challengeDuration"`
 	// Parts are the channel participants
-	Parts []wallet.Address
+	Parts []wallet.Address `json:"parts"`
 	// App identifies the application that this channel is running. It is
 	// optional, and if nil, signifies that a channel is a payment channel.
-	App App `cloneable:"shallow"`
+	App App `cloneable:"shallow" json:"-"`
 	// Nonce is a random value that makes the channel's ID unique.
-	Nonce Nonce
+	Nonce Nonce `json:"nonce"`
 	// LedgerChannel specifies whether this is a ledger channel.
-	LedgerChannel bool
+	LedgerChannel bool `json:"ledgerChannel"`
 	// VirtualChannel specifies whether this is a virtual channel.
-	VirtualChannel bool
+	VirtualChannel bool `json:"virtualChannel"`
 }
 
 // ID returns the channelID of this channel.

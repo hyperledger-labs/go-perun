@@ -68,12 +68,12 @@ type (
 	// Locked holds the locked allocations to sub-app-channels.
 	Allocation struct {
 		// Assets are the asset types held in this channel
-		Assets []Asset
+		Assets []Asset `json:"assets"`
 		// Balances is the allocation of assets to the Params.Parts
-		Balances
+		Balances `json:"balances"`
 		// Locked describes the funds locked in subchannels. There is one entry
 		// per subchannel.
-		Locked []SubAlloc
+		Locked []SubAlloc `json:"locked"`
 	}
 
 	// Balances two dimensional slice of `Bal`. Is a `Summer`.
@@ -83,9 +83,10 @@ type (
 	// The size of the balances slice must be of the same size as the assets slice
 	// of the channel Params.
 	SubAlloc struct {
-		ID       ID
-		Bals     []Bal
-		IndexMap []Index // Maps participant indices of the sub-channel to participant indices of the parent channel.
+		ID   ID    `json:"id"`
+		Bals []Bal `json:"balances"`
+		// Maps participant indices of the sub-channel to participant indices of the parent channel.
+		IndexMap []Index `json:"indexes"`
 	}
 
 	// Bal is a single asset's balance.
