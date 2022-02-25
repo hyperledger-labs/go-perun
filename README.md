@@ -74,7 +74,7 @@ The following features are planned for future releases:
 ### Backends
 
 There are multiple **blockchain backends** available. A backend is automatically initialized when its top-level package `backend/<name>` is imported.
-- **Ethereum.** The Ethereum backend is integrated in the repository at `backend/ethereum`. The smart contracts can be found at [contracts-eth](https://github.com/hyperledger-labs/perun-eth-contracts/).
+- **Ethereum.** The Ethereum backend is integrated in the repository at `backend/ethereum`. The smart contracts can be found at [perun-eth-contracts](https://github.com/hyperledger-labs/perun-eth-contracts/).
 - **Polkadot.** The Polkadot backend is available at [perun-polkadot-backend](https://github.com/perun-network/perun-polkadot-backend).
 - **Cosmos.** The Cosmos backend is available at [perun-cosmwasm-backend](https://github.com/hyperledger-labs/perun-cosmwasm-backend).
 - **SimBackend.** The SimBackend represents an ideal blockchain backend (`backend/sim`) implementation that can be used for testing.
