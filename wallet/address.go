@@ -23,6 +23,7 @@ import (
 
 	"github.com/pkg/errors"
 
+	"perun.network/go-perun/log"
 	"perun.network/go-perun/wire/perunio"
 )
 
@@ -56,6 +57,32 @@ func IndexOfAddr(addrs []Address, addr Address) int {
 	}
 
 	return -1
+}
+
+// CloneAddress returns a clone of an Address using its binary marshaling
+// implementation. It panics if an error occurs during binary (un)marshaling.
+func CloneAddress(a Address) Address {
+	data, err := a.MarshalBinary()
+	if err != nil {
+		log.WithError(err).Panic("error binary-marshaling Address")
+	}
+
+	clone := NewAddress()
+	if err := clone.UnmarshalBinary(data); err != nil {
+		log.WithError(err).Panic("error binary-unmarshaling Address")
+	}
+	return clone
+}
+
+// CloneAddresses returns a clone of a slice of Addresses using their binary
+// marshaling implementation. It panics if an error occurs during binary
+// (un)marshaling.
+func CloneAddresses(as []Address) []Address {
+	clones := make([]Address, 0, len(as))
+	for _, a := range as {
+		clones = append(clones, CloneAddress(a))
+	}
+	return clones
 }
 
 // AddressPredicate is a function for filtering Addresses.

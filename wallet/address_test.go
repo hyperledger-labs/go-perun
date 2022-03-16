@@ -88,3 +88,22 @@ func TestAddrKey(t *testing.T) {
 		require.True(t, a.Equal(wallet.FromKey(wallet.Key(a))))
 	}
 }
+
+func TestCloneAddress(t *testing.T) {
+	rng := pkgtest.Prng(t)
+	addr := wallettest.NewRandomAddress(rng)
+	addr0 := wallet.CloneAddress(addr)
+	require.Equal(t, addr, addr0)
+	require.NotSame(t, addr, addr0)
+}
+
+func TestCloneAddresses(t *testing.T) {
+	rng := pkgtest.Prng(t)
+	addrs := wallettest.NewRandomAddresses(rng, 3)
+	addrs0 := wallet.CloneAddresses(addrs)
+	require.Equal(t, addrs, addrs0)
+	require.NotSame(t, addrs, addrs0)
+	for i, a := range addrs {
+		require.NotSame(t, a, addrs0[i])
+	}
+}
