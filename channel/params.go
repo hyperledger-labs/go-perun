@@ -146,24 +146,10 @@ func NewParamsUnsafe(challengeDuration uint64, parts []wallet.Address, app App, 
 
 // Clone returns a deep copy of Params.
 func (p *Params) Clone() *Params {
-	clonedParts := make([]wallet.Address, len(p.Parts))
-	for i, part := range p.Parts {
-		marshalledAddr, err := part.MarshalBinary()
-		if err != nil {
-			log.WithError(err).Panic("Could not encode part")
-		}
-
-		addr := wallet.NewAddress()
-		if err := addr.UnmarshalBinary(marshalledAddr); err != nil {
-			log.WithError(err).Panic("Could not clone params' addresses")
-		}
-		clonedParts[i] = addr
-	}
-
 	return &Params{
 		id:                p.ID(),
 		ChallengeDuration: p.ChallengeDuration,
-		Parts:             clonedParts,
+		Parts:             wallet.CloneAddresses(p.Parts),
 		App:               p.App,
 		Nonce:             new(big.Int).Set(p.Nonce),
 		LedgerChannel:     p.LedgerChannel,
