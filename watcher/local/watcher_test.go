@@ -27,7 +27,8 @@ import (
 	"github.com/stretchr/testify/require"
 	"go.uber.org/goleak"
 
-	_ "perun.network/go-perun/backend/sim/channel" // For initilizing the randomizers used by channel/test.
+	_ "perun.network/go-perun/backend/sim/channel" // Initialize randomizer.
+	_ "perun.network/go-perun/backend/sim/wallet"  // Initialize randomizer.
 	"perun.network/go-perun/channel"
 	channeltest "perun.network/go-perun/channel/test"
 	cltest "perun.network/go-perun/client/test"
@@ -40,7 +41,7 @@ import (
 func Test_StartWatching(t *testing.T) {
 	rng := test.Prng(t)
 	rs := &mock.RegisterSubscriber{}
-	rs.On("Subscribe", testifyMock.Anything, testifyMock.Anything).Return(&cltest.MockBackend{}, nil)
+	rs.On("Subscribe", testifyMock.Anything, testifyMock.Anything).Return(cltest.NewMockSubscription(context.TODO()), nil)
 
 	t.Run("ledger_channel", func(t *testing.T) {
 		// Setup
