@@ -17,13 +17,13 @@ package wire_test
 import (
 	"testing"
 
-	"perun.network/go-perun/wire"
+	. "perun.network/go-perun/wire"
 	"perun.network/go-perun/wire/test"
 )
 
 func TestLocalBus(t *testing.T) {
-	bus := wire.NewLocalBus()
-	test.GenericBusTest(t, func(wire.Account) wire.Bus {
-		return bus
+	bus := NewLocalBus()
+	test.GenericBusTest(t, func(Account) (Bus, Bus) {
+		return bus, bus
 	}, 16, 10)
 }
