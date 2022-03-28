@@ -35,24 +35,28 @@ const testNoReceiveTimeout = 10 * time.Millisecond
 // numMsgs controls how many messages each client sends to all other clients.
 // The parameter busAssigner is used to assign a bus to each client, and must
 // perform any necessary work to make clients able to communicate with each
-// other (such as setting up dialers and listeners, in case of networking).
-func GenericBusTest(t *testing.T, busAssigner func(wire.Account) wire.Bus, numClients, numMsgs int) {
+// other (such as setting up dialers and listeners, in case of networking). It
+// can either return the same bus twice, or separately select a bus to subscribe
+// the client to, and a bus the client should use for publishing messages.
+func GenericBusTest(t *testing.T,
+	busAssigner func(wire.Account) (pub wire.Bus, sub wire.Bus),
+	numClients, numMsgs int) {
 	t.Helper()
 	require.Greater(t, numClients, 1)
 	require.Greater(t, numMsgs, 0)
 
 	rng := test.Prng(t)
 	type Client struct {
-		r   *wire.Relay
-		bus wire.Bus
-		id  wire.Account
+		r        *wire.Relay
+		pub, sub wire.Bus
+		id       wire.Account
 	}
 
 	clients := make([]Client, numClients)
 	for i := range clients {
 		clients[i].r = wire.NewRelay()
 		clients[i].id = wallettest.NewRandomAccount(rng)
-		clients[i].bus = busAssigner(clients[i].id)
+		clients[i].pub, clients[i].sub = busAssigner(clients[i].id)
 	}
 
 	// Here, we have common, reused code.
@@ -112,7 +116,7 @@ func GenericBusTest(t *testing.T, busAssigner func(wire.Account) wire.Bus, numCl
 				})
 				go ct.StageN("publish", numClients*(numClients-1), func(t test.ConcT) {
 					for i := 0; i < numMsgs; i++ {
-						err := clients[sender].bus.Publish(ctx, origEnv)
+						err := clients[sender].pub.Publish(ctx, origEnv)
 						require.NoError(t, err)
 					}
 				})
@@ -135,7 +139,7 @@ func GenericBusTest(t *testing.T, busAssigner func(wire.Account) wire.Bus, numCl
 	// publishing.
 	testPublishAndReceive(t, func() {
 		for i := range clients {
-			err := clients[i].bus.SubscribeClient(clients[i].r, clients[i].id.Address())
+			err := clients[i].sub.SubscribeClient(clients[i].r, clients[i].id.Address())
 			require.NoError(t, err)
 		}
 	})
