@@ -17,7 +17,7 @@ package wire_test
 import (
 	"testing"
 
-	_ "perun.network/go-perun/backend/ethereum/wallet/test" // random init
+	_ "perun.network/go-perun/backend/sim/wallet" // Initializes the randomizers.
 	peruniotest "perun.network/go-perun/wire/perunio/test"
 	wiretest "perun.network/go-perun/wire/test"
 )
