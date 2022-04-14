@@ -7,6 +7,9 @@ on:
   pull_request:
   release:
 
+env:
+  go-version: 1.17
+
 jobs:
   check-copyright:
     name: Copyright
@@ -29,8 +32,13 @@ jobs:
       - name: Check vanity import
         run: .scripts/check-vanity-imports.sh $GITHUB_WORKSPACE
 
-      - name: Lint golang files
-        uses: golangci/golangci-lint-action@v2
+      - name: Setup Go
+        uses: actions/setup-go@v2
+        with:
+          go-version: ${{ env.go-version }}
+
+      - name: golangci-lint
+        uses: golangci/golangci-lint-action@v3
         with:
           version: v1.43
 
@@ -43,10 +51,10 @@ jobs:
     name: Tests
     runs-on: ubuntu-latest
     steps:
-      - name: Set up Golang
+      - name: Setup Go
         uses: actions/setup-go@v2
         with:
-          go-version: ^1.17
+          go-version: ${{ env.go-version }}
 
       - name: Checkout
         uses: actions/checkout@v2
@@ -67,10 +75,10 @@ jobs:
     name: Race Tests
     runs-on: ubuntu-latest
     steps:
-      - name: Set up Golang
+      - name: Setup Go
         uses: actions/setup-go@v2
         with:
-          go-version: ^1.17
+          go-version: ${{ env.go-version }}
 
       - name: Checkout
         uses: actions/checkout@v2
