@@ -23,6 +23,7 @@ import (
 	"sync"
 	"time"
 
+	"perun.network/go-perun/backend/multi"
 	"perun.network/go-perun/channel"
 	"perun.network/go-perun/log"
 	"perun.network/go-perun/wallet"
@@ -37,6 +38,7 @@ type (
 		latestEvents map[channel.ID]channel.AdjudicatorEvent
 		eventSubs    map[channel.ID][]*MockSubscription
 		balances     map[addressMapKey]map[assetMapKey]*big.Int
+		id           LedgerID
 	}
 
 	rng interface {
@@ -47,20 +49,37 @@ type (
 		mu sync.Mutex
 		r  *rand.Rand
 	}
+
+	// LedgerID is the type of the ledger identifier.
+	LedgerID string
 )
 
 // maximal amount of milliseconds that the Fund method waits before returning.
 const fundMaxSleepMs = 100
 
 // NewMockBackend creates a new backend object.
-func NewMockBackend(rng *rand.Rand) *MockBackend {
+func NewMockBackend(rng *rand.Rand, id string) *MockBackend {
+	rndSource := rand.NewSource(rng.Int63())
+	//nolint:gosec // OK to use weak RNG for testing.
+	backendRng := rand.New(rndSource)
 	return &MockBackend{
 		log:          log.Default(),
-		rng:          newThreadSafePrng(rng),
+		rng:          newThreadSafePrng(backendRng),
 		latestEvents: make(map[channel.ID]channel.AdjudicatorEvent),
 		eventSubs:    make(map[channel.ID][]*MockSubscription),
 		balances:     make(map[string]map[string]*big.Int),
+		id:           LedgerID(id),
 	}
+}
+
+// ID returns the ledger's identifier.
+func (b *MockBackend) ID() LedgerID {
+	return b.id
+}
+
+// MapKey returns the map key representation of the ledger identifier.
+func (id LedgerID) MapKey() multi.LedgerIDMapKey {
+	return multi.LedgerIDMapKey(id)
 }
 
 func newThreadSafePrng(r *rand.Rand) *threadSafeRng {

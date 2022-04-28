@@ -44,7 +44,7 @@ func NewSetups(rng *rand.Rand, names []string) []ctest.RoleSetup {
 		bus     = wiretest.NewSerializingLocalBus()
 		n       = len(names)
 		setup   = make([]ctest.RoleSetup, n)
-		backend = ctest.NewMockBackend(rng)
+		backend = ctest.NewMockBackend(rng, "1337")
 	)
 
 	for i := 0; i < n; i++ {
