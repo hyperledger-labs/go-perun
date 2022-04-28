@@ -121,7 +121,6 @@ func Test_StartWatching(t *testing.T) {
 
 func Test_Watcher_Working(t *testing.T) {
 	rng := test.Prng(t)
-
 	t.Run("ledger_channel_without_sub_channel", func(t *testing.T) {
 		// Send a registered event on the adjudicator subscription, with the latest state.
 		// Watcher should relay the event and not refute.
@@ -203,7 +202,8 @@ func Test_Watcher_Working(t *testing.T) {
 		testIfEventsAreRelayed := func(
 			t *testing.T,
 			eventConstructor func(txs ...channel.Transaction,
-			) []channel.AdjudicatorEvent) {
+			) []channel.AdjudicatorEvent,
+		) {
 			t.Helper()
 			// Setup: Generate the params and off-chain states for a ledger channel.
 			params, txs := randomTxsForSingleCh(rng, 2)
@@ -232,7 +232,6 @@ func Test_Watcher_Working(t *testing.T) {
 			testIfEventsAreRelayed(t, makeConcludedEvents)
 		})
 	})
-
 	t.Run("ledger_channel_with_sub_channel", func(t *testing.T) {
 		// For both, the parent and the sub-channel,
 		// send a registered event on the adjudicator subscription, with the latest state.
@@ -310,6 +309,7 @@ func Test_Watcher_Working(t *testing.T) {
 			triggerAdjEventAndExpectNotification(t, triggerChild, eventsForClientChild)
 			rs.AssertExpectations(t)
 		})
+
 		// For both, the parent and the sub-channel,
 		//
 		// First, send a registered event on the adjudicator subscription,
@@ -375,10 +375,9 @@ func Test_Watcher_Working(t *testing.T) {
 		// This time, because the registered state is older than the latest state for the sub-channel,
 		// Watch should relay the event and refute by registering the latest state.
 		//
-		// Next, for both, the parent and the sub-channel,
-		// send a registered event on adjudicator subscription,
-		// with the state that was registered.
-		// This time, watcher should relay the event and not dispute.
+		// Next, for the sub-channel, send a registered event on the adjudicator
+		// subscription. This time, the watcher should relay the event and not
+		// dispute.
 		t.Run("happy/older_state_registered_then_newer_state_received", func(t *testing.T) {
 			// Setup
 			parentParams, parentTxs := randomTxsForSingleCh(rng, 3)
@@ -386,9 +385,9 @@ func Test_Watcher_Working(t *testing.T) {
 			// Add sub-channel to allocation. This transaction represents funding of the sub-channel.
 			parentTxs[2].Allocation.Locked = []channel.SubAlloc{{ID: childTxs[0].ID}}
 
-			adjSubParent := &mock.AdjudicatorSubscription{}
-			triggerParent := setExpectationNextCall(adjSubParent, makeRegisteredEvents(parentTxs[1], parentTxs[2], parentTxs[2])...)
-			adjSubChild := &mock.AdjudicatorSubscription{}
+			adjSubParent := &mocks.AdjudicatorSubscription{}
+			triggerParent := setExpectationNextCall(adjSubParent, makeRegisteredEvents(parentTxs[1], parentTxs[2])...)
+			adjSubChild := &mocks.AdjudicatorSubscription{}
 			triggerChild := setExpectationNextCall(adjSubChild, makeRegisteredEvents(childTxs[1], childTxs[2], childTxs[3])...)
 
 			rs := &mock.RegisterSubscriber{}
@@ -420,21 +419,23 @@ func Test_Watcher_Working(t *testing.T) {
 
 			// Child: After register was called, publish a new state to the watcher.
 			require.NoError(t, childStatesPub.Publish(context.Background(), childTxs[3]))
+
 			// Parent and Child: Trigger adjudicator events with the registered state and assert if Register was called once.
 			triggerAdjEventAndExpectNotification(t, triggerParent, eventsForClientParent)
 			triggerAdjEventAndExpectNotification(t, triggerChild, eventsForClientChild)
 			time.Sleep(50 * time.Millisecond) // Wait for the watcher to refute.
 			rs.AssertNumberOfCalls(t, "Register", 2)
 
-			// Parent and Child: Trigger adjudicator events with the newly registered state and assert.
-			triggerAdjEventAndExpectNotification(t, triggerParent, eventsForClientParent)
+			// Child: Trigger adjudicator events with the new state and assert.
 			triggerAdjEventAndExpectNotification(t, triggerChild, eventsForClientChild)
 			rs.AssertExpectations(t)
 		})
+
 		testIfEventsAreRelayed := func(
 			t *testing.T,
 			eventConstructor func(txs ...channel.Transaction,
-			) []channel.AdjudicatorEvent) {
+			) []channel.AdjudicatorEvent,
+		) {
 			t.Helper()
 			// Setup: Generate the params and off-chain states for a ledger channel and a sub-channel.
 			parentParams, parentTxs := randomTxsForSingleCh(rng, 2)
