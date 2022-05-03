@@ -28,6 +28,7 @@ import (
 	chtest "perun.network/go-perun/channel/test"
 	"perun.network/go-perun/client"
 	ctest "perun.network/go-perun/client/test"
+	"perun.network/go-perun/log"
 	wtest "perun.network/go-perun/wallet/test"
 	"perun.network/go-perun/watcher/local"
 	"perun.network/go-perun/wire"
@@ -210,6 +211,12 @@ func (a *MultiLedgerAsset) UnmarshalBinary(data []byte) error {
 type testClient struct {
 	*client.Client
 	wireAddress wire.Address
+	events      chan channel.AdjudicatorEvent
+}
+
+func (c testClient) HandleAdjudicatorEvent(e channel.AdjudicatorEvent) {
+	log.Infof("Client %v: Received adjudicator event %T", c.wireAddress, e)
+	c.events <- e
 }
 
 func setupClient(
@@ -250,5 +257,6 @@ func setupClient(
 	return testClient{
 		Client:      c,
 		wireAddress: acc.Address(),
+		events:      make(chan channel.AdjudicatorEvent),
 	}
 }
