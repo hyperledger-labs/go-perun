@@ -23,8 +23,8 @@ import (
 	"sync"
 	"time"
 
-	"perun.network/go-perun/backend/multi"
 	"perun.network/go-perun/channel"
+	"perun.network/go-perun/channel/multi"
 	"perun.network/go-perun/log"
 	"perun.network/go-perun/wallet"
 )

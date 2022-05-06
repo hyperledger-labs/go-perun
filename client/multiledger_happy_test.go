@@ -23,8 +23,8 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/require"
-	"perun.network/go-perun/backend/multi"
 	"perun.network/go-perun/channel"
+	"perun.network/go-perun/channel/multi"
 	chtest "perun.network/go-perun/channel/test"
 	"perun.network/go-perun/client"
 	ctest "perun.network/go-perun/client/test"

@@ -13,4 +13,4 @@
 // limitations under the License.
 
 // Package multi provides a multi-ledger funder and adjudicator.
-package multi // import "perun.network/go-perun/backend/multi"
+package multi // import "perun.network/go-perun/channel/multi"
