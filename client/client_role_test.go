@@ -90,7 +90,7 @@ func NewClients(t *testing.T, rng *rand.Rand, names []string) []*Client {
 	return clients
 }
 
-func runTwoPartyTest(ctx context.Context, t *testing.T, setup func(*rand.Rand) ([]ctest.RoleSetup, [2]ctest.Executer)) {
+func runAliceBobTest(ctx context.Context, t *testing.T, setup func(*rand.Rand) ([]ctest.RoleSetup, [2]ctest.Executer)) {
 	t.Helper()
 	rng := test.Prng(t)
 	for i := 0; i < 2; i++ {
