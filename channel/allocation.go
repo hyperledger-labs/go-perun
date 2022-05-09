@@ -23,7 +23,6 @@ import (
 	"perun.network/go-perun/wire/perunio"
 	perunbig "polycry.pt/poly-go/math/big"
 
-	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/pkg/errors"
 )
 
@@ -47,10 +46,6 @@ const MaxNumParts = 1024
 // asset for every suballocation, i.e., there are num-assets times
 // num-suballocations items of information in an Allocation.
 const MaxNumSubAllocations = 1024
-
-// MaxBalance is the maximum amount of funds per asset that a user can possess.
-// It is set to 2 ^ 256 - 1.
-var MaxBalance = abi.MaxUint256
 
 // Allocation and associated types.
 type (
