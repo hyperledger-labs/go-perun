@@ -100,7 +100,7 @@ func (c *Channel) handleEvents(eventsSub watcher.AdjudicatorSub, h AdjudicatorEv
 			if !ok {
 				return nil
 			}
-			log.Infof("event %v", e)
+			log.WithField("channel", c.Params().ID()).WithField("participant", c.Idx()).Infof("event %T: %v", e, e)
 			if err := c.setMachinePhase(c.Ctx(), e); err != nil {
 				return errors.WithMessage(err, "setting machine phase")
 			}
