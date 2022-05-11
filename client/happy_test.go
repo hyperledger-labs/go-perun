@@ -26,7 +26,7 @@ func TestHappyAliceBob(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), twoPartyTestTimeout)
 	defer cancel()
 
-	runTwoPartyTest(ctx, t, func(rng *rand.Rand) (setups []ctest.RoleSetup, roles [2]ctest.Executer) {
+	runAliceBobTest(ctx, t, func(rng *rand.Rand) (setups []ctest.RoleSetup, roles [2]ctest.Executer) {
 		setups = NewSetups(rng, []string{"Alice", "Bob"})
 		roles = [2]ctest.Executer{
 			ctest.NewAlice(t, setups[0]),

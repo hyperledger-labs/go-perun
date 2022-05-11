@@ -46,7 +46,7 @@ func makeWatcher(log log.Logger) Watcher {
 
 // HandleAdjudicatorEvent is the callback for adjudicator event handling.
 func (w *Watcher) HandleAdjudicatorEvent(e channel.AdjudicatorEvent) {
-	w.Infof("HandleAdjudicatorEvent: %v", e)
+	w.Infof("HandleAdjudicatorEvent %T: %v", e, e)
 	switch e := e.(type) {
 	case *channel.RegisteredEvent:
 		w.registered <- e
@@ -54,6 +54,8 @@ func (w *Watcher) HandleAdjudicatorEvent(e channel.AdjudicatorEvent) {
 		w.progressed <- e
 	}
 }
+
+const numStages = 3
 
 // ----------------- BEGIN PAUL -----------------
 
@@ -68,7 +70,7 @@ type Paul struct {
 // NewPaul creates a new party that executes the Paul protocol.
 func NewPaul(t *testing.T, setup RoleSetup) *Paul {
 	t.Helper()
-	p := NewProposer(t, setup, 1)
+	p := NewProposer(t, setup, numStages)
 	return &Paul{
 		Proposer: *p,
 		Watcher:  makeWatcher(p.log),
@@ -104,16 +106,17 @@ func (r *Paul) exec(_cfg ExecConfig, ch *paymentChannel) {
 		s.Balances[assetIdx][1] = big.NewInt(half)
 	}))
 
-	// await our progression confirmation
-	<-r.progressed
-	r.t.Logf("%v received progression confirmation 1", r.setup.Name)
+	// Await progressed event 1.
+	r.log.Debugf("%v awaiting progressed event 1", r.setup.Name)
+	e := <-r.progressed
+	assert.Truef(e.Version() == 1, "expected version 1, got version %v", e.Version())
+	r.waitStage()
 
-	// await them progressing
-	progEvent := <-r.progressed
-	r.t.Logf("%v received progression confirmation 2", r.setup.Name)
-
-	// await ready to conclude
-	assert.NoError(progEvent.Timeout().Wait(ctx), "waiting for progression timeout")
+	// Await progressed event 2.
+	r.log.Debugf("%v awaiting progressed event 2", r.setup.Name)
+	e = <-r.progressed
+	assert.Truef(e.Version() == 2, "expected version 2, got version %v", e.Version()) //nolint:gomnd
+	r.waitStage()
 
 	// withdraw
 	assert.NoError(ch.Settle(ctx, false))
@@ -130,7 +133,7 @@ type Paula struct {
 // NewPaula creates a new party that executes the Paula protocol.
 func NewPaula(t *testing.T, setup RoleSetup) *Paula {
 	t.Helper()
-	r := NewResponder(t, setup, 1)
+	r := NewResponder(t, setup, numStages)
 	return &Paula{
 		Responder: *r,
 		Watcher:   makeWatcher(r.log),
@@ -156,14 +159,11 @@ func (r *Paula) exec(_cfg ExecConfig, ch *paymentChannel, _ *acceptNextPropHandl
 
 	r.waitStage() // wait for setup complete
 
-	// await them registering
-	regEvent := <-r.registered // get next, the same below
-	_ = regEvent
-
-	// await them progressing
-	progEvent := <-r.progressed
-	_ = progEvent
-	r.t.Logf("%v received progression confirmation 1", r.setup.Name)
+	// Await progressed event 1.
+	r.log.Debugf("%v awaiting progressed event 1", r.setup.Name)
+	e := <-r.progressed
+	assert.Truef(e.Version() == 1, "expected version 1, got version %v", e.Version())
+	r.waitStage()
 
 	// we progress
 	assert.NoError(ch.ForceUpdate(ctx, func(s *channel.State) {
@@ -175,12 +175,14 @@ func (r *Paula) exec(_cfg ExecConfig, ch *paymentChannel, _ *acceptNextPropHandl
 		s.Balances[assetIdx][1] = big.NewInt(half - paulPaulaBalTransferAmount)
 	}))
 
-	// await our progression confirmation
-	progEvent = <-r.progressed // await progressed
-	r.t.Logf("%v received progression confirmation 2", r.setup.Name)
+	// Await progressed event 2.
+	r.log.Debugf("%v awaiting progressed event 2", r.setup.Name)
+	e = <-r.progressed
+	assert.Truef(e.Version() == 2, "expected version 2, got version %v", e.Version()) //nolint:gomnd
+	r.waitStage()
 
 	// await ready to conclude
-	assert.NoError(progEvent.Timeout().Wait(ctx), "waiting for progression timeout")
+	assert.NoError(e.Timeout().Wait(ctx), "waiting for progression timeout")
 
 	// withdraw
 	assert.NoError(ch.Settle(ctx, true))
