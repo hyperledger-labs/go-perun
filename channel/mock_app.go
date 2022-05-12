@@ -19,14 +19,12 @@ import (
 	"fmt"
 
 	"github.com/pkg/errors"
-
-	"perun.network/go-perun/wallet"
 )
 
 // MockApp a mocked App whose behaviour is determined by the MockOp passed to it either as State.Data or Action.
 // It is a StateApp and ActionApp at the same time.
 type MockApp struct {
-	definition wallet.Address
+	definition AppID
 }
 
 var (
@@ -91,12 +89,12 @@ func (o MockOp) Clone() Data {
 }
 
 // NewMockApp create an App with the given definition.
-func NewMockApp(definition wallet.Address) *MockApp {
+func NewMockApp(definition AppID) *MockApp {
 	return &MockApp{definition: definition}
 }
 
 // Def returns the definition on the MockApp.
-func (a MockApp) Def() wallet.Address {
+func (a MockApp) Def() AppID {
 	return a.definition
 }
 
@@ -188,6 +186,6 @@ type MockAppResolver struct{}
 var _ AppResolver = &MockAppResolver{}
 
 // Resolve creates an app from its defining address.
-func (m *MockAppResolver) Resolve(addr wallet.Address) (App, error) {
+func (m *MockAppResolver) Resolve(addr AppID) (App, error) {
 	return NewMockApp(addr), nil
 }

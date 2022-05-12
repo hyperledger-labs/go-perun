@@ -22,15 +22,14 @@ import (
 
 	"perun.network/go-perun/channel"
 	"perun.network/go-perun/channel/test"
-	wallettest "perun.network/go-perun/wallet/test"
 	pkgtest "polycry.pt/poly-go/test"
 )
 
 func TestApp_Def(t *testing.T) {
 	rng := pkgtest.Prng(t)
-	def := wallettest.NewRandomAddress(rng)
+	def := test.NewRandomAppID(rng)
 	app := &App{def}
-	assert.True(t, def.Equal(app.Def()))
+	assert.True(t, app.Def().Equal(app.Def()))
 }
 
 func TestApp_ValidInit(t *testing.T) {

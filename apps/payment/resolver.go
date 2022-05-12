@@ -16,13 +16,12 @@ package payment
 
 import (
 	"perun.network/go-perun/channel"
-	"perun.network/go-perun/wallet"
 )
 
 // Resolver is the payment app resolver.
 type Resolver struct{}
 
 // Resolve returns a payment app with the given definition.
-func (b *Resolver) Resolve(def wallet.Address) (channel.App, error) {
+func (b *Resolver) Resolve(def channel.AppID) (channel.App, error) {
 	return &App{def}, nil
 }

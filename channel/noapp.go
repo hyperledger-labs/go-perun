@@ -18,7 +18,6 @@ import (
 	"github.com/pkg/errors"
 
 	"perun.network/go-perun/log"
-	"perun.network/go-perun/wallet"
 )
 
 type (
@@ -38,7 +37,7 @@ func IsNoApp(a App) bool {
 var _ StateApp = noApp{}
 
 // Def panics and should not be called.
-func (noApp) Def() wallet.Address {
+func (noApp) Def() AppID {
 	log.Panic("must not call Def() on NoApp")
 	return nil // needed to keep the compiler happy.
 }

@@ -20,16 +20,15 @@ import (
 
 	"perun.network/go-perun/channel"
 	"perun.network/go-perun/log"
-	"perun.network/go-perun/wallet"
 )
 
 // App is a payment app.
 type App struct {
-	Addr wallet.Address
+	Addr channel.AppID
 }
 
 // Def returns the address of this payment app.
-func (a *App) Def() wallet.Address {
+func (a *App) Def() channel.AppID {
 	return a.Addr
 }
 

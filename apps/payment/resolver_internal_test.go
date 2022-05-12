@@ -22,7 +22,7 @@ import (
 
 	_ "perun.network/go-perun/backend/sim" // backend init
 	"perun.network/go-perun/channel"
-	"perun.network/go-perun/wallet/test"
+	ctest "perun.network/go-perun/channel/test"
 	pkgtest "polycry.pt/poly-go/test"
 )
 
@@ -32,7 +32,7 @@ func TestResolver(t *testing.T) {
 	rng := pkgtest.Prng(t)
 	assert, require := assert.New(t), require.New(t)
 
-	def := test.NewRandomAddress(rng)
+	def := ctest.NewRandomAppID(rng)
 	channel.RegisterAppResolver(def.Equal, &Resolver{})
 
 	app, err := channel.Resolve(def)

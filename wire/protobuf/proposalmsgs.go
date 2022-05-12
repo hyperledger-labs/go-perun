@@ -169,7 +169,7 @@ func toApp(protoApp []byte) (app channel.App, err error) {
 		app = channel.NoApp()
 		return app, nil
 	}
-	appDef := wallet.NewAddress()
+	appDef := channel.NewAppID()
 	err = appDef.UnmarshalBinary(protoApp)
 	if err != nil {
 		return app, err
@@ -184,7 +184,7 @@ func toAppAndData(protoApp, protoData []byte) (app channel.App, data channel.Dat
 		data = channel.NoData()
 		return app, data, nil
 	}
-	appDef := wallet.NewAddress()
+	appDef := channel.NewAppID()
 	err = appDef.UnmarshalBinary(protoApp)
 	if err != nil {
 		return nil, nil, err
