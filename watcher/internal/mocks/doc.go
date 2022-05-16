@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Package mock contains generated mocks for use in tests. These mocks are
+// Package mocks contains generated mocks for use in tests. These mocks are
 // generated using the mock framework Testify.
 //
 // The command to generate each of the mocks is defined as "go generate"
@@ -20,4 +20,4 @@
 //
 // To execute the commands in all the go generate directives of the project,
 // run "go generate -x ./..." command from the project root.
-package mock // import "perun.network/go-perun/watcher/internal/mock"
+package mocks // import "perun.network/go-perun/watcher/internal/mocks"

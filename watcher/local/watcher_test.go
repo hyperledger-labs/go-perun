@@ -33,14 +33,14 @@ import (
 	channeltest "perun.network/go-perun/channel/test"
 	cltest "perun.network/go-perun/client/test"
 	"perun.network/go-perun/watcher"
-	"perun.network/go-perun/watcher/internal/mock"
+	"perun.network/go-perun/watcher/internal/mocks"
 	"perun.network/go-perun/watcher/local"
 	"polycry.pt/poly-go/test"
 )
 
 func Test_StartWatching(t *testing.T) {
 	rng := test.Prng(t)
-	rs := &mock.RegisterSubscriber{}
+	rs := &mocks.RegisterSubscriber{}
 	rs.On("Subscribe", testifyMock.Anything, testifyMock.Anything).Return(cltest.NewMockSubscription(context.TODO()), nil)
 
 	t.Run("ledger_channel", func(t *testing.T) {
@@ -127,10 +127,10 @@ func Test_Watcher_Working(t *testing.T) {
 		t.Run("happy/latest_state_registered", func(t *testing.T) {
 			// Setup
 			params, txs := randomTxsForSingleCh(rng, 3)
-			adjSub := &mock.AdjudicatorSubscription{}
+			adjSub := &mocks.AdjudicatorSubscription{}
 			trigger := setExpectationNextCall(adjSub, makeRegisteredEvents(txs[2])...)
 
-			rs := &mock.RegisterSubscriber{}
+			rs := &mocks.RegisterSubscriber{}
 			setExpectationSubscribeCall(rs, adjSub, nil)
 			w := newWatcher(t, rs)
 
@@ -150,10 +150,10 @@ func Test_Watcher_Working(t *testing.T) {
 		t.Run("happy/newer_than_latest_state_registered", func(t *testing.T) {
 			// Setup
 			params, txs := randomTxsForSingleCh(rng, 3)
-			adjSub := &mock.AdjudicatorSubscription{}
+			adjSub := &mocks.AdjudicatorSubscription{}
 			trigger := setExpectationNextCall(adjSub, makeRegisteredEvents(txs[2])...)
 
-			rs := &mock.RegisterSubscriber{}
+			rs := &mocks.RegisterSubscriber{}
 			setExpectationSubscribeCall(rs, adjSub, nil)
 			w := newWatcher(t, rs)
 
@@ -176,10 +176,10 @@ func Test_Watcher_Working(t *testing.T) {
 		t.Run("happy/older_state_registered", func(t *testing.T) {
 			// Setup
 			params, txs := randomTxsForSingleCh(rng, 3)
-			adjSub := &mock.AdjudicatorSubscription{}
+			adjSub := &mocks.AdjudicatorSubscription{}
 			trigger := setExpectationNextCall(adjSub, makeRegisteredEvents(txs[1], txs[2])...)
 
-			rs := &mock.RegisterSubscriber{}
+			rs := &mocks.RegisterSubscriber{}
 			setExpectationSubscribeCall(rs, adjSub, nil)
 			setExpectationRegisterCalls(t, rs, &channelTree{txs[2], []channel.Transaction{}})
 			w := newWatcher(t, rs)
@@ -209,9 +209,9 @@ func Test_Watcher_Working(t *testing.T) {
 			params, txs := randomTxsForSingleCh(rng, 2)
 
 			// Setup: Adjudicator event subscription for the ledger.
-			adjSub := &mock.AdjudicatorSubscription{}
+			adjSub := &mocks.AdjudicatorSubscription{}
 			trigger := setExpectationNextCall(adjSub, eventConstructor(txs[1])...)
-			rs := &mock.RegisterSubscriber{}
+			rs := &mocks.RegisterSubscriber{}
 			setExpectationSubscribeCall(rs, adjSub, nil)
 
 			// Setup: Initialize the watcher and start watching for the ledger.
@@ -243,11 +243,11 @@ func Test_Watcher_Working(t *testing.T) {
 			// Add sub-channel to allocation. This transaction represents funding of the sub-channel.
 			parentTxs[2].Allocation.Locked = []channel.SubAlloc{{ID: childTxs[0].ID}}
 
-			adjSubParent := &mock.AdjudicatorSubscription{}
+			adjSubParent := &mocks.AdjudicatorSubscription{}
 			triggerParent := setExpectationNextCall(adjSubParent, makeRegisteredEvents(parentTxs[2])...)
-			adjSubChild := &mock.AdjudicatorSubscription{}
+			adjSubChild := &mocks.AdjudicatorSubscription{}
 			triggerChild := setExpectationNextCall(adjSubChild, makeRegisteredEvents(childTxs[2])...)
-			rs := &mock.RegisterSubscriber{}
+			rs := &mocks.RegisterSubscriber{}
 			setExpectationSubscribeCall(rs, adjSubParent, nil)
 			setExpectationSubscribeCall(rs, adjSubChild, nil)
 
@@ -282,12 +282,12 @@ func Test_Watcher_Working(t *testing.T) {
 			// Add sub-channel to allocation. This transaction represents funding of the sub-channel.
 			parentTxs[2].Allocation.Locked = []channel.SubAlloc{{ID: childTxs[0].ID}}
 
-			adjSubParent := &mock.AdjudicatorSubscription{}
+			adjSubParent := &mocks.AdjudicatorSubscription{}
 			triggerParent := setExpectationNextCall(adjSubParent, makeRegisteredEvents(parentTxs[2])...)
-			adjSubChild := &mock.AdjudicatorSubscription{}
+			adjSubChild := &mocks.AdjudicatorSubscription{}
 			triggerChild := setExpectationNextCall(adjSubChild, makeRegisteredEvents(childTxs[2])...)
 
-			rs := &mock.RegisterSubscriber{}
+			rs := &mocks.RegisterSubscriber{}
 			setExpectationSubscribeCall(rs, adjSubParent, nil)
 			setExpectationSubscribeCall(rs, adjSubChild, nil)
 
@@ -326,12 +326,12 @@ func Test_Watcher_Working(t *testing.T) {
 			// Add sub-channel to allocation. This transaction represents funding of the sub-channel.
 			parentTxs[2].Allocation.Locked = []channel.SubAlloc{{ID: childTxs[0].ID}}
 
-			adjSubParent := &mock.AdjudicatorSubscription{}
+			adjSubParent := &mocks.AdjudicatorSubscription{}
 			triggerParent := setExpectationNextCall(adjSubParent, makeRegisteredEvents(parentTxs[1], parentTxs[2])...)
-			adjSubChild := &mock.AdjudicatorSubscription{}
+			adjSubChild := &mocks.AdjudicatorSubscription{}
 			triggerChild := setExpectationNextCall(adjSubChild, makeRegisteredEvents(childTxs[1], childTxs[2])...)
 
-			rs := &mock.RegisterSubscriber{}
+			rs := &mocks.RegisterSubscriber{}
 			setExpectationSubscribeCall(rs, adjSubParent, nil)
 			setExpectationSubscribeCall(rs, adjSubChild, nil)
 			setExpectationRegisterCalls(t, rs, &channelTree{parentTxs[2], []channel.Transaction{childTxs[2]}})
@@ -390,7 +390,7 @@ func Test_Watcher_Working(t *testing.T) {
 			adjSubChild := &mocks.AdjudicatorSubscription{}
 			triggerChild := setExpectationNextCall(adjSubChild, makeRegisteredEvents(childTxs[1], childTxs[2], childTxs[3])...)
 
-			rs := &mock.RegisterSubscriber{}
+			rs := &mocks.RegisterSubscriber{}
 			setExpectationSubscribeCall(rs, adjSubParent, nil)
 			setExpectationSubscribeCall(rs, adjSubChild, nil)
 			setExpectationRegisterCalls(t, rs,
@@ -443,11 +443,11 @@ func Test_Watcher_Working(t *testing.T) {
 			parentTxs[1].Allocation.Locked = []channel.SubAlloc{{ID: childTxs[0].ID}} // Add sub-channel to allocation.
 
 			// Setup: Adjudicator event subscription for the ledger and sub-channel.
-			adjSubParent := &mock.AdjudicatorSubscription{}
+			adjSubParent := &mocks.AdjudicatorSubscription{}
 			triggerParent := setExpectationNextCall(adjSubParent, eventConstructor(parentTxs[1])...)
-			adjSubChild := &mock.AdjudicatorSubscription{}
+			adjSubChild := &mocks.AdjudicatorSubscription{}
 			triggerChild := setExpectationNextCall(adjSubChild, eventConstructor(childTxs[1])...)
-			rs := &mock.RegisterSubscriber{}
+			rs := &mocks.RegisterSubscriber{}
 			setExpectationSubscribeCall(rs, adjSubParent, nil)
 			setExpectationSubscribeCall(rs, adjSubChild, nil)
 
@@ -486,11 +486,11 @@ func Test_Watcher_StopWatching(t *testing.T) {
 			defer goleak.VerifyNone(t, goleak.IgnoreCurrent())
 
 			params, txs := randomTxsForSingleCh(rng, 1)
-			adjSub := &mock.AdjudicatorSubscription{}
+			adjSub := &mocks.AdjudicatorSubscription{}
 			trigger := setExpectationNextCall(adjSub)
 			setExpectationCloseCallErrCall(adjSub, trigger, errOnClose)
 
-			rs := &mock.RegisterSubscriber{}
+			rs := &mocks.RegisterSubscriber{}
 			setExpectationSubscribeCall(rs, adjSub, nil)
 			w := newWatcher(t, rs)
 			startWatchingForLedgerChannel(t, w, makeSignedStateWDummySigs(params, txs[0].State))
@@ -507,11 +507,11 @@ func Test_Watcher_StopWatching(t *testing.T) {
 			// defer goleak.VerifyNone(t, goleak.IgnoreCurrent())
 
 			params, txs := randomTxsForSingleCh(rng, 1)
-			adjSub := &mock.AdjudicatorSubscription{}
+			adjSub := &mocks.AdjudicatorSubscription{}
 			trigger := setExpectationNextCall(adjSub)
 			setExpectationCloseCallErrCall(adjSub, trigger, nil)
 
-			rs := &mock.RegisterSubscriber{}
+			rs := &mocks.RegisterSubscriber{}
 			setExpectationSubscribeCall(rs, adjSub, nil)
 			w := newWatcher(t, rs)
 			startWatchingForLedgerChannel(t, w, makeSignedStateWDummySigs(params, txs[0].State))
@@ -537,14 +537,14 @@ func Test_Watcher_StopWatching(t *testing.T) {
 			parentTxs[1].Allocation.Locked = []channel.SubAlloc{{ID: childTxs[0].ID}} // sub-channel funding.
 			parentTxs[2].Allocation.Locked = []channel.SubAlloc{}                     // sub-channel withdrawal.
 
-			adjSubParent := &mock.AdjudicatorSubscription{}
+			adjSubParent := &mocks.AdjudicatorSubscription{}
 			triggerParent := setExpectationNextCall(adjSubParent)
 			setExpectationCloseCallErrCall(adjSubParent, triggerParent, nil)
-			adjSubChild := &mock.AdjudicatorSubscription{}
+			adjSubChild := &mocks.AdjudicatorSubscription{}
 			triggerChild := setExpectationNextCall(adjSubChild)
 			setExpectationCloseCallErrCall(adjSubChild, triggerChild, nil)
 
-			rs := &mock.RegisterSubscriber{}
+			rs := &mocks.RegisterSubscriber{}
 			setExpectationSubscribeCall(rs, adjSubParent, nil)
 			setExpectationSubscribeCall(rs, adjSubChild, nil)
 
@@ -572,14 +572,14 @@ func Test_Watcher_StopWatching(t *testing.T) {
 			childParams, childTxs := randomTxsForSingleCh(rng, 3)
 			parentTxs[2].Allocation.Locked = []channel.SubAlloc{{ID: childTxs[0].ID}} // sub-channel funding.
 
-			adjSubParent := &mock.AdjudicatorSubscription{}
+			adjSubParent := &mocks.AdjudicatorSubscription{}
 			triggerParent := setExpectationNextCall(adjSubParent, makeRegisteredEvents(parentTxs[2])[0])
 			setExpectationCloseCallErrCall(adjSubParent, triggerParent, nil)
-			adjSubChild := &mock.AdjudicatorSubscription{}
+			adjSubChild := &mocks.AdjudicatorSubscription{}
 			triggerChild := setExpectationNextCall(adjSubChild)
 			setExpectationCloseCallErrCall(adjSubChild, triggerChild, nil)
 
-			rs := &mock.RegisterSubscriber{}
+			rs := &mocks.RegisterSubscriber{}
 			setExpectationSubscribeCall(rs, adjSubParent, nil)
 			setExpectationSubscribeCall(rs, adjSubChild, nil)
 
@@ -610,14 +610,14 @@ func Test_Watcher_StopWatching(t *testing.T) {
 			childParams, childTxs := randomTxsForSingleCh(rng, 3)
 			parentTxs[2].Allocation.Locked = []channel.SubAlloc{{ID: childTxs[0].ID}} // sub-channel funding.
 
-			adjSubParent := &mock.AdjudicatorSubscription{}
+			adjSubParent := &mocks.AdjudicatorSubscription{}
 			triggerParent := setExpectationNextCall(adjSubParent, makeRegisteredEvents(parentTxs[1])[0])
 			setExpectationCloseCallErrCall(adjSubParent, triggerParent, nil)
-			adjSubChild := &mock.AdjudicatorSubscription{}
+			adjSubChild := &mocks.AdjudicatorSubscription{}
 			triggerChild := setExpectationNextCall(adjSubChild)
 			setExpectationCloseCallErrCall(adjSubChild, triggerChild, nil)
 
-			rs := &mock.RegisterSubscriber{}
+			rs := &mocks.RegisterSubscriber{}
 			setExpectationSubscribeCall(rs, adjSubParent, nil)
 			setExpectationSubscribeCall(rs, adjSubChild, nil)
 			setExpectationRegisterCalls(t, rs, &channelTree{parentTxs[2], []channel.Transaction{childTxs[0]}})
@@ -648,14 +648,14 @@ func Test_Watcher_StopWatching(t *testing.T) {
 			childParams, childTxs := randomTxsForSingleCh(rng, 3)
 			parentTxs[2].Allocation.Locked = []channel.SubAlloc{{ID: childTxs[0].ID}} // sub-channel funding.
 
-			adjSubParent := &mock.AdjudicatorSubscription{}
+			adjSubParent := &mocks.AdjudicatorSubscription{}
 			triggerParent := setExpectationNextCall(adjSubParent)
 			setExpectationCloseCallErrCall(adjSubParent, triggerParent, nil)
-			adjSubChild := &mock.AdjudicatorSubscription{}
+			adjSubChild := &mocks.AdjudicatorSubscription{}
 			triggerChild := setExpectationNextCall(adjSubChild)
 			setExpectationCloseCallErrCall(adjSubChild, triggerChild, nil)
 
-			rs := &mock.RegisterSubscriber{}
+			rs := &mocks.RegisterSubscriber{}
 			setExpectationSubscribeCall(rs, adjSubParent, nil)
 			setExpectationSubscribeCall(rs, adjSubChild, nil)
 
@@ -682,14 +682,14 @@ func Test_Watcher_StopWatching(t *testing.T) {
 			parentTxs[1].Allocation.Locked = []channel.SubAlloc{{ID: childTxs[0].ID}} // sub-channel funding.
 			parentTxs[2].Allocation.Locked = []channel.SubAlloc{}                     // sub-channel withdrawal.
 
-			adjSubParent := &mock.AdjudicatorSubscription{}
+			adjSubParent := &mocks.AdjudicatorSubscription{}
 			triggerParent := setExpectationNextCall(adjSubParent)
 			setExpectationCloseCallErrCall(adjSubParent, triggerParent, nil)
-			adjSubChild := &mock.AdjudicatorSubscription{}
+			adjSubChild := &mocks.AdjudicatorSubscription{}
 			triggerChild := setExpectationNextCall(adjSubChild)
 			setExpectationCloseCallErrCall(adjSubChild, triggerChild, nil)
 
-			rs := &mock.RegisterSubscriber{}
+			rs := &mocks.RegisterSubscriber{}
 			setExpectationSubscribeCall(rs, adjSubParent, nil)
 			setExpectationSubscribeCall(rs, adjSubChild, nil)
 
@@ -775,7 +775,7 @@ func (t *adjEventSource) close() {
 // the return values for the call and will be returned when the method is
 // called.
 //nolint:unparam
-func setExpectationSubscribeCall(rs *mock.RegisterSubscriber, adjSub channel.AdjudicatorSubscription, err error) {
+func setExpectationSubscribeCall(rs *mocks.RegisterSubscriber, adjSub channel.AdjudicatorSubscription, err error) {
 	rs.On("Subscribe", testifyMock.Anything, testifyMock.Anything).Return(adjSub, err).Once()
 }
 
@@ -788,7 +788,7 @@ func setExpectationSubscribeCall(rs *mock.RegisterSubscriber, adjSub channel.Adj
 //
 // After all triggers are used, the subscription blocks.
 func setExpectationNextCall(
-	adjSub *mock.AdjudicatorSubscription,
+	adjSub *mocks.AdjudicatorSubscription,
 	adjEvents ...channel.AdjudicatorEvent,
 ) adjEventSource {
 	triggers := adjEventSource{
@@ -812,7 +812,7 @@ func setExpectationNextCall(
 	return triggers
 }
 
-func setExpectationCloseCallErrCall(adjSub *mock.AdjudicatorSubscription, trigger adjEventSource, errOnClose error) {
+func setExpectationCloseCallErrCall(adjSub *mocks.AdjudicatorSubscription, trigger adjEventSource, errOnClose error) {
 	adjSub.On("Close").Run(func(_ testifyMock.Arguments) {
 		time.Sleep(1 * time.Millisecond) // Simulate closure of actual subscription.
 		trigger.close()
@@ -825,13 +825,13 @@ type channelTree struct {
 	subTxs []channel.Transaction
 }
 
-// setExpectationRegisterCalls configures the mock RegisterSubscriber to
-// expect the "Register" method to be called, once for each channelTree.
+// setExpectationRegisterCalls configures the mock RegisterSubscriber to expect
+// the "Register" method to be called, once for each channelTree.
 //
 // On each call, the mock will check if the parameters of the call are correct
 // for the given channel tree and fails the test if incorrect. The return value
 // of "Register" calls is always nil.
-func setExpectationRegisterCalls(t *testing.T, rs *mock.RegisterSubscriber, channelTrees ...*channelTree) {
+func setExpectationRegisterCalls(t *testing.T, rs *mocks.RegisterSubscriber, channelTrees ...*channelTree) {
 	t.Helper()
 	limit := len(channelTrees)
 	mtx := sync.Mutex{}
