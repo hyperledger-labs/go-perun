@@ -20,10 +20,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/pkg/errors"
 	"github.com/stretchr/testify/require"
 	"perun.network/go-perun/channel"
 	"perun.network/go-perun/client"
+	ctest "perun.network/go-perun/client/test"
 	"perun.network/go-perun/wire"
 )
 
@@ -32,8 +32,8 @@ func TestMultiLedgerDispute(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), testDuration)
 	defer cancel()
 
-	mlt := setupMultiLedgerTest(t)
-	alice, bob := mlt.c1, mlt.c2
+	mlt := ctest.SetupMultiLedgerTest(t)
+	alice, bob := mlt.C1, mlt.C2
 
 	// Define initial balances.
 	initBals := channel.Balances{
@@ -48,12 +48,12 @@ func TestMultiLedgerDispute(t *testing.T) {
 	// Establish ledger channel between Alice and Bob.
 
 	// Create channel proposal.
-	parts := []wire.Address{alice.wireAddress, bob.wireAddress}
-	initAlloc := channel.NewAllocation(len(parts), mlt.a1, mlt.a2)
+	parts := []wire.Address{alice.WireAddress, bob.WireAddress}
+	initAlloc := channel.NewAllocation(len(parts), mlt.A1, mlt.A2)
 	initAlloc.Balances = initBals
 	prop, err := client.NewLedgerChannelProposal(
 		challengeDuration,
-		alice.wireAddress,
+		alice.WireAddress,
 		initAlloc,
 		parts,
 	)
@@ -62,30 +62,14 @@ func TestMultiLedgerDispute(t *testing.T) {
 	// Setup proposal handler.
 	channels := make(chan *client.Channel, 1)
 	errs := make(chan error)
-	var channelHandler client.ProposalHandlerFunc = func(cp client.ChannelProposal, pr *client.ProposalResponder) {
-		switch cp := cp.(type) {
-		case *client.LedgerChannelProposalMsg:
-			ch, err := pr.Accept(ctx, cp.Accept(bob.wireAddress, client.WithRandomNonce()))
-			if err != nil {
-				errs <- errors.WithMessage(err, "accepting ledger channel proposal")
-				return
-			}
-			channels <- ch
-		default:
-			errs <- errors.Errorf("invalid channel proposal: %v", cp)
-			return
-		}
-	}
-	var updateHandler client.UpdateHandlerFunc = func(
-		s *channel.State, cu client.ChannelUpdate, ur *client.UpdateResponder,
-	) {
-		err := ur.Accept(ctx)
-		if err != nil {
-			errs <- errors.WithMessage(err, "accepting channel update")
-		}
-	}
-	go alice.Handle(channelHandler, updateHandler)
-	go bob.Handle(channelHandler, updateHandler)
+	go alice.Handle(
+		ctest.AlwaysRejectChannelHandler(ctx, errs),
+		ctest.AlwaysAcceptUpdateHandler(ctx, errs),
+	)
+	go bob.Handle(
+		ctest.AlwaysAcceptChannelHandler(ctx, bob.WireAddress, channels, errs),
+		ctest.AlwaysAcceptUpdateHandler(ctx, errs),
+	)
 
 	// Open channel.
 	chAliceBob, err := alice.ProposeChannel(ctx, prop)
@@ -122,10 +106,10 @@ func TestMultiLedgerDispute(t *testing.T) {
 	req1 := client.NewTestChannel(chAliceBob).AdjudicatorReq()
 
 	// Alice registers state on l1 adjudicator.
-	err = mlt.l1.Register(ctx, req1, nil)
+	err = mlt.L1.Register(ctx, req1, nil)
 	require.NoError(err)
 
-	e := <-bob.events
+	e := <-bob.Events
 	require.IsType(e, &channel.RegisteredEvent{})
 
 	// Close channel.
@@ -133,6 +117,6 @@ func TestMultiLedgerDispute(t *testing.T) {
 	require.NoError(err)
 
 	// Check final balances.
-	require.True(mlt.l1.Balance(mlt.c2.wireAddress, mlt.a1).Cmp(updateBals1[0][1]) == 0)
-	require.True(mlt.l2.Balance(mlt.c2.wireAddress, mlt.a2).Cmp(updateBals1[1][1]) == 0)
+	require.True(mlt.L1.Balance(mlt.C2.WireAddress, mlt.A1).Cmp(updateBals1[0][1]) == 0)
+	require.True(mlt.L2.Balance(mlt.C2.WireAddress, mlt.A2).Cmp(updateBals1[1][1]) == 0)
 }
