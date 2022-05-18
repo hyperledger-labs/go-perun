@@ -24,6 +24,8 @@ linters:
     - wsl # Formatting disabled for now.
     - gochecknoinits # We use init functions.
     - gci # We have our own import order.
+    - goerr113 # We do not strictly require static errors.
+    - promlinter # Disabled because unstable.
 
     # These could be enabled in the future:
     - ifshort # we often don't use `if err := …` for readability.

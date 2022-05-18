@@ -96,7 +96,8 @@ func (c *Client) restorePeerChannels(ctx context.Context, p wire.Address) (err e
 
 func (c *Client) restoreChannelCollection(
 	db map[channel.ID]*persistence.Channel,
-	channelFromSource channelFromSourceSig) {
+	channelFromSource channelFromSourceSig,
+) {
 	chs := make(map[channel.ID]*Channel)
 	for _, pch := range db {
 		ch := c.reconstructChannel(channelFromSource, pch, db, chs)

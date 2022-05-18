@@ -130,7 +130,8 @@ func mkRndChan(rng *rand.Rand) *persistence.Channel {
 func mkRndChanTree(
 	rng *rand.Rand,
 	depth, minChildren, maxChildren int,
-	db map[channel.ID]*persistence.Channel) (root *persistence.Channel) {
+	db map[channel.ID]*persistence.Channel,
+) (root *persistence.Channel) {
 	root = mkRndChan(rng)
 	db[root.ID()] = root
 

@@ -220,7 +220,8 @@ func (r *EndpointRegistry) authenticatedDial(
 	ctx context.Context,
 	addr wire.Address,
 	de *dialingEndpoint,
-	created bool) (ret *Endpoint, _ error) {
+	created bool,
+) (ret *Endpoint, _ error) {
 	key := wallet.Key(addr)
 
 	// Short cut: another dial for that peer is already in progress.

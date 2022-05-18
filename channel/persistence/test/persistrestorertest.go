@@ -82,7 +82,8 @@ func GenericPersistRestorerTest(
 	rng *rand.Rand,
 	pr persistence.PersistRestorer,
 	numPeers int,
-	numChans int) {
+	numChans int,
+) {
 	t.Helper()
 	t.Run("RestoreChannel error", func(t *testing.T) {
 		var id channel.ID
