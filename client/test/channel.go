@@ -16,11 +16,10 @@ package test
 
 import (
 	"context"
+	"errors"
 	"io"
 	"math/big"
 	"time"
-
-	"github.com/stretchr/testify/assert"
 
 	"perun.network/go-perun/channel"
 	"perun.network/go-perun/client"
@@ -73,7 +72,7 @@ func (ch *paymentChannel) openSubChannel(
 
 	prop := ch.r.SubChannelProposal(rng, cfg, ch.Channel, &initAlloc, app)
 	subchannel, err := ch.r.ProposeChannel(prop)
-	assert.NoError(ch.r.t, err)
+	ch.r.RequireNoError(err)
 	ch.r.log.Infof("New subchannel opened: %v", subchannel.Channel)
 
 	for i, bal := range initBals {
@@ -88,7 +87,7 @@ func (ch *paymentChannel) acceptSubchannel(
 	initBals []*big.Int,
 ) *paymentChannel {
 	subchannel, err := propHandler.Next()
-	assert.NoError(ch.r.t, err)
+	ch.r.RequireNoError(err)
 	ch.r.log.Infof("New subchannel opened: %v", subchannel.Channel)
 
 	for i, bal := range initBals {
@@ -105,7 +104,7 @@ func (ch *paymentChannel) sendUpdate(updater func(*channel.State), desc string) 
 
 	err := ch.Update(ctx, updater)
 	ch.log.Infof("Sent update: %s, err: %v", desc, err)
-	assert.NoError(ch.r.t, err)
+	ch.r.RequireNoError(err)
 }
 
 func (ch *paymentChannel) sendTransfer(amount channel.Bal, desc string) {
@@ -127,10 +126,11 @@ func (ch *paymentChannel) recvUpdate(accept bool, desc string) *channel.State {
 	select {
 	case res := <-ch.res:
 		ch.log.Infof("Received update: %s, err: %v", desc, res.err)
-		assert.NoError(ch.r.t, res.err)
+		ch.r.RequireNoError(res.err)
 		return res.up.State
 	case <-time.After(ch.r.timeout):
-		ch.r.t.Error("timeout: expected incoming channel update")
+		err := errors.New("timeout: expected incoming channel update")
+		ch.r.RequireNoError(err)
 		return nil
 	}
 }
@@ -150,22 +150,21 @@ func (ch *paymentChannel) assertBals(state *channel.State) {
 		ch.bals[0], ch.bals[1],
 		bals[0], bals[1],
 	)
-	assert := assert.New(ch.r.t)
-	assert.Zerof(bals[0].Cmp(ch.bals[0]), "bal[0]: %v != %v", bals[0], ch.bals[0])
-	assert.Zerof(bals[1].Cmp(ch.bals[1]), "bal[1]: %v != %v", bals[1], ch.bals[1])
+	ch.r.RequireTruef(bals[0].Cmp(ch.bals[0]) == 0, "bal[0]: %v != %v", bals[0], ch.bals[0])
+	ch.r.RequireTruef(bals[1].Cmp(ch.bals[1]) == 0, "bal[1]: %v != %v", bals[1], ch.bals[1])
 }
 
 func (ch *paymentChannel) sendFinal() {
 	ch.sendUpdate(func(state *channel.State) {
 		state.IsFinal = true
 	}, "final")
-	assert.True(ch.r.t, ch.State().IsFinal)
+	ch.r.RequireTrue(ch.State().IsFinal)
 }
 
 func (ch *paymentChannel) recvFinal() {
 	state := ch.recvUpdate(true, "final")
-	assert.NotNil(ch.r.t, state)
-	assert.True(ch.r.t, state.IsFinal)
+	ch.r.RequireTrue(state != nil)
+	ch.r.RequireTrue(state.IsFinal)
 }
 
 func (ch *paymentChannel) settle() {
@@ -177,18 +176,16 @@ func (ch *paymentChannel) settleSecondary() {
 }
 
 func (ch *paymentChannel) settleImpl(secondary bool) {
-	assert := assert.New(ch.r.t)
-
 	ctx, cancel := context.WithTimeout(context.Background(), ch.r.timeout)
 	defer cancel()
 
-	assert.NoError(ch.Settle(ctx, secondary))
+	ch.r.RequireNoError(ch.Settle(ctx, secondary))
 	ch.assertBals(ch.State())
 
 	if ch.IsSubChannel() {
 		// Track parent channel's balances.
 		parentChannel, ok := ch.r.chans.channel(ch.Parent().ID())
-		assert.True(ok, "parent channel not found")
+		ch.r.RequireTruef(ok, "parent channel not found")
 
 		for i, bal := range ch.bals {
 			parentBal := parentChannel.bals[i]

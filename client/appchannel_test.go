@@ -19,7 +19,6 @@ import (
 	"math/big"
 	"testing"
 
-	"github.com/stretchr/testify/assert"
 	"perun.network/go-perun/channel"
 	chtest "perun.network/go-perun/channel/test"
 	"perun.network/go-perun/client"
@@ -32,7 +31,7 @@ import (
 func TestProgression(t *testing.T) {
 	rng := pkgtest.Prng(t)
 
-	setups := NewSetups(rng, []string{"Paul", "Paula"})
+	setups, errs := NewSetups(rng, []string{"Paul", "Paula"})
 	roles := [2]clienttest.Executer{
 		clienttest.NewPaul(t, setups[0]),
 		clienttest.NewPaula(t, setups[1]),
@@ -53,6 +52,5 @@ func TestProgression(t *testing.T) {
 
 	ctx, cancel := context.WithTimeout(context.Background(), twoPartyTestTimeout)
 	defer cancel()
-	err := clienttest.ExecuteTwoPartyTest(ctx, roles, execConfig)
-	assert.NoError(t, err)
+	clienttest.ExecuteTwoPartyTest(ctx, t, roles, execConfig, errs)
 }

@@ -18,6 +18,7 @@ package test
 import (
 	"context"
 	"errors"
+	"fmt"
 	"io"
 	"math/big"
 	"math/rand"
@@ -25,7 +26,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/stretchr/testify/require"
 	"perun.network/go-perun/channel"
 	"perun.network/go-perun/channel/persistence"
 	"perun.network/go-perun/client"
@@ -35,6 +35,7 @@ import (
 	"perun.network/go-perun/watcher"
 	"perun.network/go-perun/wire"
 	pkgsync "polycry.pt/poly-go/sync"
+	"polycry.pt/poly-go/test"
 )
 
 type (
@@ -47,7 +48,7 @@ type (
 		// we use the Client as Closer
 		timeout           time.Duration
 		log               log.Logger
-		t                 *testing.T
+		errs              chan error
 		numStages         int
 		stages            Stages
 		challengeDuration uint64
@@ -76,6 +77,7 @@ type (
 		Timeout           time.Duration               // Timeout waiting for other role, not challenge duration
 		BalanceReader     BalanceReader
 		ChallengeDuration uint64
+		Errors            chan error
 	}
 
 	// ExecConfig contains additional config parameters for the tests.
@@ -109,7 +111,8 @@ type (
 )
 
 // ExecuteTwoPartyTest executes the specified client test.
-func ExecuteTwoPartyTest(ctx context.Context, role [2]Executer, cfg ExecConfig) error {
+func ExecuteTwoPartyTest(ctx context.Context, t *testing.T, role [2]Executer, cfg ExecConfig, errs chan error) {
+	t.Helper()
 	log.Info("Starting two-party test")
 	defer log.Info("Two-party test done")
 
@@ -122,15 +125,20 @@ func ExecuteTwoPartyTest(ctx context.Context, role [2]Executer, cfg ExecConfig) 
 	for i := 0; i < len(role); i++ {
 		wg.Add(1)
 		go func(i int) {
-			defer wg.Done()
 			log.Infof("Executing role %d", i)
 			role[i].Execute(cfg)
+			wg.Done()
 		}(i)
 	}
 
 	// wait for clients to finish or timeout
-	wg.WaitCtx(ctx)
-	return ctx.Err()
+	select {
+	case <-wg.WaitCh():
+	case <-ctx.Done():
+		t.Fatal(ctx.Err())
+	case err := <-errs:
+		t.Fatal(err)
+	}
 }
 
 // MakeBaseExecConfig creates a new BaseExecConfig.
@@ -175,7 +183,7 @@ func makeRole(t *testing.T, setup RoleSetup, numStages int) (r role) {
 		chans:             &channelMap{entries: make(map[channel.ID]*paymentChannel)},
 		setup:             setup,
 		timeout:           setup.Timeout,
-		t:                 t,
+		errs:              setup.Errors,
 		numStages:         numStages,
 		challengeDuration: setup.ChallengeDuration,
 	}
@@ -284,6 +292,43 @@ func (r *role) ProposeChannel(req client.ChannelProposal) (*paymentChannel, erro
 	return ch, nil
 }
 
+func (r *role) RequireNoError(err error) {
+	if err != nil {
+		r.errs <- err
+	}
+}
+
+func (r *role) RequireNoErrorf(err error, msg string, args ...interface{}) {
+	if err != nil {
+		r.errs <- fmt.Errorf("%v: %w", fmt.Sprintf(msg, args...), err)
+	}
+}
+
+func (r *role) RequireTrue(b bool) {
+	if !b {
+		r.errs <- fmt.Errorf("expected true, got false")
+	}
+}
+
+func (r *role) RequireTruef(b bool, msg string, args ...interface{}) {
+	if !b {
+		r.errs <- fmt.Errorf(msg, args...)
+	}
+}
+
+type rngNameTemplate struct {
+	name string
+}
+
+func (t rngNameTemplate) Name() string {
+	return t.name
+}
+
+func (r *role) NewRng() *rand.Rand {
+	t := rngNameTemplate{r.setup.Name}
+	return test.Prng(t)
+}
+
 type (
 	acceptNextPropHandler struct {
 		r     *role
@@ -372,7 +417,7 @@ func (h *acceptNextPropHandler) HandleProposal(prop client.ChannelProposal, res 
 	select {
 	case h.props <- proposalAndResponder{prop, res}:
 	case <-time.After(h.r.setup.Timeout):
-		h.r.t.Error("proposal response timeout") // Should be fatal, but cannot do this in go routine
+		h.r.RequireTruef(false, "proposal response timeout") // Should be fatal, but cannot do this in go routine
 	}
 }
 
@@ -426,14 +471,6 @@ func (r *role) UpdateHandler() *roleUpdateHandler { return (*roleUpdateHandler)(
 // HandleUpdate implements the Role as its own UpdateHandler.
 func (h *roleUpdateHandler) HandleUpdate(_ *channel.State, up client.ChannelUpdate, res *client.UpdateResponder) {
 	ch, ok := h.chans.channel(up.State.ID)
-	if !ok {
-		h.t.Errorf("unknown channel: %v", up.State.ID)
-		ctx, cancel := context.WithTimeout(context.Background(), h.setup.Timeout)
-		defer cancel()
-		err := res.Reject(ctx, "unknown channel")
-		require.NoError(h.t, err)
-		return
-	}
-
+	(*role)(h).RequireTruef(ok, "unknown channel: %v", up.State.ID)
 	ch.Handle(up, res)
 }

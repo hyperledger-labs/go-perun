@@ -20,10 +20,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/stretchr/testify/assert"
 	"perun.network/go-perun/channel"
 	"perun.network/go-perun/client"
-	pkgtest "polycry.pt/poly-go/test"
 )
 
 const nStagesDisputeSusieTime = 4
@@ -52,9 +50,8 @@ func (r *DisputeSusie) Execute(cfg ExecConfig) {
 }
 
 func (r *DisputeSusie) exec(_cfg ExecConfig, ledgerChannel *paymentChannel) {
-	rng := pkgtest.Prng(r.t, "susie")
+	rng := r.NewRng()
 	cfg := _cfg.(*DisputeSusieTimExecConfig)
-	assert := assert.New(r.t)
 	ctx := r.Ctx()
 
 	// Stage 1 - Wait for channel controller setup.
@@ -86,26 +83,26 @@ func (r *DisputeSusie) exec(_cfg ExecConfig, ledgerChannel *paymentChannel) {
 		State:  subReq0.Tx.State,
 		Sigs:   subReq0.Tx.Sigs,
 	}
-	assert.NoError(r.setup.Adjudicator.Register(ctx, reqLedger, []channel.SignedState{subState0}))
+	r.RequireNoError(r.setup.Adjudicator.Register(ctx, reqLedger, []channel.SignedState{subState0}))
 
 	// Within the challenge duration, other party should refute.
 	sub, err := r.setup.Adjudicator.Subscribe(ctx, subChannel.Params().ID())
-	assert.NoError(err)
+	r.RequireNoError(err)
 
 	// Wait until other party has refuted.
 	for {
 		event := sub.Next()
-		assert.NotNil(event)
-		assert.True(
+		r.RequireTrue(event != nil)
+		r.RequireTruef(
 			event.Timeout().IsElapsed(ctx),
 			"Refutation should already have progressed past the timeout.",
 		)
 		if event.Version() > 0 {
-			assert.NoError(sub.Close())
-			assert.NoError(sub.Err())
+			r.RequireNoError(sub.Close())
+			r.RequireNoError(sub.Err())
 			r.log.Debugln("<Registered> refuted: ", event)
-			assert.Equal(subChannel.State().Version, event.Version(), "expected refutation with current version")
-			assert.NoError(event.Timeout().Wait(ctx)) // Refutation increased the timeout.
+			r.RequireTruef(subChannel.State().Version == event.Version(), "expected refutation with current version")
+			r.RequireNoError(event.Timeout().Wait(ctx)) // Refutation increased the timeout.
 			break
 		}
 	}
@@ -114,7 +111,7 @@ func (r *DisputeSusie) exec(_cfg ExecConfig, ledgerChannel *paymentChannel) {
 	m := channel.MakeStateMap()
 	m.Add(subState0.State)
 	err = r.setup.Adjudicator.Withdraw(ctx, reqLedger, m)
-	assert.Error(err, "withdraw should fail because other party should have refuted.")
+	r.RequireTruef(err != nil, "withdraw should fail because other party should have refuted.")
 
 	// Settling current version should work.
 	r.log.Debug("Settle.")
@@ -203,12 +200,12 @@ func (r *DisputeTim) exec(_cfg ExecConfig, ledgerChannel *paymentChannel, propHa
 					return e
 				}
 			case <-r.Ctx().Done():
-				r.t.Fatal(r.Ctx().Err())
+				r.RequireNoError(r.Ctx().Err())
 			}
 		}
 	}()
 	r.log.Debug("Received refutation event, waiting until ready to conclude.")
-	assert.NoError(r.t, e.Timeout().Wait(r.Ctx()))
+	r.RequireNoError(e.Timeout().Wait(r.Ctx()))
 
 	r.log.Debug("Settle")
 	ledgerChannel.settle() // Settles ledger channel with sub-channels.

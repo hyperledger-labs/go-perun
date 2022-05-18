@@ -18,8 +18,6 @@ import (
 	"math/big"
 	"testing"
 
-	"github.com/stretchr/testify/assert"
-
 	"perun.network/go-perun/channel"
 	"perun.network/go-perun/log"
 )
@@ -83,7 +81,6 @@ func (r *Paul) Execute(cfg ExecConfig) {
 }
 
 func (r *Paul) exec(_cfg ExecConfig, ch *paymentChannel) {
-	assert := assert.New(r.t)
 	ctx := r.Ctx()
 	assetIdx := 0
 
@@ -97,7 +94,7 @@ func (r *Paul) exec(_cfg ExecConfig, ch *paymentChannel) {
 	r.waitStage() // wait for setup complete
 
 	// progress
-	assert.NoError(ch.ForceUpdate(ctx, func(s *channel.State) {
+	r.RequireNoError(ch.ForceUpdate(ctx, func(s *channel.State) {
 		bal := func(user channel.Index) int64 {
 			return s.Balances[assetIdx][user].Int64()
 		}
@@ -109,17 +106,17 @@ func (r *Paul) exec(_cfg ExecConfig, ch *paymentChannel) {
 	// Await progressed event 1.
 	r.log.Debugf("%v awaiting progressed event 1", r.setup.Name)
 	e := <-r.progressed
-	assert.Truef(e.Version() == 1, "expected version 1, got version %v", e.Version())
+	r.RequireTruef(e.Version() == 1, "expected version 1, got version %v", e.Version())
 	r.waitStage()
 
 	// Await progressed event 2.
 	r.log.Debugf("%v awaiting progressed event 2", r.setup.Name)
 	e = <-r.progressed
-	assert.Truef(e.Version() == 2, "expected version 2, got version %v", e.Version()) //nolint:gomnd
+	r.RequireTruef(e.Version() == 2, "expected version 2, got version %v", e.Version()) //nolint:gomnd
 	r.waitStage()
 
 	// withdraw
-	assert.NoError(ch.Settle(ctx, false))
+	r.RequireNoError(ch.Settle(ctx, false))
 }
 
 // ----------------- BEGIN PAULA -----------------
@@ -146,7 +143,6 @@ func (r *Paula) Execute(cfg ExecConfig) {
 }
 
 func (r *Paula) exec(_cfg ExecConfig, ch *paymentChannel, _ *acceptNextPropHandler) {
-	assert := assert.New(r.t)
 	ctx := r.Ctx()
 	assetIdx := 0
 
@@ -162,11 +158,11 @@ func (r *Paula) exec(_cfg ExecConfig, ch *paymentChannel, _ *acceptNextPropHandl
 	// Await progressed event 1.
 	r.log.Debugf("%v awaiting progressed event 1", r.setup.Name)
 	e := <-r.progressed
-	assert.Truef(e.Version() == 1, "expected version 1, got version %v", e.Version())
+	r.RequireTruef(e.Version() == 1, "expected version 1, got version %v", e.Version())
 	r.waitStage()
 
 	// we progress
-	assert.NoError(ch.ForceUpdate(ctx, func(s *channel.State) {
+	r.RequireNoError(ch.ForceUpdate(ctx, func(s *channel.State) {
 		bal := func(user channel.Index) int64 {
 			return s.Balances[assetIdx][user].Int64()
 		}
@@ -178,12 +174,12 @@ func (r *Paula) exec(_cfg ExecConfig, ch *paymentChannel, _ *acceptNextPropHandl
 	// Await progressed event 2.
 	r.log.Debugf("%v awaiting progressed event 2", r.setup.Name)
 	e = <-r.progressed
-	assert.Truef(e.Version() == 2, "expected version 2, got version %v", e.Version()) //nolint:gomnd
+	r.RequireTruef(e.Version() == 2, "expected version 2, got version %v", e.Version()) //nolint:gomnd
 	r.waitStage()
 
 	// await ready to conclude
-	assert.NoError(e.Timeout().Wait(ctx), "waiting for progression timeout")
+	r.RequireNoErrorf(e.Timeout().Wait(ctx), "waiting for progression timeout")
 
 	// withdraw
-	assert.NoError(ch.Settle(ctx, true))
+	r.RequireNoError(ch.Settle(ctx, true))
 }
