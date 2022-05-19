@@ -382,7 +382,6 @@ func (c *Channel) enableNotifyUpdate(ctx context.Context) error {
 	} else {
 		err = c.machine.EnableUpdate(ctx)
 	}
-
 	if err != nil {
 		return errors.WithMessage(err, "enabling update")
 	}
@@ -391,8 +390,8 @@ func (c *Channel) enableNotifyUpdate(ctx context.Context) error {
 		c.onUpdate(from, to)
 	}
 
-	if err = c.statesPub.Publish(ctx, c.machine.CurrentTX()); err != nil {
-		c.Log().WithField("Version", c.state().Version).Errorf("Error publishe state to watcher: %v", err)
+	if err := c.statesPub.Publish(ctx, c.machine.CurrentTX()); err != nil {
+		c.Log().WithField("Version", c.state().Version).Errorf("publishing state to watcher: %w", err)
 	}
 	return nil
 }

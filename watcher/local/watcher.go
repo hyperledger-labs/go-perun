@@ -23,6 +23,7 @@ import (
 	"github.com/pkg/errors"
 
 	"perun.network/go-perun/channel"
+	"perun.network/go-perun/channel/multi"
 	"perun.network/go-perun/log"
 	"perun.network/go-perun/watcher"
 )
@@ -54,10 +55,11 @@ type (
 	}
 
 	ch struct {
-		id       channel.ID
-		params   *channel.Params
-		isClosed bool
-		parent   *ch
+		id          channel.ID
+		params      *channel.Params
+		isClosed    bool
+		parent      *ch
+		multiLedger bool
 
 		// For keeping track of the sub-channels of this ledger channel
 		// registered with the watcher.
@@ -76,7 +78,14 @@ type (
 		// For keeping track of the version registered on the blockchain for
 		// this channel. This is used to prevent registering the same state
 		// more than once.
+		registered        bool
 		registeredVersion uint64
+
+		// published stores whether any event has been published for this
+		// channel.
+		published bool
+		// publishedVersion is the highest published state version.
+		publishedVersion uint64
 
 		// For retrieving the latest state (from the handler for receiving
 		// off-chain states) when processing events from the blockchain.
@@ -183,7 +192,8 @@ func (w *Watcher) startWatching(
 		}
 		statesPubSub = newStatesPubSub()
 		eventsToClientPubSub = newAdjudicatorEventsPubSub()
-		return newCh(id, parent, signedState.Params, eventsFromChainSub, eventsToClientPubSub, statesPubSub), nil
+		multiLedger := multi.IsMultiLedgerAssets(signedState.State.Assets)
+		return newCh(id, parent, signedState.Params, eventsFromChainSub, eventsToClientPubSub, statesPubSub, multiLedger), nil
 	}
 
 	ch, err := w.registry.addIfSucceeds(id, chInitializer)
@@ -207,15 +217,18 @@ func newCh(
 	eventsFromChainSub channel.AdjudicatorSubscription,
 	eventsToClientPub adjudicatorPub,
 	statesSub statesSub,
+	multiLedger bool,
 ) *ch {
 	return &ch{
-		id:     id,
-		params: params,
-		parent: parent,
+		id:          id,
+		params:      params,
+		parent:      parent,
+		multiLedger: multiLedger,
 
 		subChs:              make(map[channel.ID]struct{}),
 		archivedSubChStates: make(map[channel.ID]channel.SignedState),
 
+		registered:        false,
 		registeredVersion: 0,
 		txRetriever: txRetriever{
 			request:  make(chan struct{}),
@@ -295,48 +308,11 @@ func readPendingTxs(statesSub statesSub, timeout time.Duration) (channel.Transac
 // It should be started as a go-routine and returns when the subscription for
 // adjudicator events from blockchain is closed.
 func (ch *ch) handleEventsFromChain(registerer channel.Registerer, chRegistry *registry) {
-	parent := ch
-	if ch.isSubChannel() {
-		parent = ch.parent
-	}
+	ctx := context.TODO()
 	for e := ch.eventsFromChainSub.Next(); e != nil; e = ch.eventsFromChainSub.Next() {
-		switch e.(type) {
+		switch e := e.(type) {
 		case *channel.RegisteredEvent:
-			// This lock ensures, when there are one or more sub-channels and
-			// adjudicator event is received for each channel, the events are
-			// processed one after the other.
-			//
-			// Even if older states have been registered for more than one
-			// channel in the same family, the channel tree will be registered
-			// only once.
-			parent.subChsAccess.Lock()
-
-			func() {
-				defer parent.subChsAccess.Unlock()
-
-				log := log.WithFields(log.Fields{"ID": e.ID(), "Version": e.Version()})
-				log.Debug("Received registered event from chain")
-
-				ch.eventsToClientPub.publish(e)
-
-				latestTx := ch.txRetriever.retrieve()
-				log.Debugf("Latest version is (%d)", latestTx.Version)
-
-				if e.Version() < latestTx.Version {
-					if e.Version() < ch.registeredVersion {
-						log.Debugf("Latest version (%d) already registered ", ch.registeredVersion)
-						return
-					}
-
-					log.Debugf("Registering latest version (%d)", latestTx.Version)
-					err := registerDispute(chRegistry, registerer, parent) //nolint:contextcheck
-					if err != nil {
-						log.Error("Error registering dispute")
-						return
-					}
-					log.Debug("Registered successfully")
-				}
-			}()
+			ch.handleRegisteredEvent(ctx, e, registerer, chRegistry)
 		case *channel.ProgressedEvent:
 			log.Debugf("Received progressed event from chain: %v", e)
 			ch.eventsToClientPub.publish(e)
@@ -354,14 +330,65 @@ func (ch *ch) handleEventsFromChain(registerer channel.Registerer, chRegistry *r
 	}
 }
 
+func (ch *ch) handleRegisteredEvent(
+	ctx context.Context,
+	e *channel.RegisteredEvent,
+	registerer channel.Registerer,
+	chRegistry *registry,
+) {
+	parent := ch
+	if ch.isSubChannel() {
+		parent = ch.parent
+	}
+
+	// This lock ensures, when there are one or more sub-channels and
+	// adjudicator event is received for each channel, the events are
+	// processed one after the other.
+	//
+	// Even if older states have been registered for more than one
+	// channel in the same family, the channel tree will be registered
+	// only once.
+	parent.subChsAccess.Lock()
+	defer parent.subChsAccess.Unlock()
+
+	log := log.WithFields(log.Fields{"ID": e.ID(), "Version": e.Version()})
+	log.Debug("Received registered event from chain")
+
+	latestTx := ch.txRetriever.retrieve()
+	log.Debugf("Latest version is (%d)", latestTx.Version)
+
+	// A higher version is available and has not been registered previously.
+	higherVersionAvailable := e.Version() < latestTx.Version && e.Version() >= ch.registeredVersion
+	// We have a multi-ledger channel and it has not been registered previously.
+	// For a multi-ledger channel we always enforce registration to ensure that
+	// all ledgers are synchronized.
+	unregisteredMultiLedger := ch.multiLedger && (!ch.registered || ch.registeredVersion < e.Version())
+	if higherVersionAvailable || unregisteredMultiLedger {
+		log.Debugf("Registering latest version (%d)", latestTx.Version)
+		err := registerDispute(ctx, chRegistry, registerer, parent)
+		if err != nil {
+			log.Error("Error registering dispute: ", err)
+			return
+		}
+		log.Debug("Registered successfully")
+		ch.registered = true
+	}
+
+	if !ch.published || ch.publishedVersion < e.Version() {
+		ch.eventsToClientPub.publish(e)
+		ch.published = true
+		ch.publishedVersion = e.Version()
+	}
+}
+
 // registerDispute collects the latest transaction for the parent channel and
 // each of its children. It then registers a dispute for the channel tree.
 //
 // This function assumes the callers has locked the parent channel.
-func registerDispute(r *registry, registerer channel.Registerer, parentCh *ch) error {
-	parentTx, subStates := retreiveLatestSubStates(r, parentCh)
+func registerDispute(ctx context.Context, r *registry, registerer channel.Registerer, parentCh *ch) error {
+	parentTx, subStates := retrieveLatestSubStates(r, parentCh)
 
-	err := registerer.Register(context.TODO(), makeAdjudicatorReq(parentCh.params, parentTx), subStates)
+	err := registerer.Register(ctx, makeAdjudicatorReq(parentCh.params, parentTx), subStates)
 	if err != nil {
 		return err
 	}
@@ -376,7 +403,7 @@ func registerDispute(r *registry, registerer channel.Registerer, parentCh *ch) e
 	return nil
 }
 
-func retreiveLatestSubStates(r *registry, parent *ch) (channel.Transaction, []channel.SignedState) {
+func retrieveLatestSubStates(r *registry, parent *ch) (channel.Transaction, []channel.SignedState) {
 	parentTx := parent.txRetriever.retrieve()
 	subStates := make([]channel.SignedState, len(parentTx.Allocation.Locked))
 	for i := range parentTx.Allocation.Locked {

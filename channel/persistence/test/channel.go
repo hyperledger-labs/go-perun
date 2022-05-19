@@ -54,7 +54,8 @@ func NewRandomChannel(
 	user channel.Index,
 	peers []wire.Address,
 	parent *Channel,
-	rng *rand.Rand) (c *Channel) {
+	rng *rand.Rand,
+) (c *Channel) {
 	accs, parts := wtest.NewRandomAccounts(rng, len(peers))
 	params := ctest.NewRandomParams(rng, ctest.WithParts(parts...))
 	csm, err := channel.NewStateMachine(accs[0], *params)

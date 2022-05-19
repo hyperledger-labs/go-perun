@@ -40,7 +40,8 @@ const testNoReceiveTimeout = 10 * time.Millisecond
 // the client to, and a bus the client should use for publishing messages.
 func GenericBusTest(t *testing.T,
 	busAssigner func(wire.Account) (pub wire.Bus, sub wire.Bus),
-	numClients, numMsgs int) {
+	numClients, numMsgs int,
+) {
 	t.Helper()
 	require.Greater(t, numClients, 1)
 	require.Greater(t, numMsgs, 0)

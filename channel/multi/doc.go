@@ -1,4 +1,4 @@
-// Copyright 2021 - See NOTICE file for copyright holders.
+// Copyright 2022 - See NOTICE file for copyright holders.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,12 +12,5 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Package mock contains generated mocks for use in tests. These mocks are
-// generated using the mock framework Testify.
-//
-// The command to generate each of the mocks is defined as "go generate"
-// directives in the file where the corresponding interface is defined.
-//
-// To execute the commands in all the go generate directives of the project,
-// run "go generate -x ./..." command from the project root.
-package mock // import "perun.network/go-perun/watcher/internal/mock"
+// Package multi provides a multi-ledger funder and adjudicator.
+package multi // import "perun.network/go-perun/channel/multi"

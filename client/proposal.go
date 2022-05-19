@@ -23,6 +23,7 @@ import (
 	"github.com/pkg/errors"
 
 	"perun.network/go-perun/channel"
+	"perun.network/go-perun/channel/multi"
 	"perun.network/go-perun/log"
 	"perun.network/go-perun/wallet"
 	"perun.network/go-perun/wire"
@@ -364,6 +365,12 @@ func (c *Client) validTwoPartyProposal(
 ) error {
 	if err := proposal.Valid(); err != nil {
 		return err
+	}
+
+	multiLedger := multi.IsMultiLedgerAssets(proposal.Base().InitBals.Assets)
+	appChannel := !channel.IsNoApp(proposal.Base().App)
+	if multiLedger && appChannel {
+		return fmt.Errorf("multi-ledger app channel not supported")
 	}
 
 	peers := c.proposalPeers(proposal)

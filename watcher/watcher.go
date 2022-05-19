@@ -23,18 +23,19 @@ import (
 type (
 	// Watcher is the interface used by a client to interact with the Watcher.
 	//
-	// When a new channel is established, the client should register it with
-	// the watcher by calling the StartWatching method.
+	// When a new channel is established, the client should register it with the
+	// watcher by calling the StartWatching method.
 	//
-	// After that, it could publish each state on the StatesPub. If any state
-	// is registered or progressed on the blockchain, the corresponding
-	// adjudicator event will be relayed by the watcher on the AdjudicatorSub.
-	// If the registered state is not the latest state (published to the
-	// watcher) then, the watcher will automatically refute by registering the
-	// latest state on the blockchain.
+	// After that, it could publish each state on the StatesPub. If any state is
+	// registered or progressed on the blockchain, the corresponding adjudicator
+	// event will be relayed by the watcher on the AdjudicatorSub. If the
+	// registered state is not the latest state (published to the watcher) then,
+	// the watcher will automatically refute by registering the latest state on
+	// the blockchain. In case of a multi-ledger channel, the watcher also
+	// ensures that the contracts on different ledgers are kept in-sync.
 	//
-	// Once a channel is closed, the client can de-register the channel from
-	// the watcher by calling the StopWatching function. This will close the
+	// Once a channel is closed, the client can de-register the channel from the
+	// watcher by calling the StopWatching function. This will close the
 	// AdjudicatorSub and StatesSub. The client must not publish states after
 	// this.
 	Watcher interface {
