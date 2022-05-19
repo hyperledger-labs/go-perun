@@ -32,7 +32,11 @@ var optNames = struct{ nonce, app, appData, fundingAgreement string }{nonce: "no
 // App returns the option's configured app.
 func (o ProposalOpts) App() channel.App {
 	if v := o[optNames.app]; v != nil {
-		return v.(channel.App)
+		app, ok := v.(channel.App)
+		if !ok {
+			log.Panicf("wrong type: expected channel.App, got %T", v)
+		}
+		return app
 	}
 	return channel.NoApp()
 }
@@ -40,7 +44,11 @@ func (o ProposalOpts) App() channel.App {
 // AppData returns the option's configured app data.
 func (o ProposalOpts) AppData() channel.Data {
 	if v := o[optNames.appData]; v != nil {
-		return v.(channel.Data)
+		data, ok := v.(channel.Data)
+		if !ok {
+			log.Panicf("wrong type: expected channel.Data, got %T", v)
+		}
+		return data
 	}
 	return channel.NoData()
 }
@@ -63,7 +71,11 @@ func (o ProposalOpts) fundingAgreement() channel.Balances {
 	if !ok {
 		panic("Option FundingAgreement not set")
 	}
-	return a.(channel.Balances)
+	bals, ok := a.(channel.Balances)
+	if !ok {
+		log.Panicf("wrong type: expected channel.Balances, got %T", a)
+	}
+	return bals
 }
 
 // nonce returns the option's configured nonce share, or a random nonce share.
@@ -73,7 +85,11 @@ func (o ProposalOpts) nonce() NonceShare {
 		n = WithRandomNonce().nonce()
 		o[optNames.nonce] = n
 	}
-	return n.(NonceShare)
+	share, ok := n.(NonceShare)
+	if !ok {
+		log.Panicf("wrong type: expected NonceShare, got %T", n)
+	}
+	return share
 }
 
 // isNonce returns whether a ProposalOpts contains a manually set nonce.

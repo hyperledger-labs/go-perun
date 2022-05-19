@@ -73,7 +73,8 @@ func (c *Client) syncChannel(ctx context.Context, ch *persistence.Channel, p wir
 	defer recv.Close() // ignore error
 	id := ch.ID()
 	err = c.conn.Subscribe(recv, func(m *wire.Envelope) bool {
-		return m.Msg.Type() == wire.ChannelSync && m.Msg.(ChannelMsg).ID() == id
+		msg, ok := m.Msg.(*ChannelSyncMsg)
+		return ok && msg.ID() == id
 	})
 	if err != nil {
 		return errors.WithMessage(err, "subscribing on relay")

@@ -411,8 +411,7 @@ func (c *Channel) OnUpdate(cb func(from, to *channel.State)) {
 // * Sub-allocations do not change.
 func (c *Channel) validTwoPartyUpdate(up ChannelUpdate, sigIdx channel.Index) error {
 	if up.ActorIdx != sigIdx {
-		return errors.Errorf(
-			"Currently, only update proposals with the proposing peer as actor are allowed.")
+		return errors.New("invalid proposer")
 	}
 	if err := channel.SubAllocsAssertEqual(c.machine.State().Locked, up.State.Locked); err != nil {
 		return errors.WithMessage(err, "sub-allocation changed")

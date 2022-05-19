@@ -315,10 +315,14 @@ func (c *Client) proposeTwoPartyChannel(
 
 	proposalID := proposal.Base().ProposalID
 	isResponse := func(e *wire.Envelope) bool {
-		acc, isAcc := e.Msg.(ChannelProposalAccept)
-		return (isAcc && acc.Base().ProposalID == proposalID) ||
-			(e.Msg.Type() == wire.ChannelProposalRej &&
-				e.Msg.(*ChannelProposalRejMsg).ProposalID == proposalID)
+		switch msg := e.Msg.(type) {
+		case ChannelProposalAccept:
+			return msg.Base().ProposalID == proposalID
+		case ChannelProposalRejMsg:
+			return msg.ProposalID == proposalID
+		default:
+			return false
+		}
 	}
 	receiver := wire.NewReceiver()
 	defer receiver.Close()
@@ -606,9 +610,11 @@ func (c *Client) mpcppParts(
 ) (parts []wallet.Address) {
 	switch p := prop.(type) {
 	case *LedgerChannelProposalMsg:
-		parts = participants(
-			p.Participant,
-			acc.(*LedgerChannelProposalAccMsg).Participant)
+		ledgerAcc, ok := acc.(*LedgerChannelProposalAccMsg)
+		if !ok {
+			c.log.Panicf("unexpected message type: expected *LedgerChannelProposalAccMsg, got %T", acc)
+		}
+		parts = participants(p.Participant, ledgerAcc.Participant)
 	case *SubChannelProposalMsg:
 		ch, ok := c.channels.Channel(p.Parent)
 		if !ok {
@@ -616,10 +622,11 @@ func (c *Client) mpcppParts(
 		}
 		parts = ch.Params().Parts
 	case *VirtualChannelProposalMsg:
-		parts = participants(
-			p.Proposer,
-			acc.(*VirtualChannelProposalAccMsg).Responder,
-		)
+		virtualAcc, ok := acc.(*VirtualChannelProposalAccMsg)
+		if !ok {
+			c.log.Panicf("unexpected message type: expected *VirtualChannelProposalAccMsg, got %T", acc)
+		}
+		parts = participants(p.Proposer, virtualAcc.Responder)
 	default:
 		c.log.Panicf("unhandled %T", p)
 	}
@@ -697,8 +704,8 @@ func (c *Client) fundSubchannel(ctx context.Context, prop *SubChannelProposalMsg
 // enableVer0Cache enables caching of incoming version 0 signatures.
 func enableVer0Cache(c wire.Cacher) *wire.Predicate {
 	p := func(m *wire.Envelope) bool {
-		return m.Msg.Type() == wire.ChannelUpdateAcc &&
-			m.Msg.(*ChannelUpdateAccMsg).Version == 0
+		msg, ok := m.Msg.(*ChannelUpdateAccMsg)
+		return ok && msg.Version == 0
 	}
 	c.Cache(&p)
 	return &p

@@ -60,8 +60,14 @@ func newChannelConn(id channel.ID, peers []wire.Address, idx channel.Index, sub 
 	}()
 
 	isUpdateRes := func(e *wire.Envelope) bool {
-		ok := e.Msg.Type() == wire.ChannelUpdateAcc || e.Msg.Type() == wire.ChannelUpdateRej
-		return ok && e.Msg.(ChannelMsg).ID() == id
+		switch msg := e.Msg.(type) {
+		case *ChannelUpdateAccMsg:
+			return msg.ID() == id
+		case *ChannelUpdateRejMsg:
+			return msg.ID() == id
+		default:
+			return false
+		}
 	}
 
 	if err = sub.Subscribe(relay, isUpdateRes); err != nil {
@@ -157,5 +163,9 @@ func (r *channelMsgRecv) Next(ctx context.Context) (channel.Index, ChannelMsg, e
 	if idx == -1 {
 		return 0, nil, errors.Errorf("channel connection received message from unexpected peer %v", env.Sender)
 	}
-	return channel.Index(idx), env.Msg.(ChannelMsg), nil // predicate must guarantee that the conversion is safe
+	msg, ok := env.Msg.(ChannelMsg)
+	if !ok {
+		return 0, nil, errors.Errorf("unexpected message type: expected ChannelMsg, got %T", env.Msg)
+	}
+	return channel.Index(idx), msg, nil // predicate must guarantee that the conversion is safe
 }

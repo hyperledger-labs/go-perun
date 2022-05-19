@@ -52,16 +52,16 @@ func (c *Cache) Release(p *Predicate) {
 // If it matches several predicates, it is still only added once to the cache.
 func (c *Cache) Put(e *Envelope) bool {
 	// we filter the predicates for non-active and lazily remove them
-	any := false
+	found := false
 	for p := range c.preds {
-		any = any || (*p)(e)
+		found = found || (*p)(e)
 	}
 
-	if any {
+	if found {
 		c.msgs = append(c.msgs, e)
 	}
 
-	return any
+	return found
 }
 
 // Messages retrieves all messages from the cache that match the predicate. They are

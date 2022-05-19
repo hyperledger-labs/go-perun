@@ -160,15 +160,15 @@ func (p *Relay) Put(e *Envelope) {
 		return
 	}
 
-	any := false
+	found := false
 	for _, sub := range p.consumers {
 		if sub.predicate(e) {
 			sub.consumer.Put(e)
-			any = true
+			found = true
 		}
 	}
 
-	if !any {
+	if !found {
 		if !p.cache.Put(e) {
 			p.defaultMsgHandler(e)
 		}
