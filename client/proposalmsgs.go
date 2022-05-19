@@ -16,6 +16,7 @@ package client
 
 import (
 	"crypto/rand"
+	"fmt"
 	"hash"
 	"io"
 
@@ -531,32 +532,60 @@ type (
 	}
 )
 
+// ParentWithIndex denotes a parent channel ID and whether the participant has
+// the same index in that channel.
+type ParentWithIndex struct {
+	ChannelID channel.ID
+	SameIndex bool
+}
+
 // NewVirtualChannelProposal creates a virtual channel proposal.
+// `parentsWithIndices` is the channel IDs of the parent channels and the
+// indices of the participant in that channel.
 func NewVirtualChannelProposal(
 	challengeDuration uint64,
 	participant wallet.Address,
 	initBals *channel.Allocation,
 	peers []wire.Address,
-	parents []channel.ID,
-	indexMaps [][]channel.Index,
+	parentsWithIndices []ParentWithIndex,
 	opts ...ProposalOpts,
-) (prop *VirtualChannelProposalMsg, err error) {
+) (*VirtualChannelProposalMsg, error) {
 	base, err := makeBaseChannelProposal(
 		challengeDuration,
 		initBals,
 		opts...,
 	)
 	if err != nil {
-		return
+		return nil, err
 	}
-	prop = &VirtualChannelProposalMsg{
+
+	const numParts = 2
+	if len(parentsWithIndices) != numParts {
+		return nil, fmt.Errorf("invalid number of parent channels: expected %v, got %v", numParts, len(parentsWithIndices))
+	}
+
+	var parents [numParts]channel.ID
+	var indexMaps [numParts][]channel.Index
+	for i, ch := range parentsWithIndices {
+		parents[i] = ch.ChannelID
+		indexMaps[i] = makeTwoPartyIndexMap(ch.SameIndex)
+	}
+
+	prop := &VirtualChannelProposalMsg{
 		BaseChannelProposal: base,
 		Proposer:            participant,
 		Peers:               peers,
-		Parents:             parents,
-		IndexMaps:           indexMaps,
+		Parents:             parents[:],
+		IndexMaps:           indexMaps[:],
 	}
-	return
+	return prop, nil
+}
+
+func makeTwoPartyIndexMap(regular bool) []channel.Index {
+	if !regular {
+		return []channel.Index{1, 0}
+	}
+	return []channel.Index{0, 1}
 }
 
 // Encode encodes the proposal into an io.Writer.

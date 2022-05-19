@@ -248,15 +248,15 @@ func setupVirtualChannelTest(t *testing.T, ctx context.Context) (vct virtualChan
 		Assets:   []channel.Asset{asset},
 		Balances: [][]channel.Bal{initBalsVirtual},
 	}
-	indexMapAlice := []channel.Index{0, 1}
-	indexMapBob := []channel.Index{1, 0}
 	vcp, err := client.NewVirtualChannelProposal(
 		challengeDuration,
 		alice.Identity.Address(),
 		&initAllocVirtual,
 		[]wire.Address{alice.Identity.Address(), bob.Identity.Address()},
-		[]channel.ID{vct.chAliceIngrid.ID(), vct.chBobIngrid.ID()},
-		[][]channel.Index{indexMapAlice, indexMapBob},
+		[]client.ParentWithIndex{
+			{vct.chAliceIngrid.ID(), true},
+			{vct.chBobIngrid.ID(), false},
+		},
 	)
 	require.NoError(err, "creating virtual channel proposal")
 
