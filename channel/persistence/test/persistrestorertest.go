@@ -36,7 +36,7 @@ type Client struct {
 
 	rng *rand.Rand
 	pr  persistence.PersistRestorer
-	ctx context.Context
+	ctx context.Context //nolint:containedctx // This is just done for testing. Could be revised.
 }
 
 // number of peers in a channel that are used for the tests.

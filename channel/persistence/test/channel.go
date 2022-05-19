@@ -37,7 +37,7 @@ type Channel struct {
 	*persistence.StateMachine
 
 	pr  persistence.PersistRestorer
-	ctx context.Context
+	ctx context.Context //nolint:containedctx // This is just done for testing. Could be revised.
 }
 
 // NewRandomChannel creates a random channel with the requested persister and
