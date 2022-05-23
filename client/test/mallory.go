@@ -21,8 +21,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/stretchr/testify/assert"
-
 	"perun.network/go-perun/client"
 )
 
@@ -53,7 +51,6 @@ func (r *Mallory) Execute(cfg ExecConfig) {
 
 func (r *Mallory) exec(_cfg ExecConfig, ch *paymentChannel) {
 	cfg := _cfg.(*MalloryCarolExecConfig)
-	assert := assert.New(r.t)
 	we, _ := r.Idxs(cfg.Peers())
 	// AdjudicatorReq for version 0
 	req0 := client.NewTestChannel(ch.Channel).AdjudicatorReq()
@@ -73,35 +70,35 @@ func (r *Mallory) exec(_cfg ExecConfig, ch *paymentChannel) {
 	regCtx, regCancel := context.WithTimeout(context.Background(), r.timeout)
 	defer regCancel()
 	r.log.Debug("Registering version 0 state.")
-	assert.NoError(r.setup.Adjudicator.Register(regCtx, req0, nil))
+	r.RequireNoError(r.setup.Adjudicator.Register(regCtx, req0, nil))
 
 	// within the challenge duration, Carol should refute.
 	subCtx, subCancel := context.WithTimeout(context.Background(), r.timeout+challengeDuration)
 	defer subCancel()
 	sub, err := r.setup.Adjudicator.Subscribe(subCtx, ch.Params().ID())
-	assert.NoError(err)
+	r.RequireNoError(err)
 
 	// 3rd stage - wait until Carol has refuted
 	r.waitStage()
 
 	event := sub.Next() // should be event caused by Carol's refutation.
-	assert.NotNil(event)
-	assert.True(event.Timeout().IsElapsed(subCtx),
+	r.RequireTrue(event != nil)
+	r.RequireTruef(event.Timeout().IsElapsed(subCtx),
 		"Carol's refutation should already have progressed past the timeout.")
 
-	assert.NoError(sub.Close())
-	assert.NoError(sub.Err())
+	r.RequireNoError(sub.Close())
+	r.RequireNoError(sub.Err())
 	r.log.Debugln("<Registered> refuted: ", event)
-	assert.Equal(ch.State().Version, event.Version(), "expected refutation with current version")
+	r.RequireTruef(ch.State().Version == event.Version(), "expected refutation with current version")
 	waitCtx, waitCancel := context.WithTimeout(context.Background(), r.timeout+challengeDuration)
 	defer waitCancel()
 	// refutation increased the timeout.
-	assert.NoError(event.Timeout().Wait(waitCtx))
+	r.RequireNoError(event.Timeout().Wait(waitCtx))
 
 	wdCtx, wdCancel := context.WithTimeout(context.Background(), r.timeout)
 	defer wdCancel()
 	err = r.setup.Adjudicator.Withdraw(wdCtx, req0, nil)
-	assert.Error(err, "withdrawing should fail because Carol should have refuted.")
+	r.RequireTruef(err != nil, "withdrawing should fail because Carol should have refuted")
 
 	// settling current version should work
 	ch.settle()

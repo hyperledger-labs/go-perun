@@ -18,8 +18,6 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/stretchr/testify/assert"
-
 	"perun.network/go-perun/channel"
 )
 
@@ -53,7 +51,6 @@ func (r *Carol) Execute(cfg ExecConfig) {
 
 func (r *Carol) exec(_cfg ExecConfig, ch *paymentChannel, propHandler *acceptNextPropHandler) {
 	cfg := _cfg.(*MalloryCarolExecConfig)
-	assert := assert.New(r.t)
 	_, them := r.Idxs(cfg.Peers())
 
 	// start watcher
@@ -82,7 +79,7 @@ func (r *Carol) exec(_cfg ExecConfig, ch *paymentChannel, propHandler *acceptNex
 	r.log.Debugf("watcher refuted with the version: %v", e.Version())
 
 	r.log.Debug("Waiting until ready to conclude")
-	assert.NoError(e.Timeout().Wait(r.Ctx())) // wait until ready to conclude
+	r.RequireNoError(e.Timeout().Wait(r.Ctx())) // wait until ready to conclude
 
 	r.log.Debug("Settle")
 	ch.settle() // conclude and withdraw

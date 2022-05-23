@@ -20,11 +20,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/stretchr/testify/assert"
-
 	"perun.network/go-perun/channel"
 	"perun.network/go-perun/client"
-	"polycry.pt/poly-go/test"
+	"perun.network/go-perun/wire"
 )
 
 type (
@@ -48,9 +46,7 @@ const (
 // persistence testing.
 func (r *multiClientRole) ReplaceClient() {
 	cl, err := client.New(r.setup.Identity.Address(), r.setup.Bus, r.setup.Funder, r.setup.Adjudicator, r.setup.Wallet, r.setup.Watcher)
-	if err != nil {
-		r.t.Fatal("Error recreating Client: ", err)
-	}
+	r.RequireNoErrorf(err, "recreating client")
 	r.setClient(cl)
 }
 
@@ -73,13 +69,12 @@ func NewRobert(t *testing.T, setup RoleSetup) *Robert {
 
 // Execute executes the Petra protocol.
 func (r *Petra) Execute(cfg ExecConfig) {
-	assrt := assert.New(r.t)
-	rng := test.Prng(r.t, "petra")
+	rng := r.NewRng()
 
 	prop := r.LedgerChannelProposal(rng, cfg)
 	ch, err := r.ProposeChannel(prop)
-	assrt.NoError(err)
-	assrt.NotNil(ch)
+	r.RequireNoError(err)
+	r.RequireTrue(ch != nil)
 	if err != nil {
 		return
 	}
@@ -96,8 +91,8 @@ func (r *Petra) Execute(cfg ExecConfig) {
 	r.waitStage()
 
 	// 3. Both close client
-	assrt.NoError(r.Close())
-	assrt.True(ch.IsClosed(), "closing client should close channel")
+	r.RequireNoError(r.Close())
+	r.RequireTruef(ch.IsClosed(), "closing client should close channel")
 	wait() // Handle return
 	r.waitStage()
 
@@ -117,12 +112,12 @@ func (r *Petra) Execute(cfg ExecConfig) {
 	// Restore channels locally
 	ctx, cancel := context.WithTimeout(context.Background(), r.timeout)
 	defer cancel()
-	assrt.NoError(r.Restore(ctx)) // should restore channels
+	r.RequireNoError(r.Restore(ctx)) // should restore channels
 	select {
 	case ch = <-newCh: // expected
-		assrt.NotNil(ch)
+		r.RequireTrue(ch != nil)
 	case <-time.After(r.timeout):
-		r.t.Error("Expected channel to be restored")
+		r.RequireTruef(false, "expected channel to be restored")
 	}
 
 	r.waitStage()
@@ -132,20 +127,19 @@ func (r *Petra) Execute(cfg ExecConfig) {
 
 	ch.settleSecondary()
 
-	assrt.NoError(r.Close())
+	r.RequireNoError(r.Close())
 }
 
 // Execute executes the Robert protocol.
 func (r *Robert) Execute(cfg ExecConfig) {
-	assrt := assert.New(r.t)
-	rng := test.Prng(r.t, "robert")
+	rng := r.NewRng()
 
 	propHandler, waitHandler := r.GoHandle(rng)
 
 	// receive one accepted proposal
 	ch, err := propHandler.Next()
-	assrt.NoError(err)
-	assrt.NotNil(ch)
+	r.RequireNoError(err)
+	r.RequireTrue(ch != nil)
 	if err != nil {
 		return
 	}
@@ -159,8 +153,8 @@ func (r *Robert) Execute(cfg ExecConfig) {
 	r.waitStage()
 
 	// 3. Both close client
-	assrt.NoError(r.Close())
-	assrt.True(ch.IsClosed(), "closing client should close channel")
+	r.RequireNoError(r.Close())
+	r.RequireTruef(ch.IsClosed(), "closing client should close channel")
 	waitHandler()
 	r.waitStage()
 
@@ -177,12 +171,12 @@ func (r *Robert) Execute(cfg ExecConfig) {
 	// Restore channels locally
 	ctx, cancel := context.WithTimeout(context.Background(), r.timeout)
 	defer cancel()
-	assrt.NoError(r.Restore(ctx)) // should restore channels
+	r.RequireNoError(r.Restore(ctx)) // should restore channels
 	select {
 	case ch = <-newCh: // expected
-		assrt.NotNil(ch)
+		r.RequireTrue(ch != nil)
 	case <-time.After(r.timeout):
-		r.t.Error("Expected channel to be restored")
+		r.RequireTruef(false, "Expected channel to be restored")
 	}
 
 	r.waitStage()
@@ -192,26 +186,36 @@ func (r *Robert) Execute(cfg ExecConfig) {
 
 	ch.settle()
 
-	assrt.NoError(r.Close())
+	r.RequireNoError(r.Close())
 }
 
 func (r *multiClientRole) assertPersistedPeerAndChannel(cfg ExecConfig, state *channel.State) {
-	assrt := assert.New(r.t)
 	_, them := r.Idxs(cfg.Peers())
 	ctx, cancel := context.WithTimeout(context.Background(), defaultTestTimeout)
 	defer cancel()
 	ps, err := r.setup.PR.ActivePeers(ctx) // it should be a test persister, so no context needed
 	peerAddr := cfg.Peers()[them]
-	assrt.NoError(err)
-	assrt.Contains(ps, peerAddr)
+	r.RequireNoError(err)
+	r.RequireTrue(addresses(ps).contains(peerAddr))
 	if len(ps) == 0 {
 		return
 	}
 	chIt, err := r.setup.PR.RestorePeer(peerAddr)
-	assrt.NoError(err)
-	assrt.True(chIt.Next(ctx))
+	r.RequireNoError(err)
+	r.RequireTrue(chIt.Next(ctx))
 	restoredCh := chIt.Channel()
-	assrt.NoError(chIt.Close())
-	assrt.Equal(restoredCh.ID(), state.ID)
-	assrt.NoError(restoredCh.CurrentTXV.State.Equal(state))
+	r.RequireNoError(chIt.Close())
+	r.RequireTrue(restoredCh.ID() == state.ID)
+	r.RequireNoError(restoredCh.CurrentTXV.State.Equal(state))
+}
+
+type addresses []wire.Address
+
+func (a addresses) contains(b wire.Address) bool {
+	for _, addr := range a {
+		if addr.Equal(b) {
+			return true
+		}
+	}
+	return false
 }

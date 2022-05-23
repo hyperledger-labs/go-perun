@@ -39,12 +39,13 @@ const (
 	twoPartyTestTimeout  = 10 * time.Second
 )
 
-func NewSetups(rng *rand.Rand, names []string) []ctest.RoleSetup {
+func NewSetups(rng *rand.Rand, names []string) ([]ctest.RoleSetup, chan error) {
 	var (
 		bus     = wiretest.NewSerializingLocalBus()
 		n       = len(names)
 		setup   = make([]ctest.RoleSetup, n)
 		backend = ctest.NewMockBackend(rng, "1337")
+		errs    = make(chan error)
 	)
 
 	for i := 0; i < n; i++ {
@@ -63,10 +64,11 @@ func NewSetups(rng *rand.Rand, names []string) []ctest.RoleSetup {
 			Timeout:           roleOperationTimeout,
 			BalanceReader:     backend,
 			ChallengeDuration: 60,
+			Errors:            errs,
 		}
 	}
 
-	return setup
+	return setup, errs
 }
 
 type Client struct {
@@ -74,9 +76,9 @@ type Client struct {
 	ctest.RoleSetup
 }
 
-func NewClients(t *testing.T, rng *rand.Rand, names []string) []*Client {
+func NewClients(t *testing.T, rng *rand.Rand, names []string) ([]*Client, chan error) {
 	t.Helper()
-	setups := NewSetups(rng, names)
+	setups, errs := NewSetups(rng, names)
 	clients := make([]*Client, len(setups))
 	for i, setup := range setups {
 		setup.Identity = setup.Wallet.NewRandomAccount(rng)
@@ -87,14 +89,14 @@ func NewClients(t *testing.T, rng *rand.Rand, names []string) []*Client {
 			RoleSetup: setup,
 		}
 	}
-	return clients
+	return clients, errs
 }
 
-func runAliceBobTest(ctx context.Context, t *testing.T, setup func(*rand.Rand) ([]ctest.RoleSetup, [2]ctest.Executer)) {
+func runAliceBobTest(ctx context.Context, t *testing.T, setup func(*rand.Rand) ([]ctest.RoleSetup, [2]ctest.Executer, chan error)) {
 	t.Helper()
 	rng := test.Prng(t)
 	for i := 0; i < 2; i++ {
-		setups, roles := setup(rng)
+		setups, roles, errs := setup(rng)
 		app := client.WithoutApp()
 		if i == 1 {
 			app = client.WithApp(
@@ -113,7 +115,6 @@ func runAliceBobTest(ctx context.Context, t *testing.T, setup func(*rand.Rand) (
 			TxAmounts:   [2]*big.Int{big.NewInt(5), big.NewInt(3)},
 		}
 
-		err := ctest.ExecuteTwoPartyTest(ctx, roles, cfg)
-		assert.NoError(t, err)
+		ctest.ExecuteTwoPartyTest(ctx, t, roles, cfg, errs)
 	}
 }

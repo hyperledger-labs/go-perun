@@ -16,9 +16,6 @@ package test
 
 import (
 	"testing"
-
-	"github.com/stretchr/testify/assert"
-	pkgtest "polycry.pt/poly-go/test"
 )
 
 // Proposer is a test client role. He proposes the new channel.
@@ -34,20 +31,19 @@ func NewProposer(t *testing.T, setup RoleSetup, numStages int) *Proposer {
 
 // Execute executes the Proposer protocol.
 func (r *Proposer) Execute(cfg ExecConfig, exec func(ExecConfig, *paymentChannel)) {
-	rng := pkgtest.Prng(r.t, "proposer")
-	assert := assert.New(r.t)
+	rng := r.NewRng()
 
 	// ignore proposal handler since Proposer doesn't accept any incoming channels
 	_, waitHandler := r.GoHandle(rng)
 	defer func() {
-		assert.NoError(r.Close())
+		r.RequireNoError(r.Close())
 		waitHandler()
 	}()
 
 	prop := r.LedgerChannelProposal(rng, cfg)
 	ch, err := r.ProposeChannel(prop)
-	assert.NoError(err)
-	assert.NotNil(ch)
+	r.RequireNoError(err)
+	r.RequireTrue(ch != nil)
 	if err != nil {
 		return
 	}
@@ -55,5 +51,5 @@ func (r *Proposer) Execute(cfg ExecConfig, exec func(ExecConfig, *paymentChannel
 
 	exec(cfg, ch)
 
-	assert.NoError(ch.Close()) // May or may not already be closed due to channelConn closing.
+	r.RequireNoError(ch.Close()) // May or may not already be closed due to channelConn closing.
 }

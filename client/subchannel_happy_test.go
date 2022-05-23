@@ -19,7 +19,6 @@ import (
 	"math/big"
 	"testing"
 
-	"github.com/stretchr/testify/assert"
 	"perun.network/go-perun/apps/payment"
 	chtest "perun.network/go-perun/channel/test"
 	"perun.network/go-perun/client"
@@ -31,7 +30,7 @@ import (
 func TestSubChannelHappy(t *testing.T) {
 	rng := test.Prng(t)
 
-	setups := NewSetups(rng, []string{"Susie", "Tim"})
+	setups, errs := NewSetups(rng, []string{"Susie", "Tim"})
 	roles := [2]ctest.Executer{
 		ctest.NewSusie(t, setups[0]),
 		ctest.NewTim(t, setups[1]),
@@ -63,5 +62,5 @@ func TestSubChannelHappy(t *testing.T) {
 
 	ctx, cancel := context.WithTimeout(context.Background(), twoPartyTestTimeout)
 	defer cancel()
-	assert.NoError(t, ctest.ExecuteTwoPartyTest(ctx, roles, cfg))
+	ctest.ExecuteTwoPartyTest(ctx, t, roles, cfg, errs)
 }

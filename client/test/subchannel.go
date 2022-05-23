@@ -20,7 +20,6 @@ import (
 	"testing"
 
 	"perun.network/go-perun/client"
-	pkgtest "polycry.pt/poly-go/test"
 )
 
 // SusieTimExecConfig contains config parameters for Susie and Tim test.
@@ -71,7 +70,7 @@ func (r *Susie) Execute(cfg ExecConfig) {
 
 func (r *Susie) exec(_cfg ExecConfig, ledgerChannel *paymentChannel) {
 	cfg := _cfg.(*SusieTimExecConfig)
-	rng := pkgtest.Prng(r.t, "susie")
+	rng := r.NewRng()
 
 	// stage 1 - channel controller set up
 	r.waitStage()

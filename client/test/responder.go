@@ -16,9 +16,6 @@ package test
 
 import (
 	"testing"
-
-	"github.com/stretchr/testify/assert"
-	pkgtest "polycry.pt/poly-go/test"
 )
 
 // Responder is a test client role. He accepts an incoming channel proposal.
@@ -34,19 +31,18 @@ func NewResponder(t *testing.T, setup RoleSetup, numStages int) *Responder {
 
 // Execute executes the Responder protocol.
 func (r *Responder) Execute(cfg ExecConfig, exec func(ExecConfig, *paymentChannel, *acceptNextPropHandler)) {
-	rng := pkgtest.Prng(r.t, "responder")
-	assert := assert.New(r.t)
+	rng := r.NewRng()
 
 	propHandler, waitHandler := r.GoHandle(rng)
 	defer func() {
-		assert.NoError(r.Close())
+		r.RequireNoError(r.Close())
 		waitHandler()
 	}()
 
 	// receive one accepted proposal
 	ch, err := propHandler.Next()
-	assert.NoError(err)
-	assert.NotNil(ch)
+	r.RequireNoError(err)
+	r.RequireTrue(ch != nil)
 	if err != nil {
 		return
 	}
@@ -55,5 +51,5 @@ func (r *Responder) Execute(cfg ExecConfig, exec func(ExecConfig, *paymentChanne
 
 	exec(cfg, ch, propHandler)
 
-	assert.NoError(ch.Close())
+	r.RequireNoError(ch.Close())
 }

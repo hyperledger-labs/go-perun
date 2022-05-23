@@ -149,7 +149,7 @@ func setupVirtualChannelTest(t *testing.T, ctx context.Context) (vct virtualChan
 	vct.errs = make(chan error, 10)
 
 	// Setup clients.
-	clients := NewClients(
+	clients, _ := NewClients(
 		t,
 		rng,
 		[]string{"Alice", "Bob", "Ingrid"},
