@@ -75,6 +75,15 @@ type (
 		ItemType string // ItemType indicates the type of item rejected (channel proposal or channel update).
 		Reason   string // Reason sent by the peer for the rejection.
 	}
+
+	// ChannelFundingError indicates that the funding failed during channel
+	// creation.
+	ChannelFundingError struct {
+		// FundingError is the error that happened during the funding process.
+		FundingError error
+		// SettleError is set if the settlement after the failed funding failed.
+		SettleError error
+	}
 )
 
 // HandleProposal calls the proposal handler function.
@@ -181,9 +190,19 @@ func (c *Client) ProposeChannel(ctx context.Context, prop ChannelProposal) (*Cha
 		return nil, errors.WithMessage(err, "channel proposal")
 	}
 
-	// 3. fund
-	fundingErr := c.fundChannel(ctx, ch, prop)
-	return ch, fundingErr
+	// 3. fund the channel. If funding fails, settle the channel.
+	if err := c.fundChannel(ctx, ch, prop); err != nil {
+		c.log.WithField("channel", ch.ID()).Warn("Funding failed, will settle channel.")
+		// Increment the account usage, or we will not be able to settle since
+		// the funding failed.
+		c.wallet.IncrementUsage(ch.Params().Parts[ch.machine.Idx()])
+		cfErr := ChannelFundingError{FundingError: err}
+		if err = ch.Settle(ctx, false); err != nil {
+			cfErr.SettleError = err
+		}
+		return nil, &cfErr
+	}
+	return ch, nil
 }
 
 func (c *Client) prepareChannelOpening(ctx context.Context, prop ChannelProposal, ourIdx channel.Index) (err error) {
@@ -752,4 +771,11 @@ func (e PeerRejectedError) Error() string {
 
 func newPeerRejectedError(rejectedItemType, reason string) error {
 	return errors.WithStack(PeerRejectedError{rejectedItemType, reason})
+}
+
+func (e *ChannelFundingError) Error() string {
+	if e.SettleError == nil {
+		return fmt.Sprintf("channel funding failed: %v. Settled channel", e.FundingError)
+	}
+	return fmt.Sprintf("channel funding failed: %v. Settling failed: %v", e.FundingError, e.SettleError)
 }
