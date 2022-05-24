@@ -396,7 +396,7 @@ func (b *MockBackend) removeSubscription(ch channel.ID, sub *MockSubscription) {
 
 // MockSubscription is a subscription for MockBackend.
 type MockSubscription struct {
-	ctx     context.Context
+	ctx     context.Context //nolint:containedctx // This is just done for testing. Could be revised.
 	events  chan channel.AdjudicatorEvent
 	err     chan error
 	onClose func()

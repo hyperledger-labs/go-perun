@@ -119,360 +119,360 @@ func Test_StartWatching(t *testing.T) {
 	})
 }
 
-func Test_Watcher_Working(t *testing.T) {
+func Test_Watcher_WithoutSubchannel(t *testing.T) {
 	rng := test.Prng(t)
-	t.Run("ledger_channel_without_sub_channel", func(t *testing.T) {
-		// Send a registered event on the adjudicator subscription, with the latest state.
-		// Watcher should relay the event and not refute.
-		t.Run("happy/latest_state_registered", func(t *testing.T) {
-			// Setup
-			params, txs := randomTxsForSingleCh(rng, 3)
-			adjSub := &mocks.AdjudicatorSubscription{}
-			trigger := setExpectationNextCall(adjSub, makeRegisteredEvents(txs[2])...)
+	// Send a registered event on the adjudicator subscription, with the latest state.
+	// Watcher should relay the event and not refute.
+	t.Run("happy/latest_state_registered", func(t *testing.T) {
+		// Setup
+		params, txs := randomTxsForSingleCh(rng, 3)
+		adjSub := &mocks.AdjudicatorSubscription{}
+		trigger := setExpectationNextCall(adjSub, makeRegisteredEvents(txs[2])...)
 
-			rs := &mocks.RegisterSubscriber{}
-			setExpectationSubscribeCall(rs, adjSub, nil)
-			w := newWatcher(t, rs)
+		rs := &mocks.RegisterSubscriber{}
+		setExpectationSubscribeCall(rs, adjSub, nil)
+		w := newWatcher(t, rs)
 
-			// Publish both the states to the watcher.
-			statesPub, eventsForClient := startWatchingForLedgerChannel(t, w, makeSignedStateWDummySigs(params, txs[0].State))
-			require.NoError(t, statesPub.Publish(context.Background(), txs[1]))
-			require.NoError(t, statesPub.Publish(context.Background(), txs[2]))
+		// Publish both the states to the watcher.
+		statesPub, eventsForClient := startWatchingForLedgerChannel(t, w, makeSignedStateWDummySigs(params, txs[0].State))
+		require.NoError(t, statesPub.Publish(context.Background(), txs[1]))
+		require.NoError(t, statesPub.Publish(context.Background(), txs[2]))
 
-			// Trigger events and assert.
-			triggerAdjEventAndExpectNotification(t, trigger, eventsForClient)
-			rs.AssertExpectations(t)
-		})
-
-		// Send a registered event on the adjudicator subscription,
-		// with a state newer than the latest state (published to the watcher),
-		// Watch should relay the event and not refute.
-		t.Run("happy/newer_than_latest_state_registered", func(t *testing.T) {
-			// Setup
-			params, txs := randomTxsForSingleCh(rng, 3)
-			adjSub := &mocks.AdjudicatorSubscription{}
-			trigger := setExpectationNextCall(adjSub, makeRegisteredEvents(txs[2])...)
-
-			rs := &mocks.RegisterSubscriber{}
-			setExpectationSubscribeCall(rs, adjSub, nil)
-			w := newWatcher(t, rs)
-
-			// Publish only one of the two newly created off-chain states to the watcher.
-			statesPub, eventsForClient := startWatchingForLedgerChannel(t, w, makeSignedStateWDummySigs(params, txs[0].State))
-			require.NoError(t, statesPub.Publish(context.Background(), txs[1]))
-
-			// Trigger adjudicator events with a state newer than the latest state (published to the watcher).
-			triggerAdjEventAndExpectNotification(t, trigger, eventsForClient)
-			rs.AssertExpectations(t)
-		})
-
-		// First, send a registered event on the adjudicator subscription,
-		// with a state older than the latest state (published to the watcher),
-		// Watch should relay the event and refute by registering the latest state.
-		//
-		// Next, send a registered event on adjudicator subscription,
-		// with the state that was registered.
-		// This time, watcher should relay the event and not dispute.
-		t.Run("happy/older_state_registered", func(t *testing.T) {
-			// Setup
-			params, txs := randomTxsForSingleCh(rng, 3)
-			adjSub := &mocks.AdjudicatorSubscription{}
-			trigger := setExpectationNextCall(adjSub, makeRegisteredEvents(txs[1], txs[2])...)
-
-			rs := &mocks.RegisterSubscriber{}
-			setExpectationSubscribeCall(rs, adjSub, nil)
-			setExpectationRegisterCalls(t, rs, &channelTree{txs[2], []channel.Transaction{}})
-			w := newWatcher(t, rs)
-
-			// Publish both the states to the watcher.
-			statesPub, eventsForClient := startWatchingForLedgerChannel(t, w, makeSignedStateWDummySigs(params, txs[0].State))
-			require.NoError(t, statesPub.Publish(context.Background(), txs[1]))
-			require.NoError(t, statesPub.Publish(context.Background(), txs[2]))
-
-			// Trigger adjudicator events with an older state and assert if Register was called once.
-			triggerAdjEventAndExpectNotification(t, trigger, eventsForClient)
-			time.Sleep(50 * time.Millisecond) // Wait for the watcher to refute.
-			rs.AssertNumberOfCalls(t, "Register", 1)
-
-			// Trigger adjudicator events with the registered state and assert.
-			triggerAdjEventAndExpectNotification(t, trigger, eventsForClient)
-			rs.AssertExpectations(t)
-		})
-
-		testIfEventsAreRelayed := func(
-			t *testing.T,
-			eventConstructor func(txs ...channel.Transaction,
-			) []channel.AdjudicatorEvent,
-		) {
-			t.Helper()
-			// Setup: Generate the params and off-chain states for a ledger channel.
-			params, txs := randomTxsForSingleCh(rng, 2)
-
-			// Setup: Adjudicator event subscription for the ledger.
-			adjSub := &mocks.AdjudicatorSubscription{}
-			trigger := setExpectationNextCall(adjSub, eventConstructor(txs[1])...)
-			rs := &mocks.RegisterSubscriber{}
-			setExpectationSubscribeCall(rs, adjSub, nil)
-
-			// Setup: Initialize the watcher and start watching for the ledger.
-			w := newWatcher(t, rs)
-			_, eventsForClient := startWatchingForLedgerChannel(t, w, makeSignedStateWDummySigs(params, txs[0].State))
-
-			// Trigger the event for ledger channel and assert if they are relayed to the adjudicator subscription
-			// (eventsForClient).
-			triggerAdjEventAndExpectNotification(t, trigger, eventsForClient)
-			rs.AssertExpectations(t)
-		}
-		// Test if progressed events are relayed to the adjudicator subscription.
-		t.Run("happy/progressed_event", func(t *testing.T) {
-			testIfEventsAreRelayed(t, makeProgressedEvents)
-		})
-		// Test if concluded events are relayed to the adjudicator subscription.
-		t.Run("happy/concluded_event", func(t *testing.T) {
-			testIfEventsAreRelayed(t, makeConcludedEvents)
-		})
+		// Trigger events and assert.
+		triggerAdjEventAndExpectNotification(t, trigger, eventsForClient)
+		rs.AssertExpectations(t)
 	})
-	t.Run("ledger_channel_with_sub_channel", func(t *testing.T) {
-		// For both, the parent and the sub-channel,
-		// send a registered event on the adjudicator subscription, with the latest state.
-		// Watcher should relay the events and not refute.
-		t.Run("happy/latest_state_registered", func(t *testing.T) {
-			// Setup
-			parentParams, parentTxs := randomTxsForSingleCh(rng, 3)
-			childParams, childTxs := randomTxsForSingleCh(rng, 3)
-			// Add sub-channel to allocation. This transaction represents funding of the sub-channel.
-			parentTxs[2].Allocation.Locked = []channel.SubAlloc{{ID: childTxs[0].ID}}
 
-			adjSubParent := &mocks.AdjudicatorSubscription{}
-			triggerParent := setExpectationNextCall(adjSubParent, makeRegisteredEvents(parentTxs[2])...)
-			adjSubChild := &mocks.AdjudicatorSubscription{}
-			triggerChild := setExpectationNextCall(adjSubChild, makeRegisteredEvents(childTxs[2])...)
-			rs := &mocks.RegisterSubscriber{}
-			setExpectationSubscribeCall(rs, adjSubParent, nil)
-			setExpectationSubscribeCall(rs, adjSubChild, nil)
+	// Send a registered event on the adjudicator subscription,
+	// with a state newer than the latest state (published to the watcher),
+	// Watch should relay the event and not refute.
+	t.Run("happy/newer_than_latest_state_registered", func(t *testing.T) {
+		// Setup
+		params, txs := randomTxsForSingleCh(rng, 3)
+		adjSub := &mocks.AdjudicatorSubscription{}
+		trigger := setExpectationNextCall(adjSub, makeRegisteredEvents(txs[2])...)
 
-			w := newWatcher(t, rs)
+		rs := &mocks.RegisterSubscriber{}
+		setExpectationSubscribeCall(rs, adjSub, nil)
+		w := newWatcher(t, rs)
 
-			// Parent: Publish both the states to the watcher.
-			parentSignedState := makeSignedStateWDummySigs(parentParams, parentTxs[0].State)
-			statesPubParent, eventsForClientParent := startWatchingForLedgerChannel(t, w, parentSignedState)
-			require.NoError(t, statesPubParent.Publish(context.Background(), parentTxs[1]))
-			require.NoError(t, statesPubParent.Publish(context.Background(), parentTxs[2]))
+		// Publish only one of the two newly created off-chain states to the watcher.
+		statesPub, eventsForClient := startWatchingForLedgerChannel(t, w, makeSignedStateWDummySigs(params, txs[0].State))
+		require.NoError(t, statesPub.Publish(context.Background(), txs[1]))
 
-			// Child: Publish both the states to the watcher.
-			childSignedState := makeSignedStateWDummySigs(childParams, childTxs[0].State)
-			statesPubChild, eventsForClientChild := startWatchingForSubChannel(t, w, childSignedState, parentTxs[0].State.ID)
-			require.NoError(t, statesPubChild.Publish(context.Background(), childTxs[1]))
-			require.NoError(t, statesPubChild.Publish(context.Background(), childTxs[2]))
+		// Trigger adjudicator events with a state newer than the latest state (published to the watcher).
+		triggerAdjEventAndExpectNotification(t, trigger, eventsForClient)
+		rs.AssertExpectations(t)
+	})
 
-			// Parent and child: Trigger adjudicator events with the latest states and assert.
-			triggerAdjEventAndExpectNotification(t, triggerParent, eventsForClientParent)
-			triggerAdjEventAndExpectNotification(t, triggerChild, eventsForClientChild)
-			rs.AssertExpectations(t)
-		})
+	// First, send a registered event on the adjudicator subscription,
+	// with a state older than the latest state (published to the watcher),
+	// Watch should relay the event and refute by registering the latest state.
+	//
+	// Next, send a registered event on adjudicator subscription,
+	// with the state that was registered.
+	// This time, watcher should relay the event and not dispute.
+	t.Run("happy/older_state_registered", func(t *testing.T) {
+		// Setup
+		params, txs := randomTxsForSingleCh(rng, 3)
+		adjSub := &mocks.AdjudicatorSubscription{}
+		trigger := setExpectationNextCall(adjSub, makeRegisteredEvents(txs[1], txs[2])...)
 
-		// For both, the parent and the sub-channel,
-		// send a registered event on the adjudicator subscription,
-		// with a state newer than the latest state (published to the watcher),
-		// Watch should relay the event and not refute.
-		t.Run("happy/newer_than_latest_state_registered", func(t *testing.T) {
-			// Setup
-			parentParams, parentTxs := randomTxsForSingleCh(rng, 3)
-			childParams, childTxs := randomTxsForSingleCh(rng, 3)
-			// Add sub-channel to allocation. This transaction represents funding of the sub-channel.
-			parentTxs[2].Allocation.Locked = []channel.SubAlloc{{ID: childTxs[0].ID}}
+		rs := &mocks.RegisterSubscriber{}
+		setExpectationSubscribeCall(rs, adjSub, nil)
+		setExpectationRegisterCalls(t, rs, &channelTree{txs[2], []channel.Transaction{}})
+		w := newWatcher(t, rs)
 
-			adjSubParent := &mocks.AdjudicatorSubscription{}
-			triggerParent := setExpectationNextCall(adjSubParent, makeRegisteredEvents(parentTxs[2])...)
-			adjSubChild := &mocks.AdjudicatorSubscription{}
-			triggerChild := setExpectationNextCall(adjSubChild, makeRegisteredEvents(childTxs[2])...)
+		// Publish both the states to the watcher.
+		statesPub, eventsForClient := startWatchingForLedgerChannel(t, w, makeSignedStateWDummySigs(params, txs[0].State))
+		require.NoError(t, statesPub.Publish(context.Background(), txs[1]))
+		require.NoError(t, statesPub.Publish(context.Background(), txs[2]))
 
-			rs := &mocks.RegisterSubscriber{}
-			setExpectationSubscribeCall(rs, adjSubParent, nil)
-			setExpectationSubscribeCall(rs, adjSubChild, nil)
+		// Trigger adjudicator events with an older state and assert if Register was called once.
+		triggerAdjEventAndExpectNotification(t, trigger, eventsForClient)
+		time.Sleep(50 * time.Millisecond) // Wait for the watcher to refute.
+		rs.AssertNumberOfCalls(t, "Register", 1)
 
-			w := newWatcher(t, rs)
+		// Trigger adjudicator events with the registered state and assert.
+		triggerAdjEventAndExpectNotification(t, trigger, eventsForClient)
+		rs.AssertExpectations(t)
+	})
 
-			// Parent: Publish only one of the two newly created off-chain states to the watcher.
-			parentSignedState := makeSignedStateWDummySigs(parentParams, parentTxs[0].State)
-			statesPubParent, eventsForClientParent := startWatchingForLedgerChannel(t, w, parentSignedState)
-			require.NoError(t, statesPubParent.Publish(context.Background(), parentTxs[1]))
+	testIfEventsAreRelayed := func(
+		t *testing.T,
+		eventConstructor func(txs ...channel.Transaction,
+		) []channel.AdjudicatorEvent,
+	) {
+		t.Helper()
+		// Setup: Generate the params and off-chain states for a ledger channel.
+		params, txs := randomTxsForSingleCh(rng, 2)
 
-			// Child: Publish only one of the two newly created off-chain states to the watcher.
-			childSignedState := makeSignedStateWDummySigs(childParams, childTxs[0].State)
-			statesPubChild, eventsForClientChild := startWatchingForSubChannel(t, w, childSignedState, parentTxs[0].State.ID)
-			require.NoError(t, statesPubChild.Publish(context.Background(), childTxs[1]))
+		// Setup: Adjudicator event subscription for the ledger.
+		adjSub := &mocks.AdjudicatorSubscription{}
+		trigger := setExpectationNextCall(adjSub, eventConstructor(txs[1])...)
+		rs := &mocks.RegisterSubscriber{}
+		setExpectationSubscribeCall(rs, adjSub, nil)
 
-			// Parent, Child: Trigger adjudicator events with a state newer than
-			// the latest state (published to the watcher).
-			triggerAdjEventAndExpectNotification(t, triggerParent, eventsForClientParent)
-			triggerAdjEventAndExpectNotification(t, triggerChild, eventsForClientChild)
-			rs.AssertExpectations(t)
-		})
+		// Setup: Initialize the watcher and start watching for the ledger.
+		w := newWatcher(t, rs)
+		_, eventsForClient := startWatchingForLedgerChannel(t, w, makeSignedStateWDummySigs(params, txs[0].State))
 
-		// For both, the parent and the sub-channel,
-		//
-		// First, send a registered event on the adjudicator subscription,
-		// with a state older than the latest state (published to the watcher),
-		// Watch should relay the event and refute by registering the latest state.
-		//
-		// Next, send a registered event on adjudicator subscription,
-		// with the state that was registered.
-		// This time, watcher should relay the event and not dispute.
-		t.Run("happy/older_state_registered", func(t *testing.T) {
-			// Setup
-			parentParams, parentTxs := randomTxsForSingleCh(rng, 3)
-			childParams, childTxs := randomTxsForSingleCh(rng, 3)
-			// Add sub-channel to allocation. This transaction represents funding of the sub-channel.
-			parentTxs[2].Allocation.Locked = []channel.SubAlloc{{ID: childTxs[0].ID}}
+		// Trigger the event for ledger channel and assert if they are relayed to the adjudicator subscription
+		// (eventsForClient).
+		triggerAdjEventAndExpectNotification(t, trigger, eventsForClient)
+		rs.AssertExpectations(t)
+	}
+	// Test if progressed events are relayed to the adjudicator subscription.
+	t.Run("happy/progressed_event", func(t *testing.T) {
+		testIfEventsAreRelayed(t, makeProgressedEvents)
+	})
+	// Test if concluded events are relayed to the adjudicator subscription.
+	t.Run("happy/concluded_event", func(t *testing.T) {
+		testIfEventsAreRelayed(t, makeConcludedEvents)
+	})
+}
 
-			adjSubParent := &mocks.AdjudicatorSubscription{}
-			triggerParent := setExpectationNextCall(adjSubParent, makeRegisteredEvents(parentTxs[1], parentTxs[2])...)
-			adjSubChild := &mocks.AdjudicatorSubscription{}
-			triggerChild := setExpectationNextCall(adjSubChild, makeRegisteredEvents(childTxs[1], childTxs[2])...)
+func Test_Watcher_WithSubchannel(t *testing.T) {
+	rng := test.Prng(t)
+	// For both, the parent and the sub-channel,
+	// send a registered event on the adjudicator subscription, with the latest state.
+	// Watcher should relay the events and not refute.
+	t.Run("happy/latest_state_registered", func(t *testing.T) {
+		// Setup
+		parentParams, parentTxs := randomTxsForSingleCh(rng, 3)
+		childParams, childTxs := randomTxsForSingleCh(rng, 3)
+		// Add sub-channel to allocation. This transaction represents funding of the sub-channel.
+		parentTxs[2].Allocation.Locked = []channel.SubAlloc{{ID: childTxs[0].ID}}
 
-			rs := &mocks.RegisterSubscriber{}
-			setExpectationSubscribeCall(rs, adjSubParent, nil)
-			setExpectationSubscribeCall(rs, adjSubChild, nil)
-			setExpectationRegisterCalls(t, rs, &channelTree{parentTxs[2], []channel.Transaction{childTxs[2]}})
+		adjSubParent := &mocks.AdjudicatorSubscription{}
+		triggerParent := setExpectationNextCall(adjSubParent, makeRegisteredEvents(parentTxs[2])...)
+		adjSubChild := &mocks.AdjudicatorSubscription{}
+		triggerChild := setExpectationNextCall(adjSubChild, makeRegisteredEvents(childTxs[2])...)
+		rs := &mocks.RegisterSubscriber{}
+		setExpectationSubscribeCall(rs, adjSubParent, nil)
+		setExpectationSubscribeCall(rs, adjSubChild, nil)
 
-			w := newWatcher(t, rs)
+		w := newWatcher(t, rs)
 
-			// Parent: Publish both the states to the watcher.
-			parentSignedState := makeSignedStateWDummySigs(parentParams, parentTxs[0].State)
-			parentStatesPub, eventsForClientParent := startWatchingForLedgerChannel(t, w, parentSignedState)
-			require.NoError(t, parentStatesPub.Publish(context.Background(), parentTxs[1]))
-			require.NoError(t, parentStatesPub.Publish(context.Background(), parentTxs[2]))
+		// Parent: Publish both the states to the watcher.
+		parentSignedState := makeSignedStateWDummySigs(parentParams, parentTxs[0].State)
+		statesPubParent, eventsForClientParent := startWatchingForLedgerChannel(t, w, parentSignedState)
+		require.NoError(t, statesPubParent.Publish(context.Background(), parentTxs[1]))
+		require.NoError(t, statesPubParent.Publish(context.Background(), parentTxs[2]))
 
-			// Child: Publish both the states to the watcher.
-			childSignedState := makeSignedStateWDummySigs(childParams, childTxs[0].State)
-			childStatesPub, eventsForClientChild := startWatchingForSubChannel(t, w, childSignedState, parentTxs[0].State.ID)
-			require.NoError(t, childStatesPub.Publish(context.Background(), childTxs[1]))
-			require.NoError(t, childStatesPub.Publish(context.Background(), childTxs[2]))
+		// Child: Publish both the states to the watcher.
+		childSignedState := makeSignedStateWDummySigs(childParams, childTxs[0].State)
+		statesPubChild, eventsForClientChild := startWatchingForSubChannel(t, w, childSignedState, parentTxs[0].State.ID)
+		require.NoError(t, statesPubChild.Publish(context.Background(), childTxs[1]))
+		require.NoError(t, statesPubChild.Publish(context.Background(), childTxs[2]))
 
-			// Parent and Child: Trigger adjudicator events with an older state and assert if Register was called once.
-			triggerAdjEventAndExpectNotification(t, triggerParent, eventsForClientParent)
-			triggerAdjEventAndExpectNotification(t, triggerChild, eventsForClientChild)
-			time.Sleep(50 * time.Millisecond) // Wait for the watcher to refute.
-			rs.AssertNumberOfCalls(t, "Register", 1)
+		// Parent and child: Trigger adjudicator events with the latest states and assert.
+		triggerAdjEventAndExpectNotification(t, triggerParent, eventsForClientParent)
+		triggerAdjEventAndExpectNotification(t, triggerChild, eventsForClientChild)
+		rs.AssertExpectations(t)
+	})
 
-			// Parent and Child: Trigger adjudicator events with the registered state and assert.
-			triggerAdjEventAndExpectNotification(t, triggerParent, eventsForClientParent)
-			triggerAdjEventAndExpectNotification(t, triggerChild, eventsForClientChild)
-			rs.AssertExpectations(t)
-		})
+	// For both, the parent and the sub-channel,
+	// send a registered event on the adjudicator subscription,
+	// with a state newer than the latest state (published to the watcher),
+	// Watch should relay the event and not refute.
+	t.Run("happy/newer_than_latest_state_registered", func(t *testing.T) {
+		// Setup
+		parentParams, parentTxs := randomTxsForSingleCh(rng, 3)
+		childParams, childTxs := randomTxsForSingleCh(rng, 3)
+		// Add sub-channel to allocation. This transaction represents funding of the sub-channel.
+		parentTxs[2].Allocation.Locked = []channel.SubAlloc{{ID: childTxs[0].ID}}
 
-		// First, for both, the parent and the sub-channel,
-		// Send a registered event on the adjudicator subscription,
-		// with a state older than the latest state (published to the watcher),
-		// Watch should relay the event and refute by registering the latest state.
-		//
-		// Next, for the sub-channel, publish another off-chain state to the watcher.
-		//
-		// Next, for both, the parent and the sub-channel,
-		// Send a registered event on adjudicator subscription,
-		// with the state that was registered.
-		// This time, because the registered state is older than the latest state for the sub-channel,
-		// Watch should relay the event and refute by registering the latest state.
-		//
-		// Next, for the sub-channel, send a registered event on the adjudicator
-		// subscription. This time, the watcher should relay the event and not
-		// dispute.
-		t.Run("happy/older_state_registered_then_newer_state_received", func(t *testing.T) {
-			// Setup
-			parentParams, parentTxs := randomTxsForSingleCh(rng, 3)
-			childParams, childTxs := randomTxsForSingleCh(rng, 4)
-			// Add sub-channel to allocation. This transaction represents funding of the sub-channel.
-			parentTxs[2].Allocation.Locked = []channel.SubAlloc{{ID: childTxs[0].ID}}
+		adjSubParent := &mocks.AdjudicatorSubscription{}
+		triggerParent := setExpectationNextCall(adjSubParent, makeRegisteredEvents(parentTxs[2])...)
+		adjSubChild := &mocks.AdjudicatorSubscription{}
+		triggerChild := setExpectationNextCall(adjSubChild, makeRegisteredEvents(childTxs[2])...)
 
-			adjSubParent := &mocks.AdjudicatorSubscription{}
-			triggerParent := setExpectationNextCall(adjSubParent, makeRegisteredEvents(parentTxs[1], parentTxs[2])...)
-			adjSubChild := &mocks.AdjudicatorSubscription{}
-			triggerChild := setExpectationNextCall(adjSubChild, makeRegisteredEvents(childTxs[1], childTxs[2], childTxs[3])...)
+		rs := &mocks.RegisterSubscriber{}
+		setExpectationSubscribeCall(rs, adjSubParent, nil)
+		setExpectationSubscribeCall(rs, adjSubChild, nil)
 
-			rs := &mocks.RegisterSubscriber{}
-			setExpectationSubscribeCall(rs, adjSubParent, nil)
-			setExpectationSubscribeCall(rs, adjSubChild, nil)
-			setExpectationRegisterCalls(t, rs,
-				&channelTree{parentTxs[2], []channel.Transaction{childTxs[2]}},
-				&channelTree{parentTxs[2], []channel.Transaction{childTxs[3]}})
+		w := newWatcher(t, rs)
 
-			w := newWatcher(t, rs)
+		// Parent: Publish only one of the two newly created off-chain states to the watcher.
+		parentSignedState := makeSignedStateWDummySigs(parentParams, parentTxs[0].State)
+		statesPubParent, eventsForClientParent := startWatchingForLedgerChannel(t, w, parentSignedState)
+		require.NoError(t, statesPubParent.Publish(context.Background(), parentTxs[1]))
 
-			// Parent: Publish both the states to the watcher.
-			parentSignedState := makeSignedStateWDummySigs(parentParams, parentTxs[0].State)
-			parentStatesPub, eventsForClientParent := startWatchingForLedgerChannel(t, w, parentSignedState)
-			require.NoError(t, parentStatesPub.Publish(context.Background(), parentTxs[1]))
-			require.NoError(t, parentStatesPub.Publish(context.Background(), parentTxs[2]))
+		// Child: Publish only one of the two newly created off-chain states to the watcher.
+		childSignedState := makeSignedStateWDummySigs(childParams, childTxs[0].State)
+		statesPubChild, eventsForClientChild := startWatchingForSubChannel(t, w, childSignedState, parentTxs[0].State.ID)
+		require.NoError(t, statesPubChild.Publish(context.Background(), childTxs[1]))
 
-			// Child: Publish both the states to the watcher.
-			childSignedState := makeSignedStateWDummySigs(childParams, childTxs[0].State)
-			childStatesPub, eventsForClientChild := startWatchingForSubChannel(t, w, childSignedState, parentTxs[0].State.ID)
-			require.NoError(t, childStatesPub.Publish(context.Background(), childTxs[1]))
-			require.NoError(t, childStatesPub.Publish(context.Background(), childTxs[2]))
+		// Parent, Child: Trigger adjudicator events with a state newer than
+		// the latest state (published to the watcher).
+		triggerAdjEventAndExpectNotification(t, triggerParent, eventsForClientParent)
+		triggerAdjEventAndExpectNotification(t, triggerChild, eventsForClientChild)
+		rs.AssertExpectations(t)
+	})
 
-			// Parent and Child: Trigger adjudicator events with an older state and assert if Register was called once.
-			triggerAdjEventAndExpectNotification(t, triggerParent, eventsForClientParent)
-			triggerAdjEventAndExpectNotification(t, triggerChild, eventsForClientChild)
-			time.Sleep(50 * time.Millisecond) // Wait for the watcher to refute.
-			rs.AssertNumberOfCalls(t, "Register", 1)
+	// For both, the parent and the sub-channel,
+	//
+	// First, send a registered event on the adjudicator subscription,
+	// with a state older than the latest state (published to the watcher),
+	// Watch should relay the event and refute by registering the latest state.
+	//
+	// Next, send a registered event on adjudicator subscription,
+	// with the state that was registered.
+	// This time, watcher should relay the event and not dispute.
+	t.Run("happy/older_state_registered", func(t *testing.T) {
+		// Setup
+		parentParams, parentTxs := randomTxsForSingleCh(rng, 3)
+		childParams, childTxs := randomTxsForSingleCh(rng, 3)
+		// Add sub-channel to allocation. This transaction represents funding of the sub-channel.
+		parentTxs[2].Allocation.Locked = []channel.SubAlloc{{ID: childTxs[0].ID}}
 
-			// Child: After register was called, publish a new state to the watcher.
-			require.NoError(t, childStatesPub.Publish(context.Background(), childTxs[3]))
+		adjSubParent := &mocks.AdjudicatorSubscription{}
+		triggerParent := setExpectationNextCall(adjSubParent, makeRegisteredEvents(parentTxs[1], parentTxs[2])...)
+		adjSubChild := &mocks.AdjudicatorSubscription{}
+		triggerChild := setExpectationNextCall(adjSubChild, makeRegisteredEvents(childTxs[1], childTxs[2])...)
 
-			// Parent and Child: Trigger adjudicator events with the registered state and assert if Register was called once.
-			triggerAdjEventAndExpectNotification(t, triggerParent, eventsForClientParent)
-			triggerAdjEventAndExpectNotification(t, triggerChild, eventsForClientChild)
-			time.Sleep(50 * time.Millisecond) // Wait for the watcher to refute.
-			rs.AssertNumberOfCalls(t, "Register", 2)
+		rs := &mocks.RegisterSubscriber{}
+		setExpectationSubscribeCall(rs, adjSubParent, nil)
+		setExpectationSubscribeCall(rs, adjSubChild, nil)
+		setExpectationRegisterCalls(t, rs, &channelTree{parentTxs[2], []channel.Transaction{childTxs[2]}})
 
-			// Child: Trigger adjudicator events with the new state and assert.
-			triggerAdjEventAndExpectNotification(t, triggerChild, eventsForClientChild)
-			rs.AssertExpectations(t)
-		})
+		w := newWatcher(t, rs)
 
-		testIfEventsAreRelayed := func(
-			t *testing.T,
-			eventConstructor func(txs ...channel.Transaction,
-			) []channel.AdjudicatorEvent,
-		) {
-			t.Helper()
-			// Setup: Generate the params and off-chain states for a ledger channel and a sub-channel.
-			parentParams, parentTxs := randomTxsForSingleCh(rng, 2)
-			childParams, childTxs := randomTxsForSingleCh(rng, 2)
-			parentTxs[1].Allocation.Locked = []channel.SubAlloc{{ID: childTxs[0].ID}} // Add sub-channel to allocation.
+		// Parent: Publish both the states to the watcher.
+		parentSignedState := makeSignedStateWDummySigs(parentParams, parentTxs[0].State)
+		parentStatesPub, eventsForClientParent := startWatchingForLedgerChannel(t, w, parentSignedState)
+		require.NoError(t, parentStatesPub.Publish(context.Background(), parentTxs[1]))
+		require.NoError(t, parentStatesPub.Publish(context.Background(), parentTxs[2]))
 
-			// Setup: Adjudicator event subscription for the ledger and sub-channel.
-			adjSubParent := &mocks.AdjudicatorSubscription{}
-			triggerParent := setExpectationNextCall(adjSubParent, eventConstructor(parentTxs[1])...)
-			adjSubChild := &mocks.AdjudicatorSubscription{}
-			triggerChild := setExpectationNextCall(adjSubChild, eventConstructor(childTxs[1])...)
-			rs := &mocks.RegisterSubscriber{}
-			setExpectationSubscribeCall(rs, adjSubParent, nil)
-			setExpectationSubscribeCall(rs, adjSubChild, nil)
+		// Child: Publish both the states to the watcher.
+		childSignedState := makeSignedStateWDummySigs(childParams, childTxs[0].State)
+		childStatesPub, eventsForClientChild := startWatchingForSubChannel(t, w, childSignedState, parentTxs[0].State.ID)
+		require.NoError(t, childStatesPub.Publish(context.Background(), childTxs[1]))
+		require.NoError(t, childStatesPub.Publish(context.Background(), childTxs[2]))
 
-			// Setup: Initialize the watcher and start watching for the ledger and sub-channel.
-			w := newWatcher(t, rs)
-			parentSignedState := makeSignedStateWDummySigs(parentParams, parentTxs[0].State)
-			_, eventsForClientParent := startWatchingForLedgerChannel(t, w, parentSignedState)
-			childSignedState := makeSignedStateWDummySigs(childParams, childTxs[0].State)
-			_, eventsForClientChild := startWatchingForSubChannel(t, w, childSignedState, parentTxs[0].State.ID)
+		// Parent and Child: Trigger adjudicator events with an older state and assert if Register was called once.
+		triggerAdjEventAndExpectNotification(t, triggerParent, eventsForClientParent)
+		triggerAdjEventAndExpectNotification(t, triggerChild, eventsForClientChild)
+		time.Sleep(50 * time.Millisecond) // Wait for the watcher to refute.
+		rs.AssertNumberOfCalls(t, "Register", 1)
 
-			// Trigger the events for both (the ledger channel and the sub-channel) and, assert if they are relayed to
-			// the adjudicator subscription (eventsForClient).
-			triggerAdjEventAndExpectNotification(t, triggerParent, eventsForClientParent)
-			triggerAdjEventAndExpectNotification(t, triggerChild, eventsForClientChild)
+		// Parent and Child: Trigger adjudicator events with the registered state and assert.
+		triggerAdjEventAndExpectNotification(t, triggerParent, eventsForClientParent)
+		triggerAdjEventAndExpectNotification(t, triggerChild, eventsForClientChild)
+		rs.AssertExpectations(t)
+	})
 
-			rs.AssertExpectations(t)
-		}
-		// Test if progressed events are relayed to the adjudicator subscription.
-		t.Run("happy/progressed_event", func(t *testing.T) {
-			testIfEventsAreRelayed(t, makeProgressedEvents)
-		})
-		// Test if concluded events are relayed to the adjudicator subscription.
-		t.Run("happy/concluded_event", func(t *testing.T) {
-			testIfEventsAreRelayed(t, makeConcludedEvents)
-		})
+	// First, for both, the parent and the sub-channel,
+	// Send a registered event on the adjudicator subscription,
+	// with a state older than the latest state (published to the watcher),
+	// Watch should relay the event and refute by registering the latest state.
+	//
+	// Next, for the sub-channel, publish another off-chain state to the watcher.
+	//
+	// Next, for both, the parent and the sub-channel,
+	// Send a registered event on adjudicator subscription,
+	// with the state that was registered.
+	// This time, because the registered state is older than the latest state for the sub-channel,
+	// Watch should relay the event and refute by registering the latest state.
+	//
+	// Next, for the sub-channel, send a registered event on the adjudicator
+	// subscription. This time, the watcher should relay the event and not
+	// dispute.
+	t.Run("happy/older_state_registered_then_newer_state_received", func(t *testing.T) {
+		// Setup
+		parentParams, parentTxs := randomTxsForSingleCh(rng, 3)
+		childParams, childTxs := randomTxsForSingleCh(rng, 4)
+		// Add sub-channel to allocation. This transaction represents funding of the sub-channel.
+		parentTxs[2].Allocation.Locked = []channel.SubAlloc{{ID: childTxs[0].ID}}
+
+		adjSubParent := &mocks.AdjudicatorSubscription{}
+		triggerParent := setExpectationNextCall(adjSubParent, makeRegisteredEvents(parentTxs[1], parentTxs[2])...)
+		adjSubChild := &mocks.AdjudicatorSubscription{}
+		triggerChild := setExpectationNextCall(adjSubChild, makeRegisteredEvents(childTxs[1], childTxs[2], childTxs[3])...)
+
+		rs := &mocks.RegisterSubscriber{}
+		setExpectationSubscribeCall(rs, adjSubParent, nil)
+		setExpectationSubscribeCall(rs, adjSubChild, nil)
+		setExpectationRegisterCalls(t, rs,
+			&channelTree{parentTxs[2], []channel.Transaction{childTxs[2]}},
+			&channelTree{parentTxs[2], []channel.Transaction{childTxs[3]}})
+
+		w := newWatcher(t, rs)
+
+		// Parent: Publish both the states to the watcher.
+		parentSignedState := makeSignedStateWDummySigs(parentParams, parentTxs[0].State)
+		parentStatesPub, eventsForClientParent := startWatchingForLedgerChannel(t, w, parentSignedState)
+		require.NoError(t, parentStatesPub.Publish(context.Background(), parentTxs[1]))
+		require.NoError(t, parentStatesPub.Publish(context.Background(), parentTxs[2]))
+
+		// Child: Publish both the states to the watcher.
+		childSignedState := makeSignedStateWDummySigs(childParams, childTxs[0].State)
+		childStatesPub, eventsForClientChild := startWatchingForSubChannel(t, w, childSignedState, parentTxs[0].State.ID)
+		require.NoError(t, childStatesPub.Publish(context.Background(), childTxs[1]))
+		require.NoError(t, childStatesPub.Publish(context.Background(), childTxs[2]))
+
+		// Parent and Child: Trigger adjudicator events with an older state and assert if Register was called once.
+		triggerAdjEventAndExpectNotification(t, triggerParent, eventsForClientParent)
+		triggerAdjEventAndExpectNotification(t, triggerChild, eventsForClientChild)
+		time.Sleep(50 * time.Millisecond) // Wait for the watcher to refute.
+		rs.AssertNumberOfCalls(t, "Register", 1)
+
+		// Child: After register was called, publish a new state to the watcher.
+		require.NoError(t, childStatesPub.Publish(context.Background(), childTxs[3]))
+
+		// Parent and Child: Trigger adjudicator events with the registered state and assert if Register was called once.
+		triggerAdjEventAndExpectNotification(t, triggerParent, eventsForClientParent)
+		triggerAdjEventAndExpectNotification(t, triggerChild, eventsForClientChild)
+		time.Sleep(50 * time.Millisecond) // Wait for the watcher to refute.
+		rs.AssertNumberOfCalls(t, "Register", 2)
+
+		// Child: Trigger adjudicator events with the new state and assert.
+		triggerAdjEventAndExpectNotification(t, triggerChild, eventsForClientChild)
+		rs.AssertExpectations(t)
+	})
+
+	testIfEventsAreRelayed := func(
+		t *testing.T,
+		eventConstructor func(txs ...channel.Transaction,
+		) []channel.AdjudicatorEvent,
+	) {
+		t.Helper()
+		// Setup: Generate the params and off-chain states for a ledger channel and a sub-channel.
+		parentParams, parentTxs := randomTxsForSingleCh(rng, 2)
+		childParams, childTxs := randomTxsForSingleCh(rng, 2)
+		parentTxs[1].Allocation.Locked = []channel.SubAlloc{{ID: childTxs[0].ID}} // Add sub-channel to allocation.
+
+		// Setup: Adjudicator event subscription for the ledger and sub-channel.
+		adjSubParent := &mocks.AdjudicatorSubscription{}
+		triggerParent := setExpectationNextCall(adjSubParent, eventConstructor(parentTxs[1])...)
+		adjSubChild := &mocks.AdjudicatorSubscription{}
+		triggerChild := setExpectationNextCall(adjSubChild, eventConstructor(childTxs[1])...)
+		rs := &mocks.RegisterSubscriber{}
+		setExpectationSubscribeCall(rs, adjSubParent, nil)
+		setExpectationSubscribeCall(rs, adjSubChild, nil)
+
+		// Setup: Initialize the watcher and start watching for the ledger and sub-channel.
+		w := newWatcher(t, rs)
+		parentSignedState := makeSignedStateWDummySigs(parentParams, parentTxs[0].State)
+		_, eventsForClientParent := startWatchingForLedgerChannel(t, w, parentSignedState)
+		childSignedState := makeSignedStateWDummySigs(childParams, childTxs[0].State)
+		_, eventsForClientChild := startWatchingForSubChannel(t, w, childSignedState, parentTxs[0].State.ID)
+
+		// Trigger the events for both (the ledger channel and the sub-channel) and, assert if they are relayed to
+		// the adjudicator subscription (eventsForClient).
+		triggerAdjEventAndExpectNotification(t, triggerParent, eventsForClientParent)
+		triggerAdjEventAndExpectNotification(t, triggerChild, eventsForClientChild)
+
+		rs.AssertExpectations(t)
+	}
+	// Test if progressed events are relayed to the adjudicator subscription.
+	t.Run("happy/progressed_event", func(t *testing.T) {
+		testIfEventsAreRelayed(t, makeProgressedEvents)
+	})
+	// Test if concluded events are relayed to the adjudicator subscription.
+	t.Run("happy/concluded_event", func(t *testing.T) {
+		testIfEventsAreRelayed(t, makeConcludedEvents)
 	})
 }
 

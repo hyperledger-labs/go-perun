@@ -116,17 +116,29 @@ func (a MockApp) NewData() Data {
 
 // ValidTransition checks the transition for validity.
 func (a MockApp) ValidTransition(params *Params, from, to *State, actor Index) error {
-	return a.execMockOp(from.Data.(*MockOp))
+	op, ok := from.Data.(*MockOp)
+	if !ok {
+		return fmt.Errorf("wrong data type: expected *MockOp, got %T", from.Data)
+	}
+	return a.execMockOp(op)
 }
 
 // ValidInit checks the initial state for validity.
 func (a MockApp) ValidInit(params *Params, state *State) error {
-	return a.execMockOp(state.Data.(*MockOp))
+	op, ok := state.Data.(*MockOp)
+	if !ok {
+		return fmt.Errorf("wrong data type: expected *MockOp, got %T", state.Data)
+	}
+	return a.execMockOp(op)
 }
 
 // ValidAction checks the action for validity.
 func (a MockApp) ValidAction(params *Params, state *State, part Index, act Action) error {
-	return a.execMockOp(act.(*MockOp))
+	op, ok := act.(*MockOp)
+	if !ok {
+		return fmt.Errorf("wrong data type: expected *MockOp, got %T", act)
+	}
+	return a.execMockOp(op)
 }
 
 // ApplyActions applies the actions unto a copy of state and returns the result or an error.
@@ -134,12 +146,22 @@ func (a MockApp) ApplyActions(params *Params, state *State, acts []Action) (*Sta
 	ret := state.Clone()
 	ret.Version++
 
-	return ret, a.execMockOp(acts[0].(*MockOp))
+	op, ok := acts[0].(*MockOp)
+	if !ok {
+		return nil, fmt.Errorf("wrong data type: expected *MockOp, got %T", acts[0])
+	}
+
+	return ret, a.execMockOp(op)
 }
 
 // InitState Checks for the validity of the passed arguments as initial state.
 func (a MockApp) InitState(params *Params, rawActs []Action) (Allocation, Data, error) {
-	return Allocation{}, nil, a.execMockOp(rawActs[0].(*MockOp))
+	op, ok := rawActs[0].(*MockOp)
+	if !ok {
+		return Allocation{}, nil, fmt.Errorf("wrong data type: expected *MockOp, got %T", rawActs[0])
+	}
+
+	return Allocation{}, nil, a.execMockOp(op)
 }
 
 // execMockOp executes the operation indicated by the MockOp from the MockOp.

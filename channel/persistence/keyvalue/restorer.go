@@ -160,7 +160,7 @@ func eatExpect(r io.Reader, tok string) error {
 		return errors.WithMessage(err, "reading")
 	}
 	if string(buf) != tok {
-		return errors.Errorf("expected %s, got %s.", tok, string(buf))
+		return errors.Errorf("expected %s, got %s", tok, string(buf))
 	}
 	return nil
 }
