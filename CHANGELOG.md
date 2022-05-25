@@ -6,6 +6,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.10.0] Janus - 2022-05-25 [:warning:]
+Multi-ledger payment channels.
+
+### Added
+- Multi-ledger payment channels: [#337]
+- App channel test: [#339]
+
+### Changed
+- Revise dispute test: [#340]
+- Enable require in client tests: [#341]
+
+### Fixed
+- Satisfy linter warnings: [#342]
+
+### Removed
+- Remove go-ethereum dependency: [#338]
+
+[#337]: https://github.com/hyperledger-labs/go-perun/pull/337
+[#338]: https://github.com/hyperledger-labs/go-perun/pull/338
+[#339]: https://github.com/hyperledger-labs/go-perun/pull/339
+[#340]: https://github.com/hyperledger-labs/go-perun/pull/340
+[#341]: https://github.com/hyperledger-labs/go-perun/pull/341
+[#342]: https://github.com/hyperledger-labs/go-perun/pull/342
+
 ## [0.9.1] Io Pioneer - 2022-04-14 [:warning:]
 Moved Ethereum backend to separate repository.
 
@@ -365,7 +389,8 @@ Initial release.
 [:warning:]: #warning
 [:boom:]: #breaking
 
-[Unreleased]: https://github.com/hyperledger-labs/go-perun/compare/v0.9.1...HEAD
+[Unreleased]: https://github.com/hyperledger-labs/go-perun/compare/v0.10.0...HEAD
+[0.10.0]: https://github.com/hyperledger-labs/go-perun/compare/v0.9.1...v0.10.0
 [0.9.1]: https://github.com/hyperledger-labs/go-perun/compare/v0.9.0...v0.9.1
 [0.9.0]: https://github.com/hyperledger-labs/go-perun/compare/v0.8.0...v0.9.0
 [0.8.0]: https://github.com/hyperledger-labs/go-perun/compare/v0.7.0...v0.8.0
