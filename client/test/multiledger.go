@@ -16,12 +16,11 @@ package test
 
 import (
 	"bytes"
-	"context"
 	"math/rand"
 	"testing"
 
-	"github.com/pkg/errors"
 	"github.com/stretchr/testify/require"
+
 	"perun.network/go-perun/channel"
 	"perun.network/go-perun/channel/multi"
 	chtest "perun.network/go-perun/channel/test"
@@ -167,47 +166,5 @@ func setupClient(
 		Client:      c,
 		WireAddress: acc.Address(),
 		Events:      make(chan channel.AdjudicatorEvent),
-	}
-}
-
-// AlwaysAcceptChannelHandler returns a channel proposal handler that accepts
-// all channel proposals.
-func AlwaysAcceptChannelHandler(ctx context.Context, addr wire.Address, channels chan *client.Channel, errs chan<- error) client.ProposalHandlerFunc {
-	return func(cp client.ChannelProposal, pr *client.ProposalResponder) {
-		switch cp := cp.(type) {
-		case *client.LedgerChannelProposalMsg:
-			ch, err := pr.Accept(ctx, cp.Accept(addr, client.WithRandomNonce()))
-			if err != nil {
-				errs <- errors.WithMessage(err, "accepting ledger channel proposal")
-				return
-			}
-			channels <- ch
-		default:
-			errs <- errors.Errorf("invalid channel proposal: %v", cp)
-		}
-	}
-}
-
-// AlwaysRejectChannelHandler returns a channel proposal handler that rejects
-// all channel proposals.
-func AlwaysRejectChannelHandler(ctx context.Context, errs chan<- error) client.ProposalHandlerFunc {
-	return func(cp client.ChannelProposal, pr *client.ProposalResponder) {
-		err := pr.Reject(ctx, "not accepting channels")
-		if err != nil {
-			errs <- err
-		}
-	}
-}
-
-// AlwaysAcceptUpdateHandler returns a channel update handler that accepts
-// all channel updates.
-func AlwaysAcceptUpdateHandler(ctx context.Context, errs chan error) client.UpdateHandlerFunc {
-	return func(
-		s *channel.State, cu client.ChannelUpdate, ur *client.UpdateResponder,
-	) {
-		err := ur.Accept(ctx)
-		if err != nil {
-			errs <- errors.WithMessage(err, "accepting channel update")
-		}
 	}
 }
