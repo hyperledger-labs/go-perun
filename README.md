@@ -55,21 +55,18 @@ A bunch of examples can be found at [perun-examples](https://github.com/perun-ne
 
 ## Features
 
-_go-perun_ currently supports all features needed for two-party generalized state channels.
-The following features are provided:
-* Generalized two-party state channels, including app/sub-channels
-* Cooperative settling
-* Channel disputes
+_go-perun_ currently provides two-party channels with the following features:
+* Generalized state channels, including app/sub-channels
 * Dispute watchtower
 * Data persistence
-* Virtual two-party payment channels (direct dispute)
+* Virtual payment channels (direct dispute)
+* Multi-ledger channels
 
 The following features are planned for future releases:
-* Virtual two-party state channels (direct dispute)
-* Virtual two-party channels (indirect dispute)
-* Multi-party ledger channels
-* Virtual multi-party channels (direct dispute)
-* Cross-blockchain virtual channels (indirect dispute)
+* Virtual payment channels (indirect dispute)
+* Virtual state channels
+* Multi-party channels
+* Multi-ledger app/virtual channels
 
 ### Backends
 
@@ -168,7 +165,7 @@ We thank the German Federal Ministry of Education and Research (BMBF) for their 
 
 ## Copyright
 
-Copyright 2021 - See [NOTICE file](NOTICE) for copyright holders.
+Copyright 2022 - See [NOTICE file](NOTICE) for copyright holders.
 Use of the source code is governed by the Apache 2.0 license that can be found in the [LICENSE file](LICENSE).
 
 Contact us at [info@perun.network](mailto:info@perun.network).
