@@ -24,6 +24,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
 	"perun.network/go-perun/channel"
 	chtest "perun.network/go-perun/channel/test"
 	"perun.network/go-perun/client"
@@ -149,11 +150,8 @@ func setupVirtualChannelTest(t *testing.T, ctx context.Context) (vct virtualChan
 	vct.errs = make(chan error, 10)
 
 	// Setup clients.
-	clients := NewClients(
-		t,
-		rng,
-		[]string{"Alice", "Bob", "Ingrid"},
-	)
+	setups := NewSetups(rng, []string{"Alice", "Bob", "Ingrid"})
+	clients := NewClients(t, rng, setups)
 	alice, bob, ingrid := clients[0], clients[1], clients[2]
 	vct.alice, vct.bob, vct.ingrid = alice, bob, ingrid
 	vct.balanceReader = alice.BalanceReader // Assumes all clients have same backend.
