@@ -29,7 +29,7 @@ import (
 func TestSubChannelDispute(t *testing.T) {
 	rng := test.Prng(t)
 
-	setups, errs := NewSetups(rng, []string{"DisputeSusie", "DisputeTim"})
+	setups := NewSetups(rng, []string{"DisputeSusie", "DisputeTim"})
 	roles := [2]ctest.Executer{
 		ctest.NewDisputeSusie(t, setups[0]),
 		ctest.NewDisputeTim(t, setups[1]),
@@ -49,5 +49,5 @@ func TestSubChannelDispute(t *testing.T) {
 
 	ctx, cancel := context.WithTimeout(context.Background(), twoPartyTestTimeout)
 	defer cancel()
-	ctest.ExecuteTwoPartyTest(ctx, t, roles, cfg, errs)
+	ctest.ExecuteTwoPartyTest(ctx, t, roles, cfg)
 }

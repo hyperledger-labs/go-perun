@@ -104,6 +104,8 @@ type (
 		EnableStages() Stages
 		// SetStages enables role synchronization using the given stages.
 		SetStages(Stages)
+		// Errors returns the error channel.
+		Errors() <-chan error
 	}
 
 	// Stages are used to synchronize multiple roles.
@@ -111,7 +113,7 @@ type (
 )
 
 // ExecuteTwoPartyTest executes the specified client test.
-func ExecuteTwoPartyTest(ctx context.Context, t *testing.T, role [2]Executer, cfg ExecConfig, errs chan error) {
+func ExecuteTwoPartyTest(ctx context.Context, t *testing.T, role [2]Executer, cfg ExecConfig) {
 	t.Helper()
 	log.Info("Starting two-party test")
 	defer log.Info("Two-party test done")
@@ -136,7 +138,9 @@ func ExecuteTwoPartyTest(ctx context.Context, t *testing.T, role [2]Executer, cf
 	case <-wg.WaitCh():
 	case <-ctx.Done():
 		t.Fatal(ctx.Err())
-	case err := <-errs:
+	case err := <-role[0].Errors():
+		t.Fatal(err)
+	case err := <-role[1].Errors():
 		t.Fatal(err)
 	}
 }

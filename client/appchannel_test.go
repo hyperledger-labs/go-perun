@@ -31,7 +31,7 @@ import (
 func TestProgression(t *testing.T) {
 	rng := pkgtest.Prng(t)
 
-	setups, errs := NewSetups(rng, []string{"Paul", "Paula"})
+	setups := NewSetups(rng, []string{"Paul", "Paula"})
 	roles := [2]clienttest.Executer{
 		clienttest.NewPaul(t, setups[0]),
 		clienttest.NewPaula(t, setups[1]),
@@ -52,5 +52,5 @@ func TestProgression(t *testing.T) {
 
 	ctx, cancel := context.WithTimeout(context.Background(), twoPartyTestTimeout)
 	defer cancel()
-	clienttest.ExecuteTwoPartyTest(ctx, t, roles, execConfig, errs)
+	clienttest.ExecuteTwoPartyTest(ctx, t, roles, execConfig)
 }

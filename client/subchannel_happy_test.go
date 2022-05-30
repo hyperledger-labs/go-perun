@@ -30,7 +30,7 @@ import (
 func TestSubChannelHappy(t *testing.T) {
 	rng := test.Prng(t)
 
-	setups, errs := NewSetups(rng, []string{"Susie", "Tim"})
+	setups := NewSetups(rng, []string{"Susie", "Tim"})
 	roles := [2]ctest.Executer{
 		ctest.NewSusie(t, setups[0]),
 		ctest.NewTim(t, setups[1]),
@@ -62,5 +62,5 @@ func TestSubChannelHappy(t *testing.T) {
 
 	ctx, cancel := context.WithTimeout(context.Background(), twoPartyTestTimeout)
 	defer cancel()
-	ctest.ExecuteTwoPartyTest(ctx, t, roles, cfg, errs)
+	ctest.ExecuteTwoPartyTest(ctx, t, roles, cfg)
 }
