@@ -55,6 +55,8 @@ type (
 	// It is sent as binary data over the wire. For unmarshaling a data from
 	// binary representation, use App.NewData() to create an instance of Data
 	// specific to this application and then unmarshal using it.
+	//
+	// The encoding must be stable, that is, E(data) = E(D(E(data))).
 	Data interface {
 		encoding.BinaryMarshaler
 		encoding.BinaryUnmarshaler
