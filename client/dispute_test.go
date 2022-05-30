@@ -32,7 +32,7 @@ func TestDispute(t *testing.T) {
 	defer cancel()
 
 	const mallory, carol = 0, 1 // Indices of Mallory and Carol
-	setups, errs := NewSetups(rng, []string{"Mallory", "Carol"})
+	setups := NewSetups(rng, []string{"Mallory", "Carol"})
 	roles := [2]ctest.Executer{
 		ctest.NewMallory(t, setups[0]),
 		ctest.NewCarol(t, setups[1]),
@@ -48,5 +48,5 @@ func TestDispute(t *testing.T) {
 		NumPayments: [2]int{5, 0},
 		TxAmounts:   [2]*big.Int{big.NewInt(20), big.NewInt(0)},
 	}
-	ctest.ExecuteTwoPartyTest(ctx, t, roles, cfg, errs)
+	ctest.ExecuteTwoPartyTest(ctx, t, roles, cfg)
 }

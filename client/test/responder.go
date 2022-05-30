@@ -53,3 +53,8 @@ func (r *Responder) Execute(cfg ExecConfig, exec func(ExecConfig, *paymentChanne
 
 	r.RequireNoError(ch.Close())
 }
+
+// Errors returns the error channel.
+func (r *Responder) Errors() <-chan error {
+	return r.errs
+}

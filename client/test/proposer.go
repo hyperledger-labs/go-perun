@@ -53,3 +53,8 @@ func (r *Proposer) Execute(cfg ExecConfig, exec func(ExecConfig, *paymentChannel
 
 	r.RequireNoError(ch.Close()) // May or may not already be closed due to channelConn closing.
 }
+
+// Errors returns the error channel.
+func (r *Proposer) Errors() <-chan error {
+	return r.errs
+}
