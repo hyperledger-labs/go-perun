@@ -193,9 +193,6 @@ func (c *Client) ProposeChannel(ctx context.Context, prop ChannelProposal) (*Cha
 	// 3. fund the channel. If funding fails, settle the channel.
 	if err := c.fundChannel(ctx, ch, prop); err != nil {
 		c.log.WithField("channel", ch.ID()).Warn("Funding failed, will settle channel.")
-		// Increment the account usage, or we will not be able to settle since
-		// the funding failed.
-		c.wallet.IncrementUsage(ch.Params().Parts[ch.machine.Idx()])
 		cfErr := ChannelFundingError{FundingError: err}
 		if err = ch.Settle(ctx, false); err != nil {
 			cfErr.SettleError = err
@@ -601,6 +598,7 @@ func (c *Client) completeCPP(
 		return ch, errors.WithMessage(err, "exchanging initial sigs and enabling state")
 	}
 
+	c.wallet.IncrementUsage(params.Parts[partIdx])
 	return ch, nil
 }
 
@@ -676,7 +674,6 @@ func (c *Client) completeFunding(ctx context.Context, ch *Channel) error {
 	if !c.channels.Put(params.ID(), ch) {
 		return errors.New("channel already exists")
 	}
-	c.wallet.IncrementUsage(params.Parts[ch.machine.Idx()])
 	return nil
 }
 
