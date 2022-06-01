@@ -20,6 +20,7 @@ import (
 	"fmt"
 	"math/big"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -34,13 +35,14 @@ import (
 
 func TestFailingFunding(t *testing.T) {
 	const (
+		timeout      = 1 * time.Second
 		fridaIdx     = 0
 		fredIdx      = 1
 		fridaInitBal = 100
 		fredInitBal  = 50
 	)
 
-	ctx, cancel := context.WithTimeout(context.Background(), twoPartyTestTimeout)
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 	rng := test.Prng(t)
 
@@ -78,14 +80,13 @@ func TestFailingFunding(t *testing.T) {
 	require.Truef(t, ok, fmt.Sprintf("expexted ChannelFundingError, got %T", err))
 	require.Nil(t, cfErr.SettleError)
 
-	// Fred gets the channel and settles it afterwards.
-	var ch *client.Channel
 	select {
-	case ch = <-chsFred:
+	case <-chsFred:
+		t.Fatalf("expected channel creation to fail")
 	case err = <-errsFred:
-		t.Fatalf("error in proposee go-routine: %v", err)
 	}
-	require.NoError(t, ch.Settle(ctx, true))
+	assert.Truef(t, errors.As(err, &channel.FundingTimeoutError{}),
+		fmt.Sprintf("expected FundingTimeoutError, got %T", err))
 
 	// Test the final balances.
 	fridaFinalBal := frida.BalanceReader.Balance(fridaAddr, asset)

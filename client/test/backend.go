@@ -20,13 +20,13 @@ import (
 	"fmt"
 	"math/big"
 	"math/rand"
-	"sync"
 	"time"
 
 	"perun.network/go-perun/channel"
 	"perun.network/go-perun/channel/multi"
 	"perun.network/go-perun/log"
 	"perun.network/go-perun/wallet"
+	"polycry.pt/poly-go/sync"
 )
 
 type (
@@ -35,6 +35,7 @@ type (
 		log          log.Logger
 		rng          rng
 		mu           sync.Mutex
+		funder       *funder
 		latestEvents map[channel.ID]channel.AdjudicatorEvent
 		eventSubs    map[channel.ID][]*MockSubscription
 		balances     map[addressMapKey]map[assetMapKey]*big.Int
@@ -65,6 +66,7 @@ func NewMockBackend(rng *rand.Rand, id string) *MockBackend {
 	return &MockBackend{
 		log:          log.Default(),
 		rng:          newThreadSafePrng(backendRng),
+		funder:       newFunder(newThreadSafePrng(backendRng)),
 		latestEvents: make(map[channel.ID]channel.AdjudicatorEvent),
 		eventSubs:    make(map[channel.ID][]*MockSubscription),
 		balances:     make(map[string]map[string]*big.Int),
@@ -97,10 +99,11 @@ func (g *threadSafeRng) Intn(n int) int {
 }
 
 // Fund funds the channel.
-func (b *MockBackend) Fund(_ context.Context, req channel.FundingReq) error {
-	time.Sleep(time.Duration(b.rng.Intn(fundMaxSleepMs+1)) * time.Millisecond)
+func (b *MockBackend) Fund(ctx context.Context, req channel.FundingReq) error {
 	b.log.Infof("Funding: %+v", req)
-	return nil
+	b.funder.initFunder(req)
+	b.funder.fund(req)
+	return b.funder.waitForFunding(ctx, req)
 }
 
 // Register registers the channel.
@@ -392,6 +395,52 @@ func (b *MockBackend) removeSubscription(ch channel.ID, sub *MockSubscription) {
 
 	subs := b.eventSubs[ch]
 	b.eventSubs[ch] = append(subs[:i], subs[i+1:]...)
+}
+
+// funder mocks a funder for the MockBackend.
+type funder struct {
+	rng       rng
+	mtx       sync.Mutex
+	fundedWgs map[channel.ID]*sync.WaitGroup
+}
+
+// newFunder returns a new funder.
+func newFunder(rng rng) *funder {
+	return &funder{
+		rng:       rng,
+		fundedWgs: make(map[channel.ID]*sync.WaitGroup),
+	}
+}
+
+// initFunder initializes the funded WaitGroups for a channel if not already
+// initialized.
+//
+// Must be called before using the Funder for a funding request.
+func (f *funder) initFunder(req channel.FundingReq) {
+	f.mtx.Lock()
+	defer f.mtx.Unlock()
+
+	if f.fundedWgs[req.Params.ID()] == nil {
+		f.fundedWgs[req.Params.ID()] = &sync.WaitGroup{}
+		f.fundedWgs[req.Params.ID()].Add(len(req.Params.Parts))
+	}
+}
+
+// fund simulates funding the channel.
+func (f *funder) fund(req channel.FundingReq) {
+	time.Sleep(time.Duration(f.rng.Intn(fundMaxSleepMs+1)) * time.Millisecond)
+	f.fundedWgs[req.Params.ID()].Done()
+}
+
+// waitForFunding waits until all participants have funded the channel.
+func (f *funder) waitForFunding(ctx context.Context, req channel.FundingReq) error {
+	select {
+	case <-f.fundedWgs[req.Params.ID()].WaitCh():
+		log.Infof("Funded: %+v", req)
+		return nil
+	case <-ctx.Done():
+		return channel.FundingTimeoutError{}
+	}
 }
 
 // MockSubscription is a subscription for MockBackend.
