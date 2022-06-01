@@ -32,14 +32,14 @@ import (
 	"polycry.pt/poly-go/test"
 )
 
-const (
-	fridaIdx     = 0
-	fredIdx      = 1
-	fridaInitBal = 100
-	fredInitBal  = 50
-)
-
 func TestFailingFunding(t *testing.T) {
+	const (
+		fridaIdx     = 0
+		fredIdx      = 1
+		fridaInitBal = 100
+		fredInitBal  = 50
+	)
+
 	ctx, cancel := context.WithTimeout(context.Background(), twoPartyTestTimeout)
 	defer cancel()
 	rng := test.Prng(t)
