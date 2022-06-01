@@ -73,12 +73,12 @@ func TestFailingFunding(t *testing.T) {
 
 	// Frida sends the proposal.
 	_, err = frida.ProposeChannel(ctx, prop)
-	// We expect a ChannelFunding
+	// We expect a ChannelFunding error.
 	cfErr, ok := err.(*client.ChannelFundingError)
 	require.Truef(t, ok, fmt.Sprintf("expexted ChannelFundingError, got %T", err))
 	require.Nil(t, cfErr.SettleError)
 
-	// Fred gets the channel and settle it afterward.
+	// Fred gets the channel and settles it afterwards.
 	var ch *client.Channel
 	select {
 	case ch = <-chsFred:
