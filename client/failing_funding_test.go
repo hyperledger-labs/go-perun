@@ -17,7 +17,6 @@ package client_test
 import (
 	"context"
 	"errors"
-	"fmt"
 	"math/big"
 	"testing"
 	"time"
@@ -28,22 +27,25 @@ import (
 	"perun.network/go-perun/channel"
 	chtest "perun.network/go-perun/channel/test"
 	"perun.network/go-perun/client"
-	ctest "perun.network/go-perun/client/test"
 	"perun.network/go-perun/wire"
 	"polycry.pt/poly-go/test"
 )
 
 func TestFailingFunding(t *testing.T) {
 	const (
-		timeout      = 1 * time.Second
+		fundTimeout  = 1 * time.Second
 		fridaIdx     = 0
 		fredIdx      = 1
 		fridaInitBal = 100
 		fredInitBal  = 50
 	)
 
-	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	ctx, cancel := context.WithTimeout(context.Background(), twoPartyTestTimeout)
 	defer cancel()
+	// The ctxFundTimeout is used for Fred when accepting the proposal. This
+	// context deadline will exceed since Frida's funding fails.
+	ctxFundTimeout, cancelFundCtx := context.WithTimeout(context.Background(), fundTimeout)
+	defer cancelFundCtx()
 	rng := test.Prng(t)
 
 	setups := NewSetups(rng, []string{"Frida", "Fred"})
@@ -53,12 +55,22 @@ func TestFailingFunding(t *testing.T) {
 	frida, fred := clients[fridaIdx], clients[fredIdx]
 	fridaAddr, fredAddr := frida.Identity.Address(), fred.Identity.Address()
 
+	// The channel into which Fred's created ledger channel is sent into.
 	chsFred := make(chan *client.Channel, 1)
-	errsFred := make(chan error)
-	go fred.Handle(
-		ctest.AlwaysAcceptChannelHandler(ctx, fredAddr, chsFred, errsFred),
-		ctest.AlwaysRejectUpdateHandler(ctx, errsFred),
-	)
+	// The channel handlers for Fred.
+	var chHandlerFred client.ProposalHandlerFunc = func(cp client.ChannelProposal, pr *client.ProposalResponder) {
+		switch cp := cp.(type) {
+		case *client.LedgerChannelProposalMsg:
+			ch, err := pr.Accept(ctxFundTimeout, cp.Accept(fredAddr, client.WithRandomNonce()))
+			require.Error(t, err)
+			chsFred <- ch
+		default:
+			t.Fatalf("expected ledger channel proposal, got %T", cp)
+		}
+	}
+	var chUpHandlerFred client.UpdateHandlerFunc
+
+	go fred.Handle(chHandlerFred, chUpHandlerFred)
 
 	// Create the proposal.
 	asset := chtest.NewRandomAsset(rng)
@@ -74,19 +86,17 @@ func TestFailingFunding(t *testing.T) {
 	require.NoError(t, err, "creating ledger channel proposal")
 
 	// Frida sends the proposal.
-	_, err = frida.ProposeChannel(ctx, prop)
-	// We expect a ChannelFunding error.
-	cfErr, ok := err.(*client.ChannelFundingError)
-	require.Truef(t, ok, fmt.Sprintf("expexted ChannelFundingError, got %T", err))
-	require.Nil(t, cfErr.SettleError)
+	chFrida, err := frida.ProposeChannel(ctx, prop)
+	require.Error(t, err)
+	require.NotNil(t, chFrida)
+	// Frida settles the channel.
+	require.NoError(t, chFrida.Settle(ctx, false))
 
-	select {
-	case <-chsFred:
-		t.Fatalf("expected channel creation to fail")
-	case err = <-errsFred:
-	}
-	assert.Truef(t, errors.As(err, &channel.FundingTimeoutError{}),
-		fmt.Sprintf("expected FundingTimeoutError, got %T", err))
+	// Fred gets the channel and settles it afterwards.
+	chFred := <-chsFred
+	require.NotNil(t, chFred)
+	// Fred settles the channel as a secondary.
+	require.NoError(t, chFred.Settle(ctx, true))
 
 	// Test the final balances.
 	fridaFinalBal := frida.BalanceReader.Balance(fridaAddr, asset)

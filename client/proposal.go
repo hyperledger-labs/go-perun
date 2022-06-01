@@ -75,15 +75,6 @@ type (
 		ItemType string // ItemType indicates the type of item rejected (channel proposal or channel update).
 		Reason   string // Reason sent by the peer for the rejection.
 	}
-
-	// ChannelFundingError indicates that the funding failed during channel
-	// creation.
-	ChannelFundingError struct {
-		// FundingError is the error that happened during the funding process.
-		FundingError error
-		// SettleError is set if the settlement after the failed funding failed.
-		SettleError error
-	}
 )
 
 // HandleProposal calls the proposal handler function.
@@ -190,16 +181,9 @@ func (c *Client) ProposeChannel(ctx context.Context, prop ChannelProposal) (*Cha
 		return nil, errors.WithMessage(err, "channel proposal")
 	}
 
-	// 3. fund the channel. If funding fails, settle the channel.
-	if err := c.fundChannel(ctx, ch, prop); err != nil {
-		c.log.WithField("channel", ch.ID()).Warn("Funding failed, will settle channel.")
-		cfErr := ChannelFundingError{FundingError: err}
-		if err = ch.Settle(ctx, false); err != nil {
-			cfErr.SettleError = err
-		}
-		return nil, &cfErr
-	}
-	return ch, nil
+	// 3. fund
+	fundingErr := c.fundChannel(ctx, ch, prop)
+	return ch, fundingErr
 }
 
 func (c *Client) prepareChannelOpening(ctx context.Context, prop ChannelProposal, ourIdx channel.Index) (err error) {
@@ -674,6 +658,7 @@ func (c *Client) completeFunding(ctx context.Context, ch *Channel) error {
 	if !c.channels.Put(params.ID(), ch) {
 		return errors.New("channel already exists")
 	}
+	c.wallet.IncrementUsage(params.Parts[ch.machine.Idx()])
 	return nil
 }
 
@@ -768,11 +753,4 @@ func (e PeerRejectedError) Error() string {
 
 func newPeerRejectedError(rejectedItemType, reason string) error {
 	return errors.WithStack(PeerRejectedError{rejectedItemType, reason})
-}
-
-func (e *ChannelFundingError) Error() string {
-	if e.SettleError == nil {
-		return fmt.Sprintf("channel funding failed: %v. Settled channel", e.FundingError)
-	}
-	return fmt.Sprintf("channel funding failed: %v. Settling failed: %v", e.FundingError, e.SettleError)
 }
