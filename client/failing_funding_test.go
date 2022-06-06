@@ -75,24 +75,29 @@ func TestFailingFunding(t *testing.T) {
 
 	// Frida sends the proposal.
 	_, err = frida.ProposeChannel(ctx, prop)
-	// We expect a ChannelFunding error.
-	cfErr, ok := err.(*client.ChannelFundingError)
-	require.Truef(t, ok, fmt.Sprintf("expexted ChannelFundingError, got %T", err))
-	require.Nil(t, cfErr.SettleError)
+	checkChannelFundingError(t, err)
 
 	select {
 	case <-chsFred:
 		t.Fatalf("expected channel creation to fail")
 	case err = <-errsFred:
 	}
-	assert.Truef(t, errors.As(err, &channel.FundingTimeoutError{}),
-		fmt.Sprintf("expected FundingTimeoutError, got %T", err))
+	checkChannelFundingError(t, err)
 
 	// Test the final balances.
 	fridaFinalBal := frida.BalanceReader.Balance(fridaAddr, asset)
 	assert.Truef(t, fridaFinalBal.Cmp(big.NewInt(fridaInitBal)) == 0, "frida: wrong final balance: got %v, expected %v", fridaFinalBal, fridaInitBal)
 	fredFinalBal := fred.BalanceReader.Balance(fredAddr, asset)
 	assert.Truef(t, fredFinalBal.Cmp(big.NewInt(fredInitBal)) == 0, "fred: wrong final balance: got %v, expected %v", fredFinalBal, fredInitBal)
+}
+
+// checkChannelFundingError checks whether the given error is of type
+// ChannelFundingError and the settling hasn't failed.
+func checkChannelFundingError(t *testing.T, err error) {
+	t.Helper()
+	var cfError client.ChannelFundingError
+	require.Truef(t, errors.As(err, &cfError), fmt.Sprintf("expexted ChannelFundingError, got %T", err))
+	require.Nil(t, cfError.SettleError)
 }
 
 type FailingFunder struct{}

@@ -19,6 +19,7 @@ import (
 	"context"
 	"fmt"
 	"sync"
+	"time"
 
 	"github.com/pkg/errors"
 
@@ -270,8 +271,27 @@ func (c *Client) handleChannelProposalAcc(
 		return ch, errors.WithMessage(err, "accept channel proposal")
 	}
 
-	fundingErr := c.fundChannel(ctx, ch, prop)
-	return ch, fundingErr
+	preFundingTime := time.Now()
+	if err := c.fundChannel(ctx, ch, prop); err != nil {
+		c.log.WithField("channel", ch.ID()).Warn("Funding failed, will settle channel.")
+		cfErr := ChannelFundingError{FundingError: err}
+		// Get a new context for settling.
+		var ctxSettle context.Context
+		// If the old one had a deadline, use the time that had been remained
+		// before calling the failed funding.
+		if deadline, ok := ctx.Deadline(); ok {
+			ctx, cancel := context.WithTimeout(context.Background(), deadline.Sub(preFundingTime))
+			defer cancel()
+			ctxSettle = ctx
+		} else {
+			ctxSettle = context.Background()
+		}
+		if err = ch.Settle(ctxSettle, false); err != nil {
+			cfErr.SettleError = err
+		}
+		return nil, cfErr
+	}
+	return ch, nil
 }
 
 func (c *Client) acceptChannelProposal(
