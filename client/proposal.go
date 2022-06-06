@@ -197,7 +197,7 @@ func (c *Client) ProposeChannel(ctx context.Context, prop ChannelProposal) (*Cha
 		if err = ch.Settle(ctx, false); err != nil {
 			cfErr.SettleError = err
 		}
-		return nil, &cfErr
+		return nil, cfErr
 	}
 	return ch, nil
 }
@@ -770,7 +770,7 @@ func newPeerRejectedError(rejectedItemType, reason string) error {
 	return errors.WithStack(PeerRejectedError{rejectedItemType, reason})
 }
 
-func (e *ChannelFundingError) Error() string {
+func (e ChannelFundingError) Error() string {
 	if e.SettleError == nil {
 		return fmt.Sprintf("channel funding failed: %v. Settled channel", e.FundingError)
 	}
