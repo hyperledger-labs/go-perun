@@ -191,16 +191,8 @@ func (c *Client) ProposeChannel(ctx context.Context, prop ChannelProposal) (*Cha
 		return nil, errors.WithMessage(err, "channel proposal")
 	}
 
-	// 3. fund the channel. If funding fails, settle the channel.
-	if err := c.fundChannel(ctx, ch, prop); err != nil {
-		c.log.WithField("channel", ch.ID()).Warn("Funding failed, will settle channel.")
-		cfErr := ChannelFundingError{FundingError: err}
-		if err = ch.Settle(ctx, false); err != nil {
-			cfErr.SettleError = err
-		}
-		return nil, cfErr
-	}
-	return ch, nil
+	// 3. fund the channel.
+	return c.secureFundChannel(ctx, ch, prop)
 }
 
 func (c *Client) prepareChannelOpening(ctx context.Context, prop ChannelProposal, ourIdx channel.Index) (err error) {
@@ -271,27 +263,7 @@ func (c *Client) handleChannelProposalAcc(
 		return ch, errors.WithMessage(err, "accept channel proposal")
 	}
 
-	preFundingTime := time.Now()
-	if err := c.fundChannel(ctx, ch, prop); err != nil {
-		c.log.WithField("channel", ch.ID()).Warn("Funding failed, will settle channel.")
-		cfErr := ChannelFundingError{FundingError: err}
-		// Get a new context for settling.
-		var ctxSettle context.Context
-		// If the old one had a deadline, use the time that had been remained
-		// before calling the failed funding.
-		if deadline, ok := ctx.Deadline(); ok {
-			ctx, cancel := context.WithTimeout(context.Background(), deadline.Sub(preFundingTime))
-			defer cancel()
-			ctxSettle = ctx
-		} else {
-			ctxSettle = context.Background()
-		}
-		if err = ch.Settle(ctxSettle, false); err != nil {
-			cfErr.SettleError = err
-		}
-		return nil, cfErr
-	}
-	return ch, nil
+	return c.secureFundChannel(ctx, ch, prop)
 }
 
 func (c *Client) acceptChannelProposal(
@@ -668,6 +640,36 @@ func (c *Client) mpcppParts(
 		c.log.Panicf("unhandled %T", p)
 	}
 	return
+}
+
+// secureFundChannel funds the channel and if the funding fails, automatically
+// settles the channel.
+func (c *Client) secureFundChannel(ctx context.Context, ch *Channel, prop ChannelProposal) (*Channel, error) {
+	preFundingTime := time.Now()
+	err := c.fundChannel(ctx, ch, prop)
+	if err == nil {
+		return ch, nil
+	}
+	c.log.WithField("channel", ch.ID()).Warn("Funding failed, will settle channel.")
+
+	cfErr := ChannelFundingError{FundingError: err}
+
+	// Create a new context for settling.
+	var ctxSettle context.Context
+	var cancel context.CancelFunc
+	// If the old context had a deadline, use the time that had been remained
+	// before calling the failed funding.
+	if deadline, ok := ctx.Deadline(); ok {
+		ctxSettle, cancel = context.WithTimeout(context.Background(), deadline.Sub(preFundingTime))
+	} else {
+		ctxSettle, cancel = context.WithCancel(context.Background())
+	}
+	defer cancel()
+
+	if err = ch.Settle(ctxSettle, false); err != nil { //nolint:contextcheck
+		cfErr.SettleError = err
+	}
+	return nil, cfErr
 }
 
 func (c *Client) fundChannel(ctx context.Context, ch *Channel, prop ChannelProposal) error {
