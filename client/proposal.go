@@ -19,7 +19,6 @@ import (
 	"context"
 	"fmt"
 	"sync"
-	"time"
 
 	"github.com/pkg/errors"
 
@@ -645,7 +644,6 @@ func (c *Client) mpcppParts(
 // secureFundChannel funds the channel and if the funding fails, automatically
 // settles the channel.
 func (c *Client) secureFundChannel(ctx context.Context, ch *Channel, prop ChannelProposal) (*Channel, error) {
-	preFundingTime := time.Now()
 	err := c.fundChannel(ctx, ch, prop)
 	if err == nil {
 		return ch, nil
@@ -654,19 +652,7 @@ func (c *Client) secureFundChannel(ctx context.Context, ch *Channel, prop Channe
 
 	cfErr := ChannelFundingError{FundingError: err}
 
-	// Create a new context for settling.
-	var ctxSettle context.Context
-	var cancel context.CancelFunc
-	// If the old context had a deadline, use the time that had been remained
-	// before calling the failed funding.
-	if deadline, ok := ctx.Deadline(); ok {
-		ctxSettle, cancel = context.WithTimeout(context.Background(), deadline.Sub(preFundingTime))
-	} else {
-		ctxSettle, cancel = context.WithCancel(context.Background())
-	}
-	defer cancel()
-
-	if err = ch.Settle(ctxSettle, false); err != nil { //nolint:contextcheck
+	if err = ch.Settle(ctx, false); err != nil {
 		cfErr.SettleError = err
 	}
 	return nil, cfErr
