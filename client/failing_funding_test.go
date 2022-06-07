@@ -19,6 +19,7 @@ import (
 	"errors"
 	"fmt"
 	"math/big"
+	"math/rand"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -33,8 +34,35 @@ import (
 )
 
 func TestFailingFunding(t *testing.T) {
+	rng := test.Prng(t)
+
+	t.Run("failing funder proposer", func(t *testing.T) {
+		setups := NewSetups(rng, []string{"Frida", "Fred"})
+		setups[0].Funder = FailingFunder{}
+
+		runFredFridaTest(t, rng, setups)
+	})
+
+	t.Run("failing funder proposee", func(t *testing.T) {
+		setups := NewSetups(rng, []string{"Frida", "Fred"})
+		setups[1].Funder = FailingFunder{}
+
+		runFredFridaTest(t, rng, setups)
+	})
+
+	t.Run("failing funder both sides", func(t *testing.T) {
+		setups := NewSetups(rng, []string{"Frida", "Fred"})
+		setups[0].Funder = FailingFunder{}
+		setups[1].Funder = FailingFunder{}
+
+		runFredFridaTest(t, rng, setups)
+	})
+}
+
+func runFredFridaTest(t *testing.T, rng *rand.Rand, setups []ctest.RoleSetup) {
+	t.Helper()
 	const (
-		challengeDuration = 5
+		challengeDuration = 1
 		fridaIdx          = 0
 		fredIdx           = 1
 		fridaInitBal      = 100
@@ -43,11 +71,7 @@ func TestFailingFunding(t *testing.T) {
 
 	ctx, cancel := context.WithTimeout(context.Background(), twoPartyTestTimeout)
 	defer cancel()
-	rng := test.Prng(t)
 
-	setups := NewSetups(rng, []string{"Frida", "Fred"})
-	// Inject the failing funder for Frida.
-	setups[fridaIdx].Funder = FailingFunder{}
 	clients := NewClients(t, rng, setups)
 	frida, fred := clients[fridaIdx], clients[fredIdx]
 	fridaAddr, fredAddr := frida.Identity.Address(), fred.Identity.Address()
