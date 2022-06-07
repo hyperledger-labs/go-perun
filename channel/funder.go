@@ -31,10 +31,9 @@ type (
 		// because a peer did not fund the channel in time.
 		// Depending on the funding protocol, if we fund first and then the peer does
 		// not fund in time, a dispute process needs to be initiated to get back the
-		// funds from the partially funded channel. In this case, the user should
-		// return a PeerTimedOutFundingError containing the index of the peer who
-		// did not fund in time. The framework will then initiate the dispute
-		// process.
+		// funds from the partially funded channel. In this case, it should
+		// return a FundingTimeoutError containing the index of the peer who
+		// did not fund in time.
 		Fund(context.Context, FundingReq) error
 	}
 
