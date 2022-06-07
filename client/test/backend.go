@@ -101,9 +101,9 @@ func (g *threadSafeRng) Intn(n int) int {
 // Fund funds the channel.
 func (b *MockBackend) Fund(ctx context.Context, req channel.FundingReq) error {
 	b.log.Infof("Funding: %+v", req)
-	b.funder.initFunder(req)
-	b.funder.fund(req)
-	return b.funder.waitForFunding(ctx, req)
+	b.funder.InitFunder(req)
+	b.funder.Fund(req)
+	return b.funder.WaitForFunding(ctx, req)
 }
 
 // Register registers the channel.
@@ -412,11 +412,11 @@ func newFunder(rng rng) *funder {
 	}
 }
 
-// initFunder initializes the funded WaitGroups for a channel if not already
+// InitFunder initializes the funded WaitGroups for a channel if not already
 // initialized.
 //
 // Must be called before using the Funder for a funding request.
-func (f *funder) initFunder(req channel.FundingReq) {
+func (f *funder) InitFunder(req channel.FundingReq) {
 	f.mtx.Lock()
 	defer f.mtx.Unlock()
 
@@ -426,19 +426,23 @@ func (f *funder) initFunder(req channel.FundingReq) {
 	}
 }
 
-// fund simulates funding the channel.
-func (f *funder) fund(req channel.FundingReq) {
+// Fund simulates funding the channel.
+func (f *funder) Fund(req channel.FundingReq) {
 	time.Sleep(time.Duration(f.rng.Intn(fundMaxSleepMs+1)) * time.Millisecond)
 	f.fundedWgs[req.Params.ID()].Done()
 }
 
-// waitForFunding waits until all participants have funded the channel.
-func (f *funder) waitForFunding(ctx context.Context, req channel.FundingReq) error {
+// WaitForFunding waits until all participants have funded the channel.
+func (f *funder) WaitForFunding(ctx context.Context, req channel.FundingReq) error {
+	challengeDuration := time.Duration(req.Params.ChallengeDuration) * time.Second
+	fundCtx, cancel := context.WithTimeout(ctx, challengeDuration)
+	defer cancel()
+
 	select {
 	case <-f.fundedWgs[req.Params.ID()].WaitCh():
 		log.Infof("Funded: %+v", req)
 		return nil
-	case <-ctx.Done():
+	case <-fundCtx.Done():
 		return channel.FundingTimeoutError{}
 	}
 }
