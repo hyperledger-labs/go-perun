@@ -18,6 +18,7 @@ import (
 	"context"
 	"errors"
 	"math/big"
+	"math/rand"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -26,13 +27,41 @@ import (
 	"perun.network/go-perun/channel"
 	chtest "perun.network/go-perun/channel/test"
 	"perun.network/go-perun/client"
+	ctest "perun.network/go-perun/client/test"
 	"perun.network/go-perun/wire"
 	"polycry.pt/poly-go/test"
 )
 
 func TestFailingFunding(t *testing.T) {
+	rng := test.Prng(t)
+
+	t.Run("failing funder proposer", func(t *testing.T) {
+		setups := NewSetups(rng, []string{"Frida", "Fred"})
+		setups[0].Funder = FailingFunder{}
+
+		runFredFridaTest(t, rng, setups)
+	})
+
+	t.Run("failing funder proposee", func(t *testing.T) {
+		setups := NewSetups(rng, []string{"Frida", "Fred"})
+		setups[1].Funder = FailingFunder{}
+
+		runFredFridaTest(t, rng, setups)
+	})
+
+	t.Run("failing funder both sides", func(t *testing.T) {
+		setups := NewSetups(rng, []string{"Frida", "Fred"})
+		setups[0].Funder = FailingFunder{}
+		setups[1].Funder = FailingFunder{}
+
+		runFredFridaTest(t, rng, setups)
+	})
+}
+
+func runFredFridaTest(t *testing.T, rng *rand.Rand, setups []ctest.RoleSetup) {
+	t.Helper()
 	const (
-		challengeDuration = 5
+		challengeDuration = 1
 		fridaIdx          = 0
 		fredIdx           = 1
 		fridaInitBal      = 100
@@ -41,11 +70,7 @@ func TestFailingFunding(t *testing.T) {
 
 	ctx, cancel := context.WithTimeout(context.Background(), twoPartyTestTimeout)
 	defer cancel()
-	rng := test.Prng(t)
 
-	setups := NewSetups(rng, []string{"Frida", "Fred"})
-	// Inject the failing funder for Frida.
-	setups[fridaIdx].Funder = FailingFunder{}
 	clients := NewClients(t, rng, setups)
 	frida, fred := clients[fridaIdx], clients[fredIdx]
 	fridaAddr, fredAddr := frida.Identity.Address(), fred.Identity.Address()
@@ -90,8 +115,8 @@ func TestFailingFunding(t *testing.T) {
 	// Fred gets the channel and settles it afterwards.
 	chFred := <-chsFred
 	require.NotNil(t, chFred)
-	// Fred settles the channel as a secondary.
-	require.NoError(t, chFred.Settle(ctx, true))
+	// Fred settles the channel.
+	require.NoError(t, chFred.Settle(ctx, false))
 
 	// Test the final balances.
 	fridaFinalBal := frida.BalanceReader.Balance(fridaAddr, asset)
