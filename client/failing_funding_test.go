@@ -58,8 +58,8 @@ func TestFailingFunding(t *testing.T) {
 	})
 }
 
+//nolint:thelper // The linter thinks this is a helper function, but it is not.
 func runFredFridaTest(t *testing.T, rng *rand.Rand, setups []ctest.RoleSetup) {
-	t.Helper()
 	const (
 		challengeDuration = 1
 		fridaIdx          = 0
@@ -77,20 +77,11 @@ func runFredFridaTest(t *testing.T, rng *rand.Rand, setups []ctest.RoleSetup) {
 
 	// The channel into which Fred's created ledger channel is sent into.
 	chsFred := make(chan *client.Channel, 1)
-	// The channel handlers for Fred.
-	var chHandlerFred client.ProposalHandlerFunc = func(cp client.ChannelProposal, pr *client.ProposalResponder) {
-		switch cp := cp.(type) {
-		case *client.LedgerChannelProposalMsg:
-			ch, err := pr.Accept(ctx, cp.Accept(fredAddr, client.WithRandomNonce()))
-			require.Error(t, err)
-			chsFred <- ch
-		default:
-			t.Fatalf("expected ledger channel proposal, got %T", cp)
-		}
-	}
-	var chUpHandlerFred client.UpdateHandlerFunc
-
-	go fred.Handle(chHandlerFred, chUpHandlerFred)
+	errsFred := make(chan error, 1)
+	go fred.Handle(
+		ctest.AlwaysAcceptChannelHandler(ctx, fredAddr, chsFred, errsFred),
+		ctest.AlwaysRejectUpdateHandler(ctx, errsFred),
+	)
 
 	// Create the proposal.
 	asset := chtest.NewRandomAsset(rng)
@@ -107,13 +98,15 @@ func runFredFridaTest(t *testing.T, rng *rand.Rand, setups []ctest.RoleSetup) {
 
 	// Frida sends the proposal.
 	chFrida, err := frida.ProposeChannel(ctx, prop)
-	require.Error(t, err)
+	require.IsType(t, &client.ChannelFundingError{}, err)
 	require.NotNil(t, chFrida)
 	// Frida settles the channel.
 	require.NoError(t, chFrida.Settle(ctx, false))
 
 	// Fred gets the channel and settles it afterwards.
 	chFred := <-chsFred
+	err = <-errsFred
+	require.IsType(t, &client.ChannelFundingError{}, err)
 	require.NotNil(t, chFred)
 	// Fred settles the channel.
 	require.NoError(t, chFred.Settle(ctx, false))

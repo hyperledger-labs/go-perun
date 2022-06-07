@@ -32,10 +32,11 @@ func AlwaysAcceptChannelHandler(ctx context.Context, addr wire.Address, channels
 		case *client.LedgerChannelProposalMsg:
 			ch, err := pr.Accept(ctx, cp.Accept(addr, client.WithRandomNonce()))
 			if err != nil {
-				errs <- errors.WithMessage(err, "accepting ledger channel proposal")
-				return
+				errs <- err
 			}
-			channels <- ch
+			if ch != nil {
+				channels <- ch
+			}
 		default:
 			errs <- errors.Errorf("invalid channel proposal: %v", cp)
 		}
