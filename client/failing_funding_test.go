@@ -20,7 +20,6 @@ import (
 	"fmt"
 	"math/big"
 	"testing"
-	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -35,14 +34,14 @@ import (
 
 func TestFailingFunding(t *testing.T) {
 	const (
-		timeout      = 1 * time.Second
-		fridaIdx     = 0
-		fredIdx      = 1
-		fridaInitBal = 100
-		fredInitBal  = 50
+		challengeDuration = 5
+		fridaIdx          = 0
+		fredIdx           = 1
+		fridaInitBal      = 100
+		fredInitBal       = 50
 	)
 
-	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	ctx, cancel := context.WithTimeout(context.Background(), twoPartyTestTimeout)
 	defer cancel()
 	rng := test.Prng(t)
 

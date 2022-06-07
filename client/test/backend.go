@@ -434,11 +434,15 @@ func (f *funder) Fund(req channel.FundingReq) {
 
 // WaitForFunding waits until all participants have funded the channel.
 func (f *funder) WaitForFunding(ctx context.Context, req channel.FundingReq) error {
+	challengeDuration := time.Duration(req.Params.ChallengeDuration) * time.Second
+	fundCtx, cancel := context.WithTimeout(ctx, challengeDuration)
+	defer cancel()
+
 	select {
 	case <-f.fundedWgs[req.Params.ID()].WaitCh():
 		log.Infof("Funded: %+v", req)
 		return nil
-	case <-ctx.Done():
+	case <-fundCtx.Done():
 		return channel.FundingTimeoutError{}
 	}
 }
