@@ -75,9 +75,8 @@ type Client struct {
 	ctest.RoleSetup
 }
 
-func NewClients(t *testing.T, rng *rand.Rand, names []string) []*Client {
+func NewClients(t *testing.T, rng *rand.Rand, setups []ctest.RoleSetup) []*Client {
 	t.Helper()
-	setups := NewSetups(rng, names)
 	clients := make([]*Client, len(setups))
 	for i, setup := range setups {
 		setup.Identity = setup.Wallet.NewRandomAccount(rng)

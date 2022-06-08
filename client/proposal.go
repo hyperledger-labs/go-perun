@@ -75,6 +75,11 @@ type (
 		ItemType string // ItemType indicates the type of item rejected (channel proposal or channel update).
 		Reason   string // Reason sent by the peer for the rejection.
 	}
+
+	// ChannelFundingError indicates an error during channel funding.
+	ChannelFundingError struct {
+		Err error
+	}
 )
 
 // HandleProposal calls the proposal handler function.
@@ -93,16 +98,22 @@ func (f ProposalHandlerFunc) HandleProposal(p ChannelProposal, r *ProposalRespon
 // callback registered with Client.OnNewChannel. Accept returns after this
 // callback has run.
 //
-// It is important that the passed context does not cancel before twice the
-// ChallengeDuration has passed (at least for real blockchain backends with wall
-// time), or the channel cannot be settled if a peer times out funding.
+// It is important that the passed context does not cancel before the
+// ChallengeDuration has passed. Otherwise funding may not complete.
+//
+// If funding fails, ChannelFundingError is thrown and an unfunded channel
+// object is returned, which can be used for withdrawing the funds.
 //
 // After the channel got successfully created, the user is required to start the
 // channel watcher with Channel.Watch() on the returned channel controller.
 //
-// Returns TxTimedoutError when the program times out waiting for a transaction
-// to be mined.
-// Returns ChainNotReachableError if the connection to the blockchain network
+// Returns ChannelFundingError if an error happened during funding. The internal
+// error gives more information.
+// - Contains FundingTimeoutError if any of the participants do not fund the
+// channel in time.
+// - Contains TxTimedoutError when the program times out waiting for a
+// transaction to be mined.
+// - Contains ChainNotReachableError if the connection to the blockchain network
 // fails when sending a transaction to / reading from the blockchain.
 func (r *ProposalResponder) Accept(ctx context.Context, acc ChannelProposalAccept) (*Channel, error) {
 	if ctx == nil {
@@ -136,9 +147,11 @@ func (r *ProposalResponder) Reject(ctx context.Context, reason string) error {
 // callback registered with Client.OnNewChannel. Accept returns after this
 // callback has run.
 //
-// It is important that the passed context does not cancel before twice the
-// ChallengeDuration has passed (at least for real blockchain backends with wall
-// time), or the channel cannot be settled if a peer times out funding.
+// It is important that the passed context does not cancel before the
+// ChallengeDuration has passed. Otherwise funding may not complete.
+//
+// If funding fails, ChannelFundingError is thrown and an unfunded channel
+// object is returned, which can be used for withdrawing the funds.
 //
 // After the channel got successfully created, the user is required to start the
 // channel watcher with Channel.Watch() on the returned channel
@@ -147,11 +160,13 @@ func (r *ProposalResponder) Reject(ctx context.Context, reason string) error {
 // Returns PeerRejectedProposalError if the channel is rejected by the peer.
 // Returns RequestTimedOutError if the peer did not respond before the context
 // expires or is cancelled.
-// Returns FundingTimeoutError if any of the participants do not fund the
+// Returns ChannelFundingError if an error happened during funding. The internal
+// error gives more information.
+// - Contains FundingTimeoutError if any of the participants do not fund the
 // channel in time.
-// Returns TxTimedoutError when the program times out waiting for a transaction
-// to be mined.
-// Returns ChainNotReachableError if the connection to the blockchain network
+// - Contains TxTimedoutError when the program times out waiting for a
+// transaction to be mined.
+// - Contains ChainNotReachableError if the connection to the blockchain network
 // fails when sending a transaction to / reading from the blockchain.
 func (c *Client) ProposeChannel(ctx context.Context, prop ChannelProposal) (*Channel, error) {
 	if ctx == nil {
@@ -182,8 +197,12 @@ func (c *Client) ProposeChannel(ctx context.Context, prop ChannelProposal) (*Cha
 	}
 
 	// 3. fund
-	fundingErr := c.fundChannel(ctx, ch, prop)
-	return ch, fundingErr
+	err = c.fundChannel(ctx, ch, prop)
+	if err != nil {
+		return ch, newChannelFundingError(err)
+	}
+
+	return ch, nil
 }
 
 func (c *Client) prepareChannelOpening(ctx context.Context, prop ChannelProposal, ourIdx channel.Index) (err error) {
@@ -254,8 +273,11 @@ func (c *Client) handleChannelProposalAcc(
 		return ch, errors.WithMessage(err, "accept channel proposal")
 	}
 
-	fundingErr := c.fundChannel(ctx, ch, prop)
-	return ch, fundingErr
+	err = c.fundChannel(ctx, ch, prop)
+	if err != nil {
+		return ch, newChannelFundingError(err)
+	}
+	return ch, nil
 }
 
 func (c *Client) acceptChannelProposal(
@@ -582,6 +604,7 @@ func (c *Client) completeCPP(
 		return ch, errors.WithMessage(err, "exchanging initial sigs and enabling state")
 	}
 
+	c.wallet.IncrementUsage(params.Parts[partIdx])
 	return ch, nil
 }
 
@@ -752,4 +775,12 @@ func (e PeerRejectedError) Error() string {
 
 func newPeerRejectedError(rejectedItemType, reason string) error {
 	return errors.WithStack(PeerRejectedError{rejectedItemType, reason})
+}
+
+func newChannelFundingError(err error) *ChannelFundingError {
+	return &ChannelFundingError{err}
+}
+
+func (e ChannelFundingError) Error() string {
+	return fmt.Sprintf("channel funding failed: %v", e.Err.Error())
 }
