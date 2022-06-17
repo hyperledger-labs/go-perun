@@ -42,9 +42,6 @@ type Address interface {
 	// Equal returns wether the two addresses are equal. The implementation
 	// must be equivalent to checking `Address.Cmp(Address) == 0`.
 	Equal(Address) bool
-	// Cmp compares the byte representation of two addresses. For `a.Cmp(b)`
-	// returns -1 if a < b, 0 if a == b, 1 if a > b.
-	Cmp(Address) int
 }
 
 // IndexOfAddr returns the index of the given address in the address slice,

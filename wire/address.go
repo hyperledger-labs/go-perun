@@ -15,6 +15,7 @@
 package wire
 
 import (
+	"encoding"
 	stdio "io"
 
 	"perun.network/go-perun/wallet"
@@ -30,7 +31,15 @@ var (
 // identity within the Perun peer-to-peer network. For now, it is based on type
 // wallet.Address.
 type Address interface {
-	wallet.Address
+	// BinaryMarshaler marshals the address to binary.
+	encoding.BinaryMarshaler
+	// BinaryUnmarshaler unmarshals an address from binary.
+	encoding.BinaryUnmarshaler
+	// Equal returns wether the two addresses are equal.
+	Equal(Address) bool
+	// Cmp compares the byte representation of two addresses. For `a.Cmp(b)`
+	// returns -1 if a < b, 0 if a == b, 1 if a > b.
+	Cmp(Address) int
 }
 
 // Addresses is a helper type for encoding and decoding address slices in
