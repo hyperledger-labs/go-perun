@@ -1,4 +1,4 @@
-// Copyright 2019 - See NOTICE file for copyright holders.
+// Copyright 2020 - See NOTICE file for copyright holders.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,10 +12,5 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package sim
-
-import (
-	_ "perun.network/go-perun/backend/sim/channel" // backend init
-	_ "perun.network/go-perun/backend/sim/wallet"  // backend init
-	_ "perun.network/go-perun/backend/sim/wire"    // backend init
-)
+// Package wire contains the implementation of the wire interfaces.
+package wire // import "perun.network/go-perun/backend/sim/wire"

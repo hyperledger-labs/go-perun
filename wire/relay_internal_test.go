@@ -23,10 +23,8 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	wallettest "perun.network/go-perun/wallet/test"
 	ctxtest "polycry.pt/poly-go/context/test"
 	"polycry.pt/poly-go/sync"
-	"polycry.pt/poly-go/test"
 )
 
 func TestProducer(t *testing.T) {
@@ -47,18 +45,6 @@ func TestProducer(t *testing.T) {
 	assert.Equal(t, len(p.consumers), 2)
 	assert.False(t, p.isEmpty())
 	assert.Panics(t, func() { p.delete(r0) })
-}
-
-func TestProducer_produce_closed(t *testing.T) {
-	var missed *Envelope
-	p := NewRelay()
-	p.SetDefaultMsgHandler(func(e *Envelope) { missed = e })
-	assert.NoError(t, p.Close())
-	rng := test.Prng(t)
-	a := wallettest.NewRandomAddress(rng)
-	b := wallettest.NewRandomAddress(rng)
-	p.Put(&Envelope{a, b, NewPingMsg()})
-	assert.Nil(t, missed, "produce() on closed producer shouldn't do anything")
 }
 
 func TestProducer_SetDefaultMsgHandler(t *testing.T) {
@@ -128,10 +114,9 @@ func TestProducer_caching(t *testing.T) {
 	ctx := context.Background()
 	prod.Cache(&isPing)
 
-	rng := test.Prng(t)
-	ping0 := newRandomEnvelope(rng, NewPingMsg())
-	pong1 := newRandomEnvelope(rng, NewPongMsg())
-	pong2 := newRandomEnvelope(rng, NewPongMsg())
+	ping0 := newEnvelope(NewPingMsg())
+	pong1 := newEnvelope(NewPongMsg())
+	pong2 := newEnvelope(NewPongMsg())
 
 	prod.Put(ping0)
 	assert.Equal(1, prod.cache.Size())

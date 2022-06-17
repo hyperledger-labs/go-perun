@@ -25,7 +25,6 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	_ "perun.network/go-perun/backend/sim" // backend init
-	wallettest "perun.network/go-perun/wallet/test"
 	"perun.network/go-perun/wire"
 	perunio "perun.network/go-perun/wire/perunio/serializer"
 	wiretest "perun.network/go-perun/wire/test"
@@ -98,12 +97,12 @@ type client struct {
 // makeClient creates a simulated test client.
 func makeClient(conn Conn, rng *rand.Rand, dialer Dialer) *client {
 	receiver := wire.NewReceiver()
-	registry := NewEndpointRegistry(wallettest.NewRandomAccount(rng), func(wire.Address) wire.Consumer {
+	registry := NewEndpointRegistry(wiretest.NewRandomAccount(rng), func(wire.Address) wire.Consumer {
 		return receiver
 	}, dialer, perunio.Serializer())
 
 	return &client{
-		endpoint: registry.addEndpoint(wallettest.NewRandomAddress(rng), conn, true),
+		endpoint: registry.addEndpoint(wiretest.NewRandomAddress(rng), conn, true),
 		Registry: registry,
 		Receiver: receiver,
 	}
@@ -202,7 +201,7 @@ func TestEndpoint_ClosedByRecvLoopOnConnClose(t *testing.T) {
 	eofReceived := make(chan struct{})
 
 	rng := test.Prng(t)
-	addr := wallettest.NewRandomAddress(rng)
+	addr := wiretest.NewRandomAddress(rng)
 	conn0, conn1 := newPipeConnPair()
 	peer := newEndpoint(addr, conn0)
 

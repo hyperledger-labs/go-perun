@@ -73,13 +73,14 @@ func runFredFridaTest(t *testing.T, rng *rand.Rand, setups []ctest.RoleSetup) {
 
 	clients := NewClients(t, rng, setups)
 	frida, fred := clients[fridaIdx], clients[fredIdx]
-	fridaAddr, fredAddr := frida.Identity.Address(), fred.Identity.Address()
+	fridaWireAddr, fredWireAddr := frida.Identity.Address(), fred.Identity.Address()
+	fridaWalletAddr, fredWalletAddr := frida.WalletAddress, fred.WalletAddress
 
 	// The channel into which Fred's created ledger channel is sent into.
 	chsFred := make(chan *client.Channel, 1)
 	errsFred := make(chan error, 1)
 	go fred.Handle(
-		ctest.AlwaysAcceptChannelHandler(ctx, fredAddr, chsFred, errsFred),
+		ctest.AlwaysAcceptChannelHandler(ctx, fredWalletAddr, chsFred, errsFred),
 		ctest.AlwaysRejectUpdateHandler(ctx, errsFred),
 	)
 
@@ -87,10 +88,10 @@ func runFredFridaTest(t *testing.T, rng *rand.Rand, setups []ctest.RoleSetup) {
 	asset := chtest.NewRandomAsset(rng)
 	initAlloc := channel.NewAllocation(2, asset)
 	initAlloc.SetAssetBalances(asset, []*big.Int{big.NewInt(fridaInitBal), big.NewInt(fredInitBal)})
-	parts := []wire.Address{fridaAddr, fredAddr}
+	parts := []wire.Address{fridaWireAddr, fredWireAddr}
 	prop, err := client.NewLedgerChannelProposal(
 		challengeDuration,
-		fridaAddr,
+		fridaWalletAddr,
 		initAlloc,
 		parts,
 	)
@@ -112,9 +113,9 @@ func runFredFridaTest(t *testing.T, rng *rand.Rand, setups []ctest.RoleSetup) {
 	require.NoError(t, chFred.Settle(ctx, false))
 
 	// Test the final balances.
-	fridaFinalBal := frida.BalanceReader.Balance(fridaAddr, asset)
+	fridaFinalBal := frida.BalanceReader.Balance(fridaWalletAddr, asset)
 	assert.Truef(t, fridaFinalBal.Cmp(big.NewInt(fridaInitBal)) == 0, "frida: wrong final balance: got %v, expected %v", fridaFinalBal, fridaInitBal)
-	fredFinalBal := fred.BalanceReader.Balance(fredAddr, asset)
+	fredFinalBal := fred.BalanceReader.Balance(fredWalletAddr, asset)
 	assert.Truef(t, fredFinalBal.Cmp(big.NewInt(fredInitBal)) == 0, "fred: wrong final balance: got %v, expected %v", fredFinalBal, fredInitBal)
 }
 

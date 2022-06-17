@@ -25,8 +25,8 @@ import (
 	"perun.network/go-perun/channel"
 	"perun.network/go-perun/channel/persistence"
 	"perun.network/go-perun/log"
-	wtest "perun.network/go-perun/wallet/test"
 	"perun.network/go-perun/wire"
+	"perun.network/go-perun/wire/test"
 	pkgtest "polycry.pt/poly-go/test"
 )
 
@@ -46,7 +46,7 @@ const channelNumPeers = 2
 func NewClient(ctx context.Context, t *testing.T, rng *rand.Rand, pr persistence.PersistRestorer) *Client {
 	t.Helper()
 	return &Client{
-		addr: wtest.NewRandomAddress(rng),
+		addr: test.NewRandomAddress(rng),
 		rng:  rng,
 		pr:   pr,
 		ctx:  ctx,
@@ -94,7 +94,7 @@ func GenericPersistRestorerTest(
 
 	ct := pkgtest.NewConcurrent(t)
 	c := NewClient(ctx, t, rng, pr)
-	peers := wtest.NewRandomAddresses(rng, numPeers)
+	peers := test.NewRandomAddresses(rng, numPeers)
 
 	channels := make([]map[channel.ID]*Channel, numPeers)
 	var prevCh *Channel

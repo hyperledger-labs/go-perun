@@ -24,7 +24,6 @@ import (
 
 	"perun.network/go-perun/channel"
 	channeltest "perun.network/go-perun/channel/test"
-	"perun.network/go-perun/wallet"
 	wallettest "perun.network/go-perun/wallet/test"
 	"perun.network/go-perun/wire"
 	wiretest "perun.network/go-perun/wire/test"
@@ -36,7 +35,7 @@ func TestClient_validTwoPartyProposal(t *testing.T) {
 
 	// dummy client that only has an id
 	c := &Client{
-		address: wallettest.NewRandomAddress(rng),
+		address: wiretest.NewRandomAddress(rng),
 	}
 	validProp := NewRandomLedgerChannelProposal(rng, channeltest.WithNumParts(2))
 	validProp.Peers[0] = c.address // set us as the proposer
@@ -52,7 +51,7 @@ func TestClient_validTwoPartyProposal(t *testing.T) {
 	tests := []struct {
 		prop     *LedgerChannelProposalMsg
 		ourIdx   channel.Index
-		peerAddr wallet.Address
+		peerAddr wire.Address
 		valid    bool
 	}{
 		{

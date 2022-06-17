@@ -27,6 +27,7 @@ import (
 	chtest "perun.network/go-perun/channel/test"
 	"perun.network/go-perun/client"
 	ctest "perun.network/go-perun/client/test"
+	"perun.network/go-perun/wallet"
 	wtest "perun.network/go-perun/wallet/test"
 	"perun.network/go-perun/watcher/local"
 	"perun.network/go-perun/wire"
@@ -54,7 +55,7 @@ func NewSetups(rng *rand.Rand, names []string) []ctest.RoleSetup {
 		}
 		setup[i] = ctest.RoleSetup{
 			Name:              names[i],
-			Identity:          wtest.NewRandomAccount(rng),
+			Identity:          wiretest.NewRandomAccount(rng),
 			Bus:               bus,
 			Funder:            backend,
 			Adjudicator:       backend,
@@ -73,18 +74,20 @@ func NewSetups(rng *rand.Rand, names []string) []ctest.RoleSetup {
 type Client struct {
 	*client.Client
 	ctest.RoleSetup
+	WalletAddress wallet.Address
 }
 
 func NewClients(t *testing.T, rng *rand.Rand, setups []ctest.RoleSetup) []*Client {
 	t.Helper()
 	clients := make([]*Client, len(setups))
 	for i, setup := range setups {
-		setup.Identity = setup.Wallet.NewRandomAccount(rng)
+		setup.Identity = wiretest.NewRandomAccount(rng)
 		cl, err := client.New(setup.Identity.Address(), setup.Bus, setup.Funder, setup.Adjudicator, setup.Wallet, setup.Watcher)
 		assert.NoError(t, err)
 		clients[i] = &Client{
-			Client:    cl,
-			RoleSetup: setup,
+			Client:        cl,
+			RoleSetup:     setup,
+			WalletAddress: setup.Wallet.NewRandomAccount(rng).Address(),
 		}
 	}
 	return clients

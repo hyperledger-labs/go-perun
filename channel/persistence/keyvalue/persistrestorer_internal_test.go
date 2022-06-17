@@ -22,7 +22,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	_ "perun.network/go-perun/backend/sim"
+	_ "perun.network/go-perun/backend/sim" // backend init
 	"perun.network/go-perun/channel/persistence/test"
 	"polycry.pt/poly-go/sortedkv"
 	"polycry.pt/poly-go/sortedkv/leveldb"

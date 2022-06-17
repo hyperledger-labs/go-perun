@@ -16,8 +16,6 @@ package wire
 
 import (
 	"io"
-
-	"perun.network/go-perun/wallet"
 )
 
 func init() {
@@ -29,9 +27,11 @@ func init() {
 }
 
 // Account is a node's permanent Perun identity, which is used to establish
-// authenticity within the Perun peer-to-peer network. For now, it is just a
-// stub.
-type Account = wallet.Account
+// authenticity within the Perun peer-to-peer network.
+type Account interface {
+	// Address used by this account.
+	Address() Address
+}
 
 var _ Msg = (*AuthResponseMsg)(nil)
 

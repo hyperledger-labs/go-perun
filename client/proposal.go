@@ -387,7 +387,7 @@ func (c *Client) proposeTwoPartyChannel(
 func (c *Client) validTwoPartyProposal(
 	proposal ChannelProposal,
 	ourIdx channel.Index,
-	peerAddr wallet.Address,
+	peerAddr wire.Address,
 ) error {
 	if err := proposal.Valid(); err != nil {
 		return err

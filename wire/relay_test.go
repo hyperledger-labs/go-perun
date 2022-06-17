@@ -1,4 +1,4 @@
-// Copyright 2019 - See NOTICE file for copyright holders.
+// Copyright 2022 - See NOTICE file for copyright holders.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,40 +12,25 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package client
+package wire_test
 
 import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-
-	channeltest "perun.network/go-perun/channel/test"
+	"perun.network/go-perun/wire"
 	wiretest "perun.network/go-perun/wire/test"
 	"polycry.pt/poly-go/test"
 )
 
-func TestClient_Channel(t *testing.T) {
+func TestProducer_produce_closed(t *testing.T) {
+	var missed *wire.Envelope
+	p := wire.NewRelay()
+	p.SetDefaultMsgHandler(func(e *wire.Envelope) { missed = e })
+	assert.NoError(t, p.Close())
 	rng := test.Prng(t)
-	// dummy client that only has an id and a registry
-	c := &Client{
-		address:  wiretest.NewRandomAddress(rng),
-		channels: makeChanRegistry(),
-	}
-
-	cID := channeltest.NewRandomChannelID(rng)
-
-	t.Run("unknown", func(t *testing.T) {
-		ch, err := c.Channel(cID)
-		assert.Nil(t, ch)
-		assert.Error(t, err)
-	})
-
-	t.Run("known", func(t *testing.T) {
-		ch1 := testCh()
-		c.channels.Put(cID, ch1)
-
-		ch2, err := c.Channel(cID)
-		assert.Same(t, ch2, ch1)
-		assert.NoError(t, err)
-	})
+	a := wiretest.NewRandomAddress(rng)
+	b := wiretest.NewRandomAddress(rng)
+	p.Put(&wire.Envelope{a, b, wire.NewPingMsg()})
+	assert.Nil(t, missed, "produce() on closed producer shouldn't do anything")
 }

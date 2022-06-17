@@ -42,11 +42,6 @@ func TestAddress(t *testing.T, s *Setup) { //nolint:revive // `test.Test...` stu
 	assert.False(t, addr.Equal(null), "Expected inequality of zero, nonzero address")
 	assert.True(t, null.Equal(null), "Expected equality of zero address to itself") //nolint:gocritic
 
-	// Test Address.Cmp.
-	assert.Positive(t, addr.Cmp(null), "Expected addr > zero")
-	assert.Zero(t, null.Cmp(null), "Expected zero = zero") //nolint:gocritic
-	assert.Negative(t, null.Cmp(addr), "Expected null < addr")
-
 	// Test Address.Bytes.
 	addrBytes, err := addr.MarshalBinary()
 	assert.NoError(t, err, "Marshaling address should not error")

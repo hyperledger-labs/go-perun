@@ -19,7 +19,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"perun.network/go-perun/wallet/test"
+	"perun.network/go-perun/wire/test"
 	pkgtest "polycry.pt/poly-go/test"
 )
 

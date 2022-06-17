@@ -25,8 +25,6 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"perun.network/go-perun/wallet"
-	wallettest "perun.network/go-perun/wallet/test"
 	"perun.network/go-perun/wire"
 	perunio "perun.network/go-perun/wire/perunio/serializer"
 	wiretest "perun.network/go-perun/wire/test"
@@ -116,8 +114,8 @@ func nilConsumer(wire.Address) wire.Consumer { return nil }
 func TestRegistry_Get(t *testing.T) {
 	t.Parallel()
 	rng := test.Prng(t)
-	id := wallettest.NewRandomAccount(rng)
-	peerID := wallettest.NewRandomAccount(rng)
+	id := wiretest.NewRandomAccount(rng)
+	peerID := wiretest.NewRandomAccount(rng)
 	peerAddr := peerID.Address()
 
 	t.Run("peer already in progress (existing)", func(t *testing.T) {
@@ -127,7 +125,7 @@ func TestRegistry_Get(t *testing.T) {
 		r := NewEndpointRegistry(id, nilConsumer, dialer, perunio.Serializer())
 		existing := newEndpoint(peerAddr, newMockConn())
 
-		r.endpoints[wallet.Key(peerAddr)] = newFullEndpoint(existing)
+		r.endpoints[wire.Key(peerAddr)] = newFullEndpoint(existing)
 		ctxtest.AssertTerminates(t, timeout, func() {
 			p, err := r.Endpoint(context.Background(), peerAddr)
 			assert.NoError(t, err)
@@ -181,15 +179,15 @@ func TestRegistry_Get(t *testing.T) {
 func TestRegistry_authenticatedDial(t *testing.T) {
 	t.Parallel()
 	rng := test.Prng(t)
-	id := wallettest.NewRandomAccount(rng)
+	id := wiretest.NewRandomAccount(rng)
 	d := &mockDialer{dial: make(chan Conn)}
 	r := NewEndpointRegistry(id, nilConsumer, d, perunio.Serializer())
 
-	remoteID := wallettest.NewRandomAccount(rng)
+	remoteID := wiretest.NewRandomAccount(rng)
 	remoteAddr := remoteID.Address()
 
 	t.Run("dial fail", func(t *testing.T) {
-		addr := wallettest.NewRandomAddress(rng)
+		addr := wiretest.NewRandomAddress(rng)
 		de, created := r.dialingEndpoint(addr)
 		go d.put(nil)
 		ctx, cancel := context.WithTimeout(context.Background(), timeout)
@@ -230,7 +228,7 @@ func TestRegistry_authenticatedDial(t *testing.T) {
 		a, b := newPipeConnPair()
 		go ct.Stage("passive", func(rt test.ConcT) {
 			d.put(a)
-			_, err := ExchangeAddrsPassive(ctx, wallettest.NewRandomAccount(rng), b)
+			_, err := ExchangeAddrsPassive(ctx, wiretest.NewRandomAccount(rng), b)
 			require.True(rt, IsAuthenticationError(err))
 		})
 		de, created := r.dialingEndpoint(remoteAddr)
@@ -263,8 +261,8 @@ func TestRegistry_authenticatedDial(t *testing.T) {
 func TestRegistry_setupConn(t *testing.T) {
 	t.Parallel()
 	rng := test.Prng(t)
-	id := wallettest.NewRandomAccount(rng)
-	remoteID := wallettest.NewRandomAccount(rng)
+	id := wiretest.NewRandomAccount(rng)
+	remoteID := wiretest.NewRandomAccount(rng)
 
 	t.Run("ExchangeAddrs fail", func(t *testing.T) {
 		d := &mockDialer{dial: make(chan Conn)}
@@ -325,9 +323,9 @@ func TestRegistry_Listen(t *testing.T) {
 
 	rng := test.Prng(t)
 
-	id := wallettest.NewRandomAccount(rng)
+	id := wiretest.NewRandomAccount(rng)
 	addr := id.Address()
-	remoteID := wallettest.NewRandomAccount(rng)
+	remoteID := wiretest.NewRandomAccount(rng)
 	remoteAddr := remoteID.Address()
 
 	d := newMockDialer()
@@ -367,14 +365,14 @@ func TestRegistry_addEndpoint_Subscribe(t *testing.T) {
 	rng := test.Prng(t)
 	called := false
 	r := NewEndpointRegistry(
-		wallettest.NewRandomAccount(rng),
+		wiretest.NewRandomAccount(rng),
 		func(wire.Address) wire.Consumer { called = true; return nil },
 		nil,
 		perunio.Serializer(),
 	)
 
 	assert.False(t, called, "onNewEndpoint must not have been called yet")
-	r.addEndpoint(wallettest.NewRandomAddress(rng), newMockConn(), false)
+	r.addEndpoint(wiretest.NewRandomAddress(rng), newMockConn(), false)
 	assert.True(t, called, "onNewEndpoint must have been called")
 }
 
@@ -385,7 +383,7 @@ func TestRegistry_Close(t *testing.T) {
 
 	t.Run("double close error", func(t *testing.T) {
 		r := NewEndpointRegistry(
-			wallettest.NewRandomAccount(rng),
+			wiretest.NewRandomAccount(rng),
 			nilConsumer,
 			nil,
 			perunio.Serializer(),
@@ -398,7 +396,7 @@ func TestRegistry_Close(t *testing.T) {
 		d := &mockDialer{dial: make(chan Conn)}
 		d.Close()
 		r := NewEndpointRegistry(
-			wallettest.NewRandomAccount(rng),
+			wiretest.NewRandomAccount(rng),
 			nilConsumer,
 			d,
 			perunio.Serializer(),

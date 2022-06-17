@@ -22,10 +22,9 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	simwallet "perun.network/go-perun/backend/sim/wallet"
-	"perun.network/go-perun/wallet"
 	"perun.network/go-perun/wire"
 	perunio "perun.network/go-perun/wire/perunio/serializer"
+	wiretest "perun.network/go-perun/wire/test"
 	ctxtest "polycry.pt/poly-go/context/test"
 	"polycry.pt/poly-go/test"
 )
@@ -42,8 +41,8 @@ func TestNewUnixDialer(t *testing.T) {
 
 func TestDialer_Register(t *testing.T) {
 	rng := test.Prng(t)
-	addr := simwallet.NewRandomAddress(rng)
-	key := wallet.Key(addr)
+	addr := wiretest.NewRandomAddress(rng)
+	key := wire.Key(addr)
 	d := NewTCPDialer(0)
 
 	_, ok := d.host(key)
@@ -60,7 +59,7 @@ func TestDialer_Dial(t *testing.T) {
 	timeout := 100 * time.Millisecond
 	rng := test.Prng(t)
 	lhost := "127.0.0.1:7357"
-	laddr := simwallet.NewRandomAddress(rng)
+	laddr := wiretest.NewRandomAddress(rng)
 
 	l, err := NewTCPListener(lhost)
 	require.NoError(t, err)
@@ -69,7 +68,7 @@ func TestDialer_Dial(t *testing.T) {
 	ser := perunio.Serializer()
 	d := NewTCPDialer(timeout)
 	d.Register(laddr, lhost)
-	daddr := simwallet.NewRandomAddress(rng)
+	daddr := wiretest.NewRandomAddress(rng)
 	defer d.Close()
 
 	t.Run("happy", func(t *testing.T) {
@@ -113,7 +112,7 @@ func TestDialer_Dial(t *testing.T) {
 	})
 
 	t.Run("unknown host", func(t *testing.T) {
-		noHostAddr := simwallet.NewRandomAddress(rng)
+		noHostAddr := wiretest.NewRandomAddress(rng)
 		d.Register(noHostAddr, "no such host")
 
 		ctxtest.AssertTerminates(t, timeout, func() {
@@ -125,7 +124,7 @@ func TestDialer_Dial(t *testing.T) {
 
 	t.Run("unknown address", func(t *testing.T) {
 		ctxtest.AssertTerminates(t, timeout, func() {
-			unkownAddr := simwallet.NewRandomAddress(rng)
+			unkownAddr := wiretest.NewRandomAddress(rng)
 			conn, err := d.Dial(context.Background(), unkownAddr, ser)
 			assert.Error(t, err)
 			assert.Nil(t, conn)

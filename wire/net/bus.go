@@ -22,7 +22,6 @@ import (
 	"github.com/pkg/errors"
 
 	"perun.network/go-perun/log"
-	"perun.network/go-perun/wallet"
 	"perun.network/go-perun/wire"
 )
 
@@ -30,7 +29,7 @@ import (
 type Bus struct {
 	reg      *EndpointRegistry
 	mainRecv *wire.Receiver
-	recvs    map[wallet.AddrKey]wire.Consumer
+	recvs    map[wire.AddrKey]wire.Consumer
 	mutex    sync.RWMutex // Protects reg, recv.
 }
 
@@ -48,7 +47,7 @@ const (
 func NewBus(id wire.Account, d Dialer, s wire.EnvelopeSerializer) *Bus {
 	b := &Bus{
 		mainRecv: wire.NewReceiver(),
-		recvs:    make(map[wallet.AddrKey]wire.Consumer),
+		recvs:    make(map[wire.AddrKey]wire.Consumer),
 	}
 
 	onNewEndpoint := func(wire.Address) wire.Consumer { return b.mainRecv }
@@ -119,11 +118,11 @@ func (b *Bus) addSubscriber(c wire.Consumer, addr wire.Address) {
 	b.mutex.Lock()
 	defer b.mutex.Unlock()
 
-	if _, ok := b.recvs[wallet.Key(addr)]; ok {
+	if _, ok := b.recvs[wire.Key(addr)]; ok {
 		log.Panic("duplicate SubscribeClient")
 	}
 
-	b.recvs[wallet.Key(addr)] = c
+	b.recvs[wire.Key(addr)] = c
 }
 
 // ctx returns the context of the bus' registry.
@@ -141,7 +140,7 @@ func (b *Bus) dispatchMsgs() {
 		}
 
 		b.mutex.Lock()
-		r, ok := b.recvs[wallet.Key(e.Recipient)]
+		r, ok := b.recvs[wire.Key(e.Recipient)]
 		b.mutex.Unlock()
 		if !ok {
 			log.WithField("sender", e.Sender).
@@ -157,9 +156,9 @@ func (b *Bus) removeSubscriber(addr wire.Address) {
 	b.mutex.Lock()
 	defer b.mutex.Unlock()
 
-	if _, ok := b.recvs[wallet.Key(addr)]; !ok {
+	if _, ok := b.recvs[wire.Key(addr)]; !ok {
 		log.Panic("deleting nonexisting subscriber")
 	}
 
-	delete(b.recvs, wallet.Key(addr))
+	delete(b.recvs, wire.Key(addr))
 }

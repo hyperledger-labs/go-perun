@@ -17,22 +17,46 @@ package test
 import (
 	"math/rand"
 
-	"perun.network/go-perun/wallet/test"
 	"perun.network/go-perun/wire"
 )
 
-// NewRandomAddress returns a new random peer address. Currently still a stub
-// until the crypto for peer addresses is decided.
+type (
+	// NewRandomAddressFunc is a address randomizer function.
+	NewRandomAddressFunc = func(*rand.Rand) wire.Address
+	// NewRandomAccountFunc is a account randomizer function.
+	NewRandomAccountFunc = func(*rand.Rand) wire.Account
+)
+
+var (
+	newRandomAddress NewRandomAddressFunc
+	newRandomAccount NewRandomAccountFunc
+)
+
+// SetNewRandomAddress sets the address randomizer function.
+func SetNewRandomAddress(f NewRandomAddressFunc) {
+	newRandomAddress = f
+}
+
+// SetNewRandomAccount sets the account randomizer function.
+func SetNewRandomAccount(f NewRandomAccountFunc) {
+	newRandomAccount = f
+}
+
+// NewRandomAddress returns a new random address.
 func NewRandomAddress(rng *rand.Rand) wire.Address {
-	return test.NewRandomAddress(rng)
+	return newRandomAddress(rng)
+}
+
+// NewRandomAccount returns a new random account.
+func NewRandomAccount(rng *rand.Rand) wire.Account {
+	return newRandomAccount(rng)
 }
 
 // NewRandomAddresses returns a slice of random peer addresses.
 func NewRandomAddresses(rng *rand.Rand, n int) []wire.Address {
-	walletAddresses := test.NewRandomAddresses(rng, n)
-	addresses := make([]wire.Address, len(walletAddresses))
-	for i, x := range walletAddresses {
-		addresses[i] = x
+	addresses := make([]wire.Address, n)
+	for i := range addresses {
+		addresses[i] = NewRandomAddress(rng)
 	}
 	return addresses
 }
@@ -41,8 +65,8 @@ func NewRandomAddresses(rng *rand.Rand, n int) []wire.Address {
 // recipient generated using randomness from rng.
 func NewRandomEnvelope(rng *rand.Rand, m wire.Msg) *wire.Envelope {
 	return &wire.Envelope{
-		Sender:    test.NewRandomAddress(rng),
-		Recipient: test.NewRandomAddress(rng),
+		Sender:    NewRandomAddress(rng),
+		Recipient: NewRandomAddress(rng),
 		Msg:       m,
 	}
 }

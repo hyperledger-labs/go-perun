@@ -21,7 +21,6 @@ import (
 	"github.com/pkg/errors"
 
 	"perun.network/go-perun/log"
-	"perun.network/go-perun/wallet"
 )
 
 type localBusReceiver struct {
@@ -34,13 +33,13 @@ var _ Bus = (*LocalBus)(nil)
 // LocalBus is a bus that only sends message in the same process.
 type LocalBus struct {
 	mutex sync.RWMutex
-	recvs map[wallet.AddrKey]*localBusReceiver
+	recvs map[AddrKey]*localBusReceiver
 }
 
 // NewLocalBus creates a new local bus, which only targets receivers that lie
 // within the same process.
 func NewLocalBus() *LocalBus {
-	return &LocalBus{recvs: make(map[wallet.AddrKey]*localBusReceiver)}
+	return &LocalBus{recvs: make(map[AddrKey]*localBusReceiver)}
 }
 
 // Publish implements wire.Bus.Publish. It returns only once the recipient
@@ -67,7 +66,7 @@ func (h *LocalBus) SubscribeClient(c Consumer, receiver Address) error {
 	c.OnCloseAlways(func() {
 		h.mutex.Lock()
 		defer h.mutex.Unlock()
-		delete(h.recvs, wallet.Key(receiver))
+		delete(h.recvs, Key(receiver))
 		log.WithField("id", receiver).Debug("Client unsubscribed.")
 	})
 
@@ -79,7 +78,7 @@ func (h *LocalBus) SubscribeClient(c Consumer, receiver Address) error {
 // bus' receiver map, and returns it. If it creates a new receiver, it is only
 // a placeholder until a subscription appears.
 func (h *LocalBus) ensureRecv(a Address) *localBusReceiver {
-	key := wallet.Key(a)
+	key := Key(a)
 	// First, we only use a read lock, hoping that the receiver already exists.
 	h.mutex.RLock()
 	recv, ok := h.recvs[key]
