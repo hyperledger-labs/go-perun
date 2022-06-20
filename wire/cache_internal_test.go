@@ -16,6 +16,7 @@ package wire
 
 import (
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -36,6 +37,7 @@ func TestCache(t *testing.T) {
 
 	ping0 := newEnvelope(NewPingMsg())
 	pong := newEnvelope(NewPongMsg())
+	time.Sleep(1 * time.Millisecond) // Sleep to ensure unique timestamps.
 	ping1 := newEnvelope(NewPingMsg())
 	ping2 := newEnvelope(NewPingMsg())
 	// we want to uniquely identify messages by their timestamp
