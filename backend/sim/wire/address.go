@@ -44,22 +44,22 @@ func (a *Address) UnmarshalBinary(data []byte) error {
 }
 
 // Equal returns whether the two addresses are equal.
-func (a Address) Equal(bIface wire.Address) bool {
-	b, ok := bIface.(*Address)
+func (a Address) Equal(b wire.Address) bool {
+	bTyped, ok := b.(*Address)
 	if !ok {
 		return false
 	}
-	return bytes.Equal(a[:], b[:])
+	return bytes.Equal(a[:], bTyped[:])
 }
 
 // Cmp compares the byte representation of two addresses. For `a.Cmp(b)`
 // returns -1 if a < b, 0 if a == b, 1 if a > b.
-func (a Address) Cmp(bIface wire.Address) int {
-	b, ok := bIface.(*Address)
+func (a Address) Cmp(b wire.Address) int {
+	bTyped, ok := b.(*Address)
 	if !ok {
 		panic("wrong type")
 	}
-	return bytes.Compare(a[:], b[:])
+	return bytes.Compare(a[:], bTyped[:])
 }
 
 // NewRandomAddress returns a new random peer address.
