@@ -43,7 +43,7 @@ func (a *Address) UnmarshalBinary(data []byte) error {
 	return nil
 }
 
-// Equal returns wether the two addresses are equal.
+// Equal returns whether the two addresses are equal.
 func (a Address) Equal(bIface wire.Address) bool {
 	b, ok := bIface.(*Address)
 	if !ok {
