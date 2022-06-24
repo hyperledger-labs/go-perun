@@ -303,7 +303,7 @@ func (c *Channel) Settle(ctx context.Context) (err error) {
 	return nil
 }
 
-func (c *Channel) withdraw(ctx context.Context, secondary bool) error {
+func (c *Channel) withdraw(ctx context.Context) error {
 	switch {
 	case c.IsLedgerChannel():
 		subStates, err := c.subChannelStateMap()
@@ -311,7 +311,6 @@ func (c *Channel) withdraw(ctx context.Context, secondary bool) error {
 			return errors.WithMessage(err, "creating sub-channel state map")
 		}
 		req := c.machine.AdjudicatorReq()
-		req.Secondary = secondary
 		if err := c.adjudicator.Withdraw(ctx, req, subStates); err != nil {
 			return errors.WithMessage(err, "calling Withdraw")
 		}

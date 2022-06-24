@@ -439,9 +439,8 @@ func makeSignedState(params *channel.Params, tx channel.Transaction) channel.Sig
 
 func makeAdjudicatorReq(params *channel.Params, tx channel.Transaction) channel.AdjudicatorReq {
 	return channel.AdjudicatorReq{
-		Params:    params,
-		Tx:        tx,
-		Secondary: false,
+		Params: params,
+		Tx:     tx,
 	}
 }
 
