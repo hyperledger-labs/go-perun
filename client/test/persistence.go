@@ -125,7 +125,7 @@ func (r *Petra) Execute(cfg ExecConfig) {
 	// 6. Finalize restored channel
 	ch.recvFinal()
 
-	ch.settleSecondary()
+	ch.settle()
 
 	r.RequireNoError(r.Close())
 }

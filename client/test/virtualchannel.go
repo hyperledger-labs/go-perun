@@ -56,7 +56,7 @@ func TestVirtualChannelOptimistic( //nolint:revive // test.Test... stutters but 
 	success.Add(len(chs))
 	for _, ch := range chs {
 		go func(ch *client.Channel) {
-			err := ch.Settle(ctx, false)
+			err := ch.Settle(ctx)
 			if err != nil {
 				vct.errs <- err
 				return
@@ -102,7 +102,7 @@ func TestVirtualChannelDispute( //nolint:revive // test.Test... stutters but OK 
 
 	// Settle the channels in a random order.
 	for _, i := range rand.Perm(len(chs)) {
-		err := chs[i].Settle(ctx, false)
+		err := chs[i].Settle(ctx)
 		assert.NoErrorf(err, "settle channel: %d", i)
 	}
 
