@@ -24,7 +24,6 @@ import (
 	"github.com/pkg/errors"
 
 	"perun.network/go-perun/log"
-	"perun.network/go-perun/wallet"
 	"perun.network/go-perun/wire"
 	perunsync "polycry.pt/poly-go/sync"
 )
@@ -69,8 +68,8 @@ type EndpointRegistry struct {
 	onNewEndpoint func(wire.Address) wire.Consumer // Selects Consumer for new Endpoints' receive loop.
 	ser           wire.EnvelopeSerializer
 
-	endpoints map[wallet.AddrKey]*fullEndpoint // The list of all of all established Endpoints.
-	dialing   map[wallet.AddrKey]*dialingEndpoint
+	endpoints map[wire.AddrKey]*fullEndpoint // The list of all of all established Endpoints.
+	dialing   map[wire.AddrKey]*dialingEndpoint
 	mutex     sync.RWMutex // protects peers and dialing.
 
 	log.Embedding
@@ -94,8 +93,8 @@ func NewEndpointRegistry(
 		dialer:        dialer,
 		ser:           ser,
 
-		endpoints: make(map[wallet.AddrKey]*fullEndpoint),
-		dialing:   make(map[wallet.AddrKey]*dialingEndpoint),
+		endpoints: make(map[wire.AddrKey]*fullEndpoint),
+		dialing:   make(map[wire.AddrKey]*dialingEndpoint),
 
 		Embedding: log.MakeEmbedding(log.WithField("id", id.Address())),
 	}
@@ -190,7 +189,7 @@ func (r *EndpointRegistry) setupConn(conn Conn) error {
 // context is closed.
 func (r *EndpointRegistry) Endpoint(ctx context.Context, addr wire.Address) (*Endpoint, error) {
 	log := r.Log().WithField("peer", addr)
-	key := wallet.Key(addr)
+	key := wire.Key(addr)
 
 	if addr.Equal(r.id.Address()) {
 		log.Panic("tried to dial self")
@@ -222,7 +221,7 @@ func (r *EndpointRegistry) authenticatedDial(
 	de *dialingEndpoint,
 	created bool,
 ) (ret *Endpoint, _ error) {
-	key := wallet.Key(addr)
+	key := wire.Key(addr)
 
 	// Short cut: another dial for that peer is already in progress.
 	if !created {
@@ -262,8 +261,8 @@ func (r *EndpointRegistry) authenticatedDial(
 }
 
 // dialingEndpoint retrieves or creates a dialingEndpoint for the passed address.
-func (r *EndpointRegistry) dialingEndpoint(a wallet.Address) (_ *dialingEndpoint, created bool) {
-	key := wallet.Key(a)
+func (r *EndpointRegistry) dialingEndpoint(a wire.Address) (_ *dialingEndpoint, created bool) {
+	key := wire.Key(a)
 	entry, ok := r.dialing[key]
 	if !ok {
 		entry = newDialingEndpoint(a)
@@ -288,7 +287,7 @@ func (r *EndpointRegistry) Has(addr wire.Address) bool {
 	r.mutex.Lock()
 	defer r.mutex.Unlock()
 
-	_, ok := r.endpoints[wallet.Key(addr)]
+	_, ok := r.endpoints[wire.Key(addr)]
 
 	return ok
 }
@@ -319,7 +318,7 @@ func (r *EndpointRegistry) addEndpoint(addr wire.Address, conn Conn, dialer bool
 
 // fullEndpoint retrieves or creates a fullEndpoint for the passed address.
 func (r *EndpointRegistry) fullEndpoint(addr wire.Address, e *Endpoint) (_ *fullEndpoint, created bool) {
-	key := wallet.Key(addr)
+	key := wire.Key(addr)
 	r.mutex.Lock()
 	defer r.mutex.Unlock()
 	entry, ok := r.endpoints[key]
@@ -373,7 +372,7 @@ func (p *fullEndpoint) delete(expectedOldValue *Endpoint) {
 func (r *EndpointRegistry) find(addr wire.Address) *Endpoint {
 	r.mutex.RLock()
 	defer r.mutex.RUnlock()
-	if e, ok := r.endpoints[wallet.Key(addr)]; ok {
+	if e, ok := r.endpoints[wire.Key(addr)]; ok {
 		return e.Endpoint()
 	}
 	return nil

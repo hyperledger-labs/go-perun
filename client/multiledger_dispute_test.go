@@ -53,7 +53,7 @@ func TestMultiLedgerDispute(t *testing.T) {
 	initAlloc.Balances = initBals
 	prop, err := client.NewLedgerChannelProposal(
 		challengeDuration,
-		alice.WireAddress,
+		alice.WalletAddress,
 		initAlloc,
 		parts,
 	)
@@ -67,7 +67,7 @@ func TestMultiLedgerDispute(t *testing.T) {
 		ctest.AlwaysAcceptUpdateHandler(ctx, errs),
 	)
 	go bob.Handle(
-		ctest.AlwaysAcceptChannelHandler(ctx, bob.WireAddress, channels, errs),
+		ctest.AlwaysAcceptChannelHandler(ctx, bob.WalletAddress, channels, errs),
 		ctest.AlwaysAcceptUpdateHandler(ctx, errs),
 	)
 
@@ -117,6 +117,6 @@ func TestMultiLedgerDispute(t *testing.T) {
 	require.NoError(err)
 
 	// Check final balances.
-	require.True(mlt.L1.Balance(mlt.C2.WireAddress, mlt.A1).Cmp(updateBals1[0][1]) == 0)
-	require.True(mlt.L2.Balance(mlt.C2.WireAddress, mlt.A2).Cmp(updateBals1[1][1]) == 0)
+	require.True(mlt.L1.Balance(mlt.C2.WalletAddress, mlt.A1).Cmp(updateBals1[0][1]) == 0)
+	require.True(mlt.L2.Balance(mlt.C2.WalletAddress, mlt.A2).Cmp(updateBals1[1][1]) == 0)
 }

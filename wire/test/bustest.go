@@ -21,7 +21,6 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	wallettest "perun.network/go-perun/wallet/test"
 	"perun.network/go-perun/wire"
 	"polycry.pt/poly-go/test"
 )
@@ -56,7 +55,7 @@ func GenericBusTest(t *testing.T,
 	clients := make([]Client, numClients)
 	for i := range clients {
 		clients[i].r = wire.NewRelay()
-		clients[i].id = wallettest.NewRandomAccount(rng)
+		clients[i].id = NewRandomAccount(rng)
 		clients[i].pub, clients[i].sub = busAssigner(clients[i].id)
 	}
 

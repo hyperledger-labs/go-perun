@@ -56,7 +56,7 @@ func TestMultiLedgerHappy(t *testing.T) {
 	initAlloc.Balances = initBals
 	prop, err := client.NewLedgerChannelProposal(
 		challengeDuration,
-		alice.WireAddress,
+		alice.WalletAddress,
 		initAlloc,
 		parts,
 	)
@@ -70,7 +70,7 @@ func TestMultiLedgerHappy(t *testing.T) {
 		ctest.AlwaysAcceptUpdateHandler(ctx, errs),
 	)
 	go bob.Handle(
-		ctest.AlwaysAcceptChannelHandler(ctx, bob.WireAddress, channels, errs),
+		ctest.AlwaysAcceptChannelHandler(ctx, bob.WalletAddress, channels, errs),
 		ctest.AlwaysAcceptUpdateHandler(ctx, errs),
 	)
 

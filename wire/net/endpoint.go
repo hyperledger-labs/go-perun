@@ -16,6 +16,7 @@ package net
 
 import (
 	"context"
+	"fmt"
 	"io"
 
 	"github.com/pkg/errors"
@@ -104,5 +105,5 @@ func newEndpoint(addr wire.Address, conn Conn) *Endpoint {
 
 // String returns the Endpoint's address string.
 func (p *Endpoint) String() string {
-	return p.Address.String()
+	return fmt.Sprint(p.Address)
 }

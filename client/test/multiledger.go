@@ -26,10 +26,12 @@ import (
 	chtest "perun.network/go-perun/channel/test"
 	"perun.network/go-perun/client"
 	"perun.network/go-perun/log"
+	"perun.network/go-perun/wallet"
 	wtest "perun.network/go-perun/wallet/test"
 	"perun.network/go-perun/watcher/local"
 	"perun.network/go-perun/wire"
 	"perun.network/go-perun/wire/perunio"
+	wiretest "perun.network/go-perun/wire/test"
 	"polycry.pt/poly-go/test"
 )
 
@@ -118,8 +120,9 @@ func (a *MultiLedgerAsset) UnmarshalBinary(data []byte) error {
 
 type testClient struct {
 	*client.Client
-	WireAddress wire.Address
-	Events      chan channel.AdjudicatorEvent
+	WireAddress   wire.Address
+	WalletAddress wallet.Address
+	Events        chan channel.AdjudicatorEvent
 }
 
 func (c testClient) HandleAdjudicatorEvent(e channel.AdjudicatorEvent) {
@@ -133,6 +136,9 @@ func setupClient(
 ) testClient {
 	t.Helper()
 	require := require.New(t)
+
+	// Setup identity.
+	wireAddr := wiretest.NewRandomAddress(rng)
 
 	// Setup wallet and account.
 	w := wtest.NewWallet()
@@ -153,7 +159,7 @@ func setupClient(
 	require.NoError(err)
 
 	c, err := client.New(
-		acc.Address(),
+		wireAddr,
 		bus,
 		funder,
 		adj,
@@ -163,8 +169,9 @@ func setupClient(
 	require.NoError(err)
 
 	return testClient{
-		Client:      c,
-		WireAddress: acc.Address(),
-		Events:      make(chan channel.AdjudicatorEvent),
+		Client:        c,
+		WireAddress:   wireAddr,
+		WalletAddress: acc.Address(),
+		Events:        make(chan channel.AdjudicatorEvent),
 	}
 }

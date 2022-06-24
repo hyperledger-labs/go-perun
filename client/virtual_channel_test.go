@@ -105,11 +105,11 @@ func (vct *virtualChannelTest) testFinalBalancesDispute(t *testing.T) {
 	t.Helper()
 	assert := assert.New(t)
 	backend, asset := vct.balanceReader, vct.asset
-	got, expected := backend.Balance(vct.alice.Identity.Address(), asset), vct.finalBalsAlice[0]
+	got, expected := backend.Balance(vct.alice.WalletAddress, asset), vct.finalBalsAlice[0]
 	assert.Truef(got.Cmp(expected) == 0, "alice: wrong final balance: got %v, expected %v", got, expected)
-	got, expected = backend.Balance(vct.bob.Identity.Address(), asset), vct.finalBalsBob[0]
+	got, expected = backend.Balance(vct.bob.WalletAddress, asset), vct.finalBalsBob[0]
 	assert.Truef(got.Cmp(expected) == 0, "bob: wrong final balance: got %v, expected %v", got, expected)
-	got, expected = backend.Balance(vct.ingrid.Identity.Address(), asset), vct.finalBalIngrid
+	got, expected = backend.Balance(vct.ingrid.WalletAddress, asset), vct.finalBalIngrid
 	assert.Truef(got.Cmp(expected) == 0, "ingrid: wrong final balance: got %v, expected %v", got, expected)
 }
 
@@ -160,7 +160,7 @@ func setupVirtualChannelTest(t *testing.T, ctx context.Context) (vct virtualChan
 	var openingProposalHandlerIngrid client.ProposalHandlerFunc = func(cp client.ChannelProposal, pr *client.ProposalResponder) {
 		switch cp := cp.(type) {
 		case *client.LedgerChannelProposalMsg:
-			ch, err := pr.Accept(ctx, cp.Accept(ingrid.Identity.Address(), client.WithRandomNonce()))
+			ch, err := pr.Accept(ctx, cp.Accept(ingrid.WalletAddress, client.WithRandomNonce()))
 			if err != nil {
 				vct.errs <- errors.WithMessage(err, "accepting ledger channel proposal")
 			}
@@ -181,7 +181,7 @@ func setupVirtualChannelTest(t *testing.T, ctx context.Context) (vct virtualChan
 	initAllocAlice.SetAssetBalances(asset, initBalsAlice)
 	lcpAlice, err := client.NewLedgerChannelProposal(
 		challengeDuration,
-		alice.Identity.Address(),
+		alice.WalletAddress,
 		initAllocAlice,
 		peersAlice,
 	)
@@ -201,7 +201,7 @@ func setupVirtualChannelTest(t *testing.T, ctx context.Context) (vct virtualChan
 	initAllocBob.SetAssetBalances(asset, initBalsBob)
 	lcpBob, err := client.NewLedgerChannelProposal(
 		challengeDuration,
-		bob.Identity.Address(),
+		bob.WalletAddress,
 		initAllocBob,
 		peersBob,
 	)
@@ -222,7 +222,7 @@ func setupVirtualChannelTest(t *testing.T, ctx context.Context) (vct virtualChan
 	) {
 		switch cp := cp.(type) {
 		case *client.VirtualChannelProposalMsg:
-			ch, err := pr.Accept(ctx, cp.Accept(bob.Identity.Address()))
+			ch, err := pr.Accept(ctx, cp.Accept(bob.WalletAddress))
 			if err != nil {
 				vct.errs <- errors.WithMessage(err, "accepting virtual channel proposal")
 			}
@@ -250,7 +250,7 @@ func setupVirtualChannelTest(t *testing.T, ctx context.Context) (vct virtualChan
 	indexMapBob := []channel.Index{1, 0}
 	vcp, err := client.NewVirtualChannelProposal(
 		challengeDuration,
-		alice.Identity.Address(),
+		alice.WalletAddress,
 		&initAllocVirtual,
 		[]wire.Address{alice.Identity.Address(), bob.Identity.Address()},
 		[]channel.ID{vct.chAliceIngrid.ID(), vct.chBobIngrid.ID()},

@@ -21,9 +21,9 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	wallettest "perun.network/go-perun/wallet/test"
 	"perun.network/go-perun/wire"
 	"perun.network/go-perun/wire/protobuf"
+	"perun.network/go-perun/wire/test"
 	pkgtest "polycry.pt/poly-go/test"
 )
 
@@ -47,7 +47,7 @@ func MsgSerializerTest(t *testing.T, msg wire.Msg) {
 
 func newEnvelope(rng *rand.Rand) *wire.Envelope {
 	return &wire.Envelope{
-		Sender:    wallettest.NewRandomAddress(rng),
-		Recipient: wallettest.NewRandomAddress(rng),
+		Sender:    test.NewRandomAddress(rng),
+		Recipient: test.NewRandomAddress(rng),
 	}
 }

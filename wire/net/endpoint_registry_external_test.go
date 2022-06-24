@@ -22,11 +22,11 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	wallettest "perun.network/go-perun/wallet/test"
 	"perun.network/go-perun/wire"
 	"perun.network/go-perun/wire/net"
 	nettest "perun.network/go-perun/wire/net/test"
 	perunio "perun.network/go-perun/wire/perunio/serializer"
+	wiretest "perun.network/go-perun/wire/test"
 	ctxtest "polycry.pt/poly-go/context/test"
 	"polycry.pt/poly-go/sync"
 	"polycry.pt/poly-go/test"
@@ -42,8 +42,8 @@ func TestEndpointRegistry_Get_Pair(t *testing.T) {
 	assert, require := assert.New(t), require.New(t)
 	rng := test.Prng(t)
 	var hub nettest.ConnHub
-	dialerID := wallettest.NewRandomAccount(rng)
-	listenerID := wallettest.NewRandomAccount(rng)
+	dialerID := wiretest.NewRandomAccount(rng)
+	listenerID := wiretest.NewRandomAccount(rng)
 	dialerReg := net.NewEndpointRegistry(dialerID, nilConsumer, hub.NewNetDialer(), perunio.Serializer())
 	listenerReg := net.NewEndpointRegistry(listenerID, nilConsumer, nil, perunio.Serializer())
 	listener := hub.NewNetListener(listenerID.Address())
@@ -82,8 +82,8 @@ func TestEndpointRegistry_Get_Multiple(t *testing.T) {
 	assert := assert.New(t)
 	rng := test.Prng(t)
 	var hub nettest.ConnHub
-	dialerID := wallettest.NewRandomAccount(rng)
-	listenerID := wallettest.NewRandomAccount(rng)
+	dialerID := wiretest.NewRandomAccount(rng)
+	listenerID := wiretest.NewRandomAccount(rng)
 	dialer := hub.NewNetDialer()
 	logPeer := func(addr wire.Address) wire.Consumer {
 		t.Logf("subscribing %s\n", addr)

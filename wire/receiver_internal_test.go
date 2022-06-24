@@ -22,7 +22,6 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	ctxtest "polycry.pt/poly-go/context/test"
-	"polycry.pt/poly-go/test"
 )
 
 // timeout controls how long to wait until we decide that something will never
@@ -39,7 +38,7 @@ func TestReceiver_Close(t *testing.T) {
 
 func TestReceiver_Next(t *testing.T) {
 	t.Parallel()
-	e := newRandomEnvelope(test.Prng(t), NewPingMsg())
+	e := newEnvelope(NewPingMsg())
 
 	t.Run("Happy case", func(t *testing.T) {
 		t.Parallel()

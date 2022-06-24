@@ -17,7 +17,6 @@ package keyvalue
 import (
 	"bytes"
 	"context"
-	"io"
 	"strings"
 
 	"github.com/pkg/errors"
@@ -45,14 +44,14 @@ type ChannelIterator struct {
 func (pr *PersistRestorer) ActivePeers(ctx context.Context) ([]wire.Address, error) {
 	it := sortedkv.NewTable(pr.db, prefix.PeerDB).NewIterator()
 
-	peermap := make(map[wallet.AddrKey]wire.Address)
+	peermap := make(map[wire.AddrKey]wire.Address)
 	for it.Next() {
 		addr := wire.NewAddress()
 		err := perunio.Decode(bytes.NewBufferString(it.Key()), addr)
 		if err != nil {
 			return nil, errors.WithMessagef(err, "decoding peer key (%x)", it.Key())
 		}
-		peermap[wallet.Key(addr)] = addr
+		peermap[wire.Key(addr)] = addr
 	}
 
 	peers := make([]wire.Address, 0, len(peermap))
@@ -131,38 +130,6 @@ func (pr *PersistRestorer) RestoreChannel(ctx context.Context, id channel.ID) (*
 		return nil, errors.WithMessagef(err, "error restoring channel %x", id)
 	}
 	return nil, errors.Errorf("could not find channel %x", id)
-}
-
-// decodePeerChanID decodes the channel.ID and peer.Address from a key.
-//nolint:deadcode,unused
-func decodePeerChanID(key string) (wire.Address, channel.ID, error) {
-	buf := bytes.NewBufferString(key)
-	addr := wire.NewAddress()
-	err := perunio.Decode(buf, addr)
-	if err != nil {
-		return addr, channel.ID{}, errors.WithMessage(err, "decode peer address")
-	}
-
-	if err = eatExpect(buf, ":channel:"); err != nil {
-		return nil, channel.ID{}, errors.WithMessagef(err, "key: %x", key)
-	}
-
-	var id channel.ID
-	return addr, id, errors.WithMessage(perunio.Decode(buf, &id), "decode channel id")
-}
-
-// eatExpect consumes bytes from a Reader and asserts that they are equal to
-// the expected string.
-//nolint:unused
-func eatExpect(r io.Reader, tok string) error {
-	buf := make([]byte, len(tok))
-	if _, err := io.ReadFull(r, buf); err != nil {
-		return errors.WithMessage(err, "reading")
-	}
-	if string(buf) != tok {
-		return errors.Errorf("expected %s, got %s", tok, string(buf))
-	}
-	return nil
 }
 
 type decOpts uint8

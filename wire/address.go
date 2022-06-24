@@ -15,9 +15,11 @@
 package wire
 
 import (
+	"encoding"
 	stdio "io"
+	"strings"
 
-	"perun.network/go-perun/wallet"
+	"github.com/pkg/errors"
 	"perun.network/go-perun/wire/perunio"
 )
 
@@ -30,7 +32,15 @@ var (
 // identity within the Perun peer-to-peer network. For now, it is based on type
 // wallet.Address.
 type Address interface {
-	wallet.Address
+	// BinaryMarshaler marshals the address to binary.
+	encoding.BinaryMarshaler
+	// BinaryUnmarshaler unmarshals an address from binary.
+	encoding.BinaryUnmarshaler
+	// Equal returns wether the two addresses are equal.
+	Equal(Address) bool
+	// Cmp compares the byte representation of two addresses. For `a.Cmp(b)`
+	// returns -1 if a < b, 0 if a == b, 1 if a > b.
+	Cmp(Address) int
 }
 
 // Addresses is a helper type for encoding and decoding address slices in
@@ -41,54 +51,47 @@ type Addresses []Address
 // of unknown length.
 type AddressesWithLen []Address
 
-// NewAddress returns a variable of type Address, which can be used
-// for unmarshalling an address from its binary representation.
-func NewAddress() Address {
-	return wallet.NewAddress()
-}
+type addressSliceLen = uint16
 
 // Encode encodes wire addresses.
 func (a Addresses) Encode(w stdio.Writer) error {
-	return wallet.Addresses(asWalletAddresses(a)).Encode(w)
+	for i, addr := range a {
+		if err := perunio.Encode(w, addr); err != nil {
+			return errors.WithMessagef(err, "encoding %d-th address", i)
+		}
+	}
+
+	return nil
 }
 
 // Encode encodes wire addresses with length.
 func (a AddressesWithLen) Encode(w stdio.Writer) error {
-	return wallet.AddressesWithLen(asWalletAddresses(a)).Encode(w)
-}
-
-// asWalletAddresses converts wire addresses to wallet addresses.
-func asWalletAddresses(a []Address) []wallet.Address {
-	b := make([]wallet.Address, len(a))
-	for i, x := range a {
-		b[i] = x
-	}
-	return b
+	return perunio.Encode(w,
+		addressSliceLen(len(a)),
+		(Addresses)(a))
 }
 
 // Decode decodes wallet addresses.
 func (a Addresses) Decode(r stdio.Reader) error {
-	b := wallet.Addresses(make([]wallet.Address, len(a)))
-	if err := b.Decode(r); err != nil {
-		return err
-	}
-	for i, x := range b {
-		a[i] = x
+	for i := range a {
+		a[i] = NewAddress()
+		err := perunio.Decode(r, a[i])
+		if err != nil {
+			return errors.WithMessagef(err, "decoding %d-th address", i)
+		}
 	}
 	return nil
 }
 
 // Decode decodes a wallet address slice of unknown length.
 func (a *AddressesWithLen) Decode(r stdio.Reader) error {
-	var b wallet.AddressesWithLen
-	if err := b.Decode(r); err != nil {
-		return err
+	var n addressSliceLen
+	if err := perunio.Decode(r, &n); err != nil {
+		return errors.WithMessage(err, "decoding count")
 	}
-	*a = make(AddressesWithLen, len(b))
-	for i, x := range b {
-		(*a)[i] = x
-	}
-	return nil
+
+	*a = make(AddressesWithLen, n)
+	return (*Addresses)(a).Decode(r)
 }
 
 // IndexOfAddr returns the index of the given address in the address slice,
@@ -101,4 +104,19 @@ func IndexOfAddr(addrs []Address, addr Address) int {
 	}
 
 	return -1
+}
+
+// AddrKey is a non-human readable representation of an `Address`.
+// It can be compared and therefore used as a key in a map.
+type AddrKey string
+
+// Key returns the `AddrKey` corresponding to the passed `Address`.
+// The `Address` can be retrieved with `FromKey`.
+// Panics when the `Address` can't be encoded.
+func Key(a Address) AddrKey {
+	var buff strings.Builder
+	if err := perunio.Encode(&buff, a); err != nil {
+		panic("Could not encode address in AddrKey: " + err.Error())
+	}
+	return AddrKey(buff.String())
 }

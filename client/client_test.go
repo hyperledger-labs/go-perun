@@ -28,6 +28,7 @@ import (
 	wtest "perun.network/go-perun/wallet/test"
 	"perun.network/go-perun/watcher/local"
 	"perun.network/go-perun/wire"
+	wiretest "perun.network/go-perun/wire/test"
 	"polycry.pt/poly-go/test"
 )
 
@@ -46,7 +47,7 @@ func (d DummyBus) SubscribeClient(wire.Consumer, wire.Address) error {
 
 func TestClient_New_NilArgs(t *testing.T) {
 	rng := test.Prng(t)
-	id := wtest.NewRandomAddress(rng)
+	id := wiretest.NewRandomAddress(rng)
 	backend := &ctest.MockBackend{}
 	b, f, a, w := &DummyBus{t}, backend, backend, wtest.RandomWallet()
 	watcher, err := local.NewWatcher(backend)
@@ -64,7 +65,7 @@ func TestClient_Handle_NilArgs(t *testing.T) {
 	backend := &ctest.MockBackend{}
 	watcher, err := local.NewWatcher(backend)
 	require.NoError(t, err, "initializing the watcher should not error")
-	c, err := client.New(wtest.NewRandomAddress(rng),
+	c, err := client.New(wiretest.NewRandomAddress(rng),
 		&DummyBus{t}, backend, backend, wtest.RandomWallet(), watcher)
 	require.NoError(t, err)
 
@@ -79,7 +80,7 @@ func TestClient_New(t *testing.T) {
 	backend := &ctest.MockBackend{}
 	watcher, err := local.NewWatcher(backend)
 	require.NoError(t, err, "initializing the watcher should not error")
-	c, err := client.New(wtest.NewRandomAddress(rng),
+	c, err := client.New(wiretest.NewRandomAddress(rng),
 		&DummyBus{t}, backend, backend, wtest.RandomWallet(), watcher)
 	assert.NoError(t, err)
 	require.NotNil(t, c)

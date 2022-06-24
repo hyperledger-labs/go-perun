@@ -121,7 +121,7 @@ func toWalletAddr(protoAddr []byte) (wallet.Address, error) {
 func toWalletAddrs(protoAddrs [][]byte) ([]wallet.Address, error) {
 	addrs := make([]wallet.Address, len(protoAddrs))
 	for i := range protoAddrs {
-		addrs[i] = wire.NewAddress()
+		addrs[i] = wallet.NewAddress()
 		err := addrs[i].UnmarshalBinary(protoAddrs[i])
 		if err != nil {
 			return nil, errors.WithMessagef(err, "%d'th address", i)

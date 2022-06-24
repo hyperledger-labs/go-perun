@@ -18,7 +18,6 @@ import (
 	"math/rand"
 	"testing"
 
-	wallettest "perun.network/go-perun/wallet/test"
 	"perun.network/go-perun/wire"
 
 	pkgtest "polycry.pt/poly-go/test"
@@ -41,7 +40,7 @@ func AuthMsgsSerializationTest(t *testing.T, serializerTest func(t *testing.T, m
 	t.Helper()
 
 	rng := pkgtest.Prng(t)
-	serializerTest(t, wire.NewAuthResponseMsg(wallettest.NewRandomAccount(rng)))
+	serializerTest(t, wire.NewAuthResponseMsg(NewRandomAccount(rng)))
 }
 
 // newRandomASCIIString returns a random ascii string of length between minLen and

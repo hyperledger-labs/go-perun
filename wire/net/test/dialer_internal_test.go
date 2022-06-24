@@ -20,8 +20,8 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"perun.network/go-perun/wallet/test"
 	perunio "perun.network/go-perun/wire/perunio/serializer"
+	"perun.network/go-perun/wire/test"
 	pkgtest "polycry.pt/poly-go/test"
 )
 

@@ -22,7 +22,6 @@ import (
 	"github.com/stretchr/testify/require"
 
 	_ "perun.network/go-perun/backend/sim" // backend init
-	wallettest "perun.network/go-perun/wallet/test"
 	"perun.network/go-perun/wire"
 	perunio "perun.network/go-perun/wire/perunio/serializer"
 	wiretest "perun.network/go-perun/wire/test"
@@ -38,7 +37,7 @@ func TestConnHub_Create(t *testing.T) {
 		assert := assert.New(t)
 
 		var c ConnHub
-		addr := wallettest.NewRandomAddress(rng)
+		addr := wiretest.NewRandomAddress(rng)
 		d, l := c.NewNetDialer(), c.NewNetListener(addr)
 		assert.NotNil(d)
 		assert.NotNil(l)
@@ -71,7 +70,7 @@ func TestConnHub_Create(t *testing.T) {
 		assert := assert.New(t)
 
 		var c ConnHub
-		addr := wallettest.NewRandomAddress(rng)
+		addr := wiretest.NewRandomAddress(rng)
 
 		l := c.NewNetListener(addr)
 		assert.NotNil(l)
@@ -86,7 +85,7 @@ func TestConnHub_Create(t *testing.T) {
 
 		d := c.NewNetDialer()
 		ctxtest.AssertTerminates(t, timeout, func() {
-			conn, err := d.Dial(context.Background(), wallettest.NewRandomAddress(rng), ser)
+			conn, err := d.Dial(context.Background(), wiretest.NewRandomAddress(rng), ser)
 			assert.Nil(conn)
 			assert.Error(err)
 		})
@@ -97,7 +96,7 @@ func TestConnHub_Create(t *testing.T) {
 
 		var c ConnHub
 		c.Close()
-		addr := wallettest.NewRandomAddress(rng)
+		addr := wiretest.NewRandomAddress(rng)
 
 		assert.Panics(func() { c.NewNetDialer() })
 		assert.Panics(func() { c.NewNetListener(addr) })
@@ -110,7 +109,7 @@ func TestConnHub_Close(t *testing.T) {
 		assert := assert.New(t)
 
 		var c ConnHub
-		l := c.NewNetListener(wallettest.NewRandomAddress(rng))
+		l := c.NewNetListener(wiretest.NewRandomAddress(rng))
 		assert.NoError(c.Close())
 		assert.True(l.IsClosed())
 	})
@@ -119,10 +118,10 @@ func TestConnHub_Close(t *testing.T) {
 		assert := assert.New(t)
 
 		var c ConnHub
-		l := c.NewNetListener(wallettest.NewRandomAddress(rng))
+		l := c.NewNetListener(wiretest.NewRandomAddress(rng))
 		l2 := NewNetListener()
 		l2.Close()
-		err := c.insert(wallettest.NewRandomAccount(rng).Address(), l2)
+		err := c.insert(wiretest.NewRandomAccount(rng).Address(), l2)
 		assert.NoError(err)
 		assert.Error(c.Close())
 		assert.True(l.IsClosed())
