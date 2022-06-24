@@ -18,21 +18,8 @@ import (
 	"testing"
 
 	"github.com/pkg/errors"
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
-
-func TestUpdateResponder_Accept_NilArgs(t *testing.T) {
-	err := new(UpdateResponder).Accept(nil) //nolint:staticcheck
-	require.Error(t, err)
-	assert.Contains(t, err.Error(), "context")
-}
-
-func TestUpdateResponder_Reject_NilArgs(t *testing.T) {
-	err := new(UpdateResponder).Reject(nil, "reason") //nolint:staticcheck
-	require.Error(t, err)
-	assert.Contains(t, err.Error(), "context")
-}
 
 func TestRequestTimedOutError(t *testing.T) {
 	err := newRequestTimedOutError("", "")
