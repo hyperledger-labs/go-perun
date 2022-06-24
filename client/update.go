@@ -16,6 +16,7 @@ package client
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/pkg/errors"
 
@@ -94,6 +95,7 @@ type (
 		channel *Channel
 		pidx    channel.Index
 		req     ChannelUpdateProposal
+		done    chan struct{}
 		called  atomic.Bool
 	}
 
@@ -107,8 +109,12 @@ func (f UpdateHandlerFunc) HandleUpdate(s *channel.State, u ChannelUpdate, r *Up
 	f(s, u, r)
 }
 
-// Accept lets the user signal that they want to accept the channel update.
+// Accept accepts the channel update.
 func (r *UpdateResponder) Accept(ctx context.Context) error {
+	defer func() {
+		r.done <- struct{}{}
+	}()
+
 	if ctx == nil {
 		return errors.New("context must not be nil")
 	}
@@ -116,11 +122,15 @@ func (r *UpdateResponder) Accept(ctx context.Context) error {
 		return fmt.Errorf("multiple calls on channel update responder")
 	}
 
-	return r.channel.handleUpdateAcc(ctx, r.pidx, r.req)
+	return r.channel.acceptUpdate(ctx, r.pidx, r.req)
 }
 
-// Reject lets the user signal that they reject the channel update.
+// Reject rejects the channel update.
 func (r *UpdateResponder) Reject(ctx context.Context, reason string) error {
+	defer func() {
+		r.done <- struct{}{}
+	}()
+
 	if ctx == nil {
 		return errors.New("context must not be nil")
 	}
@@ -128,7 +138,7 @@ func (r *UpdateResponder) Reject(ctx context.Context, reason string) error {
 		return fmt.Errorf("multiple calls on channel update responder")
 	}
 
-	return r.channel.handleUpdateRej(ctx, r.pidx, r.req, reason)
+	return r.channel.rejectUpdate(ctx, r.pidx, r.req, reason)
 }
 
 // Update proposes a state update to the channel participants as
@@ -266,7 +276,12 @@ func (c *Channel) handleUpdateReq(
 		return
 	}
 
-	responder := &UpdateResponder{channel: c, pidx: pidx, req: req}
+	responder := &UpdateResponder{
+		channel: c,
+		pidx:    pidx,
+		req:     req,
+		done:    make(chan struct{}, 1),
+	}
 	client := c.client
 
 	// Check whether we have an update related to a virtual channel.
@@ -294,10 +309,11 @@ func (c *Channel) handleUpdateReq(
 		return
 	}
 
-	uh.HandleUpdate(c.machine.State(), req.Base().ChannelUpdate, responder)
+	go uh.HandleUpdate(c.machine.State(), req.Base().ChannelUpdate, responder)
+	<-responder.done
 }
 
-func (c *Channel) handleUpdateAcc(
+func (c *Channel) acceptUpdate(
 	ctx context.Context,
 	pidx channel.Index,
 	req ChannelUpdateProposal,
@@ -350,7 +366,7 @@ func (c *Channel) handleUpdateAcc(
 	return c.enableNotifyUpdate(ctx)
 }
 
-func (c *Channel) handleUpdateRej(
+func (c *Channel) rejectUpdate(
 	ctx context.Context,
 	pidx channel.Index,
 	req ChannelUpdateProposal,
