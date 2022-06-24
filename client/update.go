@@ -113,7 +113,7 @@ func (r *UpdateResponder) Accept(ctx context.Context) error {
 		return errors.New("context must not be nil")
 	}
 	if !r.called.TrySet() {
-		log.Panic("multiple calls on channel update responder")
+		return fmt.Errorf("multiple calls on channel update responder")
 	}
 
 	return r.channel.handleUpdateAcc(ctx, r.pidx, r.req)
@@ -125,7 +125,7 @@ func (r *UpdateResponder) Reject(ctx context.Context, reason string) error {
 		return errors.New("context must not be nil")
 	}
 	if !r.called.TrySet() {
-		log.Panic("multiple calls on channel update responder")
+		return fmt.Errorf("multiple calls on channel update responder")
 	}
 
 	return r.channel.handleUpdateRej(ctx, r.pidx, r.req, reason)
