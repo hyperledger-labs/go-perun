@@ -31,12 +31,12 @@ func TestMultiLedgerHappy(t *testing.T) {
 	GenericTestMultiLedgerHappy(t, mlt)
 }
 
-func GenericTestMultiLedgerHappy(t *testing.T, mlt ctest.MultiLedgerTest) {
+func GenericTestMultiLedgerHappy(t *testing.T, mlt ctest.MultiLedgerSetup) {
 	require := require.New(t)
 	ctx, cancel := context.WithTimeout(context.Background(), testDuration)
 	defer cancel()
 
-	alice, bob := mlt.C1, mlt.C2
+	alice, bob := mlt.Client1, mlt.Client2
 
 	// Define initial balances.
 	initBals := channel.Balances{
@@ -56,7 +56,7 @@ func GenericTestMultiLedgerHappy(t *testing.T, mlt ctest.MultiLedgerTest) {
 
 	// Create channel proposal.
 	parts := []wire.Address{alice.WireAddress, bob.WireAddress}
-	initAlloc := channel.NewAllocation(len(parts), mlt.A1, mlt.A2)
+	initAlloc := channel.NewAllocation(len(parts), mlt.Asset1, mlt.Asset2)
 	initAlloc.Balances = initBals
 	prop, err := client.NewLedgerChannelProposal(
 		challengeDuration,

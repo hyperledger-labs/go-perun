@@ -33,7 +33,7 @@ func TestMultiLedgerDispute(t *testing.T) {
 	defer cancel()
 
 	mlt := ctest.SetupMultiLedgerTest(t)
-	alice, bob := mlt.C1, mlt.C2
+	alice, bob := mlt.Client1, mlt.Client2
 
 	// Define initial balances.
 	initBals := channel.Balances{
@@ -49,7 +49,7 @@ func TestMultiLedgerDispute(t *testing.T) {
 
 	// Create channel proposal.
 	parts := []wire.Address{alice.WireAddress, bob.WireAddress}
-	initAlloc := channel.NewAllocation(len(parts), mlt.A1, mlt.A2)
+	initAlloc := channel.NewAllocation(len(parts), mlt.Asset1, mlt.Asset2)
 	initAlloc.Balances = initBals
 	prop, err := client.NewLedgerChannelProposal(
 		challengeDuration,
@@ -106,7 +106,7 @@ func TestMultiLedgerDispute(t *testing.T) {
 	req1 := client.NewTestChannel(chAliceBob).AdjudicatorReq()
 
 	// Alice registers state on l1 adjudicator.
-	err = mlt.L1.Register(ctx, req1, nil)
+	err = mlt.Adjudicator1.Register(ctx, req1, nil)
 	require.NoError(err)
 
 	e := <-bob.Events
@@ -117,6 +117,6 @@ func TestMultiLedgerDispute(t *testing.T) {
 	require.NoError(err)
 
 	// Check final balances.
-	require.True(mlt.L1.Balance(mlt.C2.WalletAddress, mlt.A1).Cmp(updateBals1[0][1]) == 0)
-	require.True(mlt.L2.Balance(mlt.C2.WalletAddress, mlt.A2).Cmp(updateBals1[1][1]) == 0)
+	require.True(mlt.BalanceReader1.Balance(alice.WalletAddress, mlt.Asset1).Cmp(updateBals1[0][1]) == 0)
+	require.True(mlt.BalanceReader2.Balance(bob.WalletAddress, mlt.Asset2).Cmp(updateBals1[1][1]) == 0)
 }

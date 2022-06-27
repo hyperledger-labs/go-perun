@@ -35,15 +35,16 @@ import (
 	"polycry.pt/poly-go/test"
 )
 
-// MultiLedgerTest is the setup of a multi-ledger test.
-type MultiLedgerTest struct {
-	C1, C2 testClient
-	L1, L2 *MockBackend
-	A1, A2 multi.Asset
+// MultiLedgerSetup is the setup of a multi-ledger test.
+type MultiLedgerSetup struct {
+	Client1, Client2               Client
+	Adjudicator1, Adjudicator2     channel.Adjudicator
+	Asset1, Asset2                 multi.Asset
+	BalanceReader1, BalanceReader2 BalanceReader
 }
 
 // SetupMultiLedgerTest sets up a multi-ledger test.
-func SetupMultiLedgerTest(t *testing.T) (mlt MultiLedgerTest) {
+func SetupMultiLedgerTest(t *testing.T) MultiLedgerSetup {
 	t.Helper()
 	rng := test.Prng(t)
 
@@ -62,13 +63,15 @@ func SetupMultiLedgerTest(t *testing.T) (mlt MultiLedgerTest) {
 	a1 := NewMultiLedgerAsset(l1.ID(), chtest.NewRandomAsset(rng))
 	a2 := NewMultiLedgerAsset(l2.ID(), chtest.NewRandomAsset(rng))
 
-	return MultiLedgerTest{
-		C1: c1,
-		C2: c2,
-		L1: l1,
-		L2: l2,
-		A1: a1,
-		A2: a2,
+	return MultiLedgerSetup{
+		Client1:        c1,
+		Client2:        c2,
+		Adjudicator1:   l1,
+		Adjudicator2:   l2,
+		Asset1:         a1,
+		Asset2:         a2,
+		BalanceReader1: l1,
+		BalanceReader2: l2,
 	}
 }
 
@@ -118,14 +121,14 @@ func (a *MultiLedgerAsset) UnmarshalBinary(data []byte) error {
 	return perunio.Decode(buf, string(a.id), a.asset)
 }
 
-type testClient struct {
+type Client struct {
 	*client.Client
 	WireAddress   wire.Address
 	WalletAddress wallet.Address
 	Events        chan channel.AdjudicatorEvent
 }
 
-func (c testClient) HandleAdjudicatorEvent(e channel.AdjudicatorEvent) {
+func (c Client) HandleAdjudicatorEvent(e channel.AdjudicatorEvent) {
 	log.Infof("Client %v: Received adjudicator event %T", c.WireAddress, e)
 	c.Events <- e
 }
@@ -133,7 +136,7 @@ func (c testClient) HandleAdjudicatorEvent(e channel.AdjudicatorEvent) {
 func setupClient(
 	t *testing.T, rng *rand.Rand,
 	l1, l2 *MockBackend, bus wire.Bus,
-) testClient {
+) Client {
 	t.Helper()
 	require := require.New(t)
 
@@ -168,7 +171,7 @@ func setupClient(
 	)
 	require.NoError(err)
 
-	return testClient{
+	return Client{
 		Client:        c,
 		WireAddress:   wireAddr,
 		WalletAddress: acc.Address(),
