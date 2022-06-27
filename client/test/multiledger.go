@@ -121,6 +121,7 @@ func (a *MultiLedgerAsset) UnmarshalBinary(data []byte) error {
 	return perunio.Decode(buf, string(a.id), a.asset)
 }
 
+// Client represents a test client.
 type Client struct {
 	*client.Client
 	WireAddress   wire.Address
@@ -128,6 +129,7 @@ type Client struct {
 	Events        chan channel.AdjudicatorEvent
 }
 
+// HandleAdjudicatorEvent handles an incoming adjudicator event.
 func (c Client) HandleAdjudicatorEvent(e channel.AdjudicatorEvent) {
 	log.Infof("Client %v: Received adjudicator event %T", c.WireAddress, e)
 	c.Events <- e

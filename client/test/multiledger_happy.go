@@ -25,20 +25,27 @@ import (
 	"perun.network/go-perun/wire"
 )
 
+// TestMultiLedgerHappy runs an end-to-end test of the multi-ledger
+// functionality in the optimistic case for the implementation specified in the
+// test setup.
+//nolint:revive // test.Test... stutters but this is OK in this special case.
 func TestMultiLedgerHappy(t *testing.T, mlt MultiLedgerSetup, challengeDuration uint64) {
 	ctx := context.Background()
 	require := require.New(t)
 	alice, bob := mlt.Client1, mlt.Client2
 
 	// Define initial balances.
+	//nolint:gomnd // We allow the balances to be magic numbers.
 	initBals := channel.Balances{
 		{big.NewInt(10), big.NewInt(0)}, // Asset 1.
 		{big.NewInt(0), big.NewInt(10)}, // Asset 2.
 	}
+	//nolint:gomnd
 	updateBals1 := channel.Balances{
 		{big.NewInt(5), big.NewInt(5)}, // Asset 1.
 		{big.NewInt(3), big.NewInt(7)}, // Asset 2.
 	}
+	//nolint:gomnd
 	updateBals2 := channel.Balances{
 		{big.NewInt(1), big.NewInt(9)}, // Asset 1.
 		{big.NewInt(5), big.NewInt(5)}, // Asset 2.

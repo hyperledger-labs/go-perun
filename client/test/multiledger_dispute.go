@@ -26,19 +26,25 @@ import (
 	"perun.network/go-perun/wire"
 )
 
+// TestMultiLedgerDispute runs an end-to-end test of the multi-ledger
+// functionality in the dispute case for the implementation specified in the
+// test setup.
+//nolint:revive // test.Test... stutters but this is OK in this special case.
 func TestMultiLedgerDispute(t *testing.T, mlt MultiLedgerSetup, challengeDuration uint64) {
 	ctx := context.Background()
 	require := require.New(t)
 	alice, bob := mlt.Client1, mlt.Client2
 
 	// Define initial balances.
+	//nolint:gomnd // We allow the balances to be magic numbers.
 	initBals := channel.Balances{
 		{big.NewInt(10), big.NewInt(0)}, // Asset 1.
 		{big.NewInt(0), big.NewInt(10)}, // Asset 2.
 	}
+	//nolint:gomnd
 	updateBals1 := channel.Balances{
 		{big.NewInt(5), big.NewInt(5)}, // Asset 1.
-		{big.NewInt(3), big.NewInt(7)}, // Asset 2.
+		{big.NewInt(3), big.NewInt(7)}, // Asset 2. //nolint:mnd
 	}
 
 	// Establish ledger channel between Alice and Bob.
@@ -96,7 +102,7 @@ func TestMultiLedgerDispute(t *testing.T, mlt MultiLedgerSetup, challengeDuratio
 
 	// Wait until Bob's watcher processed the update.
 	<-done
-	time.Sleep(100 * time.Millisecond)
+	time.Sleep(100 * time.Millisecond) //nolint:gomnd // The 100ms is a guess on how long the watcher needs to catch up.
 
 	// Store state.
 	req1 := client.NewTestChannel(chAliceBob).AdjudicatorReq()
