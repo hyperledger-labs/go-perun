@@ -27,11 +27,15 @@ import (
 )
 
 func TestMultiLedgerHappy(t *testing.T) {
+	mlt := ctest.SetupMultiLedgerTest(t)
+	GenericTestMultiLedgerHappy(t, mlt)
+}
+
+func GenericTestMultiLedgerHappy(t *testing.T, mlt ctest.MultiLedgerTest) {
 	require := require.New(t)
 	ctx, cancel := context.WithTimeout(context.Background(), testDuration)
 	defer cancel()
 
-	mlt := ctest.SetupMultiLedgerTest(t)
 	alice, bob := mlt.C1, mlt.C2
 
 	// Define initial balances.
