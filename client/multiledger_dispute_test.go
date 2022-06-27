@@ -28,11 +28,14 @@ import (
 )
 
 func TestMultiLedgerDispute(t *testing.T) {
+	mlt := ctest.SetupMultiLedgerTest(t)
+	GenericTestMultiLedgerDispute(t, mlt)
+}
+
+func GenericTestMultiLedgerDispute(t *testing.T, mlt ctest.MultiLedgerSetup) {
 	require := require.New(t)
 	ctx, cancel := context.WithTimeout(context.Background(), testDuration)
 	defer cancel()
-
-	mlt := ctest.SetupMultiLedgerTest(t)
 	alice, bob := mlt.Client1, mlt.Client2
 
 	// Define initial balances.
