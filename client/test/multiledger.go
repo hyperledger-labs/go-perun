@@ -16,6 +16,7 @@ package test
 
 import (
 	"bytes"
+	"math/big"
 	"math/rand"
 	"testing"
 
@@ -41,6 +42,7 @@ type MultiLedgerSetup struct {
 	Adjudicator1, Adjudicator2     channel.Adjudicator
 	Asset1, Asset2                 multi.Asset
 	BalanceReader1, BalanceReader2 BalanceReader
+	BalanceDelta                   channel.Bal // Delta the final balances can be off due to gas costs for example.
 }
 
 // SetupMultiLedgerTest sets up a multi-ledger test.
@@ -72,6 +74,7 @@ func SetupMultiLedgerTest(t *testing.T) MultiLedgerSetup {
 		Asset2:         a2,
 		BalanceReader1: l1,
 		BalanceReader2: l2,
+		BalanceDelta:   big.NewInt(0), // The MockBackend does not incur gas costs.
 	}
 }
 

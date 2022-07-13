@@ -20,6 +20,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"perun.network/go-perun/channel"
 	"perun.network/go-perun/client"
@@ -38,6 +39,18 @@ func TestMultiLedgerDispute(
 ) {
 	require := require.New(t)
 	alice, bob := mlt.Client1, mlt.Client2
+
+	// Store client balances before running test.
+	balancesBefore := channel.Balances{
+		{
+			mlt.BalanceReader1.Balance(alice.WalletAddress, mlt.Asset1),
+			mlt.BalanceReader1.Balance(bob.WalletAddress, mlt.Asset1),
+		},
+		{
+			mlt.BalanceReader2.Balance(alice.WalletAddress, mlt.Asset2),
+			mlt.BalanceReader2.Balance(bob.WalletAddress, mlt.Asset2),
+		},
+	}
 
 	// Define initial balances.
 	//nolint:gomnd // We allow the balances to be magic numbers.
@@ -91,6 +104,8 @@ func TestMultiLedgerDispute(
 	go func() {
 		errs <- chBobAlice.Watch(bob)
 	}()
+	// Wait until watcher is active.
+	time.Sleep(100 * time.Millisecond) //nolint:gomnd // The 100ms is a guess on how long the watcher needs to setup.
 
 	// Notify Bob when an update is complete.
 	done := make(chan struct{}, 1)
@@ -108,21 +123,63 @@ func TestMultiLedgerDispute(
 	<-done
 	time.Sleep(100 * time.Millisecond) //nolint:gomnd // The 100ms is a guess on how long the watcher needs to catch up.
 
-	// Store state.
+	// Alice registers state on L1 adjudicator.
 	req1 := client.NewTestChannel(chAliceBob).AdjudicatorReq()
-
-	// Alice registers state on l1 adjudicator.
 	err = mlt.Adjudicator1.Register(ctx, req1, nil)
 	require.NoError(err)
 
 	e := <-bob.Events
 	require.IsType(e, &channel.RegisteredEvent{})
 
-	// Close channel.
+	// Settle.
+	err = chAliceBob.Settle(ctx, false)
+	require.NoError(err)
 	err = chBobAlice.Settle(ctx, false)
 	require.NoError(err)
 
 	// Check final balances.
-	require.True(mlt.BalanceReader1.Balance(alice.WalletAddress, mlt.Asset1).Cmp(updateBals1[0][1]) == 0)
-	require.True(mlt.BalanceReader2.Balance(bob.WalletAddress, mlt.Asset2).Cmp(updateBals1[1][1]) == 0)
+	balancesAfter := channel.Balances{
+		{
+			mlt.BalanceReader1.Balance(alice.WalletAddress, mlt.Asset1),
+			mlt.BalanceReader1.Balance(bob.WalletAddress, mlt.Asset1),
+		},
+		{
+			mlt.BalanceReader2.Balance(alice.WalletAddress, mlt.Asset2),
+			mlt.BalanceReader2.Balance(bob.WalletAddress, mlt.Asset2),
+		},
+	}
+
+	balancesDiff := balancesAfter.Sub(balancesBefore)
+	expectedBalancesDiff := updateBals1.Sub(initBals)
+	eq := EqualBalancesWithDelta(expectedBalancesDiff, balancesDiff, mlt.BalanceDelta)
+	assert.Truef(t, eq, "final ledger balances incorrect: expected balance difference %v +- %v, got %v", expectedBalancesDiff, mlt.BalanceDelta, balancesDiff)
+}
+
+// EqualBalancesWithDelta checks whether the given balances are equal up to
+// delta.
+func EqualBalancesWithDelta(
+	bals1 channel.Balances,
+	bals2 channel.Balances,
+	delta channel.Bal,
+) bool {
+	if len(bals1) != len(bals2) {
+		return false
+	}
+
+	for i, assetBals1 := range bals1 {
+		assetBals2 := bals2[i]
+		if len(assetBals1) != len(assetBals2) {
+			return false
+		}
+
+		for j, bal1 := range assetBals1 {
+			bal2 := assetBals2[j]
+			lb := new(big.Int).Sub(bal1, delta)
+			ub := new(big.Int).Add(bal1, delta)
+			if bal2.Cmp(lb) < 0 || bal2.Cmp(ub) > 0 {
+				return false
+			}
+		}
+	}
+	return true
 }
