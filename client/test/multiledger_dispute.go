@@ -130,6 +130,8 @@ func TestMultiLedgerDispute(
 
 	e := <-bob.Events
 	require.IsType(e, &channel.RegisteredEvent{})
+	err = e.(*channel.RegisteredEvent).TimeoutV.Wait(ctx)
+	require.NoError(err)
 
 	// Settle.
 	err = chAliceBob.Settle(ctx, false)
