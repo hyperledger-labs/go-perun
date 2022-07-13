@@ -29,8 +29,7 @@ import (
 // functionality in the optimistic case for the implementation specified in the
 // test setup.
 //nolint:revive // test.Test... stutters but this is OK in this special case.
-func TestMultiLedgerHappy(t *testing.T, mlt MultiLedgerSetup, challengeDuration uint64) {
-	ctx := context.Background()
+func TestMultiLedgerHappy(ctx context.Context, t *testing.T, mlt MultiLedgerSetup, challengeDuration uint64) {
 	require := require.New(t)
 	alice, bob := mlt.Client1, mlt.Client2
 

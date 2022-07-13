@@ -30,8 +30,12 @@ import (
 // functionality in the dispute case for the implementation specified in the
 // test setup.
 //nolint:revive // test.Test... stutters but this is OK in this special case.
-func TestMultiLedgerDispute(t *testing.T, mlt MultiLedgerSetup, challengeDuration uint64) {
-	ctx := context.Background()
+func TestMultiLedgerDispute(
+	ctx context.Context,
+	t *testing.T,
+	mlt MultiLedgerSetup,
+	challengeDuration uint64,
+) {
 	require := require.New(t)
 	alice, bob := mlt.Client1, mlt.Client2
 

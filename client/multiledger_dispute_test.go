@@ -15,6 +15,7 @@
 package client_test
 
 import (
+	"context"
 	"testing"
 
 	ctest "perun.network/go-perun/client/test"
@@ -22,5 +23,7 @@ import (
 
 func TestMultiLedgerDispute(t *testing.T) {
 	mlt := ctest.SetupMultiLedgerTest(t)
-	ctest.TestMultiLedgerDispute(t, mlt, challengeDuration)
+	ctx, cancel := context.WithTimeout(context.Background(), twoPartyTestTimeout)
+	defer cancel()
+	ctest.TestMultiLedgerDispute(ctx, t, mlt, challengeDuration)
 }
