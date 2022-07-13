@@ -75,7 +75,7 @@ func TestMultiLedgerDispute(t *testing.T, mlt MultiLedgerSetup, challengeDuratio
 
 	// Open channel.
 	chAliceBob, err := alice.ProposeChannel(ctx, prop)
-	require.NoError(err, "opening channel between Alice and Ingrid")
+	require.NoError(err, "opening channel between Alice and Bob")
 	var chBobAlice *client.Channel
 	select {
 	case chBobAlice = <-channels:
