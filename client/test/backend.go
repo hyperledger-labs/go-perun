@@ -102,7 +102,7 @@ func (g *threadSafeRng) Intn(n int) int {
 func (b *MockBackend) Fund(ctx context.Context, req channel.FundingReq) error {
 	b.log.Infof("Funding: %+v", req)
 	b.funder.InitFunder(req)
-	b.funder.Fund(req)
+	b.funder.Fund(req, b)
 	return b.funder.WaitForFunding(ctx, req)
 }
 
@@ -303,6 +303,12 @@ func (b *MockBackend) addBalance(p wallet.Address, a channel.Asset, v *big.Int) 
 	b.setBalance(p, a, bal)
 }
 
+func (b *MockBackend) subBalance(p wallet.Address, a channel.Asset, v *big.Int) {
+	bal := b.balance(p, a)
+	bal = new(big.Int).Sub(bal, v)
+	b.setBalance(p, a, bal)
+}
+
 func (b *MockBackend) balance(p wallet.Address, a channel.Asset) *big.Int {
 	partBals, ok := b.balances[newAddressMapKey(p)]
 	if !ok {
@@ -427,8 +433,23 @@ func (f *funder) InitFunder(req channel.FundingReq) {
 }
 
 // Fund simulates funding the channel.
-func (f *funder) Fund(req channel.FundingReq) {
+func (f *funder) Fund(req channel.FundingReq, b *MockBackend) {
+	// Simulates a random delay during funding.
 	time.Sleep(time.Duration(f.rng.Intn(fundMaxSleepMs+1)) * time.Millisecond)
+
+	for i, asset := range req.State.Assets {
+		ma, ok := asset.(*MultiLedgerAsset)
+		if ok && ma.LedgerID() != b.ID() {
+			continue
+		}
+
+		p := req.Params.Parts[req.Idx]
+		bal := req.Agreement[i][req.Idx]
+		b.mu.Lock()
+		b.subBalance(p, asset, bal)
+		b.mu.Unlock()
+	}
+
 	f.fundedWgs[req.Params.ID()].Done()
 }
 
