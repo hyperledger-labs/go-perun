@@ -264,44 +264,46 @@ func (b *MockBackend) Withdraw(_ context.Context, req channel.AdjudicatorReq, su
 		return err
 	}
 
-	// Check concluded.
-	ch := req.Params.ID()
-	if b.isConcluded(ch) {
-		log.Debug("withdraw: already concluded:", ch)
-		return nil
-	}
-
-	outcome := outcomeRecursive(req.Tx.State, subStates)
-	b.log.Infof("Withdraw: %+v, %+v, %+v", req, subStates, outcome)
-
-	outcomeSum := outcome.Sum()
+	// Redistribute balances if not done already.
 	b.assetHolder.mtx.Lock()
 	defer b.assetHolder.mtx.Unlock()
-	funding := b.assetHolder.balances[ch]
-	if funding == nil {
-		funding = channel.MakeBalances(len(req.Tx.Assets), req.Tx.NumParts())
-	}
-	fundingSum := funding.Sum()
+	ch := req.Params.ID()
+	if !b.isConcluded(ch) {
+		outcome := outcomeRecursive(req.Tx.State, subStates)
+		b.log.Infof("Withdraw: %+v, %+v, %+v", req, subStates, outcome)
+		outcomeSum := outcome.Sum()
 
-	for a, assetOutcome := range outcome {
-		asset := req.Tx.Allocation.Assets[a]
+		funding := b.assetHolder.balances[ch]
+		if funding == nil {
+			funding = channel.MakeBalances(len(req.Tx.Assets), req.Tx.NumParts())
+		}
+		fundingSum := funding.Sum()
 
-		// Only payout if funded.
-		if fundingSum[a].Cmp(outcomeSum[a]) >= 0 {
-			for p, amount := range assetOutcome {
-				participant := req.Params.Parts[p]
-				b.addBalance(participant, asset, amount)
+		for a, assetOutcome := range outcome {
+			// If underfunded, don't redistribute balances.
+			if fundingSum[a].Cmp(outcomeSum[a]) < 0 {
+				continue
 			}
-		} else {
-			// If underfunded, pay out funding.
-			for p, amount := range funding[a] {
-				participant := req.Params.Parts[p]
-				b.addBalance(participant, asset, amount)
+			for p, amount := range assetOutcome {
+				funding[a][p].Set(amount)
 			}
 		}
 	}
 
-	b.setLatestEvent(ch, channel.NewConcludedEvent(ch, &channel.ElapsedTimeout{}, req.Tx.Version))
+	// Payout balances.
+	balances := b.assetHolder.balances[ch]
+	for a, assetBalances := range balances {
+		asset := req.Tx.Allocation.Assets[a]
+		p := req.Idx
+		participant := req.Params.Parts[p]
+		amount := assetBalances[p]
+		b.addBalance(participant, asset, amount)
+		amount.Set(big.NewInt(0))
+	}
+
+	if !b.isConcluded(ch) {
+		b.setLatestEvent(ch, channel.NewConcludedEvent(ch, &channel.ElapsedTimeout{}, req.Tx.Version))
+	}
 	return nil
 }
 
