@@ -39,7 +39,6 @@ import (
 // MultiLedgerSetup is the setup of a multi-ledger test.
 type MultiLedgerSetup struct {
 	Client1, Client2               Client
-	Adjudicator1, Adjudicator2     channel.Adjudicator
 	Asset1, Asset2                 multi.Asset
 	BalanceReader1, BalanceReader2 BalanceReader
 	BalanceDelta                   channel.Bal // Delta the final balances can be off due to gas costs for example.
@@ -68,8 +67,6 @@ func SetupMultiLedgerTest(t *testing.T) MultiLedgerSetup {
 	return MultiLedgerSetup{
 		Client1:        c1,
 		Client2:        c2,
-		Adjudicator1:   l1,
-		Adjudicator2:   l2,
 		Asset1:         a1,
 		Asset2:         a2,
 		BalanceReader1: l1,
@@ -127,9 +124,10 @@ func (a *MultiLedgerAsset) UnmarshalBinary(data []byte) error {
 // Client represents a test client.
 type Client struct {
 	*client.Client
-	WireAddress   wire.Address
-	WalletAddress wallet.Address
-	Events        chan channel.AdjudicatorEvent
+	WireAddress                wire.Address
+	WalletAddress              wallet.Address
+	Events                     chan channel.AdjudicatorEvent
+	Adjudicator1, Adjudicator2 channel.Adjudicator
 }
 
 // HandleAdjudicatorEvent handles an incoming adjudicator event.
@@ -181,5 +179,7 @@ func setupClient(
 		WireAddress:   wireAddr,
 		WalletAddress: acc.Address(),
 		Events:        make(chan channel.AdjudicatorEvent),
+		Adjudicator1:  l1,
+		Adjudicator2:  l2,
 	}
 }

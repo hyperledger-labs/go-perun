@@ -125,7 +125,7 @@ func TestMultiLedgerDispute(
 
 	// Alice registers state on L1 adjudicator.
 	req1 := client.NewTestChannel(chAliceBob).AdjudicatorReq()
-	err = mlt.Adjudicator1.Register(ctx, req1, nil)
+	err = alice.Adjudicator1.Register(ctx, req1, nil)
 	require.NoError(err)
 
 	e := <-bob.Events
