@@ -77,7 +77,7 @@ func (r *DisputeSusie) exec(_cfg ExecConfig, ledgerChannel *paymentChannel) {
 
 	// Register version 0 AdjudicatorReq.
 	r.log.Debug("Registering version 0 state.")
-	reqLedger := client.NewTestChannel(subChannel.Channel).AdjudicatorReq() // Current ledger state.
+	reqLedger := client.NewTestChannel(ledgerChannel.Channel).AdjudicatorReq() // Current ledger state.
 	subState0 := channel.SignedState{
 		Params: subReq0.Params,
 		State:  subReq0.Tx.State,
@@ -93,10 +93,6 @@ func (r *DisputeSusie) exec(_cfg ExecConfig, ledgerChannel *paymentChannel) {
 	for {
 		event := sub.Next()
 		r.RequireTrue(event != nil)
-		r.RequireTruef(
-			event.Timeout().IsElapsed(ctx),
-			"Refutation should already have progressed past the timeout.",
-		)
 		if event.Version() > 0 {
 			r.RequireNoError(sub.Close())
 			r.RequireNoError(sub.Err())
