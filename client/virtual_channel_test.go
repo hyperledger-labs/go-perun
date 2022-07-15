@@ -97,20 +97,26 @@ func TestVirtualChannelsDispute(t *testing.T) {
 		assert.NoErrorf(err, "settle channel: %d", i)
 	}
 
-	// Test final balances.
-	vct.testFinalBalancesDispute(t)
-}
+	// Check final balances.
+	balancesAfter := channel.Balances{
+		{
+			vct.balanceReader.Balance(vct.alice.WalletAddress, vct.asset),
+			vct.balanceReader.Balance(vct.bob.WalletAddress, vct.asset),
+			vct.balanceReader.Balance(vct.ingrid.WalletAddress, vct.asset),
+		},
+	}
 
-func (vct *virtualChannelTest) testFinalBalancesDispute(t *testing.T) {
-	t.Helper()
-	assert := assert.New(t)
-	backend, asset := vct.balanceReader, vct.asset
-	got, expected := backend.Balance(vct.alice.WalletAddress, asset), vct.finalBalsAlice[0]
-	assert.Truef(got.Cmp(expected) == 0, "alice: wrong final balance: got %v, expected %v", got, expected)
-	got, expected = backend.Balance(vct.bob.WalletAddress, asset), vct.finalBalsBob[0]
-	assert.Truef(got.Cmp(expected) == 0, "bob: wrong final balance: got %v, expected %v", got, expected)
-	got, expected = backend.Balance(vct.ingrid.WalletAddress, asset), vct.finalBalIngrid
-	assert.Truef(got.Cmp(expected) == 0, "ingrid: wrong final balance: got %v, expected %v", got, expected)
+	balancesDiff := balancesAfter.Sub(vct.balancesBefore)
+	expectedBalancesDiff := channel.Balances{
+		{
+			new(big.Int).Sub(vct.finalBalsAlice[0], vct.initBalsAlice[0]),
+			new(big.Int).Sub(vct.finalBalsBob[0], vct.initBalsBob[0]),
+			big.NewInt(0),
+		},
+	}
+	balanceDelta := big.NewInt(0)
+	eq := ctest.EqualBalancesWithDelta(expectedBalancesDiff, balancesDiff, balanceDelta)
+	assert.Truef(eq, "final ledger balances incorrect: expected balance difference %v +- %v, got %v", expectedBalancesDiff, balanceDelta, balancesDiff)
 }
 
 type virtualChannelTest struct {
@@ -124,12 +130,15 @@ type virtualChannelTest struct {
 	chAliceBob         *client.Channel
 	chBobAlice         *client.Channel
 	virtualBalsUpdated []*big.Int
+	initBalsAlice      []*big.Int
+	initBalsBob        []*big.Int
 	finalBalsAlice     []*big.Int
 	finalBalsBob       []*big.Int
 	finalBalIngrid     *big.Int
 	errs               chan error
 	balanceReader      ctest.BalanceReader
 	asset              channel.Asset
+	balancesBefore     channel.Balances
 }
 
 func setupVirtualChannelTest(t *testing.T, ctx context.Context) (vct virtualChannelTest) {
@@ -140,8 +149,8 @@ func setupVirtualChannelTest(t *testing.T, ctx context.Context) (vct virtualChan
 	// Set test values.
 	asset := chtest.NewRandomAsset(rng)
 	vct.asset = asset
-	initBalsAlice := []*big.Int{big.NewInt(10), big.NewInt(10)}       // with Ingrid
-	initBalsBob := []*big.Int{big.NewInt(10), big.NewInt(10)}         // with Ingrid
+	vct.initBalsAlice = []*big.Int{big.NewInt(10), big.NewInt(10)}    // with Ingrid
+	vct.initBalsBob = []*big.Int{big.NewInt(10), big.NewInt(10)}      // with Ingrid
 	initBalsVirtual := []*big.Int{big.NewInt(5), big.NewInt(5)}       // Alice proposes
 	vct.virtualBalsUpdated = []*big.Int{big.NewInt(2), big.NewInt(8)} // Send 3.
 	vct.finalBalsAlice = []*big.Int{big.NewInt(7), big.NewInt(13)}
@@ -155,6 +164,15 @@ func setupVirtualChannelTest(t *testing.T, ctx context.Context) (vct virtualChan
 	alice, bob, ingrid := clients[0], clients[1], clients[2]
 	vct.alice, vct.bob, vct.ingrid = alice, bob, ingrid
 	vct.balanceReader = alice.BalanceReader // Assumes all clients have same backend.
+
+	// Store client balances before running test.
+	vct.balancesBefore = channel.Balances{
+		{
+			vct.balanceReader.Balance(vct.alice.WalletAddress, vct.asset),
+			vct.balanceReader.Balance(vct.bob.WalletAddress, vct.asset),
+			vct.balanceReader.Balance(vct.ingrid.WalletAddress, vct.asset),
+		},
+	}
 
 	_channelsIngrid := make(chan *client.Channel, 1)
 	var openingProposalHandlerIngrid client.ProposalHandlerFunc = func(cp client.ChannelProposal, pr *client.ProposalResponder) {
@@ -178,7 +196,7 @@ func setupVirtualChannelTest(t *testing.T, ctx context.Context) (vct virtualChan
 	// Establish ledger channel between Alice and Ingrid.
 	peersAlice := []wire.Address{alice.Identity.Address(), ingrid.Identity.Address()}
 	initAllocAlice := channel.NewAllocation(len(peersAlice), asset)
-	initAllocAlice.SetAssetBalances(asset, initBalsAlice)
+	initAllocAlice.SetAssetBalances(asset, vct.initBalsAlice)
 	lcpAlice, err := client.NewLedgerChannelProposal(
 		challengeDuration,
 		alice.WalletAddress,
@@ -198,7 +216,7 @@ func setupVirtualChannelTest(t *testing.T, ctx context.Context) (vct virtualChan
 	// Establish ledger channel between Bob and Ingrid.
 	peersBob := []wire.Address{bob.Identity.Address(), ingrid.Identity.Address()}
 	initAllocBob := channel.NewAllocation(len(peersBob), asset)
-	initAllocBob.SetAssetBalances(asset, initBalsBob)
+	initAllocBob.SetAssetBalances(asset, vct.initBalsBob)
 	lcpBob, err := client.NewLedgerChannelProposal(
 		challengeDuration,
 		bob.WalletAddress,

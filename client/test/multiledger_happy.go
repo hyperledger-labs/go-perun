@@ -12,47 +12,36 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package client_test
+package test
 
 import (
 	"context"
-	"math/big"
 	"testing"
 
 	"github.com/stretchr/testify/require"
 	"perun.network/go-perun/channel"
 	"perun.network/go-perun/client"
-	ctest "perun.network/go-perun/client/test"
 	"perun.network/go-perun/wire"
 )
 
-func TestMultiLedgerHappy(t *testing.T) {
+// TestMultiLedgerHappy runs an end-to-end test of the multi-ledger
+// functionality in the optimistic case for the implementation specified in the
+// test setup.
+//nolint:revive // test.Test... stutters but this is OK in this special case.
+func TestMultiLedgerHappy(ctx context.Context, t *testing.T, mlt MultiLedgerSetup, challengeDuration uint64) {
 	require := require.New(t)
-	ctx, cancel := context.WithTimeout(context.Background(), testDuration)
-	defer cancel()
+	alice, bob := mlt.Client1, mlt.Client2
 
-	mlt := ctest.SetupMultiLedgerTest(t)
-	alice, bob := mlt.C1, mlt.C2
-
-	// Define initial balances.
-	initBals := channel.Balances{
-		{big.NewInt(10), big.NewInt(0)}, // Asset 1.
-		{big.NewInt(0), big.NewInt(10)}, // Asset 2.
-	}
-	updateBals1 := channel.Balances{
-		{big.NewInt(5), big.NewInt(5)}, // Asset 1.
-		{big.NewInt(3), big.NewInt(7)}, // Asset 2.
-	}
-	updateBals2 := channel.Balances{
-		{big.NewInt(1), big.NewInt(9)}, // Asset 1.
-		{big.NewInt(5), big.NewInt(5)}, // Asset 2.
-	}
+	// Define initial and update balances.
+	initBals := mlt.InitBalances
+	updateBals1 := mlt.UpdateBalances1
+	updateBals2 := mlt.UpdateBalances2
 
 	// Establish ledger channel between Alice and Bob.
 
 	// Create channel proposal.
 	parts := []wire.Address{alice.WireAddress, bob.WireAddress}
-	initAlloc := channel.NewAllocation(len(parts), mlt.A1, mlt.A2)
+	initAlloc := channel.NewAllocation(len(parts), mlt.Asset1, mlt.Asset2)
 	initAlloc.Balances = initBals
 	prop, err := client.NewLedgerChannelProposal(
 		challengeDuration,
@@ -66,12 +55,12 @@ func TestMultiLedgerHappy(t *testing.T) {
 	channels := make(chan *client.Channel, 1)
 	errs := make(chan error)
 	go alice.Handle(
-		ctest.AlwaysRejectChannelHandler(ctx, errs),
-		ctest.AlwaysAcceptUpdateHandler(ctx, errs),
+		AlwaysRejectChannelHandler(ctx, errs),
+		AlwaysAcceptUpdateHandler(ctx, errs),
 	)
 	go bob.Handle(
-		ctest.AlwaysAcceptChannelHandler(ctx, bob.WalletAddress, channels, errs),
-		ctest.AlwaysAcceptUpdateHandler(ctx, errs),
+		AlwaysAcceptChannelHandler(ctx, bob.WalletAddress, channels, errs),
+		AlwaysAcceptUpdateHandler(ctx, errs),
 	)
 
 	// Open channel.

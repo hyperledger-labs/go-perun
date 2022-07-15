@@ -114,9 +114,9 @@ func runFredFridaTest(t *testing.T, rng *rand.Rand, setups []ctest.RoleSetup) {
 
 	// Test the final balances.
 	fridaFinalBal := frida.BalanceReader.Balance(fridaWalletAddr, asset)
-	assert.Truef(t, fridaFinalBal.Cmp(big.NewInt(fridaInitBal)) == 0, "frida: wrong final balance: got %v, expected %v", fridaFinalBal, fridaInitBal)
+	assert.Truef(t, fridaFinalBal.Cmp(big.NewInt(0)) == 0, "frida: wrong final balance: got %v, expected %v", fridaFinalBal, fridaInitBal)
 	fredFinalBal := fred.BalanceReader.Balance(fredWalletAddr, asset)
-	assert.Truef(t, fredFinalBal.Cmp(big.NewInt(fredInitBal)) == 0, "fred: wrong final balance: got %v, expected %v", fredFinalBal, fredInitBal)
+	assert.Truef(t, fredFinalBal.Cmp(big.NewInt(0)) == 0, "fred: wrong final balance: got %v, expected %v", fredFinalBal, fredInitBal)
 }
 
 type FailingFunder struct{}

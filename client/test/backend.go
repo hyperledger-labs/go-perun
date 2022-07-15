@@ -35,7 +35,7 @@ type (
 		log          log.Logger
 		rng          rng
 		mu           sync.Mutex
-		funder       *funder
+		assetHolder  *assetHolder
 		latestEvents map[channel.ID]channel.AdjudicatorEvent
 		eventSubs    map[channel.ID][]*MockSubscription
 		balances     map[addressMapKey]map[assetMapKey]*big.Int
@@ -66,7 +66,7 @@ func NewMockBackend(rng *rand.Rand, id string) *MockBackend {
 	return &MockBackend{
 		log:          log.Default(),
 		rng:          newThreadSafePrng(backendRng),
-		funder:       newFunder(newThreadSafePrng(backendRng)),
+		assetHolder:  newAssetHolder(newThreadSafePrng(backendRng)),
 		latestEvents: make(map[channel.ID]channel.AdjudicatorEvent),
 		eventSubs:    make(map[channel.ID][]*MockSubscription),
 		balances:     make(map[string]map[string]*big.Int),
@@ -101,9 +101,8 @@ func (g *threadSafeRng) Intn(n int) int {
 // Fund funds the channel.
 func (b *MockBackend) Fund(ctx context.Context, req channel.FundingReq) error {
 	b.log.Infof("Funding: %+v", req)
-	b.funder.InitFunder(req)
-	b.funder.Fund(req)
-	return b.funder.WaitForFunding(ctx, req)
+	b.assetHolder.Fund(req, b)
+	return b.assetHolder.WaitForFunding(ctx, req)
 }
 
 // Register registers the channel.
@@ -265,24 +264,46 @@ func (b *MockBackend) Withdraw(_ context.Context, req channel.AdjudicatorReq, su
 		return err
 	}
 
-	// Check concluded.
+	// Redistribute balances if not done already.
+	b.assetHolder.mtx.Lock()
+	defer b.assetHolder.mtx.Unlock()
 	ch := req.Params.ID()
-	if b.isConcluded(ch) {
-		log.Debug("withdraw: already concluded:", ch)
-		return nil
-	}
+	if !b.isConcluded(ch) {
+		outcome := outcomeRecursive(req.Tx.State, subStates)
+		b.log.Infof("Withdraw: %+v, %+v, %+v", req, subStates, outcome)
+		outcomeSum := outcome.Sum()
 
-	outcome := outcomeRecursive(req.Tx.State, subStates)
-	b.log.Infof("Withdraw: %+v, %+v, %+v", req, subStates, outcome)
-	for a, assetOutcome := range outcome {
-		asset := req.Tx.Allocation.Assets[a]
-		for p, amount := range assetOutcome {
-			participant := req.Params.Parts[p]
-			b.addBalance(participant, asset, amount)
+		funding := b.assetHolder.balances[ch]
+		if funding == nil {
+			funding = channel.MakeBalances(len(req.Tx.Assets), req.Tx.NumParts())
+		}
+		fundingSum := funding.Sum()
+
+		for a, assetOutcome := range outcome {
+			// If underfunded, don't redistribute balances.
+			if fundingSum[a].Cmp(outcomeSum[a]) < 0 {
+				continue
+			}
+			for p, amount := range assetOutcome {
+				funding[a][p].Set(amount)
+			}
 		}
 	}
 
-	b.setLatestEvent(ch, channel.NewConcludedEvent(ch, &channel.ElapsedTimeout{}, req.Tx.Version))
+	// Payout balances.
+	balances := b.assetHolder.balances[ch]
+	for a, assetBalances := range balances {
+		asset := req.Tx.Allocation.Assets[a]
+		p := req.Idx
+		participant := req.Params.Parts[p]
+		amount := assetBalances[p]
+		b.addBalance(participant, asset, amount)
+		amount.Set(big.NewInt(0))
+	}
+
+	if !b.isConcluded(ch) {
+		b.setLatestEvent(ch, channel.NewConcludedEvent(ch, &channel.ElapsedTimeout{}, req.Tx.Version))
+	}
 	return nil
 }
 
@@ -300,6 +321,12 @@ func (b *MockBackend) isConcluded(ch channel.ID) bool {
 func (b *MockBackend) addBalance(p wallet.Address, a channel.Asset, v *big.Int) {
 	bal := b.balance(p, a)
 	bal = new(big.Int).Add(bal, v)
+	b.setBalance(p, a, bal)
+}
+
+func (b *MockBackend) subBalance(p wallet.Address, a channel.Asset, v *big.Int) {
+	bal := b.balance(p, a)
+	bal = new(big.Int).Sub(bal, v)
 	b.setBalance(p, a, bal)
 }
 
@@ -397,26 +424,28 @@ func (b *MockBackend) removeSubscription(ch channel.ID, sub *MockSubscription) {
 	b.eventSubs[ch] = append(subs[:i], subs[i+1:]...)
 }
 
-// funder mocks a funder for the MockBackend.
-type funder struct {
+// assetHolder mocks an assetHolder for the MockBackend.
+type assetHolder struct {
 	rng       rng
 	mtx       sync.Mutex
+	balances  map[channel.ID]channel.Balances
 	fundedWgs map[channel.ID]*sync.WaitGroup
 }
 
-// newFunder returns a new funder.
-func newFunder(rng rng) *funder {
-	return &funder{
+// newAssetHolder returns a new funder.
+func newAssetHolder(rng rng) *assetHolder {
+	return &assetHolder{
 		rng:       rng,
+		balances:  make(map[channel.ID]channel.Balances),
 		fundedWgs: make(map[channel.ID]*sync.WaitGroup),
 	}
 }
 
-// InitFunder initializes the funded WaitGroups for a channel if not already
+// initFund initializes the funded WaitGroups for a channel if not already
 // initialized.
 //
 // Must be called before using the Funder for a funding request.
-func (f *funder) InitFunder(req channel.FundingReq) {
+func (f *assetHolder) initFund(req channel.FundingReq) {
 	f.mtx.Lock()
 	defer f.mtx.Unlock()
 
@@ -424,16 +453,40 @@ func (f *funder) InitFunder(req channel.FundingReq) {
 		f.fundedWgs[req.Params.ID()] = &sync.WaitGroup{}
 		f.fundedWgs[req.Params.ID()].Add(len(req.Params.Parts))
 	}
+	if f.balances[req.Params.ID()] == nil {
+		f.balances[req.Params.ID()] = channel.MakeBalances(len(req.State.Assets), req.State.NumParts())
+	}
 }
 
 // Fund simulates funding the channel.
-func (f *funder) Fund(req channel.FundingReq) {
+func (f *assetHolder) Fund(req channel.FundingReq, b *MockBackend) {
+	f.initFund(req)
+
+	// Simulates a random delay during funding.
 	time.Sleep(time.Duration(f.rng.Intn(fundMaxSleepMs+1)) * time.Millisecond)
+
+	for i, asset := range req.State.Assets {
+		ma, ok := asset.(*MultiLedgerAsset)
+		if ok && ma.LedgerID() != b.ID() {
+			continue
+		}
+
+		p := req.Params.Parts[req.Idx]
+		bal := req.Agreement[i][req.Idx]
+		b.mu.Lock()
+		b.subBalance(p, asset, bal)
+		b.mu.Unlock()
+		f.mtx.Lock()
+		fundingBal := f.balances[req.Params.ID()][i][req.Idx]
+		fundingBal.Add(fundingBal, bal)
+		f.mtx.Unlock()
+	}
+
 	f.fundedWgs[req.Params.ID()].Done()
 }
 
 // WaitForFunding waits until all participants have funded the channel.
-func (f *funder) WaitForFunding(ctx context.Context, req channel.FundingReq) error {
+func (f *assetHolder) WaitForFunding(ctx context.Context, req channel.FundingReq) error {
 	challengeDuration := time.Duration(req.Params.ChallengeDuration) * time.Second
 	fundCtx, cancel := context.WithTimeout(ctx, challengeDuration)
 	defer cancel()
