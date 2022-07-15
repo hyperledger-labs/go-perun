@@ -21,6 +21,13 @@ import (
 	ctest "perun.network/go-perun/client/test"
 )
 
+func TestMultiLedgerHappy(t *testing.T) {
+	mlt := ctest.SetupMultiLedgerTest(t)
+	ctx, cancel := context.WithTimeout(context.Background(), twoPartyTestTimeout)
+	defer cancel()
+	ctest.TestMultiLedgerHappy(ctx, t, mlt, challengeDuration)
+}
+
 func TestMultiLedgerDispute(t *testing.T) {
 	mlt := ctest.SetupMultiLedgerTest(t)
 	ctx, cancel := context.WithTimeout(context.Background(), twoPartyTestTimeout)
