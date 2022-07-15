@@ -40,6 +40,9 @@ import (
 type MultiLedgerSetup struct {
 	Client1, Client2               Client
 	Asset1, Asset2                 multi.Asset
+	InitBalances                   channel.Balances
+	UpdateBalances1                channel.Balances
+	UpdateBalances2                channel.Balances
 	BalanceReader1, BalanceReader2 BalanceReader
 	BalanceDelta                   channel.Bal // Delta the final balances can be off due to gas costs for example.
 }
@@ -65,10 +68,25 @@ func SetupMultiLedgerTest(t *testing.T) MultiLedgerSetup {
 	a2 := NewMultiLedgerAsset(l2.ID(), chtest.NewRandomAsset(rng))
 
 	return MultiLedgerSetup{
-		Client1:        c1,
-		Client2:        c2,
-		Asset1:         a1,
-		Asset2:         a2,
+		Client1: c1,
+		Client2: c2,
+		Asset1:  a1,
+		Asset2:  a2,
+		//nolint:gomnd // We allow the balances to be magic numbers.
+		InitBalances: channel.Balances{
+			{big.NewInt(10), big.NewInt(0)}, // Asset 1.
+			{big.NewInt(0), big.NewInt(10)}, // Asset 2.
+		},
+		//nolint:gomnd
+		UpdateBalances1: channel.Balances{
+			{big.NewInt(5), big.NewInt(5)}, // Asset 1.
+			{big.NewInt(3), big.NewInt(7)}, // Asset 2.
+		},
+		//nolint:gomnd
+		UpdateBalances2: channel.Balances{
+			{big.NewInt(1), big.NewInt(9)}, // Asset 1.
+			{big.NewInt(5), big.NewInt(5)}, // Asset 2.
+		},
 		BalanceReader1: l1,
 		BalanceReader2: l2,
 		BalanceDelta:   big.NewInt(0), // The MockBackend does not incur gas costs.

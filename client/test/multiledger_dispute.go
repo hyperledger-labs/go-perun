@@ -52,17 +52,9 @@ func TestMultiLedgerDispute(
 		},
 	}
 
-	// Define initial balances.
-	//nolint:gomnd // We allow the balances to be magic numbers.
-	initBals := channel.Balances{
-		{big.NewInt(10), big.NewInt(0)}, // Asset 1.
-		{big.NewInt(0), big.NewInt(10)}, // Asset 2.
-	}
-	//nolint:gomnd
-	updateBals1 := channel.Balances{
-		{big.NewInt(5), big.NewInt(5)}, // Asset 1.
-		{big.NewInt(3), big.NewInt(7)}, // Asset 2. //nolint:mnd
-	}
+	// Define initial and update balances.
+	initBals := mlt.InitBalances
+	updateBals := mlt.UpdateBalances1
 
 	// Establish ledger channel between Alice and Bob.
 
@@ -115,7 +107,7 @@ func TestMultiLedgerDispute(
 
 	// Update channel.
 	err = chAliceBob.Update(ctx, func(s *channel.State) {
-		s.Balances = updateBals1
+		s.Balances = updateBals
 	})
 	require.NoError(err)
 
@@ -152,7 +144,7 @@ func TestMultiLedgerDispute(
 	}
 
 	balancesDiff := balancesAfter.Sub(balancesBefore)
-	expectedBalancesDiff := updateBals1.Sub(initBals)
+	expectedBalancesDiff := updateBals.Sub(initBals)
 	eq := EqualBalancesWithDelta(expectedBalancesDiff, balancesDiff, mlt.BalanceDelta)
 	assert.Truef(t, eq, "final ledger balances incorrect: expected balance difference %v +- %v, got %v", expectedBalancesDiff, mlt.BalanceDelta, balancesDiff)
 }

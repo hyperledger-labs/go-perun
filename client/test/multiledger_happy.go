@@ -16,7 +16,6 @@ package test
 
 import (
 	"context"
-	"math/big"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -33,22 +32,10 @@ func TestMultiLedgerHappy(ctx context.Context, t *testing.T, mlt MultiLedgerSetu
 	require := require.New(t)
 	alice, bob := mlt.Client1, mlt.Client2
 
-	// Define initial balances.
-	//nolint:gomnd // We allow the balances to be magic numbers.
-	initBals := channel.Balances{
-		{big.NewInt(10), big.NewInt(0)}, // Asset 1.
-		{big.NewInt(0), big.NewInt(10)}, // Asset 2.
-	}
-	//nolint:gomnd
-	updateBals1 := channel.Balances{
-		{big.NewInt(5), big.NewInt(5)}, // Asset 1.
-		{big.NewInt(3), big.NewInt(7)}, // Asset 2.
-	}
-	//nolint:gomnd
-	updateBals2 := channel.Balances{
-		{big.NewInt(1), big.NewInt(9)}, // Asset 1.
-		{big.NewInt(5), big.NewInt(5)}, // Asset 2.
-	}
+	// Define initial and update balances.
+	initBals := mlt.InitBalances
+	updateBals1 := mlt.UpdateBalances1
+	updateBals2 := mlt.UpdateBalances2
 
 	// Establish ledger channel between Alice and Bob.
 
