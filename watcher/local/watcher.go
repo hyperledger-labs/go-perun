@@ -17,7 +17,6 @@ package local
 import (
 	"context"
 	stderrors "errors"
-	"sync"
 	"time"
 
 	"github.com/pkg/errors"
@@ -26,6 +25,7 @@ import (
 	"perun.network/go-perun/channel/multi"
 	"perun.network/go-perun/log"
 	"perun.network/go-perun/watcher"
+	"polycry.pt/poly-go/sync"
 )
 
 var _ watcher.Watcher = &Watcher{}
@@ -58,6 +58,7 @@ type (
 		id          channel.ID
 		params      *channel.Params
 		isClosed    bool
+		done        chan struct{}
 		parent      *ch
 		multiLedger bool
 
@@ -238,6 +239,7 @@ func newCh(
 		eventsFromChainSub: eventsFromChainSub,
 		eventsToClientPub:  eventsToClientPub,
 		statesSub:          statesSub,
+		done:               make(chan struct{}),
 	}
 }
 
@@ -308,7 +310,13 @@ func readPendingTxs(statesSub statesSub, timeout time.Duration) (channel.Transac
 // It should be started as a go-routine and returns when the subscription for
 // adjudicator events from blockchain is closed.
 func (ch *ch) handleEventsFromChain(registerer channel.Registerer, chRegistry *registry) {
-	ctx := context.TODO()
+	// Create a context that is canceled when the watcher is stopped.
+	ctx, cancel := context.WithCancel(context.Background())
+	go func() {
+		<-ch.done
+		cancel()
+	}()
+
 	for e := ch.eventsFromChainSub.Next(); e != nil; e = ch.eventsFromChainSub.Next() {
 		switch e := e.(type) {
 		case *channel.RegisteredEvent:
@@ -341,14 +349,16 @@ func (ch *ch) handleRegisteredEvent(
 		parent = ch.parent
 	}
 
-	// This lock ensures, when there are one or more sub-channels and
-	// adjudicator event is received for each channel, the events are
-	// processed one after the other.
+	// The following lock ensures that when there are one or more sub-channels and
+	// an adjudicator event is received for each channel, the events are processed
+	// one after the other.
 	//
-	// Even if older states have been registered for more than one
-	// channel in the same family, the channel tree will be registered
-	// only once.
-	parent.subChsAccess.Lock()
+	// Even if older states have been registered for more than one channel in the
+	// same family, the channel tree will be registered only once.
+	if !parent.subChsAccess.TryLockCtx(ctx) {
+		// Watching has been stopped. We return.
+		return
+	}
 	defer parent.subChsAccess.Unlock()
 
 	log := log.WithFields(log.Fields{"ID": e.ID(), "Version": e.Version()})
@@ -464,6 +474,7 @@ func (w *Watcher) StopWatching(_ context.Context, id channel.ID) error {
 		// Channel could have been closed while were waiting for the mutex locked.
 		return errors.New("channel not registered with the watcher")
 	}
+	close(ch.done)
 
 	if ch.isSubChannel() {
 		latestParentTx := ch.parent.txRetriever.retrieve()
