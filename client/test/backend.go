@@ -502,7 +502,6 @@ func (f *assetHolder) WaitForFunding(ctx context.Context, req channel.FundingReq
 
 // MockSubscription is a subscription for MockBackend.
 type MockSubscription struct {
-	ctx     context.Context //nolint:containedctx // This is just done for testing. Could be revised.
 	events  chan channel.AdjudicatorEvent
 	err     chan error
 	onClose func()
@@ -511,7 +510,6 @@ type MockSubscription struct {
 // NewMockSubscription creates a new MockSubscription.
 func NewMockSubscription(ctx context.Context) *MockSubscription {
 	return &MockSubscription{
-		ctx:    ctx,
 		events: make(chan channel.AdjudicatorEvent, 1),
 		err:    make(chan error, 1),
 	}
@@ -519,13 +517,7 @@ func NewMockSubscription(ctx context.Context) *MockSubscription {
 
 // Next returns the next event.
 func (s *MockSubscription) Next() channel.AdjudicatorEvent {
-	select {
-	case e := <-s.events:
-		return e
-	case <-s.ctx.Done():
-		s.err <- s.ctx.Err()
-		return nil
-	}
+	return <-s.events
 }
 
 // Close closes the subscription.
