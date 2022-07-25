@@ -22,6 +22,8 @@ import (
 	"io"
 	"math/big"
 	"math/rand"
+	"os"
+	"runtime/pprof"
 	"sync"
 	"testing"
 	"time"
@@ -137,6 +139,7 @@ func ExecuteTwoPartyTest(ctx context.Context, t *testing.T, role [2]Executer, cf
 	select {
 	case <-wg.WaitCh():
 	case <-ctx.Done():
+		pprof.Lookup("goroutine").WriteTo(os.Stdout, 1) //nolint:errcheck
 		t.Fatal(ctx.Err())
 	case err := <-role[0].Errors():
 		t.Fatal(err)
