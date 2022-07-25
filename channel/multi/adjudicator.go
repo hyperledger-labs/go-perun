@@ -38,6 +38,12 @@ func (a *Adjudicator) RegisterAdjudicator(l LedgerID, la channel.Adjudicator) {
 	a.adjudicators[l.MapKey()] = la
 }
 
+// LedgerAdjudicator returns the adjudicator for a given ledger.
+func (a *Adjudicator) LedgerAdjudicator(l LedgerID) (channel.Adjudicator, bool) {
+	adj, ok := a.adjudicators[l.MapKey()]
+	return adj, ok
+}
+
 // Register registers a multi-ledger channel. It dispatches Register calls to
 // all relevant adjudicators. If any of the calls fails, the method returns an
 // error.
