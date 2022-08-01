@@ -26,6 +26,7 @@ func (a *Adjudicator) Subscribe(ctx context.Context, chID channel.ID) (channel.A
 		events: make(chan channel.AdjudicatorEvent),
 		errors: make(chan error),
 		subs:   []channel.AdjudicatorSubscription{},
+		done:   make(chan struct{}),
 	}
 
 	for _, la := range a.adjudicators {
@@ -38,7 +39,11 @@ func (a *Adjudicator) Subscribe(ctx context.Context, chID channel.ID) (channel.A
 
 		go func() {
 			for {
-				asub.events <- sub.Next()
+				select {
+				case asub.events <- sub.Next():
+				case <-asub.done:
+					return
+				}
 			}
 		}()
 
@@ -55,11 +60,17 @@ type AdjudicatorSubscription struct {
 	subs   []channel.AdjudicatorSubscription
 	events chan channel.AdjudicatorEvent
 	errors chan error
+	done   chan struct{}
 }
 
 // Next returns the next event.
 func (s *AdjudicatorSubscription) Next() channel.AdjudicatorEvent {
-	return <-s.events
+	select {
+	case e := <-s.events:
+		return e
+	case <-s.done:
+		return nil
+	}
 }
 
 // Err blocks until an error occurred and returns it.
@@ -78,5 +89,6 @@ func (s *AdjudicatorSubscription) Close() error {
 	for _, sub := range s.subs {
 		sub.Close()
 	}
+	close(s.done)
 	return nil
 }
