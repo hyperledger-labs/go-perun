@@ -37,7 +37,9 @@ func (a *Adjudicator) Subscribe(ctx context.Context, chID channel.ID) (channel.A
 		asub.subs = append(asub.subs, sub)
 
 		go func() {
-			asub.events <- sub.Next()
+			for {
+				asub.events <- sub.Next()
+			}
 		}()
 
 		go func() {
