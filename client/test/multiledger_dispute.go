@@ -22,6 +22,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
 	"perun.network/go-perun/channel"
 	"perun.network/go-perun/client"
 	"perun.network/go-perun/wire"
@@ -130,6 +131,10 @@ func TestMultiLedgerDispute(
 	require.NoError(err)
 	err = chBobAlice.Settle(ctx, false)
 	require.NoError(err)
+
+	// Close the channels.
+	require.NoError(chAliceBob.Close())
+	require.NoError(chBobAlice.Close())
 
 	// Check final balances.
 	balancesAfter := channel.Balances{
