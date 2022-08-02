@@ -16,13 +16,18 @@ package client_test
 
 import (
 	"context"
+	"math/big"
 	"math/rand"
 	"testing"
 
+	chtest "perun.network/go-perun/channel/test"
+	"perun.network/go-perun/client"
 	ctest "perun.network/go-perun/client/test"
+	"perun.network/go-perun/wire"
+	pkgtest "polycry.pt/poly-go/test"
 )
 
-func TestHappyAliceBob(t *testing.T) {
+func TestPaymentHappy(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), twoPartyTestTimeout)
 	defer cancel()
 
@@ -34,4 +39,29 @@ func TestHappyAliceBob(t *testing.T) {
 		}
 		return setups, roles
 	})
+}
+
+func TestPaymentDispute(t *testing.T) {
+	rng := pkgtest.Prng(t)
+	ctx, cancel := context.WithTimeout(context.Background(), twoPartyTestTimeout)
+	defer cancel()
+
+	const mallory, carol = 0, 1 // Indices of Mallory and Carol
+	setups := NewSetups(rng, []string{"Mallory", "Carol"})
+	roles := [2]ctest.Executer{
+		ctest.NewMallory(t, setups[0]),
+		ctest.NewCarol(t, setups[1]),
+	}
+
+	cfg := &ctest.MalloryCarolExecConfig{
+		BaseExecConfig: ctest.MakeBaseExecConfig(
+			[2]wire.Address{setups[mallory].Identity.Address(), setups[carol].Identity.Address()},
+			chtest.NewRandomAsset(rng),
+			[2]*big.Int{big.NewInt(100), big.NewInt(1)},
+			client.WithoutApp(),
+		),
+		NumPayments: [2]int{5, 0},
+		TxAmounts:   [2]*big.Int{big.NewInt(20), big.NewInt(0)},
+	}
+	ctest.ExecuteTwoPartyTest(ctx, t, roles, cfg)
 }
