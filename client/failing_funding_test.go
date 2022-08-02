@@ -71,7 +71,7 @@ func runFredFridaTest(t *testing.T, rng *rand.Rand, setups []ctest.RoleSetup) {
 	ctx, cancel := context.WithTimeout(context.Background(), twoPartyTestTimeout)
 	defer cancel()
 
-	clients := NewClients(t, rng, setups)
+	clients := ctest.NewClients(t, rng, setups)
 	frida, fred := clients[fridaIdx], clients[fredIdx]
 	fridaWireAddr, fredWireAddr := frida.Identity.Address(), fred.Identity.Address()
 	fridaWalletAddr, fredWalletAddr := frida.WalletAddress, fred.WalletAddress

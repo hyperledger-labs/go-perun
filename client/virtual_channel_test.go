@@ -120,9 +120,9 @@ func TestVirtualChannelsDispute(t *testing.T) {
 }
 
 type virtualChannelTest struct {
-	alice              *Client
-	bob                *Client
-	ingrid             *Client
+	alice              *ctest.Client
+	bob                *ctest.Client
+	ingrid             *ctest.Client
 	chAliceIngrid      *client.Channel
 	chIngridAlice      *client.Channel
 	chBobIngrid        *client.Channel
@@ -160,7 +160,7 @@ func setupVirtualChannelTest(t *testing.T, ctx context.Context) (vct virtualChan
 
 	// Setup clients.
 	setups := NewSetups(rng, []string{"Alice", "Bob", "Ingrid"})
-	clients := NewClients(t, rng, setups)
+	clients := ctest.NewClients(t, rng, setups)
 	alice, bob, ingrid := clients[0], clients[1], clients[2]
 	vct.alice, vct.bob, vct.ingrid = alice, bob, ingrid
 	vct.balanceReader = alice.BalanceReader // Assumes all clients have same backend.
