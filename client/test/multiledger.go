@@ -38,7 +38,7 @@ import (
 
 // MultiLedgerSetup is the setup of a multi-ledger test.
 type MultiLedgerSetup struct {
-	Client1, Client2               Client
+	Client1, Client2               MultiLedgerClient
 	Asset1, Asset2                 multi.Asset
 	InitBalances                   channel.Balances
 	UpdateBalances1                channel.Balances
@@ -139,8 +139,8 @@ func (a *MultiLedgerAsset) UnmarshalBinary(data []byte) error {
 	return perunio.Decode(buf, string(a.id), a.asset)
 }
 
-// Client represents a test client.
-type Client struct {
+// MultiLedgerClient represents a test client.
+type MultiLedgerClient struct {
 	*client.Client
 	WireAddress                wire.Address
 	WalletAddress              wallet.Address
@@ -149,7 +149,7 @@ type Client struct {
 }
 
 // HandleAdjudicatorEvent handles an incoming adjudicator event.
-func (c Client) HandleAdjudicatorEvent(e channel.AdjudicatorEvent) {
+func (c MultiLedgerClient) HandleAdjudicatorEvent(e channel.AdjudicatorEvent) {
 	log.Infof("Client %v: Received adjudicator event %T", c.WireAddress, e)
 	c.Events <- e
 }
@@ -157,7 +157,7 @@ func (c Client) HandleAdjudicatorEvent(e channel.AdjudicatorEvent) {
 func setupClient(
 	t *testing.T, rng *rand.Rand,
 	l1, l2 *MockBackend, bus wire.Bus,
-) Client {
+) MultiLedgerClient {
 	t.Helper()
 	require := require.New(t)
 
@@ -192,7 +192,7 @@ func setupClient(
 	)
 	require.NoError(err)
 
-	return Client{
+	return MultiLedgerClient{
 		Client:        c,
 		WireAddress:   wireAddr,
 		WalletAddress: acc.Address(),
