@@ -74,7 +74,7 @@ func runFredFridaTest(ctx context.Context, t *testing.T, rng *rand.Rand, params 
 	)
 	var (
 		challengeDuration = params.ChallengeDuration
-		fridaInitBal      = params.FredInitBal
+		fridaInitBal      = params.FridaInitBal
 		fredInitBal       = params.FredInitBal
 	)
 
