@@ -20,6 +20,8 @@ import (
 	"math/rand"
 	"testing"
 
+	"perun.network/go-perun/channel"
+	chtest "perun.network/go-perun/channel/test"
 	ctest "perun.network/go-perun/client/test"
 	"polycry.pt/poly-go/test"
 )
@@ -38,9 +40,10 @@ func TestFailingFunding(t *testing.T) {
 			FridaInitBal:      big.NewInt(100),
 			FredInitBal:       big.NewInt(50),
 		},
-		func(r *rand.Rand) [2]ctest.RoleSetup {
+		func(r *rand.Rand) ([2]ctest.RoleSetup, channel.Asset) {
 			roles := NewSetups(rng, []string{"Frida", "Fred"})
-			return [2]ctest.RoleSetup{roles[0], roles[1]}
+			asset := chtest.NewRandomAsset(rng)
+			return [2]ctest.RoleSetup{roles[0], roles[1]}, asset
 		},
 	)
 }

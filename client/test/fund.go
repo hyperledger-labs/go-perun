@@ -24,7 +24,6 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"perun.network/go-perun/channel"
-	chtest "perun.network/go-perun/channel/test"
 	"perun.network/go-perun/client"
 	"perun.network/go-perun/wire"
 	"polycry.pt/poly-go/test"
@@ -39,34 +38,41 @@ type FundSetup struct {
 
 // TestFundRecovery performs a test of the fund recovery functionality for the
 // given setup.
-func TestFundRecovery(ctx context.Context, t *testing.T, params FundSetup, setupRoles func(*rand.Rand) [2]RoleSetup) { //nolint:revive // test.Test... stutters but this is OK in this special case.
+func TestFundRecovery(ctx context.Context, t *testing.T, params FundSetup, setup func(*rand.Rand) ([2]RoleSetup, channel.Asset)) { //nolint:revive // test.Test... stutters but this is OK in this special case.
 	rng := test.Prng(t)
 
 	t.Run("failing funder proposer", func(t *testing.T) {
-		setups := setupRoles(rng)
-		setups[0].Funder = FailingFunder{}
+		roles, asset := setup(rng)
+		roles[0].Funder = FailingFunder{}
 
-		runFredFridaTest(ctx, t, rng, params, setups)
+		runFredFridaTest(ctx, t, rng, params, roles, asset)
 	})
 
 	t.Run("failing funder proposee", func(t *testing.T) {
-		setups := setupRoles(rng)
-		setups[1].Funder = FailingFunder{}
+		roles, asset := setup(rng)
+		roles[1].Funder = FailingFunder{}
 
-		runFredFridaTest(ctx, t, rng, params, setups)
+		runFredFridaTest(ctx, t, rng, params, roles, asset)
 	})
 
 	t.Run("failing funder both sides", func(t *testing.T) {
-		setups := setupRoles(rng)
-		setups[0].Funder = FailingFunder{}
-		setups[1].Funder = FailingFunder{}
+		roles, asset := setup(rng)
+		roles[0].Funder = FailingFunder{}
+		roles[1].Funder = FailingFunder{}
 
-		runFredFridaTest(ctx, t, rng, params, setups)
+		runFredFridaTest(ctx, t, rng, params, roles, asset)
 	})
 }
 
 //nolint:thelper // The linter thinks this is a helper function, but it is not.
-func runFredFridaTest(ctx context.Context, t *testing.T, rng *rand.Rand, params FundSetup, setups [2]RoleSetup) {
+func runFredFridaTest(
+	ctx context.Context,
+	t *testing.T,
+	rng *rand.Rand,
+	params FundSetup,
+	setups [2]RoleSetup,
+	asset channel.Asset,
+) {
 	const (
 		fridaIdx = 0
 		fredIdx  = 1
@@ -92,7 +98,6 @@ func runFredFridaTest(ctx context.Context, t *testing.T, rng *rand.Rand, params 
 	)
 
 	// Create the proposal.
-	asset := chtest.NewRandomAsset(rng)
 	initAlloc := channel.NewAllocation(numParts, asset)
 	initAlloc.SetAssetBalances(asset, []*big.Int{fridaInitBal, fredInitBal})
 	parts := []wire.Address{fridaWireAddr, fredWireAddr}
