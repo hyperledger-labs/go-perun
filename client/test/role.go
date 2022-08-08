@@ -65,7 +65,7 @@ type (
 
 	// BalanceReader can be used to read state from a ledger.
 	BalanceReader interface {
-		Balance(p wallet.Address, a channel.Asset) channel.Bal
+		Balance(a channel.Asset) channel.Bal
 	}
 
 	// RoleSetup contains the injectables for setting up the client.

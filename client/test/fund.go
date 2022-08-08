@@ -129,9 +129,9 @@ func runFredFridaTest(
 	require.NoError(t, chFred.Settle(ctx, false))
 
 	// Test the final balances.
-	fridaFinalBal := frida.BalanceReader.Balance(fridaWalletAddr, asset)
+	fridaFinalBal := frida.BalanceReader.Balance(asset)
 	assert.Truef(t, fridaFinalBal.Cmp(big.NewInt(0)) == 0, "frida: wrong final balance: got %v, expected %v", fridaFinalBal, fridaInitBal)
-	fredFinalBal := fred.BalanceReader.Balance(fredWalletAddr, asset)
+	fredFinalBal := fred.BalanceReader.Balance(asset)
 	assert.Truef(t, fredFinalBal.Cmp(big.NewInt(0)) == 0, "fred: wrong final balance: got %v, expected %v", fredFinalBal, fredInitBal)
 }
 

@@ -38,13 +38,12 @@ import (
 
 // MultiLedgerSetup is the setup of a multi-ledger test.
 type MultiLedgerSetup struct {
-	Client1, Client2               MultiLedgerClient
-	Asset1, Asset2                 multi.Asset
-	InitBalances                   channel.Balances
-	UpdateBalances1                channel.Balances
-	UpdateBalances2                channel.Balances
-	BalanceReader1, BalanceReader2 BalanceReader
-	BalanceDelta                   channel.Bal // Delta the final balances can be off due to gas costs for example.
+	Client1, Client2 MultiLedgerClient
+	Asset1, Asset2   multi.Asset
+	InitBalances     channel.Balances
+	UpdateBalances1  channel.Balances
+	UpdateBalances2  channel.Balances
+	BalanceDelta     channel.Bal // Delta the final balances can be off due to gas costs for example.
 }
 
 // SetupMultiLedgerTest sets up a multi-ledger test.
@@ -87,9 +86,7 @@ func SetupMultiLedgerTest(t *testing.T) MultiLedgerSetup {
 			{big.NewInt(1), big.NewInt(9)}, // Asset 1.
 			{big.NewInt(5), big.NewInt(5)}, // Asset 2.
 		},
-		BalanceReader1: l1,
-		BalanceReader2: l2,
-		BalanceDelta:   big.NewInt(0), // The MockBackend does not incur gas costs.
+		BalanceDelta: big.NewInt(0), // The MockBackend does not incur gas costs.
 	}
 }
 
@@ -142,10 +139,11 @@ func (a *MultiLedgerAsset) UnmarshalBinary(data []byte) error {
 // MultiLedgerClient represents a test client.
 type MultiLedgerClient struct {
 	*client.Client
-	WireAddress                wire.Address
-	WalletAddress              wallet.Address
-	Events                     chan channel.AdjudicatorEvent
-	Adjudicator1, Adjudicator2 channel.Adjudicator
+	WireAddress                    wire.Address
+	WalletAddress                  wallet.Address
+	Events                         chan channel.AdjudicatorEvent
+	Adjudicator1, Adjudicator2     channel.Adjudicator
+	BalanceReader1, BalanceReader2 BalanceReader
 }
 
 // HandleAdjudicatorEvent handles an incoming adjudicator event.
@@ -193,11 +191,13 @@ func setupClient(
 	require.NoError(err)
 
 	return MultiLedgerClient{
-		Client:        c,
-		WireAddress:   wireAddr,
-		WalletAddress: acc.Address(),
-		Events:        make(chan channel.AdjudicatorEvent),
-		Adjudicator1:  l1,
-		Adjudicator2:  l2,
+		Client:         c,
+		WireAddress:    wireAddr,
+		WalletAddress:  acc.Address(),
+		Events:         make(chan channel.AdjudicatorEvent),
+		Adjudicator1:   l1,
+		Adjudicator2:   l2,
+		BalanceReader1: l1.NewBalanceReader(acc.Address()),
+		BalanceReader2: l2.NewBalanceReader(acc.Address()),
 	}
 }

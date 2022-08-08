@@ -100,9 +100,9 @@ func TestVirtualChannelsDispute(t *testing.T) {
 	// Check final balances.
 	balancesAfter := channel.Balances{
 		{
-			vct.balanceReader.Balance(vct.alice.WalletAddress, vct.asset),
-			vct.balanceReader.Balance(vct.bob.WalletAddress, vct.asset),
-			vct.balanceReader.Balance(vct.ingrid.WalletAddress, vct.asset),
+			vct.alice.BalanceReader.Balance(vct.asset),
+			vct.bob.BalanceReader.Balance(vct.asset),
+			vct.ingrid.BalanceReader.Balance(vct.asset),
 		},
 	}
 
@@ -168,9 +168,9 @@ func setupVirtualChannelTest(t *testing.T, ctx context.Context) (vct virtualChan
 	// Store client balances before running test.
 	vct.balancesBefore = channel.Balances{
 		{
-			vct.balanceReader.Balance(vct.alice.WalletAddress, vct.asset),
-			vct.balanceReader.Balance(vct.bob.WalletAddress, vct.asset),
-			vct.balanceReader.Balance(vct.ingrid.WalletAddress, vct.asset),
+			vct.alice.BalanceReader.Balance(vct.asset),
+			vct.bob.BalanceReader.Balance(vct.asset),
+			vct.ingrid.BalanceReader.Balance(vct.asset),
 		},
 	}
 

@@ -50,6 +50,8 @@ func NewSetups(rng *rand.Rand, names []string) []ctest.RoleSetup {
 		if err != nil {
 			panic("Error initializing watcher: " + err.Error())
 		}
+		w := wtest.NewWallet()
+		acc := w.NewRandomAccount(rng)
 		setup[i] = ctest.RoleSetup{
 			Name:              names[i],
 			Identity:          wiretest.NewRandomAccount(rng),
@@ -57,9 +59,9 @@ func NewSetups(rng *rand.Rand, names []string) []ctest.RoleSetup {
 			Funder:            backend,
 			Adjudicator:       backend,
 			Watcher:           watcher,
-			Wallet:            wtest.NewWallet(),
+			Wallet:            w,
 			Timeout:           roleOperationTimeout,
-			BalanceReader:     backend,
+			BalanceReader:     backend.NewBalanceReader(acc.Address()),
 			ChallengeDuration: 60,
 			Errors:            make(chan error),
 		}

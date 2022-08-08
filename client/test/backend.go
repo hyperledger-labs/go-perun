@@ -365,6 +365,23 @@ func encodableAsString(e encoding.BinaryMarshaler) string {
 	return string(buff)
 }
 
+type MockBalanceReader struct {
+	b   *MockBackend
+	acc wallet.Address
+}
+
+func (br *MockBalanceReader) Balance(asset channel.Asset) channel.Bal {
+	return br.b.Balance(br.acc, asset)
+}
+
+// NewBalanceReader creates balance for the given account.
+func (b *MockBackend) NewBalanceReader(acc wallet.Address) *MockBalanceReader {
+	return &MockBalanceReader{
+		b:   b,
+		acc: acc,
+	}
+}
+
 // Balance returns the balance for the participant and asset.
 func (b *MockBackend) Balance(p wallet.Address, a channel.Asset) *big.Int {
 	b.mu.Lock()
