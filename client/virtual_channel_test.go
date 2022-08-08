@@ -136,7 +136,6 @@ type virtualChannelTest struct {
 	finalBalsBob       []*big.Int
 	finalBalIngrid     *big.Int
 	errs               chan error
-	balanceReader      ctest.BalanceReader
 	asset              channel.Asset
 	balancesBefore     channel.Balances
 }
@@ -163,7 +162,6 @@ func setupVirtualChannelTest(t *testing.T, ctx context.Context) (vct virtualChan
 	clients := ctest.NewClients(t, rng, setups)
 	alice, bob, ingrid := clients[0], clients[1], clients[2]
 	vct.alice, vct.bob, vct.ingrid = alice, bob, ingrid
-	vct.balanceReader = alice.BalanceReader // Assumes all clients have same backend.
 
 	// Store client balances before running test.
 	vct.balancesBefore = channel.Balances{
