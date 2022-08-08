@@ -49,7 +49,7 @@ func TestClient_New_NilArgs(t *testing.T) {
 	rng := test.Prng(t)
 	id := wiretest.NewRandomAddress(rng)
 	backend := &ctest.MockBackend{}
-	b, f, a, w := &DummyBus{t}, backend, backend, wtest.RandomWallet()
+	b, f, a, w := &DummyBus{t}, &ctest.MockFunder{}, &ctest.MockAdjudicator{}, wtest.RandomWallet()
 	watcher, err := local.NewWatcher(backend)
 	require.NoError(t, err, "initializing the watcher should not error")
 	assert.Panics(t, func() { client.New(nil, b, f, a, w, watcher) })  //nolint:errcheck
@@ -66,7 +66,7 @@ func TestClient_Handle_NilArgs(t *testing.T) {
 	watcher, err := local.NewWatcher(backend)
 	require.NoError(t, err, "initializing the watcher should not error")
 	c, err := client.New(wiretest.NewRandomAddress(rng),
-		&DummyBus{t}, backend, backend, wtest.RandomWallet(), watcher)
+		&DummyBus{t}, &ctest.MockFunder{}, &ctest.MockAdjudicator{}, wtest.RandomWallet(), watcher)
 	require.NoError(t, err)
 
 	dummyUH := client.UpdateHandlerFunc(func(*channel.State, client.ChannelUpdate, *client.UpdateResponder) {})
@@ -81,7 +81,7 @@ func TestClient_New(t *testing.T) {
 	watcher, err := local.NewWatcher(backend)
 	require.NoError(t, err, "initializing the watcher should not error")
 	c, err := client.New(wiretest.NewRandomAddress(rng),
-		&DummyBus{t}, backend, backend, wtest.RandomWallet(), watcher)
+		&DummyBus{t}, &ctest.MockFunder{}, &ctest.MockAdjudicator{}, wtest.RandomWallet(), watcher)
 	assert.NoError(t, err)
 	require.NotNil(t, c)
 }

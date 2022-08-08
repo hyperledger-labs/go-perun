@@ -168,13 +168,13 @@ func setupClient(
 
 	// Setup funder.
 	funder := multi.NewFunder()
-	funder.RegisterFunder(l1.ID(), l1)
-	funder.RegisterFunder(l2.ID(), l2)
+	funder.RegisterFunder(l1.ID(), l1.NewFunder(acc.Address()))
+	funder.RegisterFunder(l2.ID(), l2.NewFunder(acc.Address()))
 
 	// Setup adjudicator.
 	adj := multi.NewAdjudicator()
-	adj.RegisterAdjudicator(l1.ID(), l1)
-	adj.RegisterAdjudicator(l2.ID(), l2)
+	adj.RegisterAdjudicator(l1.ID(), l1.NewAdjudicator(acc.Address()))
+	adj.RegisterAdjudicator(l2.ID(), l2.NewAdjudicator(acc.Address()))
 
 	// Setup watcher.
 	watcher, err := local.NewWatcher(adj)
@@ -195,8 +195,8 @@ func setupClient(
 		WireAddress:    wireAddr,
 		WalletAddress:  acc.Address(),
 		Events:         make(chan channel.AdjudicatorEvent),
-		Adjudicator1:   l1,
-		Adjudicator2:   l2,
+		Adjudicator1:   l1.NewAdjudicator(acc.Address()),
+		Adjudicator2:   l2.NewAdjudicator(acc.Address()),
 		BalanceReader1: l1.NewBalanceReader(acc.Address()),
 		BalanceReader2: l2.NewBalanceReader(acc.Address()),
 	}
