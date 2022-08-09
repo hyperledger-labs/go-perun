@@ -137,12 +137,13 @@ func (b *MockBackend) Register(_ context.Context, req channel.AdjudicatorReq, su
 		},
 	}, subChannels...)
 
+	timeout := time.Now().Add(time.Duration(req.Params.ChallengeDuration) * time.Millisecond)
 	for _, ch := range channels {
 		b.setLatestEvent(
 			ch.Params.ID(),
 			channel.NewRegisteredEvent(
 				ch.Params.ID(),
-				&channel.ElapsedTimeout{},
+				&channel.TimeTimeout{Time: timeout},
 				ch.State.Version,
 				ch.State,
 				ch.Sigs,
@@ -175,11 +176,12 @@ func (b *MockBackend) Progress(_ context.Context, req channel.ProgressReq) error
 	b.mu.Lock()
 	defer b.mu.Unlock()
 
+	timeout := time.Now().Add(time.Duration(req.Params.ChallengeDuration) * time.Millisecond)
 	b.setLatestEvent(
 		req.Params.ID(),
 		channel.NewProgressedEvent(
 			req.Params.ID(),
-			&channel.ElapsedTimeout{},
+			&channel.TimeTimeout{Time: timeout},
 			req.NewState.Clone(),
 			req.Idx,
 		),
