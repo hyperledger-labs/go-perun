@@ -39,7 +39,12 @@ type FundSetup struct {
 
 // TestFundRecovery performs a test of the fund recovery functionality for the
 // given setup.
-func TestFundRecovery(ctx context.Context, t *testing.T, params FundSetup, setup func(*rand.Rand) ([2]RoleSetup, channel.Asset)) { //nolint:revive // test.Test... stutters but this is OK in this special case.
+func TestFundRecovery( //nolint:revive // test.Test... stutters but this is OK in this special case.
+	ctx context.Context,
+	t *testing.T,
+	params FundSetup,
+	setup func(*rand.Rand) ([2]RoleSetup, channel.Asset),
+) {
 	rng := test.Prng(t)
 
 	t.Run("failing funder proposer", func(t *testing.T) {
@@ -98,7 +103,8 @@ func runFredFridaTest(
 		},
 	}
 
-	// The channel into which Fred's created ledger channel is sent into.
+	// Setup proposal handling.
+	// New channels and errors are passed via the corresponding Go channels.
 	chsFred := make(chan *client.Channel, 1)
 	errsFred := make(chan error, 1)
 	go fred.Handle(
