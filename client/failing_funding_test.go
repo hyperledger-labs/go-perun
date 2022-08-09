@@ -39,6 +39,7 @@ func TestFailingFunding(t *testing.T) {
 			ChallengeDuration: 1,
 			FridaInitBal:      big.NewInt(100),
 			FredInitBal:       big.NewInt(50),
+			BalanceDelta:      big.NewInt(0),
 		},
 		func(r *rand.Rand) ([2]ctest.RoleSetup, channel.Asset) {
 			roles := NewSetups(rng, []string{"Frida", "Fred"})

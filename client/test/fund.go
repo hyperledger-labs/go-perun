@@ -34,6 +34,7 @@ type FundSetup struct {
 	ChallengeDuration uint64
 	FridaInitBal      channel.Bal
 	FredInitBal       channel.Bal
+	BalanceDelta      channel.Bal
 }
 
 // TestFundRecovery performs a test of the fund recovery functionality for the
@@ -89,6 +90,14 @@ func runFredFridaTest(
 	fridaWireAddr, fredWireAddr := frida.Identity.Address(), fred.Identity.Address()
 	fridaWalletAddr, fredWalletAddr := frida.WalletAddress, fred.WalletAddress
 
+	// Store client balances before running test.
+	balancesBefore := channel.Balances{
+		{
+			frida.BalanceReader.Balance(asset),
+			fred.BalanceReader.Balance(asset),
+		},
+	}
+
 	// The channel into which Fred's created ledger channel is sent into.
 	chsFred := make(chan *client.Channel, 1)
 	errsFred := make(chan error, 1)
@@ -129,10 +138,17 @@ func runFredFridaTest(
 	require.NoError(t, chFred.Settle(ctx, false))
 
 	// Test the final balances.
-	fridaFinalBal := frida.BalanceReader.Balance(asset)
-	assert.Truef(t, fridaFinalBal.Cmp(big.NewInt(0)) == 0, "frida: wrong final balance: got %v, expected %v", fridaFinalBal, fridaInitBal)
-	fredFinalBal := fred.BalanceReader.Balance(asset)
-	assert.Truef(t, fredFinalBal.Cmp(big.NewInt(0)) == 0, "fred: wrong final balance: got %v, expected %v", fredFinalBal, fredInitBal)
+	balancesAfter := channel.Balances{
+		{
+			frida.BalanceReader.Balance(asset),
+			fred.BalanceReader.Balance(asset),
+		},
+	}
+	balancesDiff := balancesAfter.Sub(balancesBefore)
+	expectedBalancesDiff := channel.Balances{{big.NewInt(0), big.NewInt(0)}}
+	balanceDelta := params.BalanceDelta
+	eq := EqualBalancesWithDelta(expectedBalancesDiff, balancesDiff, balanceDelta)
+	assert.Truef(t, eq, "final ledger balances incorrect: expected balance difference %v +- %v, got %v", expectedBalancesDiff, balanceDelta, balancesDiff)
 }
 
 // FailingFunder is a funder that always fails and is used for testing.
