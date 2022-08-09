@@ -98,11 +98,49 @@ func (g *threadSafeRng) Intn(n int) int {
 	return g.r.Intn(n)
 }
 
+// MockFunder is a funder used for testing.
+type MockFunder struct {
+	b   *MockBackend
+	acc wallet.Address
+}
+
+// Fund funds a given channel.
+func (f *MockFunder) Fund(ctx context.Context, req channel.FundingReq) error {
+	return f.b.Fund(ctx, req, f.acc)
+}
+
+// NewFunder returns a new MockFunder.
+func (b *MockBackend) NewFunder(acc wallet.Address) *MockFunder {
+	return &MockFunder{
+		b:   b,
+		acc: acc,
+	}
+}
+
 // Fund funds the channel.
-func (b *MockBackend) Fund(ctx context.Context, req channel.FundingReq) error {
+func (b *MockBackend) Fund(ctx context.Context, req channel.FundingReq, acc wallet.Address) error {
 	b.log.Infof("Funding: %+v", req)
-	b.assetHolder.Fund(req, b)
+	b.assetHolder.Fund(req, b, acc)
 	return b.assetHolder.WaitForFunding(ctx, req)
+}
+
+// MockAdjudicator is an adjudicator used for testing.
+type MockAdjudicator struct {
+	*MockBackend
+	acc wallet.Address
+}
+
+// Withdraw withdraws the balances of the given channel and its sub-channels.
+func (a *MockAdjudicator) Withdraw(ctx context.Context, req channel.AdjudicatorReq, subStates channel.StateMap) error {
+	return a.MockBackend.Withdraw(ctx, req, subStates, a.acc)
+}
+
+// NewAdjudicator creates a new MockAdjudicator.
+func (b *MockBackend) NewAdjudicator(acc wallet.Address) *MockAdjudicator {
+	return &MockAdjudicator{
+		MockBackend: b,
+		acc:         acc,
+	}
 }
 
 // Register registers the channel.
@@ -250,7 +288,7 @@ func (b *MockBackend) checkState(s *channel.State, op checkStateFunc) error {
 }
 
 // Withdraw withdraws the channel funds.
-func (b *MockBackend) Withdraw(_ context.Context, req channel.AdjudicatorReq, subStates channel.StateMap) error {
+func (b *MockBackend) Withdraw(_ context.Context, req channel.AdjudicatorReq, subStates channel.StateMap, acc wallet.Address) error {
 	b.mu.Lock()
 	defer b.mu.Unlock()
 
@@ -297,9 +335,8 @@ func (b *MockBackend) Withdraw(_ context.Context, req channel.AdjudicatorReq, su
 	for a, assetBalances := range balances {
 		asset := req.Tx.Allocation.Assets[a]
 		p := req.Idx
-		participant := req.Params.Parts[p]
 		amount := assetBalances[p]
-		b.addBalance(participant, asset, amount)
+		b.addBalance(acc, asset, amount)
 		amount.Set(big.NewInt(0))
 	}
 
@@ -363,6 +400,26 @@ func encodableAsString(e encoding.BinaryMarshaler) string {
 		panic(err)
 	}
 	return string(buff)
+}
+
+// MockBalanceReader is a balance reader used for testing. At initialization, it
+// is associated with a given account.
+type MockBalanceReader struct {
+	b   *MockBackend
+	acc wallet.Address
+}
+
+// Balance returns the balance of the associated account for the given asset.
+func (br *MockBalanceReader) Balance(asset channel.Asset) channel.Bal {
+	return br.b.Balance(br.acc, asset)
+}
+
+// NewBalanceReader creates balance for the given account.
+func (b *MockBackend) NewBalanceReader(acc wallet.Address) *MockBalanceReader {
+	return &MockBalanceReader{
+		b:   b,
+		acc: acc,
+	}
 }
 
 // Balance returns the balance for the participant and asset.
@@ -461,7 +518,7 @@ func (f *assetHolder) initFund(req channel.FundingReq) {
 }
 
 // Fund simulates funding the channel.
-func (f *assetHolder) Fund(req channel.FundingReq, b *MockBackend) {
+func (f *assetHolder) Fund(req channel.FundingReq, b *MockBackend, acc wallet.Address) {
 	f.initFund(req)
 
 	// Simulates a random delay during funding.
@@ -473,10 +530,9 @@ func (f *assetHolder) Fund(req channel.FundingReq, b *MockBackend) {
 			continue
 		}
 
-		p := req.Params.Parts[req.Idx]
 		bal := req.Agreement[i][req.Idx]
 		b.mu.Lock()
-		b.subBalance(p, asset, bal)
+		b.subBalance(acc, asset, bal)
 		b.mu.Unlock()
 		f.mtx.Lock()
 		fundingBal := f.balances[req.Params.ID()][i][req.Idx]

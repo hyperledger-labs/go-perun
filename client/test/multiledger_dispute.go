@@ -44,12 +44,12 @@ func TestMultiLedgerDispute(
 	// Store client balances before running test.
 	balancesBefore := channel.Balances{
 		{
-			mlt.BalanceReader1.Balance(alice.WalletAddress, mlt.Asset1),
-			mlt.BalanceReader1.Balance(bob.WalletAddress, mlt.Asset1),
+			mlt.Client1.BalanceReader1.Balance(mlt.Asset1),
+			mlt.Client2.BalanceReader1.Balance(mlt.Asset1),
 		},
 		{
-			mlt.BalanceReader2.Balance(alice.WalletAddress, mlt.Asset2),
-			mlt.BalanceReader2.Balance(bob.WalletAddress, mlt.Asset2),
+			mlt.Client1.BalanceReader2.Balance(mlt.Asset2),
+			mlt.Client2.BalanceReader2.Balance(mlt.Asset2),
 		},
 	}
 
@@ -139,12 +139,12 @@ func TestMultiLedgerDispute(
 	// Check final balances.
 	balancesAfter := channel.Balances{
 		{
-			mlt.BalanceReader1.Balance(alice.WalletAddress, mlt.Asset1),
-			mlt.BalanceReader1.Balance(bob.WalletAddress, mlt.Asset1),
+			mlt.Client1.BalanceReader1.Balance(mlt.Asset1),
+			mlt.Client2.BalanceReader1.Balance(mlt.Asset1),
 		},
 		{
-			mlt.BalanceReader2.Balance(alice.WalletAddress, mlt.Asset2),
-			mlt.BalanceReader2.Balance(bob.WalletAddress, mlt.Asset2),
+			mlt.Client1.BalanceReader2.Balance(mlt.Asset2),
+			mlt.Client2.BalanceReader2.Balance(mlt.Asset2),
 		},
 	}
 

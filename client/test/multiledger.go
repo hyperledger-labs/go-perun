@@ -38,13 +38,12 @@ import (
 
 // MultiLedgerSetup is the setup of a multi-ledger test.
 type MultiLedgerSetup struct {
-	Client1, Client2               Client
-	Asset1, Asset2                 multi.Asset
-	InitBalances                   channel.Balances
-	UpdateBalances1                channel.Balances
-	UpdateBalances2                channel.Balances
-	BalanceReader1, BalanceReader2 BalanceReader
-	BalanceDelta                   channel.Bal // Delta the final balances can be off due to gas costs for example.
+	Client1, Client2 MultiLedgerClient
+	Asset1, Asset2   multi.Asset
+	InitBalances     channel.Balances
+	UpdateBalances1  channel.Balances
+	UpdateBalances2  channel.Balances
+	BalanceDelta     channel.Bal // Delta the final balances can be off due to gas costs for example.
 }
 
 // SetupMultiLedgerTest sets up a multi-ledger test.
@@ -87,9 +86,7 @@ func SetupMultiLedgerTest(t *testing.T) MultiLedgerSetup {
 			{big.NewInt(1), big.NewInt(9)}, // Asset 1.
 			{big.NewInt(5), big.NewInt(5)}, // Asset 2.
 		},
-		BalanceReader1: l1,
-		BalanceReader2: l2,
-		BalanceDelta:   big.NewInt(0), // The MockBackend does not incur gas costs.
+		BalanceDelta: big.NewInt(0), // The MockBackend does not incur gas costs.
 	}
 }
 
@@ -139,17 +136,18 @@ func (a *MultiLedgerAsset) UnmarshalBinary(data []byte) error {
 	return perunio.Decode(buf, string(a.id), a.asset)
 }
 
-// Client represents a test client.
-type Client struct {
+// MultiLedgerClient represents a test client.
+type MultiLedgerClient struct {
 	*client.Client
-	WireAddress                wire.Address
-	WalletAddress              wallet.Address
-	Events                     chan channel.AdjudicatorEvent
-	Adjudicator1, Adjudicator2 channel.Adjudicator
+	WireAddress                    wire.Address
+	WalletAddress                  wallet.Address
+	Events                         chan channel.AdjudicatorEvent
+	Adjudicator1, Adjudicator2     channel.Adjudicator
+	BalanceReader1, BalanceReader2 BalanceReader
 }
 
 // HandleAdjudicatorEvent handles an incoming adjudicator event.
-func (c Client) HandleAdjudicatorEvent(e channel.AdjudicatorEvent) {
+func (c MultiLedgerClient) HandleAdjudicatorEvent(e channel.AdjudicatorEvent) {
 	log.Infof("Client %v: Received adjudicator event %T", c.WireAddress, e)
 	c.Events <- e
 }
@@ -157,7 +155,7 @@ func (c Client) HandleAdjudicatorEvent(e channel.AdjudicatorEvent) {
 func setupClient(
 	t *testing.T, rng *rand.Rand,
 	l1, l2 *MockBackend, bus wire.Bus,
-) Client {
+) MultiLedgerClient {
 	t.Helper()
 	require := require.New(t)
 
@@ -170,13 +168,13 @@ func setupClient(
 
 	// Setup funder.
 	funder := multi.NewFunder()
-	funder.RegisterFunder(l1.ID(), l1)
-	funder.RegisterFunder(l2.ID(), l2)
+	funder.RegisterFunder(l1.ID(), l1.NewFunder(acc.Address()))
+	funder.RegisterFunder(l2.ID(), l2.NewFunder(acc.Address()))
 
 	// Setup adjudicator.
 	adj := multi.NewAdjudicator()
-	adj.RegisterAdjudicator(l1.ID(), l1)
-	adj.RegisterAdjudicator(l2.ID(), l2)
+	adj.RegisterAdjudicator(l1.ID(), l1.NewAdjudicator(acc.Address()))
+	adj.RegisterAdjudicator(l2.ID(), l2.NewAdjudicator(acc.Address()))
 
 	// Setup watcher.
 	watcher, err := local.NewWatcher(adj)
@@ -192,12 +190,14 @@ func setupClient(
 	)
 	require.NoError(err)
 
-	return Client{
-		Client:        c,
-		WireAddress:   wireAddr,
-		WalletAddress: acc.Address(),
-		Events:        make(chan channel.AdjudicatorEvent),
-		Adjudicator1:  l1,
-		Adjudicator2:  l2,
+	return MultiLedgerClient{
+		Client:         c,
+		WireAddress:    wireAddr,
+		WalletAddress:  acc.Address(),
+		Events:         make(chan channel.AdjudicatorEvent),
+		Adjudicator1:   l1.NewAdjudicator(acc.Address()),
+		Adjudicator2:   l2.NewAdjudicator(acc.Address()),
+		BalanceReader1: l1.NewBalanceReader(acc.Address()),
+		BalanceReader2: l2.NewBalanceReader(acc.Address()),
 	}
 }

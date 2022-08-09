@@ -21,13 +21,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/stretchr/testify/assert"
-
 	"perun.network/go-perun/apps/payment"
 	chtest "perun.network/go-perun/channel/test"
 	"perun.network/go-perun/client"
 	ctest "perun.network/go-perun/client/test"
-	"perun.network/go-perun/wallet"
 	wtest "perun.network/go-perun/wallet/test"
 	"perun.network/go-perun/watcher/local"
 	"perun.network/go-perun/wire"
@@ -53,44 +50,24 @@ func NewSetups(rng *rand.Rand, names []string) []ctest.RoleSetup {
 		if err != nil {
 			panic("Error initializing watcher: " + err.Error())
 		}
+		w := wtest.NewWallet()
+		acc := w.NewRandomAccount(rng)
 		setup[i] = ctest.RoleSetup{
 			Name:              names[i],
 			Identity:          wiretest.NewRandomAccount(rng),
 			Bus:               bus,
-			Funder:            backend,
-			Adjudicator:       backend,
+			Funder:            backend.NewFunder(acc.Address()),
+			Adjudicator:       backend.NewAdjudicator(acc.Address()),
 			Watcher:           watcher,
-			Wallet:            wtest.NewWallet(),
+			Wallet:            w,
 			Timeout:           roleOperationTimeout,
-			BalanceReader:     backend,
+			BalanceReader:     backend.NewBalanceReader(acc.Address()),
 			ChallengeDuration: 60,
 			Errors:            make(chan error),
 		}
 	}
 
 	return setup
-}
-
-type Client struct {
-	*client.Client
-	ctest.RoleSetup
-	WalletAddress wallet.Address
-}
-
-func NewClients(t *testing.T, rng *rand.Rand, setups []ctest.RoleSetup) []*Client {
-	t.Helper()
-	clients := make([]*Client, len(setups))
-	for i, setup := range setups {
-		setup.Identity = wiretest.NewRandomAccount(rng)
-		cl, err := client.New(setup.Identity.Address(), setup.Bus, setup.Funder, setup.Adjudicator, setup.Wallet, setup.Watcher)
-		assert.NoError(t, err)
-		clients[i] = &Client{
-			Client:        cl,
-			RoleSetup:     setup,
-			WalletAddress: setup.Wallet.NewRandomAccount(rng).Address(),
-		}
-	}
-	return clients
 }
 
 func runAliceBobTest(ctx context.Context, t *testing.T, setup func(*rand.Rand) ([]ctest.RoleSetup, [2]ctest.Executer)) {

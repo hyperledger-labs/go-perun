@@ -65,7 +65,7 @@ func TestMultiLedgerHappy(ctx context.Context, t *testing.T, mlt MultiLedgerSetu
 
 	// Open channel.
 	chAliceBob, err := alice.ProposeChannel(ctx, prop)
-	require.NoError(err, "opening channel between Alice and Ingrid")
+	require.NoError(err, "opening channel between Alice and Bob")
 	var chBobAlice *client.Channel
 	select {
 	case chBobAlice = <-channels:
