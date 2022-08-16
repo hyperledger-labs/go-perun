@@ -340,7 +340,7 @@ func (c *Client) proposeTwoPartyChannel(
 		switch msg := e.Msg.(type) {
 		case ChannelProposalAccept:
 			return msg.Base().ProposalID == proposalID
-		case ChannelProposalRejMsg:
+		case *ChannelProposalRejMsg:
 			return msg.ProposalID == proposalID
 		default:
 			return false
