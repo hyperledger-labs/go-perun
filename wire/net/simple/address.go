@@ -68,7 +68,8 @@ func (a Address) Cmp(b wire.Address) int {
 
 // NewRandomAddress returns a new random peer address.
 func NewRandomAddress(rng *rand.Rand) *Address {
-	l := rng.Intn(32)
+	const addrLen = 32
+	l := rng.Intn(addrLen)
 	d := make([]byte, l)
 	if _, err := rng.Read(d); err != nil {
 		panic(err)

@@ -25,6 +25,7 @@ type Account struct {
 	addr wire.Address
 }
 
+// NewAccount creates a new account.
 func NewAccount(addr *Address) *Account {
 	return &Account{
 		addr: addr,
