@@ -197,7 +197,7 @@ func setupVirtualChannelTest(
 		},
 	}
 
-	_channelsIngrid := make(chan *client.Channel, 1)
+	channelsIngrid := make(chan *client.Channel, 1)
 	var openingProposalHandlerIngrid client.ProposalHandlerFunc = func(cp client.ChannelProposal, pr *client.ProposalResponder) {
 		switch cp := cp.(type) {
 		case *client.LedgerChannelProposalMsg:
@@ -205,7 +205,7 @@ func setupVirtualChannelTest(
 			if err != nil {
 				vct.errs <- errors.WithMessage(err, "accepting ledger channel proposal")
 			}
-			_channelsIngrid <- ch
+			channelsIngrid <- ch
 		default:
 			vct.errs <- errors.Errorf("invalid channel proposal: %v", cp)
 		}
@@ -231,7 +231,7 @@ func setupVirtualChannelTest(
 	vct.chAliceIngrid, err = alice.ProposeChannel(ctx, lcpAlice)
 	require.NoError(err, "opening channel between Alice and Ingrid")
 	select {
-	case vct.chIngridAlice = <-_channelsIngrid:
+	case vct.chIngridAlice = <-channelsIngrid:
 	case err := <-vct.errs:
 		t.Fatalf("Error in go-routine: %v", err)
 	}
@@ -251,7 +251,7 @@ func setupVirtualChannelTest(
 	vct.chBobIngrid, err = bob.ProposeChannel(ctx, lcpBob)
 	require.NoError(err, "opening channel between Bob and Ingrid")
 	select {
-	case vct.chIngridBob = <-_channelsIngrid:
+	case vct.chIngridBob = <-channelsIngrid:
 	case err := <-vct.errs:
 		t.Fatalf("Error in go-routine: %v", err)
 	}
