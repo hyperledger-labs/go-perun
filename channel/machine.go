@@ -401,7 +401,7 @@ func (m *machine) SetRegistered() error {
 // the given state.
 func (m *machine) SetProgressing(state *State) error {
 	if !inPhase(m.phase, []Phase{Registered, Progressing, Progressed}) {
-		return m.phaseErrorf(m.selfTransition(), "can only progress when registered or progressed")
+		return m.phaseErrorf(m.selfTransition(), "can only progress after registration")
 	}
 	m.setStaging(Progressing, state)
 	return nil
