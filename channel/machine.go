@@ -400,8 +400,8 @@ func (m *machine) SetRegistered() error {
 // SetProgressing sets the machine phase to Progressing and the staging state to
 // the given state.
 func (m *machine) SetProgressing(state *State) error {
-	if !inPhase(m.phase, []Phase{Registered, Progressed}) {
-		return m.phaseErrorf(m.selfTransition(), "can only progress when registered or progressed")
+	if !inPhase(m.phase, []Phase{Registered, Progressing, Progressed}) {
+		return m.phaseErrorf(m.selfTransition(), "can only progress after registration")
 	}
 	m.setStaging(Progressing, state)
 	return nil
