@@ -1,4 +1,4 @@
-// Copyright 2021 - See NOTICE file for copyright holders.
+// Copyright 2020 - See NOTICE file for copyright holders.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -19,12 +19,51 @@ import (
 	"math/big"
 	"testing"
 
+	"perun.network/go-perun/apps/payment"
 	chtest "perun.network/go-perun/channel/test"
 	"perun.network/go-perun/client"
 	ctest "perun.network/go-perun/client/test"
 	"perun.network/go-perun/wire"
 	"polycry.pt/poly-go/test"
 )
+
+func TestSubChannelHappy(t *testing.T) {
+	rng := test.Prng(t)
+
+	setups := NewSetups(rng, []string{"Susie", "Tim"})
+	roles := [2]ctest.Executer{
+		ctest.NewSusie(t, setups[0]),
+		ctest.NewTim(t, setups[1]),
+	}
+
+	cfg := ctest.NewSusieTimExecConfig(
+		ctest.MakeBaseExecConfig(
+			[2]wire.Address{setups[0].Identity.Address(), setups[1].Identity.Address()},
+			chtest.NewRandomAsset(rng),
+			[2]*big.Int{big.NewInt(100), big.NewInt(100)},
+			client.WithoutApp(),
+		),
+		2,
+		3,
+		[][2]*big.Int{
+			{big.NewInt(10), big.NewInt(10)},
+			{big.NewInt(5), big.NewInt(5)},
+		},
+		[][2]*big.Int{
+			{big.NewInt(3), big.NewInt(3)},
+			{big.NewInt(2), big.NewInt(2)},
+			{big.NewInt(1), big.NewInt(1)},
+		},
+		client.WithApp(
+			chtest.NewRandomAppAndData(rng, chtest.WithAppRandomizer(new(payment.Randomizer))),
+		),
+		big.NewInt(1),
+	)
+
+	ctx, cancel := context.WithTimeout(context.Background(), twoPartyTestTimeout)
+	defer cancel()
+	ctest.ExecuteTwoPartyTest(ctx, t, roles, cfg)
+}
 
 func TestSubChannelDispute(t *testing.T) {
 	rng := test.Prng(t)

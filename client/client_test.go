@@ -17,12 +17,14 @@ package client_test
 import (
 	"context"
 	"testing"
+	"time"
 
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"perun.network/go-perun/channel"
+	chtest "perun.network/go-perun/channel/test"
 	"perun.network/go-perun/client"
 	ctest "perun.network/go-perun/client/test"
 	wtest "perun.network/go-perun/wallet/test"
@@ -49,7 +51,7 @@ func TestClient_New_NilArgs(t *testing.T) {
 	rng := test.Prng(t)
 	id := wiretest.NewRandomAddress(rng)
 	backend := &ctest.MockBackend{}
-	b, f, a, w := &DummyBus{t}, backend, backend, wtest.RandomWallet()
+	b, f, a, w := &DummyBus{t}, &ctest.MockFunder{}, &ctest.MockAdjudicator{}, wtest.RandomWallet()
 	watcher, err := local.NewWatcher(backend)
 	require.NoError(t, err, "initializing the watcher should not error")
 	assert.Panics(t, func() { client.New(nil, b, f, a, w, watcher) })  //nolint:errcheck
@@ -66,7 +68,7 @@ func TestClient_Handle_NilArgs(t *testing.T) {
 	watcher, err := local.NewWatcher(backend)
 	require.NoError(t, err, "initializing the watcher should not error")
 	c, err := client.New(wiretest.NewRandomAddress(rng),
-		&DummyBus{t}, backend, backend, wtest.RandomWallet(), watcher)
+		&DummyBus{t}, &ctest.MockFunder{}, &ctest.MockAdjudicator{}, wtest.RandomWallet(), watcher)
 	require.NoError(t, err)
 
 	dummyUH := client.UpdateHandlerFunc(func(*channel.State, client.ChannelUpdate, *client.UpdateResponder) {})
@@ -81,7 +83,46 @@ func TestClient_New(t *testing.T) {
 	watcher, err := local.NewWatcher(backend)
 	require.NoError(t, err, "initializing the watcher should not error")
 	c, err := client.New(wiretest.NewRandomAddress(rng),
-		&DummyBus{t}, backend, backend, wtest.RandomWallet(), watcher)
+		&DummyBus{t}, &ctest.MockFunder{}, &ctest.MockAdjudicator{}, wtest.RandomWallet(), watcher)
 	assert.NoError(t, err)
 	require.NotNil(t, c)
+}
+
+func TestChannelRejection(t *testing.T) {
+	rng := test.Prng(t)
+	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+	defer cancel()
+
+	roles := NewSetups(rng, []string{"Alice", "Bob"})
+	asset := chtest.NewRandomAsset(rng)
+	clients := ctest.NewClients(t, rng, roles)
+	require := require.New(t)
+	alice, bob := clients[0], clients[1]
+
+	// Setup proposal handler. Reject all channels.
+	errs := make(chan error)
+	go alice.Handle(
+		ctest.AlwaysRejectChannelHandler(ctx, errs),
+		ctest.AlwaysAcceptUpdateHandler(ctx, errs),
+	)
+	go bob.Handle(
+		ctest.AlwaysRejectChannelHandler(ctx, errs),
+		ctest.AlwaysAcceptUpdateHandler(ctx, errs),
+	)
+
+	// Create channel proposal.
+	parts := []wire.Address{alice.Identity.Address(), bob.Identity.Address()}
+	initAlloc := channel.NewAllocation(len(parts), asset)
+	prop, err := client.NewLedgerChannelProposal(
+		challengeDuration,
+		alice.WalletAddress,
+		initAlloc,
+		parts,
+	)
+	require.NoError(err, "creating ledger channel proposal")
+
+	// Propose channel and await rejection.
+	_, err = alice.ProposeChannel(ctx, prop)
+	require.Error(err)
+	require.NoError(ctx.Err())
 }

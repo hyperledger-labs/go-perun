@@ -35,7 +35,7 @@ type (
 		log          log.Logger
 		rng          rng
 		mu           sync.Mutex
-		funder       *funder
+		assetHolder  *assetHolder
 		latestEvents map[channel.ID]channel.AdjudicatorEvent
 		eventSubs    map[channel.ID][]*MockSubscription
 		balances     map[addressMapKey]map[assetMapKey]*big.Int
@@ -66,7 +66,7 @@ func NewMockBackend(rng *rand.Rand, id string) *MockBackend {
 	return &MockBackend{
 		log:          log.Default(),
 		rng:          newThreadSafePrng(backendRng),
-		funder:       newFunder(newThreadSafePrng(backendRng)),
+		assetHolder:  newAssetHolder(newThreadSafePrng(backendRng)),
 		latestEvents: make(map[channel.ID]channel.AdjudicatorEvent),
 		eventSubs:    make(map[channel.ID][]*MockSubscription),
 		balances:     make(map[string]map[string]*big.Int),
@@ -98,12 +98,49 @@ func (g *threadSafeRng) Intn(n int) int {
 	return g.r.Intn(n)
 }
 
+// MockFunder is a funder used for testing.
+type MockFunder struct {
+	b   *MockBackend
+	acc wallet.Address
+}
+
+// Fund funds a given channel.
+func (f *MockFunder) Fund(ctx context.Context, req channel.FundingReq) error {
+	return f.b.Fund(ctx, req, f.acc)
+}
+
+// NewFunder returns a new MockFunder.
+func (b *MockBackend) NewFunder(acc wallet.Address) *MockFunder {
+	return &MockFunder{
+		b:   b,
+		acc: acc,
+	}
+}
+
 // Fund funds the channel.
-func (b *MockBackend) Fund(ctx context.Context, req channel.FundingReq) error {
+func (b *MockBackend) Fund(ctx context.Context, req channel.FundingReq, acc wallet.Address) error {
 	b.log.Infof("Funding: %+v", req)
-	b.funder.InitFunder(req)
-	b.funder.Fund(req)
-	return b.funder.WaitForFunding(ctx, req)
+	b.assetHolder.Fund(req, b, acc)
+	return b.assetHolder.WaitForFunding(ctx, req)
+}
+
+// MockAdjudicator is an adjudicator used for testing.
+type MockAdjudicator struct {
+	*MockBackend
+	acc wallet.Address
+}
+
+// Withdraw withdraws the balances of the given channel and its sub-channels.
+func (a *MockAdjudicator) Withdraw(ctx context.Context, req channel.AdjudicatorReq, subStates channel.StateMap) error {
+	return a.MockBackend.Withdraw(ctx, req, subStates, a.acc)
+}
+
+// NewAdjudicator creates a new MockAdjudicator.
+func (b *MockBackend) NewAdjudicator(acc wallet.Address) *MockAdjudicator {
+	return &MockAdjudicator{
+		MockBackend: b,
+		acc:         acc,
+	}
 }
 
 // Register registers the channel.
@@ -138,12 +175,13 @@ func (b *MockBackend) Register(_ context.Context, req channel.AdjudicatorReq, su
 		},
 	}, subChannels...)
 
+	timeout := time.Now().Add(time.Duration(req.Params.ChallengeDuration) * time.Millisecond)
 	for _, ch := range channels {
 		b.setLatestEvent(
 			ch.Params.ID(),
 			channel.NewRegisteredEvent(
 				ch.Params.ID(),
-				&channel.ElapsedTimeout{},
+				&channel.TimeTimeout{Time: timeout},
 				ch.State.Version,
 				ch.State,
 				ch.Sigs,
@@ -176,11 +214,12 @@ func (b *MockBackend) Progress(_ context.Context, req channel.ProgressReq) error
 	b.mu.Lock()
 	defer b.mu.Unlock()
 
+	timeout := time.Now().Add(time.Duration(req.Params.ChallengeDuration) * time.Millisecond)
 	b.setLatestEvent(
 		req.Params.ID(),
 		channel.NewProgressedEvent(
 			req.Params.ID(),
-			&channel.ElapsedTimeout{},
+			&channel.TimeTimeout{Time: timeout},
 			req.NewState.Clone(),
 			req.Idx,
 		),
@@ -249,7 +288,7 @@ func (b *MockBackend) checkState(s *channel.State, op checkStateFunc) error {
 }
 
 // Withdraw withdraws the channel funds.
-func (b *MockBackend) Withdraw(_ context.Context, req channel.AdjudicatorReq, subStates channel.StateMap) error {
+func (b *MockBackend) Withdraw(_ context.Context, req channel.AdjudicatorReq, subStates channel.StateMap, acc wallet.Address) error {
 	b.mu.Lock()
 	defer b.mu.Unlock()
 
@@ -265,24 +304,45 @@ func (b *MockBackend) Withdraw(_ context.Context, req channel.AdjudicatorReq, su
 		return err
 	}
 
-	// Check concluded.
+	// Redistribute balances if not done already.
+	b.assetHolder.mtx.Lock()
+	defer b.assetHolder.mtx.Unlock()
 	ch := req.Params.ID()
-	if b.isConcluded(ch) {
-		log.Debug("withdraw: already concluded:", ch)
-		return nil
-	}
+	if !b.isConcluded(ch) {
+		outcome := outcomeRecursive(req.Tx.State, subStates)
+		b.log.Infof("Withdraw: %+v, %+v, %+v", req, subStates, outcome)
+		outcomeSum := outcome.Sum()
 
-	outcome := outcomeRecursive(req.Tx.State, subStates)
-	b.log.Infof("Withdraw: %+v, %+v, %+v", req, subStates, outcome)
-	for a, assetOutcome := range outcome {
-		asset := req.Tx.Allocation.Assets[a]
-		for p, amount := range assetOutcome {
-			participant := req.Params.Parts[p]
-			b.addBalance(participant, asset, amount)
+		funding := b.assetHolder.balances[ch]
+		if funding == nil {
+			funding = channel.MakeBalances(len(req.Tx.Assets), req.Tx.NumParts())
+		}
+		fundingSum := funding.Sum()
+
+		for a, assetOutcome := range outcome {
+			// If underfunded, don't redistribute balances.
+			if fundingSum[a].Cmp(outcomeSum[a]) < 0 {
+				continue
+			}
+			for p, amount := range assetOutcome {
+				funding[a][p].Set(amount)
+			}
 		}
 	}
 
-	b.setLatestEvent(ch, channel.NewConcludedEvent(ch, &channel.ElapsedTimeout{}, req.Tx.Version))
+	// Payout balances.
+	balances := b.assetHolder.balances[ch]
+	for a, assetBalances := range balances {
+		asset := req.Tx.Allocation.Assets[a]
+		p := req.Idx
+		amount := assetBalances[p]
+		b.addBalance(acc, asset, amount)
+		amount.Set(big.NewInt(0))
+	}
+
+	if !b.isConcluded(ch) {
+		b.setLatestEvent(ch, channel.NewConcludedEvent(ch, &channel.ElapsedTimeout{}, req.Tx.Version))
+	}
 	return nil
 }
 
@@ -300,6 +360,12 @@ func (b *MockBackend) isConcluded(ch channel.ID) bool {
 func (b *MockBackend) addBalance(p wallet.Address, a channel.Asset, v *big.Int) {
 	bal := b.balance(p, a)
 	bal = new(big.Int).Add(bal, v)
+	b.setBalance(p, a, bal)
+}
+
+func (b *MockBackend) subBalance(p wallet.Address, a channel.Asset, v *big.Int) {
+	bal := b.balance(p, a)
+	bal = new(big.Int).Sub(bal, v)
 	b.setBalance(p, a, bal)
 }
 
@@ -334,6 +400,26 @@ func encodableAsString(e encoding.BinaryMarshaler) string {
 		panic(err)
 	}
 	return string(buff)
+}
+
+// MockBalanceReader is a balance reader used for testing. At initialization, it
+// is associated with a given account.
+type MockBalanceReader struct {
+	b   *MockBackend
+	acc wallet.Address
+}
+
+// Balance returns the balance of the associated account for the given asset.
+func (br *MockBalanceReader) Balance(asset channel.Asset) channel.Bal {
+	return br.b.Balance(br.acc, asset)
+}
+
+// NewBalanceReader creates balance for the given account.
+func (b *MockBackend) NewBalanceReader(acc wallet.Address) *MockBalanceReader {
+	return &MockBalanceReader{
+		b:   b,
+		acc: acc,
+	}
 }
 
 // Balance returns the balance for the participant and asset.
@@ -397,26 +483,28 @@ func (b *MockBackend) removeSubscription(ch channel.ID, sub *MockSubscription) {
 	b.eventSubs[ch] = append(subs[:i], subs[i+1:]...)
 }
 
-// funder mocks a funder for the MockBackend.
-type funder struct {
+// assetHolder mocks an assetHolder for the MockBackend.
+type assetHolder struct {
 	rng       rng
 	mtx       sync.Mutex
+	balances  map[channel.ID]channel.Balances
 	fundedWgs map[channel.ID]*sync.WaitGroup
 }
 
-// newFunder returns a new funder.
-func newFunder(rng rng) *funder {
-	return &funder{
+// newAssetHolder returns a new funder.
+func newAssetHolder(rng rng) *assetHolder {
+	return &assetHolder{
 		rng:       rng,
+		balances:  make(map[channel.ID]channel.Balances),
 		fundedWgs: make(map[channel.ID]*sync.WaitGroup),
 	}
 }
 
-// InitFunder initializes the funded WaitGroups for a channel if not already
+// initFund initializes the funded WaitGroups for a channel if not already
 // initialized.
 //
 // Must be called before using the Funder for a funding request.
-func (f *funder) InitFunder(req channel.FundingReq) {
+func (f *assetHolder) initFund(req channel.FundingReq) {
 	f.mtx.Lock()
 	defer f.mtx.Unlock()
 
@@ -424,16 +512,39 @@ func (f *funder) InitFunder(req channel.FundingReq) {
 		f.fundedWgs[req.Params.ID()] = &sync.WaitGroup{}
 		f.fundedWgs[req.Params.ID()].Add(len(req.Params.Parts))
 	}
+	if f.balances[req.Params.ID()] == nil {
+		f.balances[req.Params.ID()] = channel.MakeBalances(len(req.State.Assets), req.State.NumParts())
+	}
 }
 
 // Fund simulates funding the channel.
-func (f *funder) Fund(req channel.FundingReq) {
+func (f *assetHolder) Fund(req channel.FundingReq, b *MockBackend, acc wallet.Address) {
+	f.initFund(req)
+
+	// Simulates a random delay during funding.
 	time.Sleep(time.Duration(f.rng.Intn(fundMaxSleepMs+1)) * time.Millisecond)
+
+	for i, asset := range req.State.Assets {
+		ma, ok := asset.(*MultiLedgerAsset)
+		if ok && ma.LedgerID() != b.ID() {
+			continue
+		}
+
+		bal := req.Agreement[i][req.Idx]
+		b.mu.Lock()
+		b.subBalance(acc, asset, bal)
+		b.mu.Unlock()
+		f.mtx.Lock()
+		fundingBal := f.balances[req.Params.ID()][i][req.Idx]
+		fundingBal.Add(fundingBal, bal)
+		f.mtx.Unlock()
+	}
+
 	f.fundedWgs[req.Params.ID()].Done()
 }
 
 // WaitForFunding waits until all participants have funded the channel.
-func (f *funder) WaitForFunding(ctx context.Context, req channel.FundingReq) error {
+func (f *assetHolder) WaitForFunding(ctx context.Context, req channel.FundingReq) error {
 	challengeDuration := time.Duration(req.Params.ChallengeDuration) * time.Second
 	fundCtx, cancel := context.WithTimeout(ctx, challengeDuration)
 	defer cancel()
@@ -449,7 +560,6 @@ func (f *funder) WaitForFunding(ctx context.Context, req channel.FundingReq) err
 
 // MockSubscription is a subscription for MockBackend.
 type MockSubscription struct {
-	ctx     context.Context //nolint:containedctx // This is just done for testing. Could be revised.
 	events  chan channel.AdjudicatorEvent
 	err     chan error
 	onClose func()
@@ -458,7 +568,6 @@ type MockSubscription struct {
 // NewMockSubscription creates a new MockSubscription.
 func NewMockSubscription(ctx context.Context) *MockSubscription {
 	return &MockSubscription{
-		ctx:    ctx,
 		events: make(chan channel.AdjudicatorEvent, 1),
 		err:    make(chan error, 1),
 	}
@@ -466,13 +575,7 @@ func NewMockSubscription(ctx context.Context) *MockSubscription {
 
 // Next returns the next event.
 func (s *MockSubscription) Next() channel.AdjudicatorEvent {
-	select {
-	case e := <-s.events:
-		return e
-	case <-s.ctx.Done():
-		s.err <- s.ctx.Err()
-		return nil
-	}
+	return <-s.events
 }
 
 // Close closes the subscription.

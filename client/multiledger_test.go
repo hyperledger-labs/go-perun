@@ -16,35 +16,21 @@ package client_test
 
 import (
 	"context"
-	"math/big"
-	"math/rand"
 	"testing"
 
-	"perun.network/go-perun/channel"
-	chtest "perun.network/go-perun/channel/test"
 	ctest "perun.network/go-perun/client/test"
-	"polycry.pt/poly-go/test"
 )
 
-func TestFailingFunding(t *testing.T) {
-	rng := test.Prng(t)
-
+func TestMultiLedgerHappy(t *testing.T) {
+	mlt := ctest.SetupMultiLedgerTest(t)
 	ctx, cancel := context.WithTimeout(context.Background(), twoPartyTestTimeout)
 	defer cancel()
+	ctest.TestMultiLedgerHappy(ctx, t, mlt, challengeDuration)
+}
 
-	ctest.TestFundRecovery(
-		ctx,
-		t,
-		ctest.FundSetup{
-			ChallengeDuration: 1,
-			FridaInitBal:      big.NewInt(100),
-			FredInitBal:       big.NewInt(50),
-			BalanceDelta:      big.NewInt(0),
-		},
-		func(r *rand.Rand) ([2]ctest.RoleSetup, channel.Asset) {
-			roles := NewSetups(rng, []string{"Frida", "Fred"})
-			asset := chtest.NewRandomAsset(rng)
-			return [2]ctest.RoleSetup{roles[0], roles[1]}, asset
-		},
-	)
+func TestMultiLedgerDispute(t *testing.T) {
+	mlt := ctest.SetupMultiLedgerTest(t)
+	ctx, cancel := context.WithTimeout(context.Background(), twoPartyTestTimeout)
+	defer cancel()
+	ctest.TestMultiLedgerDispute(ctx, t, mlt, challengeDuration)
 }

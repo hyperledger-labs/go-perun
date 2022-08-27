@@ -22,10 +22,13 @@ import (
 	"io"
 	"math/big"
 	"math/rand"
+	"os"
+	"runtime/pprof"
 	"sync"
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/assert"
 	"perun.network/go-perun/channel"
 	"perun.network/go-perun/channel/persistence"
 	"perun.network/go-perun/client"
@@ -34,6 +37,7 @@ import (
 	wallettest "perun.network/go-perun/wallet/test"
 	"perun.network/go-perun/watcher"
 	"perun.network/go-perun/wire"
+	wiretest "perun.network/go-perun/wire/test"
 	pkgsync "polycry.pt/poly-go/sync"
 	"polycry.pt/poly-go/test"
 )
@@ -61,7 +65,7 @@ type (
 
 	// BalanceReader can be used to read state from a ledger.
 	BalanceReader interface {
-		Balance(p wallet.Address, a channel.Asset) channel.Bal
+		Balance(a channel.Asset) channel.Bal
 	}
 
 	// RoleSetup contains the injectables for setting up the client.
@@ -110,7 +114,31 @@ type (
 
 	// Stages are used to synchronize multiple roles.
 	Stages = []sync.WaitGroup
+
+	// Client is a client used for testing.
+	Client struct {
+		*client.Client
+		RoleSetup
+		WalletAddress wallet.Address
+	}
 )
+
+// NewClients creates new test clients from role setup specifications.
+func NewClients(t *testing.T, rng *rand.Rand, setups []RoleSetup) []*Client {
+	t.Helper()
+	clients := make([]*Client, len(setups))
+	for i, setup := range setups {
+		setup.Identity = wiretest.NewRandomAccount(rng)
+		cl, err := client.New(setup.Identity.Address(), setup.Bus, setup.Funder, setup.Adjudicator, setup.Wallet, setup.Watcher)
+		assert.NoError(t, err)
+		clients[i] = &Client{
+			Client:        cl,
+			RoleSetup:     setup,
+			WalletAddress: setup.Wallet.NewRandomAccount(rng).Address(),
+		}
+	}
+	return clients
+}
 
 // ExecuteTwoPartyTest executes the specified client test.
 func ExecuteTwoPartyTest(ctx context.Context, t *testing.T, role [2]Executer, cfg ExecConfig) {
@@ -137,6 +165,7 @@ func ExecuteTwoPartyTest(ctx context.Context, t *testing.T, role [2]Executer, cf
 	select {
 	case <-wg.WaitCh():
 	case <-ctx.Done():
+		pprof.Lookup("goroutine").WriteTo(os.Stdout, 1) //nolint:errcheck
 		t.Fatal(ctx.Err())
 	case err := <-role[0].Errors():
 		t.Fatal(err)

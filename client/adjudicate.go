@@ -447,7 +447,9 @@ func (c *Channel) subChannelStateMap() (states channel.StateMap, err error) {
 // ensureRegistered ensures that the channel is registered.
 func (c *Channel) ensureRegistered(ctx context.Context) error {
 	phase := c.Phase()
-	if phase == channel.Registered || phase == channel.Progressed {
+	if phase == channel.Registered ||
+		phase == channel.Progressing ||
+		phase == channel.Progressed {
 		return nil
 	}
 
