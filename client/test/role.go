@@ -37,7 +37,6 @@ import (
 	wallettest "perun.network/go-perun/wallet/test"
 	"perun.network/go-perun/watcher"
 	"perun.network/go-perun/wire"
-	wiretest "perun.network/go-perun/wire/test"
 	pkgsync "polycry.pt/poly-go/sync"
 	"polycry.pt/poly-go/test"
 )
@@ -128,7 +127,6 @@ func NewClients(t *testing.T, rng *rand.Rand, setups []RoleSetup) []*Client {
 	t.Helper()
 	clients := make([]*Client, len(setups))
 	for i, setup := range setups {
-		setup.Identity = wiretest.NewRandomAccount(rng)
 		cl, err := client.New(setup.Identity.Address(), setup.Bus, setup.Funder, setup.Adjudicator, setup.Wallet, setup.Watcher)
 		assert.NoError(t, err)
 		clients[i] = &Client{
