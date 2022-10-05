@@ -12,7 +12,7 @@
   <a href="https://labs.hyperledger.org/perun-doc/"> <img src=".assets/read_the_docs.svg" alt="Read the Docs"></a>
 </p>
 
-_go-perun_ is a Go implementation of the [Perun state channel protocols](https://perun.network/) ([introduction paper](https://perun.network/pdf/Perun2.0.pdf)).
+_go-perun_ is a Go implementation of the [Perun state channel protocols](https://perun.network/) ([introduction paper](https://perun.network/wp-content/uploads/Perun2.0.pdf)).
 The perun protocols provide payment and general state channel functionality to all existing blockchains that feature smart contracts.
 As a blockchain scalability solution, payment and state channels reduce transaction costs and increase the system throughput by executing incremental transactions off-chain.
 The Perun protocols have been proven cryptographically secure in the UC-framework.
