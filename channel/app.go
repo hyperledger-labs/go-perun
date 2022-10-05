@@ -24,6 +24,7 @@ import (
 )
 
 type (
+	// AppID represents an app identifier.
 	AppID interface {
 		encoding.BinaryMarshaler
 		encoding.BinaryUnmarshaler

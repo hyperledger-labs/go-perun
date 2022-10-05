@@ -24,6 +24,7 @@ import (
 // appRegistry is the global registry for `AppResolver`s.
 var appRegistry = appReg{singles: make(map[AppIDKey]App)}
 
+// AppIDKey is the key representation of an app identifier.
 type AppIDKey string
 
 type appReg struct {

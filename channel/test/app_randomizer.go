@@ -84,6 +84,7 @@ type NewRandomAppIDFunc = func(*rand.Rand) channel.AppID
 
 var newRandomAppID NewRandomAppIDFunc
 
+// SetNewRandomAppID sets the function generating a new app identifier.
 func SetNewRandomAppID(f NewRandomAppIDFunc) {
 	newRandomAppID = f
 }

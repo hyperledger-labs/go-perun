@@ -115,7 +115,7 @@ func resetAppRegistry() {
 
 func newRandomAppID(rng *rand.Rand) AppID {
 	id := appID{}
-	rand.Read(id[:])
+	rng.Read(id[:])
 	return id
 }
 
