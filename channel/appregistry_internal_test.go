@@ -141,7 +141,6 @@ func (id appID) Equal(b AppID) bool {
 	return ok && bytes.Equal(id[:], bTyped[:])
 }
 
-// Key returns the object key which can be used as a map key.
 func (id appID) Key() AppIDKey {
 	b, err := id.MarshalBinary()
 	if err != nil {
