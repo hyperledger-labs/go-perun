@@ -249,6 +249,9 @@ func (m *machine) CurrentTX() Transaction {
 // AdjudicatorReq returns the adjudicator request for the current channel
 // transaction (the current state together with all participants' signatures on
 // it).
+//
+// The Secondary flag is left as false. Set it manually after creating the
+// request if you want to use optimized sencondary adjudication logic.
 func (m *machine) AdjudicatorReq() AdjudicatorReq {
 	return AdjudicatorReq{
 		Params: &m.params,

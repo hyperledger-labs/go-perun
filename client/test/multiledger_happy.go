@@ -90,8 +90,8 @@ func TestMultiLedgerHappy(ctx context.Context, t *testing.T, mlt MultiLedgerSetu
 	require.NoError(err)
 
 	// Close channel.
-	err = chAliceBob.Settle(ctx)
+	err = chAliceBob.Settle(ctx, false)
 	require.NoError(err)
-	err = chBobAlice.Settle(ctx)
+	err = chBobAlice.Settle(ctx, false)
 	require.NoError(err)
 }
