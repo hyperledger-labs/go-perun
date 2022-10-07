@@ -242,7 +242,7 @@ func (c *Channel) ForceUpdate(ctx context.Context, updater func(*channel.State))
 // to be mined.
 // Returns ChainNotReachableError if the connection to the blockchain network
 // fails when sending a transaction to / reading from the blockchain.
-func (c *Channel) Settle(ctx context.Context, secondary bool) (err error) {
+func (c *Channel) Settle(ctx context.Context) (err error) {
 	if !c.State().IsFinal {
 		err := c.ensureRegistered(ctx)
 		if err != nil {
@@ -268,7 +268,7 @@ func (c *Channel) Settle(ctx context.Context, secondary bool) (err error) {
 	}
 
 	// Withdraw.
-	err = c.withdraw(ctx, secondary)
+	err = c.withdraw(ctx)
 	if err != nil {
 		return
 	}
@@ -303,7 +303,7 @@ func (c *Channel) Settle(ctx context.Context, secondary bool) (err error) {
 	return nil
 }
 
-func (c *Channel) withdraw(ctx context.Context, secondary bool) error {
+func (c *Channel) withdraw(ctx context.Context) error {
 	switch {
 	case c.IsLedgerChannel():
 		subStates, err := c.subChannelStateMap()
@@ -311,7 +311,6 @@ func (c *Channel) withdraw(ctx context.Context, secondary bool) error {
 			return errors.WithMessage(err, "creating sub-channel state map")
 		}
 		req := c.machine.AdjudicatorReq()
-		req.Secondary = secondary
 		if err := c.adjudicator.Withdraw(ctx, req, subStates); err != nil {
 			return errors.WithMessage(err, "calling Withdraw")
 		}
