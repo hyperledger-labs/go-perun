@@ -24,12 +24,12 @@ import (
 
 // App is a payment app.
 type App struct {
-	Addr channel.AppID
+	ID channel.AppID
 }
 
 // Def returns the address of this payment app.
 func (a *App) Def() channel.AppID {
-	return a.Addr
+	return a.ID
 }
 
 // NewData returns a new instance of data specific to the payment app,
