@@ -20,11 +20,20 @@ import (
 
 	"github.com/pkg/errors"
 
-	"perun.network/go-perun/wallet"
 	"perun.network/go-perun/wire/perunio"
 )
 
 type (
+	// AppID represents an app identifier.
+	AppID interface {
+		encoding.BinaryMarshaler
+		encoding.BinaryUnmarshaler
+		Equal(AppID) bool
+
+		// Key returns the object key which can be used as a map key.
+		Key() AppIDKey
+	}
+
 	// An App is an abstract interface for an app definition. Either a StateApp or
 	// ActionApp should be implemented.
 	App interface {
@@ -33,7 +42,7 @@ type (
 		// what valid actions or transitions are.
 		// Calling this function on a NoApp panics, so ensure that IsNoApp
 		// returns false.
-		Def() wallet.Address
+		Def() AppID
 
 		// NewData returns a new instance of data specific to NoApp, intialized
 		// to its zero value.
@@ -117,11 +126,11 @@ type (
 	// AppResolver provides functionality to create an App from an Address.
 	// The AppResolver needs to be implemented for every state channel application.
 	AppResolver interface {
-		// Resolve creates an app from its defining address. It is
-		// possible that multiple apps are in use, which is why creation happens
-		// over a central Resolve function. This function is intended to resolve
-		// app definitions coming in on the wire.
-		Resolve(wallet.Address) (App, error)
+		// Resolve creates an app from its defining identifier. It is possible that
+		// multiple apps are in use, which is why creation happens over a central
+		// Resolve function. This function is intended to resolve app definitions
+		// coming in on the wire.
+		Resolve(AppID) (App, error)
 	}
 )
 
@@ -165,7 +174,7 @@ func (d OptAppDec) Decode(r io.Reader) (err error) {
 		*d.App = NoApp()
 		return nil
 	}
-	appDef := wallet.NewAddress()
+	appDef := backend.NewAppID()
 	err = perunio.Decode(r, appDef)
 	if err != nil {
 		return errors.WithMessage(err, "decode app address")

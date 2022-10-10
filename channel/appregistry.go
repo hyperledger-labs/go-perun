@@ -19,33 +19,38 @@ import (
 	"sync"
 
 	"github.com/pkg/errors"
-	"perun.network/go-perun/wallet"
 )
 
 // appRegistry is the global registry for `AppResolver`s.
-var appRegistry = appReg{singles: make(map[wallet.AddrKey]App)}
+var appRegistry = appReg{singles: make(map[AppIDKey]App)}
+
+// AppIDKey is the key representation of an app identifier.
+type AppIDKey string
 
 type appReg struct {
 	sync.RWMutex
 	resolvers  []appRegEntry
-	singles    map[wallet.AddrKey]App
+	singles    map[AppIDKey]App
 	defaultRes AppResolver
 }
 
+// AppIDPredicate is a function for filtering app identifiers.
+type AppIDPredicate = func(AppID) bool
+
 type appRegEntry struct {
-	pred wallet.AddressPredicate
+	pred AppIDPredicate
 	res  AppResolver
 }
 
 // Resolve is a global wrapper call to the global `appRegistry`.
 // This function is intended to resolve app definitions coming in on the wire.
-func Resolve(def wallet.Address) (App, error) {
+func Resolve(def AppID) (App, error) {
 	appRegistry.RLock()
 	defer appRegistry.RUnlock()
 	if def == nil {
 		log.Panic("resolving nil address")
 	}
-	if app, ok := appRegistry.singles[wallet.Key(def)]; ok {
+	if app, ok := appRegistry.singles[def.Key()]; ok {
 		return app, nil
 	}
 	for _, e := range appRegistry.resolvers {
@@ -59,14 +64,14 @@ func Resolve(def wallet.Address) (App, error) {
 	return appRegistry.defaultRes.Resolve(def)
 }
 
-// RegisterAppResolver appends the given `AddressPredicate` and `AppResolver` to the
-// global `appRegistry`.
-func RegisterAppResolver(pred wallet.AddressPredicate, appRes AppResolver) {
+// RegisterAppResolver appends the given `AppIDPredicate` and `AppResolver` to
+// the global `appRegistry`.
+func RegisterAppResolver(pred AppIDPredicate, appRes AppResolver) {
 	appRegistry.Lock()
 	defer appRegistry.Unlock()
 
 	if pred == nil || appRes == nil {
-		log.Panic("nil AddressPredicate or AppResolver")
+		log.Panic("nil AppIDPredicate or AppResolver")
 	}
 
 	appRegistry.resolvers = append(appRegistry.resolvers, appRegEntry{pred, appRes})
@@ -81,7 +86,7 @@ func RegisterApp(app App) {
 		log.Panic("nil Address or App")
 	}
 
-	appRegistry.singles[wallet.Key(app.Def())] = app
+	appRegistry.singles[app.Def().Key()] = app
 }
 
 // RegisterDefaultApp allows to specify a default `AppResolver` which is used by

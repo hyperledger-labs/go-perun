@@ -19,7 +19,6 @@ import (
 
 	"perun.network/go-perun/channel"
 	"perun.network/go-perun/channel/test"
-	wtest "perun.network/go-perun/wallet/test"
 )
 
 // Randomizer implements channel.test.AppRandomizer.
@@ -29,7 +28,7 @@ var _ test.AppRandomizer = (*Randomizer)(nil)
 
 // NewRandomApp always returns a payment app with a different address.
 func (*Randomizer) NewRandomApp(rng *rand.Rand) channel.App {
-	return &App{wtest.NewRandomAddress(rng)}
+	return &App{test.NewRandomAppID(rng)}
 }
 
 // NewRandomData returns NoData because a PaymentApp does not have data.

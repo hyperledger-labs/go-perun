@@ -23,7 +23,6 @@ import (
 	chtest "perun.network/go-perun/channel/test"
 	"perun.network/go-perun/client"
 	clienttest "perun.network/go-perun/client/test"
-	"perun.network/go-perun/wallet/test"
 	"perun.network/go-perun/wire"
 	pkgtest "polycry.pt/poly-go/test"
 )
@@ -37,7 +36,7 @@ func TestProgression(t *testing.T) {
 		clienttest.NewPaula(t, setups[1]),
 	}
 
-	appAddress := test.NewRandomAddress(rng)
+	appAddress := chtest.NewRandomAppID(rng)
 	app := channel.NewMockApp(appAddress)
 	channel.RegisterApp(app)
 

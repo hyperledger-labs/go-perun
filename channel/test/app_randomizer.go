@@ -78,3 +78,18 @@ func NewRandomAppAndData(rng *rand.Rand, opts ...RandomOpt) (channel.App, channe
 	opt := mergeRandomOpts(opts...)
 	return NewRandomApp(rng, opt), NewRandomData(rng, opt)
 }
+
+// NewRandomAppIDFunc is an app identifier randomizer function.
+type NewRandomAppIDFunc = func(*rand.Rand) channel.AppID
+
+var newRandomAppID NewRandomAppIDFunc
+
+// SetNewRandomAppID sets the function generating a new app identifier.
+func SetNewRandomAppID(f NewRandomAppIDFunc) {
+	newRandomAppID = f
+}
+
+// NewRandomAppID creates a new random channel.AppID.
+func NewRandomAppID(rng *rand.Rand) channel.AppID {
+	return newRandomAppID(rng)
+}

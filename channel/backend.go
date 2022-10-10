@@ -43,6 +43,10 @@ type Backend interface {
 	// NewAsset returns a variable of type Asset, which can be used
 	// for unmarshalling an asset from its binary representation.
 	NewAsset() Asset
+
+	// NewAppID returns an object of type AppID, which can be used for
+	// unmarshalling an app identifier from its binary representation.
+	NewAppID() AppID
 }
 
 // SetBackend sets the global channel backend. Must not be called directly but
@@ -73,4 +77,10 @@ func Verify(addr wallet.Address, state *State, sig wallet.Sig) (bool, error) {
 // for unmarshalling an asset from its binary representation.
 func NewAsset() Asset {
 	return backend.NewAsset()
+}
+
+// NewAppID returns an object of type AppID, which can be used for
+// unmarshalling an app identifier from its binary representation.
+func NewAppID() AppID {
+	return backend.NewAppID()
 }
