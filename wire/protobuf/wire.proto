@@ -18,7 +18,7 @@ syntax = "proto3";
 
 package perunwire;
 
-option go_package = "../protobuf";
+option go_package = "perun.network/go-perun/wire/protobuf";
 
 // Envelope encapsulates a message with the routing information. That is the
 // the sender and the intended receiver.
