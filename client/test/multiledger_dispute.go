@@ -127,9 +127,9 @@ func TestMultiLedgerDispute(
 	require.NoError(err)
 
 	// Settle.
-	err = chAliceBob.Settle(ctx)
+	err = chAliceBob.Settle(ctx, false)
 	require.NoError(err)
-	err = chBobAlice.Settle(ctx)
+	err = chBobAlice.Settle(ctx, false)
 	require.NoError(err)
 
 	// Close the channels.
