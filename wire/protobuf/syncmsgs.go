@@ -29,7 +29,7 @@ func toChannelSyncMsg(protoEnvMsg *Envelope_ChannelSyncMsg) (msg *client.Channel
 		msg.CurrentTX.Sigs[i] = make([]byte, len(protoMsg.CurrentTx.Sigs[i]))
 		copy(msg.CurrentTX.Sigs[i], protoMsg.CurrentTx.Sigs[i])
 	}
-	msg.CurrentTX.State, err = toState(protoMsg.CurrentTx.State)
+	msg.CurrentTX.State, err = ToState(protoMsg.CurrentTx.State)
 	return msg, err
 }
 
