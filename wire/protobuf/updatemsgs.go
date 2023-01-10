@@ -35,7 +35,7 @@ func toVirtualChannelFundingProposalMsg(protoEnvMsg *Envelope_VirtualChannelFund
 	protoMsg := protoEnvMsg.VirtualChannelFundingProposalMsg
 
 	msg = &client.VirtualChannelFundingProposalMsg{}
-	msg.Initial, err = toSignedState(protoMsg.Initial)
+	msg.Initial, err = ToSignedState(protoMsg.Initial)
 	if err != nil {
 		return nil, errors.WithMessage(err, "initial state")
 	}
@@ -54,7 +54,7 @@ func toVirtualChannelSettlementProposalMsg(protoEnvMsg *Envelope_VirtualChannelS
 	protoMsg := protoEnvMsg.VirtualChannelSettlementProposalMsg
 
 	msg = &client.VirtualChannelSettlementProposalMsg{}
-	msg.Final, err = toSignedState(protoMsg.Final)
+	msg.Final, err = ToSignedState(protoMsg.Final)
 	if err != nil {
 		return nil, errors.WithMessage(err, "final state")
 	}
@@ -90,12 +90,13 @@ func toChannelUpdate(protoUpdate *ChannelUpdateMsg) (update client.ChannelUpdate
 	update.ActorIdx = channel.Index(protoUpdate.ChannelUpdate.ActorIdx)
 	update.Sig = make([]byte, len(protoUpdate.Sig))
 	copy(update.Sig, protoUpdate.Sig)
-	update.State, err = toState(protoUpdate.ChannelUpdate.State)
+	update.State, err = ToState(protoUpdate.ChannelUpdate.State)
 	return update, err
 }
 
-func toSignedState(protoSignedState *SignedState) (signedState channel.SignedState, err error) {
-	signedState.Params, err = toParams(protoSignedState.Params)
+// ToSignedState parses protobuf signed states.
+func ToSignedState(protoSignedState *SignedState) (signedState channel.SignedState, err error) {
+	signedState.Params, err = ToParams(protoSignedState.Params)
 	if err != nil {
 		return signedState, err
 	}
@@ -104,11 +105,12 @@ func toSignedState(protoSignedState *SignedState) (signedState channel.SignedSta
 		signedState.Sigs[i] = make([]byte, len(protoSignedState.Sigs[i]))
 		copy(signedState.Sigs[i], protoSignedState.Sigs[i])
 	}
-	signedState.State, err = toState(protoSignedState.State)
+	signedState.State, err = ToState(protoSignedState.State)
 	return signedState, err
 }
 
-func toParams(protoParams *Params) (*channel.Params, error) {
+// ToParams parses protobuf params.
+func ToParams(protoParams *Params) (*channel.Params, error) {
 	app, err := toApp(protoParams.App)
 	if err != nil {
 		return nil, err
@@ -128,7 +130,8 @@ func toParams(protoParams *Params) (*channel.Params, error) {
 	return params, nil
 }
 
-func toState(protoState *State) (state *channel.State, err error) {
+// ToState parses protobuf states.
+func ToState(protoState *State) (state *channel.State, err error) {
 	state = &channel.State{}
 	copy(state.ID[:], protoState.Id)
 	state.Version = protoState.Version

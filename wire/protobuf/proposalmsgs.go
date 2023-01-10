@@ -150,7 +150,7 @@ func toBaseChannelProposal(protoProp *BaseChannelProposal) (prop client.BaseChan
 	if err != nil {
 		return prop, errors.WithMessage(err, "init bals")
 	}
-	prop.FundingAgreement = toBalances(protoProp.FundingAgreement)
+	prop.FundingAgreement = ToBalances(protoProp.FundingAgreement)
 	if err != nil {
 		return prop, errors.WithMessage(err, "funding agreement")
 	}
@@ -214,11 +214,12 @@ func toAllocation(protoAlloc *Allocation) (alloc *channel.Allocation, err error)
 			return nil, errors.WithMessagef(err, "%d'th sub alloc", i)
 		}
 	}
-	alloc.Balances = toBalances(protoAlloc.Balances)
+	alloc.Balances = ToBalances(protoAlloc.Balances)
 	return alloc, nil
 }
 
-func toBalances(protoBalances *Balances) (balances channel.Balances) {
+// ToBalances parses protobuf balances.
+func ToBalances(protoBalances *Balances) (balances channel.Balances) {
 	balances = make([][]channel.Bal, len(protoBalances.Balances))
 	for i := range protoBalances.Balances {
 		balances[i] = toBalance(protoBalances.Balances[i])
