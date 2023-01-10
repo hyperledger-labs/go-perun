@@ -20,7 +20,6 @@ import (
 
 	"github.com/pkg/errors"
 
-	simwallet "perun.network/go-perun/backend/sim/wallet"
 	"perun.network/go-perun/channel"
 	"perun.network/go-perun/log"
 	"perun.network/go-perun/wallet"
@@ -79,11 +78,4 @@ func (b *backend) Verify(addr wallet.Address, state *channel.State, sig []byte) 
 func (b *backend) NewAsset() channel.Asset {
 	addr := Asset{}
 	return &addr
-}
-
-// NewAppID returns an object of type AppID, which can be used for
-// unmarshalling an app identifier from its binary representation.
-func (b *backend) NewAppID() channel.AppID {
-	addr := &simwallet.Address{}
-	return AppID{addr}
 }

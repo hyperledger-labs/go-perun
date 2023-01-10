@@ -15,13 +15,13 @@
 package channel
 
 import (
-	"bytes"
-	"fmt"
 	"math/rand"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 
+	"perun.network/go-perun/wallet"
+	wtest "perun.network/go-perun/wallet/test"
 	"polycry.pt/poly-go/test"
 )
 
@@ -31,7 +31,7 @@ func TestAppRegistry(t *testing.T) {
 
 	backup := struct {
 		resolvers  []appRegEntry
-		singles    map[AppIDKey]App
+		singles    map[wallet.AddrKey]App
 		defaultRes AppResolver
 	}{
 		resolvers:  appRegistry.resolvers,
@@ -57,7 +57,7 @@ func testAppRegistryPanicsAndErrors(t *testing.T) {
 	t.Helper()
 	resetAppRegistry()
 	assert.Panics(t, func() { RegisterAppResolver(nil, nil) })
-	assert.Panics(t, func() { RegisterAppResolver(func(AppID) bool { return true }, nil) })
+	assert.Panics(t, func() { RegisterAppResolver(func(wallet.Address) bool { return true }, nil) })
 	assert.Panics(t, func() { RegisterAppResolver(nil, &MockAppResolver{}) })
 
 	assert.Panics(t, func() { RegisterApp(nil) })
@@ -72,9 +72,9 @@ func testAppRegistryPanicsAndErrors(t *testing.T) {
 	assert.Panics(t, func() { Resolve(nil) }) //nolint:errcheck
 }
 
-type defaultRes struct{ def AppID }
+type defaultRes struct{ def wallet.Address }
 
-func (r defaultRes) Resolve(AppID) (App, error) {
+func (r defaultRes) Resolve(wallet.Address) (App, error) {
 	return NewMockApp(r.def), nil
 }
 
@@ -102,49 +102,13 @@ func assertIdentity(t *testing.T, expected App) {
 }
 
 func newRandomMockApp(rng *rand.Rand) App {
-	return NewMockApp(newRandomAppID(rng))
+	return NewMockApp(wtest.NewRandomAddress(rng))
 }
 
 func resetAppRegistry() {
 	appRegistry.Lock()
 	defer appRegistry.Unlock()
 	appRegistry.resolvers = nil
-	appRegistry.singles = make(map[AppIDKey]App)
+	appRegistry.singles = make(map[wallet.AddrKey]App)
 	appRegistry.defaultRes = nil
-}
-
-func newRandomAppID(rng *rand.Rand) AppID {
-	id := appID{}
-	rng.Read(id[:])
-	return id
-}
-
-const appIDLength = 32
-
-type appID [appIDLength]byte
-
-func (id appID) MarshalBinary() (data []byte, err error) {
-	return id[:], nil
-}
-
-func (id appID) UnmarshalBinary(data []byte) error {
-	l := len(data)
-	if l != appIDLength {
-		return fmt.Errorf("invalid length: %v", l)
-	}
-	copy(id[:], data)
-	return nil
-}
-
-func (id appID) Equal(b AppID) bool {
-	bTyped, ok := b.(appID)
-	return ok && bytes.Equal(id[:], bTyped[:])
-}
-
-func (id appID) Key() AppIDKey {
-	b, err := id.MarshalBinary()
-	if err != nil {
-		panic(err)
-	}
-	return AppIDKey(b)
 }

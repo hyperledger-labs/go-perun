@@ -18,6 +18,7 @@ import (
 	"math/rand"
 
 	"perun.network/go-perun/channel"
+	"perun.network/go-perun/wallet/test"
 )
 
 // MockAppRandomizer implements the AppRandomizer interface.
@@ -25,7 +26,7 @@ type MockAppRandomizer struct{}
 
 // NewRandomApp creates a new MockApp with a random address.
 func (MockAppRandomizer) NewRandomApp(rng *rand.Rand) channel.App {
-	return channel.NewMockApp(NewRandomAppID(rng))
+	return channel.NewMockApp(test.NewRandomAddress(rng))
 }
 
 // NewRandomData creates a new MockOp with a random operation.

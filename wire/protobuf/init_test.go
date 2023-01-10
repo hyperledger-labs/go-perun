@@ -15,5 +15,5 @@
 package protobuf_test
 
 import (
-	_ "perun.network/go-perun/backend/sim" // backend init
+	_ "perun.network/go-perun/backend/sim/wire" // backend init
 )

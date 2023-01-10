@@ -82,6 +82,9 @@ func CloneAddresses(as []Address) []Address {
 	return clones
 }
 
+// AddressPredicate is a function for filtering Addresses.
+type AddressPredicate = func(Address) bool
+
 // Addresses is a helper type for encoding and decoding address slices in
 // situations where the length of the slice is known.
 type Addresses []Address

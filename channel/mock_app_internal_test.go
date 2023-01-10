@@ -19,6 +19,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
+	wallettest "perun.network/go-perun/wallet/test"
 	wiretest "perun.network/go-perun/wire/test"
 	pkgtest "polycry.pt/poly-go/test"
 )
@@ -26,11 +27,11 @@ import (
 func TestMockApp(t *testing.T) {
 	rng := pkgtest.Prng(t)
 
-	appID := newRandomAppID(rng)
-	app := NewMockApp(appID)
+	address := wallettest.NewRandomAddress(rng)
+	app := NewMockApp(address)
 
 	t.Run("App", func(t *testing.T) {
-		assert.Equal(t, appID, app.Def())
+		assert.Equal(t, address, app.Def())
 	})
 
 	t.Run("StateApp", func(t *testing.T) {
