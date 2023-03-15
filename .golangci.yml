@@ -44,7 +44,7 @@ linters-settings:
   goheader:
     values:
       regexp:
-        ANY_YEAR: "20(19|20|21|22)" # 2019-2022
+        ANY_YEAR: "20(19|2\\d)" # 2019-2029
     template-path: ".scripts/copyright-notice"
   forbidigo:
     forbid:
