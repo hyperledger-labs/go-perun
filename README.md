@@ -74,7 +74,10 @@ There are multiple **blockchain backends** available. A backend is automatically
 - **Ethereum.** The Ethereum backend is available at [perun-eth-backend](https://github.com/perun-network/perun-eth-backend/).
 - **Polkadot.** The Polkadot backend is available at [perun-polkadot-backend](https://github.com/perun-network/perun-polkadot-backend).
 - **Cosmos.** The Cosmos backend is available at [perun-cosmwasm-backend](https://github.com/hyperledger-labs/perun-cosmwasm-backend).
-- **Fabric** The Hyperledger Fabric backend is available at [perun-fabric](https://github.com/perun-network/perun-fabric).
+- **Cardano.** The Cardano backend is available at [perun-cardano-backend](https://github.com/perun-network/perun-cardano-backend).
+- **NERVOS.** The NERVOS backend is available at [perun-ckb-backend](https://github.com/perun-network/perun-ckb-backend).
+- **Dfinity.** The Dfinity Internet Computer backend is available at [perun-icp-backend](https://github.com/perun-network/perun-icp-backend).
+- **Fabric.** The Hyperledger Fabric backend is available at [perun-fabric](https://github.com/perun-network/perun-fabric).
 - **SimBackend.** The SimBackend represents an ideal blockchain backend (`backend/sim`) implementation that can be used for testing.
 
 **Logging and networking** capabilities can also be injected by the user.
