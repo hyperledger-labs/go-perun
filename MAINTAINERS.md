@@ -7,7 +7,7 @@
 | Jan Bormet    | [@janbormet](https://github.com/janbormet) | _.pants |
 | Philipp-Florens Lehwalder | [@cryptphil](https://github.com/cryptphil) | cryptphil |
 | Steffen Rattay  | [@rmbrt](https://github.com/rmbrt) | rmbrt |
-| Ilja von Hoessle  | [@iljabvh](https://github.com/DragonDev1906) | iljabvh |
+| Ilja von Hoessle  | [@iljabvh](https://github.com/iljabvh) | iljabvh |
 | Jens Winkle       | [@DragonDev1906](https://github.com/DragonDev1906) | jens#4601 |
 
 ## Emeritus Maintainers
