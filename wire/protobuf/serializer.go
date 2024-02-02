@@ -47,29 +47,29 @@ func (serializer) Encode(w io.Writer, env *wire.Envelope) (err error) { //nolint
 	case *wire.AuthResponseMsg:
 		protoEnv.Msg = &Envelope_AuthResponseMsg{}
 	case *client.LedgerChannelProposalMsg:
-		protoEnv.Msg, err = fromLedgerChannelProposalMsg(msg)
+		protoEnv.Msg, err = FromLedgerChannelProposalMsg(msg)
 	case *client.SubChannelProposalMsg:
-		protoEnv.Msg, err = fromSubChannelProposalMsg(msg)
+		protoEnv.Msg, err = FromSubChannelProposalMsg(msg)
 	case *client.VirtualChannelProposalMsg:
-		protoEnv.Msg, err = fromVirtualChannelProposalMsg(msg)
+		protoEnv.Msg, err = FromVirtualChannelProposalMsg(msg)
 	case *client.LedgerChannelProposalAccMsg:
-		protoEnv.Msg, err = fromLedgerChannelProposalAccMsg(msg)
+		protoEnv.Msg, err = FromLedgerChannelProposalAccMsg(msg)
 	case *client.SubChannelProposalAccMsg:
-		protoEnv.Msg = fromSubChannelProposalAccMsg(msg)
+		protoEnv.Msg = FromSubChannelProposalAccMsg(msg)
 	case *client.VirtualChannelProposalAccMsg:
-		protoEnv.Msg, err = fromVirtualChannelProposalAccMsg(msg)
+		protoEnv.Msg, err = FromVirtualChannelProposalAccMsg(msg)
 	case *client.ChannelProposalRejMsg:
-		protoEnv.Msg = fromChannelProposalRejMsg(msg)
+		protoEnv.Msg = FromChannelProposalRejMsg(msg)
 	case *client.ChannelUpdateMsg:
-		protoEnv.Msg, err = fromChannelUpdateMsg(msg)
+		protoEnv.Msg, err = FromChannelUpdateMsg(msg)
 	case *client.VirtualChannelFundingProposalMsg:
-		protoEnv.Msg, err = fromVirtualChannelFundingProposalMsg(msg)
+		protoEnv.Msg, err = FromVirtualChannelFundingProposalMsg(msg)
 	case *client.VirtualChannelSettlementProposalMsg:
-		protoEnv.Msg, err = fromVirtualChannelSettlementProposalMsg(msg)
+		protoEnv.Msg, err = FromVirtualChannelSettlementProposalMsg(msg)
 	case *client.ChannelUpdateAccMsg:
-		protoEnv.Msg = fromChannelUpdateAccMsg(msg)
+		protoEnv.Msg = FromChannelUpdateAccMsg(msg)
 	case *client.ChannelUpdateRejMsg:
-		protoEnv.Msg = fromChannelUpdateRejMsg(msg)
+		protoEnv.Msg = FromChannelUpdateRejMsg(msg)
 	case *client.ChannelSyncMsg:
 		protoEnv.Msg, err = fromChannelSyncMsg(msg)
 	default:
@@ -133,29 +133,29 @@ func (serializer) Decode(r io.Reader) (env *wire.Envelope, err error) { //nolint
 	case *Envelope_AuthResponseMsg:
 		env.Msg = &wire.AuthResponseMsg{}
 	case *Envelope_LedgerChannelProposalMsg:
-		env.Msg, err = toLedgerChannelProposalMsg(protoMsg)
+		env.Msg, err = ToLedgerChannelProposalMsg(protoMsg)
 	case *Envelope_SubChannelProposalMsg:
-		env.Msg, err = toSubChannelProposalMsg(protoMsg)
+		env.Msg, err = ToSubChannelProposalMsg(protoMsg)
 	case *Envelope_VirtualChannelProposalMsg:
-		env.Msg, err = toVirtualChannelProposalMsg(protoMsg)
+		env.Msg, err = ToVirtualChannelProposalMsg(protoMsg)
 	case *Envelope_LedgerChannelProposalAccMsg:
-		env.Msg, err = toLedgerChannelProposalAccMsg(protoMsg)
+		env.Msg, err = ToLedgerChannelProposalAccMsg(protoMsg)
 	case *Envelope_SubChannelProposalAccMsg:
-		env.Msg = toSubChannelProposalAccMsg(protoMsg)
+		env.Msg = ToSubChannelProposalAccMsg(protoMsg)
 	case *Envelope_VirtualChannelProposalAccMsg:
-		env.Msg, err = toVirtualChannelProposalAccMsg(protoMsg)
+		env.Msg, err = ToVirtualChannelProposalAccMsg(protoMsg)
 	case *Envelope_ChannelProposalRejMsg:
-		env.Msg = toChannelProposalRejMsg(protoMsg)
+		env.Msg = ToChannelProposalRejMsg(protoMsg)
 	case *Envelope_ChannelUpdateMsg:
-		env.Msg, err = toChannelUpdateMsg(protoMsg)
+		env.Msg, err = ToChannelUpdateMsg(protoMsg)
 	case *Envelope_VirtualChannelFundingProposalMsg:
-		env.Msg, err = toVirtualChannelFundingProposalMsg(protoMsg)
+		env.Msg, err = ToVirtualChannelFundingProposalMsg(protoMsg)
 	case *Envelope_VirtualChannelSettlementProposalMsg:
-		env.Msg, err = toVirtualChannelSettlementProposalMsg(protoMsg)
+		env.Msg, err = ToVirtualChannelSettlementProposalMsg(protoMsg)
 	case *Envelope_ChannelUpdateAccMsg:
-		env.Msg = toChannelUpdateAccMsg(protoMsg)
+		env.Msg = ToChannelUpdateAccMsg(protoMsg)
 	case *Envelope_ChannelUpdateRejMsg:
-		env.Msg = toChannelUpdateRejMsg(protoMsg)
+		env.Msg = ToChannelUpdateRejMsg(protoMsg)
 	case *Envelope_ChannelSyncMsg:
 		env.Msg, err = toChannelSyncMsg(protoMsg)
 	default:
