@@ -43,6 +43,6 @@ func fromChannelSyncMsg(msg *client.ChannelSyncMsg) (_ *Envelope_ChannelSyncMsg,
 		protoMsg.CurrentTx.Sigs[i] = make([]byte, len(msg.CurrentTX.Sigs[i]))
 		copy(protoMsg.CurrentTx.Sigs[i], msg.CurrentTX.Sigs[i])
 	}
-	protoMsg.CurrentTx.State, err = fromState(msg.CurrentTX.State)
+	protoMsg.CurrentTx.State, err = FromState(msg.CurrentTX.State)
 	return &Envelope_ChannelSyncMsg{protoMsg}, err
 }
