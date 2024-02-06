@@ -9,6 +9,7 @@
 | Steffen Rattay  | [@rmbrt](https://github.com/rmbrt) | rmbrt |
 | Ilja von Hoessle  | [@iljabvh](https://github.com/iljabvh) | iljabvh |
 | Jens Winkle       | [@DragonDev1906](https://github.com/DragonDev1906) | jens#4601 |
+| Minh Huy Tran      | [@NhoxxKienn](https://github.com/NhoxxKienn) | NhoxxKienn |
 
 ## Emeritus Maintainers
 
