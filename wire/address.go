@@ -41,6 +41,9 @@ type Address interface {
 	// Cmp compares the byte representation of two addresses. For `a.Cmp(b)`
 	// returns -1 if a < b, 0 if a == b, 1 if a > b.
 	Cmp(Address) int
+	// Verify verifies a message signature.
+	// It returns an error if the signature is invalid.
+	Verify(msg []byte, sig []byte) error
 }
 
 // Addresses is a helper type for encoding and decoding address slices in

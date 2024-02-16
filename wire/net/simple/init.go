@@ -14,10 +14,21 @@
 
 package simple
 
-import "perun.network/go-perun/wire"
+import (
+	"math/rand"
+
+	"perun.network/go-perun/wire"
+	"perun.network/go-perun/wire/test"
+)
 
 func init() {
 	wire.SetNewAddressFunc(func() wire.Address {
 		return NewAddress("")
+	})
+	test.SetNewRandomAddress(func(rng *rand.Rand) wire.Address {
+		return NewRandomAddress(rng)
+	})
+	test.SetNewRandomAccount(func(rng *rand.Rand) wire.Account {
+		return NewRandomAccount(rng)
 	})
 }

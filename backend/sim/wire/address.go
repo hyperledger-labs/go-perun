@@ -16,6 +16,7 @@ package wire
 
 import (
 	"bytes"
+	"errors"
 	"math/rand"
 
 	"perun.network/go-perun/wire"
@@ -60,6 +61,14 @@ func (a Address) Cmp(b wire.Address) int {
 		panic("wrong type")
 	}
 	return bytes.Compare(a[:], bTyped[:])
+}
+
+// Verify verifies a signature.
+func (a Address) Verify(msg, sig []byte) error {
+	if !bytes.Equal(sig, []byte("Authenticate")) {
+		return errors.New("invalid signature")
+	}
+	return nil
 }
 
 // NewRandomAddress returns a new random peer address.

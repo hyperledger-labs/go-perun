@@ -40,7 +40,11 @@ func AuthMsgsSerializationTest(t *testing.T, serializerTest func(t *testing.T, m
 	t.Helper()
 
 	rng := pkgtest.Prng(t)
-	serializerTest(t, wire.NewAuthResponseMsg(NewRandomAccount(rng)))
+	testMsg, err := wire.NewAuthResponseMsg(NewRandomAccount(rng))
+	if err != nil {
+		t.Fatal(err)
+	}
+	serializerTest(t, testMsg)
 }
 
 // newRandomASCIIString returns a random ascii string of length between minLen and
