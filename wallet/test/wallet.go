@@ -75,7 +75,7 @@ func TestAccountWithWalletAndBackend(t *testing.T, s *Setup) { //nolint:revive /
 		t.Error("Verification of invalid signature should produce error or return false")
 	}
 	// Expand the signature and check for error
-	// nolint:gocritic
+	//nolint:gocritic
 	tampered = append(sig, 0)
 	valid, err = s.Backend.VerifySignature(s.DataToSign, tampered, acc.Address())
 	if valid && err != nil {

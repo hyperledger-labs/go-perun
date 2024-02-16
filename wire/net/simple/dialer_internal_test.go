@@ -33,6 +33,7 @@ import (
 
 	"perun.network/go-perun/wire"
 	perunio "perun.network/go-perun/wire/perunio/serializer"
+	wiretest "perun.network/go-perun/wire/test"
 	ctxtest "polycry.pt/poly-go/context/test"
 	"polycry.pt/poly-go/test"
 )
@@ -76,7 +77,7 @@ func TestDialer_Dial(t *testing.T) {
 	timeout := 100 * time.Millisecond
 	rng := test.Prng(t)
 	lhost := "127.0.0.1:7357"
-	laddr := NewRandomAccount(rng).Address()
+	laddr := wiretest.NewRandomAccount(rng).Address()
 
 	commonName := "127.0.0.1"
 	sans := []string{"127.0.0.1", "localhost"}
@@ -90,7 +91,7 @@ func TestDialer_Dial(t *testing.T) {
 	ser := perunio.Serializer()
 	d := NewTCPDialer(timeout, dConfig)
 	d.Register(laddr, lhost)
-	daddr := NewRandomAccount(rng).Address()
+	daddr := wiretest.NewRandomAccount(rng).Address()
 	defer d.Close()
 
 	t.Run("happy", func(t *testing.T) {

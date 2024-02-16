@@ -38,8 +38,7 @@ var _ wire.Address = (*Address)(nil)
 // NewAddress returns a new address.
 func NewAddress(host string) *Address {
 	return &Address{
-		Name:      host,
-		PublicKey: nil,
+		Name: host,
 	}
 }
 
@@ -72,7 +71,7 @@ func (a *Address) MarshalBinary() ([]byte, error) {
 // UnmarshalBinary unmarshals an address from binary.
 func (a *Address) UnmarshalBinary(data []byte) error {
 	// Initialize a buffer with the binary data
-	buf := bytes.NewReader(data)
+	buf := bytes.NewBuffer(data)
 
 	// Decode the length of the name string
 	var nameLen uint16
@@ -87,8 +86,9 @@ func (a *Address) UnmarshalBinary(data []byte) error {
 	}
 	a.Name = string(nameBytes)
 
-	// If there's remaining data, decode the public key using gob
+	// Check if there's remaining data for the public key
 	if buf.Len() > 0 {
+		// Decode the public key using gob
 		dec := gob.NewDecoder(buf)
 		if err := dec.Decode(&a.PublicKey); err != nil {
 			return err

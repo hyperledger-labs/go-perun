@@ -85,7 +85,7 @@ func TestEncodeDecode(t *testing.T) {
 	}
 
 	go func() {
-		a.Nil(Encode(w, values...), "failed to encode values")
+		a.NoError(Encode(w, values...), "failed to encode values")
 	}()
 
 	d := make([]interface{}, len(values))

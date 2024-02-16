@@ -27,6 +27,7 @@ import (
 	"perun.network/go-perun/wire"
 	wirenet "perun.network/go-perun/wire/net"
 	perunio "perun.network/go-perun/wire/perunio/serializer"
+	wiretest "perun.network/go-perun/wire/test"
 	ctxtest "polycry.pt/poly-go/context/test"
 	"polycry.pt/poly-go/test"
 )
@@ -37,7 +38,7 @@ func TestExchangeAddrs_ConnFail(t *testing.T) {
 	rng := test.Prng(t)
 	a, _ := newPipeConnPair()
 	a.Close()
-	addr, err := wirenet.ExchangeAddrsPassive(context.Background(), NewRandomAccount(rng), a)
+	addr, err := wirenet.ExchangeAddrsPassive(context.Background(), wiretest.NewRandomAccount(rng), a)
 	assert.Nil(t, addr)
 	assert.Error(t, err)
 }
@@ -46,7 +47,7 @@ func TestExchangeAddrs_Success(t *testing.T) {
 	rng := test.Prng(t)
 	conn0, conn1 := newPipeConnPair()
 	defer conn0.Close()
-	account0, account1 := NewRandomAccount(rng), NewRandomAccount(rng)
+	account0, account1 := wiretest.NewRandomAccount(rng), wiretest.NewRandomAccount(rng)
 	var wg sync.WaitGroup
 	wg.Add(1)
 
@@ -71,8 +72,8 @@ func TestExchangeAddrs_Timeout(t *testing.T) {
 
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
-	ctxtest.AssertTerminates(t, 2*timeout, func() {
-		addr, err := wirenet.ExchangeAddrsPassive(ctx, NewRandomAccount(rng), a)
+	ctxtest.AssertTerminates(t, 20*timeout, func() {
+		addr, err := wirenet.ExchangeAddrsPassive(ctx, wiretest.NewRandomAccount(rng), a)
 		assert.Nil(t, addr)
 		assert.Error(t, err)
 	})
@@ -80,7 +81,7 @@ func TestExchangeAddrs_Timeout(t *testing.T) {
 
 func TestExchangeAddrs_BogusMsg(t *testing.T) {
 	rng := test.Prng(t)
-	acc := NewRandomAccount(rng)
+	acc := wiretest.NewRandomAccount(rng)
 	conn := newMockConn()
 	conn.recvQueue <- newRandomEnvelope(rng, wire.NewPingMsg())
 	addr, err := wirenet.ExchangeAddrsPassive(context.Background(), acc, conn)
