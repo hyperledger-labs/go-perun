@@ -12,6 +12,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// This test uses the wire/net/simple implementation of Account and Address
+// to test the default implementation of wire.
+//
+//nolint:testpackage
 package simple
 
 import (
