@@ -27,7 +27,7 @@ type AppRandomizer interface {
 	NewRandomData(*rand.Rand) channel.Data
 }
 
-var appRandomizer AppRandomizer = &MockAppRandomizer{}
+var appRandomizer AppRandomizer = NewMockAppRandomizer()
 
 // isAppRandomizerSet tracks whether the AppRandomizer was already set
 // with `SetAppRandomizer`.
