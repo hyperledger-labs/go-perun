@@ -116,7 +116,7 @@ func (r *Paul) exec(_cfg ExecConfig, ch *paymentChannel) {
 	r.waitStage()
 
 	// withdraw
-	r.RequireNoError(ch.Settle(ctx))
+	r.RequireNoError(ch.Settle(ctx, false))
 }
 
 // ----------------- BEGIN PAULA -----------------
@@ -181,5 +181,5 @@ func (r *Paula) exec(_cfg ExecConfig, ch *paymentChannel, _ *acceptNextPropHandl
 	r.RequireNoErrorf(e.Timeout().Wait(ctx), "waiting for progression timeout")
 
 	// withdraw
-	r.RequireNoError(ch.Settle(ctx))
+	r.RequireNoError(ch.Settle(ctx, true))
 }

@@ -249,6 +249,9 @@ func (m *machine) CurrentTX() Transaction {
 // AdjudicatorReq returns the adjudicator request for the current channel
 // transaction (the current state together with all participants' signatures on
 // it).
+//
+// The Secondary flag is left as false. Set it manually after creating the
+// request if you want to use optimized sencondary adjudication logic.
 func (m *machine) AdjudicatorReq() AdjudicatorReq {
 	return AdjudicatorReq{
 		Params: &m.params,
@@ -335,8 +338,9 @@ func (m *machine) EnableFinal() error {
 }
 
 // enableStaged checks that
-//   1. the current phase is `expected.From` and
-//   2. all signatures of the staging transactions have been set.
+//  1. the current phase is `expected.From` and
+//  2. all signatures of the staging transactions have been set.
+//
 // If successful, the staging transaction is promoted to be the current
 // transaction. If not, an error is returned.
 func (m *machine) enableStaged(expected PhaseTransition) error {
