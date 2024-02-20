@@ -209,7 +209,7 @@ func (r *Tim) exec(_cfg ExecConfig, ledgerChannel *paymentChannel, propHandler *
 
 	finalizeAndSettle := func(ch *paymentChannel) {
 		ch.recvFinal()
-		ch.settle()
+		ch.settleSecondary()
 	}
 
 	for i, ch := range subChannels {

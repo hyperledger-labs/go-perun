@@ -27,6 +27,7 @@ import (
 // TestMultiLedgerHappy runs an end-to-end test of the multi-ledger
 // functionality in the optimistic case for the implementation specified in the
 // test setup.
+//
 //nolint:revive // test.Test... stutters but this is OK in this special case.
 func TestMultiLedgerHappy(ctx context.Context, t *testing.T, mlt MultiLedgerSetup, challengeDuration uint64) {
 	require := require.New(t)
@@ -90,8 +91,8 @@ func TestMultiLedgerHappy(ctx context.Context, t *testing.T, mlt MultiLedgerSetu
 	require.NoError(err)
 
 	// Close channel.
-	err = chAliceBob.Settle(ctx)
+	err = chAliceBob.Settle(ctx, false)
 	require.NoError(err)
-	err = chBobAlice.Settle(ctx)
+	err = chBobAlice.Settle(ctx, false)
 	require.NoError(err)
 }
