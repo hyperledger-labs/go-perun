@@ -17,11 +17,19 @@ package test
 import (
 	"math/rand"
 
+	"github.com/google/uuid"
 	"perun.network/go-perun/channel"
 )
 
 // MockAppRandomizer implements the AppRandomizer interface.
-type MockAppRandomizer struct{}
+type MockAppRandomizer struct {
+	id uuid.UUID // Unique identifier for each instance
+}
+
+// NewMockAppRandomizer creates a new instance of MockAppRandomizer with a unique identifier.
+func NewMockAppRandomizer() *MockAppRandomizer {
+	return &MockAppRandomizer{id: uuid.New()}
+}
 
 // NewRandomApp creates a new MockApp with a random address.
 func (MockAppRandomizer) NewRandomApp(rng *rand.Rand) channel.App {
@@ -31,4 +39,9 @@ func (MockAppRandomizer) NewRandomApp(rng *rand.Rand) channel.App {
 // NewRandomData creates a new MockOp with a random operation.
 func (MockAppRandomizer) NewRandomData(rng *rand.Rand) channel.Data {
 	return channel.NewMockOp(channel.MockOp(rng.Uint64()))
+}
+
+// Equal returns false for any comparison, ensuring two MockAppRandomizers are always considered different.
+func (m *MockAppRandomizer) Equal(other *MockAppRandomizer) bool {
+	return m.id != other.id
 }

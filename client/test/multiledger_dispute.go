@@ -31,6 +31,7 @@ import (
 // TestMultiLedgerDispute runs an end-to-end test of the multi-ledger
 // functionality in the dispute case for the implementation specified in the
 // test setup.
+//
 //nolint:revive // test.Test... stutters but this is OK in this special case.
 func TestMultiLedgerDispute(
 	ctx context.Context,
@@ -127,9 +128,9 @@ func TestMultiLedgerDispute(
 	require.NoError(err)
 
 	// Settle.
-	err = chAliceBob.Settle(ctx)
+	err = chAliceBob.Settle(ctx, false)
 	require.NoError(err)
-	err = chBobAlice.Settle(ctx)
+	err = chBobAlice.Settle(ctx, false)
 	require.NoError(err)
 
 	// Close the channels.

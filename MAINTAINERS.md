@@ -10,6 +10,7 @@
 | Ilja von Hoessle  | [@iljabvh](https://github.com/iljabvh) | iljabvh |
 | Jens Winkle       | [@DragonDev1906](https://github.com/DragonDev1906) | jens#4601 |
 | Minh Huy Tran      | [@NhoxxKienn](https://github.com/NhoxxKienn) | NhoxxKienn |
+| Sophia Koehler  | [@sophia1ch](https://githun.com/sophia1ch)     | sophia#3072 |
 
 ## Emeritus Maintainers
 

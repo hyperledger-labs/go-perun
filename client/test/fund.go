@@ -129,7 +129,7 @@ func runFredFridaTest(
 	require.IsType(t, &client.ChannelFundingError{}, err)
 	require.NotNil(t, chFrida)
 	// Frida settles the channel.
-	require.NoError(t, chFrida.Settle(ctx))
+	require.NoError(t, chFrida.Settle(ctx, false))
 
 	// Fred gets the channel and settles it afterwards.
 	chFred := <-chsFred
@@ -141,7 +141,7 @@ func runFredFridaTest(
 		require.NoError(t, ctx.Err())
 	}
 	// Fred settles the channel.
-	require.NoError(t, chFred.Settle(ctx))
+	require.NoError(t, chFred.Settle(ctx, false))
 
 	// Test the final balances.
 	balancesAfter := channel.Balances{
