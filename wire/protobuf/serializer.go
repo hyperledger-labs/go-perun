@@ -34,7 +34,8 @@ func Serializer() wire.EnvelopeSerializer {
 
 // Encode encodes an envelope from the reader using protocol buffers
 // serialization format.
-func (serializer) Encode(w io.Writer, env *wire.Envelope) (err error) { //nolint: funlen, cyclop
+func (serializer) Encode(w io.Writer, env *wire.Envelope) error { //nolint: funlen, cyclop
+	var err error
 	protoEnv := &Envelope{}
 
 	switch msg := env.Msg.(type) {
@@ -110,8 +111,8 @@ func writeEnvelope(w io.Writer, env *Envelope) error {
 
 // Decode decodes an envelope from the reader, that was encoded using protocol
 // buffers serialization format.
-func (serializer) Decode(r io.Reader) (env *wire.Envelope, err error) { //nolint: funlen, cyclop
-	env = &wire.Envelope{}
+func (serializer) Decode(r io.Reader) (*wire.Envelope, error) { //nolint: funlen, cyclop
+	env := &wire.Envelope{}
 
 	protoEnv, err := readEnvelope(r)
 	if err != nil {
@@ -123,7 +124,7 @@ func (serializer) Decode(r io.Reader) (env *wire.Envelope, err error) { //nolint
 		return nil, err
 	}
 
-	switch protoMsg := protoEnv.Msg.(type) {
+	switch protoMsg := protoEnv.GetMsg().(type) {
 	case *Envelope_PingMsg:
 		env.Msg = toPingMsg(protoMsg)
 	case *Envelope_PongMsg:
@@ -181,10 +182,10 @@ func readEnvelope(r io.Reader) (*Envelope, error) {
 
 func unmarshalSenderRecipient(protoEnv *Envelope) (wire.Address, wire.Address, error) {
 	sender := wire.NewAddress()
-	if err := sender.UnmarshalBinary(protoEnv.Sender); err != nil {
+	if err := sender.UnmarshalBinary(protoEnv.GetSender()); err != nil {
 		return nil, nil, errors.Wrap(err, "unmarshalling sender address")
 	}
 	recipient := wire.NewAddress()
-	err := recipient.UnmarshalBinary(protoEnv.Recipient)
+	err := recipient.UnmarshalBinary(protoEnv.GetRecipient())
 	return sender, recipient, errors.Wrap(err, "unmarshalling recipient address")
 }

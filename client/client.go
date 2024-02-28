@@ -74,7 +74,7 @@ func New(
 	adjudicator channel.Adjudicator,
 	wallet wallet.Wallet,
 	watcher watcher.Watcher,
-) (c *Client, err error) {
+) (*Client, error) {
 	if address == nil {
 		log.Panic("address must not be nil")
 	}
@@ -97,7 +97,7 @@ func New(
 		return nil, errors.WithMessage(err, "setting up client connection")
 	}
 
-	c = &Client{
+	c := &Client{
 		address:     address,
 		conn:        conn,
 		channels:    makeChanRegistry(),

@@ -20,6 +20,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	"perun.network/go-perun/wire"
 	wiretest "perun.network/go-perun/wire/test"
@@ -33,7 +34,7 @@ func TestExchangeAddrs_ConnFail(t *testing.T) {
 	a.Close()
 	addr, err := ExchangeAddrsPassive(context.Background(), wiretest.NewRandomAccount(rng), a)
 	assert.Nil(t, addr)
-	assert.Error(t, err)
+	require.Error(t, err)
 }
 
 func TestExchangeAddrs_Success(t *testing.T) {
@@ -49,12 +50,12 @@ func TestExchangeAddrs_Success(t *testing.T) {
 		defer conn1.Close()
 
 		recvAddr0, err := ExchangeAddrsPassive(context.Background(), account1, conn1)
-		assert.NoError(t, err)
+		require.NoError(t, err) //nolint:testifylint
 		assert.True(t, recvAddr0.Equal(account0.Address()))
 	}()
 
 	err := ExchangeAddrsActive(context.Background(), account0, account1.Address(), conn0)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	wg.Wait()
 }
@@ -68,7 +69,7 @@ func TestExchangeAddrs_Timeout(t *testing.T) {
 	ctxtest.AssertTerminates(t, 2*timeout, func() {
 		addr, err := ExchangeAddrsPassive(ctx, wiretest.NewRandomAccount(rng), a)
 		assert.Nil(t, addr)
-		assert.Error(t, err)
+		require.Error(t, err)
 	})
 }
 
@@ -79,6 +80,6 @@ func TestExchangeAddrs_BogusMsg(t *testing.T) {
 	conn.recvQueue <- wiretest.NewRandomEnvelope(rng, wire.NewPingMsg())
 	addr, err := ExchangeAddrsPassive(context.Background(), acc, conn)
 
-	assert.Error(t, err, "ExchangeAddrs should error when peer sends a non-AuthResponseMsg")
+	require.Error(t, err, "ExchangeAddrs should error when peer sends a non-AuthResponseMsg")
 	assert.Nil(t, addr)
 }

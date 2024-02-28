@@ -16,7 +16,6 @@ package client
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/pkg/errors"
 
@@ -42,7 +41,7 @@ func (c *Client) handleChannelUpdate(uh UpdateHandler, p wire.Address, m Channel
 		return
 	}
 	pidx := ch.Idx() ^ 1
-	ch.handleUpdateReq(pidx, m, uh) //nolint:contextcheck
+	ch.handleUpdateReq(pidx, m, uh)
 }
 
 func (c *Client) cacheVersion1Update(uh UpdateHandler, p wire.Address, m ChannelUpdateProposal) bool {
@@ -78,13 +77,13 @@ type (
 		// incoming update request. The first argument contains the current state
 		// of the channel before the update is applied. Clone it if you want to
 		// modify it.
-		HandleUpdate(*channel.State, ChannelUpdate, *UpdateResponder)
+		HandleUpdate(current *channel.State, update ChannelUpdate, responder *UpdateResponder)
 	}
 
 	// UpdateHandlerFunc is an adapter type to allow the use of functions as
 	// update handlers. UpdateHandlerFunc(f) is an UpdateHandler that calls
 	// f when HandleUpdate is called.
-	UpdateHandlerFunc func(*channel.State, ChannelUpdate, *UpdateResponder)
+	UpdateHandlerFunc func(current *channel.State, update ChannelUpdate, responder *UpdateResponder)
 
 	// The UpdateResponder allows the user to react to the incoming channel update
 	// request. If the user wants to accept the update, Accept() should be called,
@@ -119,7 +118,7 @@ func (r *UpdateResponder) Accept(ctx context.Context) error {
 		return errors.New("context must not be nil")
 	}
 	if !r.called.TrySet() {
-		return fmt.Errorf("multiple calls on channel update responder")
+		return errors.New("multiple calls on channel update responder")
 	}
 
 	return r.channel.acceptUpdate(ctx, r.pidx, r.req)
@@ -135,7 +134,7 @@ func (r *UpdateResponder) Reject(ctx context.Context, reason string) error {
 		return errors.New("context must not be nil")
 	}
 	if !r.called.TrySet() {
-		return fmt.Errorf("multiple calls on channel update responder")
+		return errors.New("multiple calls on channel update responder")
 	}
 
 	return r.channel.rejectUpdate(ctx, r.pidx, r.req, reason)
@@ -187,7 +186,8 @@ func (c *Channel) updateGeneric(
 	ctx context.Context,
 	next *channel.State,
 	prepareMsg func(*ChannelUpdateMsg) wire.Msg,
-) (err error) {
+) error {
+	var err error
 	up := makeChannelUpdate(next, c.machine.Idx())
 	if err = c.machine.Update(ctx, up.State, up.ActorIdx); err != nil {
 		return errors.WithMessage(err, "updating machine")
@@ -251,7 +251,7 @@ func (c *Channel) checkUpdateError(ctx context.Context, updateErr error) {
 	}
 }
 
-func (c *Channel) update(ctx context.Context, updater func(*channel.State) error) (err error) {
+func (c *Channel) update(ctx context.Context, updater func(*channel.State) error) error {
 	state := c.machine.State().Clone()
 	if err := updater(state); err != nil {
 		return err
@@ -287,10 +287,10 @@ func (c *Channel) handleUpdateReq(
 	// Check whether we have an update related to a virtual channel.
 	switch prop := req.(type) {
 	case *VirtualChannelFundingProposalMsg:
-		client.handleVirtualChannelFundingProposal(c, prop, responder) //nolint:contextcheck
+		client.handleVirtualChannelFundingProposal(c, prop, responder)
 		return
 	case *VirtualChannelSettlementProposalMsg:
-		client.handleVirtualChannelSettlementProposal(c, prop, responder) //nolint:contextcheck
+		client.handleVirtualChannelSettlementProposal(c, prop, responder)
 		return
 	}
 
@@ -371,7 +371,8 @@ func (c *Channel) rejectUpdate(
 	pidx channel.Index,
 	req ChannelUpdateProposal,
 	reason string,
-) (err error) {
+) error {
+	var err error
 	defer func() {
 		if err != nil {
 			c.logPeer(pidx).Errorf("error rejecting state: %v", err)
@@ -383,7 +384,8 @@ func (c *Channel) rejectUpdate(
 		Version:   req.Base().State.Version,
 		Reason:    reason,
 	}
-	return errors.WithMessage(c.conn.Send(ctx, msgUpRej), "sending reject message")
+	err = errors.WithMessage(c.conn.Send(ctx, msgUpRej), "sending reject message")
+	return err
 }
 
 // enableNotifyUpdate enables the current staging state of the machine. If the

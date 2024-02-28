@@ -19,6 +19,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	perunio "perun.network/go-perun/wire/perunio/serializer"
 	"perun.network/go-perun/wire/test"
@@ -35,7 +36,7 @@ func TestDialer_Dial(t *testing.T) {
 
 		conn, err := d.Dial(context.Background(), test.NewRandomAddress(rng), ser)
 		assert.Nil(t, conn)
-		assert.Error(t, err)
+		require.Error(t, err)
 	})
 
 	// Cancelling the context must result in error.
@@ -45,12 +46,12 @@ func TestDialer_Dial(t *testing.T) {
 		cancel()
 		conn, err := d.Dial(ctx, test.NewRandomAddress(rng), ser)
 		assert.Nil(t, conn)
-		assert.Error(t, err)
+		require.Error(t, err)
 	})
 }
 
 func TestDialer_Close(t *testing.T) {
 	var d Dialer
-	assert.NoError(t, d.Close())
-	assert.Error(t, d.Close())
+	require.NoError(t, d.Close())
+	require.Error(t, d.Close())
 }

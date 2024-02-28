@@ -146,10 +146,10 @@ func newRandomSig(rng *rand.Rand) wallet.Sig {
 }
 
 // newRandomSigs generates a list of random signatures.
-func newRandomSigs(rng *rand.Rand, n int) (a []wallet.Sig) {
-	a = make([]wallet.Sig, n)
+func newRandomSigs(rng *rand.Rand, n int) []wallet.Sig {
+	a := make([]wallet.Sig, n)
 	for i := range a {
 		a[i] = newRandomSig(rng)
 	}
-	return
+	return a
 }

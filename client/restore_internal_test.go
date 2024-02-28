@@ -33,10 +33,10 @@ import (
 )
 
 func patchChFromSource(
-	c *Client,
+	_ *Client,
 	ch *persistence.Channel,
 	parent *Channel,
-	peers ...wire.Address,
+	_ ...wire.Address,
 ) (*Channel, error) {
 	acc, _ := wallettest.RandomWallet().Unlock(ch.ParamsV.Parts[ch.IdxV])
 	machine, _ := channel.NewStateMachine(acc, *ch.ParamsV)
@@ -131,8 +131,8 @@ func mkRndChanTree(
 	rng *rand.Rand,
 	depth, minChildren, maxChildren int,
 	db map[channel.ID]*persistence.Channel,
-) (root *persistence.Channel) {
-	root = mkRndChan(rng)
+) *persistence.Channel {
+	root := mkRndChan(rng)
 	db[root.ID()] = root
 
 	if depth > 0 && maxChildren > 0 {
@@ -146,5 +146,5 @@ func mkRndChanTree(
 			*t.Parent = root.ID()
 		}
 	}
-	return
+	return root
 }

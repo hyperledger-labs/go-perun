@@ -31,6 +31,7 @@ func newChannelCache() *channelCache {
 }
 
 // channelCache contains all channels.
+//
 //nolint:unused
 type channelCache struct {
 	mutex        stdsync.RWMutex

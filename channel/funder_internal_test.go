@@ -34,8 +34,8 @@ func TestAssetFundingError(t *testing.T) {
 	assert.Equal(Index(2), perr.TimedOutPeers[1])
 	assert.Equal(Index(3), perr.TimedOutPeers[2])
 	assert.Equal(Index(4), perr.TimedOutPeers[3])
-	assert.Equal(4, len(perr.TimedOutPeers))
-	assert.Equal(perr.Error(), "Funding Error on asset [42] peers: [1], [2], [3], [4], did not fund channel in time")
+	assert.Len(perr.TimedOutPeers, 4)
+	assert.Equal("Funding Error on asset [42] peers: [1], [2], [3], [4], did not fund channel in time", perr.Error())
 	assert.False(IsAssetFundingError(errors.New("not a asset funding error")))
 }
 
@@ -60,8 +60,9 @@ func TestFundingTimeoutError(t *testing.T) {
 	assert.Equal(Index(7531), perr.Errors[2].Asset)
 	assert.Equal(Index(1), perr.Errors[2].TimedOutPeers[0])
 	assert.Equal(Index(3), perr.Errors[2].TimedOutPeers[1])
-	assert.Equal(3, len(perr.Errors))
-	assert.Equal(perr.Error(), "Funding Error on asset [42] peers: [1], [2], did not fund channel in time; Funding Error on asset [1337] peers: [0], [2], did not fund channel in time; Funding Error on asset [7531] peers: [1], [3], did not fund channel in time; ")
+	assert.Len(perr.Errors, 3)
+	assert.Equal("Funding Error on asset [42] peers: [1], [2], did not fund channel in time; Funding Error on asset [1337] peers: [0], [2], did not fund channel in time; Funding Error on asset [7531] peers: [1], [3], did not fund channel in time; ",
+		perr.Error())
 	// test no funding timeout error
 	assert.False(IsFundingTimeoutError(errors.New("no FundingTimeoutError")))
 	// nil input should not return error

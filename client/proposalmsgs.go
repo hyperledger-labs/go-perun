@@ -90,7 +90,7 @@ type (
 
 		// Matches checks whether an accept message is of the correct type. This
 		// does not check any contents of the accept message, only its type.
-		Matches(ChannelProposalAccept) bool
+		Matches(propAccept ChannelProposalAccept) bool
 
 		// Valid checks whether a channel proposal is valid.
 		Valid() error
@@ -127,7 +127,8 @@ type (
 
 // proposalPeers returns the wire addresses of a proposed channel's
 // participants.
-func (c *Client) proposalPeers(p ChannelProposal) (peers []wire.Address) {
+func (c *Client) proposalPeers(p ChannelProposal) []wire.Address {
+	var peers []wire.Address
 	switch prop := p.(type) {
 	case *LedgerChannelProposalMsg:
 		peers = prop.Peers
@@ -142,7 +143,7 @@ func (c *Client) proposalPeers(p ChannelProposal) (peers []wire.Address) {
 	default:
 		c.log.Panicf("ProposalPeers: unhandled proposal type %T")
 	}
-	return
+	return peers
 }
 
 // makeBaseChannelProposal creates a BaseChannelProposal and applies the supplied
@@ -198,7 +199,7 @@ func (p BaseChannelProposal) Encode(w io.Writer) error {
 }
 
 // Decode decodes a BaseChannelProposal from an io.Reader.
-func (p *BaseChannelProposal) Decode(r io.Reader) (err error) {
+func (p *BaseChannelProposal) Decode(r io.Reader) error {
 	if p.InitBals == nil {
 		p.InitBals = new(channel.Allocation)
 	}
@@ -263,8 +264,9 @@ func NewLedgerChannelProposal(
 	initBals *channel.Allocation,
 	peers []wire.Address,
 	opts ...ProposalOpts,
-) (prop *LedgerChannelProposalMsg, err error) {
-	prop = &LedgerChannelProposalMsg{
+) (*LedgerChannelProposalMsg, error) {
+	var err error
+	prop := &LedgerChannelProposalMsg{
 		Participant: participant,
 		Peers:       peers,
 	}
@@ -272,7 +274,7 @@ func NewLedgerChannelProposal(
 		challengeDuration,
 		initBals,
 		opts...)
-	return
+	return prop, err
 }
 
 // Type returns wire.LedgerChannelProposal.
@@ -330,16 +332,17 @@ func NewSubChannelProposal(
 	challengeDuration uint64,
 	initBals *channel.Allocation,
 	opts ...ProposalOpts,
-) (prop *SubChannelProposalMsg, err error) {
+) (*SubChannelProposalMsg, error) {
+	var err error
 	if union(opts...).isFundingAgreement() {
 		return nil, errors.New("Sub-Channels currently do not support funding agreements")
 	}
-	prop = &SubChannelProposalMsg{Parent: parent}
+	prop := &SubChannelProposalMsg{Parent: parent}
 	prop.BaseChannelProposal, err = makeBaseChannelProposal(
 		challengeDuration,
 		initBals,
 		opts...)
-	return
+	return prop, err
 }
 
 // Encode encodes the SubChannelProposal into an io.Writer.
@@ -540,23 +543,23 @@ func NewVirtualChannelProposal(
 	parents []channel.ID,
 	indexMaps [][]channel.Index,
 	opts ...ProposalOpts,
-) (prop *VirtualChannelProposalMsg, err error) {
+) (*VirtualChannelProposalMsg, error) {
 	base, err := makeBaseChannelProposal(
 		challengeDuration,
 		initBals,
 		opts...,
 	)
 	if err != nil {
-		return
+		return nil, err
 	}
-	prop = &VirtualChannelProposalMsg{
+	prop := &VirtualChannelProposalMsg{
 		BaseChannelProposal: base,
 		Proposer:            participant,
 		Peers:               peers,
 		Parents:             parents,
 		IndexMaps:           indexMaps,
 	}
-	return
+	return prop, nil
 }
 
 // Encode encodes the proposal into an io.Writer.

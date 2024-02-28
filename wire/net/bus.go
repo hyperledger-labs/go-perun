@@ -74,7 +74,8 @@ func (b *Bus) SubscribeClient(c wire.Consumer, addr wire.Address) error {
 // Publish sends an envelope to its recipient. Automatically establishes a
 // communication channel to the recipient using the bus' dialer. Only returns
 // when the context is aborted or the envelope was sent successfully.
-func (b *Bus) Publish(ctx context.Context, e *wire.Envelope) (err error) {
+func (b *Bus) Publish(ctx context.Context, e *wire.Envelope) error {
+	var err error
 	for attempt := 1; attempt <= PublishAttempts; attempt++ {
 		log.Tracef("Bus.Publish attempt: %d/%d", attempt, PublishAttempts)
 		var ep *Endpoint
@@ -98,7 +99,7 @@ func (b *Bus) Publish(ctx context.Context, e *wire.Envelope) (err error) {
 		case <-time.After(PublishCooldown):
 		}
 	}
-	return
+	return err
 }
 
 // Close closes the bus and terminates its goroutines.

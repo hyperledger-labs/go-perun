@@ -21,20 +21,23 @@ import (
 )
 
 func fromPingMsg(msg *wire.PingMsg) *Envelope_PingMsg {
-	protoMsg := &PingMsg{}
-	protoMsg.Created = msg.Created.UnixNano()
+	protoMsg := &PingMsg{
+		Created: msg.Created.UnixNano(),
+	}
 	return &Envelope_PingMsg{protoMsg}
 }
 
 func fromPongMsg(msg *wire.PongMsg) *Envelope_PongMsg {
-	protoMsg := &PongMsg{}
-	protoMsg.Created = msg.Created.UnixNano()
+	protoMsg := &PongMsg{
+		Created: msg.Created.UnixNano(),
+	}
 	return &Envelope_PongMsg{protoMsg}
 }
 
 func fromShutdownMsg(msg *wire.ShutdownMsg) *Envelope_ShutdownMsg {
-	protoMsg := &ShutdownMsg{}
-	protoMsg.Reason = msg.Reason
+	protoMsg := &ShutdownMsg{
+		Reason: msg.Reason,
+	}
 	return &Envelope_ShutdownMsg{protoMsg}
 }
 
@@ -45,28 +48,32 @@ func fromAuthResponseMsg(msg *wire.AuthResponseMsg) *Envelope_AuthResponseMsg {
 	return &Envelope_AuthResponseMsg{protoMsg}
 }
 
-func toPingMsg(protoMsg *Envelope_PingMsg) (msg *wire.PingMsg) {
-	msg = &wire.PingMsg{}
-	msg.Created = time.Unix(0, protoMsg.PingMsg.Created)
+//nolint:forbidigo
+func toPingMsg(protoMsg *Envelope_PingMsg) *wire.PingMsg {
+	msg := &wire.PingMsg{}
+	msg.Created = time.Unix(0, protoMsg.PingMsg.GetCreated())
 	return msg
 }
 
-func toPongMsg(protoEnvMsg *Envelope_PongMsg) (msg *wire.PongMsg) {
-	msg = &wire.PongMsg{}
-	msg.Created = time.Unix(0, protoEnvMsg.PongMsg.Created)
+//nolint:forbidigo
+func toPongMsg(protoEnvMsg *Envelope_PongMsg) *wire.PongMsg {
+	msg := &wire.PongMsg{}
+	msg.Created = time.Unix(0, protoEnvMsg.PongMsg.GetCreated())
 	return msg
 }
 
-func toShutdownMsg(protoEnvMsg *Envelope_ShutdownMsg) (msg *wire.ShutdownMsg) {
-	msg = &wire.ShutdownMsg{}
-	msg.Reason = protoEnvMsg.ShutdownMsg.Reason
+//nolint:forbidigo
+func toShutdownMsg(protoEnvMsg *Envelope_ShutdownMsg) *wire.ShutdownMsg {
+	msg := &wire.ShutdownMsg{}
+	msg.Reason = protoEnvMsg.ShutdownMsg.GetReason()
 	return msg
 }
 
-func toAuthResponseMsg(protoEnvMsg *Envelope_AuthResponseMsg) (msg *wire.AuthResponseMsg) {
-	msg = &wire.AuthResponseMsg{}
-	msg.SignatureSize = protoEnvMsg.AuthResponseMsg.SignatureSize
-	msg.Signature = protoEnvMsg.AuthResponseMsg.Signature
+//nolint:forbidigo
+func toAuthResponseMsg(protoEnvMsg *Envelope_AuthResponseMsg) *wire.AuthResponseMsg {
+	msg := &wire.AuthResponseMsg{}
+	msg.SignatureSize = protoEnvMsg.AuthResponseMsg.GetSignatureSize()
+	msg.Signature = protoEnvMsg.AuthResponseMsg.GetSignature()
 	if msg.Signature == nil {
 		msg.Signature = make([]byte, msg.SignatureSize)
 	}

@@ -84,7 +84,7 @@ func TestClient_New(t *testing.T) {
 	require.NoError(t, err, "initializing the watcher should not error")
 	c, err := client.New(wiretest.NewRandomAddress(rng),
 		&DummyBus{t}, &ctest.MockFunder{}, &ctest.MockAdjudicator{}, wtest.RandomWallet(), watcher)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	require.NotNil(t, c)
 }
 

@@ -77,7 +77,7 @@ func sigKey(idx, numParts int) string {
 }
 
 // ChannelRemoved deletes a channel from the database.
-func (pr *PersistRestorer) ChannelRemoved(ctx context.Context, id channel.ID) error {
+func (pr *PersistRestorer) ChannelRemoved(_ context.Context, id channel.ID) error {
 	db := pr.channelDB(id).NewBatch()
 	peerdb := sortedkv.NewTable(pr.db, prefix.PeerDB).NewBatch()
 	// All keys a channel has.
@@ -118,7 +118,7 @@ func (pr *PersistRestorer) ChannelRemoved(ctx context.Context, id channel.ID) er
 // the db.
 func (pr *PersistRestorer) paramsForChan(id channel.ID) (channel.Params, error) {
 	params := channel.Params{}
-	b, err := pr.channelDB(id).GetBytes("params")
+	b, err := pr.channelDB(id).GetBytes("params") //nolint:forbidigo
 	if err != nil {
 		return params, errors.WithMessage(err, "unable to retrieve params from db")
 	}

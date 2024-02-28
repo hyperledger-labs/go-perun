@@ -19,6 +19,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	"perun.network/go-perun/channel"
 	"perun.network/go-perun/channel/test"
@@ -42,7 +43,7 @@ func TestApp_ValidInit(t *testing.T) {
 	assert.Panics(func() { app.ValidInit(nil, wrongdata) }) //nolint:errcheck
 
 	data := &channel.State{Data: Data()}
-	assert.Nil(app.ValidInit(nil, data))
+	require.NoError(t, app.ValidInit(nil, data))
 }
 
 func TestApp_ValidTransition(t *testing.T) {
@@ -95,7 +96,7 @@ func TestApp_ValidTransition(t *testing.T) {
 			numParticipants := len(tt.from[0])
 			for i := 0; i < numParticipants; i++ {
 				// valid self-transition
-				assert.NoError(app.ValidTransition(nil, from, from, channel.Index(i)))
+				require.NoError(t, app.ValidTransition(nil, from, from, channel.Index(i)))
 			}
 
 			for _, tto := range tt.tos {
@@ -107,7 +108,7 @@ func TestApp_ValidTransition(t *testing.T) {
 				for i := 0; i < numParticipants; i++ {
 					err := app.ValidTransition(nil, from, to, channel.Index(i))
 					if i == tto.valid {
-						assert.NoError(err)
+						require.NoError(t, err)
 					} else {
 						assert.Error(err)
 					}

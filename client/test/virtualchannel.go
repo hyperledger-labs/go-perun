@@ -74,9 +74,9 @@ func TestVirtualChannelOptimistic( //nolint:revive // test.Test... stutters but 
 
 	// Test final balances.
 	err := vct.chAliceIngrid.State().Balances.AssertEqual(channel.Balances{vct.finalBalsAlice})
-	assert.NoError(t, err, "Alice: invalid final balances")
+	require.NoError(t, err, "Alice: invalid final balances")
 	err = vct.chBobIngrid.State().Balances.AssertEqual(channel.Balances{vct.finalBalsBob})
-	assert.NoError(t, err, "Bob: invalid final balances")
+	require.NoError(t, err, "Bob: invalid final balances")
 }
 
 // TestVirtualChannelDispute tests virtual channel functionality in the dispute
@@ -96,14 +96,14 @@ func TestVirtualChannelDispute( //nolint:revive // test.Test... stutters but OK 
 	t.Logf("perm = %v", perm)
 	for _, i := range perm {
 		err := client.NewTestChannel(chs[i]).Register(ctx)
-		assert.NoErrorf(err, "register channel: %d", i)
+		require.NoErrorf(t, err, "register channel: %d", i)
 		time.Sleep(waitTimeout) // Sleep to ensure that events have been processed and local client states have been updated.
 	}
 
 	// Settle the channels in a random order.
 	for _, i := range rand.Perm(len(chs)) {
 		err := chs[i].Settle(ctx, false)
-		assert.NoErrorf(err, "settle channel: %d", i)
+		require.NoErrorf(t, err, "settle channel: %d", i)
 	}
 
 	// Check final balances.
@@ -164,10 +164,11 @@ func setupVirtualChannelTest(
 	t *testing.T,
 	ctx context.Context,
 	setup VirtualChannelSetup,
-) (vct virtualChannelTest) {
+) virtualChannelTest {
 	t.Helper()
 	require := require.New(t)
 
+	var vct virtualChannelTest
 	// Set test values.
 	asset := setup.Asset
 	vct.asset = asset
@@ -211,10 +212,10 @@ func setupVirtualChannelTest(
 		}
 	}
 	var updateProposalHandlerIngrid client.UpdateHandlerFunc = func(
-		s *channel.State, cu client.ChannelUpdate, ur *client.UpdateResponder,
+		_ *channel.State, _ client.ChannelUpdate, _ *client.UpdateResponder,
 	) {
 	}
-	go ingrid.Client.Handle(openingProposalHandlerIngrid, updateProposalHandlerIngrid)
+	go ingrid.Client.Handle(openingProposalHandlerIngrid, updateProposalHandlerIngrid) //nolint:contextcheck // context is checked in the test
 
 	// Establish ledger channel between Alice and Ingrid.
 	peersAlice := []wire.Address{alice.Identity.Address(), ingrid.Identity.Address()}
@@ -273,14 +274,14 @@ func setupVirtualChannelTest(
 		}
 	}
 	var updateProposalHandlerBob client.UpdateHandlerFunc = func(
-		s *channel.State, cu client.ChannelUpdate, ur *client.UpdateResponder,
+		_ *channel.State, _ client.ChannelUpdate, ur *client.UpdateResponder,
 	) {
 		err := ur.Accept(ctx)
 		if err != nil {
 			vct.errs <- errors.WithMessage(err, "Bob: accepting channel update")
 		}
 	}
-	go bob.Client.Handle(openingProposalHandlerBob, updateProposalHandlerBob)
+	go bob.Client.Handle(openingProposalHandlerBob, updateProposalHandlerBob) //nolint:contextcheck // context is checked in the test
 
 	// Establish virtual channel between Alice and Bob via Ingrid.
 	initAllocVirtual := channel.Allocation{

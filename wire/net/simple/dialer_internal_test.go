@@ -22,12 +22,12 @@ import (
 	"crypto/x509"
 	"crypto/x509/pkix"
 	"encoding/pem"
-	"fmt"
 	"math/big"
 	"net"
 	"testing"
 	"time"
 
+	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -43,7 +43,7 @@ func TestNewTCPDialer(t *testing.T) {
 		MinVersion: tls.VersionTLS12, // Set minimum TLS version to TLS 1.2
 	}
 	d := NewTCPDialer(0, tlsConfig)
-	assert.Equal(t, d.network, "tcp")
+	assert.Equal(t, "tcp", d.network)
 }
 
 func TestNewUnixDialer(t *testing.T) {
@@ -51,7 +51,7 @@ func TestNewUnixDialer(t *testing.T) {
 		MinVersion: tls.VersionTLS12, // Set minimum TLS version to TLS 1.2
 	}
 	d := NewUnixDialer(0, tlsConfig)
-	assert.Equal(t, d.network, "unix")
+	assert.Equal(t, "unix", d.network)
 }
 
 func TestDialer_Register(t *testing.T) {
@@ -70,7 +70,7 @@ func TestDialer_Register(t *testing.T) {
 
 	host, ok := d.host(key)
 	assert.True(t, ok)
-	assert.Equal(t, host, "host")
+	assert.Equal(t, "host", host)
 }
 
 func TestDialer_Dial(t *testing.T) {
@@ -103,21 +103,21 @@ func TestDialer_Dial(t *testing.T) {
 		ct := test.NewConcurrent(t)
 		go ct.Stage("accept", func(rt test.ConcT) {
 			conn, err := l.Accept(ser)
-			assert.NoError(t, err)
-			require.NotNil(rt, conn)
+			require.NoError(t, err)  //nolint: testifylint
+			require.NotNil(rt, conn) //nolint: testifylint
 
 			re, err := conn.Recv()
-			assert.NoError(t, err)
+			require.NoError(t, err) //nolint: testifylint
 			assert.Equal(t, re, e)
 		})
 
 		ct.Stage("dial", func(rt test.ConcT) {
 			ctxtest.AssertTerminates(t, timeout, func() {
 				conn, err := d.Dial(context.Background(), laddr, ser)
-				assert.NoError(t, err)
+				require.NoError(t, err)
 				require.NotNil(rt, conn)
 
-				assert.NoError(t, conn.Send(e))
+				require.NoError(t, conn.Send(e))
 			})
 		})
 
@@ -130,7 +130,7 @@ func TestDialer_Dial(t *testing.T) {
 		ctxtest.AssertTerminates(t, timeout, func() {
 			conn, err := d.Dial(ctx, laddr, ser)
 			assert.Nil(t, conn)
-			assert.Error(t, err)
+			require.Error(t, err)
 		})
 	})
 
@@ -141,7 +141,7 @@ func TestDialer_Dial(t *testing.T) {
 		ctxtest.AssertTerminates(t, timeout, func() {
 			conn, err := d.Dial(context.Background(), noHostAddr, ser)
 			assert.Nil(t, conn)
-			assert.Error(t, err)
+			require.Error(t, err)
 		})
 	})
 
@@ -149,7 +149,7 @@ func TestDialer_Dial(t *testing.T) {
 		ctxtest.AssertTerminates(t, timeout, func() {
 			unkownAddr := NewRandomAddress(rng)
 			conn, err := d.Dial(context.Background(), unkownAddr, ser)
-			assert.Error(t, err)
+			require.Error(t, err)
 			assert.Nil(t, conn)
 		})
 	})
@@ -247,7 +247,7 @@ func generateSelfSignedCertConfigs(commonName string, sans []string) (*tls.Confi
 	serverCertPool := x509.NewCertPool()
 	ok := serverCertPool.AppendCertsFromPEM(clientCertPEM)
 	if !ok {
-		return nil, nil, fmt.Errorf("failed to parse root certificate")
+		return nil, nil, errors.New("failed to parse root certificate")
 	}
 
 	// Create the server-side TLS configuration
@@ -261,7 +261,7 @@ func generateSelfSignedCertConfigs(commonName string, sans []string) (*tls.Confi
 	clientCertPool := x509.NewCertPool()
 	ok = clientCertPool.AppendCertsFromPEM(serverCertPEM)
 	if !ok {
-		return nil, nil, fmt.Errorf("failed to parse root certificate")
+		return nil, nil, errors.New("failed to parse root certificate")
 	}
 
 	// Create the client-side TLS configuration

@@ -26,7 +26,7 @@ type Conn interface {
 	Recv() (*wire.Envelope, error)
 	// Send sends an envelope to the peer.
 	// If an error occurs, the connection must close itself.
-	Send(*wire.Envelope) error
+	Send(env *wire.Envelope) error
 	// Close closes the connection and aborts any ongoing Send() and Recv()
 	// calls.
 	//

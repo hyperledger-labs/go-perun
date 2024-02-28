@@ -31,7 +31,8 @@ var byteOrder = binary.LittleEndian
 
 // Encode encodes multiple primitive values into a writer.
 // All passed values must be copies, not references.
-func Encode(writer io.Writer, values ...interface{}) (err error) { //nolint: cyclop // by design,
+func Encode(writer io.Writer, values ...interface{}) error { //nolint: cyclop // by design,
+	var err error
 	// encode function has many paths. Hence, we accept a higher complexity  here.
 	for i, value := range values {
 		switch v := value.(type) {
@@ -86,7 +87,8 @@ func Encode(writer io.Writer, values ...interface{}) (err error) { //nolint: cyc
 
 // Decode decodes multiple primitive values from a reader.
 // All passed values must be references, not copies.
-func Decode(reader io.Reader, values ...interface{}) (err error) {
+func Decode(reader io.Reader, values ...interface{}) error {
+	var err error
 	for i, value := range values {
 		switch v := value.(type) {
 		case *bool, *int8, *uint8, *int16, *uint16, *int32, *uint32, *int64, *uint64:

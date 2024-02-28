@@ -100,7 +100,7 @@ func (m *StateMachine) Update(stagingState *State, actor Index) error {
 }
 
 // ForceUpdate makes the provided state the staging state.
-func (m *StateMachine) ForceUpdate(stagingState *State, actor Index) error {
+func (m *StateMachine) ForceUpdate(stagingState *State, _ Index) error {
 	m.setStaging(Signing, stagingState)
 	return nil
 }
@@ -130,11 +130,12 @@ func (m *StateMachine) CheckUpdate(
 // every action is checked as being a valid action by the application definition
 // and the resulting state by applying all actions to the old state is by
 // definition a valid new state.
-func (m *StateMachine) validTransition(to *State, actor Index) (err error) {
+func (m *StateMachine) validTransition(to *State, actor Index) error {
+	var err error
 	if actor >= m.N() {
 		return errors.New("actor index is out of range")
 	}
-	if err := m.machine.ValidTransition(to); err != nil {
+	if err = m.machine.ValidTransition(to); err != nil {
 		return err
 	}
 

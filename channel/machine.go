@@ -218,21 +218,23 @@ func inPhase(phase Phase, phases []Phase) bool {
 // The signature is calculated and saved to the staging TX's signature slice
 // if it was not calculated before.
 // A call to Sig only makes sense in a signing phase.
-func (m *machine) Sig() (sig wallet.Sig, err error) {
+func (m *machine) Sig() (wallet.Sig, error) {
 	if !inPhase(m.phase, signingPhases) {
 		return nil, m.phaseErrorf(m.selfTransition(), "can only create own signature in a signing phase")
 	}
 
+	var sig wallet.Sig
+	var err error
 	if m.stagingTX.Sigs[m.idx] == nil {
 		sig, err = Sign(m.acc, m.stagingTX.State)
 		if err != nil {
-			return
+			return nil, err
 		}
 		m.stagingTX.Sigs[m.idx] = sig
 	} else {
 		sig = m.stagingTX.Sigs[m.idx]
 	}
-	return
+	return sig, err
 }
 
 // State returns the current state.
@@ -241,7 +243,7 @@ func (m *machine) State() *State {
 	return m.currentTX.State
 }
 
-// CurrentTX returns the current current transaction.
+// CurrentTX returns the current transaction.
 func (m *machine) CurrentTX() Transaction {
 	return m.currentTX
 }

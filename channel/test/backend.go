@@ -108,7 +108,7 @@ func genericChannelIDTest(t *testing.T, s *Setup) {
 func genericSignTest(t *testing.T, s *Setup) {
 	t.Helper()
 	_, err := channel.Sign(s.Account, s.State)
-	assert.NoError(t, err, "Sign should not return an error")
+	require.NoError(t, err, "Sign should not return an error")
 }
 
 func genericVerifyTest(t *testing.T, s *Setup, opts ...GenericTestOption) {
@@ -119,27 +119,28 @@ func genericVerifyTest(t *testing.T, s *Setup, opts ...GenericTestOption) {
 	require.NoError(t, err, "Sign should not return an error")
 
 	ok, err := channel.Verify(addr, s.State, sig)
-	assert.NoError(t, err, "Verify should not return an error")
+	require.NoError(t, err, "Verify should not return an error")
 	assert.True(t, ok, "Verify should return true")
 
 	for i, _modState := range buildModifiedStates(s.State, s.State2, append(opts, IgnoreApp)...) {
 		modState := _modState
 		ok, err = channel.Verify(addr, &modState, sig)
 		assert.Falsef(t, ok, "Verify should return false: index %d", i)
-		assert.NoError(t, err, "Verify should not return an error")
+		require.NoError(t, err, "Verify should not return an error")
 	}
 
 	// Different address and same state and params
 	for i := 0; i < 10; i++ {
 		ok, err := channel.Verify(s.RandomAddress(), s.State, sig)
-		assert.NoError(t, err, "Verify should not return an error")
+		require.NoError(t, err, "Verify should not return an error")
 		assert.False(t, ok, "Verify should return false")
 	}
 }
 
 // buildModifiedParams returns a slice of Params that are different from `p1` assuming that `p2` differs in
 // every member from `p1`.
-func buildModifiedParams(p1, p2 *channel.Params, s *Setup) (ret []channel.Params) {
+func buildModifiedParams(p1, p2 *channel.Params, s *Setup) []channel.Params {
+	var ret []channel.Params
 	// Modify params
 	{
 		// Modify complete Params
@@ -197,7 +198,8 @@ func appendModParams(a []channel.Params, modParams channel.Params) []channel.Par
 // every member from `s1`.
 // `modifyApp` indicates whether the app should also be changed or not. In some cases (signature) it is desirable
 // not to modify it.
-func buildModifiedStates(s1, s2 *channel.State, _opts ...GenericTestOption) (ret []channel.State) {
+func buildModifiedStates(s1, s2 *channel.State, _opts ...GenericTestOption) []channel.State {
+	var ret []channel.State
 	opts := mergeTestOpts(_opts...)
 	// Modify state
 	{
@@ -361,8 +363,8 @@ func ensureBalanceVectorLength(bals []channel.Bal, l int) []channel.Bal {
 // GenericStateEqualTest tests the State.Equal function.
 func GenericStateEqualTest(t *testing.T, s1, s2 *channel.State, opts ...GenericTestOption) {
 	t.Helper()
-	assert.NoError(t, s1.Equal(s1)) //nolint:gocritic
-	assert.NoError(t, s2.Equal(s2)) //nolint:gocritic
+	require.NoError(t, s1.Equal(s1)) //nolint:gocritic
+	require.NoError(t, s2.Equal(s2)) //nolint:gocritic
 
 	for _, differentState := range buildModifiedStates(s1, s2, opts...) {
 		assert.Error(t, differentState.Equal(s1))

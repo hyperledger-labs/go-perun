@@ -51,11 +51,11 @@ func NewRandomChannel(
 	ctx context.Context,
 	t require.TestingT,
 	pr persistence.PersistRestorer,
-	user channel.Index,
+	_ channel.Index,
 	peers []wire.Address,
 	parent *Channel,
 	rng *rand.Rand,
-) (c *Channel) {
+) *Channel {
 	accs, parts := wtest.NewRandomAccounts(rng, len(peers))
 	params := ctest.NewRandomParams(rng, ctest.WithParts(parts...))
 	csm, err := channel.NewStateMachine(accs[0], *params)
@@ -68,7 +68,7 @@ func NewRandomChannel(
 	}
 
 	sm := persistence.FromStateMachine(csm, pr)
-	c = &Channel{
+	c := &Channel{
 		accounts:     accs,
 		peers:        peers,
 		StateMachine: &sm,

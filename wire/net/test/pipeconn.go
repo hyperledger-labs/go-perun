@@ -32,19 +32,21 @@ type Conn struct {
 }
 
 // Send sends an envelope.
-func (c *Conn) Send(e *wire.Envelope) (err error) {
+func (c *Conn) Send(e *wire.Envelope) error {
+	var err error
 	if err = c.conn.Send(e); err != nil {
 		c.Close()
 	}
-	return
+	return err
 }
 
 // Recv receives an envelope.
-func (c *Conn) Recv() (e *wire.Envelope, err error) {
-	if e, err = c.conn.Recv(); err != nil {
+func (c *Conn) Recv() (*wire.Envelope, error) {
+	e, err := c.conn.Recv()
+	if err != nil {
 		c.Close()
 	}
-	return
+	return e, err
 }
 
 // Close closes the Conn.
@@ -61,7 +63,7 @@ func (c *Conn) IsClosed() bool {
 }
 
 // NewTestConnPair creates endpoints that are connected via pipes.
-func NewTestConnPair() (a wirenet.Conn, b wirenet.Conn) {
+func NewTestConnPair() (wirenet.Conn, wirenet.Conn) {
 	closed := new(atomic.Bool)
 	c0, c1 := net.Pipe()
 	ser := perunio.Serializer()

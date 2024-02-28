@@ -28,100 +28,107 @@ import (
 
 // ToLedgerChannelProposalMsg converts a protobuf Envelope_LedgerChannelProposalMsg to a client
 // LedgerChannelProposalMsg.
-func ToLedgerChannelProposalMsg(protoEnvMsg *Envelope_LedgerChannelProposalMsg) (msg *client.LedgerChannelProposalMsg, err error) {
+func ToLedgerChannelProposalMsg(protoEnvMsg *Envelope_LedgerChannelProposalMsg) (*client.LedgerChannelProposalMsg, error) {
 	protoMsg := protoEnvMsg.LedgerChannelProposalMsg
 
-	msg = &client.LedgerChannelProposalMsg{}
-	msg.BaseChannelProposal, err = ToBaseChannelProposal(protoMsg.BaseChannelProposal)
+	var err error
+	msg := &client.LedgerChannelProposalMsg{}
+	msg.BaseChannelProposal, err = ToBaseChannelProposal(protoMsg.GetBaseChannelProposal())
 	if err != nil {
 		return nil, err
 	}
-	msg.Participant, err = ToWalletAddr(protoMsg.Participant)
+	msg.Participant, err = ToWalletAddr(protoMsg.GetParticipant())
 	if err != nil {
 		return nil, errors.WithMessage(err, "participant address")
 	}
-	msg.Peers, err = ToWireAddrs(protoMsg.Peers)
+	msg.Peers, err = ToWireAddrs(protoMsg.GetPeers())
 	return msg, errors.WithMessage(err, "peers")
 }
 
 // ToSubChannelProposalMsg converts a protobuf Envelope_SubChannelProposalMsg to a client SubChannelProposalMsg.
-func ToSubChannelProposalMsg(protoEnvMsg *Envelope_SubChannelProposalMsg) (msg *client.SubChannelProposalMsg, err error) {
+func ToSubChannelProposalMsg(protoEnvMsg *Envelope_SubChannelProposalMsg) (*client.SubChannelProposalMsg, error) {
 	protoMsg := protoEnvMsg.SubChannelProposalMsg
 
-	msg = &client.SubChannelProposalMsg{}
-	copy(msg.Parent[:], protoMsg.Parent)
-	msg.BaseChannelProposal, err = ToBaseChannelProposal(protoMsg.BaseChannelProposal)
+	var err error
+	msg := &client.SubChannelProposalMsg{}
+	copy(msg.Parent[:], protoMsg.GetParent())
+	msg.BaseChannelProposal, err = ToBaseChannelProposal(protoMsg.GetBaseChannelProposal())
 	return msg, err
 }
 
 // ToVirtualChannelProposalMsg converts a protobuf Envelope_VirtualChannelProposalMsg to a client
 // VirtualChannelProposalMsg.
-func ToVirtualChannelProposalMsg(protoEnvMsg *Envelope_VirtualChannelProposalMsg) (msg *client.VirtualChannelProposalMsg, err error) {
+//
+//nolint:forbidigo
+func ToVirtualChannelProposalMsg(protoEnvMsg *Envelope_VirtualChannelProposalMsg) (*client.VirtualChannelProposalMsg, error) {
 	protoMsg := protoEnvMsg.VirtualChannelProposalMsg
 
-	msg = &client.VirtualChannelProposalMsg{}
-	msg.BaseChannelProposal, err = ToBaseChannelProposal(protoMsg.BaseChannelProposal)
+	var err error
+	msg := &client.VirtualChannelProposalMsg{}
+	msg.BaseChannelProposal, err = ToBaseChannelProposal(protoMsg.GetBaseChannelProposal())
 	if err != nil {
 		return nil, err
 	}
-	msg.Proposer, err = ToWalletAddr(protoMsg.Proposer)
+	msg.Proposer, err = ToWalletAddr(protoMsg.GetProposer())
 	if err != nil {
 		return nil, errors.WithMessage(err, "proposer")
 	}
-	msg.Parents = make([]channel.ID, len(protoMsg.Parents))
-	for i := range protoMsg.Parents {
-		copy(msg.Parents[i][:], protoMsg.Parents[i])
+	msg.Parents = make([]channel.ID, len(protoMsg.GetParents()))
+	for i := range protoMsg.GetParents() {
+		copy(msg.Parents[i][:], protoMsg.GetParents()[i])
 	}
-	msg.IndexMaps = make([][]channel.Index, len(protoMsg.IndexMaps))
-	for i := range protoMsg.IndexMaps {
-		msg.IndexMaps[i], err = ToIndexMap(protoMsg.IndexMaps[i].IndexMap)
+	msg.IndexMaps = make([][]channel.Index, len(protoMsg.GetIndexMaps()))
+	for i := range protoMsg.GetIndexMaps() {
+		msg.IndexMaps[i], err = ToIndexMap(protoMsg.GetIndexMaps()[i].GetIndexMap())
 		if err != nil {
 			return nil, err
 		}
 	}
-	msg.Peers, err = ToWireAddrs(protoMsg.Peers)
+	msg.Peers, err = ToWireAddrs(protoMsg.GetPeers())
 	return msg, errors.WithMessage(err, "peers")
 }
 
 // ToLedgerChannelProposalAccMsg converts a protobuf Envelope_LedgerChannelProposalAccMsg to a client
 // LedgerChannelProposalAccMsg.
-func ToLedgerChannelProposalAccMsg(protoEnvMsg *Envelope_LedgerChannelProposalAccMsg) (msg *client.LedgerChannelProposalAccMsg, err error) {
+func ToLedgerChannelProposalAccMsg(protoEnvMsg *Envelope_LedgerChannelProposalAccMsg) (*client.LedgerChannelProposalAccMsg, error) {
 	protoMsg := protoEnvMsg.LedgerChannelProposalAccMsg
 
-	msg = &client.LedgerChannelProposalAccMsg{}
-	msg.BaseChannelProposalAcc = ToBaseChannelProposalAcc(protoMsg.BaseChannelProposalAcc)
-	msg.Participant, err = ToWalletAddr(protoMsg.Participant)
+	var err error
+	msg := &client.LedgerChannelProposalAccMsg{}
+	msg.BaseChannelProposalAcc = ToBaseChannelProposalAcc(protoMsg.GetBaseChannelProposalAcc())
+	msg.Participant, err = ToWalletAddr(protoMsg.GetParticipant())
 	return msg, errors.WithMessage(err, "participant")
 }
 
 // ToSubChannelProposalAccMsg converts a protobuf Envelope_SubChannelProposalAccMsg to a client
 // SubChannelProposalAccMsg.
-func ToSubChannelProposalAccMsg(protoEnvMsg *Envelope_SubChannelProposalAccMsg) (msg *client.SubChannelProposalAccMsg) {
+func ToSubChannelProposalAccMsg(protoEnvMsg *Envelope_SubChannelProposalAccMsg) *client.SubChannelProposalAccMsg {
 	protoMsg := protoEnvMsg.SubChannelProposalAccMsg
 
-	msg = &client.SubChannelProposalAccMsg{}
-	msg.BaseChannelProposalAcc = ToBaseChannelProposalAcc(protoMsg.BaseChannelProposalAcc)
+	msg := &client.SubChannelProposalAccMsg{}
+	msg.BaseChannelProposalAcc = ToBaseChannelProposalAcc(protoMsg.GetBaseChannelProposalAcc())
 	return msg
 }
 
 // ToVirtualChannelProposalAccMsg converts a protobuf Envelope_VirtualChannelProposalAccMsg to a client
 // VirtualChannelProposalAccMsg.
-func ToVirtualChannelProposalAccMsg(protoEnvMsg *Envelope_VirtualChannelProposalAccMsg) (msg *client.VirtualChannelProposalAccMsg, err error) {
+func ToVirtualChannelProposalAccMsg(protoEnvMsg *Envelope_VirtualChannelProposalAccMsg) (*client.VirtualChannelProposalAccMsg, error) {
 	protoMsg := protoEnvMsg.VirtualChannelProposalAccMsg
 
-	msg = &client.VirtualChannelProposalAccMsg{}
-	msg.BaseChannelProposalAcc = ToBaseChannelProposalAcc(protoMsg.BaseChannelProposalAcc)
-	msg.Responder, err = ToWalletAddr(protoMsg.Responder)
+	var err error
+	msg := &client.VirtualChannelProposalAccMsg{}
+	msg.BaseChannelProposalAcc = ToBaseChannelProposalAcc(protoMsg.GetBaseChannelProposalAcc())
+	msg.Responder, err = ToWalletAddr(protoMsg.GetResponder())
 	return msg, errors.WithMessage(err, "responder")
 }
 
 // ToChannelProposalRejMsg converts a protobuf Envelope_ChannelProposalRejMsg to a client ChannelProposalRejMsg.
-func ToChannelProposalRejMsg(protoEnvMsg *Envelope_ChannelProposalRejMsg) (msg *client.ChannelProposalRejMsg) {
+func ToChannelProposalRejMsg(protoEnvMsg *Envelope_ChannelProposalRejMsg) *client.ChannelProposalRejMsg {
 	protoMsg := protoEnvMsg.ChannelProposalRejMsg
 
-	msg = &client.ChannelProposalRejMsg{}
-	copy(msg.ProposalID[:], protoMsg.ProposalId)
-	msg.Reason = protoMsg.Reason
+	msg := &client.ChannelProposalRejMsg{}
+	copy(msg.ProposalID[:], protoMsg.GetProposalId())
+	msg.Reason = protoMsg.GetReason()
 	return msg
 }
 
@@ -158,37 +165,41 @@ func ToWireAddrs(protoAddrs [][]byte) ([]wire.Address, error) {
 }
 
 // ToBaseChannelProposal converts a protobuf BaseChannelProposal to a client BaseChannelProposal.
-func ToBaseChannelProposal(protoProp *BaseChannelProposal) (prop client.BaseChannelProposal, err error) {
-	prop.ChallengeDuration = protoProp.ChallengeDuration
-	copy(prop.ProposalID[:], protoProp.ProposalId)
-	copy(prop.NonceShare[:], protoProp.NonceShare)
-	prop.InitBals, err = ToAllocation(protoProp.InitBals)
+func ToBaseChannelProposal(protoProp *BaseChannelProposal) (client.BaseChannelProposal, error) {
+	var prop client.BaseChannelProposal
+	var err error
+	prop.ChallengeDuration = protoProp.GetChallengeDuration()
+	copy(prop.ProposalID[:], protoProp.GetProposalId())
+	copy(prop.NonceShare[:], protoProp.GetNonceShare())
+	prop.InitBals, err = ToAllocation(protoProp.GetInitBals())
 	if err != nil {
 		return prop, errors.WithMessage(err, "init bals")
 	}
-	prop.FundingAgreement = ToBalances(protoProp.FundingAgreement)
+	prop.FundingAgreement = ToBalances(protoProp.GetFundingAgreement())
 	if err != nil {
 		return prop, errors.WithMessage(err, "funding agreement")
 	}
-	prop.App, prop.InitData, err = ToAppAndData(protoProp.App, protoProp.InitData)
+	prop.App, prop.InitData, err = ToAppAndData(protoProp.GetApp(), protoProp.GetInitData())
 	return prop, err
 }
 
 // ToBaseChannelProposalAcc converts a protobuf BaseChannelProposalAcc to a client BaseChannelProposalAcc.
-func ToBaseChannelProposalAcc(protoPropAcc *BaseChannelProposalAcc) (propAcc client.BaseChannelProposalAcc) {
-	copy(propAcc.ProposalID[:], protoPropAcc.ProposalId)
-	copy(propAcc.NonceShare[:], protoPropAcc.NonceShare)
-	return
+func ToBaseChannelProposalAcc(protoPropAcc *BaseChannelProposalAcc) client.BaseChannelProposalAcc {
+	var propAcc client.BaseChannelProposalAcc
+	copy(propAcc.ProposalID[:], protoPropAcc.GetProposalId())
+	copy(propAcc.NonceShare[:], protoPropAcc.GetNonceShare())
+	return propAcc
 }
 
 // ToApp converts a protobuf app to a channel.App.
-func ToApp(protoApp []byte) (app channel.App, err error) {
+func ToApp(protoApp []byte) (channel.App, error) {
+	var app channel.App
 	if len(protoApp) == 0 {
 		app = channel.NoApp()
 		return app, nil
 	}
 	appDef := channel.NewAppID()
-	err = appDef.UnmarshalBinary(protoApp)
+	err := appDef.UnmarshalBinary(protoApp)
 	if err != nil {
 		return app, err
 	}
@@ -197,80 +208,86 @@ func ToApp(protoApp []byte) (app channel.App, err error) {
 }
 
 // ToAppAndData converts protobuf app and data to a channel.App and channel.Data.
-func ToAppAndData(protoApp, protoData []byte) (app channel.App, data channel.Data, err error) {
+func ToAppAndData(protoApp, protoData []byte) (channel.App, channel.Data, error) {
+	var app channel.App
+	var data channel.Data
 	if len(protoApp) == 0 {
 		app = channel.NoApp()
 		data = channel.NoData()
 		return app, data, nil
 	}
 	appDef := channel.NewAppID()
-	err = appDef.UnmarshalBinary(protoApp)
+	err := appDef.UnmarshalBinary(protoApp)
 	if err != nil {
 		return nil, nil, err
 	}
 	app, err = channel.Resolve(appDef)
 	if err != nil {
-		return
+		return app, data, err
 	}
 	data = app.NewData()
 	return app, data, data.UnmarshalBinary(protoData)
 }
 
 // ToAllocation converts a protobuf allocation to a channel.Allocation.
-func ToAllocation(protoAlloc *Allocation) (alloc *channel.Allocation, err error) {
-	alloc = &channel.Allocation{}
-	alloc.Assets = make([]channel.Asset, len(protoAlloc.Assets))
-	for i := range protoAlloc.Assets {
+func ToAllocation(protoAlloc *Allocation) (*channel.Allocation, error) {
+	var err error
+	alloc := &channel.Allocation{}
+	alloc.Assets = make([]channel.Asset, len(protoAlloc.GetAssets()))
+	for i := range protoAlloc.GetAssets() {
 		alloc.Assets[i] = channel.NewAsset()
-		err = alloc.Assets[i].UnmarshalBinary(protoAlloc.Assets[i])
+		err = alloc.Assets[i].UnmarshalBinary(protoAlloc.GetAssets()[i])
 		if err != nil {
 			return nil, errors.WithMessagef(err, "%d'th asset", i)
 		}
 	}
-	alloc.Locked = make([]channel.SubAlloc, len(protoAlloc.Locked))
-	for i := range protoAlloc.Locked {
-		alloc.Locked[i], err = ToSubAlloc(protoAlloc.Locked[i])
+	alloc.Locked = make([]channel.SubAlloc, len(protoAlloc.GetLocked()))
+	for i := range protoAlloc.GetLocked() {
+		alloc.Locked[i], err = ToSubAlloc(protoAlloc.GetLocked()[i])
 		if err != nil {
 			return nil, errors.WithMessagef(err, "%d'th sub alloc", i)
 		}
 	}
-	alloc.Balances = ToBalances(protoAlloc.Balances)
+	alloc.Balances = ToBalances(protoAlloc.GetBalances())
 	return alloc, nil
 }
 
 // ToBalances converts a protobuf Balances to a channel.Balances.
-func ToBalances(protoBalances *Balances) (balances channel.Balances) {
-	balances = make([][]channel.Bal, len(protoBalances.Balances))
-	for i := range protoBalances.Balances {
-		balances[i] = ToBalance(protoBalances.Balances[i])
+func ToBalances(protoBalances *Balances) channel.Balances {
+	balances := make([][]channel.Bal, len(protoBalances.GetBalances()))
+	for i := range protoBalances.GetBalances() {
+		balances[i] = ToBalance(protoBalances.GetBalances()[i])
 	}
 	return balances
 }
 
 // ToBalance converts a protobuf Balance to a channel.Bal.
-func ToBalance(protoBalance *Balance) (balance []channel.Bal) {
-	balance = make([]channel.Bal, len(protoBalance.Balance))
-	for j := range protoBalance.Balance {
-		balance[j] = new(big.Int).SetBytes(protoBalance.Balance[j])
+func ToBalance(protoBalance *Balance) []channel.Bal {
+	balance := make([]channel.Bal, len(protoBalance.GetBalance()))
+	for j := range protoBalance.GetBalance() {
+		balance[j] = new(big.Int).SetBytes(protoBalance.GetBalance()[j])
 	}
 	return balance
 }
 
 // ToSubAlloc converts a protobuf SubAlloc to a channel.SubAlloc.
-func ToSubAlloc(protoSubAlloc *SubAlloc) (subAlloc channel.SubAlloc, err error) {
-	subAlloc = channel.SubAlloc{}
-	subAlloc.Bals = ToBalance(protoSubAlloc.Bals)
-	if len(protoSubAlloc.Id) != len(subAlloc.ID) {
+//
+//nolint:forbidigo
+func ToSubAlloc(protoSubAlloc *SubAlloc) (channel.SubAlloc, error) {
+	var err error
+	subAlloc := channel.SubAlloc{}
+	subAlloc.Bals = ToBalance(protoSubAlloc.GetBals())
+	if len(protoSubAlloc.GetId()) != len(subAlloc.ID) {
 		return subAlloc, errors.New("sub alloc id has incorrect length")
 	}
-	copy(subAlloc.ID[:], protoSubAlloc.Id)
-	subAlloc.IndexMap, err = ToIndexMap(protoSubAlloc.IndexMap.IndexMap)
+	copy(subAlloc.ID[:], protoSubAlloc.GetId())
+	subAlloc.IndexMap, err = ToIndexMap(protoSubAlloc.GetIndexMap().GetIndexMap())
 	return subAlloc, err
 }
 
 // ToIndexMap converts a protobuf IndexMap to a channel.IndexMap.
-func ToIndexMap(protoIndexMap []uint32) (indexMap []channel.Index, err error) {
-	indexMap = make([]channel.Index, len(protoIndexMap))
+func ToIndexMap(protoIndexMap []uint32) ([]channel.Index, error) {
+	indexMap := make([]channel.Index, len(protoIndexMap))
 	for i := range protoIndexMap {
 		if protoIndexMap[i] > math.MaxUint16 {
 			return nil, fmt.Errorf("%d'th index is invalid", i) //nolint:goerr113  // We do not want to define this as constant error.
@@ -282,7 +299,8 @@ func ToIndexMap(protoIndexMap []uint32) (indexMap []channel.Index, err error) {
 
 // FromLedgerChannelProposalMsg converts a client LedgerChannelProposalMsg to a protobuf
 // Envelope_LedgerChannelProposalMsg.
-func FromLedgerChannelProposalMsg(msg *client.LedgerChannelProposalMsg) (_ *Envelope_LedgerChannelProposalMsg, err error) {
+func FromLedgerChannelProposalMsg(msg *client.LedgerChannelProposalMsg) (*Envelope_LedgerChannelProposalMsg, error) {
+	var err error
 	protoMsg := &LedgerChannelProposalMsg{}
 	protoMsg.BaseChannelProposal, err = FromBaseChannelProposal(msg.BaseChannelProposal)
 	if err != nil {
@@ -297,7 +315,10 @@ func FromLedgerChannelProposalMsg(msg *client.LedgerChannelProposalMsg) (_ *Enve
 }
 
 // FromSubChannelProposalMsg converts a client SubChannelProposalMsg to a protobuf Envelope_SubChannelProposalMsg.
-func FromSubChannelProposalMsg(msg *client.SubChannelProposalMsg) (_ *Envelope_SubChannelProposalMsg, err error) {
+//
+//nolint:protogetter
+func FromSubChannelProposalMsg(msg *client.SubChannelProposalMsg) (*Envelope_SubChannelProposalMsg, error) {
+	var err error
 	protoMsg := &SubChannelProposalMsg{}
 	protoMsg.Parent = make([]byte, len(msg.Parent))
 	copy(protoMsg.Parent, msg.Parent[:])
@@ -307,7 +328,10 @@ func FromSubChannelProposalMsg(msg *client.SubChannelProposalMsg) (_ *Envelope_S
 
 // FromVirtualChannelProposalMsg converts a client VirtualChannelProposalMsg to a protobuf
 // Envelope_VirtualChannelProposalMsg.
-func FromVirtualChannelProposalMsg(msg *client.VirtualChannelProposalMsg) (_ *Envelope_VirtualChannelProposalMsg, err error) {
+//
+//nolint:protogetter
+func FromVirtualChannelProposalMsg(msg *client.VirtualChannelProposalMsg) (*Envelope_VirtualChannelProposalMsg, error) {
+	var err error
 	protoMsg := &VirtualChannelProposalMsg{}
 	protoMsg.BaseChannelProposal, err = FromBaseChannelProposal(msg.BaseChannelProposal)
 	if err != nil {
@@ -332,7 +356,8 @@ func FromVirtualChannelProposalMsg(msg *client.VirtualChannelProposalMsg) (_ *En
 
 // FromLedgerChannelProposalAccMsg converts a client LedgerChannelProposalAccMsg to a protobuf
 // Envelope_LedgerChannelProposalAccMsg.
-func FromLedgerChannelProposalAccMsg(msg *client.LedgerChannelProposalAccMsg) (_ *Envelope_LedgerChannelProposalAccMsg, err error) {
+func FromLedgerChannelProposalAccMsg(msg *client.LedgerChannelProposalAccMsg) (*Envelope_LedgerChannelProposalAccMsg, error) {
+	var err error
 	protoMsg := &LedgerChannelProposalAccMsg{}
 	protoMsg.BaseChannelProposalAcc = FromBaseChannelProposalAcc(msg.BaseChannelProposalAcc)
 	protoMsg.Participant, err = FromWalletAddr(msg.Participant)
@@ -341,7 +366,7 @@ func FromLedgerChannelProposalAccMsg(msg *client.LedgerChannelProposalAccMsg) (_
 
 // FromSubChannelProposalAccMsg converts a client SubChannelProposalAccMsg to a protobuf
 // Envelope_SubChannelProposalAccMsg.
-func FromSubChannelProposalAccMsg(msg *client.SubChannelProposalAccMsg) (_ *Envelope_SubChannelProposalAccMsg) {
+func FromSubChannelProposalAccMsg(msg *client.SubChannelProposalAccMsg) *Envelope_SubChannelProposalAccMsg {
 	protoMsg := &SubChannelProposalAccMsg{}
 	protoMsg.BaseChannelProposalAcc = FromBaseChannelProposalAcc(msg.BaseChannelProposalAcc)
 	return &Envelope_SubChannelProposalAccMsg{protoMsg}
@@ -349,7 +374,8 @@ func FromSubChannelProposalAccMsg(msg *client.SubChannelProposalAccMsg) (_ *Enve
 
 // FromVirtualChannelProposalAccMsg converts a client VirtualChannelProposalAccMsg to a protobuf
 // Envelope_VirtualChannelProposalAccMsg.
-func FromVirtualChannelProposalAccMsg(msg *client.VirtualChannelProposalAccMsg) (_ *Envelope_VirtualChannelProposalAccMsg, err error) {
+func FromVirtualChannelProposalAccMsg(msg *client.VirtualChannelProposalAccMsg) (*Envelope_VirtualChannelProposalAccMsg, error) {
+	var err error
 	protoMsg := &VirtualChannelProposalAccMsg{}
 	protoMsg.BaseChannelProposalAcc = FromBaseChannelProposalAcc(msg.BaseChannelProposalAcc)
 	protoMsg.Responder, err = FromWalletAddr(msg.Responder)
@@ -357,7 +383,9 @@ func FromVirtualChannelProposalAccMsg(msg *client.VirtualChannelProposalAccMsg) 
 }
 
 // FromChannelProposalRejMsg converts a client ChannelProposalRejMsg to a protobuf Envelope_ChannelProposalRejMsg.
-func FromChannelProposalRejMsg(msg *client.ChannelProposalRejMsg) (_ *Envelope_ChannelProposalRejMsg) {
+//
+//nolint:protogetter
+func FromChannelProposalRejMsg(msg *client.ChannelProposalRejMsg) *Envelope_ChannelProposalRejMsg {
 	protoMsg := &ChannelProposalRejMsg{}
 	protoMsg.ProposalId = make([]byte, len(msg.ProposalID))
 	copy(protoMsg.ProposalId, msg.ProposalID[:])
@@ -371,8 +399,9 @@ func FromWalletAddr(addr wallet.Address) ([]byte, error) {
 }
 
 // FromWalletAddrs converts a slice of wallet.Address to protobuf wallet addresses.
-func FromWalletAddrs(addrs []wallet.Address) (protoAddrs [][]byte, err error) {
-	protoAddrs = make([][]byte, len(addrs))
+func FromWalletAddrs(addrs []wallet.Address) ([][]byte, error) {
+	var err error
+	protoAddrs := make([][]byte, len(addrs))
 	for i := range addrs {
 		protoAddrs[i], err = addrs[i].MarshalBinary()
 		if err != nil {
@@ -383,8 +412,9 @@ func FromWalletAddrs(addrs []wallet.Address) (protoAddrs [][]byte, err error) {
 }
 
 // FromWireAddrs converts a slice of wire.Address to protobuf wire addresses.
-func FromWireAddrs(addrs []wire.Address) (protoAddrs [][]byte, err error) {
-	protoAddrs = make([][]byte, len(addrs))
+func FromWireAddrs(addrs []wire.Address) ([][]byte, error) {
+	var err error
+	protoAddrs := make([][]byte, len(addrs))
 	for i := range addrs {
 		protoAddrs[i], err = addrs[i].MarshalBinary()
 		if err != nil {
@@ -395,8 +425,11 @@ func FromWireAddrs(addrs []wire.Address) (protoAddrs [][]byte, err error) {
 }
 
 // FromBaseChannelProposal converts a client BaseChannelProposal to a protobuf BaseChannelProposal.
-func FromBaseChannelProposal(prop client.BaseChannelProposal) (protoProp *BaseChannelProposal, err error) {
-	protoProp = &BaseChannelProposal{}
+//
+//nolint:protogetter
+func FromBaseChannelProposal(prop client.BaseChannelProposal) (*BaseChannelProposal, error) {
+	protoProp := &BaseChannelProposal{}
+	var err error
 
 	protoProp.ProposalId = make([]byte, len(prop.ProposalID))
 	copy(protoProp.ProposalId, prop.ProposalID[:])
@@ -419,8 +452,10 @@ func FromBaseChannelProposal(prop client.BaseChannelProposal) (protoProp *BaseCh
 }
 
 // FromBaseChannelProposalAcc converts a client BaseChannelProposalAcc to a protobuf BaseChannelProposalAcc.
-func FromBaseChannelProposalAcc(propAcc client.BaseChannelProposalAcc) (protoPropAcc *BaseChannelProposalAcc) {
-	protoPropAcc = &BaseChannelProposalAcc{}
+//
+//nolint:protogetter
+func FromBaseChannelProposalAcc(propAcc client.BaseChannelProposalAcc) *BaseChannelProposalAcc {
+	protoPropAcc := &BaseChannelProposalAcc{}
 	protoPropAcc.ProposalId = make([]byte, len(propAcc.ProposalID))
 	protoPropAcc.NonceShare = make([]byte, len(propAcc.NonceShare))
 	copy(protoPropAcc.ProposalId, propAcc.ProposalID[:])
@@ -429,30 +464,31 @@ func FromBaseChannelProposalAcc(propAcc client.BaseChannelProposalAcc) (protoPro
 }
 
 // FromApp converts a channel.App to a protobuf app.
-func FromApp(app channel.App) (protoApp []byte, err error) {
+func FromApp(app channel.App) ([]byte, error) {
 	if channel.IsNoApp(app) {
 		return []byte{}, nil
 	}
-	protoApp, err = app.Def().MarshalBinary()
+	protoApp, err := app.Def().MarshalBinary()
 	return protoApp, err
 }
 
 // FromAppAndData converts channel.App and channel.Data to protobuf app and data.
-func FromAppAndData(app channel.App, data channel.Data) (protoApp, protoData []byte, err error) {
+func FromAppAndData(app channel.App, data channel.Data) ([]byte, []byte, error) {
 	if channel.IsNoApp(app) {
 		return []byte{}, []byte{}, nil
 	}
-	protoApp, err = app.Def().MarshalBinary()
+	protoApp, err := app.Def().MarshalBinary()
 	if err != nil {
 		return []byte{}, []byte{}, err
 	}
-	protoData, err = data.MarshalBinary()
+	protoData, err := data.MarshalBinary()
 	return protoApp, protoData, err
 }
 
 // FromAllocation converts a channel.Allocation to a protobuf Allocation.
-func FromAllocation(alloc channel.Allocation) (protoAlloc *Allocation, err error) {
-	protoAlloc = &Allocation{}
+func FromAllocation(alloc channel.Allocation) (*Allocation, error) {
+	var err error
+	protoAlloc := &Allocation{}
 	protoAlloc.Assets = make([][]byte, len(alloc.Assets))
 	for i := range alloc.Assets {
 		protoAlloc.Assets[i], err = alloc.Assets[i].MarshalBinary()
@@ -472,10 +508,11 @@ func FromAllocation(alloc channel.Allocation) (protoAlloc *Allocation, err error
 }
 
 // FromBalances converts a channel.Balances to a protobuf Balances.
-func FromBalances(balances channel.Balances) (protoBalances *Balances, err error) {
-	protoBalances = &Balances{
-		Balances: make([]*Balance, len(balances)),
-	}
+func FromBalances(balances channel.Balances) (*Balances, error) {
+	var err error
+	protoBalances := &Balances{}
+	protoBalances.Balances = make([]*Balance, len(balances))
+
 	for i := range balances {
 		protoBalances.Balances[i], err = FromBalance(balances[i])
 		if err != nil {
@@ -486,8 +523,8 @@ func FromBalances(balances channel.Balances) (protoBalances *Balances, err error
 }
 
 // FromBalance converts a slice of channel.Bal to a protobuf Balance.
-func FromBalance(balance []channel.Bal) (protoBalance *Balance, err error) {
-	protoBalance = &Balance{
+func FromBalance(balance []channel.Bal) (*Balance, error) {
+	protoBalance := &Balance{
 		Balance: make([][]byte, len(balance)),
 	}
 	for i := range balance {
@@ -503,8 +540,11 @@ func FromBalance(balance []channel.Bal) (protoBalance *Balance, err error) {
 }
 
 // FromSubAlloc converts a channel.SubAlloc to a protobuf SubAlloc.
-func FromSubAlloc(subAlloc channel.SubAlloc) (protoSubAlloc *SubAlloc, err error) {
-	protoSubAlloc = &SubAlloc{}
+//
+//nolint:protogetter
+func FromSubAlloc(subAlloc channel.SubAlloc) (*SubAlloc, error) {
+	protoSubAlloc := &SubAlloc{}
+	var err error
 	protoSubAlloc.Id = make([]byte, len(subAlloc.ID))
 	copy(protoSubAlloc.Id, subAlloc.ID[:])
 	protoSubAlloc.IndexMap = &IndexMap{IndexMap: FromIndexMap(subAlloc.IndexMap)}
@@ -513,8 +553,8 @@ func FromSubAlloc(subAlloc channel.SubAlloc) (protoSubAlloc *SubAlloc, err error
 }
 
 // FromIndexMap converts a channel.IndexMap to a protobuf index map.
-func FromIndexMap(indexMap []channel.Index) (protoIndexMap []uint32) {
-	protoIndexMap = make([]uint32, len(indexMap))
+func FromIndexMap(indexMap []channel.Index) []uint32 {
+	protoIndexMap := make([]uint32, len(indexMap))
 	for i := range indexMap {
 		protoIndexMap[i] = uint32(indexMap[i])
 	}

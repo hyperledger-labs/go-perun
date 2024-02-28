@@ -18,6 +18,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	_ "perun.network/go-perun/backend/sim" // backend init
 	"perun.network/go-perun/channel"
@@ -31,7 +32,7 @@ func TestRandomizer(t *testing.T) {
 	app := r.NewRandomApp(rng)
 	channel.RegisterApp(app)
 	regApp, err := channel.Resolve(app.Def())
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.True(t, app.Def().Equal(regApp.Def()))
 	assert.True(t, IsData(r.NewRandomData(rng)))
 }

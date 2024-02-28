@@ -53,7 +53,7 @@ func stringify(value interface{}) interface{} {
 }
 
 // WithFields calls WithField for all passed fields.
-func (l *Logger) WithFields(fields log.Fields) (ret log.Logger) {
+func (l *Logger) WithFields(fields log.Fields) log.Logger {
 	newFields := make(map[string]interface{})
 	for k, v := range fields {
 		newFields[k] = stringify(v)

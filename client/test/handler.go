@@ -46,7 +46,7 @@ func AlwaysAcceptChannelHandler(ctx context.Context, addr wallet.Address, channe
 // AlwaysRejectChannelHandler returns a channel proposal handler that rejects
 // all channel proposals.
 func AlwaysRejectChannelHandler(ctx context.Context, errs chan<- error) client.ProposalHandlerFunc {
-	return func(cp client.ChannelProposal, pr *client.ProposalResponder) {
+	return func(_ client.ChannelProposal, pr *client.ProposalResponder) {
 		err := pr.Reject(ctx, "not accepting channels")
 		if err != nil {
 			errs <- err
@@ -58,7 +58,7 @@ func AlwaysRejectChannelHandler(ctx context.Context, errs chan<- error) client.P
 // all channel updates.
 func AlwaysAcceptUpdateHandler(ctx context.Context, errs chan error) client.UpdateHandlerFunc {
 	return func(
-		s *channel.State, cu client.ChannelUpdate, ur *client.UpdateResponder,
+		_ *channel.State, _ client.ChannelUpdate, ur *client.UpdateResponder,
 	) {
 		err := ur.Accept(ctx)
 		if err != nil {
@@ -70,7 +70,7 @@ func AlwaysAcceptUpdateHandler(ctx context.Context, errs chan error) client.Upda
 // AlwaysRejectUpdateHandler returns a channel update handler that rejects all
 // channel updates.
 func AlwaysRejectUpdateHandler(ctx context.Context, errs chan error) client.UpdateHandlerFunc {
-	return func(state *channel.State, update client.ChannelUpdate, responder *client.UpdateResponder) {
+	return func(_ *channel.State, _ client.ChannelUpdate, responder *client.UpdateResponder) {
 		err := responder.Reject(ctx, "")
 		if err != nil {
 			errs <- errors.WithMessage(err, "rejecting channel update")

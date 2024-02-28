@@ -30,7 +30,6 @@ import (
 type Address struct {
 	Name      string
 	PublicKey *rsa.PublicKey // Public key for verifying signatures
-
 }
 
 var _ wire.Address = (*Address)(nil)
@@ -112,6 +111,8 @@ func (a *Address) Equal(b wire.Address) bool {
 }
 
 // Cmp compares the byte representation of two addresses.
+//
+//nolint:mirror
 func (a *Address) Cmp(b wire.Address) int {
 	bTyped, ok := b.(*Address)
 	if !ok {

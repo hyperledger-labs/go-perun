@@ -48,13 +48,13 @@ type (
 		// HandleProposal is the user callback called by the Client on an incoming channel
 		// proposal.
 		// The response on the proposal responder must be called within the same go routine.
-		HandleProposal(ChannelProposal, *ProposalResponder)
+		HandleProposal(proposal ChannelProposal, responder *ProposalResponder)
 	}
 
 	// ProposalHandlerFunc is an adapter type to allow the use of functions as
 	// proposal handlers. ProposalHandlerFunc(f) is a ProposalHandler that calls
 	// f when HandleProposal is called.
-	ProposalHandlerFunc func(ChannelProposal, *ProposalResponder)
+	ProposalHandlerFunc func(proposal ChannelProposal, responser *ProposalResponder)
 
 	// ProposalResponder lets the user respond to a channel proposal. If the user
 	// wants to accept the proposal, they should call Accept(), otherwise Reject().
@@ -205,17 +205,17 @@ func (c *Client) ProposeChannel(ctx context.Context, prop ChannelProposal) (*Cha
 	return ch, nil
 }
 
-func (c *Client) prepareChannelOpening(ctx context.Context, prop ChannelProposal, ourIdx channel.Index) (err error) {
+func (c *Client) prepareChannelOpening(ctx context.Context, prop ChannelProposal, ourIdx channel.Index) error {
 	_, parentCh, err := c.proposalParent(prop, ourIdx)
 	if err != nil {
-		return
+		return err
 	}
 	if parentCh != nil {
 		if !parentCh.machMtx.TryLockCtx(ctx) {
 			return ctx.Err()
 		}
 	}
-	return
+	return nil
 }
 
 func (c *Client) cleanupChannelOpening(prop ChannelProposal, ourIdx channel.Index) {
@@ -259,8 +259,10 @@ func (c *Client) handleChannelProposal(handler ProposalHandler, p wire.Address, 
 func (c *Client) handleChannelProposalAcc(
 	ctx context.Context, p wire.Address,
 	prop ChannelProposal, acc ChannelProposalAccept,
-) (ch *Channel, err error) {
-	if err := c.validChannelProposalAcc(prop, acc); err != nil {
+) (*Channel, error) {
+	var ch *Channel
+	var err error
+	if err = c.validChannelProposalAcc(prop, acc); err != nil {
 		return ch, errors.WithMessage(err, "validating channel proposal acceptance")
 	}
 
@@ -608,7 +610,10 @@ func (c *Client) completeCPP(
 	return ch, nil
 }
 
-func (c *Client) proposalParent(prop ChannelProposal, partIdx channel.Index) (parentChannelID *channel.ID, parent *Channel, err error) {
+func (c *Client) proposalParent(prop ChannelProposal, partIdx channel.Index) (*channel.ID, *Channel, error) {
+	var parentChannelID *channel.ID
+	var parent *Channel
+	var err error
 	switch prop := prop.(type) {
 	case *SubChannelProposalMsg:
 		parentChannelID = &prop.Parent
@@ -620,17 +625,18 @@ func (c *Client) proposalParent(prop ChannelProposal, partIdx channel.Index) (pa
 		var ok bool
 		if parent, ok = c.channels.Channel(*parentChannelID); !ok {
 			err = errors.New("referenced parent channel not found")
-			return
+			return parentChannelID, parent, err
 		}
 	}
-	return
+	return parentChannelID, parent, err
 }
 
 // mpcppParts returns a proposed channel's participant addresses.
 func (c *Client) mpcppParts(
 	prop ChannelProposal,
 	acc ChannelProposalAccept,
-) (parts []wallet.Address) {
+) []wallet.Address {
+	var parts []wallet.Address
 	switch p := prop.(type) {
 	case *LedgerChannelProposalMsg:
 		ledgerAcc, ok := acc.(*LedgerChannelProposalAccMsg)
@@ -653,7 +659,7 @@ func (c *Client) mpcppParts(
 	default:
 		c.log.Panicf("unhandled %T", p)
 	}
-	return
+	return parts
 }
 
 func (c *Client) fundChannel(ctx context.Context, ch *Channel, prop ChannelProposal) error {
@@ -684,8 +690,8 @@ func (c *Client) completeFunding(ctx context.Context, ch *Channel) error {
 	return nil
 }
 
-func (c *Client) fundLedgerChannel(ctx context.Context, ch *Channel, agreement channel.Balances) (err error) {
-	if err = c.funder.Fund(ctx,
+func (c *Client) fundLedgerChannel(ctx context.Context, ch *Channel, agreement channel.Balances) error {
+	if err := c.funder.Fund(ctx,
 		*channel.NewFundingReq(
 			ch.Params(),
 			ch.machine.State(), // initial state
@@ -701,7 +707,7 @@ func (c *Client) fundLedgerChannel(ctx context.Context, ch *Channel, agreement c
 	return c.completeFunding(ctx, ch)
 }
 
-func (c *Client) fundSubchannel(ctx context.Context, prop *SubChannelProposalMsg, subChannel *Channel) (err error) {
+func (c *Client) fundSubchannel(ctx context.Context, prop *SubChannelProposalMsg, subChannel *Channel) error {
 	parentChannel, ok := c.channels.Channel(prop.Parent)
 	if !ok {
 		return errors.New("referenced parent channel not found")
@@ -751,7 +757,7 @@ func (c *Client) releaseVer1Cache() {
 
 	c.version1Cache.enabled--
 	for _, u := range c.version1Cache.cache {
-		go c.handleChannelUpdate(u.uh, u.p, u.m) //nolint:contextcheck
+		go c.handleChannelUpdate(u.uh, u.p, u.m)
 	}
 	c.version1Cache.cache = nil
 }

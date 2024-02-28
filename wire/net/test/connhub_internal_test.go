@@ -46,19 +46,19 @@ func TestConnHub_Create(t *testing.T) {
 		go ctxtest.AssertTerminates(t, timeout, func() {
 			ct.Stage("accept", func(rt pkgtest.ConcT) {
 				conn, err := l.Accept(ser)
-				assert.NoError(err)
-				require.NotNil(rt, conn)
-				assert.NoError(conn.Send(wiretest.NewRandomEnvelope(rng, wire.NewPingMsg())))
+				require.NoError(t, err)                                                           //nolint: testifylint
+				require.NotNil(rt, conn)                                                          //nolint: testifylint
+				require.NoError(t, conn.Send(wiretest.NewRandomEnvelope(rng, wire.NewPingMsg()))) //nolint: testifylint
 			})
 		})
 
 		ctxtest.AssertTerminates(t, timeout, func() {
 			ct.Stage("dial", func(rt pkgtest.ConcT) {
 				conn, err := d.Dial(context.Background(), addr, ser)
-				assert.NoError(err)
+				require.NoError(t, err)
 				require.NotNil(rt, conn)
 				m, err := conn.Recv()
-				assert.NoError(err)
+				require.NoError(t, err)
 				assert.IsType(wire.NewPingMsg(), m.Msg)
 			})
 		})
@@ -87,7 +87,7 @@ func TestConnHub_Create(t *testing.T) {
 		ctxtest.AssertTerminates(t, timeout, func() {
 			conn, err := d.Dial(context.Background(), wiretest.NewRandomAddress(rng), ser)
 			assert.Nil(conn)
-			assert.Error(err)
+			require.Error(t, err)
 		})
 	})
 
@@ -110,7 +110,7 @@ func TestConnHub_Close(t *testing.T) {
 
 		var c ConnHub
 		l := c.NewNetListener(wiretest.NewRandomAddress(rng))
-		assert.NoError(c.Close())
+		require.NoError(t, c.Close())
 		assert.True(l.IsClosed())
 	})
 
@@ -122,8 +122,8 @@ func TestConnHub_Close(t *testing.T) {
 		l2 := NewNetListener()
 		l2.Close()
 		err := c.insert(wiretest.NewRandomAccount(rng).Address(), l2)
-		assert.NoError(err)
-		assert.Error(c.Close())
+		require.NoError(t, err)
+		require.Error(t, c.Close())
 		assert.True(l.IsClosed())
 	})
 
@@ -135,7 +135,7 @@ func TestConnHub_Close(t *testing.T) {
 		d2 := &Dialer{}
 		d2.Close()
 		c.dialers.insert(d2)
-		assert.Error(c.Close())
+		require.Error(t, c.Close())
 		assert.True(d.IsClosed())
 	})
 
@@ -143,9 +143,9 @@ func TestConnHub_Close(t *testing.T) {
 		assert := assert.New(t)
 
 		var c ConnHub
-		assert.NoError(c.Close())
+		require.NoError(t, c.Close())
 		err := c.Close()
-		assert.Error(err)
+		require.Error(t, err)
 		assert.True(sync.IsAlreadyClosedError(err))
 	})
 }

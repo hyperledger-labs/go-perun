@@ -139,8 +139,8 @@ func (m StateMachine) ForceUpdate(
 
 // Sig calls Sig on the channel.StateMachine and then persists the added
 // signature.
-func (m StateMachine) Sig(ctx context.Context) (sig wallet.Sig, err error) {
-	sig, err = m.StateMachine.Sig()
+func (m StateMachine) Sig(ctx context.Context) (wallet.Sig, error) {
+	sig, err := m.StateMachine.Sig()
 	if err != nil {
 		return sig, err
 	}

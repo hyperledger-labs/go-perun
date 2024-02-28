@@ -35,7 +35,7 @@ func (r *Bob) Execute(cfg ExecConfig) {
 	r.Responder.Execute(cfg, r.exec)
 }
 
-func (r *Bob) exec(_cfg ExecConfig, ch *paymentChannel, propHandler *acceptNextPropHandler) {
+func (r *Bob) exec(_cfg ExecConfig, ch *paymentChannel, _ *acceptNextPropHandler) {
 	cfg := _cfg.(*AliceBobExecConfig)
 	we, them := r.Idxs(cfg.Peers())
 

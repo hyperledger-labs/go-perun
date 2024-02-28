@@ -105,9 +105,10 @@ func channelProposalRejSerializationTest(t *testing.T, serializerTest func(t *te
 	}
 }
 
-func newRandomProposalID(rng *rand.Rand) (id client.ProposalID) {
+func newRandomProposalID(rng *rand.Rand) client.ProposalID {
+	var id client.ProposalID
 	rng.Read(id[:])
-	return
+	return id
 }
 
 // newRandomASCIIString returns a random ascii string of length between minLen and

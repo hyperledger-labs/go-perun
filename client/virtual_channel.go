@@ -90,7 +90,7 @@ func (c *Client) handleVirtualChannelFundingProposal(
 ) {
 	err := c.validateVirtualChannelFundingProposal(ch, prop)
 	if err != nil {
-		c.rejectProposal(responder, err.Error()) //nolint:contextcheck
+		c.rejectProposal(responder, err.Error())
 	}
 
 	ctx, cancel := context.WithTimeout(c.Ctx(), virtualFundingTimeout)
@@ -98,10 +98,10 @@ func (c *Client) handleVirtualChannelFundingProposal(
 
 	err = c.fundingWatcher.Await(ctx, prop)
 	if err != nil {
-		c.rejectProposal(responder, err.Error()) //nolint:contextcheck
+		c.rejectProposal(responder, err.Error())
 	}
 
-	c.acceptProposal(responder) //nolint:contextcheck
+	c.acceptProposal(responder)
 }
 
 func (c *Channel) watchVirtual() error {
@@ -349,7 +349,7 @@ func (c *Client) matchFundingProposal(ctx context.Context, a, b interface{}) boo
 
 	go func() {
 		// The context will be derived from the channel context.
-		err := virtual.watchVirtual() //nolint:contextcheck
+		err := virtual.watchVirtual()
 		c.log.Debugf("channel %v: watcher stopped: %v", virtual.ID(), err)
 	}()
 	return true
@@ -379,8 +379,8 @@ func (c *Client) gatherChannels(props ...*VirtualChannelFundingProposalMsg) ([]*
 	return channels, nil
 }
 
-func (c *Client) gatherPeers(channels ...*Channel) (peers []wire.Address) {
-	peers = make([]wire.Address, len(channels))
+func (c *Client) gatherPeers(channels ...*Channel) []wire.Address {
+	peers := make([]wire.Address, len(channels))
 	for i, ch := range channels {
 		chPeers := ch.Peers()
 		if len(chPeers) != gatherNumPeers {
@@ -388,5 +388,5 @@ func (c *Client) gatherPeers(channels ...*Channel) (peers []wire.Address) {
 		}
 		peers[i] = chPeers[1-ch.Idx()]
 	}
-	return
+	return peers
 }

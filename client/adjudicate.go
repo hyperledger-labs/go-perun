@@ -28,7 +28,7 @@ import (
 
 // AdjudicatorEventHandler represents an interface for handling adjudicator events.
 type AdjudicatorEventHandler interface {
-	HandleAdjudicatorEvent(channel.AdjudicatorEvent)
+	HandleAdjudicatorEvent(adjEvent channel.AdjudicatorEvent)
 }
 
 // Watch registers the channel with the watcher, which watches for channel
@@ -114,7 +114,8 @@ func (c *Channel) handleEvents(eventsSub watcher.AdjudicatorSub, h AdjudicatorEv
 	}
 }
 
-func (c *Channel) setMachinePhase(ctx context.Context, e channel.AdjudicatorEvent) (err error) {
+func (c *Channel) setMachinePhase(ctx context.Context, e channel.AdjudicatorEvent) error {
+	var err error
 	// Lock machine
 	if !c.machMtx.TryLockCtx(ctx) {
 		return errors.WithMessage(ctx.Err(), "locking machine")
@@ -132,7 +133,7 @@ func (c *Channel) setMachinePhase(ctx context.Context, e channel.AdjudicatorEven
 		c.Log().Panic("unsupported event type")
 	}
 
-	return
+	return err
 }
 
 // registerDispute registers a dispute for the channel and all its relatives.
@@ -242,7 +243,7 @@ func (c *Channel) ForceUpdate(ctx context.Context, updater func(*channel.State))
 // to be mined.
 // Returns ChainNotReachableError if the connection to the blockchain network
 // fails when sending a transaction to / reading from the blockchain.
-func (c *Channel) Settle(ctx context.Context, secondary bool) (err error) {
+func (c *Channel) Settle(ctx context.Context, secondary bool) error {
 	if !c.State().IsFinal {
 		err := c.ensureRegistered(ctx)
 		if err != nil {
@@ -285,16 +286,16 @@ func (c *Channel) Settle(ctx context.Context, secondary bool) (err error) {
 	}
 
 	// Decrement account usage.
-	if err = c.applyRecursive(func(c *Channel) (err error) {
+	if err = c.applyRecursive(func(c *Channel) error {
 		// Skip if we are not a participant, e.g., if this is a virtual channel and we are the hub.
 		if c.IsVirtualChannel() {
 			ourID := c.parent.Peers()[c.parent.Idx()]
 			if !c.hasParticipant(ourID) {
-				return
+				return nil
 			}
 		}
 		c.wallet.DecrementUsage(c.machine.Account().Address())
-		return
+		return nil
 	}); err != nil {
 		return errors.WithMessage(err, "decrementing account usage")
 	}
@@ -358,53 +359,53 @@ func (a mutexList) Unlock() {
 
 // tryLockRecursive tries to lock the channel and all of its sub-channels.
 // It returns a list of all the mutexes that have been locked.
-func (c *Channel) tryLockRecursive(ctx context.Context) (l mutexList, err error) {
-	err = c.applyRecursive(func(c *Channel) error {
+func (c *Channel) tryLockRecursive(ctx context.Context) (mutexList, error) {
+	var l mutexList
+	err := c.applyRecursive(func(c *Channel) error {
 		if !c.machMtx.TryLockCtx(ctx) {
 			return errors.Errorf("locking machine mutex in time: %v", ctx.Err())
 		}
 		l = append(l, &c.machMtx)
 		return nil
 	})
-	return
+	return l, err
 }
 
 // applyToSubChannelsRecursive applies the function to all sub-channels recursively.
-func (c *Channel) applyToSubChannelsRecursive(f func(*Channel) error) (err error) {
+func (c *Channel) applyToSubChannelsRecursive(f func(*Channel) error) error {
 	for _, subAlloc := range c.state().Locked {
 		subID := subAlloc.ID
 		var subCh *Channel
-		subCh, err = c.client.Channel(subID)
+		subCh, err := c.client.Channel(subID)
 		if err != nil {
-			err = errors.WithMessagef(err, "getting sub-channel: %v", subID)
-			return
+			return errors.WithMessagef(err, "getting sub-channel: %v", subID)
 		}
 		err = f(subCh)
 		if err != nil {
-			return
+			return err
 		}
 		err = subCh.applyToSubChannelsRecursive(f)
 		if err != nil {
-			return
+			return err
 		}
 	}
-	return
+	return nil
 }
 
 // applyRecursive applies the function to the channel and its sub-channels recursively.
-func (c *Channel) applyRecursive(f func(*Channel) error) (err error) {
-	err = f(c)
+func (c *Channel) applyRecursive(f func(*Channel) error) error {
+	err := f(c)
 	if err != nil {
 		return err
 	}
 
 	err = c.applyToSubChannelsRecursive(f)
-	return
+	return err
 }
 
 // setRegisteringRecursive sets the machine phase of the channel and all of its sub-channels to `Registering`.
 // Assumes that the channel machine has been locked.
-func (c *Channel) setRegisteringRecursive(ctx context.Context) (err error) {
+func (c *Channel) setRegisteringRecursive(ctx context.Context) error {
 	return c.applyRecursive(func(c *Channel) error {
 		return c.machine.SetRegistering(ctx)
 	})
@@ -412,7 +413,7 @@ func (c *Channel) setRegisteringRecursive(ctx context.Context) (err error) {
 
 // setRegisteredRecursive sets the machine phase of the channel and all of its sub-channels to `Registered`.
 // Assumes that the channel machine has been locked.
-func (c *Channel) setRegisteredRecursive(ctx context.Context) (err error) {
+func (c *Channel) setRegisteredRecursive(ctx context.Context) error {
 	return c.applyRecursive(func(c *Channel) error {
 		return c.machine.SetRegistered(ctx)
 	})
@@ -420,9 +421,9 @@ func (c *Channel) setRegisteredRecursive(ctx context.Context) (err error) {
 
 // gatherSubChannelStates gathers the state of all sub-channels recursively.
 // Assumes sub-channels are locked.
-func (c *Channel) gatherSubChannelStates() (states []channel.SignedState, err error) {
-	states = []channel.SignedState{}
-	err = c.applyToSubChannelsRecursive(func(c *Channel) error {
+func (c *Channel) gatherSubChannelStates() ([]channel.SignedState, error) {
+	states := []channel.SignedState{}
+	err := c.applyToSubChannelsRecursive(func(c *Channel) error {
 		states = append(states, channel.SignedState{
 			Params: c.Params(),
 			State:  c.machine.CurrentTX().State,
@@ -430,18 +431,18 @@ func (c *Channel) gatherSubChannelStates() (states []channel.SignedState, err er
 		})
 		return nil
 	})
-	return
+	return states, err
 }
 
 // subChannelStateMap gathers the state of all sub-channels recursively.
 // Assumes sub-channels are locked.
-func (c *Channel) subChannelStateMap() (states channel.StateMap, err error) {
-	states = channel.MakeStateMap()
-	err = c.applyToSubChannelsRecursive(func(c *Channel) error {
+func (c *Channel) subChannelStateMap() (channel.StateMap, error) {
+	states := channel.MakeStateMap()
+	err := c.applyToSubChannelsRecursive(func(c *Channel) error {
 		states[c.ID()] = c.state()
 		return nil
 	})
-	return
+	return states, err
 }
 
 // ensureRegistered ensures that the channel is registered.

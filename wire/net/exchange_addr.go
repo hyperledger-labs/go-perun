@@ -78,9 +78,9 @@ func ExchangeAddrsActive(ctx context.Context, id wire.Account, peer wire.Address
 		var e *wire.Envelope
 		if e, err = conn.Recv(); err != nil {
 			err = errors.WithMessage(err, "receiving message")
-		} else if _, ok := e.Msg.(*wire.AuthResponseMsg); !ok {
+		} else if authMsg, ok := e.Msg.(*wire.AuthResponseMsg); !ok {
 			err = errors.Errorf("expected AuthResponse wire msg, got %v", e.Msg.Type())
-		} else if check := verifyAddressSignature(peer, e.Msg.(*wire.AuthResponseMsg).Signature); check != nil {
+		} else if check := verifyAddressSignature(peer, authMsg.Signature); check != nil {
 			err = errors.WithMessage(err, "verifying peer address's signature")
 		} else if !e.Recipient.Equal(id.Address()) &&
 			!e.Sender.Equal(peer) {
@@ -105,11 +105,11 @@ func ExchangeAddrsPassive(ctx context.Context, id wire.Account, conn Conn) (wire
 		var e *wire.Envelope
 		if e, err = conn.Recv(); err != nil {
 			err = errors.WithMessage(err, "receiving auth message")
-		} else if _, ok := e.Msg.(*wire.AuthResponseMsg); !ok {
+		} else if authMsg, ok := e.Msg.(*wire.AuthResponseMsg); !ok {
 			err = errors.Errorf("expected AuthResponse wire msg, got %v", e.Msg.Type())
 		} else if !e.Recipient.Equal(id.Address()) {
 			err = NewAuthenticationError(e.Sender, e.Recipient, id.Address(), "unmatched response sender or recipient")
-		} else if err = verifyAddressSignature(e.Sender, e.Msg.(*wire.AuthResponseMsg).Signature); err != nil {
+		} else if err = verifyAddressSignature(e.Sender, authMsg.Signature); err != nil {
 			err = errors.WithMessage(err, "verifying peer address's signature")
 		}
 

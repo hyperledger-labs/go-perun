@@ -101,9 +101,10 @@ func NewEndpointRegistry(
 }
 
 // Close closes the registry's dialer and all its peers.
-func (r *EndpointRegistry) Close() (err error) {
+func (r *EndpointRegistry) Close() error {
+	var err error
 	if err = r.Closer.Close(); err != nil {
-		return
+		return err
 	}
 
 	r.mutex.Lock()
@@ -125,7 +126,7 @@ func (r *EndpointRegistry) Close() (err error) {
 		}
 	}
 
-	return
+	return err
 }
 
 // Listen starts listening for incoming connections on the provided listener and
@@ -220,7 +221,8 @@ func (r *EndpointRegistry) authenticatedDial(
 	addr wire.Address,
 	de *dialingEndpoint,
 	created bool,
-) (ret *Endpoint, _ error) {
+) (*Endpoint, error) {
+	var ret *Endpoint
 	key := wire.Key(addr)
 
 	// Short cut: another dial for that peer is already in progress.
@@ -256,12 +258,12 @@ func (r *EndpointRegistry) authenticatedDial(
 		conn.Close()
 		return nil, errors.WithMessage(err, "ExchangeAddrs failed")
 	}
-
-	return r.addEndpoint(addr, conn, true), nil
+	ret = r.addEndpoint(addr, conn, true)
+	return ret, nil
 }
 
 // dialingEndpoint retrieves or creates a dialingEndpoint for the passed address.
-func (r *EndpointRegistry) dialingEndpoint(a wire.Address) (_ *dialingEndpoint, created bool) {
+func (r *EndpointRegistry) dialingEndpoint(a wire.Address) (*dialingEndpoint, bool) {
 	key := wire.Key(a)
 	entry, ok := r.dialing[key]
 	if !ok {
@@ -317,7 +319,7 @@ func (r *EndpointRegistry) addEndpoint(addr wire.Address, conn Conn, dialer bool
 }
 
 // fullEndpoint retrieves or creates a fullEndpoint for the passed address.
-func (r *EndpointRegistry) fullEndpoint(addr wire.Address, e *Endpoint) (_ *fullEndpoint, created bool) {
+func (r *EndpointRegistry) fullEndpoint(addr wire.Address, e *Endpoint) (*fullEndpoint, bool) {
 	key := wire.Key(addr)
 	r.mutex.Lock()
 	defer r.mutex.Unlock()
@@ -332,7 +334,7 @@ func (r *EndpointRegistry) fullEndpoint(addr wire.Address, e *Endpoint) (_ *full
 // replace sets a new endpoint and resolves ties when both parties dial each
 // other concurrently. It returns the endpoint that is selected after potential
 // tie resolving, and whether the supplied endpoint was closed in the process.
-func (p *fullEndpoint) replace(newValue *Endpoint, self wire.Address, dialer bool) (updated *Endpoint, closed bool) {
+func (p *fullEndpoint) replace(newValue *Endpoint, self wire.Address, dialer bool) (*Endpoint, bool) {
 	// If there was no previous endpoint, just set the new one.
 	wasNil := atomic.CompareAndSwapPointer(&p.endpoint, nil, unsafe.Pointer(newValue))
 	if wasNil {

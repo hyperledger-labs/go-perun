@@ -22,7 +22,7 @@ type (
 		// Publish should return nil when the message was delivered (outgoing) or is
 		// guaranteed to be eventually delivered (cached), depending on the goal of the
 		// implementation.
-		Publish(context.Context, *Envelope) error
+		Publish(ctx context.Context, env *Envelope) error
 	}
 
 	// A Subscriber allows to subscribe Consumers, which will receive messages
@@ -30,6 +30,6 @@ type (
 	Subscriber interface {
 		// Subscribe adds a Consumer to the subscriptions.
 		// If the Consumer is already subscribed, Subscribe panics.
-		Subscribe(Consumer, Predicate) error
+		Subscribe(consumer Consumer, predicate Predicate) error
 	}
 )

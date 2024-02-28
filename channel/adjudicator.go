@@ -65,7 +65,7 @@ type (
 	// If the channel has locked funds into sub-channels, the corresponding
 	// signed sub-channel states must be provided.
 	Registerer interface {
-		Register(context.Context, AdjudicatorReq, []SignedState) error
+		Register(ctx context.Context, adjReq AdjudicatorReq, signedStates []SignedState) error
 	}
 
 	// Withdrawer is the interface that wraps the Withdraw method.
@@ -77,7 +77,7 @@ type (
 	// If the channel has locked funds in sub-channels, the states of the
 	// corresponding sub-channels need to be supplied additionally.
 	Withdrawer interface {
-		Withdraw(context.Context, AdjudicatorReq, StateMap) error
+		Withdraw(ctx context.Context, adjReq AdjudicatorReq, stateMap StateMap) error
 	}
 
 	// Progresser is the interface that wraps the Progress method.
@@ -87,7 +87,7 @@ type (
 	// contain the state, the signatures can be nil, since the old state is
 	// already registered on the adjudicator.
 	Progresser interface {
-		Progress(context.Context, ProgressReq) error
+		Progress(ctx context.Context, progReq ProgressReq) error
 	}
 
 	// EventSubscriber is the interface that wraps the Subscribe method.
@@ -98,7 +98,7 @@ type (
 	// subscription should be closed by calling Close on the subscription after
 	// the channel is closed.
 	EventSubscriber interface {
-		Subscribe(context.Context, ID) (AdjudicatorSubscription, error)
+		Subscribe(ctx context.Context, ID ID) (AdjudicatorSubscription, error)
 	}
 
 	// An AdjudicatorReq collects all necessary information to make calls to the
@@ -196,11 +196,11 @@ type (
 	Timeout interface {
 		// IsElapsed should return whether the timeout has elapsed at the time of
 		// the call of this method.
-		IsElapsed(context.Context) bool
+		IsElapsed(ctx context.Context) bool
 
 		// Wait waits for the timeout to elapse. If the context is canceled, Wait
 		// should return immediately with the context's error.
-		Wait(context.Context) error
+		Wait(ctx context.Context) error
 	}
 
 	// StateMap represents a channel state tree.

@@ -26,6 +26,9 @@ linters:
     - gci # We have our own import order.
     - goerr113 # We do not strictly require static errors.
     - promlinter # Disabled because unstable.
+    - nosnakecase # We use snake case.
+    - depguard # We use go modules.
+    - exhaustruct # We often have uninitialized fields of structs.
 
     # These could be enabled in the future:
     - ifshort # we often don't use `if err := …` for readability.

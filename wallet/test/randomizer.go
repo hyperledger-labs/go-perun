@@ -26,7 +26,7 @@ type (
 	Randomizer interface {
 		// NewRandomAddress should return a new random address generated from the
 		// passed rng.
-		NewRandomAddress(*rand.Rand) wallet.Address
+		NewRandomAddress(rng *rand.Rand) wallet.Address
 
 		// RandomWallet should return a fixed random wallet that is part of the
 		// randomizer's state. It will be used to generate accounts with
@@ -45,7 +45,7 @@ type (
 
 		// NewRandomAccount should return an account generated from the passed rng.
 		// The account should be stored and unlocked in the Wallet.
-		NewRandomAccount(*rand.Rand) wallet.Account
+		NewRandomAccount(rng *rand.Rand) wallet.Account
 	}
 )
 

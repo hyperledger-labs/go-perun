@@ -80,7 +80,7 @@ func (r *Paul) Execute(cfg ExecConfig) {
 	r.Proposer.Execute(cfg, r.exec)
 }
 
-func (r *Paul) exec(_cfg ExecConfig, ch *paymentChannel) {
+func (r *Paul) exec(_ ExecConfig, ch *paymentChannel) {
 	ctx := r.Ctx()
 	assetIdx := 0
 
@@ -142,7 +142,7 @@ func (r *Paula) Execute(cfg ExecConfig) {
 	r.Responder.Execute(cfg, r.exec)
 }
 
-func (r *Paula) exec(_cfg ExecConfig, ch *paymentChannel, _ *acceptNextPropHandler) {
+func (r *Paula) exec(_ ExecConfig, ch *paymentChannel, _ *acceptNextPropHandler) {
 	ctx := r.Ctx()
 	assetIdx := 0
 

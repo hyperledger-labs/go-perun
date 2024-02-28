@@ -30,7 +30,7 @@ import (
 // The Randomizer interface provides the ability to create random assets.
 // This is useful for testing.
 type Randomizer interface {
-	NewRandomAsset(*rand.Rand) channel.Asset
+	NewRandomAsset(rng *rand.Rand) channel.Asset
 }
 
 var randomizer Randomizer
@@ -115,8 +115,8 @@ func NewRandomLockedIDs(rng *rand.Rand, opts ...RandomOpt) []channel.ID {
 		return ids
 	}
 
-	numLockedIds := opt.NumLocked(rng)
-	ids := make([]channel.ID, numLockedIds)
+	numLockedIDs := opt.NumLocked(rng)
+	ids := make([]channel.ID, numLockedIDs)
 	for i := range ids {
 		rng.Read(ids[i][:])
 	}
@@ -139,13 +139,13 @@ func NewRandomSubAlloc(rng *rand.Rand, opts ...RandomOpt) *channel.SubAlloc {
 
 // NewRandomParamsAndState generates a new random `channel.Params` and `channel.State`.
 // Options: all from `NewRandomParams` and `NewRandomState`.
-func NewRandomParamsAndState(rng *rand.Rand, opts ...RandomOpt) (params *channel.Params, state *channel.State) {
+func NewRandomParamsAndState(rng *rand.Rand, opts ...RandomOpt) (*channel.Params, *channel.State) {
 	opt := mergeRandomOpts(opts...)
 
-	params = NewRandomParams(rng, opt)
-	state = NewRandomState(rng, WithParams(params), opt)
+	params := NewRandomParams(rng, opt)
+	state := NewRandomState(rng, WithParams(params), opt)
 
-	return
+	return params, state
 }
 
 // NewRandomParams generates a new random `channel.Params`.
@@ -182,7 +182,7 @@ func NewRandomParams(rng *rand.Rand, opts ...RandomOpt) *channel.Params {
 // NewRandomState generates a new random `channel.State`.
 // Options: `WithState`, `WithVersion`, `WithIsFinal`
 // and all from `NewRandomChannelID`, `NewRandomApp`, `NewRandomAllocation` and `NewRandomData`.
-func NewRandomState(rng *rand.Rand, opts ...RandomOpt) (state *channel.State) {
+func NewRandomState(rng *rand.Rand, opts ...RandomOpt) *channel.State {
 	opt := mergeRandomOpts(opts...)
 	if state := opt.State(); state != nil {
 		return state
@@ -195,7 +195,7 @@ func NewRandomState(rng *rand.Rand, opts ...RandomOpt) (state *channel.State) {
 	data := NewRandomData(rng, opt)
 	isFinal := opt.IsFinal(rng)
 
-	state = &channel.State{
+	state := &channel.State{
 		ID:         id,
 		Version:    version,
 		App:        app,
@@ -204,13 +204,14 @@ func NewRandomState(rng *rand.Rand, opts ...RandomOpt) (state *channel.State) {
 		IsFinal:    isFinal,
 	}
 	updateOpts(opts, WithState(state))
-	return
+	return state
 }
 
 // NewRandomChannelID generates a new random `channel.ID`.
 // Options: `WithID`.
-func NewRandomChannelID(rng *rand.Rand, opts ...RandomOpt) (id channel.ID) {
+func NewRandomChannelID(rng *rand.Rand, opts ...RandomOpt) channel.ID {
 	opt := mergeRandomOpts(opts...)
+	var id channel.ID
 
 	if id, valid := opt.ID(); valid {
 		return id
@@ -219,34 +220,34 @@ func NewRandomChannelID(rng *rand.Rand, opts ...RandomOpt) (id channel.ID) {
 	if _, err := rng.Read(id[:]); err != nil {
 		log.Panic("could not read from rng")
 	}
-	return
+	return id
 }
 
 // NewRandomChannelIDs generates a list of random channel IDs.
-func NewRandomChannelIDs(rng *rand.Rand, n int) (ids []channel.ID) {
-	ids = make([]channel.ID, n)
+func NewRandomChannelIDs(rng *rand.Rand, n int) []channel.ID {
+	ids := make([]channel.ID, n)
 	for i := range ids {
 		ids[i] = NewRandomChannelID(rng)
 	}
-	return
+	return ids
 }
 
 // NewRandomIndexMap generates a random index map.
-func NewRandomIndexMap(rng *rand.Rand, numParts int, numPartsParent int) (m []channel.Index) {
-	m = make([]channel.Index, numParts)
+func NewRandomIndexMap(rng *rand.Rand, numParts int, numPartsParent int) []channel.Index {
+	m := make([]channel.Index, numParts)
 	for i := range m {
 		m[i] = channel.Index(rng.Intn(numPartsParent))
 	}
-	return
+	return m
 }
 
 // NewRandomIndexMaps generates a list of random index maps.
-func NewRandomIndexMaps(rng *rand.Rand, numParts int, numPartsParent int) (maps [][]channel.Index) {
-	maps = make([][]channel.Index, numParts)
+func NewRandomIndexMaps(rng *rand.Rand, numParts int, numPartsParent int) [][]channel.Index {
+	maps := make([][]channel.Index, numParts)
 	for i := range maps {
 		maps[i] = NewRandomIndexMap(rng, numParts, numPartsParent)
 	}
-	return
+	return maps
 }
 
 // NewRandomBal generates a new random `channel.Bal`.

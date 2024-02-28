@@ -34,7 +34,7 @@ type (
 	// adjudicatorPub is used by the watcher to publish the adjudicator events
 	// received from the blockchain to the client.
 	adjudicatorPub interface {
-		publish(channel.AdjudicatorEvent)
+		publish(adjEvent channel.AdjudicatorEvent)
 		close()
 	}
 )
@@ -48,14 +48,14 @@ func newAdjudicatorEventsPubSub() *adjudicatorPubSub {
 // publish publishes the given adjudicator event to the subscriber.
 //
 // Panics if the pub-sub instance is already closed. It is implemented this
-// way, because
-// 1. The watcher will publish on this pub-sub only when it receives an
-//    adjudicator event from the blockchain.
-// 2. When de-registering a channel from the watcher, watcher will close the
-//    subscription for adjudicator events from blockchain, before closing this
-//    pub-sub.
-// 3. This way, it can be guaranteed that, this method will never be called
-//    after the pub-sub instance is closed.
+// way, because:
+//  1. The watcher will publish on this pub-sub only when it receives an
+//     adjudicator event from the blockchain.
+//  2. When de-registering a channel from the watcher, watcher will close the
+//     subscription for adjudicator events from blockchain, before closing this
+//     pub-sub.
+//  3. This way, it can be guaranteed that, this method will never be called
+//     after the pub-sub instance is closed.
 func (a *adjudicatorPubSub) publish(e channel.AdjudicatorEvent) {
 	a.pipe <- e
 }

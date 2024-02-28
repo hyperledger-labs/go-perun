@@ -37,10 +37,10 @@ type Address interface {
 	// BinaryUnmarshaler unmarshals an address from binary.
 	encoding.BinaryUnmarshaler
 	// Equal returns wether the two addresses are equal.
-	Equal(Address) bool
+	Equal(addr Address) bool
 	// Cmp compares the byte representation of two addresses. For `a.Cmp(b)`
 	// returns -1 if a < b, 0 if a == b, 1 if a > b.
-	Cmp(Address) int
+	Cmp(addr Address) int
 	// Verify verifies a message signature.
 	// It returns an error if the signature is invalid.
 	Verify(msg []byte, sig []byte) error

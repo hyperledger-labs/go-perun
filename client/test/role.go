@@ -28,7 +28,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"perun.network/go-perun/channel"
 	"perun.network/go-perun/channel/persistence"
 	"perun.network/go-perun/client"
@@ -106,7 +106,7 @@ type (
 		// EnableStages enables role synchronization.
 		EnableStages() Stages
 		// SetStages enables role synchronization using the given stages.
-		SetStages(Stages)
+		SetStages(stages Stages)
 		// Errors returns the error channel.
 		Errors() <-chan error
 	}
@@ -128,7 +128,7 @@ func NewClients(t *testing.T, rng *rand.Rand, setups []RoleSetup) []*Client {
 	clients := make([]*Client, len(setups))
 	for i, setup := range setups {
 		cl, err := client.New(setup.Identity.Address(), setup.Bus, setup.Funder, setup.Adjudicator, setup.Wallet, setup.Watcher)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		clients[i] = &Client{
 			Client:        cl,
 			RoleSetup:     setup,
@@ -208,9 +208,9 @@ func (c *BaseExecConfig) App() client.ProposalOpts {
 }
 
 // makeRole creates a client for the given setup and wraps it into a Role.
-func makeRole(t *testing.T, setup RoleSetup, numStages int) (r role) {
+func makeRole(t *testing.T, setup RoleSetup, numStages int) role {
 	t.Helper()
-	r = role{
+	r := role{
 		chans:             &channelMap{entries: make(map[channel.ID]*paymentChannel)},
 		setup:             setup,
 		timeout:           setup.Timeout,
@@ -243,11 +243,11 @@ func (r *role) setClient(cl *client.Client) {
 	r.log = log.AppendField(cl, "role", r.setup.Name)
 }
 
-func (chs *channelMap) channel(ch channel.ID) (_ch *paymentChannel, ok bool) {
+func (chs *channelMap) channel(ch channel.ID) (*paymentChannel, bool) {
 	chs.RLock()
 	defer chs.RUnlock()
-	_ch, ok = chs.entries[ch]
-	return
+	_ch, ok := chs.entries[ch]
+	return _ch, ok
 }
 
 func (chs *channelMap) add(ch *paymentChannel) {
@@ -297,7 +297,8 @@ func (r *role) waitStage() {
 
 // Idxs maps the passed addresses to the indices in the 2-party-channel. If the
 // setup's Identity is not found in peers, Idxs panics.
-func (r *role) Idxs(peers [2]wire.Address) (our, their channel.Index) {
+// First return value is our. Second return value is the peer's index.
+func (r *role) Idxs(peers [2]wire.Address) (channel.Index, channel.Index) {
 	if r.setup.Identity.Address().Equal(peers[0]) {
 		return 0, 1
 	} else if r.setup.Identity.Address().Equal(peers[1]) {
@@ -337,7 +338,7 @@ func (r *role) RequireNoErrorf(err error, msg string, args ...interface{}) {
 
 func (r *role) RequireTrue(b bool) {
 	if !b {
-		r.errs <- fmt.Errorf("expected true, got false")
+		r.errs <- errors.New("expected true, got false")
 	}
 }
 
@@ -375,7 +376,7 @@ type (
 
 // GoHandle starts the handler routine on the current client and returns a
 // wait() function with which it can be waited for the handler routine to stop.
-func (r *role) GoHandle(rng *rand.Rand) (h *acceptNextPropHandler, wait func()) {
+func (r *role) GoHandle(rng *rand.Rand) (*acceptNextPropHandler, func()) {
 	done := make(chan struct{})
 	propHandler := r.acceptNextPropHandler(rng)
 	go func() {
@@ -385,10 +386,12 @@ func (r *role) GoHandle(rng *rand.Rand) (h *acceptNextPropHandler, wait func()) 
 		r.log.Debug("Request handler returned.")
 	}()
 
-	return propHandler, func() {
+	wait := func() {
 		r.log.Debug("Waiting for request handler to return...")
 		<-done
 	}
+
+	return propHandler, wait
 }
 
 func (r *role) LedgerChannelProposal(rng *rand.Rand, cfg ExecConfig) *client.LedgerChannelProposalMsg {

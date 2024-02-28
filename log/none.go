@@ -61,7 +61,7 @@ func (none) Fatalln(args ...interface{}) {
 	exit(1)
 }
 
-func (n *none) WithField(key string, value interface{}) Logger {
+func (n *none) WithField(_ string, _ interface{}) Logger {
 	return n
 }
 

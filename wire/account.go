@@ -67,7 +67,8 @@ func (m *AuthResponseMsg) Encode(w io.Writer) error {
 }
 
 // Decode decodes an AuthResponseMsg from an io.Reader.
-func (m *AuthResponseMsg) Decode(r io.Reader) (err error) {
+func (m *AuthResponseMsg) Decode(r io.Reader) error {
+	var err error
 	// Read the signature size first
 	if m.SignatureSize, err = decodeUint32(r); err != nil {
 		return err

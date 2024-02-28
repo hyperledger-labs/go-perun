@@ -107,7 +107,7 @@ func runFredFridaTest(
 	// New channels and errors are passed via the corresponding Go channels.
 	chsFred := make(chan *client.Channel, 1)
 	errsFred := make(chan error, 1)
-	go fred.Handle(
+	go fred.Handle( //nolint:contextcheck
 		AlwaysAcceptChannelHandler(ctx, fredWalletAddr, chsFred, errsFred),
 		AlwaysRejectUpdateHandler(ctx, errsFred),
 	)
@@ -161,6 +161,6 @@ func runFredFridaTest(
 type FailingFunder struct{}
 
 // Fund returns an error to simulate failed funding.
-func (m FailingFunder) Fund(ctx context.Context, req channel.FundingReq) error {
+func (m FailingFunder) Fund(_ context.Context, _ channel.FundingReq) error {
 	return errors.New("funding failed")
 }

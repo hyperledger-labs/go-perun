@@ -29,7 +29,7 @@ import (
 func TestAddress(t *testing.T, s *Setup) { //nolint:revive // `test.Test...` stutters, but we accept that here.
 	null := s.ZeroAddress
 	addr := s.Backend.NewAddress()
-	assert.NoError(t, addr.UnmarshalBinary(s.AddressMarshalled), "Byte deserialization of address should work")
+	require.NoError(t, addr.UnmarshalBinary(s.AddressMarshalled), "Byte deserialization of address should work")
 
 	// Test Address.String.
 	nullString := null.String()
@@ -44,9 +44,9 @@ func TestAddress(t *testing.T, s *Setup) { //nolint:revive // `test.Test...` stu
 
 	// Test Address.Bytes.
 	addrBytes, err := addr.MarshalBinary()
-	assert.NoError(t, err, "Marshaling address should not error")
+	require.NoError(t, err, "Marshaling address should not error")
 	nullBytes, err := null.MarshalBinary()
-	assert.NoError(t, err, "Marshaling zero address should not error")
+	require.NoError(t, err, "Marshaling zero address should not error")
 	assert.False(t, bytes.Equal(addrBytes, nullBytes), "Expected inequality of byte representations of nonzero and zero address")
 
 	// a.Equal(Decode(Encode(a)))

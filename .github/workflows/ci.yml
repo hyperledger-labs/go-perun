@@ -7,7 +7,7 @@ on:
   release:
 
 env:
-  go-version: 1.17
+  go-version: 1.21
 
 jobs:
   check-copyright:
@@ -15,7 +15,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4.1.1
         with:
           fetch-depth: 0
       - name: Authors
@@ -26,23 +26,23 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4.1.1
 
       - name: Check vanity import
         run: .scripts/check-vanity-imports.sh $GITHUB_WORKSPACE
 
       - name: Setup Go
-        uses: actions/setup-go@v2
+        uses: actions/setup-go@v4
         with:
           go-version: ${{ env.go-version }}
 
       - name: golangci-lint
         uses: golangci/golangci-lint-action@v3
         with:
-          version: v1.43
+          version: v1.55
 
       - name: Lint proto files
-        uses: plexsystems/protolint-action@v0.6.0
+        uses: plexsystems/protolint-action@v0.7.0
         with:
           configDirectory: .
 
@@ -51,14 +51,14 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Setup Go
-        uses: actions/setup-go@v2
+        uses: actions/setup-go@v4
         with:
           go-version: ${{ env.go-version }}
 
       - name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4.1.1
 
-      - uses: actions/cache@v2
+      - uses: actions/cache@v4.0.0
         with:
           path: |
             ~/.cache/go-build
@@ -75,14 +75,14 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Setup Go
-        uses: actions/setup-go@v2
+        uses: actions/setup-go@v4
         with:
           go-version: ${{ env.go-version }}
 
       - name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4.1.1
 
-      - uses: actions/cache@v2
+      - uses: actions/cache@v4.0.0
         with:
           path: |
             ~/.cache/go-build

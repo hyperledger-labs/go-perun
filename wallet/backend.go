@@ -30,7 +30,7 @@ type Backend interface {
 
 	// DecodeSig reads a signature from the provided stream. It is needed for
 	// decoding of wire messages.
-	DecodeSig(io.Reader) (Sig, error)
+	DecodeSig(reader io.Reader) (Sig, error)
 
 	// VerifySignature verifies if this signature was signed by this address.
 	// It should return an error iff the signature or message are malformed.

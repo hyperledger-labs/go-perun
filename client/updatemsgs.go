@@ -139,7 +139,8 @@ func (c ChannelUpdateMsg) Encode(w io.Writer) error {
 }
 
 // Decode decodes the ChannelUpdateMsg from the io.Reader.
-func (c *ChannelUpdateMsg) Decode(r io.Reader) (err error) {
+func (c *ChannelUpdateMsg) Decode(r io.Reader) error {
+	var err error
 	if c.State == nil {
 		c.State = new(channel.State)
 	}
@@ -156,7 +157,8 @@ func (c ChannelUpdateAccMsg) Encode(w io.Writer) error {
 }
 
 // Decode decodes the ChannelUpdateAccMsg from the io.Reader.
-func (c *ChannelUpdateAccMsg) Decode(r io.Reader) (err error) {
+func (c *ChannelUpdateAccMsg) Decode(r io.Reader) error {
+	var err error
 	if err := perunio.Decode(r, &c.ChannelID, &c.Version); err != nil {
 		return err
 	}
@@ -170,7 +172,7 @@ func (c ChannelUpdateRejMsg) Encode(w io.Writer) error {
 }
 
 // Decode decodes the ChannelUpdateRejMsg from the io.Reader.
-func (c *ChannelUpdateRejMsg) Decode(r io.Reader) (err error) {
+func (c *ChannelUpdateRejMsg) Decode(r io.Reader) error {
 	return perunio.Decode(r, &c.ChannelID, &c.Version, &c.Reason)
 }
 
@@ -224,7 +226,8 @@ func (*VirtualChannelFundingProposalMsg) Type() wire.Type {
 }
 
 // Encode encodes the VirtualChannelFundingProposalMsg into the io.Writer.
-func (m VirtualChannelFundingProposalMsg) Encode(w io.Writer) (err error) {
+func (m VirtualChannelFundingProposalMsg) Encode(w io.Writer) error {
+	var err error
 	err = perunio.Encode(w,
 		m.ChannelUpdateMsg,
 		m.Initial.Params,
@@ -232,26 +235,27 @@ func (m VirtualChannelFundingProposalMsg) Encode(w io.Writer) (err error) {
 		indexMapWithLen(m.IndexMap),
 	)
 	if err != nil {
-		return
+		return err
 	}
 
-	return wallet.EncodeSparseSigs(w, m.Initial.Sigs)
+	err = wallet.EncodeSparseSigs(w, m.Initial.Sigs)
+	return err
 }
 
 // Decode decodes the VirtualChannelFundingProposalMsg from the io.Reader.
-func (m *VirtualChannelFundingProposalMsg) Decode(r io.Reader) (err error) {
+func (m *VirtualChannelFundingProposalMsg) Decode(r io.Reader) error {
 	m.Initial = channel.SignedState{
 		Params: &channel.Params{},
 		State:  &channel.State{},
 	}
-	err = perunio.Decode(r,
+	err := perunio.Decode(r,
 		&m.ChannelUpdateMsg,
 		m.Initial.Params,
 		m.Initial.State,
 		(*indexMapWithLen)(&m.IndexMap),
 	)
 	if err != nil {
-		return
+		return err
 	}
 
 	m.Initial.Sigs = make([]wallet.Sig, m.Initial.State.NumParts())
@@ -264,21 +268,22 @@ func (*VirtualChannelSettlementProposalMsg) Type() wire.Type {
 }
 
 // Encode encodes the VirtualChannelSettlementProposalMsg into the io.Writer.
-func (m VirtualChannelSettlementProposalMsg) Encode(w io.Writer) (err error) {
-	err = perunio.Encode(w,
+func (m VirtualChannelSettlementProposalMsg) Encode(w io.Writer) error {
+	err := perunio.Encode(w,
 		m.ChannelUpdateMsg,
 		m.Final.Params,
 		*m.Final.State,
 	)
 	if err != nil {
-		return
+		return err
 	}
 
 	return wallet.EncodeSparseSigs(w, m.Final.Sigs)
 }
 
 // Decode decodes the VirtualChannelSettlementProposalMsg from the io.Reader.
-func (m *VirtualChannelSettlementProposalMsg) Decode(r io.Reader) (err error) {
+func (m *VirtualChannelSettlementProposalMsg) Decode(r io.Reader) error {
+	var err error
 	m.Final = channel.SignedState{
 		Params: &channel.Params{},
 		State:  &channel.State{},
@@ -289,7 +294,7 @@ func (m *VirtualChannelSettlementProposalMsg) Decode(r io.Reader) (err error) {
 		m.Final.State,
 	)
 	if err != nil {
-		return
+		return err
 	}
 
 	m.Final.Sigs = make([]wallet.Sig, m.Final.State.NumParts())

@@ -19,7 +19,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	. "perun.network/go-perun/wire"
+	. "perun.network/go-perun/wire" //nolint:revive
 	"perun.network/go-perun/wire/test"
 )
 
@@ -41,11 +41,13 @@ func TestHybridBus(t *testing.T) {
 	hybridBus := NewHybridBus(buses...)
 
 	i := 0
-	test.GenericBusTest(t, func(Account) (pub Bus, sub Bus) {
+	test.GenericBusTest(t, func(Account) (Bus, Bus) {
 		i++
 		// Split the clients evenly among the sub-buses, and let them publish
 		// over the hybrid bus.
-		return hybridBus, buses[i%nBuses]
+		pub := hybridBus
+		sub := buses[i%nBuses]
+		return pub, sub
 	}, 16, 10)
 }
 

@@ -85,7 +85,7 @@ func peerKey(a wire.Address) string {
 
 func peerFromKey(s string) wire.Address {
 	p := wire.NewAddress()
-	err := perunio.Decode(bytes.NewBuffer([]byte(s)), p)
+	err := perunio.Decode(bytes.NewReader([]byte(s)), p)
 	if err != nil {
 		panic("error decoding peer key: " + err.Error())
 	}

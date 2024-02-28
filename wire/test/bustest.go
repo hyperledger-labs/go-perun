@@ -71,10 +71,10 @@ func GenericBusTest(t *testing.T,
 			go ct.StageN("receive timeout", numClients, func(t test.ConcT) {
 				r := wire.NewReceiver()
 				defer r.Close()
-				err := clients[i].r.Subscribe(r, func(e *wire.Envelope) bool { return true })
-				require.NoError(t, err)
+				err := clients[i].r.Subscribe(r, func(_ *wire.Envelope) bool { return true })
+				require.NoError(t, err) //nolint:testifylint
 				_, err = r.Next(ctx)
-				require.Error(t, err)
+				require.Error(t, err) //nolint:testifylint
 			})
 		}
 		ct.Wait("receive timeout")
@@ -110,14 +110,14 @@ func GenericBusTest(t *testing.T,
 					defer recv.Close()
 					for i := 0; i < numMsgs; i++ {
 						e, err := recv.Next(ctx)
-						require.NoError(t, err)
-						require.Equal(t, e, origEnv)
+						require.NoError(t, err)      //nolint:testifylint
+						require.Equal(t, e, origEnv) //nolint:testifylint
 					}
 				})
 				go ct.StageN("publish", numClients*(numClients-1), func(t test.ConcT) {
 					for i := 0; i < numMsgs; i++ {
 						err := clients[sender].pub.Publish(ctx, origEnv)
-						require.NoError(t, err)
+						require.NoError(t, err) //nolint:testifylint
 					}
 				})
 			}

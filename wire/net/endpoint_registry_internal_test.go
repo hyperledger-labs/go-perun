@@ -51,7 +51,7 @@ func (d *mockDialer) Close() error {
 	return nil
 }
 
-func (d *mockDialer) Dial(ctx context.Context, addr wire.Address, _ wire.EnvelopeSerializer) (Conn, error) {
+func (d *mockDialer) Dial(ctx context.Context, _ wire.Address, _ wire.EnvelopeSerializer) (Conn, error) {
 	d.mutex.Lock()
 	defer d.mutex.Unlock()
 
@@ -111,6 +111,8 @@ func nilConsumer(wire.Address) wire.Consumer { return nil }
 // dialed in the background. It also tests that the dialing process combines
 // with the Listener, so that if a connection to a peer that is still being
 // dialed comes in, the peer is assigned that connection.
+//
+//nolint:testify
 func TestRegistry_Get(t *testing.T) {
 	t.Parallel()
 	rng := test.Prng(t)
@@ -128,7 +130,7 @@ func TestRegistry_Get(t *testing.T) {
 		r.endpoints[wire.Key(peerAddr)] = newFullEndpoint(existing)
 		ctxtest.AssertTerminates(t, timeout, func() {
 			p, err := r.Endpoint(context.Background(), peerAddr)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 			assert.Same(t, p, existing)
 		})
 	})
@@ -142,7 +144,7 @@ func TestRegistry_Get(t *testing.T) {
 		dialer.Close()
 		ctxtest.AssertTerminates(t, timeout, func() {
 			p, err := r.Endpoint(context.Background(), peerAddr)
-			assert.Error(t, err)
+			require.Error(t, err)
 			assert.Nil(t, p)
 		})
 
@@ -162,9 +164,9 @@ func TestRegistry_Get(t *testing.T) {
 		go ct.Stage("receiver", func(t test.ConcT) {
 			dialer.put(a)
 			_, err := ExchangeAddrsPassive(ctx, peerID, b)
-			require.NoError(t, err)
+			require.NoError(t, err) //nolint:testifylint
 			_, err = b.Recv()
-			require.NoError(t, err)
+			require.NoError(t, err) //nolint:testifylint
 		})
 		p, err := r.Endpoint(ctx, peerAddr)
 		require.NoError(t, err)
@@ -193,7 +195,7 @@ func TestRegistry_authenticatedDial(t *testing.T) {
 		ctx, cancel := context.WithTimeout(context.Background(), timeout)
 		defer cancel()
 		e, err := r.authenticatedDial(ctx, addr, de, created)
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, e)
 	})
 
@@ -217,7 +219,7 @@ func TestRegistry_authenticatedDial(t *testing.T) {
 		ctx, cancel := context.WithTimeout(context.Background(), timeout)
 		defer cancel()
 		e, err := r.authenticatedDial(ctx, remoteAddr, de, created)
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, e)
 	})
 
@@ -229,11 +231,11 @@ func TestRegistry_authenticatedDial(t *testing.T) {
 		go ct.Stage("passive", func(rt test.ConcT) {
 			d.put(a)
 			_, err := ExchangeAddrsPassive(ctx, wiretest.NewRandomAccount(rng), b)
-			require.True(rt, IsAuthenticationError(err))
+			require.True(rt, IsAuthenticationError(err)) //nolint:testifylint
 		})
 		de, created := r.dialingEndpoint(remoteAddr)
 		e, err := r.authenticatedDial(ctx, remoteAddr, de, created)
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, e)
 		ct.Wait("passive")
 	})
@@ -253,7 +255,7 @@ func TestRegistry_authenticatedDial(t *testing.T) {
 		defer cancel()
 		de, created := r.dialingEndpoint(remoteAddr)
 		e, err := r.authenticatedDial(ctx, remoteAddr, de, created)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.NotNil(t, e)
 	})
 }
@@ -279,7 +281,7 @@ func TestRegistry_setupConn(t *testing.T) {
 			}
 		}()
 		ctxtest.AssertTerminates(t, timeout, func() {
-			assert.Error(t, r.setupConn(a))
+			require.Error(t, r.setupConn(a))
 		})
 	})
 
@@ -296,7 +298,7 @@ func TestRegistry_setupConn(t *testing.T) {
 
 		r.addEndpoint(remoteID.Address(), newMockConn(), false)
 		ctxtest.AssertTerminates(t, timeout, func() {
-			assert.NoError(t, r.setupConn(a))
+			require.NoError(t, r.setupConn(a))
 		})
 	})
 
@@ -312,7 +314,7 @@ func TestRegistry_setupConn(t *testing.T) {
 		}()
 
 		ctxtest.AssertTerminates(t, timeout, func() {
-			assert.NoError(t, r.setupConn(a))
+			require.NoError(t, r.setupConn(a))
 		})
 	})
 }
@@ -347,7 +349,7 @@ func TestRegistry_Listen(t *testing.T) {
 	<-time.After(timeout)
 	assert.True(r.Has(remoteAddr))
 
-	assert.NoError(r.Close())
+	require.NoError(t, r.Close())
 	assert.True(l.isClosed(), "closing the registry should close the listener")
 
 	l2 := newMockListener()
@@ -389,7 +391,7 @@ func TestRegistry_Close(t *testing.T) {
 			perunio.Serializer(),
 		)
 		r.Close()
-		assert.Error(t, r.Close())
+		require.Error(t, r.Close())
 	})
 
 	t.Run("dialer close error", func(t *testing.T) {
@@ -402,12 +404,12 @@ func TestRegistry_Close(t *testing.T) {
 			perunio.Serializer(),
 		)
 
-		assert.Error(t, r.Close())
+		require.Error(t, r.Close())
 	})
 }
 
 // newPipeConnPair creates endpoints that are connected via pipes.
-func newPipeConnPair() (a Conn, b Conn) {
+func newPipeConnPair() (Conn, Conn) {
 	c0, c1 := net.Pipe()
 	ser := perunio.Serializer()
 	return NewIoConn(c0, ser), NewIoConn(c1, ser)

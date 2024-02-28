@@ -23,8 +23,8 @@ import (
 // The AppRandomizer interface provides functionality for creating random
 // data and apps which is useful for testing.
 type AppRandomizer interface {
-	NewRandomApp(*rand.Rand) channel.App
-	NewRandomData(*rand.Rand) channel.Data
+	NewRandomApp(rng *rand.Rand) channel.App
+	NewRandomData(rng *rand.Rand) channel.Data
 }
 
 var appRandomizer AppRandomizer = NewMockAppRandomizer()

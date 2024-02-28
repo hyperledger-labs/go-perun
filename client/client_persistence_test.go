@@ -27,13 +27,13 @@ func TestPersistencePetraRobert(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), twoPartyTestTimeout)
 	defer cancel()
 
-	runAliceBobTest(ctx, t, func(rng *rand.Rand) (setups []ctest.RoleSetup, roles [2]ctest.Executer) {
-		setups = NewSetupsPersistence(t, rng, []string{"Petra", "Robert"})
-		roles = [2]ctest.Executer{
+	runAliceBobTest(ctx, t, func(rng *rand.Rand) ([]ctest.RoleSetup, [2]ctest.Executer) {
+		setups := NewSetupsPersistence(t, rng, []string{"Petra", "Robert"})
+		roles := [2]ctest.Executer{
 			ctest.NewPetra(t, setups[0]),
 			ctest.NewRobert(t, setups[1]),
 		}
-		return
+		return setups, roles
 	})
 }
 

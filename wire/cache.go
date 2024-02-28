@@ -22,12 +22,12 @@ type (
 	}
 
 	// A Predicate defines a message filter.
-	Predicate = func(*Envelope) bool
+	Predicate = func(env *Envelope) bool
 
 	// A Cacher has the Cache method to enable caching of messages.
 	Cacher interface {
 		// Cache should enable the caching of messages
-		Cache(*Predicate)
+		Cache(pred *Predicate)
 	}
 )
 
