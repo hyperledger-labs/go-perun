@@ -103,11 +103,11 @@ func TestDialer_Dial(t *testing.T) {
 		ct := test.NewConcurrent(t)
 		go ct.Stage("accept", func(rt test.ConcT) {
 			conn, err := l.Accept(ser)
-			require.NoError(t, err)  //nolint: testifylint
-			require.NotNil(rt, conn) //nolint: testifylint
+			require.NoError(t, err)  //nolint:testifylint
+			require.NotNil(rt, conn) //nolint:testifylint
 
 			re, err := conn.Recv()
-			require.NoError(t, err) //nolint: testifylint
+			require.NoError(t, err) //nolint:testifylint
 			assert.Equal(t, re, e)
 		})
 

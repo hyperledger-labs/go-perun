@@ -39,6 +39,9 @@ linters:
     - scopelint
     - golint
     - interfacer
+    - varcheck
+    - structcheck
+    - deadcode
 
 linters-settings:
   cyclop:

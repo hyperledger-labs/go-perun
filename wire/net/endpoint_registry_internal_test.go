@@ -111,8 +111,6 @@ func nilConsumer(wire.Address) wire.Consumer { return nil }
 // dialed in the background. It also tests that the dialing process combines
 // with the Listener, so that if a connection to a peer that is still being
 // dialed comes in, the peer is assigned that connection.
-//
-//nolint:testify
 func TestRegistry_Get(t *testing.T) {
 	t.Parallel()
 	rng := test.Prng(t)

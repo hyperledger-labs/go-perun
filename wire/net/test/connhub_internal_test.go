@@ -46,9 +46,9 @@ func TestConnHub_Create(t *testing.T) {
 		go ctxtest.AssertTerminates(t, timeout, func() {
 			ct.Stage("accept", func(rt pkgtest.ConcT) {
 				conn, err := l.Accept(ser)
-				require.NoError(t, err)                                                           //nolint: testifylint
-				require.NotNil(rt, conn)                                                          //nolint: testifylint
-				require.NoError(t, conn.Send(wiretest.NewRandomEnvelope(rng, wire.NewPingMsg()))) //nolint: testifylint
+				require.NoError(t, err)                                                           //nolint:testifylint
+				require.NotNil(rt, conn)                                                          //nolint:testifylint
+				require.NoError(t, conn.Send(wiretest.NewRandomEnvelope(rng, wire.NewPingMsg()))) //nolint:testifylint
 			})
 		})
 
