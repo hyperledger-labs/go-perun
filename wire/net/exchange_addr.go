@@ -16,7 +16,6 @@ package net
 
 import (
 	"context"
-	"crypto/sha256"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -62,7 +61,7 @@ func ExchangeAddrsActive(ctx context.Context, id wire.Account, peer wire.Address
 	ok := pkg.TerminatesCtx(ctx, func() {
 		authMsg, err2 := wire.NewAuthResponseMsg(id)
 		if err2 != nil {
-			err = errors.WithMessage(err, "creating auth message")
+			err = errors.WithMessage(err2, "creating auth message")
 			return
 		}
 		err = conn.Send(&wire.Envelope{
@@ -80,7 +79,7 @@ func ExchangeAddrsActive(ctx context.Context, id wire.Account, peer wire.Address
 			err = errors.WithMessage(err, "receiving message")
 		} else if _, ok := e.Msg.(*wire.AuthResponseMsg); !ok {
 			err = errors.Errorf("expected AuthResponse wire msg, got %v", e.Msg.Type())
-		} else if check := verifyAddressSignature(peer, e.Msg.(*wire.AuthResponseMsg).Signature); check != nil {
+		} else if check := VerifyAddressSignature(peer, e.Msg.(*wire.AuthResponseMsg).Signature); check != nil {
 			err = errors.WithMessage(err, "verifying peer address's signature")
 		} else if !e.Recipient.Equal(id.Address()) &&
 			!e.Sender.Equal(peer) {
@@ -109,7 +108,7 @@ func ExchangeAddrsPassive(ctx context.Context, id wire.Account, conn Conn) (wire
 			err = errors.Errorf("expected AuthResponse wire msg, got %v", e.Msg.Type())
 		} else if !e.Recipient.Equal(id.Address()) {
 			err = NewAuthenticationError(e.Sender, e.Recipient, id.Address(), "unmatched response sender or recipient")
-		} else if err = verifyAddressSignature(e.Sender, e.Msg.(*wire.AuthResponseMsg).Signature); err != nil {
+		} else if err = VerifyAddressSignature(e.Sender, e.Msg.(*wire.AuthResponseMsg).Signature); err != nil {
 			err = errors.WithMessage(err, "verifying peer address's signature")
 		}
 
@@ -119,7 +118,7 @@ func ExchangeAddrsPassive(ctx context.Context, id wire.Account, conn Conn) (wire
 
 		authMsg, err2 := wire.NewAuthResponseMsg(id)
 		if err2 != nil {
-			err = errors.WithMessage(err, "creating auth message")
+			err = errors.WithMessage(err2, "creating auth message")
 			return
 		}
 		addr, err = e.Sender, conn.Send(&wire.Envelope{
@@ -138,11 +137,13 @@ func ExchangeAddrsPassive(ctx context.Context, id wire.Account, conn Conn) (wire
 	return addr, err
 }
 
-func verifyAddressSignature(addr wire.Address, sig []byte) error {
+// VerifyAddressSignature verifies a signature against the hash of an address.
+// It relies on the MarshalBinary method of the provided wire.Address interface to generate the address hash.
+// In case the MarshalBinary method doesn't produce the expected hash, the verification may fail.
+func VerifyAddressSignature(addr wire.Address, sig []byte) error {
 	addressBytes, err := addr.MarshalBinary()
 	if err != nil {
 		return fmt.Errorf("failed to marshal address: %w", err)
 	}
-	hashed := sha256.Sum256(addressBytes)
-	return addr.Verify(hashed[:], sig)
+	return addr.Verify(addressBytes, sig)
 }

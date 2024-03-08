@@ -56,7 +56,7 @@ func TestCache(t *testing.T) {
 	assert.Equal(2, c.Size())
 
 	empty := c.Messages(func(*Envelope) bool { return false })
-	assert.Empty(empty, 0)
+	assert.Empty(empty)
 
 	c.Release(&isPing)
 	assert.False(c.Put(ping2), "Put into cache with canceled predicate")
