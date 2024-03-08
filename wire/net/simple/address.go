@@ -152,34 +152,29 @@ func (a *Address) Equal(b wire.Address) bool {
 	return a.Name == bTyped.Name && a.PublicKey.Equal(bTyped.PublicKey)
 }
 
-// Cmp compares two addresses in terms of their byte representations.
-// It first compares the byte representations of their names.
-// If the names are the same, it proceeds to compare their entire byte representations.
-// It returns an integer representing the result of the comparison:
+// Cmp compares the byte representation of two addresses.
+// It first checks if the types match, then compares the byte representations of their names.
+// It returns the result of comparing the byte representations of the addresses:
 //
-//	-1 if a < b,
-//	 0 if a == b,
-//	 1 if a > b.
+//	-1 if a's byte representation is less than b's,
+//	 0 if they are equal,
+//	 1 if a's byte representation is greater than b's.
 //
-// It panics if the type assertion fails during the process or if there's an error while marshaling.
+// It panics if the type assertion fails or if there's an error while marshaling.
 func (a *Address) Cmp(b wire.Address) int {
+	// Type assertion to ensure b is of type *Address
 	bTyped, ok := b.(*Address)
 	if !ok {
 		panic("wrong type")
 	}
+
+	// Compare names
 	if cmp := bytes.Compare([]byte(a.Name), []byte(bTyped.Name)); cmp != 0 {
 		return cmp
 	}
 
-	bytesA, err := a.MarshalBinary()
-	if err != nil {
-		panic(err)
-	}
-	bytesB, err := bTyped.MarshalBinary()
-	if err != nil {
-		panic(err)
-	}
-	return bytes.Compare(bytesA, bytesB)
+	// Compare binary representations
+	return bytes.Compare([]byte(a.Name), []byte(bTyped.Name))
 }
 
 // NewRandomAddress returns a new random peer address.
