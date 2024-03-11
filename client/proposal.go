@@ -396,7 +396,7 @@ func (c *Client) validTwoPartyProposal(
 	multiLedger := multi.IsMultiLedgerAssets(proposal.Base().InitBals.Assets)
 	appChannel := !channel.IsNoApp(proposal.Base().App)
 	if multiLedger && appChannel {
-		return fmt.Errorf("multi-ledger app channel not supported")
+		return errors.New("multi-ledger app channel not supported")
 	}
 
 	peers := c.proposalPeers(proposal)

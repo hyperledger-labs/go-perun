@@ -12,6 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Package simple contains simplistic implementation for the wire.Dialer and
-// wire.Listener interfaces.
+// Package simple contains a simplistic implementation for the wire.Dialer and
+// wire.Listener interfaces. It uses TLS to ensure secure peer connection.
 package simple // import "perun.network/go-perun/wire/net/simple"

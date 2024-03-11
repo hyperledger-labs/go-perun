@@ -15,6 +15,8 @@
 package wire
 
 import (
+	"encoding/binary"
+	"fmt"
 	"io"
 )
 
@@ -31,14 +33,17 @@ func init() {
 type Account interface {
 	// Address used by this account.
 	Address() Address
+
+	// Sign signs the given message with this account's private key.
+	Sign(msg []byte) ([]byte, error)
 }
 
 var _ Msg = (*AuthResponseMsg)(nil)
 
 // AuthResponseMsg is the response message in the peer authentication protocol.
-//
-// This will be expanded later to contain signatures.
-type AuthResponseMsg struct{}
+type AuthResponseMsg struct {
+	Signature []byte
+}
 
 // Type returns AuthResponse.
 func (m *AuthResponseMsg) Type() Type {
@@ -46,16 +51,46 @@ func (m *AuthResponseMsg) Type() Type {
 }
 
 // Encode encodes this AuthResponseMsg into an io.Writer.
+// It writes the signature to the writer.
 func (m *AuthResponseMsg) Encode(w io.Writer) error {
-	return nil
+	// Write the length of the signature
+	err := binary.Write(w, binary.BigEndian, uint32(len(m.Signature)))
+	if err != nil {
+		return fmt.Errorf("failed to write signature length: %w", err)
+	}
+	// Write the signature itself
+	_, err = w.Write(m.Signature)
+	return err
 }
 
 // Decode decodes an AuthResponseMsg from an io.Reader.
+// It reads the signature from the reader.
 func (m *AuthResponseMsg) Decode(r io.Reader) (err error) {
+	// Read the length of the signature
+	var signatureLen uint32
+	if err := binary.Read(r, binary.BigEndian, &signatureLen); err != nil {
+		return fmt.Errorf("failed to read signature length: %w", err)
+	}
+	// Read the signature bytes
+	m.Signature = make([]byte, signatureLen)
+	if _, err := io.ReadFull(r, m.Signature); err != nil {
+		return fmt.Errorf("failed to read signature: %w", err)
+	}
 	return nil
 }
 
 // NewAuthResponseMsg creates an authentication response message.
-func NewAuthResponseMsg(_ Account) Msg {
-	return &AuthResponseMsg{}
+func NewAuthResponseMsg(acc Account) (Msg, error) {
+	addressBytes, err := acc.Address().MarshalBinary()
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal address: %w", err)
+	}
+	signature, err := acc.Sign(addressBytes)
+	if err != nil {
+		return nil, fmt.Errorf("failed to sign address: %w", err)
+	}
+
+	return &AuthResponseMsg{
+		Signature: signature,
+	}, nil
 }

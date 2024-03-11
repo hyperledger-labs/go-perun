@@ -56,7 +56,7 @@ func Encode(writer io.Writer, values ...interface{}) (err error) { //nolint: cyc
 
 			length := len(data)
 			if length > uint16MaxValue {
-				panic(fmt.Sprintf("lenth of marshaled data is %d, should be <= %d", len(data), uint16MaxValue))
+				panic(fmt.Sprintf("length of marshaled data is %d, should be <= %d", len(data), uint16MaxValue))
 			}
 			err = binary.Write(writer, byteOrder, uint16(length))
 			if err != nil {

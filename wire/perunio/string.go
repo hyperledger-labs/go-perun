@@ -42,7 +42,7 @@ func encodeString(w io.Writer, s string) error {
 	return errors.Wrap(err, "failed to write string")
 }
 
-// decodeString reads the length as uint16 and the the string itself from the io.Reader.
+// decodeString reads the length as uint16 and the string itself from the io.Reader.
 func decodeString(r io.Reader, s *string) error {
 	var l uint16
 	if err := binary.Read(r, byteOrder, &l); err != nil {

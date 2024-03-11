@@ -45,7 +45,7 @@ func (serializer) Encode(w io.Writer, env *wire.Envelope) (err error) { //nolint
 	case *wire.ShutdownMsg:
 		protoEnv.Msg = fromShutdownMsg(msg)
 	case *wire.AuthResponseMsg:
-		protoEnv.Msg = &Envelope_AuthResponseMsg{}
+		protoEnv.Msg = fromAuthResponseMsg(msg)
 	case *client.LedgerChannelProposalMsg:
 		protoEnv.Msg, err = FromLedgerChannelProposalMsg(msg)
 	case *client.SubChannelProposalMsg:
@@ -131,7 +131,7 @@ func (serializer) Decode(r io.Reader) (env *wire.Envelope, err error) { //nolint
 	case *Envelope_ShutdownMsg:
 		env.Msg = toShutdownMsg(protoMsg)
 	case *Envelope_AuthResponseMsg:
-		env.Msg = &wire.AuthResponseMsg{}
+		env.Msg = toAuthResponseMsg(protoMsg)
 	case *Envelope_LedgerChannelProposalMsg:
 		env.Msg, err = ToLedgerChannelProposalMsg(protoMsg)
 	case *Envelope_SubChannelProposalMsg:

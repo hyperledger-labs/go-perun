@@ -16,6 +16,7 @@ package simple
 
 import (
 	"context"
+	"crypto/tls"
 	"net"
 	"sync"
 	"time"
@@ -31,7 +32,7 @@ import (
 type Dialer struct {
 	mutex   sync.RWMutex            // Protects peers.
 	peers   map[wire.AddrKey]string // Known peer addresses.
-	dialer  net.Dialer              // Used to dial connections.
+	dialer  tls.Dialer              // Used to dial connections.
 	network string                  // The socket type.
 
 	pkgsync.Closer
@@ -44,22 +45,27 @@ var _ wirenet.Dialer = (*Dialer)(nil)
 // timeouts may still apply even when no timeout is selected. The network string
 // controls the type of connection that the dialer can dial.
 // `serializer` defines the message encoding.
-func NewNetDialer(network string, defaultTimeout time.Duration) *Dialer {
+func NewNetDialer(network string, defaultTimeout time.Duration, tlsConfig *tls.Config) *Dialer {
+	netDialer := &net.Dialer{Timeout: defaultTimeout}
+
 	return &Dialer{
-		peers:   make(map[wire.AddrKey]string),
-		dialer:  net.Dialer{Timeout: defaultTimeout},
+		peers: make(map[wire.AddrKey]string),
+		dialer: tls.Dialer{
+			NetDialer: netDialer,
+			Config:    tlsConfig,
+		},
 		network: network,
 	}
 }
 
 // NewTCPDialer is a short-hand version of NewNetDialer for creating TCP dialers.
-func NewTCPDialer(defaultTimeout time.Duration) *Dialer {
-	return NewNetDialer("tcp", defaultTimeout)
+func NewTCPDialer(defaultTimeout time.Duration, tlsConfig *tls.Config) *Dialer {
+	return NewNetDialer("tcp", defaultTimeout, tlsConfig)
 }
 
 // NewUnixDialer is a short-hand version of NewNetDialer for creating Unix dialers.
-func NewUnixDialer(defaultTimeout time.Duration) *Dialer {
-	return NewNetDialer("unix", defaultTimeout)
+func NewUnixDialer(defaultTimeout time.Duration, tlsConfig *tls.Config) *Dialer {
+	return NewNetDialer("unix", defaultTimeout, tlsConfig)
 }
 
 func (d *Dialer) host(key wire.AddrKey) (string, bool) {

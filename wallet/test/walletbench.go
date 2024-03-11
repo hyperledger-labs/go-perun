@@ -30,7 +30,7 @@ func GenericAccountBenchmark(b *testing.B, s *Setup) {
 func benchAccountSign(b *testing.B, s *Setup) {
 	b.Helper()
 	perunAcc, err := s.Wallet.Unlock(s.AddressInWallet)
-	require.Nil(b, err)
+	require.NoError(b, err)
 
 	for n := 0; n < b.N; n++ {
 		_, err := perunAcc.SignData(s.DataToSign)
@@ -56,9 +56,9 @@ func benchBackendVerifySig(b *testing.B, s *Setup) {
 	// We dont want to measure the SignDataWithPW here, just need it for the verification
 	b.StopTimer()
 	perunAcc, err := s.Wallet.Unlock(s.AddressInWallet)
-	require.Nil(b, err)
+	require.NoError(b, err)
 	signature, err := perunAcc.SignData(s.DataToSign)
-	require.Nil(b, err)
+	require.NoError(b, err)
 	b.StartTimer()
 
 	for n := 0; n < b.N; n++ {
