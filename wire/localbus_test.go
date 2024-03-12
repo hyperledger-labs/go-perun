@@ -17,7 +17,7 @@ package wire_test
 import (
 	"testing"
 
-	. "perun.network/go-perun/wire"
+	. "perun.network/go-perun/wire" //nolint:revive
 	"perun.network/go-perun/wire/test"
 )
 

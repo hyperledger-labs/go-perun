@@ -20,6 +20,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	"perun.network/go-perun/wire/perunio"
 	peruniotest "perun.network/go-perun/wire/perunio/test"
@@ -40,13 +41,13 @@ func TestStutter(t *testing.T) {
 	go func() {
 		for _, v := range values {
 			_, err := w.Write([]byte{v})
-			assert.NoError(t, err)
+			require.NoError(t, err) //nolint:testifylint
 		}
 	}()
 
 	var decodedValue perunio.ByteSlice = make([]byte, len(values))
 	ctxtest.AssertTerminatesQuickly(t, func() {
-		assert.NoError(t, decodedValue.Decode(r))
+		require.NoError(t, decodedValue.Decode(r))
 	})
 	for i, v := range values {
 		assert.Equal(t, decodedValue[i], v)
@@ -70,7 +71,7 @@ func testByteSlices(t *testing.T, serial ...perunio.ByteSlice) {
 		d := make([]byte, len(v))
 		dest := perunio.ByteSlice(d)
 
-		a.NoError(dest.Decode(r), "failed to decode element")
+		require.NoError(t, dest.Decode(r), "failed to decode element")
 
 		if !reflect.DeepEqual(v, dest) {
 			t.Errorf("encoding and decoding the %dth element (%T) resulted in different value: %v, %v", i, v, reflect.ValueOf(v).Elem(), dest)

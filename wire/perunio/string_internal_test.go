@@ -33,7 +33,7 @@ func TestEncodeDecodeString(t *testing.T) {
 	rng.Read(uint8buf)
 	rng.Read(uint16buf)
 
-	t.Run("valid strings", func(t *testing.T) {
+	t.Run("valid strings", func(_ *testing.T) {
 		ss := []string{"", "a", "perun", string(uint8buf), string(uint16buf)}
 
 		for _, s := range ss {
@@ -42,21 +42,21 @@ func TestEncodeDecodeString(t *testing.T) {
 			go func() {
 				defer close(done)
 				defer w.Close()
-				assert.NoError(encodeString(w, s))
+				require.NoError(t, encodeString(w, s)) //nolint:testifylint
 			}()
 
 			var d string
-			assert.NoError(decodeString(r, &d))
+			require.NoError(t, decodeString(r, &d))
 			r.Close()
 			assert.Equal(s, d)
 			<-done
 		}
 	})
 
-	t.Run("too long string", func(t *testing.T) {
+	t.Run("too long string", func(_ *testing.T) {
 		tooLong := string(append(uint16buf, 42)) //nolint: makezero
 		var buf bytes.Buffer
-		assert.Error(encodeString(&buf, tooLong))
+		require.Error(t, encodeString(&buf, tooLong))
 		assert.Zero(buf.Len(), "nothing should have been written to the stream")
 	})
 
@@ -67,7 +67,7 @@ func TestEncodeDecodeString(t *testing.T) {
 		buf.Write(make([]byte, 8)) // 8 bytes missing
 
 		var d string
-		assert.Error(decodeString(&buf, &d))
+		require.Error(t, decodeString(&buf, &d))
 		assert.Zero(buf.Len(), "buffer should be exhausted")
 	})
 }

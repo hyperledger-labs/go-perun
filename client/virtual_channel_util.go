@@ -27,8 +27,8 @@ func (c *Channel) translateBalances(indexMap []channel.Index) channel.Balances {
 	return transformBalances(state.Balances, state.NumParts(), indexMap)
 }
 
-func transformBalances(b channel.Balances, numParts int, indexMap []channel.Index) (_b channel.Balances) {
-	_b = make(channel.Balances, len(b))
+func transformBalances(b channel.Balances, numParts int, indexMap []channel.Index) channel.Balances {
+	_b := make(channel.Balances, len(b))
 	for a := range _b {
 		_b[a] = make([]*big.Int, numParts)
 		// Init with zero.
@@ -40,7 +40,7 @@ func transformBalances(b channel.Balances, numParts int, indexMap []channel.Inde
 			_b[a][_p] = b[a][p]
 		}
 	}
-	return
+	return _b
 }
 
 func (c *Client) rejectProposal(responder *UpdateResponder, reason string) {
@@ -84,7 +84,8 @@ func newStateWatcher(c func(ctx context.Context, a, b interface{}) bool) *stateW
 func (w *stateWatcher) Await(
 	ctx context.Context,
 	state interface{},
-) (err error) {
+) error {
+	var err error
 	match := make(chan struct{}, 1)
 	w.register(ctx, state, match)
 	defer w.deregister(state)
@@ -93,7 +94,7 @@ func (w *stateWatcher) Await(
 	case <-ctx.Done():
 		err = ctx.Err()
 	}
-	return
+	return err
 }
 
 func (w *stateWatcher) register(

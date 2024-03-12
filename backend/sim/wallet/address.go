@@ -62,7 +62,8 @@ func (a *Address) Bytes() []byte {
 
 // byteArray converts an address into a 64-byte array. The returned array
 // consists of two 32-byte chunks representing the public key's X and Y values.
-func (a *Address) byteArray() (data [addrLen]byte) {
+func (a *Address) byteArray() [addrLen]byte {
+	var data [addrLen]byte
 	xb := a.X.Bytes()
 	yb := a.Y.Bytes()
 
@@ -89,12 +90,15 @@ func (a *Address) Equal(addr wallet.Address) bool {
 	return (a.X.Cmp(b.X) == 0) && (a.Y.Cmp(b.Y) == 0)
 }
 
-// Cmp checks the ordering of two addresses according to following definition:
-//   -1 if (a.X <  addr.X) || ((a.X == addr.X) && (a.Y < addr.Y))
-//    0 if (a.X == addr.X) && (a.Y == addr.Y)
-//   +1 if (a.X >  addr.X) || ((a.X == addr.X) && (a.Y > addr.Y))
+// Cmp checks the ordering of two addresses according to the following definition:
+//
+//	-1 if (a.X < addr.X) || ((a.X == addr.X) && (a.Y < addr.Y))
+//	 0 if (a.X == addr.X) && (a.Y == addr.Y)
+//	+1 if (a.X > addr.X) || ((a.X == addr.X) && (a.Y > addr.Y))
+//
 // So the X coordinate is weighted higher.
-// Pancis if the passed address is of the wrong type.
+//
+// It panics if the passed address is of the wrong type.
 func (a *Address) Cmp(addr wallet.Address) int {
 	b, ok := addr.(*Address)
 	if !ok {

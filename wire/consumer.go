@@ -24,5 +24,5 @@ type Consumer interface {
 	// closed.
 	sync.OnCloser
 	// Put is called by the emitter when relaying a message.
-	Put(*Envelope)
+	Put(env *Envelope)
 }

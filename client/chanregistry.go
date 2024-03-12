@@ -90,17 +90,18 @@ func (r *chanRegistry) Channel(id channel.ID) (*Channel, bool) {
 // Delete deletes a channel from the registry.
 // If the channel did not exist, does nothing. Returns whether the channel
 // existed.
-func (r *chanRegistry) Delete(id channel.ID) (deleted bool) {
+func (r *chanRegistry) Delete(id channel.ID) bool {
 	r.mutex.Lock()
 	defer r.mutex.Unlock()
-
+	var deleted bool
 	if _, deleted = r.values[id]; deleted {
 		delete(r.values, id)
 	}
-	return
+	return deleted
 }
 
-func (r *chanRegistry) CloseAll() (err error) {
+func (r *chanRegistry) CloseAll() error {
+	var err error
 	r.mutex.Lock()
 	values := r.values
 	r.values = make(map[channel.ID]*Channel)

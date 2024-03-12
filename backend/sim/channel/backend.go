@@ -33,7 +33,8 @@ type backend struct{}
 var _ channel.Backend = new(backend)
 
 // CalcID calculates a channel's ID by hashing all fields of its parameters.
-func (*backend) CalcID(p *channel.Params) (id channel.ID) {
+func (*backend) CalcID(p *channel.Params) channel.ID {
+	var id channel.ID
 	w := sha256.New()
 
 	// Write Parts
@@ -51,7 +52,7 @@ func (*backend) CalcID(p *channel.Params) (id channel.ID) {
 	if copy(id[:], w.Sum(nil)) != channel.IDLen {
 		log.Panic("Could not copy id")
 	}
-	return
+	return id
 }
 
 // Sign signs `state`.

@@ -19,21 +19,25 @@ import (
 	"perun.network/go-perun/client"
 )
 
-func toChannelSyncMsg(protoEnvMsg *Envelope_ChannelSyncMsg) (msg *client.ChannelSyncMsg, err error) {
+//nolint:forbidigo
+func toChannelSyncMsg(protoEnvMsg *Envelope_ChannelSyncMsg) (*client.ChannelSyncMsg, error) {
 	protoMsg := protoEnvMsg.ChannelSyncMsg
 
-	msg = &client.ChannelSyncMsg{}
-	msg.Phase = channel.Phase(protoMsg.Phase)
-	msg.CurrentTX.Sigs = make([][]byte, len(protoMsg.CurrentTx.Sigs))
-	for i := range protoMsg.CurrentTx.Sigs {
-		msg.CurrentTX.Sigs[i] = make([]byte, len(protoMsg.CurrentTx.Sigs[i]))
-		copy(msg.CurrentTX.Sigs[i], protoMsg.CurrentTx.Sigs[i])
+	var err error
+	msg := &client.ChannelSyncMsg{}
+	msg.Phase = channel.Phase(protoMsg.GetPhase())
+	msg.CurrentTX.Sigs = make([][]byte, len(protoMsg.GetCurrentTx().GetSigs()))
+	for i := range protoMsg.GetCurrentTx().GetSigs() {
+		msg.CurrentTX.Sigs[i] = make([]byte, len(protoMsg.GetCurrentTx().GetSigs()[i]))
+		copy(msg.CurrentTX.Sigs[i], protoMsg.GetCurrentTx().GetSigs()[i])
 	}
-	msg.CurrentTX.State, err = ToState(protoMsg.CurrentTx.State)
+	msg.CurrentTX.State, err = ToState(protoMsg.GetCurrentTx().GetState())
 	return msg, err
 }
 
-func fromChannelSyncMsg(msg *client.ChannelSyncMsg) (_ *Envelope_ChannelSyncMsg, err error) {
+//nolint:protogetter
+func fromChannelSyncMsg(msg *client.ChannelSyncMsg) (*Envelope_ChannelSyncMsg, error) {
+	var err error
 	protoMsg := &ChannelSyncMsg{}
 	protoMsg.CurrentTx = &Transaction{}
 

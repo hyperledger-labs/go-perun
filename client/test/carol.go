@@ -49,7 +49,7 @@ func (r *Carol) Execute(cfg ExecConfig) {
 	r.Responder.Execute(cfg, r.exec)
 }
 
-func (r *Carol) exec(_cfg ExecConfig, ch *paymentChannel, propHandler *acceptNextPropHandler) {
+func (r *Carol) exec(_cfg ExecConfig, ch *paymentChannel, _ *acceptNextPropHandler) {
 	cfg := _cfg.(*MalloryCarolExecConfig)
 	_, them := r.Idxs(cfg.Peers())
 

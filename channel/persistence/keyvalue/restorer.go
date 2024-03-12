@@ -41,7 +41,7 @@ type ChannelIterator struct {
 }
 
 // ActivePeers returns a list of all peers with which a channel is persisted.
-func (pr *PersistRestorer) ActivePeers(ctx context.Context) ([]wire.Address, error) {
+func (pr *PersistRestorer) ActivePeers(_ context.Context) ([]wire.Address, error) {
 	it := sortedkv.NewTable(pr.db, prefix.PeerDB).NewIterator()
 
 	peermap := make(map[wire.AddrKey]wire.Address)
@@ -63,13 +63,15 @@ func (pr *PersistRestorer) ActivePeers(ctx context.Context) ([]wire.Address, err
 
 // channelPeers returns a slice of peer addresses for a given channel id from
 // the db of PersistRestorer.
+//
+//nolint:forbidigo
 func (pr *PersistRestorer) channelPeers(id channel.ID) ([]wire.Address, error) {
 	var ps wire.AddressesWithLen
 	peers, err := pr.channelDB(id).Get(prefix.Peers)
 	if err != nil {
 		return nil, errors.WithMessage(err, "unable to get peerlist from db")
 	}
-	return []wire.Address(ps), errors.WithMessage(perunio.Decode(bytes.NewBuffer([]byte(peers)), &ps),
+	return []wire.Address(ps), errors.WithMessage(perunio.Decode(bytes.NewReader([]byte(peers)), &ps),
 		"decoding peerlist")
 }
 

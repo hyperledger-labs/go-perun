@@ -29,13 +29,13 @@ type (
 	Encoder interface {
 		// Encode writes itself to a stream.
 		// If the stream fails, the underlying error is returned.
-		Encode(io.Writer) error
+		Encode(writer io.Writer) error
 	}
 
 	// A Decoder can decode itself from a stream.
 	Decoder interface {
 		// Decode reads an object from a stream.
 		// If the stream fails, the underlying error is returned.
-		Decode(io.Reader) error
+		Decode(reader io.Reader) error
 	}
 )

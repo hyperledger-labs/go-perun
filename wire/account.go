@@ -64,12 +64,12 @@ func (m *AuthResponseMsg) Encode(w io.Writer) error {
 }
 
 // Decode decodes an AuthResponseMsg from an io.Reader.
-// It reads the signature from the reader.
-func (m *AuthResponseMsg) Decode(r io.Reader) (err error) {
+func (m *AuthResponseMsg) Decode(r io.Reader) error {
 	// Read the length of the signature
 	var signatureLen uint32
 	if err := binary.Read(r, binary.BigEndian, &signatureLen); err != nil {
 		return fmt.Errorf("failed to read signature length: %w", err)
+
 	}
 	// Read the signature bytes
 	m.Signature = make([]byte, signatureLen)

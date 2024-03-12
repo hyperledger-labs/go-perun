@@ -64,7 +64,7 @@ func TestAllocationNumParts(t *testing.T) {
 	}
 }
 
-func randomBalancesWithMismatchingNumAssets(rng *rand.Rand, rngBase int) (b1, b2 channel.Balances) {
+func randomBalancesWithMismatchingNumAssets(rng *rand.Rand, rngBase int) (channel.Balances, channel.Balances) {
 	numParts := 2 + rng.Intn(rngBase)
 
 	randomNumAssets := func() int {
@@ -76,13 +76,13 @@ func randomBalancesWithMismatchingNumAssets(rng *rand.Rand, rngBase int) (b1, b2
 		numAssets2 = randomNumAssets()
 	}
 
-	b1 = test.NewRandomBalances(rng, test.WithNumAssets(numAssets1), test.WithNumParts(numParts))
-	b2 = test.NewRandomBalances(rng, test.WithNumAssets(numAssets2), test.WithNumParts(numParts))
+	b1 := test.NewRandomBalances(rng, test.WithNumAssets(numAssets1), test.WithNumParts(numParts))
+	b2 := test.NewRandomBalances(rng, test.WithNumAssets(numAssets2), test.WithNumParts(numParts))
 
-	return
+	return b1, b2
 }
 
-func randomBalancesWithMismatchingNumParts(rng *rand.Rand, rngBase int) (b1, b2 channel.Balances) {
+func randomBalancesWithMismatchingNumParts(rng *rand.Rand, rngBase int) (channel.Balances, channel.Balances) {
 	numAssets := 1 + rng.Intn(rngBase)
 
 	randomNumParts := func() int {
@@ -94,10 +94,10 @@ func randomBalancesWithMismatchingNumParts(rng *rand.Rand, rngBase int) (b1, b2 
 		numParts2 = randomNumParts()
 	}
 
-	b1 = test.NewRandomBalances(rng, test.WithNumAssets(numAssets), test.WithNumParts(numParts1))
-	b2 = test.NewRandomBalances(rng, test.WithNumAssets(numAssets), test.WithNumParts(numParts2))
+	b1 := test.NewRandomBalances(rng, test.WithNumAssets(numAssets), test.WithNumParts(numParts1))
+	b2 := test.NewRandomBalances(rng, test.WithNumAssets(numAssets), test.WithNumParts(numParts2))
 
-	return
+	return b1, b2
 }
 
 func TestBalancesEqualAndAssertEqual(t *testing.T) {
@@ -105,19 +105,19 @@ func TestBalancesEqualAndAssertEqual(t *testing.T) {
 	rng := pkgtest.Prng(t)
 	const rngBase = 10
 
-	t.Run("fails with mismatching number of assets", func(t *testing.T) {
+	t.Run("fails with mismatching number of assets", func(_ *testing.T) {
 		b1, b2 := randomBalancesWithMismatchingNumAssets(rng, rngBase)
 		assert.False(b1.Equal(b2))
-		assert.Error(b1.AssertEqual(b2))
+		require.Error(t, b1.AssertEqual(b2))
 	})
 
-	t.Run("fails with mismatching number of parts", func(t *testing.T) {
+	t.Run("fails with mismatching number of parts", func(_ *testing.T) {
 		b1, b2 := randomBalancesWithMismatchingNumParts(rng, rngBase)
 		assert.False(b1.Equal(b2))
-		assert.Error(b1.AssertEqual(b2))
+		require.Error(t, b1.AssertEqual(b2))
 	})
 
-	t.Run("compares correctly", func(t *testing.T) {
+	t.Run("compares correctly", func(_ *testing.T) {
 		numAssets := 1 + rng.Intn(rngBase)
 		numParts := 2 + rng.Intn(rngBase)
 
@@ -125,37 +125,36 @@ func TestBalancesEqualAndAssertEqual(t *testing.T) {
 		b2 := test.NewRandomBalances(rng, test.WithNumAssets(numAssets), test.WithNumParts(numParts), test.WithBalancesInRange(big.NewInt(rngBase), big.NewInt(2*rngBase)))
 
 		assert.False(b1.Equal(b2))
-		assert.Error(b1.AssertEqual(b2))
+		require.Error(t, b1.AssertEqual(b2))
 
 		assert.True(b1.Equal(b1)) //nolint:gocritic
-		assert.NoError(b1.AssertEqual(b1))
+		require.NoError(t, b1.AssertEqual(b1))
 	})
 }
 
 func TestBalancesGreaterOrEqual(t *testing.T) {
-	assert := assert.New(t)
 	rng := pkgtest.Prng(t)
 	const rngBase = 10
 
-	t.Run("fails with mismatching number of assets", func(t *testing.T) {
+	t.Run("fails with mismatching number of assets", func(_ *testing.T) {
 		b1, b2 := randomBalancesWithMismatchingNumAssets(rng, rngBase)
-		assert.Error(b1.AssertGreaterOrEqual(b2))
+		require.Error(t, b1.AssertGreaterOrEqual(b2))
 	})
 
-	t.Run("fails with mismatching number of parts", func(t *testing.T) {
+	t.Run("fails with mismatching number of parts", func(_ *testing.T) {
 		b1, b2 := randomBalancesWithMismatchingNumParts(rng, rngBase)
-		assert.Error(b1.AssertGreaterOrEqual(b2))
+		require.Error(t, b1.AssertGreaterOrEqual(b2))
 	})
 
-	t.Run("compares correctly", func(t *testing.T) {
+	t.Run("compares correctly", func(_ *testing.T) {
 		numAssets := 1 + rng.Intn(rngBase)
 		numParts := 2 + rng.Intn(rngBase)
 
 		b1 := test.NewRandomBalances(rng, test.WithNumAssets(numAssets), test.WithNumParts(numParts), test.WithBalancesInRange(big.NewInt(0), big.NewInt(rngBase)))
 		b2 := test.NewRandomBalances(rng, test.WithNumAssets(numAssets), test.WithNumParts(numParts), test.WithBalancesInRange(big.NewInt(rngBase), big.NewInt(2*rngBase)))
 
-		assert.Error(b1.AssertGreaterOrEqual(b2))
-		assert.NoError(b2.AssertGreaterOrEqual(b1))
+		require.Error(t, b1.AssertGreaterOrEqual(b2))
+		require.NoError(t, b2.AssertGreaterOrEqual(b1))
 	})
 }
 
@@ -200,17 +199,17 @@ func testBalancesOperation(t *testing.T, op func(channel.Balances, channel.Balan
 	rng := pkgtest.Prng(t)
 	const rngBase = 10
 
-	t.Run("fails with mismatching number of assets", func(t *testing.T) {
+	t.Run("fails with mismatching number of assets", func(_ *testing.T) {
 		b1, b2 := randomBalancesWithMismatchingNumAssets(rng, rngBase)
 		assert.Panics(func() { op(b1, b2) })
 	})
 
-	t.Run("fails with mismatching number of parts", func(t *testing.T) {
+	t.Run("fails with mismatching number of parts", func(_ *testing.T) {
 		b1, b2 := randomBalancesWithMismatchingNumParts(rng, rngBase)
 		assert.Panics(func() { op(b1, b2) })
 	})
 
-	t.Run("calculates correctly", func(t *testing.T) {
+	t.Run("calculates correctly", func(_ *testing.T) {
 		numAssets := 1 + rng.Intn(rngBase)
 		numParts := 2 + rng.Intn(rngBase)
 
@@ -301,7 +300,7 @@ func TestAllocationValidLimits(t *testing.T) {
 			}
 		}
 
-		assert.Errorf(t, allocation.Valid(), "[%d] expected error for parameters %v", ti, x)
+		require.Errorf(t, allocation.Valid(), "[%d] expected error for parameters %v", ti, x)
 	}
 }
 
@@ -576,10 +575,10 @@ func TestRemoveSubAlloc(t *testing.T) {
 
 	require.NoError(t, alloc.RemoveSubAlloc(subAlloc), "removing contained element should not fail")
 
-	assert.Equal(lenBefore-1, len(alloc.Locked), "length should decrease by 1")
+	assert.Len(alloc.Locked, lenBefore-1, "length should decrease by 1")
 
 	_, ok := alloc.SubAlloc(subAlloc.ID)
 	assert.False(ok, "element should not be found after removal") // this could potentially fail because duplicates are currently not removed
 
-	assert.Error(alloc.RemoveSubAlloc(subAlloc), "removing not-contained element should fail")
+	require.Error(t, alloc.RemoveSubAlloc(subAlloc), "removing not-contained element should fail")
 }

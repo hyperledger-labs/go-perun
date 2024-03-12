@@ -42,9 +42,9 @@ func testLogrusInfo(t *testing.T) {
 	logger, hook := test.NewNullLogger()
 	FromLogrus(logger).Println("Anton Ausdemhaus")
 
-	assert.Equal(t, len(hook.Entries), 1)
-	assert.Equal(t, hook.LastEntry().Level, logrus.InfoLevel)
-	assert.Equal(t, hook.LastEntry().Message, "Anton Ausdemhaus")
+	assert.Len(t, hook.Entries, 1)
+	assert.Equal(t, logrus.InfoLevel, hook.LastEntry().Level)
+	assert.Equal(t, "Anton Ausdemhaus", hook.LastEntry().Message)
 }
 
 func testLogrusStringer(t *testing.T) {
@@ -80,11 +80,11 @@ func testLogrusWithField(t *testing.T) {
 	logger.SetLevel(logrus.DebugLevel)
 	FromLogrus(logger).WithField("field", 123456).Debugln("Bertha Bremsweg")
 
-	assert.Equal(t, len(hook.Entries), 1)
-	assert.Equal(t, hook.LastEntry().Level, logrus.DebugLevel)
-	assert.Equal(t, hook.LastEntry().Message, "Bertha Bremsweg")
+	assert.Len(t, hook.Entries, 1)
+	assert.Equal(t, logrus.DebugLevel, hook.LastEntry().Level)
+	assert.Equal(t, "Bertha Bremsweg", hook.LastEntry().Message)
 	assert.Contains(t, hook.LastEntry().Data, "field")
-	assert.Equal(t, hook.LastEntry().Data["field"], 123456)
+	assert.Equal(t, 123456, hook.LastEntry().Data["field"])
 }
 
 func testLogrusWithFields(t *testing.T) {
@@ -97,8 +97,8 @@ func testLogrusWithFields(t *testing.T) {
 	}
 	FromLogrus(logger).WithFields(fields).Errorln("Christian Chaos")
 
-	assert.Equal(t, len(hook.Entries), 1)
-	assert.Equal(t, hook.LastEntry().Level, logrus.ErrorLevel)
-	assert.Equal(t, hook.LastEntry().Message, "Christian Chaos")
+	assert.Len(t, hook.Entries, 1)
+	assert.Equal(t, logrus.ErrorLevel, hook.LastEntry().Level)
+	assert.Equal(t, "Christian Chaos", hook.LastEntry().Message)
 	assert.EqualValues(t, hook.LastEntry().Data, fields)
 }

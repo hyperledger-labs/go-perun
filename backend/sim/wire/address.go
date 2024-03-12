@@ -34,7 +34,7 @@ func NewAddress() *Address {
 }
 
 // MarshalBinary marshals the address to binary.
-func (a Address) MarshalBinary() (data []byte, err error) {
+func (a Address) MarshalBinary() ([]byte, error) {
 	return a[:], nil
 }
 
@@ -64,7 +64,7 @@ func (a Address) Cmp(b wire.Address) int {
 }
 
 // Verify verifies a signature.
-func (a Address) Verify(msg, sig []byte) error {
+func (a Address) Verify(_, sig []byte) error {
 	if !bytes.Equal(sig, []byte("Authenticate")) {
 		return errors.New("invalid signature")
 	}

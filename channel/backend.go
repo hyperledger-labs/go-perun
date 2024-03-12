@@ -30,11 +30,11 @@ type Backend interface {
 	// In order to guarantee non-malleability of States, any parameters omitted
 	// from the CalcID digest need to be signed together with the State in
 	// Sign().
-	CalcID(*Params) ID
+	CalcID(params *Params) ID
 
 	// Sign signs a channel's State with the given Account.
 	// Returns the signature or an error.
-	Sign(wallet.Account, *State) (wallet.Sig, error)
+	Sign(acc wallet.Account, state *State) (wallet.Sig, error)
 
 	// Verify verifies that the provided signature on the state belongs to the
 	// provided address.

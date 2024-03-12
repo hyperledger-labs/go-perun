@@ -113,7 +113,7 @@ func (a MockApp) NewData() Data {
 }
 
 // ValidTransition checks the transition for validity.
-func (a MockApp) ValidTransition(params *Params, from, to *State, actor Index) error {
+func (a MockApp) ValidTransition(_ *Params, from, _ *State, _ Index) error {
 	op, ok := from.Data.(*MockOp)
 	if !ok {
 		return fmt.Errorf("wrong data type: expected *MockOp, got %T", from.Data)
@@ -122,7 +122,7 @@ func (a MockApp) ValidTransition(params *Params, from, to *State, actor Index) e
 }
 
 // ValidInit checks the initial state for validity.
-func (a MockApp) ValidInit(params *Params, state *State) error {
+func (a MockApp) ValidInit(_ *Params, state *State) error {
 	op, ok := state.Data.(*MockOp)
 	if !ok {
 		return fmt.Errorf("wrong data type: expected *MockOp, got %T", state.Data)
@@ -131,7 +131,7 @@ func (a MockApp) ValidInit(params *Params, state *State) error {
 }
 
 // ValidAction checks the action for validity.
-func (a MockApp) ValidAction(params *Params, state *State, part Index, act Action) error {
+func (a MockApp) ValidAction(_ *Params, _ *State, _ Index, act Action) error {
 	op, ok := act.(*MockOp)
 	if !ok {
 		return fmt.Errorf("wrong data type: expected *MockOp, got %T", act)
@@ -140,7 +140,7 @@ func (a MockApp) ValidAction(params *Params, state *State, part Index, act Actio
 }
 
 // ApplyActions applies the actions unto a copy of state and returns the result or an error.
-func (a MockApp) ApplyActions(params *Params, state *State, acts []Action) (*State, error) {
+func (a MockApp) ApplyActions(_ *Params, state *State, acts []Action) (*State, error) {
 	ret := state.Clone()
 	ret.Version++
 
@@ -153,7 +153,7 @@ func (a MockApp) ApplyActions(params *Params, state *State, acts []Action) (*Sta
 }
 
 // InitState Checks for the validity of the passed arguments as initial state.
-func (a MockApp) InitState(params *Params, rawActs []Action) (Allocation, Data, error) {
+func (a MockApp) InitState(_ *Params, rawActs []Action) (Allocation, Data, error) {
 	op, ok := rawActs[0].(*MockOp)
 	if !ok {
 		return Allocation{}, nil, fmt.Errorf("wrong data type: expected *MockOp, got %T", rawActs[0])

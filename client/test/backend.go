@@ -228,8 +228,8 @@ func (b *MockBackend) Progress(_ context.Context, req channel.ProgressReq) error
 }
 
 // outcomeRecursive returns the accumulated outcome of the channel and its sub-channels.
-func outcomeRecursive(state *channel.State, subStates channel.StateMap) (outcome channel.Balances) {
-	outcome = state.Balances.Clone()
+func outcomeRecursive(state *channel.State, subStates channel.StateMap) channel.Balances {
+	outcome := state.Balances.Clone()
 	for _, subAlloc := range state.Locked {
 		subOutcome := outcomeRecursive(subStates[subAlloc.ID], subStates)
 		for a, bals := range subOutcome {
@@ -242,7 +242,7 @@ func outcomeRecursive(state *channel.State, subStates channel.StateMap) (outcome
 			}
 		}
 	}
-	return
+	return outcome
 }
 
 type checkStateFunc func(e channel.AdjudicatorEvent, ok bool, s *channel.State) error
@@ -566,7 +566,7 @@ type MockSubscription struct {
 }
 
 // NewMockSubscription creates a new MockSubscription.
-func NewMockSubscription(ctx context.Context) *MockSubscription {
+func NewMockSubscription(_ context.Context) *MockSubscription {
 	return &MockSubscription{
 		events: make(chan channel.AdjudicatorEvent, 1),
 		err:    make(chan error, 1),

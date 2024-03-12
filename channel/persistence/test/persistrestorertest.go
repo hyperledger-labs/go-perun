@@ -76,6 +76,8 @@ func (c *Client) NewChannel(t require.TestingT, p wire.Address, parent *Channel)
 // fresh and not contain any previous channels. The parameter numChans controls
 // the channels created per wire. numPeers is the number of separate peers to
 // generate.
+//
+//nolint:testifylint
 func GenericPersistRestorerTest(
 	ctx context.Context,
 	t *testing.T,

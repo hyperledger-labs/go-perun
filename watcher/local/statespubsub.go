@@ -47,17 +47,17 @@ func newStatesPubSub() *statesPubSub {
 }
 
 // Publish publishes the given transaction (state and signatures on it) to the
-// subscriber.
+// subscriber. It always returns nil. The error result is for implementing
+// watcher.StatesPub.
 //
-// Always returns nil. Error result is for implementing watcher.StatesPub.
-//
-// Panics if the pub-sub instance is already closed. It is implemented this
-// way, because
-// 1. Watcher requires that, the Publish method must not be called after stop
-//    watching for a channel. See docs of watcher.StatesPub for more details.
-// 2. Hence, by properly integrating the watcher into the client, it can be
-//    guaranteed that, this method will never be called after the pub-sub
-//    instance is closed and that, this method will never panic.
+// This function panics if the pub-sub instance is already closed. This design
+// choice is made because:
+//  1. The Watcher requires that the Publish method must not be called after
+//     stop watching for a channel. See the documentation of watcher.StatesPub
+//     for more details.
+//  2. By properly integrating the watcher into the client, it can be guaranteed
+//     that this method will never be called after the pub-sub instance is
+//     closed and that this method will never panic.
 func (s *statesPubSub) Publish(_ context.Context, tx channel.Transaction) error {
 	s.pipe <- tx
 	return nil

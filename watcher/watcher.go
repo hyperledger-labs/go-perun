@@ -39,10 +39,10 @@ type (
 	// AdjudicatorSub and StatesSub. The client must not publish states after
 	// this.
 	Watcher interface {
-		StartWatchingLedgerChannel(context.Context, channel.SignedState) (StatesPub, AdjudicatorSub, error)
+		StartWatchingLedgerChannel(ctx context.Context, signedState channel.SignedState) (StatesPub, AdjudicatorSub, error)
 		StartWatchingSubChannel(_ context.Context, parent channel.ID, _ channel.SignedState) (
 			StatesPub, AdjudicatorSub, error)
-		StopWatching(context.Context, channel.ID) error
+		StopWatching(ctx context.Context, id channel.ID) error
 	}
 
 	// StatesPub is the interface used to send newer off-chain states from the
@@ -58,7 +58,7 @@ type (
 	// stop watching or when there is an error. After the client requests the
 	// watcher to stop watching, method `Publish` must not be called anymore.
 	StatesPub interface {
-		Publish(context.Context, channel.Transaction) error
+		Publish(ctx context.Context, tx channel.Transaction) error
 	}
 
 	// AdjudicatorSub is the interface used to relay the adjudicator events

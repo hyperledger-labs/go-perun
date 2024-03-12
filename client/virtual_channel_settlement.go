@@ -79,7 +79,7 @@ func (c *Client) handleVirtualChannelSettlementProposal(
 ) {
 	err := c.validateVirtualChannelSettlementProposal(parent, prop)
 	if err != nil {
-		c.rejectProposal(responder, err.Error()) //nolint:contextcheck
+		c.rejectProposal(responder, err.Error())
 	}
 
 	ctx, cancel := context.WithTimeout(c.Ctx(), virtualSettlementTimeout)
@@ -90,7 +90,7 @@ func (c *Client) handleVirtualChannelSettlementProposal(
 		resp: responder,
 	})
 	if err != nil {
-		c.rejectProposal(responder, err.Error()) //nolint:contextcheck
+		c.rejectProposal(responder, err.Error())
 	}
 }
 

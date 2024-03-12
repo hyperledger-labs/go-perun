@@ -31,6 +31,8 @@ const addr = "0.0.0.0:1337"
 // serverKey and serverCert are generated with the following commands:
 // openssl ecparam -genkey -name prime256v1 -out server.key
 // openssl req -new -x509 -key server.key -out server.pem -days 3650.
+//
+//nolint:gosec
 const testServerKey = `-----BEGIN EC PARAMETERS-----
 BggqhkjOPQMBBw==
 -----END EC PARAMETERS-----
@@ -38,7 +40,7 @@ BggqhkjOPQMBBw==
 MHcCAQEEIHg+g2unjA5BkDtXSN9ShN7kbPlbCcqcYdDu+QeV8XWuoAoGCCqGSM49
 AwEHoUQDQgAEcZpodWh3SEs5Hh3rrEiu1LZOYSaNIWO34MgRxvqwz1FMpLxNlx0G
 cSqrxhPubawptX5MSr02ft32kfOlYbaF5Q==
------END EC PRIVATE KEY-----
+-----END EC PRIVATE KEY----- 
 `
 
 const testServerCert = `-----BEGIN CERTIFICATE-----
@@ -90,8 +92,8 @@ func TestListener_Close(t *testing.T) {
 	t.Run("double close", func(t *testing.T) {
 		l, err := NewTCPListener(addr, tlsConfig)
 		require.NoError(t, err)
-		assert.NoError(t, l.Close(), "first close must not return error")
-		assert.Error(t, l.Close(), "second close must result in error")
+		require.NoError(t, l.Close(), "first close must not return error")
+		require.Error(t, l.Close(), "second close must result in error")
 	})
 }
 
@@ -104,14 +106,14 @@ func TestNewListener(t *testing.T) {
 	}
 	t.Run("happy", func(t *testing.T) {
 		l, err := NewTCPListener(addr, tlsConfig)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		require.NotNil(t, l)
 		l.Close()
 	})
 
 	t.Run("sad", func(t *testing.T) {
 		l, err := NewTCPListener("not an address", tlsConfig)
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, l)
 	})
 
@@ -152,7 +154,7 @@ func TestListener_Accept(t *testing.T) {
 		test.AssertTerminates(t, timeout, func() {
 			conn, err := l.Accept(ser)
 			assert.Nil(t, conn)
-			assert.Error(t, err)
+			require.Error(t, err)
 		})
 	})
 }

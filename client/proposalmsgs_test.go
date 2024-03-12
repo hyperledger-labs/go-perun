@@ -44,12 +44,12 @@ func TestNewLedgerChannelProposal(t *testing.T) {
 	// FundingAgreements number of assets do not match InitBals.
 	agreement := test.NewRandomBalances(rng, test.WithNumAssets(len(base.InitBals.Assets)+1))
 	_, err = client.NewLedgerChannelProposal(base.ChallengeDuration, base.Participant, base.InitBals, base.Peers, client.WithFundingAgreement(agreement))
-	assert.EqualError(t, err, "comparing FundingAgreement and initial balances sum: dimension mismatch")
+	require.EqualError(t, err, "comparing FundingAgreement and initial balances sum: dimension mismatch")
 
 	// FundingAgreements sum do not match InitBals sum.
 	agreement = test.NewRandomBalances(rng, test.WithNumAssets(len(base.InitBals.Assets)))
 	_, err = client.NewLedgerChannelProposal(base.ChallengeDuration, base.Participant, base.InitBals, base.Peers, client.WithFundingAgreement(agreement))
-	assert.EqualError(t, err, "FundingAgreement and initial balances differ")
+	require.EqualError(t, err, "FundingAgreement and initial balances differ")
 }
 
 func TestLedgerChannelProposalReqProposalID(t *testing.T) {

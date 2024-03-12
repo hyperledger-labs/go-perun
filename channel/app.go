@@ -28,7 +28,7 @@ type (
 	AppID interface {
 		encoding.BinaryMarshaler
 		encoding.BinaryUnmarshaler
-		Equal(AppID) bool
+		Equal(appID AppID) bool
 
 		// Key returns the object key which can be used as a map key.
 		Key() AppIDKey
@@ -72,7 +72,7 @@ type (
 		// ValidInit should perform app-specific checks for a valid initial state.
 		// The framework guarantees to only pass initial states with version == 0,
 		// correct channel ID and valid initial allocation.
-		ValidInit(*Params, *State) error
+		ValidInit(params *Params, state *State) error
 	}
 
 	// An ActionApp is advanced by first collecting actions from the participants
@@ -87,7 +87,7 @@ type (
 		// of the action. It should return a normal error (with attached stacktrace
 		// from pkg/errors) if there was any other runtime error, not related to the
 		// invalidity of the action itself.
-		ValidAction(*Params, *State, Index, Action) error
+		ValidAction(params *Params, state *State, idx Index, action Action) error
 
 		// ApplyAction applies the given actions to the provided channel state and
 		// returns the resulting new state.
@@ -96,13 +96,13 @@ type (
 		// of the action. It should return a normal error (with attached stacktrace
 		// from pkg/errors) if there was any other runtime error, not related to the
 		// invalidity of the action itself.
-		ApplyActions(*Params, *State, []Action) (*State, error)
+		ApplyActions(params *Params, state *State, actions []Action) (*State, error)
 
 		// InitState creates the initial state from the given actions. The actual
 		// State will be created by the machine and only the initial allocation of
 		// funds and app data can be set, as the channel id is specified by the
 		// parameters and version must be 0.
-		InitState(*Params, []Action) (Allocation, Data, error)
+		InitState(Params *Params, actions []Action) (Allocation, Data, error)
 
 		// NewAction returns an instance of action specific to this
 		// application. This has to be defined on an application-level because
@@ -130,7 +130,7 @@ type (
 		// multiple apps are in use, which is why creation happens over a central
 		// Resolve function. This function is intended to resolve app definitions
 		// coming in on the wire.
-		Resolve(AppID) (App, error)
+		Resolve(appID AppID) (App, error)
 	}
 )
 
@@ -165,7 +165,8 @@ type OptAppDec struct {
 }
 
 // Decode decodes an optional App value.
-func (d OptAppDec) Decode(r io.Reader) (err error) {
+func (d OptAppDec) Decode(r io.Reader) error {
+	var err error
 	var hasApp bool
 	if err = perunio.Decode(r, &hasApp); err != nil {
 		return err
@@ -201,8 +202,8 @@ type OptAppAndDataDec struct {
 }
 
 // Decode decodes an optional pair of App definition and Data.
-func (o OptAppAndDataDec) Decode(r io.Reader) (err error) {
-	if err = perunio.Decode(r, OptAppDec{App: o.App}); err != nil {
+func (o OptAppAndDataDec) Decode(r io.Reader) error {
+	if err := perunio.Decode(r, OptAppDec{App: o.App}); err != nil {
 		return err
 	}
 

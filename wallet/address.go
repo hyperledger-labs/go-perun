@@ -41,7 +41,7 @@ type Address interface {
 	fmt.Stringer
 	// Equal returns wether the two addresses are equal. The implementation
 	// must be equivalent to checking `Address.Cmp(Address) == 0`.
-	Equal(Address) bool
+	Equal(addr Address) bool
 }
 
 // IndexOfAddr returns the index of the given address in the address slice,
@@ -125,10 +125,10 @@ func (a AddressesWithLen) Encode(w stdio.Writer) error {
 
 // Decode decodes a wallet address slice of known length. The slice has to be
 // allocated to the correct size already.
-func (a Addresses) Decode(r stdio.Reader) (err error) {
+func (a Addresses) Decode(r stdio.Reader) error {
 	for i := range a {
 		a[i] = NewAddress()
-		err = perunio.Decode(r, a[i])
+		err := perunio.Decode(r, a[i])
 		if err != nil {
 			return errors.WithMessagef(err, "decoding %d-th address", i)
 		}
@@ -137,9 +137,9 @@ func (a Addresses) Decode(r stdio.Reader) (err error) {
 }
 
 // Decode decodes a wallet address slice of unknown length.
-func (a *AddressesWithLen) Decode(r stdio.Reader) (err error) {
+func (a *AddressesWithLen) Decode(r stdio.Reader) error {
 	var parts addressSliceLen
-	if err = perunio.Decode(r, &parts); err != nil {
+	if err := perunio.Decode(r, &parts); err != nil {
 		return errors.WithMessage(err, "decoding count")
 	}
 
@@ -148,10 +148,9 @@ func (a *AddressesWithLen) Decode(r stdio.Reader) (err error) {
 }
 
 // Decode decodes a single wallet address.
-func (a AddressDec) Decode(r stdio.Reader) (err error) {
+func (a AddressDec) Decode(r stdio.Reader) error {
 	*a.Addr = NewAddress()
-	err = perunio.Decode(r, *a.Addr)
-	return err
+	return perunio.Decode(r, *a.Addr)
 }
 
 // Key returns the `AddrKey` corresponding to the passed `Address`.

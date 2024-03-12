@@ -19,6 +19,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	pkgtest "polycry.pt/poly-go/test"
 
 	"perun.network/go-perun/wire/test"
@@ -43,7 +44,7 @@ func TestAddressMarshalling(t *testing.T) {
 			Y: new(big.Int).SetBytes(dest[elemLen:]),
 		}
 		result, err := addr.MarshalBinary()
-		assert.NoError(t, err, "marshaling address should not error")
+		require.NoError(t, err, "marshaling address should not error")
 		assert.Equal(t, result, dest[:])
 	})
 
@@ -59,7 +60,7 @@ func TestAddressMarshalling(t *testing.T) {
 			Y: new(big.Int).SetBytes(dest[elemLen:]),
 		}
 		result, err := addr.MarshalBinary()
-		assert.NoError(t, err, "marshaling address should not error")
+		require.NoError(t, err, "marshaling address should not error")
 		assert.Equal(t, result, dest[:])
 	})
 }

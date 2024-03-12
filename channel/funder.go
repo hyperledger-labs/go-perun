@@ -34,7 +34,7 @@ type (
 		// funds from the partially funded channel. In this case, it should
 		// return a FundingTimeoutError containing the index of the peer who
 		// did not fund in time.
-		Fund(context.Context, FundingReq) error
+		Fund(ctx context.Context, fundReq FundingReq) error
 	}
 
 	// A FundingReq bundles all data needed to fund a channel.

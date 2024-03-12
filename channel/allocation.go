@@ -97,7 +97,7 @@ type (
 		// from binary format (a byte array).
 		encoding.BinaryUnmarshaler
 		// Equal returns true iff this asset is equal to the given asset.
-		Equal(Asset) bool
+		Equal(asset Asset) bool
 	}
 )
 
@@ -184,12 +184,11 @@ func (a *Allocation) NumParts() int {
 
 // Clone returns a deep copy of the Allocation object.
 // If it is nil, it returns nil.
-func (a Allocation) Clone() (clone Allocation) {
+func (a Allocation) Clone() Allocation {
+	var clone Allocation
 	if a.Assets != nil {
 		clone.Assets = make([]Asset, len(a.Assets))
-		for i, asset := range a.Assets {
-			clone.Assets[i] = asset
-		}
+		copy(clone.Assets, a.Assets)
 	}
 
 	clone.Balances = a.Balances.Clone()
@@ -445,14 +444,14 @@ func CloneBals(orig []Bal) []Bal {
 }
 
 // CloneIndexMap creates a deep copy of an index map.
-func CloneIndexMap(orig []Index) (clone []Index) {
+func CloneIndexMap(orig []Index) []Index {
 	if orig == nil {
 		return nil
 	}
 
-	clone = make([]Index, len(orig))
+	clone := make([]Index, len(orig))
 	copy(clone, orig)
-	return
+	return clone
 }
 
 // Valid checks that the asset-dimensions match and slices are not nil.
@@ -542,15 +541,18 @@ func NewSubAlloc(id ID, bals []Bal, indexMap []Index) *SubAlloc {
 
 // SubAlloc tries to return the sub-allocation for the given subchannel.
 // The second return value indicates success.
-func (a Allocation) SubAlloc(subchannel ID) (subAlloc SubAlloc, ok bool) {
+func (a Allocation) SubAlloc(subchannel ID) (SubAlloc, bool) {
+	var subAlloc SubAlloc
+	var ok bool
+
 	for _, subAlloc = range a.Locked {
 		if subAlloc.ID == subchannel {
 			ok = true
-			return
+			return subAlloc, ok
 		}
 	}
 	ok = false
-	return
+	return subAlloc, ok
 }
 
 // AddSubAlloc adds the given sub-allocation.

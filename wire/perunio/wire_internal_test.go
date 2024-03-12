@@ -23,6 +23,7 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	polytest "polycry.pt/poly-go/test"
 )
@@ -54,7 +55,6 @@ func TestWrongTypes(t *testing.T) {
 }
 
 func TestEncodeDecode(t *testing.T) {
-	a := assert.New(t)
 	r, w := io.Pipe()
 
 	longInt, _ := new(big.Int).SetString("12345671823897123798901234561234567890", 16)
@@ -85,7 +85,7 @@ func TestEncodeDecode(t *testing.T) {
 	}
 
 	go func() {
-		a.NoError(Encode(w, values...), "failed to encode values")
+		require.NoError(t, Encode(w, values...), "failed to encode values") //nolint:testifylint
 	}()
 
 	d := make([]interface{}, len(values))
@@ -103,7 +103,7 @@ func TestEncodeDecode(t *testing.T) {
 		}
 	}
 
-	a.Nil(Decode(r, d...), "failed to decode values")
+	require.NoError(t, Decode(r, d...), "failed to decode values")
 
 	for i, v := range values {
 		if !reflect.DeepEqual(reflect.ValueOf(d[i]).Elem().Interface(), v) {

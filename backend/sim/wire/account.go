@@ -31,7 +31,7 @@ func (acc *Account) Address() wire.Address {
 }
 
 // Sign signs the given message with the account's private key.
-func (acc *Account) Sign(msg []byte) ([]byte, error) {
+func (acc *Account) Sign(_ []byte) ([]byte, error) {
 	return []byte("Authenticate"), nil
 }
 

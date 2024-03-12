@@ -300,9 +300,9 @@ func (o RandomOpt) Balances() channel.Balances {
 	return o["balances"].([][]channel.Bal)
 }
 
-// BalancesRange returns the `BalancesRange` value of the `RandomOpt`.
+// BalancesRange returns the `BalancesRange` (min, max) value of the `RandomOpt`.
 // If not present, returns nil,nil.
-func (o RandomOpt) BalancesRange() (min, max channel.Bal) {
+func (o RandomOpt) BalancesRange() (channel.Bal, channel.Bal) {
 	if _, ok := o["balanceRange"]; !ok {
 		return nil, nil
 	}
@@ -321,7 +321,7 @@ func (o RandomOpt) ChallengeDuration(rng *rand.Rand) uint64 {
 
 // ID returns the `ID` value of the `RandomOpt`.
 // If not present, returns `false` as second argument.
-func (o RandomOpt) ID() (id channel.ID, valid bool) {
+func (o RandomOpt) ID() (channel.ID, bool) {
 	if _, ok := o["id"]; !ok {
 		return channel.ID{}, false
 	}
@@ -348,7 +348,7 @@ func (o RandomOpt) IsFinal(rng *rand.Rand) bool {
 
 // Locked returns the `Locked` value of the `RandomOpt`.
 // If not present, returns `false` as second argument.
-func (o RandomOpt) Locked() (locked []channel.SubAlloc, valid bool) {
+func (o RandomOpt) Locked() ([]channel.SubAlloc, bool) {
 	if _, ok := o["locked"]; !ok {
 		return nil, false
 	}
@@ -375,7 +375,7 @@ func (o RandomOpt) LockedID(rng *rand.Rand) channel.ID {
 
 // LockedIDs returns the `LockedIDs` value of the `RandomOpt`.
 // If not present, returns nil.
-func (o RandomOpt) LockedIDs(rng *rand.Rand) (ids []channel.ID) {
+func (o RandomOpt) LockedIDs(_ *rand.Rand) []channel.ID {
 	if _, ok := o["lockedIds"]; !ok {
 		return nil
 	}
@@ -434,7 +434,7 @@ func (o RandomOpt) NumAssets(rng *rand.Rand) int {
 
 // NumLocked returns the `NumLocked` value of the `RandomOpt`.
 // If not present, returns 0.
-func (o RandomOpt) NumLocked(rng *rand.Rand) int {
+func (o RandomOpt) NumLocked(_ *rand.Rand) int {
 	if _, ok := o["numLocked"]; !ok {
 		// We return 0 here because when no `WithLocked` or `WithNumLocked`
 		// are given, 0 is assumed.

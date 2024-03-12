@@ -37,7 +37,8 @@ func (e *serializableEnvelope) Encode(writer io.Writer) error {
 	return serializer.Encode(writer, e.env)
 }
 
-func (e *serializableEnvelope) Decode(reader io.Reader) (err error) {
+func (e *serializableEnvelope) Decode(reader io.Reader) error {
+	var err error
 	e.env, err = serializer.Decode(reader)
 	return err
 }

@@ -46,20 +46,20 @@ type (
 		// state. It may already contain one valid signature, either by a remote
 		// peer or us locally. Hence, this only needs to persist a channel's staged
 		// state, all its currently known signatures and the phase.
-		Staged(context.Context, channel.Source) error
+		Staged(ctx context.Context, source channel.Source) error
 
 		// SigAdded is called when a new signature is added to the current staging
 		// state. Only the signature for the given index needs to be persisted.
-		SigAdded(context.Context, channel.Source, channel.Index) error
+		SigAdded(ctx context.Context, source channel.Source, idx channel.Index) error
 
 		// Enabled is called when the current state is updated to the staging state.
 		// The old current state may be discarded. The current state and phase
 		// should be persisted.
-		Enabled(context.Context, channel.Source) error
+		Enabled(ctx context.Context, source channel.Source) error
 
 		// PhaseChanged is called when a phase change occurred that did not change
 		// the current or staging transaction. Only the phase needs to be persisted.
-		PhaseChanged(context.Context, channel.Source) error
+		PhaseChanged(ctx context.Context, source channel.Source) error
 
 		// Close is called by the client when it shuts down. No more persistence
 		// requests will be made after this call and the Persister should free up
@@ -72,14 +72,14 @@ type (
 	Restorer interface {
 		// ActivePeers should return a list of all peers with which any channel is
 		// persisted.
-		ActivePeers(context.Context) ([]wire.Address, error)
+		ActivePeers(ctx context.Context) ([]wire.Address, error)
 
 		// RestorePeer should return an iterator over all persisted channels which
 		// the given peer is a part of.
-		RestorePeer(wire.Address) (ChannelIterator, error)
+		RestorePeer(wireAddr wire.Address) (ChannelIterator, error)
 
 		// RestoreChannel should return the channel with the requested ID.
-		RestoreChannel(context.Context, channel.ID) (*Channel, error)
+		RestoreChannel(ctx context.Context, channelID channel.ID) (*Channel, error)
 	}
 
 	// PersistRestorer is a Persister and Restorer on the same data source and
@@ -95,7 +95,7 @@ type (
 	ChannelIterator interface {
 		// Next should restore the next persisted channel. If no channel was found,
 		// or the context times out, it should return false.
-		Next(context.Context) bool
+		Next(ctx context.Context) bool
 
 		// Channel should return the latest channel data that was restored via Next.
 		// It is guaranteed by the framework to only be called after Next returned

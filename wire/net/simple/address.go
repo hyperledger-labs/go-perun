@@ -161,6 +161,7 @@ func (a *Address) Equal(b wire.Address) bool {
 //	 1 if a's byte representation is greater than b's.
 //
 // It panics if the type assertion fails or if there's an error while marshaling.
+//nolint:mirror
 func (a *Address) Cmp(b wire.Address) int {
 	// Type assertion to ensure b is of type *Address
 	bTyped, ok := b.(*Address)

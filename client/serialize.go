@@ -30,23 +30,24 @@ type (
 )
 
 // Encode encodes the object to the writer.
-func (a channelIDsWithLen) Encode(w io.Writer) (err error) {
-	err = perunio.Encode(w, sliceLen(len(a)))
+func (a channelIDsWithLen) Encode(w io.Writer) error {
+	err := perunio.Encode(w, sliceLen(len(a)))
 	if err != nil {
-		return
+		return err
 	}
 
 	for _, id := range a {
 		err = perunio.Encode(w, id)
 		if err != nil {
-			return
+			return err
 		}
 	}
-	return
+	return err
 }
 
 // Decode decodes the object from the reader.
-func (a *channelIDsWithLen) Decode(r io.Reader) (err error) {
+func (a *channelIDsWithLen) Decode(r io.Reader) error {
+	var err error
 	var l sliceLen
 	if err = perunio.Decode(r, &l); err != nil {
 		return errors.WithMessage(err, "decoding length")
@@ -61,27 +62,28 @@ func (a *channelIDsWithLen) Decode(r io.Reader) (err error) {
 		}
 		(*a)[i] = id
 	}
-	return
+	return err
 }
 
 // Encode encodes the object to the writer.
-func (a indexMapsWithLen) Encode(w io.Writer) (err error) {
-	err = perunio.Encode(w, sliceLen(len(a)))
+func (a indexMapsWithLen) Encode(w io.Writer) error {
+	err := perunio.Encode(w, sliceLen(len(a)))
 	if err != nil {
-		return
+		return err
 	}
 
 	for _, m := range a {
 		err = perunio.Encode(w, indexMapWithLen(m))
 		if err != nil {
-			return
+			return err
 		}
 	}
-	return
+	return err
 }
 
 // Decode decodes the object from the reader.
-func (a *indexMapsWithLen) Decode(r io.Reader) (err error) {
+func (a *indexMapsWithLen) Decode(r io.Reader) error {
+	var err error
 	var l sliceLen
 	if err = perunio.Decode(r, &l); err != nil {
 		return errors.WithMessage(err, "decoding length")
@@ -90,30 +92,31 @@ func (a *indexMapsWithLen) Decode(r io.Reader) (err error) {
 	*a = make(indexMapsWithLen, l)
 	for i := range *a {
 		if err = perunio.Decode(r, (*indexMapWithLen)(&(*a)[i])); err != nil {
-			return
+			return err
 		}
 	}
-	return
+	return err
 }
 
 // Encode encodes the object to the writer.
-func (a indexMapWithLen) Encode(w io.Writer) (err error) {
-	err = perunio.Encode(w, sliceLen(len(a)))
+func (a indexMapWithLen) Encode(w io.Writer) error {
+	err := perunio.Encode(w, sliceLen(len(a)))
 	if err != nil {
-		return
+		return err
 	}
 
 	for _, b := range a {
 		err = perunio.Encode(w, b)
 		if err != nil {
-			return
+			return err
 		}
 	}
-	return
+	return err
 }
 
 // Decode decodes the object from the reader.
-func (a *indexMapWithLen) Decode(r io.Reader) (err error) {
+func (a *indexMapWithLen) Decode(r io.Reader) error {
+	var err error
 	var l sliceLen
 	if err = perunio.Decode(r, &l); err != nil {
 		return errors.WithMessage(err, "decoding length")
@@ -128,5 +131,5 @@ func (a *indexMapWithLen) Decode(r io.Reader) (err error) {
 		}
 		(*a)[i] = b
 	}
-	return
+	return err
 }

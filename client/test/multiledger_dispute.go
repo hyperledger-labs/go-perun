@@ -75,11 +75,11 @@ func TestMultiLedgerDispute(
 	// Setup proposal handler.
 	channels := make(chan *client.Channel, 1)
 	errs := make(chan error)
-	go alice.Handle(
+	go alice.Handle( //nolint:contextcheck
 		AlwaysRejectChannelHandler(ctx, errs),
 		AlwaysAcceptUpdateHandler(ctx, errs),
 	)
-	go bob.Handle(
+	go bob.Handle( //nolint:contextcheck
 		AlwaysAcceptChannelHandler(ctx, bob.WalletAddress, channels, errs),
 		AlwaysAcceptUpdateHandler(ctx, errs),
 	)
@@ -123,7 +123,7 @@ func TestMultiLedgerDispute(
 	require.NoError(err)
 
 	e := <-bob.Events
-	require.IsType(e, &channel.RegisteredEvent{})
+	require.IsType(&channel.RegisteredEvent{}, e)
 	err = e.(*channel.RegisteredEvent).TimeoutV.Wait(ctx)
 	require.NoError(err)
 

@@ -34,8 +34,8 @@ type SusieTimExecConfig struct {
 // NewSusieTimExecConfig creates a new object from the given parameters.
 func NewSusieTimExecConfig(
 	base BaseExecConfig,
-	numSubChannels int,
-	numSubSubChannels int,
+	_ int,
+	_ int,
 	subChannelFunds [][2]*big.Int,
 	subSubChannelFunds [][2]*big.Int,
 	leafChannelApp client.ProposalOpts,

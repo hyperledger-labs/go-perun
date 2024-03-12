@@ -31,125 +31,135 @@ func ToChannelUpdateMsg(protoEnvMsg *Envelope_ChannelUpdateMsg) (*client.Channel
 
 // ToVirtualChannelFundingProposalMsg converts a protobuf Envelope_VirtualChannelFundingProposalMsg to a
 // client.VirtualChannelFundingProposalMsg.
+//
+//nolint:forbidigo
 func ToVirtualChannelFundingProposalMsg(protoEnvMsg *Envelope_VirtualChannelFundingProposalMsg) (
-	msg *client.VirtualChannelFundingProposalMsg,
-	err error,
+	*client.VirtualChannelFundingProposalMsg,
+	error,
 ) {
+	var err error
 	protoMsg := protoEnvMsg.VirtualChannelFundingProposalMsg
 
-	msg = &client.VirtualChannelFundingProposalMsg{}
-	msg.Initial, err = ToSignedState(protoMsg.Initial)
+	msg := &client.VirtualChannelFundingProposalMsg{}
+	msg.Initial, err = ToSignedState(protoMsg.GetInitial())
 	if err != nil {
 		return nil, errors.WithMessage(err, "initial state")
 	}
-	msg.IndexMap, err = ToIndexMap(protoMsg.IndexMap.IndexMap)
+	msg.IndexMap, err = ToIndexMap(protoMsg.GetIndexMap().GetIndexMap())
 	if err != nil {
 		return nil, err
 	}
-	msg.ChannelUpdateMsg, err = ToChannelUpdate(protoMsg.ChannelUpdateMsg)
+	msg.ChannelUpdateMsg, err = ToChannelUpdate(protoMsg.GetChannelUpdateMsg())
 	return msg, err
 }
 
 // ToVirtualChannelSettlementProposalMsg converts a protobuf Envelope_VirtualChannelSettlementProposalMsg to a
 // client.VirtualChannelSettlementProposalMsg.
 func ToVirtualChannelSettlementProposalMsg(protoEnvMsg *Envelope_VirtualChannelSettlementProposalMsg) (
-	msg *client.VirtualChannelSettlementProposalMsg,
-	err error,
+	*client.VirtualChannelSettlementProposalMsg,
+	error,
 ) {
 	protoMsg := protoEnvMsg.VirtualChannelSettlementProposalMsg
 
-	msg = &client.VirtualChannelSettlementProposalMsg{}
-	msg.Final, err = ToSignedState(protoMsg.Final)
+	msg := &client.VirtualChannelSettlementProposalMsg{}
+	var err error
+	msg.Final, err = ToSignedState(protoMsg.GetFinal())
 	if err != nil {
 		return nil, errors.WithMessage(err, "final state")
 	}
-	msg.ChannelUpdateMsg, err = ToChannelUpdate(protoMsg.ChannelUpdateMsg)
+	msg.ChannelUpdateMsg, err = ToChannelUpdate(protoMsg.GetChannelUpdateMsg())
 	return msg, err
 }
 
 // ToChannelUpdateAccMsg converts a protobuf Envelope_ChannelUpdateAccMsg to a client.ChannelUpdateAccMsg.
-func ToChannelUpdateAccMsg(protoEnvMsg *Envelope_ChannelUpdateAccMsg) (msg *client.ChannelUpdateAccMsg) {
+func ToChannelUpdateAccMsg(protoEnvMsg *Envelope_ChannelUpdateAccMsg) *client.ChannelUpdateAccMsg {
 	protoMsg := protoEnvMsg.ChannelUpdateAccMsg
 
-	msg = &client.ChannelUpdateAccMsg{}
-	copy(msg.ChannelID[:], protoMsg.ChannelId)
-	msg.Version = protoMsg.Version
-	msg.Sig = make([]byte, len(protoMsg.Sig))
-	copy(msg.Sig, protoMsg.Sig)
+	msg := &client.ChannelUpdateAccMsg{}
+	copy(msg.ChannelID[:], protoMsg.GetChannelId())
+	msg.Version = protoMsg.GetVersion()
+	msg.Sig = make([]byte, len(protoMsg.GetSig()))
+	copy(msg.Sig, protoMsg.GetSig())
 	return msg
 }
 
 // ToChannelUpdateRejMsg converts a protobuf Envelope_ChannelUpdateRejMsg to a client.ChannelUpdateRejMsg.
-func ToChannelUpdateRejMsg(protoEnvMsg *Envelope_ChannelUpdateRejMsg) (msg *client.ChannelUpdateRejMsg) {
+func ToChannelUpdateRejMsg(protoEnvMsg *Envelope_ChannelUpdateRejMsg) *client.ChannelUpdateRejMsg {
 	protoMsg := protoEnvMsg.ChannelUpdateRejMsg
 
-	msg = &client.ChannelUpdateRejMsg{}
-	copy(msg.ChannelID[:], protoMsg.ChannelId)
-	msg.Version = protoMsg.Version
-	msg.Reason = protoMsg.Reason
+	msg := &client.ChannelUpdateRejMsg{}
+	copy(msg.ChannelID[:], protoMsg.GetChannelId())
+	msg.Version = protoMsg.GetVersion()
+	msg.Reason = protoMsg.GetReason()
 	return msg
 }
 
 // ToChannelUpdate parses protobuf channel updates.
-func ToChannelUpdate(protoUpdate *ChannelUpdateMsg) (update client.ChannelUpdateMsg, err error) {
-	if protoUpdate.ChannelUpdate.ActorIdx > math.MaxUint16 {
+//
+//nolint:forbidigo
+func ToChannelUpdate(protoUpdate *ChannelUpdateMsg) (client.ChannelUpdateMsg, error) {
+	update := client.ChannelUpdateMsg{}
+	var err error
+	if protoUpdate.GetChannelUpdate().GetActorIdx() > math.MaxUint16 {
 		return update, errors.New("actor index is invalid")
 	}
-	update.ActorIdx = channel.Index(protoUpdate.ChannelUpdate.ActorIdx)
-	update.Sig = make([]byte, len(protoUpdate.Sig))
-	copy(update.Sig, protoUpdate.Sig)
-	update.State, err = ToState(protoUpdate.ChannelUpdate.State)
+	update.ActorIdx = channel.Index(protoUpdate.GetChannelUpdate().GetActorIdx())
+	update.Sig = make([]byte, len(protoUpdate.GetSig()))
+	copy(update.Sig, protoUpdate.GetSig())
+	update.State, err = ToState(protoUpdate.GetChannelUpdate().GetState())
 	return update, err
 }
 
 // ToSignedState converts a protobuf SignedState to a channel.SignedState.
-func ToSignedState(protoSignedState *SignedState) (signedState channel.SignedState, err error) {
-	signedState.Params, err = ToParams(protoSignedState.Params)
+func ToSignedState(protoSignedState *SignedState) (channel.SignedState, error) {
+	signedState := channel.SignedState{}
+	var err error
+	signedState.Params, err = ToParams(protoSignedState.GetParams())
 	if err != nil {
 		return signedState, err
 	}
-	signedState.Sigs = make([][]byte, len(protoSignedState.Sigs))
-	for i := range protoSignedState.Sigs {
-		signedState.Sigs[i] = make([]byte, len(protoSignedState.Sigs[i]))
-		copy(signedState.Sigs[i], protoSignedState.Sigs[i])
+	signedState.Sigs = make([][]byte, len(protoSignedState.GetSigs()))
+	for i := range protoSignedState.GetSigs() {
+		signedState.Sigs[i] = make([]byte, len(protoSignedState.GetSigs()[i]))
+		copy(signedState.Sigs[i], protoSignedState.GetSigs()[i])
 	}
-	signedState.State, err = ToState(protoSignedState.State)
+	signedState.State, err = ToState(protoSignedState.GetState())
 	return signedState, err
 }
 
 // ToParams converts a protobuf Params to a channel.Params.
 func ToParams(protoParams *Params) (*channel.Params, error) {
-	app, err := ToApp(protoParams.App)
+	app, err := ToApp(protoParams.GetApp())
 	if err != nil {
 		return nil, err
 	}
-	parts, err := ToWalletAddrs(protoParams.Parts)
+	parts, err := ToWalletAddrs(protoParams.GetParts())
 	if err != nil {
 		return nil, errors.WithMessage(err, "parts")
 	}
 	params := channel.NewParamsUnsafe(
-		protoParams.ChallengeDuration,
+		protoParams.GetChallengeDuration(),
 		parts,
 		app,
-		(new(big.Int)).SetBytes(protoParams.Nonce),
-		protoParams.LedgerChannel,
-		protoParams.VirtualChannel)
+		(new(big.Int)).SetBytes(protoParams.GetNonce()),
+		protoParams.GetLedgerChannel(),
+		protoParams.GetVirtualChannel())
 
 	return params, nil
 }
 
 // ToState converts a protobuf State to a channel.State.
-func ToState(protoState *State) (state *channel.State, err error) {
-	state = &channel.State{}
-	copy(state.ID[:], protoState.Id)
-	state.Version = protoState.Version
-	state.IsFinal = protoState.IsFinal
-	allocation, err := ToAllocation(protoState.Allocation)
+func ToState(protoState *State) (*channel.State, error) {
+	state := &channel.State{}
+	copy(state.ID[:], protoState.GetId())
+	state.Version = protoState.GetVersion()
+	state.IsFinal = protoState.GetIsFinal()
+	allocation, err := ToAllocation(protoState.GetAllocation())
 	if err != nil {
 		return nil, errors.WithMessage(err, "allocation")
 	}
 	state.Allocation = *allocation
-	state.App, state.Data, err = ToAppAndData(protoState.App, protoState.Data)
+	state.App, state.Data, err = ToAppAndData(protoState.GetApp(), protoState.GetData())
 	return state, err
 }
 
@@ -162,9 +172,10 @@ func FromChannelUpdateMsg(msg *client.ChannelUpdateMsg) (*Envelope_ChannelUpdate
 // FromVirtualChannelFundingProposalMsg converts a client.VirtualChannelFundingProposalMsg to a protobuf
 // Envelope_VirtualChannelFundingProposalMsg.
 func FromVirtualChannelFundingProposalMsg(msg *client.VirtualChannelFundingProposalMsg) (
-	_ *Envelope_VirtualChannelFundingProposalMsg,
-	err error,
+	*Envelope_VirtualChannelFundingProposalMsg,
+	error,
 ) {
+	var err error
 	protoMsg := &VirtualChannelFundingProposalMsg{}
 
 	protoMsg.Initial, err = FromSignedState(&msg.Initial)
@@ -179,9 +190,10 @@ func FromVirtualChannelFundingProposalMsg(msg *client.VirtualChannelFundingPropo
 // FromVirtualChannelSettlementProposalMsg converts a client.VirtualChannelSettlementProposalMsg to a protobuf
 // Envelope_VirtualChannelSettlementProposalMsg.
 func FromVirtualChannelSettlementProposalMsg(msg *client.VirtualChannelSettlementProposalMsg) (
-	_ *Envelope_VirtualChannelSettlementProposalMsg,
-	err error,
+	*Envelope_VirtualChannelSettlementProposalMsg,
+	error,
 ) {
+	var err error
 	protoMsg := &VirtualChannelSettlementProposalMsg{}
 
 	protoMsg.ChannelUpdateMsg, err = FromChannelUpdate(&msg.ChannelUpdateMsg)
@@ -193,6 +205,8 @@ func FromVirtualChannelSettlementProposalMsg(msg *client.VirtualChannelSettlemen
 }
 
 // FromChannelUpdateAccMsg converts a client.ChannelUpdateAccMsg to a protobuf Envelope_ChannelUpdateAccMsg.
+//
+//nolint:protogetter
 func FromChannelUpdateAccMsg(msg *client.ChannelUpdateAccMsg) *Envelope_ChannelUpdateAccMsg {
 	protoMsg := &ChannelUpdateAccMsg{}
 
@@ -205,6 +219,8 @@ func FromChannelUpdateAccMsg(msg *client.ChannelUpdateAccMsg) *Envelope_ChannelU
 }
 
 // FromChannelUpdateRejMsg converts a client.ChannelUpdateRejMsg to a protobuf Envelope_ChannelUpdateRejMsg.
+//
+//nolint:protogetter
 func FromChannelUpdateRejMsg(msg *client.ChannelUpdateRejMsg) *Envelope_ChannelUpdateRejMsg {
 	protoMsg := &ChannelUpdateRejMsg{}
 	protoMsg.ChannelId = make([]byte, len(msg.ChannelID))
@@ -215,8 +231,11 @@ func FromChannelUpdateRejMsg(msg *client.ChannelUpdateRejMsg) *Envelope_ChannelU
 }
 
 // FromChannelUpdate converts a client.ChannelUpdateMsg to a protobuf ChannelUpdateMsg.
-func FromChannelUpdate(update *client.ChannelUpdateMsg) (protoUpdate *ChannelUpdateMsg, err error) {
-	protoUpdate = &ChannelUpdateMsg{}
+//
+//nolint:protogetter
+func FromChannelUpdate(update *client.ChannelUpdateMsg) (*ChannelUpdateMsg, error) {
+	protoUpdate := &ChannelUpdateMsg{}
+	var err error
 	protoUpdate.ChannelUpdate = &ChannelUpdate{}
 
 	protoUpdate.ChannelUpdate.ActorIdx = uint32(update.ChannelUpdate.ActorIdx)
@@ -227,8 +246,12 @@ func FromChannelUpdate(update *client.ChannelUpdateMsg) (protoUpdate *ChannelUpd
 }
 
 // FromSignedState converts a channel.SignedState to a protobuf SignedState.
-func FromSignedState(signedState *channel.SignedState) (protoSignedState *SignedState, err error) {
-	protoSignedState = &SignedState{}
+//
+//nolint:protogetter
+func FromSignedState(signedState *channel.SignedState) (*SignedState, error) {
+	protoSignedState := &SignedState{}
+	var err error
+
 	protoSignedState.Sigs = make([][]byte, len(signedState.Sigs))
 	for i := range signedState.Sigs {
 		protoSignedState.Sigs[i] = make([]byte, len(signedState.Sigs[i]))
@@ -243,8 +266,9 @@ func FromSignedState(signedState *channel.SignedState) (protoSignedState *Signed
 }
 
 // FromParams converts a channel.Params to a protobuf Params.
-func FromParams(params *channel.Params) (protoParams *Params, err error) {
-	protoParams = &Params{}
+func FromParams(params *channel.Params) (*Params, error) {
+	protoParams := &Params{}
+	var err error
 
 	protoParams.Nonce = params.Nonce.Bytes()
 	protoParams.ChallengeDuration = params.ChallengeDuration
@@ -259,11 +283,12 @@ func FromParams(params *channel.Params) (protoParams *Params, err error) {
 }
 
 // FromState converts a channel.State to a protobuf State.
-func FromState(state *channel.State) (protoState *State, err error) {
-	protoState = &State{}
+func FromState(state *channel.State) (*State, error) {
+	protoState := &State{}
+	var err error
 
 	protoState.Id = make([]byte, len(state.ID))
-	copy(protoState.Id, state.ID[:])
+	copy(protoState.GetId(), state.ID[:])
 	protoState.Version = state.Version
 	protoState.IsFinal = state.IsFinal
 	protoState.Allocation, err = FromAllocation(state.Allocation)

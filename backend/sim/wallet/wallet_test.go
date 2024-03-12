@@ -30,9 +30,9 @@ func TestWallet_AddAccount(t *testing.T) {
 	acc := wallet.NewRandomAccount(rng)
 
 	assert.False(t, w.HasAccount(acc))
-	assert.NoError(t, w.AddAccount(acc))
+	require.NoError(t, w.AddAccount(acc))
 	assert.True(t, w.HasAccount(acc))
-	assert.Error(t, w.AddAccount(acc))
+	require.Error(t, w.AddAccount(acc))
 }
 
 func TestWallet_Unlock(t *testing.T) {
@@ -76,7 +76,7 @@ func TestWallet_Unlock(t *testing.T) {
 
 	t.Run("unknown unlock", func(t *testing.T) {
 		acc, err := w.Unlock(wallet.NewRandomAddress(rng))
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, acc)
 	})
 }

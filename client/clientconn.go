@@ -32,7 +32,9 @@ type clientConn struct {
 	log.Embedding
 }
 
-func makeClientConn(address wire.Address, bus wire.Bus) (c clientConn, err error) {
+func makeClientConn(address wire.Address, bus wire.Bus) (clientConn, error) {
+	var c clientConn
+	var err error
 	c.Embedding = log.MakeEmbedding(log.WithField("id", address))
 	c.sender = address
 	c.bus = bus

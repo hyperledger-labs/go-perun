@@ -57,14 +57,14 @@ func TestEndpointRegistry_Get_Pair(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 2*timeout)
 	defer cancel()
 	p, err := dialerReg.Endpoint(ctx, listenerID.Address())
-	assert.NoError(err)
+	require.NoError(err)
 	require.NotNil(p)
 	assert.True(p.Address.Equal(listenerID.Address()))
 
 	// should allow the listener routine to add the peer to its registry
 	time.Sleep(timeout)
 	p, err = listenerReg.Endpoint(ctx, dialerID.Address())
-	assert.NoError(err)
+	require.NoError(err)
 	require.NotNil(p)
 	assert.True(p.Address.Equal(dialerID.Address()))
 
@@ -107,7 +107,7 @@ func TestEndpointRegistry_Get_Multiple(t *testing.T) {
 	for i := 0; i < N; i++ {
 		go func() {
 			p, err := dialerReg.Endpoint(ctx, listenerID.Address())
-			assert.NoError(err)
+			require.NoError(t, err) //nolint:testifylint
 			if p != nil {
 				assert.True(p.Address.Equal(listenerID.Address()))
 			}
@@ -136,7 +136,7 @@ func TestEndpointRegistry_Get_Multiple(t *testing.T) {
 	// should allow the listener routine to add the peer to its registry
 	time.Sleep(timeout)
 	p, err := listenerReg.Endpoint(ctx, dialerID.Address())
-	assert.NoError(err)
+	require.NoError(t, err)
 	assert.NotNil(p)
 	assert.True(p.Address.Equal(dialerID.Address()))
 	assert.Equal(1, listener.NumAccepted())

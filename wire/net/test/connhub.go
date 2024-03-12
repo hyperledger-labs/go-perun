@@ -75,10 +75,10 @@ func (h *ConnHub) NewNetDialer() *Dialer {
 }
 
 // Close closes the ConnHub and all its listeners.
-func (h *ConnHub) Close() (err error) {
+func (h *ConnHub) Close() error {
 	h.mutex.Lock()
 	defer h.mutex.Unlock()
-
+	var err error
 	if err := h.Closer.Close(); err != nil {
 		return errors.WithMessage(err, "ConnHub already closed")
 	}
@@ -95,5 +95,5 @@ func (h *ConnHub) Close() (err error) {
 		}
 	}
 
-	return
+	return err
 }

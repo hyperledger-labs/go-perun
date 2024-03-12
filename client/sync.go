@@ -67,7 +67,8 @@ func (c *Client) handleSyncMsg(peer wire.Address, msg *ChannelSyncMsg) {
 
 // syncChannel synchronizes the channel state with the given peer and modifies
 // the current state if required.
-// nolint:unused
+//
+//nolint:unused
 func (c *Client) syncChannel(ctx context.Context, ch *persistence.Channel, p wire.Address) (err error) {
 	recv := wire.NewReceiver()
 	defer recv.Close() // ignore error
@@ -117,7 +118,8 @@ func (c *Client) syncChannel(ctx context.Context, ch *persistence.Channel, p wir
 }
 
 // validateMessage validates the remote channel sync message.
-// nolint:unused, nestif
+//
+//nolint:unused, nestif
 func validateMessage(ch *persistence.Channel, msg *ChannelSyncMsg) error {
 	v := ch.CurrentTX().Version
 	mv := msg.CurrentTX.Version
@@ -147,7 +149,7 @@ func validateMessage(ch *persistence.Channel, msg *ChannelSyncMsg) error {
 	return nil
 }
 
-// nolint:unused
+//nolint:unused
 func revisePhase(ch *persistence.Channel) error {
 	//nolint:gocritic
 	if ch.PhaseV <= channel.Funding && ch.CurrentTXV.Version == 0 {

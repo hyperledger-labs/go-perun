@@ -51,12 +51,13 @@ type SigDec struct {
 }
 
 // Decode decodes a single signature.
-func (s SigDec) Decode(r io.Reader) (err error) {
+func (s SigDec) Decode(r io.Reader) error {
+	var err error
 	*s.Sig, err = DecodeSig(r)
 	return err
 }
 
-// EncodeSparseSigs encodes a collection of signatures in the form ( mask, sig, sig, sig, ...).
+// EncodeSparseSigs encodes a collection of signatures in the form ( mask, sigs).
 func EncodeSparseSigs(w io.Writer, sigs []Sig) error {
 	n := len(sigs)
 
@@ -82,8 +83,9 @@ func EncodeSparseSigs(w io.Writer, sigs []Sig) error {
 	return nil
 }
 
-// DecodeSparseSigs decodes a collection of signatures in the form (mask, sig, sig, sig, ...).
-func DecodeSparseSigs(r io.Reader, sigs *[]Sig) (err error) {
+// DecodeSparseSigs decodes a collection of signatures in the form (mask, sigs).
+func DecodeSparseSigs(r io.Reader, sigs *[]Sig) error {
+	var err error
 	masklen := int(math.Ceil(float64(len(*sigs)) / float64(bitsPerByte)))
 	mask := make([]uint8, masklen)
 
