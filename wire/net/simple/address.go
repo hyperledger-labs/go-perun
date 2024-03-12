@@ -20,7 +20,7 @@ import (
 	"crypto/rsa"
 	"crypto/sha256"
 	"encoding/binary"
-	"encoding/gob"
+	"math/big"
 	"math/rand"
 
 	"perun.network/go-perun/wire"
@@ -31,8 +31,6 @@ type Address struct {
 	Name      string
 	PublicKey *rsa.PublicKey // Public key for verifying signatures
 }
-
-var _ wire.Address = (*Address)(nil)
 
 // NewAddress returns a new address.
 func NewAddress(host string) *Address {
@@ -55,10 +53,9 @@ func (a *Address) MarshalBinary() ([]byte, error) {
 		return nil, err
 	}
 
-	// If the public key is not nil, encode it using gob
+	// If the public key is not nil, encode it
 	if a.PublicKey != nil {
-		enc := gob.NewEncoder(&buf)
-		if err := enc.Encode(a.PublicKey); err != nil {
+		if err := encodePublicKey(&buf, a.PublicKey); err != nil {
 			return nil, err
 		}
 	}
@@ -87,12 +84,57 @@ func (a *Address) UnmarshalBinary(data []byte) error {
 
 	// Check if there's remaining data for the public key
 	if buf.Len() > 0 {
-		// Decode the public key using gob
-		dec := gob.NewDecoder(buf)
-		if err := dec.Decode(&a.PublicKey); err != nil {
+		// Decode the public key
+		a.PublicKey = &rsa.PublicKey{}
+		if err := decodePublicKey(buf, a.PublicKey); err != nil {
 			return err
 		}
 	}
+
+	return nil
+}
+
+// encodePublicKey encodes the public key into the buffer.
+func encodePublicKey(buf *bytes.Buffer, key *rsa.PublicKey) error {
+	// Encode modulus length and modulus
+	modulusBytes := key.N.Bytes()
+	modulusLen := uint16(len(modulusBytes))
+	if err := binary.Write(buf, binary.BigEndian, modulusLen); err != nil {
+		return err
+	}
+	if err := binary.Write(buf, binary.BigEndian, modulusBytes); err != nil {
+		return err
+	}
+
+	// Encode public exponent
+	if err := binary.Write(buf, binary.BigEndian, int32(key.E)); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// decodePublicKey decodes the public key from the buffer.
+func decodePublicKey(buf *bytes.Buffer, key *rsa.PublicKey) error {
+	// Decode modulus length
+	var modulusLen uint16
+	if err := binary.Read(buf, binary.BigEndian, &modulusLen); err != nil {
+		return err
+	}
+
+	// Decode modulus
+	modulusBytes := make([]byte, modulusLen)
+	if _, err := buf.Read(modulusBytes); err != nil {
+		return err
+	}
+	key.N = new(big.Int).SetBytes(modulusBytes)
+
+	// Decode public exponent
+	var publicExponent int32
+	if err := binary.Read(buf, binary.BigEndian, &publicExponent); err != nil {
+		return err
+	}
+	key.E = int(publicExponent)
 
 	return nil
 }
@@ -111,26 +153,29 @@ func (a *Address) Equal(b wire.Address) bool {
 }
 
 // Cmp compares the byte representation of two addresses.
+// It first checks if the types match, then compares the byte representations of their names.
+// It returns the result of comparing the byte representations of the addresses:
 //
+//	-1 if a's byte representation is less than b's,
+//	 0 if they are equal,
+//	 1 if a's byte representation is greater than b's.
+//
+// It panics if the type assertion fails or if there's an error while marshaling.
 //nolint:mirror
 func (a *Address) Cmp(b wire.Address) int {
+	// Type assertion to ensure b is of type *Address
 	bTyped, ok := b.(*Address)
 	if !ok {
 		panic("wrong type")
 	}
+
+	// Compare names
 	if cmp := bytes.Compare([]byte(a.Name), []byte(bTyped.Name)); cmp != 0 {
 		return cmp
 	}
 
-	bytesA, err := a.MarshalBinary()
-	if err != nil {
-		panic(err)
-	}
-	bytesB, err := bTyped.MarshalBinary()
-	if err != nil {
-		panic(err)
-	}
-	return bytes.Compare(bytesA, bytesB)
+	// Compare binary representations
+	return bytes.Compare([]byte(a.Name), []byte(bTyped.Name))
 }
 
 // NewRandomAddress returns a new random peer address.

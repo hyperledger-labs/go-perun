@@ -23,20 +23,30 @@ import (
 )
 
 // Funder is a multi-ledger funder.
+// funders is a map of LedgerIDs corresponding to a funder on some chain.
+// egoisticChains is a map of LedgerIDs corresponding to a boolean indicating whether the chain should be funded last.
 type Funder struct {
-	funders map[LedgerIDMapKey]channel.Funder
+	funders        map[LedgerIDMapKey]channel.Funder
+	egoisticChains map[LedgerIDMapKey]bool
 }
 
 // NewFunder creates a new funder.
 func NewFunder() *Funder {
 	return &Funder{
-		funders: make(map[LedgerIDMapKey]channel.Funder),
+		funders:        make(map[LedgerIDMapKey]channel.Funder),
+		egoisticChains: make(map[LedgerIDMapKey]bool),
 	}
 }
 
 // RegisterFunder registers a funder for a given ledger.
 func (f *Funder) RegisterFunder(l LedgerID, lf channel.Funder) {
 	f.funders[l.MapKey()] = lf
+	f.egoisticChains[l.MapKey()] = false
+}
+
+// SetEgoisticChain sets the egoistic chain flag for a given ledger.
+func (f *Funder) SetEgoisticChain(l LedgerID, egoistic bool) {
+	f.egoisticChains[l.MapKey()] = egoistic
 }
 
 // Fund funds a multi-ledger channel. It dispatches funding calls to all
@@ -53,13 +63,40 @@ func (f *Funder) Fund(ctx context.Context, request channel.FundingReq) error {
 		return err
 	}
 
+	var egoisticLedgers []LedgerID
+	var nonEgoisticLedgers []LedgerID
+
+	for _, l := range ledgers {
+		if f.egoisticChains[l.MapKey()] {
+			egoisticLedgers = append(egoisticLedgers, l)
+		} else {
+			nonEgoisticLedgers = append(nonEgoisticLedgers, l)
+		}
+	}
+
+	// First fund with Funders that are not egoistic.
+	err = fundLedgers(ctx, request, nonEgoisticLedgers, f.funders)
+	if err != nil {
+		return err
+	}
+
+	// Then fund with egoistic Funders.
+	err = fundLedgers(ctx, request, egoisticLedgers, f.funders)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func fundLedgers(ctx context.Context, request channel.FundingReq, ledgers []LedgerID, funders map[LedgerIDMapKey]channel.Funder) error {
 	n := len(ledgers)
 	errs := make(chan error, n)
-	for _, l := range ledgers {
-		go func(l LedgerID) {
+	for _, le := range ledgers {
+		go func(le LedgerID) {
 			errs <- func() error {
-				id := l.MapKey()
-				lf, ok := f.funders[id]
+				id := le.MapKey()
+				lf, ok := funders[id]
 				if !ok {
 					return fmt.Errorf("Funder not found for ledger %v", id)
 				}
@@ -67,7 +104,7 @@ func (f *Funder) Fund(ctx context.Context, request channel.FundingReq) error {
 				err := lf.Fund(ctx, request)
 				return err
 			}()
-		}(l)
+		}(le)
 	}
 
 	for i := 0; i < n; i++ {
@@ -76,6 +113,5 @@ func (f *Funder) Fund(ctx context.Context, request channel.FundingReq) error {
 			return err
 		}
 	}
-
 	return nil
 }

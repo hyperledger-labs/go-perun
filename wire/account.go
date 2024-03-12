@@ -15,7 +15,6 @@
 package wire
 
 import (
-	"crypto/sha256"
 	"encoding/binary"
 	"fmt"
 	"io"
@@ -42,11 +41,8 @@ type Account interface {
 var _ Msg = (*AuthResponseMsg)(nil)
 
 // AuthResponseMsg is the response message in the peer authentication protocol.
-//
-// This will be expanded later to contain signatures.
 type AuthResponseMsg struct {
-	SignatureSize uint32 // Length of the signature
-	Signature     []byte
+	Signature []byte
 }
 
 // Type returns AuthResponse.
@@ -55,27 +51,28 @@ func (m *AuthResponseMsg) Type() Type {
 }
 
 // Encode encodes this AuthResponseMsg into an io.Writer.
+// It writes the signature to the writer.
 func (m *AuthResponseMsg) Encode(w io.Writer) error {
-	// Write the signature size first
-	if err := encodeUint32(w, m.SignatureSize); err != nil {
-		return err
+	// Write the length of the signature
+	err := binary.Write(w, binary.BigEndian, uint32(len(m.Signature)))
+	if err != nil {
+		return fmt.Errorf("failed to write signature length: %w", err)
 	}
-
-	// Write the signature
-	_, err := w.Write(m.Signature)
+	// Write the signature itself
+	_, err = w.Write(m.Signature)
 	return err
 }
 
 // Decode decodes an AuthResponseMsg from an io.Reader.
 func (m *AuthResponseMsg) Decode(r io.Reader) error {
-	var err error
-	// Read the signature size first
-	if m.SignatureSize, err = decodeUint32(r); err != nil {
-		return err
-	}
+	// Read the length of the signature
+	var signatureLen uint32
+	if err := binary.Read(r, binary.BigEndian, &signatureLen); err != nil {
+		return fmt.Errorf("failed to read signature length: %w", err)
 
-	// Read the signature
-	m.Signature = make([]byte, m.SignatureSize)
+	}
+	// Read the signature bytes
+	m.Signature = make([]byte, signatureLen)
 	if _, err := io.ReadFull(r, m.Signature); err != nil {
 		return fmt.Errorf("failed to read signature: %w", err)
 	}
@@ -88,33 +85,12 @@ func NewAuthResponseMsg(acc Account) (Msg, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to marshal address: %w", err)
 	}
-	hashed := sha256.Sum256(addressBytes)
-	signature, err := acc.Sign(hashed[:])
+	signature, err := acc.Sign(addressBytes)
 	if err != nil {
 		return nil, fmt.Errorf("failed to sign address: %w", err)
 	}
 
 	return &AuthResponseMsg{
-		SignatureSize: uint32(len(signature)),
-		Signature:     signature,
+		Signature: signature,
 	}, nil
-}
-
-// encodeUint32 encodes a uint32 value into an io.Writer.
-func encodeUint32(w io.Writer, v uint32) error {
-	sigSize := 4 // uint32 size
-	buf := make([]byte, sigSize)
-	binary.BigEndian.PutUint32(buf, v)
-	_, err := w.Write(buf)
-	return err
-}
-
-// decodeUint32 decodes a uint32 value from an io.Reader.
-func decodeUint32(r io.Reader) (uint32, error) {
-	sigSize := 4 // uint32 size
-	buf := make([]byte, sigSize)
-	if _, err := io.ReadFull(r, buf); err != nil {
-		return 0, err
-	}
-	return binary.BigEndian.Uint32(buf), nil
 }

@@ -156,8 +156,7 @@ message ShutdownMsg {
 
 // AuthResponseMsg represents wire.AuthResponseMsg.
 message AuthResponseMsg {
-  uint32 signature_size = 1;
-  bytes signature = 2;
+  bytes signature = 1;
   
 }
 

@@ -44,7 +44,6 @@ func fromShutdownMsg(msg *wire.ShutdownMsg) *Envelope_ShutdownMsg {
 func fromAuthResponseMsg(msg *wire.AuthResponseMsg) *Envelope_AuthResponseMsg {
 	protoMsg := &AuthResponseMsg{}
 	protoMsg.Signature = msg.Signature
-	protoMsg.SignatureSize = msg.SignatureSize
 	return &Envelope_AuthResponseMsg{protoMsg}
 }
 
@@ -70,12 +69,8 @@ func toShutdownMsg(protoEnvMsg *Envelope_ShutdownMsg) *wire.ShutdownMsg {
 }
 
 //nolint:forbidigo
-func toAuthResponseMsg(protoEnvMsg *Envelope_AuthResponseMsg) *wire.AuthResponseMsg {
-	msg := &wire.AuthResponseMsg{}
-	msg.SignatureSize = protoEnvMsg.AuthResponseMsg.GetSignatureSize()
-	msg.Signature = protoEnvMsg.AuthResponseMsg.GetSignature()
-	if msg.Signature == nil {
-		msg.Signature = make([]byte, msg.SignatureSize)
-	}
+func toAuthResponseMsg(protoEnvMsg *Envelope_AuthResponseMsg) (msg *wire.AuthResponseMsg) {
+	msg = &wire.AuthResponseMsg{}
+	msg.Signature = protoEnvMsg.AuthResponseMsg.Signature
 	return msg
 }
