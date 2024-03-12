@@ -27,6 +27,7 @@ import (
 
 // TestAddressImplementation runs a test suite designed to test the general
 // functionality of an address implementation.
+//
 //nolint:revive // The function name `test.Test...` stutters, but it is OK in this special case.
 func TestAddressImplementation(t *testing.T, newAddress wire.NewAddressFunc, newRandomAddress NewRandomAddressFunc) {
 	rng := pkgtest.Prng(t)

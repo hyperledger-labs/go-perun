@@ -30,6 +30,11 @@ func (acc *Account) Address() wire.Address {
 	return acc.addr
 }
 
+// Sign signs the given message with the account's private key.
+func (acc *Account) Sign(msg []byte) ([]byte, error) {
+	return []byte("Authenticate"), nil
+}
+
 // NewRandomAccount generates a new random account.
 func NewRandomAccount(rng *rand.Rand) *Account {
 	return &Account{

@@ -156,6 +156,8 @@ message ShutdownMsg {
 
 // AuthResponseMsg represents wire.AuthResponseMsg.
 message AuthResponseMsg {
+  bytes signature = 1;
+  
 }
 
 // LedgerChannelProposalMsg represents client.LedgerChannelProposalMsg.

@@ -34,6 +34,7 @@ func GenericSerializerTest(t *testing.T, serializers ...perunio.Serializer) {
 
 // genericDecodeEncodeTest tests whether encoding and then decoding
 // serializer values results in the original values.
+//
 //nolint:thelper // The linter thinks this is a helper, but it isn't.
 func genericDecodeEncodeTest(t *testing.T, serializers ...perunio.Serializer) {
 	for i, v := range serializers {
@@ -60,6 +61,7 @@ func genericDecodeEncodeTest(t *testing.T, serializers ...perunio.Serializer) {
 
 // GenericBrokenPipeTest tests that encoding and decoding on broken streams
 // fails.
+//
 //nolint:thelper // The linter thinks this is a helper, but it isn't.
 func GenericBrokenPipeTest(t *testing.T, serializers ...perunio.Serializer) {
 	for i, v := range serializers {

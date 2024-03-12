@@ -270,7 +270,7 @@ func (c *Channel) Settle(ctx context.Context, secondary bool) (err error) {
 	// Withdraw.
 	err = c.withdraw(ctx, secondary)
 	if err != nil {
-		return
+		return err
 	}
 
 	// Set phase `Withdrawn`.

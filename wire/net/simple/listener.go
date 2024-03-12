@@ -15,6 +15,7 @@
 package simple
 
 import (
+	"crypto/tls"
 	"net"
 
 	"github.com/pkg/errors"
@@ -30,8 +31,8 @@ type Listener struct {
 var _ wirenet.Listener = (*Listener)(nil)
 
 // NewNetListener creates a listener reachable under the requested address.
-func NewNetListener(network string, address string) (*Listener, error) {
-	l, err := net.Listen(network, address)
+func NewNetListener(network string, address string, config *tls.Config) (*Listener, error) {
+	l, err := tls.Listen(network, address, config)
 	if err != nil {
 		return nil, errors.Wrapf(err,
 			"failed to create listener for '%s'", address)
@@ -41,13 +42,13 @@ func NewNetListener(network string, address string) (*Listener, error) {
 }
 
 // NewTCPListener is a short-hand version of NewNetListener for TCP listeners.
-func NewTCPListener(address string) (*Listener, error) {
-	return NewNetListener("tcp", address)
+func NewTCPListener(address string, config *tls.Config) (*Listener, error) {
+	return NewNetListener("tcp", address, config)
 }
 
 // NewUnixListener is a short-hand version of NewNetListener for Unix listeners.
-func NewUnixListener(address string) (*Listener, error) {
-	return NewNetListener("unix", address)
+func NewUnixListener(address string, config *tls.Config) (*Listener, error) {
+	return NewNetListener("unix", address, config)
 }
 
 // Accept implements peer.Dialer.Accept().

@@ -348,7 +348,8 @@ func (c *Client) matchFundingProposal(ctx context.Context, a, b interface{}) boo
 	}
 
 	go func() {
-		err := virtual.watchVirtual() //nolint:contextcheck // The context will be derived from the channel context.
+		// The context will be derived from the channel context.
+		err := virtual.watchVirtual() //nolint:contextcheck
 		c.log.Debugf("channel %v: watcher stopped: %v", virtual.ID(), err)
 	}()
 	return true

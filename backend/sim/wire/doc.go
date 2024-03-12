@@ -12,5 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Package wire contains the implementation of the wire interfaces.
+// Package wire is used for internal tests in the packages channel, wire, and client.
+// Note that Account.Sign and Address.Verify are mock methods.
+// We use the backend/wire/sim mock implementation for testing other go-perun functionalities.
+// Our default wire.Account and wire.Address implementations can be found in wire/net/simple and are used for our applications.
 package wire // import "perun.network/go-perun/backend/sim/wire"
