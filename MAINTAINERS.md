@@ -1,16 +1,16 @@
 # Maintainers
 
 ## Active Maintainers
-| Name              | Github    | [Discord][_chat_url]        |
-|-------------------|-----------|----------------|
-| Hendrik Amler     | [@tinnendo](https://github.com/tinnendo) | hendrik#5345 |
-| Jan Bormet    | [@janbormet](https://github.com/janbormet) | _.pants |
-| Philipp-Florens Lehwalder | [@cryptphil](https://github.com/cryptphil) | cryptphil |
-| Steffen Rattay  | [@rmbrt](https://github.com/rmbrt) | rmbrt |
-| Ilja von Hoessle  | [@iljabvh](https://github.com/iljabvh) | iljabvh |
+| Name              | Github                                             | [Discord][_chat_url]        |
+|-------------------|----------------------------------------------------|----------------|
+| Hendrik Amler     | [@tinnendo](https://github.com/tinnendo)           | hendrik#5345 |
+| Jan Bormet    | [@janbormet](https://github.com/janbormet)         | _.pants |
+| Ilja von Hoessle  | [@iljabvh](https://github.com/iljabvh)             | iljabvh |
+| Sophia Koehler  | [@sophia1ch](https://github.com/sophia1ch)         | sophia#3072 |
+| Philipp-Florens Lehwalder | [@cryptphil](https://github.com/cryptphil)         | cryptphil |
+| Steffen Rattay  | [@rmbrt](https://github.com/rmbrt)                 | rmbrt |
+| Minh Huy Tran      | [@NhoxxKienn](https://github.com/NhoxxKienn)       | NhoxxKienn |
 | Jens Winkle       | [@DragonDev1906](https://github.com/DragonDev1906) | jens#4601 |
-| Minh Huy Tran      | [@NhoxxKienn](https://github.com/NhoxxKienn) | NhoxxKienn |
-| Sophia Koehler  | [@sophia1ch](https://githun.com/sophia1ch)     | sophia#3072 |
 
 ## Emeritus Maintainers
 
