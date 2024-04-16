@@ -26,7 +26,7 @@ import (
 	"polycry.pt/poly-go/context/test"
 )
 
-const addr = "0.0.0.0:1337"
+const addr = "0.0.0.0:8080"
 
 // serverKey and serverCert are generated with the following commands:
 // openssl ecparam -genkey -name prime256v1 -out server.key
@@ -133,7 +133,7 @@ func TestListener_Accept(t *testing.T) {
 	}
 	// Happy case already tested in TestDialer_Dial.
 	ser := perunio.Serializer()
-	timeout := 100 * time.Millisecond
+	timeout := 10 * time.Millisecond
 	t.Run("timeout", func(t *testing.T) {
 		l, err := NewTCPListener(addr, tlsConfig)
 		require.NoError(t, err)

@@ -170,7 +170,6 @@ func (r *EndpointRegistry) setupConn(conn Conn) error {
 	var peerAddr wire.Address
 	var err error
 	if peerAddr, err = ExchangeAddrsPassive(ctx, r.id, conn); err != nil {
-		conn.Close()
 		r.Log().WithField("peer", peerAddr).Error("could not authenticate peer:", err)
 		return err
 	}
@@ -251,7 +250,6 @@ func (r *EndpointRegistry) authenticatedDial(
 	if err != nil {
 		return nil, errors.WithMessage(err, "failed to dial")
 	}
-
 	if err := ExchangeAddrsActive(ctx, r.id, addr, conn); err != nil {
 		conn.Close()
 		return nil, errors.WithMessage(err, "ExchangeAddrs failed")

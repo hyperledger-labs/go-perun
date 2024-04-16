@@ -16,16 +16,21 @@ package simple
 
 import (
 	"crypto/tls"
+
+	"fmt"
 	"net"
 
 	"github.com/pkg/errors"
 	"perun.network/go-perun/wire"
 	wirenet "perun.network/go-perun/wire/net"
+	"polycry.pt/poly-go/sync"
 )
 
 // Listener is a TCP Listener.
 type Listener struct {
+	host string
 	net.Listener
+	sync.Closer
 }
 
 var _ wirenet.Listener = (*Listener)(nil)
@@ -38,7 +43,7 @@ func NewNetListener(network string, address string, config *tls.Config) (*Listen
 			"failed to create listener for '%s'", address)
 	}
 
-	return &Listener{Listener: l}, nil
+	return &Listener{host: address, Listener: l}, nil
 }
 
 // NewTCPListener is a short-hand version of NewNetListener for TCP listeners.
@@ -59,4 +64,17 @@ func (l *Listener) Accept(ser wire.EnvelopeSerializer) (wirenet.Conn, error) {
 	}
 
 	return wirenet.NewIoConn(conn, ser), nil
+}
+
+// Close implements peer.Listener.Close().
+func (l *Listener) Close() error {
+	if l.IsClosed() {
+		return fmt.Errorf("listener already closed")
+	}
+	err := l.Listener.Close()
+	if err != nil {
+		return err
+	}
+
+	return l.Closer.Close()
 }
