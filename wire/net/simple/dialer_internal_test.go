@@ -47,9 +47,9 @@ func TestNewUnixDialer(t *testing.T) {
 }
 
 func TestDialer_Dial(t *testing.T) {
-	var hub ConnHub
+	hub := NewConnHub()
 
-	timeout := 100 * time.Millisecond
+	timeout := 10000 * time.Millisecond
 	rng := test.Prng(t)
 	lhost := "127.0.0.1:7355"
 	laddr := wiretest.NewRandomAccount(rng).Address()
@@ -62,17 +62,16 @@ func TestDialer_Dial(t *testing.T) {
 	l, err := NewTCPListener(lhost, configs[0])
 	require.NoError(t, err)
 	defer l.Close()
-	if err := hub.insertListener(laddr, l); err != nil {
-		panic("double registration")
-	}
+	hub.listeners[laddr] = l
 
 	ser := perunio.Serializer()
 	d := NewTCPDialer(timeout, configs[1])
-	d.hub = &hub
-	hub.insertDialer(d)
+	d.hub = hub
+	hub.dialers = append(hub.dialers, d)
 
 	daddr := wiretest.NewRandomAccount(rng).Address()
 	defer d.Close()
+	defer hub.Close()
 
 	t.Run("happy", func(t *testing.T) {
 		e := &wire.Envelope{

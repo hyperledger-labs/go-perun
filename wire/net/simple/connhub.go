@@ -16,7 +16,6 @@ package simple
 
 import (
 	"crypto/tls"
-	gosync "sync"
 	"time"
 
 	"github.com/pkg/errors"
@@ -25,30 +24,29 @@ import (
 	"polycry.pt/poly-go/sync"
 )
 
-// DefaultTimeout is the default timeout for dialers.
-const DefaultTimeout = 10 * time.Millisecond
-
-// listenerMapEntry is a key-value entry inside a listener map.
-type listenerMapEntry struct {
-	key   wire.Address
-	value *Listener
-}
-
 // ConnHub is a factory for creating and connecting test dialers and listeners.
 type ConnHub struct {
-	mutex     gosync.RWMutex
-	listeners []listenerMapEntry
-	dialers   []*Dialer
+	listeners      map[wire.Address]*Listener
+	listenersMutex sync.Mutex // Mutex for managing listeners
+	dialers        []*Dialer
+	dialersMutex   sync.Mutex // Mutex for managing dialers
 
 	sync.Closer
+}
+
+// NewConnHub initializes and returns a new ConnHub instance.
+func NewConnHub() *ConnHub {
+	return &ConnHub{
+		listeners: make(map[wire.Address]*Listener),
+	}
 }
 
 // NewNetListener creates a new listener for the given address.
 // Registers the new listener in the hub. Panics if the address was already
 // entered or the hub is closed.
 func (h *ConnHub) NewNetListener(addr wire.Address, host string, config *tls.Config) *Listener {
-	h.mutex.Lock()
-	defer h.mutex.Unlock()
+	h.listenersMutex.Lock()
+	defer h.listenersMutex.Unlock()
 
 	if h.IsClosed() {
 		panic("ConnHub already closed")
@@ -59,29 +57,26 @@ func (h *ConnHub) NewNetListener(addr wire.Address, host string, config *tls.Con
 		panic(errors.WithMessage(err, "failed to create listener"))
 	}
 
-	if err := h.insertListener(addr, listener); err != nil {
+	if _, exists := h.listeners[addr]; exists {
 		panic("double registration")
 	}
 
-	listener.OnClose(func() {
-		h.eraseListener(addr) //nolint:errcheck
-	})
-
+	h.listeners[addr] = listener
 	return listener
 }
 
 // NewNetDialer creates a new dialer.
 // Registers the new dialer in the hub. Panics if the hub is closed.
 func (h *ConnHub) NewNetDialer(defaultTimeout time.Duration, tlsConfig *tls.Config) *Dialer {
-	h.mutex.Lock()
-	defer h.mutex.Unlock()
+	h.dialersMutex.Lock()
+	defer h.dialersMutex.Unlock()
 
 	if h.IsClosed() {
 		panic("ConnHub already closed")
 	}
 
 	dialer := NewTCPDialer(defaultTimeout, tlsConfig)
-	h.insertDialer(dialer)
+	h.dialers = append(h.dialers, dialer)
 	dialer.hub = h
 
 	return dialer
@@ -89,16 +84,15 @@ func (h *ConnHub) NewNetDialer(defaultTimeout time.Duration, tlsConfig *tls.Conf
 
 // Close closes the ConnHub and all its listeners.
 func (h *ConnHub) Close() (err error) {
-	h.mutex.Lock()
-	defer h.mutex.Unlock()
+	h.listenersMutex.Lock()
+	defer h.listenersMutex.Unlock()
 
-	for _, l := range h.listeners {
-		if cerr := l.value.Close(); cerr != nil && err == nil {
-			err = cerr
-		}
+	h.dialersMutex.Lock()
+	defer h.dialersMutex.Unlock()
+
+	if h.IsClosed() {
+		return errors.New("ConnHub already closed")
 	}
-
-	h.listeners = nil
 
 	for _, d := range h.dialers {
 		if cerr := d.Close(); cerr != nil && err == nil {
@@ -107,6 +101,14 @@ func (h *ConnHub) Close() (err error) {
 	}
 
 	h.dialers = nil
+
+	for _, l := range h.listeners {
+		if cerr := l.Close(); cerr != nil && err == nil {
+			err = cerr
+		}
+	}
+
+	h.listeners = nil
 
 	if err := h.Closer.Close(); err != nil {
 		return errors.WithMessage(err, "ConnHub already closed")
@@ -117,18 +119,18 @@ func (h *ConnHub) Close() (err error) {
 
 // findEntry is not mutexed, and is only to be called from within the type's
 // other functions.
-func (h *ConnHub) findListenerEntry(key wire.Address) (listenerMapEntry, int, bool) {
+func (h *ConnHub) findListenerEntry(key wire.Address) (*Listener, wire.Address, bool) {
 	if h.IsClosed() {
 		panic("ConnHub already closed")
 	}
 
-	for i, v := range h.listeners {
-		if v.key.Equal(key) {
-			return v, i, true
+	for k, v := range h.listeners {
+		if k.Equal(key) {
+			return v, k, true
 		}
 	}
 
-	return listenerMapEntry{}, -1, false
+	return nil, nil, false
 }
 
 func (h *ConnHub) findListener(key wire.Address) (*Listener, bool) {
@@ -136,43 +138,10 @@ func (h *ConnHub) findListener(key wire.Address) (*Listener, bool) {
 		panic("ConnHub already closed")
 	}
 
-	h.mutex.RLock()
-	defer h.mutex.RUnlock()
-
 	if e, _, ok := h.findListenerEntry(key); ok {
-		return e.value, true
+		return e, true
 	}
 	return nil, false
-}
-
-func (h *ConnHub) insertListener(key wire.Address, value *Listener) error {
-	if h.IsClosed() {
-		panic("ConnHub already closed")
-	}
-	if _, _, ok := h.findListenerEntry(key); ok {
-		return errors.New("tried to re-insert existing key")
-	}
-	h.listeners = append(h.listeners, listenerMapEntry{key, value})
-	return nil
-}
-
-func (h *ConnHub) eraseListener(key wire.Address) error {
-	if h.IsClosed() {
-		panic("ConnHub already closed")
-	}
-	if _, i, ok := h.findListenerEntry(key); ok {
-		h.listeners[i] = h.listeners[len(h.listeners)-1]
-		h.listeners = h.listeners[:len(h.listeners)-1]
-		return nil
-	}
-	return errors.New("tried to erase nonexistent entry")
-}
-
-func (h *ConnHub) insertDialer(dialer *Dialer) {
-	if h.IsClosed() {
-		panic("ConnHub already closed")
-	}
-	h.dialers = append(h.dialers, dialer)
 }
 
 func (h *ConnHub) eraseDialer(dialer *Dialer) error {

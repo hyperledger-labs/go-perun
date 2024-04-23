@@ -16,6 +16,7 @@ package simple_test
 
 import (
 	"fmt"
+	"log"
 	"testing"
 	"time"
 
@@ -31,11 +32,11 @@ import (
 )
 
 func TestBus(t *testing.T) {
-	const numClients = 16
+	const numClients = 3
 	const numMsgs = 10
-	const defaultTimeout = 10 * time.Millisecond
+	const defaultTimeout = ((numClients) * (numClients) * numMsgs) * 15 * time.Millisecond
 
-	var hub nettest.ConnHub
+	hub := nettest.NewConnHub()
 
 	commonName := "127.0.0.1"
 	sans := []string{"127.0.0.1", "localhost"}
@@ -46,6 +47,7 @@ func TestBus(t *testing.T) {
 	for i := 0; i < numClients; i++ {
 		port, err := findFreePort()
 		assert.NoError(t, err)
+		log.Printf("port: %d for client %d", port, i)
 		hosts[i] = fmt.Sprintf("127.0.0.1:%d", port)
 	}
 

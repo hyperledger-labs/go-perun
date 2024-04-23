@@ -16,6 +16,7 @@ package net
 
 import (
 	"context"
+	"fmt"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -170,6 +171,7 @@ func (r *EndpointRegistry) setupConn(conn Conn) error {
 	var peerAddr wire.Address
 	var err error
 	if peerAddr, err = ExchangeAddrsPassive(ctx, r.id, conn); err != nil {
+		conn.Close()
 		r.Log().WithField("peer", peerAddr).Error("could not authenticate peer:", err)
 		return err
 	}
@@ -306,6 +308,7 @@ func (r *EndpointRegistry) addEndpoint(addr wire.Address, conn Conn, dialer bool
 	// Start receiving messages.
 	go func() {
 		if err := e.recvLoop(consumer); err != nil {
+			fmt.Println(err)
 			r.Log().WithError(err).Error("recvLoop finished unexpectedly")
 		}
 		fe.delete(e)

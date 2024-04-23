@@ -75,6 +75,5 @@ func (l *Listener) Close() error {
 	if err != nil {
 		return err
 	}
-
 	return l.Closer.Close()
 }

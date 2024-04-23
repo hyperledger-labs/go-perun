@@ -84,7 +84,6 @@ func (b *Bus) Publish(ctx context.Context, e *wire.Envelope) (err error) {
 			}
 		}
 		log.WithError(err).Warn("Publishing failed.")
-
 		// Authentication errors are not retried.
 		if IsAuthenticationError(err) {
 			return err

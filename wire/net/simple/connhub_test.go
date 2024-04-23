@@ -19,6 +19,7 @@ import (
 	"fmt"
 	"net"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -28,12 +29,12 @@ import (
 	perunio "perun.network/go-perun/wire/perunio/serializer"
 	wiretest "perun.network/go-perun/wire/test"
 	ctxtest "polycry.pt/poly-go/context/test"
-	"polycry.pt/poly-go/sync"
 	pkgtest "polycry.pt/poly-go/test"
 )
 
 var (
-	commonName = "127.0.0.1"
+	commonName     = "127.0.0.1"
+	defaultTimeout = 100 * time.Millisecond
 )
 
 var sans = []string{"127.0.0.1", "localhost"}
@@ -54,9 +55,9 @@ func TestConnHub_Create(t *testing.T) {
 		tlsConfigs, err := GenerateSelfSignedCertConfigs(commonName, sans, 2)
 		assert.NoError(err, "generating self-signed cert configs")
 
-		var c ConnHub
+		c := NewConnHub()
 		addr := NewRandomAddress(rng)
-		d, l := c.NewNetDialer(DefaultTimeout, tlsConfigs[0]), c.NewNetListener(addr, hosts[0], tlsConfigs[0])
+		d, l := c.NewNetDialer(defaultTimeout, tlsConfigs[0]), c.NewNetListener(addr, hosts[0], tlsConfigs[0])
 		assert.NotNil(d)
 		assert.NotNil(l)
 
@@ -96,7 +97,7 @@ func TestConnHub_Create(t *testing.T) {
 		tlsConfigs, err := GenerateSelfSignedCertConfigs(commonName, sans, 2)
 		assert.NoError(err, "generating self-signed cert configs")
 
-		var c ConnHub
+		c := NewConnHub()
 		addr := NewRandomAddress(rng)
 
 		l := c.NewNetListener(addr, hosts[0], tlsConfigs[1])
@@ -117,9 +118,9 @@ func TestConnHub_Create(t *testing.T) {
 		tlsConfigs, err := GenerateSelfSignedCertConfigs(commonName, sans, 2)
 		assert.NoError(err, "generating self-signed cert configs")
 
-		var c ConnHub
+		c := NewConnHub()
 
-		d := c.NewNetDialer(DefaultTimeout, tlsConfigs[0])
+		d := c.NewNetDialer(defaultTimeout, tlsConfigs[0])
 		ctxtest.AssertTerminates(t, timeout, func() {
 			conn, err := d.Dial(context.Background(), NewRandomAddress(rng), ser)
 			assert.Nil(conn)
@@ -139,11 +140,11 @@ func TestConnHub_Create(t *testing.T) {
 		tlsConfigs, err := GenerateSelfSignedCertConfigs(commonName, sans, 2)
 		assert.NoError(err, "generating self-signed cert configs")
 
-		var c ConnHub
+		c := NewConnHub()
 		c.Close()
 		addr := NewRandomAddress(rng)
 
-		assert.Panics(func() { c.NewNetDialer(DefaultTimeout, tlsConfigs[0]) })
+		assert.Panics(func() { c.NewNetDialer(defaultTimeout, tlsConfigs[0]) })
 		assert.Panics(func() { c.NewNetListener(addr, hosts[0], tlsConfigs[0]) })
 	})
 }
@@ -162,7 +163,7 @@ func TestConnHub_Close(t *testing.T) {
 		tlsConfigs, err := GenerateSelfSignedCertConfigs(commonName, sans, 2)
 		assert.NoError(err, "generating self-signed cert configs")
 
-		var c ConnHub
+		c := NewConnHub()
 		l := c.NewNetListener(NewRandomAddress(rng), hosts[0], tlsConfigs[0])
 		assert.NoError(c.Close())
 		assert.True(l.IsClosed())
@@ -180,13 +181,12 @@ func TestConnHub_Close(t *testing.T) {
 		tlsConfigs, err := GenerateSelfSignedCertConfigs(commonName, sans, 2)
 		assert.NoError(err, "generating self-signed cert configs")
 
-		var c ConnHub
+		c := NewConnHub()
 		l := c.NewNetListener(NewRandomAddress(rng), hosts[0], tlsConfigs[0])
 		l2, err := NewTCPListener(hosts[1], tlsConfigs[1])
 		assert.NoError(err, "creating listener")
 		l2.Close()
-		err = c.insertListener(NewRandomAccount(rng).Address(), l2)
-		assert.NoError(err)
+		c.listeners[NewRandomAccount(rng).Address()] = l2
 		assert.Error(c.Close())
 		assert.True(l.IsClosed())
 	})
@@ -203,11 +203,11 @@ func TestConnHub_Close(t *testing.T) {
 		tlsConfigs, err := GenerateSelfSignedCertConfigs(commonName, sans, 2)
 		assert.NoError(err, "generating self-signed cert configs")
 
-		var c ConnHub
-		d := c.NewNetDialer(DefaultTimeout, tlsConfigs[0])
+		c := NewConnHub()
+		d := c.NewNetDialer(defaultTimeout, tlsConfigs[0])
 		d2 := &Dialer{}
 		d2.Close()
-		c.insertDialer(d2)
+		c.dialers = append(c.dialers, d2)
 		assert.Error(c.Close())
 		assert.True(d.IsClosed())
 	})
@@ -215,11 +215,10 @@ func TestConnHub_Close(t *testing.T) {
 	t.Run("double close", func(t *testing.T) {
 		assert := assert.New(t)
 
-		var c ConnHub
+		c := NewConnHub()
 		assert.NoError(c.Close())
 		err := c.Close()
 		assert.Error(err)
-		assert.True(sync.IsAlreadyClosedError(err))
 	})
 }
 
