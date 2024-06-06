@@ -28,6 +28,7 @@ Exposure of protobuf converters & `SignedState`, abstraction of tests and bug fi
 - Expose protobuf converters: [#384] [#393]
 - Use absolute module path in wire.proto: [#383]
 - Create AppID Type to generalize app identifiers: [#378] [:boom:]
+- Add abstract methods for wire communication Authentication in `wire` and provide default wire `wire/net/simple` [#402] [:boom:]
 
 
 [#359]: https://github.com/hyperledger-labs/go-perun/pull/359
@@ -46,7 +47,7 @@ Exposure of protobuf converters & `SignedState`, abstraction of tests and bug fi
 [#393]: https://github.com/hyperledger-labs/go-perun/pull/393
 [#394]: https://github.com/hyperledger-labs/go-perun/pull/394
 [#399]: https://github.com/hyperledger-labs/go-perun/pull/399
-
+[#402]: https://github.com/hyperledger-labs/go-perun/pull/402
 
 ## [0.10.0] Janus - 2022-05-25 [:warning:]
 Multi-ledger payment channels.
