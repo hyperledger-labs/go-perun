@@ -86,7 +86,7 @@ func GenericBusTest(t *testing.T,
 		ct := test.NewConcurrent(t)
 		ctx, cancel := context.WithTimeout(
 			context.Background(),
-			time.Duration((numClients)*(numClients)*numMsgs)*20*time.Millisecond)
+			time.Duration((numClients)*(numClients-1)*numMsgs)*15*time.Millisecond)
 		defer cancel()
 		waiting()
 		for sender := range clients {
@@ -112,7 +112,7 @@ func GenericBusTest(t *testing.T,
 					for i := 0; i < numMsgs; i++ {
 						e, err := recv.Next(ctx)
 						if err != nil {
-							log.Printf("From %d to %d: %v", sender, recipient, err)
+							log.Printf("Received from %d to %d: %v", sender, recipient, err)
 						}
 						require.NoError(t, err)
 						require.Equal(t, e, origEnv)
@@ -122,7 +122,7 @@ func GenericBusTest(t *testing.T,
 					for i := 0; i < numMsgs; i++ {
 						err := clients[sender].pub.Publish(ctx, origEnv)
 						if err != nil {
-							log.Printf("From %d to %d: %v", sender, recipient, err)
+							log.Printf("Send from %d to %d: %v", sender, recipient, err)
 						}
 						require.NoError(t, err)
 					}

@@ -92,6 +92,7 @@ func (p *Endpoint) Send(ctx context.Context, e *wire.Envelope) error {
 
 // Close closes the Endpoint's connection. A closed Endpoint is no longer usable.
 func (p *Endpoint) Close() (err error) {
+	// fmt.Printf("close endpoint (port: %d)\n", p.conn.(*ioConn).conn.(*tls.Conn).LocalAddr().(*net.TCPAddr).Port)
 	return p.conn.Close()
 }
 

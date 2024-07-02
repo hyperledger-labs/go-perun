@@ -16,7 +16,6 @@ package simple_test
 
 import (
 	"fmt"
-	"log"
 	"testing"
 	"time"
 
@@ -26,47 +25,51 @@ import (
 
 	"perun.network/go-perun/wire"
 	perunnet "perun.network/go-perun/wire/net"
-	nettest "perun.network/go-perun/wire/net/simple"
+	"perun.network/go-perun/wire/net/simple"
 	perunio "perun.network/go-perun/wire/perunio/serializer"
 	wiretest "perun.network/go-perun/wire/test"
 )
 
 func TestBus(t *testing.T) {
-	const numClients = 3
-	const numMsgs = 10
-	const defaultTimeout = ((numClients) * (numClients) * numMsgs) * 15 * time.Millisecond
-
-	hub := nettest.NewConnHub()
+	const numClients = 16
+	const numMsgs = 16
+	const defaultTimeout = 15 * time.Millisecond
 
 	commonName := "127.0.0.1"
 	sans := []string{"127.0.0.1", "localhost"}
-	tlsConfigs, err := nettest.GenerateSelfSignedCertConfigs(commonName, sans, numClients)
+	tlsConfigs, err := simple.GenerateSelfSignedCertConfigs(commonName, sans, numClients)
 	assert.NoError(t, err)
 
 	hosts := make([]string, numClients)
 	for i := 0; i < numClients; i++ {
 		port, err := findFreePort()
 		assert.NoError(t, err)
-		log.Printf("port: %d for client %d", port, i)
 		hosts[i] = fmt.Sprintf("127.0.0.1:%d", port)
 	}
 
-	dialers := make([]perunnet.Dialer, numClients)
+	dialers := make([]*simple.Dialer, numClients)
 	for j := 0; j < numClients; j++ {
-		dialers[j] = hub.NewNetDialer(defaultTimeout, tlsConfigs[j])
+		dialers[j] = simple.NewTCPDialer(defaultTimeout, tlsConfigs[j])
 	}
 
 	i := 0
 
 	wiretest.GenericBusTest(t, func(acc wire.Account) (wire.Bus, wire.Bus) {
+		for j := 0; j < numClients; j++ {
+			dialers[j].Register(acc.Address(), hosts[i])
+		}
+
 		bus := perunnet.NewBus(acc, dialers[i], perunio.Serializer())
-		hub.OnClose(func() { bus.Close() })
-		go bus.Listen(hub.NewNetListener(acc.Address(), hosts[i], tlsConfigs[i]))
+		listener, err := simple.NewTCPListener(hosts[i], tlsConfigs[i])
+		assert.NoError(t, err)
+		go bus.Listen(listener)
 		i++
 		return bus, bus
 	}, numClients, numMsgs)
 
-	assert.NoError(t, hub.Close())
+	for j := 0; j < numClients; j++ {
+		assert.NoError(t, dialers[j].Close())
+	}
 }
 
 func findFreePort() (int, error) {

@@ -46,8 +46,25 @@ func TestNewUnixDialer(t *testing.T) {
 	assert.Equal(t, d.network, "unix")
 }
 
+func TestDialer_Register(t *testing.T) {
+	tlsConfig := &tls.Config{
+		MinVersion: tls.VersionTLS12, // Set minimum TLS version to TLS 1.2
+	}
+	rng := test.Prng(t)
+	addr := NewRandomAddress(rng)
+	key := wire.Key(addr)
+	d := NewTCPDialer(0, tlsConfig)
+
+	_, ok := d.host(key)
+	require.False(t, ok)
+
+	d.Register(addr, "host")
+
+	host, ok := d.host(key)
+	assert.True(t, ok)
+	assert.Equal(t, host, "host")
+}
 func TestDialer_Dial(t *testing.T) {
-	hub := NewConnHub()
 
 	timeout := 10000 * time.Millisecond
 	rng := test.Prng(t)
@@ -62,16 +79,12 @@ func TestDialer_Dial(t *testing.T) {
 	l, err := NewTCPListener(lhost, configs[0])
 	require.NoError(t, err)
 	defer l.Close()
-	hub.listeners[laddr] = l
 
 	ser := perunio.Serializer()
 	d := NewTCPDialer(timeout, configs[1])
-	d.hub = hub
-	hub.dialers = append(hub.dialers, d)
-
+	d.Register(laddr, lhost)
 	daddr := wiretest.NewRandomAccount(rng).Address()
 	defer d.Close()
-	defer hub.Close()
 
 	t.Run("happy", func(t *testing.T) {
 		e := &wire.Envelope{

@@ -98,8 +98,8 @@ func GenerateSelfSignedCertConfigs(commonName string, sans []string, numClients 
 			RootCAs:      certPool,
 			ClientCAs:    certPool,
 			Certificates: []tls.Certificate{tlsCerts[i]},
-
-			MinVersion: tls.VersionTLS12, // Set minimum TLS version to TLS 1.2
+			ClientAuth:   tls.RequireAndVerifyClientCert,
+			MinVersion:   tls.VersionTLS12, // Set minimum TLS version to TLS 1.2
 		}
 	}
 
