@@ -27,6 +27,10 @@ import (
 	"time"
 )
 
+var (
+	certificateTimeout = 24 * time.Hour
+)
+
 // GenerateSelfSignedCertConfigs generates self-signed certificates and returns
 // a list of TLS configurations for n clients.
 func GenerateSelfSignedCertConfigs(commonName string, sans []string, numClients int) ([]*tls.Config, error) {
@@ -50,7 +54,7 @@ func GenerateSelfSignedCertConfigs(commonName string, sans []string, numClients 
 				CommonName:   fmt.Sprintf("%s-client-%d", commonName, i+1),
 			},
 			NotBefore:             time.Now(),
-			NotAfter:              time.Now().Add(24 * time.Hour),
+			NotAfter:              time.Now().Add(certificateTimeout),
 			KeyUsage:              x509.KeyUsageKeyEncipherment | x509.KeyUsageDigitalSignature,
 			ExtKeyUsage:           []x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth, x509.ExtKeyUsageClientAuth},
 			BasicConstraintsValid: true,

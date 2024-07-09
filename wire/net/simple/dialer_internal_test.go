@@ -65,7 +65,6 @@ func TestDialer_Register(t *testing.T) {
 	assert.Equal(t, host, "host")
 }
 func TestDialer_Dial(t *testing.T) {
-
 	timeout := 10000 * time.Millisecond
 	rng := test.Prng(t)
 	lhost := "127.0.0.1:7355"
