@@ -61,11 +61,11 @@ type Wallet struct {
 // Unlock retrieves the account belonging to the supplied address, and unlocks
 // it. If the address does not have a corresponding account in the wallet,
 // returns an error.
-func (w *Wallet) Unlock(a wallet.Address) (wallet.Account, error) {
+func (w *Wallet) Unlock(a map[int]wallet.Address) (wallet.Account, error) {
 	w.accMutex.RLock()
 	defer w.accMutex.RUnlock()
-
-	acc, ok := w.accs[wallet.Key(a)]
+	key := wallet.Key(a)
+	acc, ok := w.accs[key]
 	if !ok {
 		return nil, errors.Errorf("unlock unknown address: %v", a)
 	}
@@ -87,11 +87,11 @@ func (w *Wallet) LockAll() {
 // IncrementUsage increases an account's usage count, which is used for
 // resource management. Panics if the wallet does not have an account that
 // corresponds to the supplied address.
-func (w *Wallet) IncrementUsage(a wallet.Address) {
+func (w *Wallet) IncrementUsage(a map[int]wallet.Address) {
 	w.accMutex.RLock()
 	defer w.accMutex.RUnlock()
-
-	acc, ok := w.accs[wallet.Key(a)]
+	key := wallet.Key(a)
+	acc, ok := w.accs[key]
 	if !ok {
 		panic("invalid address")
 	}
@@ -103,11 +103,11 @@ func (w *Wallet) IncrementUsage(a wallet.Address) {
 // locks and deletes the account from the wallet. Panics if the call is not
 // matched to another preceding IncrementUsage call or if the supplied address
 // does not correspond to any of the wallet's accounts.
-func (w *Wallet) DecrementUsage(a wallet.Address) {
+func (w *Wallet) DecrementUsage(a map[int]wallet.Address) {
 	w.accMutex.Lock()
 	defer w.accMutex.Unlock()
-
-	acc, ok := w.accs[wallet.Key(a)]
+	key := wallet.Key(a)
+	acc, ok := w.accs[key]
 	if !ok {
 		panic("invalid address")
 	}
@@ -119,18 +119,18 @@ func (w *Wallet) DecrementUsage(a wallet.Address) {
 
 	if newCount == 0 {
 		acc.locked.Set()
-		delete(w.accs, wallet.Key(a))
+		delete(w.accs, key)
 	}
 }
 
 // UsageCount retrieves an account's usage count (controlled via IncrementUsage
 // and DecrementUsage). Panics if the supplied address does not correspond to
 // any of the wallet's accounts.
-func (w *Wallet) UsageCount(a wallet.Address) int {
+func (w *Wallet) UsageCount(a map[int]wallet.Address) int {
 	w.accMutex.RLock()
 	defer w.accMutex.RUnlock()
-
-	acc, ok := w.accs[wallet.Key(a)]
+	key := wallet.Key(a)
+	acc, ok := w.accs[key]
 	if !ok {
 		panic("invalid address")
 	}
@@ -171,7 +171,7 @@ func (w *Wallet) AddAccount(acc *Account) error {
 func (w *Wallet) HasAccount(acc *Account) bool {
 	w.accMutex.RLock()
 	defer w.accMutex.RUnlock()
-
-	_, ok := w.accs[wallet.Key(acc.Address())]
+	key := wallet.Key(acc.Address())
+	_, ok := w.accs[key]
 	return ok
 }

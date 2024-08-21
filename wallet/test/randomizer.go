@@ -67,6 +67,12 @@ func NewRandomAddress(rng *rand.Rand) wallet.Address {
 	return randomizer.NewRandomAddress(rng)
 }
 
+// NewRandomAddressMap returns a new random address by calling the currently set
+// wallet randomizer.
+func NewRandomAddresses(rng *rand.Rand) map[int]wallet.Address {
+	return map[int]wallet.Address{0: randomizer.NewRandomAddress(rng)}
+}
+
 // RandomWallet returns the randomizer backend's wallet. All accounts created
 // with NewRandomAccount can be found in this wallet.
 func RandomWallet() Wallet {
@@ -89,9 +95,9 @@ func NewWallet() Wallet {
 
 // NewRandomAccounts returns a slice of new random accounts
 // by calling NewRandomAccount.
-func NewRandomAccounts(rng *rand.Rand, n int) ([]wallet.Account, []wallet.Address) {
+func NewRandomAccounts(rng *rand.Rand, n int) ([]wallet.Account, []map[int]wallet.Address) {
 	accs := make([]wallet.Account, n)
-	addrs := make([]wallet.Address, n)
+	addrs := make([]map[int]wallet.Address, n)
 	for i := range accs {
 		accs[i] = NewRandomAccount(rng)
 		addrs[i] = accs[i].Address()
@@ -99,11 +105,34 @@ func NewRandomAccounts(rng *rand.Rand, n int) ([]wallet.Account, []wallet.Addres
 	return accs, addrs
 }
 
+// NewRandomAccounts returns a slice of new random accounts
+// by calling NewRandomAccount.
+func NewRandomAccountsMap(rng *rand.Rand, n int) (map[int][]wallet.Account, []map[int]wallet.Address) {
+	accs := make([]wallet.Account, n)
+	mapAccs := make(map[int][]wallet.Account)
+	mapAddrs := make([]map[int]wallet.Address, n)
+	for i := range accs {
+		accs[i] = NewRandomAccount(rng)
+	}
+	mapAccs[0] = accs
+	mapAddrs[0] = accs[0].Address()
+	return mapAccs, mapAddrs
+}
+
 // NewRandomAddresses returns a slice of new random addresses.
-func NewRandomAddresses(rng *rand.Rand, n int) []wallet.Address {
+func NewRandomAddressArray(rng *rand.Rand, n int) []wallet.Address {
 	addrs := make([]wallet.Address, n)
 	for i := range addrs {
 		addrs[i] = NewRandomAddress(rng)
+	}
+	return addrs
+}
+
+// NewRandomAddresses returns a slice of new random addresses.
+func NewRandomAddressesMap(rng *rand.Rand, n int) []map[int]wallet.Address {
+	addrs := make([]map[int]wallet.Address, n)
+	for i := range addrs {
+		addrs[i] = NewRandomAddresses(rng)
 	}
 	return addrs
 }

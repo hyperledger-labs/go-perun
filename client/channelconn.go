@@ -16,7 +16,6 @@ package client
 
 import (
 	"context"
-
 	"github.com/pkg/errors"
 	"golang.org/x/sync/errgroup"
 
@@ -34,7 +33,7 @@ type channelConn struct {
 
 	pub   wire.Publisher // outgoing message publisher
 	r     *wire.Relay    // update response relay/incoming messages
-	peers []wire.Address
+	peers []map[int]wire.Address
 	idx   channel.Index // our index
 
 	log log.Logger
@@ -42,7 +41,7 @@ type channelConn struct {
 
 // newChannelConn creates a new channel connection for the given channel ID. It
 // subscribes on the subscriber to all messages regarding this channel.
-func newChannelConn(id channel.ID, peers []wire.Address, idx channel.Index, sub wire.Subscriber, pub wire.Publisher) (_ *channelConn, err error) {
+func newChannelConn(id channel.ID, peers []map[int]wire.Address, idx channel.Index, sub wire.Subscriber, pub wire.Publisher) (_ *channelConn, err error) {
 	// relay to receive all update responses
 	relay := wire.NewRelay()
 	// we cache all responses for the lifetime of the relay
@@ -84,7 +83,7 @@ func newChannelConn(id channel.ID, peers []wire.Address, idx channel.Index, sub 
 	}, nil
 }
 
-func (c *channelConn) sender() wire.Address {
+func (c *channelConn) sender() map[int]wire.Address {
 	return c.peers[c.idx]
 }
 
@@ -119,7 +118,7 @@ func (c *channelConn) Send(ctx context.Context, msg wire.Msg) error {
 
 // Peers returns the ordered list of peer addresses. Note that the own peer is
 // included in the list.
-func (c *channelConn) Peers() []wire.Address {
+func (c *channelConn) Peers() []map[int]wire.Address {
 	return c.peers
 }
 
@@ -147,7 +146,7 @@ type (
 	// with Next(), which returns the peer's channel index and the message.
 	channelMsgRecv struct {
 		*wire.Receiver
-		peers []wire.Address
+		peers []map[int]wire.Address
 		log   log.Logger
 	}
 )
@@ -159,7 +158,7 @@ func (r *channelMsgRecv) Next(ctx context.Context) (channel.Index, ChannelMsg, e
 	if err != nil {
 		return 0, nil, err
 	}
-	idx := wire.IndexOfAddr(r.peers, env.Sender)
+	idx := wire.IndexOfAddrs(r.peers, env.Sender)
 	if idx == -1 {
 		return 0, nil, errors.Errorf("channel connection received message from unexpected peer %v", env.Sender)
 	}

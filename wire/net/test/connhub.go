@@ -35,7 +35,7 @@ type ConnHub struct {
 // NewNetListener creates a new test listener for the given address.
 // Registers the new listener in the hub. Panics if the address was already
 // entered or the hub is closed.
-func (h *ConnHub) NewNetListener(addr wire.Address) *Listener {
+func (h *ConnHub) NewNetListener(addr map[int]wire.Address) *Listener {
 	h.mutex.RLock()
 	defer h.mutex.RUnlock()
 

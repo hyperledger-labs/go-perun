@@ -15,12 +15,13 @@
 package wallet
 
 import (
+	"errors"
 	"io"
 )
 
 // backend is set to the global wallet backend. Must not be set directly but
 // through importing the needed backend.
-var backend Backend
+var backend map[int]Backend
 
 // Backend provides useful methods for this blockchain.
 type Backend interface {
@@ -40,25 +41,53 @@ type Backend interface {
 
 // SetBackend sets the global wallet backend. Must not be called directly but
 // through importing the needed backend.
-func SetBackend(b Backend) {
-	if backend != nil {
+func SetBackend(b Backend, id int) {
+	if backend == nil {
+		backend = make(map[int]Backend)
+
+	}
+	if backend[id] != nil {
 		panic("wallet backend already set")
 	}
-	backend = b
+	backend[id] = b
 }
 
 // NewAddress returns a variable of type Address, which can be used
 // for unmarshalling an address from its binary representation.
-func NewAddress() Address {
-	return backend.NewAddress()
+func NewAddress(id int) Address {
+	return backend[id].NewAddress()
 }
 
-// DecodeSig calls DecodeSig of the current backend.
+// DecodeSig calls DecodeSig of all Backends and returns an error if none return a valid signature.
 func DecodeSig(r io.Reader) (Sig, error) {
-	return backend.DecodeSig(r)
+	var errs []error
+	for _, b := range backend {
+		sig, err := b.DecodeSig(r)
+		if err == nil {
+			return sig, nil
+		} else {
+			errs = append(errs, err)
+		}
+	}
+
+	if len(errs) > 0 {
+		// Join all errors into a single error message.
+		return nil, errors.Join(errs...)
+	}
+
+	return nil, errors.New("no valid signature found")
 }
 
 // VerifySignature calls VerifySignature of the current backend.
-func VerifySignature(msg []byte, sign Sig, a Address) (bool, error) {
-	return backend.VerifySignature(msg, sign, a)
+func VerifySignature(msg []byte, sign Sig, a map[int]Address) (bool, error) {
+	var errs []error
+	for _, addr := range a {
+		v, err := backend[addr.BackendID()].VerifySignature(msg, sign, addr)
+		if err == nil && v {
+			return v, nil
+		} else {
+			errs = append(errs, err)
+		}
+	}
+	return false, errors.Join(errs...)
 }

@@ -41,8 +41,8 @@ func TestMultiLedgerHappy(ctx context.Context, t *testing.T, mlt MultiLedgerSetu
 	// Establish ledger channel between Alice and Bob.
 
 	// Create channel proposal.
-	parts := []wire.Address{alice.WireAddress, bob.WireAddress}
-	initAlloc := channel.NewAllocation(len(parts), mlt.Asset1, mlt.Asset2)
+	parts := []map[int]wire.Address{alice.WireAddress, bob.WireAddress}
+	initAlloc := channel.NewAllocation(len(parts), []int{0}, mlt.Asset1, mlt.Asset2)
 	initAlloc.Balances = initBals
 	prop, err := client.NewLedgerChannelProposal(
 		challengeDuration,

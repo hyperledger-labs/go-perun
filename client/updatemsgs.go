@@ -255,7 +255,7 @@ func (m *VirtualChannelFundingProposalMsg) Decode(r io.Reader) (err error) {
 	}
 
 	m.Initial.Sigs = make([]wallet.Sig, m.Initial.State.NumParts())
-	return wallet.DecodeSparseSigs(r, &m.Initial.Sigs)
+	return wallet.DecodeSparseSigs(r, &m.Initial.Sigs, m.Initial.State.Allocation.Backends)
 }
 
 // Type returns the message type.
@@ -293,5 +293,5 @@ func (m *VirtualChannelSettlementProposalMsg) Decode(r io.Reader) (err error) {
 	}
 
 	m.Final.Sigs = make([]wallet.Sig, m.Final.State.NumParts())
-	return wallet.DecodeSparseSigs(r, &m.Final.Sigs)
+	return wallet.DecodeSparseSigs(r, &m.Final.Sigs, m.Final.State.Allocation.Backends)
 }

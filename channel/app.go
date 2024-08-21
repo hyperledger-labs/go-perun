@@ -151,6 +151,11 @@ type OptAppEnc struct {
 	App
 }
 
+// OptAppEncMap makes an optional App value encodable.
+type OptAppEncMap struct {
+	App map[int]App
+}
+
 // Encode encodes an optional App value.
 func (e OptAppEnc) Encode(w io.Writer) error {
 	if IsNoApp(e.App) {
@@ -159,9 +164,35 @@ func (e OptAppEnc) Encode(w io.Writer) error {
 	return perunio.Encode(w, true, e.App.Def())
 }
 
+// Encode encodes an optional App value.
+func (e OptAppEncMap) Encode(w io.Writer) error {
+	if e.App == nil {
+		return perunio.Encode(w, false)
+	}
+	// Encode the map length first
+	if err := perunio.Encode(w, len(e.App)); err != nil {
+		return err
+	}
+	// Encode each map entry
+	for key, app := range e.App {
+		if IsNoApp(app) {
+			return errors.New("app in map is nil")
+		}
+		if err := perunio.Encode(w, key, app.Def()); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 // OptAppDec makes an optional App value decodable.
 type OptAppDec struct {
 	App *App
+}
+
+// OptAppDecMap makes an optional App value decodable.
+type OptAppDecMap struct {
+	App *map[int]App
 }
 
 // Decode decodes an optional App value.
@@ -174,13 +205,46 @@ func (d OptAppDec) Decode(r io.Reader) (err error) {
 		*d.App = NoApp()
 		return nil
 	}
-	appDef := backend.NewAppID()
+	appDef, _ := backend[0].NewAppID()
 	err = perunio.Decode(r, appDef)
 	if err != nil {
 		return errors.WithMessage(err, "decode app address")
 	}
 	*d.App, err = Resolve(appDef)
 	return errors.WithMessage(err, "resolve app")
+}
+
+// Decode decodes an optional App value.
+func (d OptAppDecMap) Decode(r io.Reader) (err error) {
+	var mapLen int
+	if err := perunio.Decode(r, &mapLen); err != nil {
+		return err
+	}
+	*d.App = make(map[int]App, mapLen)
+	for i := 0; i < mapLen; i++ {
+		var key int
+		if err := perunio.Decode(r, &key); err != nil {
+			return err
+		}
+		var hasApp bool
+		if err := perunio.Decode(r, &hasApp); err != nil {
+			return err
+		}
+		if !hasApp {
+			(*d.App)[key] = nil
+			continue
+		}
+		var appID AppID
+		if err := perunio.Decode(r, &appID); err != nil {
+			return err
+		}
+		app, err := Resolve(appID)
+		if err != nil {
+			return errors.WithMessage(err, "resolve app")
+		}
+		(*d.App)[key] = app
+	}
+	return nil
 }
 
 // OptAppAndDataEnc makes an optional pair of App definition and Data encodable.

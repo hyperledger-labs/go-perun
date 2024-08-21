@@ -24,8 +24,8 @@ import (
 )
 
 var (
-	_ perunio.Serializer = (*Addresses)(nil)
-	_ perunio.Serializer = (*AddressesWithLen)(nil)
+	_ perunio.Serializer = (*AddressDecMap)(nil)
+	_ perunio.Serializer = (*AddressMapArray)(nil)
 )
 
 // Address is a Perun node's network address, which is used as a permanent
@@ -46,55 +46,80 @@ type Address interface {
 	Verify(msg []byte, sig []byte) error
 }
 
-// Addresses is a helper type for encoding and decoding address slices in
-// situations where the length of the slice is known.
-type Addresses []Address
+// AddressMapArray is a helper type for encoding and decoding address maps.
+type AddressMapArray []map[int]Address
 
-// AddressesWithLen is a helper type for encoding and decoding address slices
-// of unknown length.
-type AddressesWithLen []Address
+// AddressDecMap is a helper type for encoding and decoding arrays of address maps.
+type AddressDecMap map[int]Address
 
-type addressSliceLen = uint16
-
-// Encode encodes wire addresses.
-func (a Addresses) Encode(w stdio.Writer) error {
+// Encode encodes first the length of the map,
+// then all Addresses and their key in the map.
+func (a AddressDecMap) Encode(w stdio.Writer) error {
+	length := int32(len(a)) // Using int32 to encode the length
+	if err := perunio.Encode(w, length); err != nil {
+		return errors.WithMessage(err, "encoding map length")
+	}
 	for i, addr := range a {
+		if err := perunio.Encode(w, int32(i)); err != nil {
+			return errors.WithMessage(err, "encoding map index")
+		}
 		if err := perunio.Encode(w, addr); err != nil {
-			return errors.WithMessagef(err, "encoding %d-th address", i)
-		}
-	}
-
-	return nil
-}
-
-// Encode encodes wire addresses with length.
-func (a AddressesWithLen) Encode(w stdio.Writer) error {
-	return perunio.Encode(w,
-		addressSliceLen(len(a)),
-		(Addresses)(a))
-}
-
-// Decode decodes wallet addresses.
-func (a Addresses) Decode(r stdio.Reader) error {
-	for i := range a {
-		a[i] = NewAddress()
-		err := perunio.Decode(r, a[i])
-		if err != nil {
-			return errors.WithMessagef(err, "decoding %d-th address", i)
+			return errors.WithMessagef(err, "encoding %d-th address map entry", i)
 		}
 	}
 	return nil
 }
 
-// Decode decodes a wallet address slice of unknown length.
-func (a *AddressesWithLen) Decode(r stdio.Reader) error {
-	var n addressSliceLen
-	if err := perunio.Decode(r, &n); err != nil {
-		return errors.WithMessage(err, "decoding count")
+// Encode encodes first the length of the array,
+// then all AddressDecMaps in the array.
+func (a AddressMapArray) Encode(w stdio.Writer) error {
+	length := int32(len(a)) // Using int32 to encode the length
+	if err := perunio.Encode(w, length); err != nil {
+		return errors.WithMessage(err, "encoding array length")
 	}
+	for i, addr := range a {
+		if err := perunio.Encode(w, AddressDecMap(addr)); err != nil {
+			return errors.WithMessagef(err, "encoding %d-th address array entry", i)
+		}
+	}
+	return nil
+}
 
-	*a = make(AddressesWithLen, n)
-	return (*Addresses)(a).Decode(r)
+// Decode decodes the map length first, then all Addresses and their key in the map.
+func (a *AddressDecMap) Decode(r stdio.Reader) (err error) {
+	var mapLen int32
+	if err := perunio.Decode(r, &mapLen); err != nil {
+		return errors.WithMessage(err, "decoding map length")
+	}
+	*a = make(map[int]Address, mapLen)
+	for i := 0; i < int(mapLen); i++ {
+		var idx int32
+		if err := perunio.Decode(r, &idx); err != nil {
+			return errors.WithMessage(err, "decoding map index")
+		}
+		addr := NewAddress()
+		if err := perunio.Decode(r, addr); err != nil {
+			return errors.WithMessagef(err, "decoding %d-th address map entry", i)
+		}
+		(*a)[int(idx)] = addr
+	}
+	return nil
+}
+
+// Decode decodes the array length first, then all AddressDecMaps in the array.
+// Decode decodes the array length first, then all AddressDecMaps in the array.
+func (a *AddressMapArray) Decode(r stdio.Reader) (err error) {
+	var mapLen int32
+	if err := perunio.Decode(r, &mapLen); err != nil {
+		return errors.WithMessage(err, "decoding array length")
+	}
+	*a = make([]map[int]Address, mapLen)
+	for i := 0; i < int(mapLen); i++ {
+		if err := perunio.Decode(r, (*AddressDecMap)(&(*a)[i])); err != nil {
+			return errors.WithMessagef(err, "decoding %d-th address map entry", i)
+		}
+	}
+	return nil
 }
 
 // IndexOfAddr returns the index of the given address in the address slice,
@@ -107,6 +132,30 @@ func IndexOfAddr(addrs []Address, addr Address) int {
 	}
 
 	return -1
+}
+
+// IndexOfAddr returns the index of the given address in the address slice,
+// or -1 if it is not part of the slice.
+func IndexOfAddrs(addrs []map[int]Address, addr map[int]Address) int {
+	for i, a := range addrs {
+		if addrEqual(a, addr) {
+			return i
+		}
+	}
+
+	return -1
+}
+
+func addrEqual(a, b map[int]Address) bool {
+	if len(a) != len(b) {
+		return false
+	}
+	for i, addr := range a {
+		if !addr.Equal(b[i]) {
+			return false
+		}
+	}
+	return true
 }
 
 // AddrKey is a non-human readable representation of an `Address`.
@@ -122,4 +171,14 @@ func Key(a Address) AddrKey {
 		panic("Could not encode address in AddrKey: " + err.Error())
 	}
 	return AddrKey(buff.String())
+}
+
+// Keys returns the `AddrKey` corresponding to the passed `map[int]Address`.
+func Keys(addressMap map[int]Address) AddrKey {
+	var keyParts []string
+	for _, addr := range addressMap {
+		key := Key(addr)
+		keyParts = append(keyParts, string(key)) // Assuming Address has a String() method.
+	}
+	return AddrKey(strings.Join(keyParts, "|"))
 }

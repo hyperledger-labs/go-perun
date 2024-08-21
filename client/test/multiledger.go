@@ -92,12 +92,16 @@ func SetupMultiLedgerTest(t *testing.T) MultiLedgerSetup {
 
 // MultiLedgerAsset is a multi-ledger asset.
 type MultiLedgerAsset struct {
-	id    LedgerID
+	id    multi.AssetID
 	asset channel.Asset
 }
 
+func (a *MultiLedgerAsset) AssetID() multi.AssetID {
+	return a.id
+}
+
 // NewMultiLedgerAsset returns a new multi-ledger asset.
-func NewMultiLedgerAsset(id LedgerID, asset channel.Asset) *MultiLedgerAsset {
+func NewMultiLedgerAsset(id multi.AssetID, asset channel.Asset) *MultiLedgerAsset {
 	return &MultiLedgerAsset{
 		id:    id,
 		asset: asset,
@@ -111,18 +115,18 @@ func (a *MultiLedgerAsset) Equal(b channel.Asset) bool {
 		return false
 	}
 
-	return a.id.MapKey() == bm.id.MapKey() && a.asset.Equal(bm.asset)
+	return a.id.LedgerId.MapKey() == bm.id.LedgerId.MapKey() && a.asset.Equal(bm.asset) && a.id.BackendID == bm.id.BackendID
 }
 
 // LedgerID returns the asset's ledger ID.
-func (a *MultiLedgerAsset) LedgerID() multi.LedgerID {
+func (a *MultiLedgerAsset) LedgerID() multi.AssetID {
 	return a.id
 }
 
 // MarshalBinary encodes the asset to its byte representation.
 func (a *MultiLedgerAsset) MarshalBinary() ([]byte, error) {
 	var buf bytes.Buffer
-	err := perunio.Encode(&buf, string(a.id), a.asset)
+	err := perunio.Encode(&buf, string(a.id.LedgerId.MapKey()), a.id.BackendID, a.asset)
 	if err != nil {
 		return nil, err
 	}
@@ -133,14 +137,14 @@ func (a *MultiLedgerAsset) MarshalBinary() ([]byte, error) {
 // UnmarshalBinary decodes the asset from its byte representation.
 func (a *MultiLedgerAsset) UnmarshalBinary(data []byte) error {
 	buf := bytes.NewBuffer(data)
-	return perunio.Decode(buf, string(a.id), a.asset)
+	return perunio.Decode(buf, string(a.id.LedgerId.MapKey()), a.id.BackendID, a.asset)
 }
 
 // MultiLedgerClient represents a test client.
 type MultiLedgerClient struct {
 	*client.Client
-	WireAddress                    wire.Address
-	WalletAddress                  wallet.Address
+	WireAddress                    map[int]wire.Address
+	WalletAddress                  map[int]wallet.Address
 	Events                         chan channel.AdjudicatorEvent
 	Adjudicator1, Adjudicator2     channel.Adjudicator
 	BalanceReader1, BalanceReader2 BalanceReader
@@ -160,7 +164,7 @@ func setupClient(
 	require := require.New(t)
 
 	// Setup identity.
-	wireAddr := wiretest.NewRandomAddress(rng)
+	wireAddr := wiretest.NewRandomAddressesMap(rng, 1)
 
 	// Setup wallet and account.
 	w := wtest.NewWallet()
@@ -168,20 +172,24 @@ func setupClient(
 
 	// Setup funder.
 	funder := multi.NewFunder()
-	funder.RegisterFunder(l1.ID(), l1.NewFunder(acc.Address()))
-	funder.RegisterFunder(l2.ID(), l2.NewFunder(acc.Address()))
+	for _, add := range acc.Address() {
+		funder.RegisterFunder(l1.ID(), l1.NewFunder(add))
+		funder.RegisterFunder(l2.ID(), l2.NewFunder(add))
+	}
 
 	// Setup adjudicator.
 	adj := multi.NewAdjudicator()
-	adj.RegisterAdjudicator(l1.ID(), l1.NewAdjudicator(acc.Address()))
-	adj.RegisterAdjudicator(l2.ID(), l2.NewAdjudicator(acc.Address()))
+	for _, add := range acc.Address() {
+		adj.RegisterAdjudicator(l1.ID(), l1.NewAdjudicator(add))
+		adj.RegisterAdjudicator(l2.ID(), l2.NewAdjudicator(add))
+	}
 
 	// Setup watcher.
 	watcher, err := local.NewWatcher(adj)
 	require.NoError(err)
 
 	c, err := client.New(
-		wireAddr,
+		wireAddr[0],
 		bus,
 		funder,
 		adj,
@@ -192,12 +200,12 @@ func setupClient(
 
 	return MultiLedgerClient{
 		Client:         c,
-		WireAddress:    wireAddr,
+		WireAddress:    wireAddr[0],
 		WalletAddress:  acc.Address(),
 		Events:         make(chan channel.AdjudicatorEvent),
-		Adjudicator1:   l1.NewAdjudicator(acc.Address()),
-		Adjudicator2:   l2.NewAdjudicator(acc.Address()),
-		BalanceReader1: l1.NewBalanceReader(acc.Address()),
-		BalanceReader2: l2.NewBalanceReader(acc.Address()),
+		Adjudicator1:   l1.NewAdjudicator(acc.Address()[0]),
+		Adjudicator2:   l2.NewAdjudicator(acc.Address()[0]),
+		BalanceReader1: l1.NewBalanceReader(acc.Address()[0]),
+		BalanceReader2: l2.NewBalanceReader(acc.Address()[0]),
 	}
 }

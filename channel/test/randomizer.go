@@ -82,8 +82,9 @@ func NewRandomAllocation(rng *rand.Rand, opts ...RandomOpt) *channel.Allocation 
 	assets := NewRandomAssets(rng, opt)
 	bals := NewRandomBalances(rng, opt)
 	locked := NewRandomLocked(rng, opt)
+	backends := NewRandomBackends(rng, len(assets), opt)
 
-	alloc := &channel.Allocation{Assets: assets, Balances: bals, Locked: locked}
+	alloc := &channel.Allocation{Backends: backends, Assets: assets, Balances: bals, Locked: locked}
 	updateOpts(opts, WithAllocation(alloc))
 	return alloc
 }
@@ -157,11 +158,11 @@ func NewRandomParams(rng *rand.Rand, opts ...RandomOpt) *channel.Params {
 		return params
 	}
 	numParts := opt.NumParts(rng)
-	var parts []wallet.Address
+	var parts []map[int]wallet.Address
 	if parts = opt.Parts(); parts == nil {
-		parts = make([]wallet.Address, numParts)
+		parts = make([]map[int]wallet.Address, numParts)
 		for i := range parts {
-			parts[i] = test.NewRandomAddress(rng)
+			parts[i] = map[int]wallet.Address{0: test.NewRandomAddress(rng)}
 		}
 	}
 	if firstPart := opt.FirstPart(); firstPart != nil {
@@ -304,6 +305,18 @@ func NewRandomBalances(rng *rand.Rand, opts ...RandomOpt) channel.Balances {
 	return balances
 }
 
+// NewRandomBackends generates new random backend IDs.
+// Options: `WithNumAssets` and `WithBackendIDs`.
+func NewRandomBackends(rng *rand.Rand, num int, opts ...RandomOpt) []int {
+	backends := make([]int, num)
+	for i := range backends {
+		backends[i] = 0
+	}
+
+	updateOpts(opts, WithBackendIDs(backends))
+	return backends
+}
+
 // NewRandomTransaction generates a new random `channel.Transaction`.
 // `sigMask` defines which signatures are generated. `len(sigmask)` is
 // assumed to be the number of participants.
@@ -313,7 +326,7 @@ func NewRandomTransaction(rng *rand.Rand, sigMask []bool, opts ...RandomOpt) *ch
 	opt := mergeRandomOpts(opts...)
 	numParts := len(sigMask)
 	accs, addrs := test.NewRandomAccounts(rng, numParts)
-	params := NewRandomParams(rng, WithParts(addrs...), opt)
+	params := NewRandomParams(rng, WithParts(addrs), opt)
 	state := NewRandomState(rng, WithID(params.ID()), WithNumParts(numParts), opt)
 
 	sigs := make([]wallet.Sig, numParts)

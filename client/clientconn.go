@@ -28,11 +28,11 @@ type clientConn struct {
 	*wire.Relay // Client relay, subscribed to the bus. Embedded for methods Subscribe and Cache.
 	bus         wire.Bus
 	reqRecv     *wire.Receiver // subscription to incoming requests
-	sender      wire.Address
+	sender      map[int]wire.Address
 	log.Embedding
 }
 
-func makeClientConn(address wire.Address, bus wire.Bus) (c clientConn, err error) {
+func makeClientConn(address map[int]wire.Address, bus wire.Bus) (c clientConn, err error) {
 	c.Embedding = log.MakeEmbedding(log.WithField("id", address))
 	c.sender = address
 	c.bus = bus
@@ -76,7 +76,7 @@ func (c clientConn) nextReq(ctx context.Context) (*wire.Envelope, error) {
 
 // pubMsg publishes the given message on the wire bus, setting the own client as
 // the sender.
-func (c *clientConn) pubMsg(ctx context.Context, msg wire.Msg, rec wire.Address) error {
+func (c *clientConn) pubMsg(ctx context.Context, msg wire.Msg, rec map[int]wire.Address) error {
 	c.Log().WithField("peer", rec).Debugf("Publishing message: %v: %+v", msg.Type(), msg)
 	return c.bus.Publish(ctx, &wire.Envelope{
 		Sender:    c.sender,

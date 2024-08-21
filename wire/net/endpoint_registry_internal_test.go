@@ -51,7 +51,7 @@ func (d *mockDialer) Close() error {
 	return nil
 }
 
-func (d *mockDialer) Dial(ctx context.Context, addr wire.Address, _ wire.EnvelopeSerializer) (Conn, error) {
+func (d *mockDialer) Dial(ctx context.Context, addr map[int]wire.Address, _ wire.EnvelopeSerializer) (Conn, error) {
 	d.mutex.Lock()
 	defer d.mutex.Unlock()
 
@@ -104,7 +104,7 @@ func newMockListener() *mockListener {
 	return &mockListener{dialer: mockDialer{dial: make(chan Conn)}}
 }
 
-func nilConsumer(wire.Address) wire.Consumer { return nil }
+func nilConsumer(map[int]wire.Address) wire.Consumer { return nil }
 
 // TestRegistry_Get tests that when calling Get(), existing peers are returned,
 // and when unknown peers are requested, a temporary peer is create that is
@@ -125,7 +125,7 @@ func TestRegistry_Get(t *testing.T) {
 		r := NewEndpointRegistry(id, nilConsumer, dialer, perunio.Serializer())
 		existing := newEndpoint(peerAddr, newMockConn())
 
-		r.endpoints[wire.Key(peerAddr)] = newFullEndpoint(existing)
+		r.endpoints[wire.Keys(peerAddr)] = newFullEndpoint(existing)
 		ctxtest.AssertTerminates(t, timeout, func() {
 			p, err := r.Endpoint(context.Background(), peerAddr)
 			assert.NoError(t, err)
@@ -366,7 +366,7 @@ func TestRegistry_addEndpoint_Subscribe(t *testing.T) {
 	called := false
 	r := NewEndpointRegistry(
 		wiretest.NewRandomAccount(rng),
-		func(wire.Address) wire.Consumer { called = true; return nil },
+		func(map[int]wire.Address) wire.Consumer { called = true; return nil },
 		nil,
 		perunio.Serializer(),
 	)

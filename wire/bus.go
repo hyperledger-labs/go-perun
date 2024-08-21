@@ -22,5 +22,5 @@ type Bus interface {
 
 	// SubscribeClient should route all messages with clientAddr as recipient to
 	// the provided Consumer. Every address may only be subscribed to once.
-	SubscribeClient(c Consumer, clientAddr Address) error
+	SubscribeClient(c Consumer, clientAddr map[int]Address) error
 }

@@ -35,7 +35,7 @@ type (
 		// state will be empty. The passed peers are the channel network peers,
 		// which should also be persisted. The parent field is the parent
 		// channel's ID, or nil, if it is a ledger channel.
-		ChannelCreated(ctx context.Context, source channel.Source, peers []wire.Address, parent *channel.ID) error
+		ChannelCreated(ctx context.Context, source channel.Source, peers []map[int]wire.Address, parent *channel.ID) error
 
 		// ChannelRemoved is called by the client when a channel is removed because
 		// it has been successfully settled and its data is no longer needed. All
@@ -72,11 +72,11 @@ type (
 	Restorer interface {
 		// ActivePeers should return a list of all peers with which any channel is
 		// persisted.
-		ActivePeers(context.Context) ([]wire.Address, error)
+		ActivePeers(context.Context) ([]map[int]wire.Address, error)
 
 		// RestorePeer should return an iterator over all persisted channels which
 		// the given peer is a part of.
-		RestorePeer(wire.Address) (ChannelIterator, error)
+		RestorePeer(map[int]wire.Address) (ChannelIterator, error)
 
 		// RestoreChannel should return the channel with the requested ID.
 		RestoreChannel(context.Context, channel.ID) (*Channel, error)
@@ -125,7 +125,7 @@ type (
 	// sub-channel, also holds the parent channel's ID.
 	Channel struct {
 		chSource
-		PeersV []wire.Address
+		PeersV []map[int]wire.Address
 		Parent *channel.ID
 	}
 )
@@ -156,7 +156,7 @@ func NewChannel() *Channel {
 
 // FromSource creates a new Channel object from given `channel.Source`, the
 // channel's network peers, and the parent channel ID, if it exists.
-func FromSource(s channel.Source, ps []wire.Address, parent *channel.ID) *Channel {
+func FromSource(s channel.Source, ps []map[int]wire.Address, parent *channel.ID) *Channel {
 	return &Channel{
 		chSource{
 			IdxV:       s.Idx(),

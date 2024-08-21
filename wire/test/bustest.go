@@ -102,7 +102,7 @@ func GenericBusTest(t *testing.T,
 				// Only subscribe to the current sender.
 				recv := wire.NewReceiver()
 				err := clients[recipient].r.Subscribe(recv, func(e *wire.Envelope) bool {
-					return e.Sender.Equal(clients[sender].id.Address())
+					return equalMaps(e.Sender, clients[sender].id.Address())
 				})
 				require.NoError(t, err)
 
@@ -148,4 +148,16 @@ func GenericBusTest(t *testing.T,
 	// messages will be received if the subscription was in place before
 	// publishing.
 	testPublishAndReceive(t, func() {})
+}
+
+func equalMaps(a, b map[int]wire.Address) bool {
+	if len(a) != len(b) {
+		return false
+	}
+	for k, v := range a {
+		if !v.Equal(b[k]) {
+			return false
+		}
+	}
+	return true
 }

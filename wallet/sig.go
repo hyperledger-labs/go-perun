@@ -47,7 +47,8 @@ const bitsPerByte = 8
 
 // SigDec is a helper type to decode signatures.
 type SigDec struct {
-	Sig *Sig
+	Sig       *Sig
+	BackendID int
 }
 
 // Decode decodes a single signature.
@@ -83,7 +84,7 @@ func EncodeSparseSigs(w io.Writer, sigs []Sig) error {
 }
 
 // DecodeSparseSigs decodes a collection of signatures in the form (mask, sig, sig, sig, ...).
-func DecodeSparseSigs(r io.Reader, sigs *[]Sig) (err error) {
+func DecodeSparseSigs(r io.Reader, sigs *[]Sig, backendIDs []int) (err error) {
 	masklen := int(math.Ceil(float64(len(*sigs)) / float64(bitsPerByte)))
 	mask := make([]uint8, masklen)
 

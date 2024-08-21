@@ -42,7 +42,7 @@ func TestProgression(t *testing.T) {
 
 	execConfig := &clienttest.ProgressionExecConfig{
 		BaseExecConfig: clienttest.MakeBaseExecConfig(
-			[2]wire.Address{setups[0].Identity.Address(), setups[1].Identity.Address()},
+			[2]map[int]wire.Address{setups[0].Identity.Address(), setups[1].Identity.Address()},
 			chtest.NewRandomAsset(rng),
 			[2]*big.Int{big.NewInt(99), big.NewInt(1)},
 			client.WithApp(app, channel.NewMockOp(channel.OpValid)),

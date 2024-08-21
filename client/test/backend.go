@@ -39,7 +39,7 @@ type (
 		latestEvents map[channel.ID]channel.AdjudicatorEvent
 		eventSubs    map[channel.ID][]*MockSubscription
 		balances     map[addressMapKey]map[assetMapKey]*big.Int
-		id           LedgerID
+		id           multi.AssetID
 	}
 
 	rng interface {
@@ -70,12 +70,12 @@ func NewMockBackend(rng *rand.Rand, id string) *MockBackend {
 		latestEvents: make(map[channel.ID]channel.AdjudicatorEvent),
 		eventSubs:    make(map[channel.ID][]*MockSubscription),
 		balances:     make(map[string]map[string]*big.Int),
-		id:           LedgerID(id),
+		id:           multi.AssetID{0, LedgerID(id)},
 	}
 }
 
 // ID returns the ledger's identifier.
-func (b *MockBackend) ID() LedgerID {
+func (b *MockBackend) ID() multi.AssetID {
 	return b.id
 }
 
@@ -526,7 +526,7 @@ func (f *assetHolder) Fund(req channel.FundingReq, b *MockBackend, acc wallet.Ad
 
 	for i, asset := range req.State.Assets {
 		ma, ok := asset.(*MultiLedgerAsset)
-		if ok && ma.LedgerID() != b.ID() {
+		if ok && ma.AssetID() != b.ID() {
 			continue
 		}
 

@@ -32,8 +32,8 @@ type Account struct {
 }
 
 // Address returns the account's address.
-func (acc *Account) Address() wire.Address {
-	return acc.addr
+func (acc *Account) Address() map[int]wire.Address {
+	return map[int]wire.Address{0: acc.addr}
 }
 
 // Sign signs the given message with the account's private key.

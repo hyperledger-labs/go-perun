@@ -35,7 +35,7 @@ import (
 //
 // Currently, only the two-party protocol is fully implemented.
 type Client struct {
-	address           wire.Address
+	address           map[int]wire.Address
 	conn              clientConn
 	channels          chanRegistry
 	funder            channel.Funder
@@ -68,7 +68,7 @@ type Client struct {
 //
 // If any argument is nil, New panics.
 func New(
-	address wire.Address,
+	address map[int]wire.Address,
 	bus wire.Bus,
 	funder channel.Funder,
 	adjudicator channel.Adjudicator,
@@ -201,7 +201,7 @@ func (c *Client) SetLog(l log.Logger) {
 	c.log = l
 }
 
-func (c *Client) logPeer(p wire.Address) log.Logger {
+func (c *Client) logPeer(p map[int]wire.Address) log.Logger {
 	return c.log.WithField("peer", p)
 }
 
@@ -220,7 +220,7 @@ func (c *Client) Restore(ctx context.Context) error {
 
 	var eg errgroup.Group
 	for _, p := range ps {
-		if p.Equal(c.address) {
+		if channel.EqualWireMaps(p, c.address) {
 			continue // skip own peer
 		}
 		p := p

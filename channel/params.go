@@ -63,7 +63,7 @@ type Params struct {
 	// ChallengeDuration in seconds during disputes
 	ChallengeDuration uint64
 	// Parts are the channel participants
-	Parts []wallet.Address
+	Parts []map[int]wallet.Address
 	// App identifies the application that this channel is running. It is
 	// optional, and if nil, signifies that a channel is a payment channel.
 	App App `cloneable:"shallow"`
@@ -84,9 +84,19 @@ func (p *Params) ID() ID {
 // appDef optional: if it is nil, it describes a payment channel. The channel id
 // is also calculated here and persisted because it probably is an expensive
 // hash operation.
-func NewParams(challengeDuration uint64, parts []wallet.Address, app App, nonce Nonce, ledger bool, virtual bool) (*Params, error) {
+func NewParams(challengeDuration uint64, parts []map[int]wallet.Address, app App, nonce Nonce, ledger bool, virtual bool) (*Params, error) {
 	if err := ValidateParameters(challengeDuration, len(parts), app, nonce); err != nil {
 		return nil, errors.WithMessage(err, "invalid parameter for NewParams")
+	}
+	for _, ps := range parts {
+		for id, p := range ps {
+			if backend[p.BackendID()] == nil {
+				return nil, errors.Errorf("no backend with id %d", p.BackendID())
+			}
+			if id != p.BackendID() {
+				return nil, errors.Errorf("participant %v has wrong backend id %d", p, p.BackendID())
+			}
+		}
 	}
 	return NewParamsUnsafe(challengeDuration, parts, app, nonce, ledger, virtual), nil
 }
@@ -130,7 +140,7 @@ func ValidateParameters(challengeDuration uint64, numParts int, app App, nonce N
 // NewParamsUnsafe creates Params from the given data and does NOT perform
 // sanity checks. The channel id is also calculated here and persisted because
 // it probably is an expensive hash operation.
-func NewParamsUnsafe(challengeDuration uint64, parts []wallet.Address, app App, nonce Nonce, ledger bool, virtual bool) *Params {
+func NewParamsUnsafe(challengeDuration uint64, parts []map[int]wallet.Address, app App, nonce Nonce, ledger bool, virtual bool) *Params {
 	p := &Params{
 		ChallengeDuration: challengeDuration,
 		Parts:             parts,
@@ -139,9 +149,24 @@ func NewParamsUnsafe(challengeDuration uint64, parts []wallet.Address, app App, 
 		LedgerChannel:     ledger,
 		VirtualChannel:    virtual,
 	}
+
 	// probably an expensive hash operation, do it only once during creation.
-	p.id = CalcID(p)
+	id, err := CalcID(p)
+	if err != nil || id == Zero {
+		log.Panicf("Could not calculate channel id: %v", err)
+	}
+	p.id = id
 	return p
+}
+
+// CloneAddress returns a clone of an Address using its binary marshaling
+// implementation. It panics if an error occurs during binary (un)marshaling.
+func CloneAddresses(as []map[int]wallet.Address) []map[int]wallet.Address {
+	var cloneMap []map[int]wallet.Address
+	for _, a := range as {
+		cloneMap = append(cloneMap, wallet.CloneAddressesMap(a))
+	}
+	return cloneMap
 }
 
 // Clone returns a deep copy of Params.
@@ -149,7 +174,7 @@ func (p *Params) Clone() *Params {
 	return &Params{
 		id:                p.ID(),
 		ChallengeDuration: p.ChallengeDuration,
-		Parts:             wallet.CloneAddresses(p.Parts),
+		Parts:             CloneAddresses(p.Parts),
 		App:               p.App,
 		Nonce:             new(big.Int).Set(p.Nonce),
 		LedgerChannel:     p.LedgerChannel,
@@ -159,10 +184,11 @@ func (p *Params) Clone() *Params {
 
 // Encode uses the pkg/io module to serialize a params instance.
 func (p *Params) Encode(w stdio.Writer) error {
+
 	return perunio.Encode(w,
 		p.ChallengeDuration,
-		wallet.AddressesWithLen(p.Parts),
-		OptAppEnc{p.App},
+		wallet.AddressMapArray{p.Parts},
+		OptAppEnc{App: p.App},
 		p.Nonce,
 		p.LedgerChannel,
 		p.VirtualChannel,
@@ -173,7 +199,7 @@ func (p *Params) Encode(w stdio.Writer) error {
 func (p *Params) Decode(r stdio.Reader) error {
 	var (
 		challengeDuration uint64
-		parts             wallet.AddressesWithLen
+		parts             wallet.AddressMapArray
 		app               App
 		nonce             Nonce
 		ledger            bool
@@ -192,7 +218,7 @@ func (p *Params) Decode(r stdio.Reader) error {
 		return err
 	}
 
-	_p, err := NewParams(challengeDuration, parts, app, nonce, ledger, virtual)
+	_p, err := NewParams(challengeDuration, parts.Addr, app, nonce, ledger, virtual)
 	if err != nil {
 		return err
 	}

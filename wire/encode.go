@@ -35,8 +35,8 @@ type (
 	// An Envelope encapsulates a message with routing information, that is, the
 	// sender and intended recipient.
 	Envelope struct {
-		Sender    Address // Sender of the message.
-		Recipient Address // Recipient of the message.
+		Sender    map[int]Address // Sender of the message.
+		Recipient map[int]Address // Recipient of the message.
 		// Msg contained in this Envelope. Not embedded so Envelope doesn't implement Msg.
 		Msg Msg
 	}

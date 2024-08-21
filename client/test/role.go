@@ -85,18 +85,18 @@ type (
 
 	// ExecConfig contains additional config parameters for the tests.
 	ExecConfig interface {
-		Peers() [2]wire.Address   // must match the RoleSetup.Identity's
-		Asset() channel.Asset     // single Asset to use in this channel
-		InitBals() [2]*big.Int    // channel deposit of each role
-		App() client.ProposalOpts // must be either WithApp or WithoutApp
+		Peers() [2]map[int]wire.Address // must match the RoleSetup.Identity's
+		Asset() channel.Asset           // single Asset to use in this channel
+		InitBals() [2]*big.Int          // channel deposit of each role
+		App() client.ProposalOpts       // must be either WithApp or WithoutApp
 	}
 
 	// BaseExecConfig contains base config parameters.
 	BaseExecConfig struct {
-		peers    [2]wire.Address     // must match the RoleSetup.Identity's
-		asset    channel.Asset       // single Asset to use in this channel
-		initBals [2]*big.Int         // channel deposit of each role
-		app      client.ProposalOpts // must be either WithApp or WithoutApp
+		peers    [2]map[int]wire.Address // must match the RoleSetup.Identity's
+		asset    channel.Asset           // single Asset to use in this channel
+		initBals [2]*big.Int             // channel deposit of each role
+		app      client.ProposalOpts     // must be either WithApp or WithoutApp
 	}
 
 	// An Executer is a Role that can execute a protocol.
@@ -118,7 +118,7 @@ type (
 	Client struct {
 		*client.Client
 		RoleSetup
-		WalletAddress wallet.Address
+		WalletAddress map[int]wallet.Address
 	}
 )
 
@@ -174,7 +174,7 @@ func ExecuteTwoPartyTest(ctx context.Context, t *testing.T, role [2]Executer, cf
 
 // MakeBaseExecConfig creates a new BaseExecConfig.
 func MakeBaseExecConfig(
-	peers [2]wire.Address,
+	peers [2]map[int]wire.Address,
 	asset channel.Asset,
 	initBals [2]*big.Int,
 	app client.ProposalOpts,
@@ -188,7 +188,7 @@ func MakeBaseExecConfig(
 }
 
 // Peers returns the peer addresses.
-func (c *BaseExecConfig) Peers() [2]wire.Address {
+func (c *BaseExecConfig) Peers() [2]map[int]wire.Address {
 	return c.peers
 }
 
@@ -297,10 +297,10 @@ func (r *role) waitStage() {
 
 // Idxs maps the passed addresses to the indices in the 2-party-channel. If the
 // setup's Identity is not found in peers, Idxs panics.
-func (r *role) Idxs(peers [2]wire.Address) (our, their channel.Index) {
-	if r.setup.Identity.Address().Equal(peers[0]) {
+func (r *role) Idxs(peers [2]map[int]wire.Address) (our, their channel.Index) {
+	if channel.EqualWireMaps(r.setup.Identity.Address(), peers[0]) {
 		return 0, 1
-	} else if r.setup.Identity.Address().Equal(peers[1]) {
+	} else if channel.EqualWireMaps(r.setup.Identity.Address(), peers[1]) {
 		return 1, 0
 	}
 	panic("identity not in peers")
@@ -397,7 +397,7 @@ func (r *role) LedgerChannelProposal(rng *rand.Rand, cfg ExecConfig) *client.Led
 	}
 
 	peers, asset, bals := cfg.Peers(), cfg.Asset(), cfg.InitBals()
-	alloc := channel.NewAllocation(len(peers), asset)
+	alloc := channel.NewAllocation(len(peers), []int{0}, asset)
 	alloc.SetAssetBalances(asset, bals[:])
 
 	prop, err := client.NewLedgerChannelProposal(

@@ -28,7 +28,7 @@ import (
 )
 
 type testAddresses struct {
-	addrs wallet.AddressesWithLen
+	addrs wallet.AddressMapArray
 }
 
 func (t *testAddresses) Encode(w io.Writer) error {
@@ -39,22 +39,36 @@ func (t *testAddresses) Decode(r io.Reader) error {
 	return t.addrs.Decode(r)
 }
 
+type testAddress struct {
+	addrs wallet.AddressDecMap
+}
+
+func (t *testAddress) Encode(w io.Writer) error {
+	return t.addrs.Encode(w)
+}
+
+func (t *testAddress) Decode(r io.Reader) error {
+	return t.addrs.Decode(r)
+}
+
 func TestAddresses_Serializer(t *testing.T) {
 	rng := pkgtest.Prng(t)
+	addr := wallettest.NewRandomAddressesMap(rng, 1)[0]
+	peruniotest.GenericSerializerTest(t, &testAddress{addrs: addr})
 
-	addrs := wallettest.NewRandomAddresses(rng, 0)
-	peruniotest.GenericSerializerTest(t, &testAddresses{addrs})
+	addrs := wallettest.NewRandomAddressesMap(rng, 0)
+	peruniotest.GenericSerializerTest(t, &testAddresses{addrs: wallet.AddressMapArray{Addr: addrs}})
 
-	addrs = wallettest.NewRandomAddresses(rng, 1)
-	peruniotest.GenericSerializerTest(t, &testAddresses{addrs})
+	addrs = wallettest.NewRandomAddressesMap(rng, 1)
+	peruniotest.GenericSerializerTest(t, &testAddresses{addrs: wallet.AddressMapArray{addrs}})
 
-	addrs = wallettest.NewRandomAddresses(rng, 5)
-	peruniotest.GenericSerializerTest(t, &testAddresses{addrs})
+	addrs = wallettest.NewRandomAddressesMap(rng, 5)
+	peruniotest.GenericSerializerTest(t, &testAddresses{addrs: wallet.AddressMapArray{addrs}})
 }
 
 func TestAddrKey_Equal(t *testing.T) {
 	rng := pkgtest.Prng(t)
-	addrs := wallettest.NewRandomAddresses(rng, 10)
+	addrs := wallettest.NewRandomAddressesMap(rng, 10)
 
 	// Test all properties of an equivalence relation.
 	for i, a := range addrs {
@@ -79,13 +93,13 @@ func TestAddrKey_Equal(t *testing.T) {
 
 func TestAddrKey(t *testing.T) {
 	rng := pkgtest.Prng(t)
-	addrs := wallettest.NewRandomAddresses(rng, 10)
+	addrs := wallettest.NewRandomAddressesMap(rng, 10)
 
 	for _, a := range addrs {
 		// Test that Key and FromKey are dual to each other.
 		require.Equal(t, wallet.Key(a), wallet.Key(wallet.FromKey(wallet.Key(a))))
 		// Test that FromKey returns the correct Address.
-		require.True(t, a.Equal(wallet.FromKey(wallet.Key(a))))
+		require.True(t, EqualWalletMaps(a, wallet.FromKey(wallet.Key(a))))
 	}
 }
 
@@ -99,11 +113,23 @@ func TestCloneAddress(t *testing.T) {
 
 func TestCloneAddresses(t *testing.T) {
 	rng := pkgtest.Prng(t)
-	addrs := wallettest.NewRandomAddresses(rng, 3)
+	addrs := wallettest.NewRandomAddressArray(rng, 3)
 	addrs0 := wallet.CloneAddresses(addrs)
 	require.Equal(t, addrs, addrs0)
 	require.NotSame(t, addrs, addrs0)
 	for i, a := range addrs {
 		require.NotSame(t, a, addrs0[i])
 	}
+}
+
+func EqualWalletMaps(a, b map[int]wallet.Address) bool {
+	if len(a) != len(b) {
+		return false
+	}
+	for i, addr := range a {
+		if !addr.Equal(b[i]) {
+			return false
+		}
+	}
+	return true
 }

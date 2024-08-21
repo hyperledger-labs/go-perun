@@ -33,7 +33,7 @@ type Address struct {
 }
 
 // NewAddress returns a new address.
-func NewAddress(host string) *Address {
+func NewAddress(host string) wire.Address {
 	return &Address{
 		Name: host,
 	}
@@ -190,6 +190,21 @@ func NewRandomAddress(rng *rand.Rand) *Address {
 		Name: string(d),
 	}
 	return a
+}
+
+// NewRandomAddress returns a new random peer address.
+func NewRandomAddresses(rng *rand.Rand) map[int]wire.Address {
+	const addrLen = 32
+	l := rng.Intn(addrLen)
+	d := make([]byte, l)
+	if _, err := rng.Read(d); err != nil {
+		panic(err)
+	}
+
+	a := Address{
+		Name: string(d),
+	}
+	return map[int]wire.Address{0: &a}
 }
 
 // Verify verifies a message signature.

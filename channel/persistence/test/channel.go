@@ -32,7 +32,7 @@ import (
 // as the associated persister and restorer.
 type Channel struct {
 	accounts []wallet.Account
-	peers    []wire.Address
+	peers    []map[int]wire.Address
 	parent   *channel.ID
 	*persistence.StateMachine
 
@@ -52,12 +52,12 @@ func NewRandomChannel(
 	t require.TestingT,
 	pr persistence.PersistRestorer,
 	user channel.Index,
-	peers []wire.Address,
+	peers []map[int]wire.Address,
 	parent *Channel,
 	rng *rand.Rand,
 ) (c *Channel) {
 	accs, parts := wtest.NewRandomAccounts(rng, len(peers))
-	params := ctest.NewRandomParams(rng, ctest.WithParts(parts...))
+	params := ctest.NewRandomParams(rng, ctest.WithParts(parts))
 	csm, err := channel.NewStateMachine(accs[0], *params)
 	require.NoError(t, err)
 
@@ -82,15 +82,27 @@ func NewRandomChannel(
 	return c
 }
 
-func requireEqualPeers(t require.TestingT, expected, actual []wire.Address) {
+func requireEqualPeers(t require.TestingT, expected, actual []map[int]wire.Address) {
 	require.Equal(t, len(expected), len(actual))
 	for i, p := range expected {
-		if !p.Equal(actual[i]) {
+		if !EqualWireMaps(p, actual[i]) {
 			t.Errorf("restored peers for channel do not match\nexpected: %v\nactual: %v",
 				actual, expected)
 			t.FailNow()
 		}
 	}
+}
+
+func EqualWireMaps(a, b map[int]wire.Address) bool {
+	if len(a) != len(b) {
+		return false
+	}
+	for i, addr := range a {
+		if !addr.Equal(b[i]) {
+			return false
+		}
+	}
+	return true
 }
 
 // AssertPersisted reads the channel state from the restorer and compares it

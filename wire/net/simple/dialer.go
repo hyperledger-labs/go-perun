@@ -77,11 +77,11 @@ func (d *Dialer) host(key wire.AddrKey) (string, bool) {
 }
 
 // Dial implements Dialer.Dial().
-func (d *Dialer) Dial(ctx context.Context, addr wire.Address, ser wire.EnvelopeSerializer) (wirenet.Conn, error) {
+func (d *Dialer) Dial(ctx context.Context, addr map[int]wire.Address, ser wire.EnvelopeSerializer) (wirenet.Conn, error) {
 	done := make(chan struct{})
 	defer close(done)
 
-	host, ok := d.host(wire.Key(addr))
+	host, ok := d.host(wire.Keys(addr))
 	if !ok {
 		return nil, errors.New("peer not found")
 	}
@@ -107,9 +107,9 @@ func (d *Dialer) Dial(ctx context.Context, addr wire.Address, ser wire.EnvelopeS
 }
 
 // Register registers a network address for a peer address.
-func (d *Dialer) Register(addr wire.Address, address string) {
+func (d *Dialer) Register(addr map[int]wire.Address, address string) {
 	d.mutex.Lock()
 	defer d.mutex.Unlock()
 
-	d.peers[wire.Key(addr)] = address
+	d.peers[wire.Keys(addr)] = address
 }

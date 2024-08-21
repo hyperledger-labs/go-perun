@@ -24,7 +24,7 @@ import (
 	"perun.network/go-perun/wire"
 )
 
-type channelFromSourceSig = func(*Client, *persistence.Channel, *Channel, ...wire.Address) (*Channel, error)
+type channelFromSourceSig = func(*Client, *persistence.Channel, *Channel, ...map[int]wire.Address) (*Channel, error)
 
 // clientChannelFromSource is the production behaviour of reconstructChannel.
 // During testing, it is replaced by a simpler function that needs much less
@@ -33,9 +33,9 @@ func clientChannelFromSource(
 	c *Client,
 	ch *persistence.Channel,
 	parent *Channel,
-	peers ...wire.Address,
+	peers ...map[int]wire.Address,
 ) (*Channel, error) {
-	return c.channelFromSource(ch, parent, peers...)
+	return c.channelFromSource(ch, parent, peers)
 }
 
 func (c *Client) reconstructChannel(
@@ -66,7 +66,7 @@ func (c *Client) reconstructChannel(
 	return ch
 }
 
-func (c *Client) restorePeerChannels(ctx context.Context, p wire.Address) (err error) {
+func (c *Client) restorePeerChannels(ctx context.Context, p map[int]wire.Address) (err error) {
 	it, err := c.pr.RestorePeer(p)
 	if err != nil {
 		return errors.WithMessagef(err, "restoring channels for peer: %v", err)

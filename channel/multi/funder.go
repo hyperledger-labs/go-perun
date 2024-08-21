@@ -26,27 +26,27 @@ import (
 // funders is a map of LedgerIDs corresponding to a funder on some chain.
 // egoisticChains is a map of LedgerIDs corresponding to a boolean indicating whether the chain should be funded last.
 type Funder struct {
-	funders        map[LedgerIDMapKey]channel.Funder
-	egoisticChains map[LedgerIDMapKey]bool
+	funders        map[AssetID]channel.Funder
+	egoisticChains map[AssetID]bool
 }
 
 // NewFunder creates a new funder.
 func NewFunder() *Funder {
 	return &Funder{
-		funders:        make(map[LedgerIDMapKey]channel.Funder),
-		egoisticChains: make(map[LedgerIDMapKey]bool),
+		funders:        make(map[AssetID]channel.Funder),
+		egoisticChains: make(map[AssetID]bool),
 	}
 }
 
 // RegisterFunder registers a funder for a given ledger.
-func (f *Funder) RegisterFunder(l LedgerID, lf channel.Funder) {
-	f.funders[l.MapKey()] = lf
-	f.egoisticChains[l.MapKey()] = false
+func (f *Funder) RegisterFunder(l AssetID, lf channel.Funder) {
+	f.funders[l] = lf
+	f.egoisticChains[l] = false
 }
 
 // SetEgoisticChain sets the egoistic chain flag for a given ledger.
-func (f *Funder) SetEgoisticChain(l LedgerID, egoistic bool) {
-	f.egoisticChains[l.MapKey()] = egoistic
+func (f *Funder) SetEgoisticChain(l AssetID, id int, egoistic bool) {
+	f.egoisticChains[l] = egoistic
 }
 
 // Fund funds a multi-ledger channel. It dispatches funding calls to all
@@ -58,16 +58,16 @@ func (f *Funder) Fund(ctx context.Context, request channel.FundingReq) error {
 	ctx, cancel := context.WithTimeout(ctx, d)
 	defer cancel()
 
-	ledgers, err := assets(request.State.Assets).LedgerIDs()
+	assetIDs, err := assets(request.State.Assets).LedgerIDs()
 	if err != nil {
 		return err
 	}
 
-	var egoisticLedgers []LedgerID
-	var nonEgoisticLedgers []LedgerID
+	var egoisticLedgers []AssetID
+	var nonEgoisticLedgers []AssetID
 
-	for _, l := range ledgers {
-		if f.egoisticChains[l.MapKey()] {
+	for _, l := range assetIDs {
+		if f.egoisticChains[l] {
 			egoisticLedgers = append(egoisticLedgers, l)
 		} else {
 			nonEgoisticLedgers = append(nonEgoisticLedgers, l)
@@ -89,29 +89,35 @@ func (f *Funder) Fund(ctx context.Context, request channel.FundingReq) error {
 	return nil
 }
 
-func fundLedgers(ctx context.Context, request channel.FundingReq, ledgers []LedgerID, funders map[LedgerIDMapKey]channel.Funder) error {
-	n := len(ledgers)
-	errs := make(chan error, n)
-	for _, le := range ledgers {
-		go func(le LedgerID) {
-			errs <- func() error {
-				id := le.MapKey()
-				lf, ok := funders[id]
-				if !ok {
-					return fmt.Errorf("Funder not found for ledger %v", id)
-				}
+func fundLedgers(ctx context.Context, request channel.FundingReq, assetIDs []AssetID, funders map[AssetID]channel.Funder) error {
+	// Calculate the total number of funders
+	n := len(assetIDs)
 
-				err := lf.Fund(ctx, request)
-				return err
-			}()
-		}(le)
+	errs := make(chan error, n)
+
+	// Iterate over blockchains to get the LedgerIDs
+	for _, assetID := range assetIDs {
+		go func(assetID AssetID) {
+			// Get the Funder from the funders map
+			funder, ok := funders[assetID]
+			if !ok {
+				errs <- fmt.Errorf("funder map not found for blockchain %d and ledger %d", assetID.BackendID, assetID.LedgerId)
+				return
+			}
+
+			// Call the Fund method
+			err := funder.Fund(ctx, request)
+			errs <- err
+		}(assetID)
 	}
 
+	// Collect errors
 	for i := 0; i < n; i++ {
 		err := <-errs
 		if err != nil {
 			return err
 		}
 	}
+
 	return nil
 }

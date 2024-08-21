@@ -24,7 +24,7 @@ import (
 // SetBackendTest is a generic backend test.
 func SetBackendTest(t *testing.T) {
 	t.Helper()
-	assert.Panics(t, func() { SetBackend(nil) }, "nil backend set should panic")
+	assert.Panics(t, func() { SetBackend(nil, 0) }, "nil backend set should panic")
 	require.NotNil(t, backend, "backend should be already set by init()")
-	assert.Panics(t, func() { SetBackend(backend) }, "setting a backend twice should panic")
+	assert.Panics(t, func() { SetBackend(backend[0], 0) }, "setting a backend twice should panic")
 }

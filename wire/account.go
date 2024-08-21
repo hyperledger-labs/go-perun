@@ -32,7 +32,7 @@ func init() {
 // authenticity within the Perun peer-to-peer network.
 type Account interface {
 	// Address used by this account.
-	Address() Address
+	Address() map[int]Address
 
 	// Sign signs the given message with this account's private key.
 	Sign(msg []byte) ([]byte, error)
@@ -81,9 +81,15 @@ func (m *AuthResponseMsg) Decode(r io.Reader) (err error) {
 
 // NewAuthResponseMsg creates an authentication response message.
 func NewAuthResponseMsg(acc Account) (Msg, error) {
-	addressBytes, err := acc.Address().MarshalBinary()
-	if err != nil {
-		return nil, fmt.Errorf("failed to marshal address: %w", err)
+	addressMap := acc.Address()
+	var addressBytes []byte
+	addressBytes = append(addressBytes, byte(len(addressMap)))
+	for _, addr := range addressMap {
+		addrBytes, err := addr.MarshalBinary()
+		if err != nil {
+			return nil, fmt.Errorf("failed to marshal address: %w", err)
+		}
+		addressBytes = append(addressBytes, addrBytes...)
 	}
 	signature, err := acc.Sign(addressBytes)
 	if err != nil {

@@ -32,7 +32,7 @@ var syncReplyTimeout = 10 * time.Second
 // exists, it just sends the current channel data to the requester. If the
 // own channel is in the Signing phase, the ongoing update is discarded so that
 // the channel is reverted to the Acting phase.
-func (c *Client) handleSyncMsg(peer wire.Address, msg *ChannelSyncMsg) {
+func (c *Client) handleSyncMsg(peer map[int]wire.Address, msg *ChannelSyncMsg) {
 	log := c.logChan(msg.ID()).WithField("peer", peer)
 	ch, ok := c.channels.Channel(msg.ID())
 	if !ok {
@@ -68,7 +68,7 @@ func (c *Client) handleSyncMsg(peer wire.Address, msg *ChannelSyncMsg) {
 // syncChannel synchronizes the channel state with the given peer and modifies
 // the current state if required.
 // nolint:unused
-func (c *Client) syncChannel(ctx context.Context, ch *persistence.Channel, p wire.Address) (err error) {
+func (c *Client) syncChannel(ctx context.Context, ch *persistence.Channel, p map[int]wire.Address) (err error) {
 	recv := wire.NewReceiver()
 	defer recv.Close() // ignore error
 	id := ch.ID()

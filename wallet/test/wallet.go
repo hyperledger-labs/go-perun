@@ -32,12 +32,12 @@ type UnlockedAccount func() (wallet.Account, error)
 
 // Setup provides all objects needed for the generic tests.
 type Setup struct {
-	Backend           wallet.Backend // backend implementation
-	Wallet            wallet.Wallet  // the wallet instance used for testing
-	AddressInWallet   wallet.Address // an address of an account in the test wallet
-	ZeroAddress       wallet.Address // an address that is less or equal to any other address
-	DataToSign        []byte         // some data to sign
-	AddressMarshalled []byte         // a valid nonzero address not in the wallet
+	Backend           wallet.Backend         // backend implementation
+	Wallet            wallet.Wallet          // the wallet instance used for testing
+	AddressInWallet   map[int]wallet.Address // an address of an account in the test wallet
+	ZeroAddress       wallet.Address         // an address that is less or equal to any other address
+	DataToSign        []byte                 // some data to sign
+	AddressMarshalled []byte                 // a valid nonzero address not in the wallet
 }
 
 // TestAccountWithWalletAndBackend tests an account implementation together with
@@ -49,7 +49,7 @@ func TestAccountWithWalletAndBackend(t *testing.T, s *Setup) { //nolint:revive /
 	// Check unlocked account
 	sig, err := acc.SignData(s.DataToSign)
 	assert.NoError(t, err, "Sign with unlocked account should succeed")
-	valid, err := s.Backend.VerifySignature(s.DataToSign, sig, acc.Address())
+	valid, err := s.Backend.VerifySignature(s.DataToSign, sig, acc.Address()[0])
 	assert.True(t, valid, "Verification should succeed")
 	assert.NoError(t, err, "Verification should not produce error")
 
@@ -64,20 +64,20 @@ func TestAccountWithWalletAndBackend(t *testing.T, s *Setup) { //nolint:revive /
 	copy(tampered, sig)
 	// Invalidate the signature and check for error
 	tampered[0] = ^sig[0]
-	valid, err = s.Backend.VerifySignature(s.DataToSign, tampered, acc.Address())
+	valid, err = s.Backend.VerifySignature(s.DataToSign, tampered, acc.Address()[0])
 	if valid && err == nil {
 		t.Error("Verification of invalid signature should produce error or return false")
 	}
 	// Truncate the signature and check for error
 	tampered = sig[:len(sig)-1]
-	valid, err = s.Backend.VerifySignature(s.DataToSign, tampered, acc.Address())
+	valid, err = s.Backend.VerifySignature(s.DataToSign, tampered, acc.Address()[0])
 	if valid && err != nil {
 		t.Error("Verification of invalid signature should produce error or return false")
 	}
 	// Expand the signature and check for error
 	//nolint:gocritic
 	tampered = append(sig, 0)
-	valid, err = s.Backend.VerifySignature(s.DataToSign, tampered, acc.Address())
+	valid, err = s.Backend.VerifySignature(s.DataToSign, tampered, acc.Address()[0])
 	if valid && err != nil {
 		t.Error("Verification of invalid signature should produce error or return false")
 	}

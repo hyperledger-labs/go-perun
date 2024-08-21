@@ -39,7 +39,7 @@ func (c *Channel) equalParticipants(_c *Channel) bool {
 	}
 
 	for i, _a := range a {
-		if !_a.Equal(b[i]) {
+		if !channel.EqualWireMaps(_a, b[i]) {
 			return false
 		}
 	}

@@ -214,11 +214,11 @@ func (r *multiClientRole) Errors() <-chan error {
 	return r.errs
 }
 
-type addresses []wire.Address
+type addresses []map[int]wire.Address
 
-func (a addresses) contains(b wire.Address) bool {
+func (a addresses) contains(b map[int]wire.Address) bool {
 	for _, addr := range a {
-		if addr.Equal(b) {
+		if channel.EqualWireMaps(addr, b) {
 			return true
 		}
 	}

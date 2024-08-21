@@ -98,7 +98,7 @@ func newWalletSetup(rng *rand.Rand) *test.Setup {
 		panic(err)
 	}
 
-	addressNotInWallet := NewRandomAccount(rng).Address()
+	addressNotInWallet := NewRandomAccount(rng).Address()[0]
 	addrMarshalled, err := addressNotInWallet.MarshalBinary()
 	if err != nil {
 		panic(err)

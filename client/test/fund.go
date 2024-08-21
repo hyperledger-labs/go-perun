@@ -113,9 +113,9 @@ func runFredFridaTest(
 	)
 
 	// Create the proposal.
-	initAlloc := channel.NewAllocation(numParts, asset)
+	initAlloc := channel.NewAllocation(numParts, []int{0}, asset)
 	initAlloc.SetAssetBalances(asset, []*big.Int{fridaInitBal, fredInitBal})
-	parts := []wire.Address{fridaWireAddr, fredWireAddr}
+	parts := []map[int]wire.Address{fridaWireAddr, fredWireAddr}
 	prop, err := client.NewLedgerChannelProposal(
 		challengeDuration,
 		fridaWalletAddr,
@@ -126,6 +126,7 @@ func runFredFridaTest(
 
 	// Frida sends the proposal.
 	chFrida, err := frida.ProposeChannel(ctx, prop)
+	t.Log(err.Error())
 	require.IsType(t, &client.ChannelFundingError{}, err)
 	require.NotNil(t, chFrida)
 	// Frida settles the channel.

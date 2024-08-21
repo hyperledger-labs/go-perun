@@ -217,8 +217,8 @@ func setupVirtualChannelTest(
 	go ingrid.Client.Handle(openingProposalHandlerIngrid, updateProposalHandlerIngrid)
 
 	// Establish ledger channel between Alice and Ingrid.
-	peersAlice := []wire.Address{alice.Identity.Address(), ingrid.Identity.Address()}
-	initAllocAlice := channel.NewAllocation(len(peersAlice), asset)
+	peersAlice := []map[int]wire.Address{alice.Identity.Address(), ingrid.Identity.Address()}
+	initAllocAlice := channel.NewAllocation(len(peersAlice), []int{0}, asset)
 	initAllocAlice.SetAssetBalances(asset, vct.initBalsAlice)
 	lcpAlice, err := client.NewLedgerChannelProposal(
 		setup.ChallengeDuration,
@@ -237,8 +237,8 @@ func setupVirtualChannelTest(
 	}
 
 	// Establish ledger channel between Bob and Ingrid.
-	peersBob := []wire.Address{bob.Identity.Address(), ingrid.Identity.Address()}
-	initAllocBob := channel.NewAllocation(len(peersBob), asset)
+	peersBob := []map[int]wire.Address{bob.Identity.Address(), ingrid.Identity.Address()}
+	initAllocBob := channel.NewAllocation(len(peersBob), []int{0}, asset)
 	initAllocBob.SetAssetBalances(asset, vct.initBalsBob)
 	lcpBob, err := client.NewLedgerChannelProposal(
 		setup.ChallengeDuration,
@@ -293,7 +293,7 @@ func setupVirtualChannelTest(
 		setup.ChallengeDuration,
 		alice.WalletAddress,
 		&initAllocVirtual,
-		[]wire.Address{alice.Identity.Address(), bob.Identity.Address()},
+		[]map[int]wire.Address{alice.Identity.Address(), bob.Identity.Address()},
 		[]channel.ID{vct.chAliceIngrid.ID(), vct.chBobIngrid.ID()},
 		[][]channel.Index{indexMapAlice, indexMapBob},
 	)

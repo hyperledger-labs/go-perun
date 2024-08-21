@@ -16,6 +16,7 @@ package net
 
 import (
 	"context"
+	"perun.network/go-perun/channel/persistence/test"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -31,9 +32,9 @@ import (
 // dialingEndpoint is an endpoint that is being dialed, but has no connection
 // associated with it yet.
 type dialingEndpoint struct {
-	Address   wire.Address  // The Endpoint's address.
-	created   chan struct{} // Triggered when the Endpoint is created.
-	createdAt *Endpoint     // Contains the finished Endpoint when it exists.
+	Address   map[int]wire.Address // The Endpoint's address.
+	created   chan struct{}        // Triggered when the Endpoint is created.
+	createdAt *Endpoint            // Contains the finished Endpoint when it exists.
 }
 
 // fullEndpoint describes an endpoint that is held within the registry.
@@ -51,7 +52,7 @@ func newFullEndpoint(e *Endpoint) *fullEndpoint {
 	}
 }
 
-func newDialingEndpoint(addr wire.Address) *dialingEndpoint {
+func newDialingEndpoint(addr map[int]wire.Address) *dialingEndpoint {
 	return &dialingEndpoint{
 		Address: addr,
 		created: make(chan struct{}),
@@ -63,9 +64,9 @@ func newDialingEndpoint(addr wire.Address) *dialingEndpoint {
 // connections. It should not be used manually, but only internally by a
 // wire.Bus.
 type EndpointRegistry struct {
-	id            wire.Account                     // The identity of the node.
-	dialer        Dialer                           // Used for dialing peers.
-	onNewEndpoint func(wire.Address) wire.Consumer // Selects Consumer for new Endpoints' receive loop.
+	id            wire.Account                             // The identity of the node.
+	dialer        Dialer                                   // Used for dialing peers.
+	onNewEndpoint func(map[int]wire.Address) wire.Consumer // Selects Consumer for new Endpoints' receive loop.
 	ser           wire.EnvelopeSerializer
 
 	endpoints map[wire.AddrKey]*fullEndpoint // The list of all of all established Endpoints.
@@ -83,7 +84,7 @@ const exchangeAddrsTimeout = 10 * time.Second
 // called before the peer starts receiving messages.
 func NewEndpointRegistry(
 	id wire.Account,
-	onNewEndpoint func(wire.Address) wire.Consumer,
+	onNewEndpoint func(map[int]wire.Address) wire.Consumer,
 	dialer Dialer,
 	ser wire.EnvelopeSerializer,
 ) *EndpointRegistry {
@@ -167,7 +168,7 @@ func (r *EndpointRegistry) setupConn(conn Conn) error {
 	ctx, cancel := context.WithTimeout(r.Ctx(), exchangeAddrsTimeout)
 	defer cancel()
 
-	var peerAddr wire.Address
+	var peerAddr map[int]wire.Address
 	var err error
 	if peerAddr, err = ExchangeAddrsPassive(ctx, r.id, conn); err != nil {
 		conn.Close()
@@ -175,7 +176,7 @@ func (r *EndpointRegistry) setupConn(conn Conn) error {
 		return err
 	}
 
-	if peerAddr.Equal(r.id.Address()) {
+	if test.EqualWireMaps(peerAddr, r.id.Address()) {
 		r.Log().Error("dialed by self")
 		return errors.New("dialed by self")
 	}
@@ -187,11 +188,11 @@ func (r *EndpointRegistry) setupConn(conn Conn) error {
 // Endpoint looks up an Endpoint via its perun address. If the Endpoint does not
 // exist yet, it is dialed. Does not return until the peer is dialed or the
 // context is closed.
-func (r *EndpointRegistry) Endpoint(ctx context.Context, addr wire.Address) (*Endpoint, error) {
+func (r *EndpointRegistry) Endpoint(ctx context.Context, addr map[int]wire.Address) (*Endpoint, error) {
 	log := r.Log().WithField("peer", addr)
-	key := wire.Key(addr)
+	key := wire.Keys(addr)
 
-	if addr.Equal(r.id.Address()) {
+	if test.EqualWireMaps(addr, r.id.Address()) {
 		log.Panic("tried to dial self")
 	}
 
@@ -217,11 +218,11 @@ func (r *EndpointRegistry) Endpoint(ctx context.Context, addr wire.Address) (*En
 
 func (r *EndpointRegistry) authenticatedDial(
 	ctx context.Context,
-	addr wire.Address,
+	addr map[int]wire.Address,
 	de *dialingEndpoint,
 	created bool,
 ) (ret *Endpoint, _ error) {
-	key := wire.Key(addr)
+	key := wire.Keys(addr)
 
 	// Short cut: another dial for that peer is already in progress.
 	if !created {
@@ -261,8 +262,8 @@ func (r *EndpointRegistry) authenticatedDial(
 }
 
 // dialingEndpoint retrieves or creates a dialingEndpoint for the passed address.
-func (r *EndpointRegistry) dialingEndpoint(a wire.Address) (_ *dialingEndpoint, created bool) {
-	key := wire.Key(a)
+func (r *EndpointRegistry) dialingEndpoint(a map[int]wire.Address) (_ *dialingEndpoint, created bool) {
+	key := wire.Keys(a)
 	entry, ok := r.dialing[key]
 	if !ok {
 		entry = newDialingEndpoint(a)
@@ -283,17 +284,17 @@ func (r *EndpointRegistry) NumPeers() int {
 // Has return true if and only if there is a peer with the given address in the
 // registry. The function does not differentiate between regular and
 // placeholder peers.
-func (r *EndpointRegistry) Has(addr wire.Address) bool {
+func (r *EndpointRegistry) Has(addr map[int]wire.Address) bool {
 	r.mutex.Lock()
 	defer r.mutex.Unlock()
 
-	_, ok := r.endpoints[wire.Key(addr)]
+	_, ok := r.endpoints[wire.Keys(addr)]
 
 	return ok
 }
 
 // addEndpoint adds a new peer to the registry.
-func (r *EndpointRegistry) addEndpoint(addr wire.Address, conn Conn, dialer bool) *Endpoint {
+func (r *EndpointRegistry) addEndpoint(addr map[int]wire.Address, conn Conn, dialer bool) *Endpoint {
 	r.Log().WithField("peer", addr).Trace("EndpointRegistry.addEndpoint")
 
 	e := newEndpoint(addr, conn)
@@ -317,8 +318,8 @@ func (r *EndpointRegistry) addEndpoint(addr wire.Address, conn Conn, dialer bool
 }
 
 // fullEndpoint retrieves or creates a fullEndpoint for the passed address.
-func (r *EndpointRegistry) fullEndpoint(addr wire.Address, e *Endpoint) (_ *fullEndpoint, created bool) {
-	key := wire.Key(addr)
+func (r *EndpointRegistry) fullEndpoint(addr map[int]wire.Address, e *Endpoint) (_ *fullEndpoint, created bool) {
+	key := wire.Keys(addr)
 	r.mutex.Lock()
 	defer r.mutex.Unlock()
 	entry, ok := r.endpoints[key]
@@ -332,7 +333,7 @@ func (r *EndpointRegistry) fullEndpoint(addr wire.Address, e *Endpoint) (_ *full
 // replace sets a new endpoint and resolves ties when both parties dial each
 // other concurrently. It returns the endpoint that is selected after potential
 // tie resolving, and whether the supplied endpoint was closed in the process.
-func (p *fullEndpoint) replace(newValue *Endpoint, self wire.Address, dialer bool) (updated *Endpoint, closed bool) {
+func (p *fullEndpoint) replace(newValue *Endpoint, self map[int]wire.Address, dialer bool) (updated *Endpoint, closed bool) {
 	// If there was no previous endpoint, just set the new one.
 	wasNil := atomic.CompareAndSwapPointer(&p.endpoint, nil, unsafe.Pointer(newValue))
 	if wasNil {
@@ -344,11 +345,24 @@ func (p *fullEndpoint) replace(newValue *Endpoint, self wire.Address, dialer boo
 	// close on both sides. Close the endpoint that is created by the dialer
 	// with the lesser Perun address and return the previously existing
 	// endpoint.
-	if dialer == (self.Cmp(newValue.Address) < 0) {
-		if err := newValue.Close(); err != nil {
-			log.Warn("newValue dialer already closed")
+	for key, selfAddr := range self {
+		// Check if the same key exists in newValue.Address
+		newAddr, exists := newValue.Address[key]
+
+		// If the key does not exist in newValue.Address, you might skip it or handle it
+		if !exists {
+			continue // or handle this scenario according to your requirements
 		}
-		return p.Endpoint(), true
+
+		// Compare the addresses
+		if dialer == (selfAddr.Cmp(newAddr) < 0) {
+			// If selfAddr is "lesser", close the new value
+			if err := newValue.Close(); err != nil {
+				log.Warn("newValue dialer already closed")
+			}
+			// Return the existing endpoint associated with this key
+			return p.Endpoint(), true
+		}
 	}
 
 	// Otherwise, install the new endpoint and close the old endpoint.
@@ -369,10 +383,10 @@ func (p *fullEndpoint) delete(expectedOldValue *Endpoint) {
 	atomic.CompareAndSwapPointer(&p.endpoint, unsafe.Pointer(expectedOldValue), nil)
 }
 
-func (r *EndpointRegistry) find(addr wire.Address) *Endpoint {
+func (r *EndpointRegistry) find(addr map[int]wire.Address) *Endpoint {
 	r.mutex.RLock()
 	defer r.mutex.RUnlock()
-	if e, ok := r.endpoints[wire.Key(addr)]; ok {
+	if e, ok := r.endpoints[wire.Keys(addr)]; ok {
 		return e.Endpoint()
 	}
 	return nil

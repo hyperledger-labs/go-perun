@@ -17,6 +17,7 @@ package channel
 import (
 	"encoding"
 	"io"
+	"perun.network/go-perun/wire"
 
 	"github.com/pkg/errors"
 
@@ -78,7 +79,7 @@ func newState(params *Params, initBals Allocation, initData Data) (*State, error
 	n := len(params.Parts)
 	for _, asset := range initBals.Balances {
 		if n != len(asset) {
-			return nil, errors.New("number of participants in parameters and initial balances don't match")
+			return nil, errors.Errorf("number of participants in parameters and initial balances don't match: parts: %d, balances: %d", n, len(asset))
 		}
 	}
 	if err := initBals.Valid(); err != nil {
@@ -157,4 +158,16 @@ func (s *State) Equal(t *State) error {
 // parent channel's locked funds.
 func (s *State) ToSubAlloc() *SubAlloc {
 	return NewSubAlloc(s.ID, s.Allocation.Sum(), nil)
+}
+
+func EqualWireMaps(a, b map[int]wire.Address) bool {
+	if len(a) != len(b) {
+		return false
+	}
+	for i, addr := range a {
+		if !addr.Equal(b[i]) {
+			return false
+		}
+	}
+	return true
 }

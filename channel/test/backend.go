@@ -25,7 +25,7 @@ import (
 	"perun.network/go-perun/wallet"
 )
 
-type addressCreator = func() wallet.Address
+type addressCreator = func() map[int]wallet.Address
 
 // Setup provides all objects needed for the generic channel tests.
 type (
@@ -73,7 +73,8 @@ func mergeTestOpts(opts ...GenericTestOption) GenericTestOptions {
 func GenericBackendTest(t *testing.T, s *Setup, opts ...GenericTestOption) {
 	t.Helper()
 	require := require.New(t)
-	ID := channel.CalcID(s.Params)
+	ID, err := channel.CalcID(s.Params)
+	require.NoError(err, "CalcID should not return an error")
 	require.Equal(ID, s.State.ID, "ChannelID(params) should match the States ID")
 	require.Equal(ID, s.Params.ID(), "ChannelID(params) should match the Params ID")
 	require.NotNil(s.State.Data, "State data can not be nil")
@@ -95,12 +96,13 @@ func GenericBackendTest(t *testing.T, s *Setup, opts ...GenericTestOption) {
 func genericChannelIDTest(t *testing.T, s *Setup) {
 	t.Helper()
 	require.NotNil(t, s.Params.Parts, "params.Parts can not be nil")
-	assert.Panics(t, func() { channel.CalcID(nil) }, "ChannelID(nil) should panic")
+	_, err := channel.CalcID(s.Params)
+	assert.NoError(t, err, "CalcID should not return an error")
 
 	// Check that modifying the state changes the id
 	for _, modParams := range buildModifiedParams(s.Params, s.Params2, s) {
 		params := modParams
-		ID := channel.CalcID(&params)
+		ID, _ := channel.CalcID(&params)
 		assert.NotEqual(t, ID, s.State.ID, "Channel ids should differ")
 	}
 }
@@ -114,7 +116,9 @@ func genericSignTest(t *testing.T, s *Setup) {
 func genericVerifyTest(t *testing.T, s *Setup, opts ...GenericTestOption) {
 	t.Helper()
 	addr := s.Account.Address()
-	require.Equal(t, channel.CalcID(s.Params), s.Params.ID(), "Invalid test params")
+	id, err := channel.CalcID(s.Params)
+	require.NoError(t, err, "CalcID should not return an error")
+	require.Equal(t, s.Params.ID(), id, "Invalid test params")
 	sig, err := channel.Sign(s.Account, s.State)
 	require.NoError(t, err, "Sign should not return an error")
 
@@ -164,7 +168,7 @@ func buildModifiedParams(p1, p2 *channel.Params, s *Setup) (ret []channel.Params
 			// Modify Parts[0]
 			{
 				modParams := *p1
-				modParams.Parts = make([]wallet.Address, len(p1.Parts))
+				modParams.Parts = make([]map[int]wallet.Address, len(p1.Parts))
 				copy(modParams.Parts, p1.Parts)
 				modParams.Parts[0] = s.RandomAddress()
 				ret = appendModParams(ret, modParams)

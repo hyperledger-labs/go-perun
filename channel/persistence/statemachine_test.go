@@ -40,7 +40,9 @@ func TestStateMachine(t *testing.T) {
 
 	const n = 5                                    // number of participants
 	accs, parts := wtest.NewRandomAccounts(rng, n) // local participant idx 0
-	params := ctest.NewRandomParams(rng, ctest.WithParts(parts...))
+	params := ctest.NewRandomParams(rng, ctest.WithParts(parts))
+	t.Log("Participants:", parts, "accs:", accs)
+	t.Log("Params:", params)
 	csm, err := channel.NewStateMachine(accs[0], *params)
 	require.NoError(err)
 

@@ -22,6 +22,7 @@ import (
 	"context"
 	"math/rand"
 	"net"
+	"perun.network/go-perun/channel"
 	"sync"
 	"testing"
 	"time"
@@ -61,7 +62,7 @@ func TestExchangeAddrs_Success(t *testing.T) {
 
 		recvAddr0, err := wirenet.ExchangeAddrsPassive(context.Background(), account1, conn1)
 		assert.NoError(t, err)
-		assert.True(t, recvAddr0.Equal(account0.Address()))
+		assert.True(t, channel.EqualWireMaps(recvAddr0, account0.Address()))
 	}()
 
 	err := wirenet.ExchangeAddrsActive(context.Background(), account0, account1.Address(), conn0)
@@ -105,8 +106,8 @@ func newPipeConnPair() (a wirenet.Conn, b wirenet.Conn) {
 // recipient generated using randomness from rng.
 func newRandomEnvelope(rng *rand.Rand, m wire.Msg) *wire.Envelope {
 	return &wire.Envelope{
-		Sender:    NewRandomAddress(rng),
-		Recipient: NewRandomAddress(rng),
+		Sender:    NewRandomAddresses(rng),
+		Recipient: NewRandomAddresses(rng),
 		Msg:       m,
 	}
 }

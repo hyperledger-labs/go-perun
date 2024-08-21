@@ -36,7 +36,7 @@ func patchChFromSource(
 	c *Client,
 	ch *persistence.Channel,
 	parent *Channel,
-	peers ...wire.Address,
+	peers ...map[int]wire.Address,
 ) (*Channel, error) {
 	acc, _ := wallettest.RandomWallet().Unlock(ch.ParamsV.Parts[ch.IdxV])
 	machine, _ := channel.NewStateMachine(acc, *ch.ParamsV)
@@ -109,13 +109,13 @@ func TestRestoreChannelCollection(t *testing.T) {
 
 // mkRndChan creates a single random channel.
 func mkRndChan(rng *rand.Rand) *persistence.Channel {
-	parts := make([]wallet.Address, channel.MaxNumParts)
+	parts := make([]map[int]wallet.Address, channel.MaxNumParts)
 	for i := range parts {
 		parts[i] = wallettest.NewRandomAccount(rng).Address()
 	}
 	ch := persistence.NewChannel()
 	ch.IdxV = channel.Index(rng.Intn(channel.MaxNumParts))
-	ch.ParamsV = test.NewRandomParams(rng, test.WithParts(parts...))
+	ch.ParamsV = test.NewRandomParams(rng, test.WithParts(parts))
 	sigs := make([]bool, channel.MaxNumParts)
 	opts := test.WithParams(ch.ParamsV)
 	ch.StagingTXV = *test.NewRandomTransaction(rng, sigs, opts)

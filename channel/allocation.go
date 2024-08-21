@@ -62,6 +62,8 @@ type (
 	//
 	// Locked holds the locked allocations to sub-app-channels.
 	Allocation struct {
+		// Backends is the indexes to which backend the assets belong to
+		Backends []int
 		// Assets are the asset types held in this channel
 		Assets []Asset
 		// Balances is the allocation of assets to the Params.Parts
@@ -109,9 +111,10 @@ var (
 )
 
 // NewAllocation returns a new allocation for the given number of participants and assets.
-func NewAllocation(numParts int, assets ...Asset) *Allocation {
+func NewAllocation(numParts int, backends []int, assets ...Asset) *Allocation {
 	return &Allocation{
 		Assets:   assets,
+		Backends: backends,
 		Balances: MakeBalances(len(assets), numParts),
 	}
 }
@@ -185,6 +188,12 @@ func (a *Allocation) NumParts() int {
 // Clone returns a deep copy of the Allocation object.
 // If it is nil, it returns nil.
 func (a Allocation) Clone() (clone Allocation) {
+	if a.Backends != nil {
+		clone.Backends = make([]int, len(a.Backends))
+		for i, bID := range a.Backends {
+			clone.Backends[i] = bID
+		}
+	}
 	if a.Assets != nil {
 		clone.Assets = make([]Asset, len(a.Assets))
 		for i, asset := range a.Assets {
@@ -352,8 +361,13 @@ func (a *Allocation) Decode(r io.Reader) error {
 	}
 	// decode assets
 	a.Assets = make([]Asset, numAssets)
+	a.Backends = make([]int, numAssets)
 	for i := range a.Assets {
-		asset := NewAsset()
+		// decode backend index
+		if err := perunio.Decode(r); err != nil {
+			return errors.WithMessagef(err, "decoding backend index for asset %d", i)
+		}
+		asset := NewAsset(a.Backends[i])
 		if err := perunio.Decode(r, asset); err != nil {
 			return errors.WithMessagef(err, "decoding asset %d", i)
 		}

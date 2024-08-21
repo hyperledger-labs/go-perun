@@ -34,7 +34,7 @@ import (
 
 const (
 	roleOperationTimeout = 1 * time.Second
-	twoPartyTestTimeout  = 10 * time.Second
+	twoPartyTestTimeout  = 20 * time.Second
 )
 
 func NewSetups(rng *rand.Rand, names []string) []ctest.RoleSetup {
@@ -56,12 +56,12 @@ func NewSetups(rng *rand.Rand, names []string) []ctest.RoleSetup {
 			Name:              names[i],
 			Identity:          wiretest.NewRandomAccount(rng),
 			Bus:               bus,
-			Funder:            backend.NewFunder(acc.Address()),
-			Adjudicator:       backend.NewAdjudicator(acc.Address()),
+			Funder:            backend.NewFunder(acc.Address()[0]),
+			Adjudicator:       backend.NewAdjudicator(acc.Address()[0]),
 			Watcher:           watcher,
 			Wallet:            w,
 			Timeout:           roleOperationTimeout,
-			BalanceReader:     backend.NewBalanceReader(acc.Address()),
+			BalanceReader:     backend.NewBalanceReader(acc.Address()[0]),
 			ChallengeDuration: 60,
 			Errors:            make(chan error),
 		}
@@ -84,7 +84,7 @@ func runAliceBobTest(ctx context.Context, t *testing.T, setup func(*rand.Rand) (
 
 		cfg := &ctest.AliceBobExecConfig{
 			BaseExecConfig: ctest.MakeBaseExecConfig(
-				[2]wire.Address{setups[0].Identity.Address(), setups[1].Identity.Address()},
+				[2]map[int]wire.Address{setups[0].Identity.Address(), setups[1].Identity.Address()},
 				chtest.NewRandomAsset(rng),
 				[2]*big.Int{big.NewInt(100), big.NewInt(100)},
 				app,

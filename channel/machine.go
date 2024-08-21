@@ -16,9 +16,8 @@ package channel
 
 import (
 	"fmt"
-	stdio "io"
-
 	"github.com/pkg/errors"
+	stdio "io"
 
 	"perun.network/go-perun/log"
 	"perun.network/go-perun/wallet"
@@ -224,6 +223,7 @@ func (m *machine) Sig() (sig wallet.Sig, err error) {
 	}
 
 	if m.stagingTX.Sigs[m.idx] == nil {
+
 		sig, err = Sign(m.acc, m.stagingTX.State)
 		if err != nil {
 			return
@@ -289,7 +289,6 @@ func (m *machine) AddSig(idx Index, sig wallet.Sig) error {
 	if m.stagingTX.Sigs[idx] != nil {
 		return errors.Errorf("signature for idx %d already present (ID: %x)", idx, m.params.id)
 	}
-
 	if ok, err := Verify(m.params.Parts[idx], m.stagingTX.State, sig); err != nil {
 		return err
 	} else if !ok {

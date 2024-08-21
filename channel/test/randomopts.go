@@ -65,6 +65,16 @@ func WithApp(app channel.App) RandomOpt {
 	return RandomOpt{"app": app, "appDef": appDef}
 }
 
+// WithBackend sets the `backend` that should be used.
+func WithBackend(id int) RandomOpt {
+	return RandomOpt{"backend": id}
+}
+
+// WithBackendIDs sets the `backend` that should be used.
+func WithBackendIDs(id []int) RandomOpt {
+	return RandomOpt{"backendIDs": id}
+}
+
 // WithoutApp configures a NoApp and NoData.
 func WithoutApp() RandomOpt {
 	return RandomOpt{"app": channel.NoApp(), "appDef": nil, "appData": channel.NoData()}
@@ -112,7 +122,7 @@ func WithChallengeDuration(d uint64) RandomOpt {
 }
 
 // WithFirstPart sets the first participant that should be used in randomly generated Params. Overrides `WithParts`.
-func WithFirstPart(part wallet.Address) RandomOpt {
+func WithFirstPart(part map[int]wallet.Address) RandomOpt {
 	return RandomOpt{"firstPart": part}
 }
 
@@ -182,12 +192,12 @@ func WithState(state *channel.State) RandomOpt {
 // WithParams sets the `Params` that should be used.
 // Also sets `WithID`, `WithChallengeDuration`, `WithParts`, `WithApp` and `WithNonce`.
 func WithParams(params *channel.Params) RandomOpt {
-	return RandomOpt{"params": params}.Append(WithID(params.ID()), WithChallengeDuration(params.ChallengeDuration), WithParts(params.Parts...), WithApp(params.App), WithNonce(params.Nonce))
+	return RandomOpt{"params": params}.Append(WithID(params.ID()), WithChallengeDuration(params.ChallengeDuration), WithParts(params.Parts), WithApp(params.App), WithNonce(params.Nonce))
 }
 
 // WithParts sets the `Parts` that should be used when generating Params.
 // Also sets `WithNumParts`.
-func WithParts(parts ...wallet.Address) RandomOpt {
+func WithParts(parts []map[int]wallet.Address) RandomOpt {
 	return RandomOpt{"parts": parts, "numParts": len(parts)}
 }
 
@@ -291,6 +301,22 @@ func (o RandomOpt) Assets() []channel.Asset {
 	return o["assets"].([]channel.Asset)
 }
 
+// Backend returns the `Backend` value of the `RandomOpt`.
+func (o RandomOpt) Backend() (int, error) {
+	if _, ok := o["backend"]; !ok {
+		return 0, fmt.Errorf("backend not set")
+	}
+	return o["backend"].(int), nil
+}
+
+// BackendID returns the `BackendID` value  from `Allocation` of the `RandomOpt`.
+func (o RandomOpt) BackendID() ([]int, error) {
+	if _, ok := o["backendIDs"]; !ok {
+		return []int{0}, fmt.Errorf("backend not set")
+	}
+	return o["backendIDs"].([]int), nil
+}
+
 // Balances returns the `Balances` value of the `RandomOpt`.
 // If not present, returns nil.
 func (o RandomOpt) Balances() channel.Balances {
@@ -330,11 +356,11 @@ func (o RandomOpt) ID() (id channel.ID, valid bool) {
 
 // FirstPart returns the `FirstPart` value of the `RandomOpt`.
 // If not present, returns nil.
-func (o RandomOpt) FirstPart() wallet.Address {
+func (o RandomOpt) FirstPart() map[int]wallet.Address {
 	if _, ok := o["firstPart"]; !ok {
 		return nil
 	}
-	return o["firstPart"].(wallet.Address)
+	return o["firstPart"].(map[int]wallet.Address)
 }
 
 // IsFinal returns the `IsFinal` value of the `RandomOpt`.
@@ -472,11 +498,11 @@ func (o RandomOpt) Params() *channel.Params {
 
 // Parts returns the `Parts` value of the `RandomOpt`.
 // If not present, returns nil.
-func (o RandomOpt) Parts() []wallet.Address {
+func (o RandomOpt) Parts() []map[int]wallet.Address {
 	if _, ok := o["parts"]; !ok {
 		return nil
 	}
-	return o["parts"].([]wallet.Address)
+	return o["parts"].([]map[int]wallet.Address)
 }
 
 // Version returns the `Version` value of the `RandomOpt`.

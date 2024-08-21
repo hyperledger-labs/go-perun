@@ -15,12 +15,13 @@
 package channel
 
 import (
+	"errors"
 	"perun.network/go-perun/wallet"
 )
 
 // backend is set to the global channel backend. Must not be set directly but
 // through importing the needed backend.
-var backend Backend
+var backend map[int]Backend
 
 // Backend is an interface that needs to be implemented for every blockchain.
 // It provides basic functionalities to the framework.
@@ -30,7 +31,7 @@ type Backend interface {
 	// In order to guarantee non-malleability of States, any parameters omitted
 	// from the CalcID digest need to be signed together with the State in
 	// Sign().
-	CalcID(*Params) ID
+	CalcID(*Params) (ID, error)
 
 	// Sign signs a channel's State with the given Account.
 	// Returns the signature or an error.
@@ -46,41 +47,88 @@ type Backend interface {
 
 	// NewAppID returns an object of type AppID, which can be used for
 	// unmarshalling an app identifier from its binary representation.
-	NewAppID() AppID
+	NewAppID() (AppID, error)
 }
 
 // SetBackend sets the global channel backend. Must not be called directly but
 // through importing the needed backend.
-func SetBackend(b Backend) {
-	if backend != nil {
+func SetBackend(b Backend, id int) {
+	if backend == nil {
+		backend = make(map[int]Backend)
+	}
+	if backend[id] != nil {
 		panic("channel backend already set")
 	}
-	backend = b
+	backend[id] = b
 }
 
 // CalcID calculates the CalcID.
-func CalcID(p *Params) ID {
-	return backend.CalcID(p)
+func CalcID(p *Params) (ID, error) {
+	var lastErr error
+	for _, b := range backend {
+		id, err := b.CalcID(p)
+		if err == nil {
+			return id, nil
+		} else {
+			lastErr = err
+		}
+	}
+
+	if lastErr != nil {
+		return ID{}, errors.Join(lastErr)
+	}
+
+	return ID{}, errors.New("no valid ID found")
 }
 
 // Sign creates a signature from the account a on state s.
 func Sign(a wallet.Account, s *State) (wallet.Sig, error) {
-	return backend.Sign(a, s)
+	errs := make([]error, len(backend))
+	for _, b := range backend {
+		sig, err := b.Sign(a, s)
+		if err == nil {
+			return sig, nil
+		} else {
+			errs = append(errs, err)
+		}
+	}
+	if len(errs) > 0 {
+		return nil, errors.Join(errs...)
+	}
+	return nil, errors.New("no valid signature found")
 }
 
 // Verify verifies that a signature was a valid signature from addr on a state.
-func Verify(addr wallet.Address, state *State, sig wallet.Sig) (bool, error) {
-	return backend.Verify(addr, state, sig)
+func Verify(a map[int]wallet.Address, state *State, sig wallet.Sig) (bool, error) {
+	errs := make([]error, len(backend))
+	for i, addr := range a {
+		v, err := backend[i].Verify(addr, state, sig)
+		if v {
+			return true, nil
+		} else {
+			errs = append(errs, err)
+		}
+	}
+	if len(errs) > 0 {
+		return false, errors.Join(errs...)
+	}
+	return false, errors.New("could not validate signature")
 }
 
 // NewAsset returns a variable of type Asset, which can be used
 // for unmarshalling an asset from its binary representation.
-func NewAsset() Asset {
-	return backend.NewAsset()
+func NewAsset(id int) Asset {
+	return backend[id].NewAsset()
 }
 
 // NewAppID returns an object of type AppID, which can be used for
 // unmarshalling an app identifier from its binary representation.
-func NewAppID() AppID {
-	return backend.NewAppID()
+func NewAppID() (AppID, error) {
+	for i := range backend {
+		id, err := backend[i].NewAppID()
+		if err == nil {
+			return id, nil
+		}
+	}
+	return nil, errors.New("no backend found")
 }

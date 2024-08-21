@@ -50,7 +50,7 @@ func NewBus(id wire.Account, d Dialer, s wire.EnvelopeSerializer) *Bus {
 		recvs:    make(map[wire.AddrKey]wire.Consumer),
 	}
 
-	onNewEndpoint := func(wire.Address) wire.Consumer { return b.mainRecv }
+	onNewEndpoint := func(map[int]wire.Address) wire.Consumer { return b.mainRecv }
 	b.reg = NewEndpointRegistry(id, onNewEndpoint, d, s)
 	go b.dispatchMsgs()
 
@@ -65,7 +65,7 @@ func (b *Bus) Listen(l Listener) {
 // SubscribeClient subscribes a new client to the bus. Duplicate subscriptions
 // are forbidden and will cause a panic. The supplied consumer will receive all
 // messages that are sent to the requested address.
-func (b *Bus) SubscribeClient(c wire.Consumer, addr wire.Address) error {
+func (b *Bus) SubscribeClient(c wire.Consumer, addr map[int]wire.Address) error {
 	b.addSubscriber(c, addr)
 	c.OnCloseAlways(func() { b.removeSubscriber(addr) })
 	return nil
@@ -114,15 +114,15 @@ func (b *Bus) Close() error {
 	return b.reg.Close()
 }
 
-func (b *Bus) addSubscriber(c wire.Consumer, addr wire.Address) {
+func (b *Bus) addSubscriber(c wire.Consumer, addr map[int]wire.Address) {
 	b.mutex.Lock()
 	defer b.mutex.Unlock()
 
-	if _, ok := b.recvs[wire.Key(addr)]; ok {
+	if _, ok := b.recvs[wire.Keys(addr)]; ok {
 		log.Panic("duplicate SubscribeClient")
 	}
 
-	b.recvs[wire.Key(addr)] = c
+	b.recvs[wire.Keys(addr)] = c
 }
 
 // ctx returns the context of the bus' registry.
@@ -140,7 +140,7 @@ func (b *Bus) dispatchMsgs() {
 		}
 
 		b.mutex.Lock()
-		r, ok := b.recvs[wire.Key(e.Recipient)]
+		r, ok := b.recvs[wire.Keys(e.Recipient)]
 		b.mutex.Unlock()
 		if !ok {
 			log.WithField("sender", e.Sender).
@@ -152,13 +152,13 @@ func (b *Bus) dispatchMsgs() {
 	}
 }
 
-func (b *Bus) removeSubscriber(addr wire.Address) {
+func (b *Bus) removeSubscriber(addr map[int]wire.Address) {
 	b.mutex.Lock()
 	defer b.mutex.Unlock()
 
-	if _, ok := b.recvs[wire.Key(addr)]; !ok {
+	if _, ok := b.recvs[wire.Keys(addr)]; !ok {
 		log.Panic("deleting nonexisting subscriber")
 	}
 
-	delete(b.recvs, wire.Key(addr))
+	delete(b.recvs, wire.Keys(addr))
 }

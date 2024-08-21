@@ -66,7 +66,7 @@ func TestDialer_Register(t *testing.T) {
 	_, ok := d.host(key)
 	require.False(t, ok)
 
-	d.Register(addr, "host")
+	d.Register(map[int]wire.Address{0: addr}, "host")
 
 	host, ok := d.host(key)
 	assert.True(t, ok)
@@ -135,7 +135,7 @@ func TestDialer_Dial(t *testing.T) {
 	})
 
 	t.Run("unknown host", func(t *testing.T) {
-		noHostAddr := NewRandomAddress(rng)
+		noHostAddr := NewRandomAddresses(rng)
 		d.Register(noHostAddr, "no such host")
 
 		ctxtest.AssertTerminates(t, timeout, func() {
@@ -147,7 +147,7 @@ func TestDialer_Dial(t *testing.T) {
 
 	t.Run("unknown address", func(t *testing.T) {
 		ctxtest.AssertTerminates(t, timeout, func() {
-			unkownAddr := NewRandomAddress(rng)
+			unkownAddr := NewRandomAddresses(rng)
 			conn, err := d.Dial(context.Background(), unkownAddr, ser)
 			assert.Error(t, err)
 			assert.Nil(t, conn)

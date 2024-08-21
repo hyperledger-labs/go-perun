@@ -55,7 +55,7 @@ func TestPaymentDispute(t *testing.T) {
 
 	cfg := &ctest.MalloryCarolExecConfig{
 		BaseExecConfig: ctest.MakeBaseExecConfig(
-			[2]wire.Address{setups[mallory].Identity.Address(), setups[carol].Identity.Address()},
+			[2]map[int]wire.Address{setups[mallory].Identity.Address(), setups[carol].Identity.Address()},
 			chtest.NewRandomAsset(rng),
 			[2]*big.Int{big.NewInt(100), big.NewInt(1)},
 			client.WithoutApp(),
