@@ -161,8 +161,14 @@ func NewRandomParams(rng *rand.Rand, opts ...RandomOpt) *channel.Params {
 	var parts []map[int]wallet.Address
 	if parts = opt.Parts(); parts == nil {
 		parts = make([]map[int]wallet.Address, numParts)
+
 		for i := range parts {
-			parts[i] = map[int]wallet.Address{0: test.NewRandomAddress(rng)}
+			var backend int
+			if backend, _ = opt.Backend(); backend != 0 {
+				parts[i] = map[int]wallet.Address{backend: test.NewRandomAddress(rng)}
+			} else {
+				parts[i] = map[int]wallet.Address{0: test.NewRandomAddress(rng)}
+			}
 		}
 	}
 	if firstPart := opt.FirstPart(); firstPart != nil {

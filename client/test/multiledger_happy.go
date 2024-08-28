@@ -42,7 +42,7 @@ func TestMultiLedgerHappy(ctx context.Context, t *testing.T, mlt MultiLedgerSetu
 
 	// Create channel proposal.
 	parts := []map[int]wire.Address{alice.WireAddress, bob.WireAddress}
-	initAlloc := channel.NewAllocation(len(parts), []int{0}, mlt.Asset1, mlt.Asset2)
+	initAlloc := channel.NewAllocation(len(parts), []int{int(mlt.Asset1.AssetID().BackendID), int(mlt.Asset2.AssetID().BackendID)}, mlt.Asset1, mlt.Asset2)
 	initAlloc.Balances = initBals
 	prop, err := client.NewLedgerChannelProposal(
 		challengeDuration,

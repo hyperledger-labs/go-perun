@@ -16,9 +16,8 @@ package channel
 
 import (
 	"encoding"
-	"io"
-
 	"github.com/pkg/errors"
+	"io"
 
 	"perun.network/go-perun/wire/perunio"
 )
@@ -205,7 +204,7 @@ func (d OptAppDec) Decode(r io.Reader) (err error) {
 		*d.App = NoApp()
 		return nil
 	}
-	appDef, _ := backend[0].NewAppID()
+	appDef, _ := NewAppID()
 	err = perunio.Decode(r, appDef)
 	if err != nil {
 		return errors.WithMessage(err, "decode app address")

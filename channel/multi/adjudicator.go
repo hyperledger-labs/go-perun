@@ -17,30 +17,31 @@ package multi
 import (
 	"context"
 	"fmt"
-
 	"perun.network/go-perun/channel"
 )
 
 // Adjudicator is a multi-ledger adjudicator.
 type Adjudicator struct {
-	adjudicators map[AssetID]channel.Adjudicator
+	adjudicators map[AssetIDKey]channel.Adjudicator
 }
 
 // NewAdjudicator creates a new adjudicator.
 func NewAdjudicator() *Adjudicator {
 	return &Adjudicator{
-		adjudicators: make(map[AssetID]channel.Adjudicator),
+		adjudicators: make(map[AssetIDKey]channel.Adjudicator),
 	}
 }
 
 // RegisterAdjudicator registers an adjudicator for a given ledger.
 func (a *Adjudicator) RegisterAdjudicator(l AssetID, la channel.Adjudicator) {
-	a.adjudicators[l] = la
+	key := AssetIDKey{BackendID: l.BackendID, LedgerID: string(l.LedgerId.MapKey())}
+	a.adjudicators[key] = la
 }
 
 // LedgerAdjudicator returns the adjudicator for a given ledger.
 func (a *Adjudicator) LedgerAdjudicator(l AssetID) (channel.Adjudicator, bool) {
-	adj, ok := a.adjudicators[l]
+	key := AssetIDKey{BackendID: l.BackendID, LedgerID: string(l.LedgerId.MapKey())}
+	adj, ok := a.adjudicators[key]
 	return adj, ok
 }
 
@@ -96,7 +97,8 @@ func (a *Adjudicator) dispatch(assetIds []AssetID, f func(channel.Adjudicator) e
 	for _, l := range assetIds {
 		go func(l AssetID) {
 			err := func() error {
-				adjs, ok := a.adjudicators[l]
+				key := AssetIDKey{BackendID: l.BackendID, LedgerID: string(l.LedgerId.MapKey())}
+				adjs, ok := a.adjudicators[key]
 				if !ok {
 					return fmt.Errorf("adjudicator not found for id %v", l)
 				}

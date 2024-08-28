@@ -22,31 +22,39 @@ import (
 	"perun.network/go-perun/channel"
 )
 
+// AssetIDKey is a representation of AssetID that kan be used in map lookups.
+type AssetIDKey struct {
+	BackendID uint32
+	LedgerID  string
+}
+
 // Funder is a multi-ledger funder.
 // funders is a map of LedgerIDs corresponding to a funder on some chain.
 // egoisticChains is a map of LedgerIDs corresponding to a boolean indicating whether the chain should be funded last.
 type Funder struct {
-	funders        map[AssetID]channel.Funder
-	egoisticChains map[AssetID]bool
+	funders        map[AssetIDKey]channel.Funder
+	egoisticChains map[AssetIDKey]bool
 }
 
 // NewFunder creates a new funder.
 func NewFunder() *Funder {
 	return &Funder{
-		funders:        make(map[AssetID]channel.Funder),
-		egoisticChains: make(map[AssetID]bool),
+		funders:        make(map[AssetIDKey]channel.Funder),
+		egoisticChains: make(map[AssetIDKey]bool),
 	}
 }
 
 // RegisterFunder registers a funder for a given ledger.
 func (f *Funder) RegisterFunder(l AssetID, lf channel.Funder) {
-	f.funders[l] = lf
-	f.egoisticChains[l] = false
+	key := AssetIDKey{BackendID: l.BackendID, LedgerID: string(l.LedgerId.MapKey())}
+	f.funders[key] = lf
+	f.egoisticChains[key] = false
 }
 
 // SetEgoisticChain sets the egoistic chain flag for a given ledger.
 func (f *Funder) SetEgoisticChain(l AssetID, id int, egoistic bool) {
-	f.egoisticChains[l] = egoistic
+	key := AssetIDKey{BackendID: l.BackendID, LedgerID: string(l.LedgerId.MapKey())}
+	f.egoisticChains[key] = egoistic
 }
 
 // Fund funds a multi-ledger channel. It dispatches funding calls to all
@@ -67,7 +75,8 @@ func (f *Funder) Fund(ctx context.Context, request channel.FundingReq) error {
 	var nonEgoisticLedgers []AssetID
 
 	for _, l := range assetIDs {
-		if f.egoisticChains[l] {
+		key := AssetIDKey{BackendID: l.BackendID, LedgerID: string(l.LedgerId.MapKey())}
+		if f.egoisticChains[key] {
 			egoisticLedgers = append(egoisticLedgers, l)
 		} else {
 			nonEgoisticLedgers = append(nonEgoisticLedgers, l)
@@ -89,7 +98,7 @@ func (f *Funder) Fund(ctx context.Context, request channel.FundingReq) error {
 	return nil
 }
 
-func fundLedgers(ctx context.Context, request channel.FundingReq, assetIDs []AssetID, funders map[AssetID]channel.Funder) error {
+func fundLedgers(ctx context.Context, request channel.FundingReq, assetIDs []AssetID, funders map[AssetIDKey]channel.Funder) error {
 	// Calculate the total number of funders
 	n := len(assetIDs)
 
@@ -98,8 +107,9 @@ func fundLedgers(ctx context.Context, request channel.FundingReq, assetIDs []Ass
 	// Iterate over blockchains to get the LedgerIDs
 	for _, assetID := range assetIDs {
 		go func(assetID AssetID) {
+			key := AssetIDKey{BackendID: assetID.BackendID, LedgerID: string(assetID.LedgerId.MapKey())}
 			// Get the Funder from the funders map
-			funder, ok := funders[assetID]
+			funder, ok := funders[key]
 			if !ok {
 				errs <- fmt.Errorf("funder map not found for blockchain %d and ledger %d", assetID.BackendID, assetID.LedgerId)
 				return
