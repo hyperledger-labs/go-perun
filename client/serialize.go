@@ -24,44 +24,38 @@ import (
 
 type (
 	sliceLen          = uint16
-	channelIDsWithLen []channel.ID
+	channelIDsWithLen []map[int]channel.ID
 	indexMapWithLen   []channel.Index
 	indexMapsWithLen  [][]channel.Index
 )
 
 // Encode encodes the object to the writer.
 func (a channelIDsWithLen) Encode(w io.Writer) (err error) {
-	err = perunio.Encode(w, sliceLen(len(a)))
-	if err != nil {
-		return
+	length := int32(len(a))
+	if err := perunio.Encode(w, length); err != nil {
+		return errors.WithMessage(err, "encoding array length")
 	}
-
-	for _, id := range a {
-		err = perunio.Encode(w, id)
-		if err != nil {
-			return
+	for i, id := range a {
+		if err := perunio.Encode(w, (*channel.IDMap)(&id)); err != nil {
+			return errors.WithMessagef(err, "encoding %d-th id array entry", i)
 		}
 	}
-	return
+	return nil
 }
 
 // Decode decodes the object from the reader.
 func (a *channelIDsWithLen) Decode(r io.Reader) (err error) {
-	var l sliceLen
-	if err = perunio.Decode(r, &l); err != nil {
-		return errors.WithMessage(err, "decoding length")
+	var mapLen int32
+	if err := perunio.Decode(r, &mapLen); err != nil {
+		return errors.WithMessage(err, "decoding array length")
 	}
-
-	*a = make(channelIDsWithLen, l)
-	for i := range *a {
-		var id channel.ID
-		err = perunio.Decode(r, &id)
-		if err != nil {
-			return errors.WithMessagef(err, "decoding item %d", i)
+	*a = make([]map[int]channel.ID, mapLen)
+	for i := 0; i < int(mapLen); i++ {
+		if err := perunio.Decode(r, (*channel.IDMap)(&(*a)[i])); err != nil {
+			return errors.WithMessagef(err, "decoding %d-th id map entry", i)
 		}
-		(*a)[i] = id
 	}
-	return
+	return nil
 }
 
 // Encode encodes the object to the writer.

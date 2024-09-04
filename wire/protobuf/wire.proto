@@ -72,6 +72,17 @@ message Address {
   repeated AddressMapping address_mapping = 1;
 }
 
+// AddressMapping represents an element of a address mapping.
+message IDMapping {
+  bytes key = 1;
+  bytes id = 2;
+}
+
+// Address represents the map of addresses for each participant in the channel.
+message ID {
+  repeated IDMapping id_mapping = 1;
+}
+
 // IndexMap represents the mapping of a participant indices in a sub allocation
 // or a virtual channel funding proposal to the corresponding indices in the
 // parent channel.
@@ -81,7 +92,7 @@ message IndexMap {
 
 // SubAlloc represts a sub allocation.
 message SubAlloc {
-  bytes id = 1;
+  ID id = 1;
   Balance bals = 2;
   IndexMap index_map = 3;
 }
@@ -113,7 +124,7 @@ message BaseChannelProposalAcc {
 
 // Params represents channel.Params.
 message Params {
-  bytes id = 1;
+  ID id = 1;
   uint64 challenge_duration = 2;
   repeated Address parts = 3;
   bytes app = 4;
@@ -124,7 +135,7 @@ message Params {
 
 // State represents channel.State.
 message State {
-  bytes id = 1;
+  ID id = 1;
   uint64 version = 2;
   bytes app = 3;
   Allocation allocation = 4;
@@ -188,7 +199,7 @@ message LedgerChannelProposalAccMsg {
 // SubChannelProposalMsg represents client.SubChannelProposalMsg.
 message SubChannelProposalMsg {
   BaseChannelProposal base_channel_proposal = 1;
-  bytes parent = 2;
+  ID parent = 2;
 }
 
 // SubChannelProposalAccMsg represents client.SubChannelProposalAccMsg.
@@ -201,7 +212,7 @@ message VirtualChannelProposalMsg {
   BaseChannelProposal base_channel_proposal = 1;
   Address proposer = 2;
   repeated Address peers = 3;
-  repeated bytes parents = 4;
+  repeated ID parents = 4;
   repeated IndexMap index_maps = 5;
 }
 
@@ -241,14 +252,14 @@ message VirtualChannelSettlementProposalMsg {
 
 // ChannelUpdateAccMsg represents client.ChannelUpdateAccMsg.
 message ChannelUpdateAccMsg {
-  bytes channel_id = 1;
+  ID channel_id = 1;
   uint64 version = 2;
   bytes sig = 3;
 }
 
 // ChannelUpdateRejMsg represents client.ChannelUpdateRejMsg.
 message ChannelUpdateRejMsg {
-  bytes channel_id = 1;
+  ID channel_id = 1;
   uint64 version = 2;
   string reason = 3;
 }

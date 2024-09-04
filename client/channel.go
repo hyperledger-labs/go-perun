@@ -128,7 +128,7 @@ func (c *Channel) logPeer(idx channel.Index) log.Logger {
 }
 
 // ID returns the channel ID.
-func (c *Channel) ID() channel.ID {
+func (c *Channel) ID() map[int]channel.ID {
 	return c.machine.ID()
 }
 

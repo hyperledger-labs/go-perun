@@ -23,9 +23,9 @@ import (
 	"perun.network/go-perun/wire/perunio"
 )
 
-type peerChans map[string][]channel.ID
+type peerChans map[string][]map[int]channel.ID
 
-func (pc peerChans) ID(p map[int]wire.Address) []channel.ID {
+func (pc peerChans) ID(p map[int]wire.Address) []map[int]channel.ID {
 	ids, ok := pc[peerKey(p)]
 	if !ok {
 		return nil
@@ -43,23 +43,23 @@ func (pc peerChans) Peers() []map[int]wire.Address {
 }
 
 // Add adds the given channel id to each peer's id list.
-func (pc peerChans) Add(id channel.ID, ps ...map[int]wire.Address) {
+func (pc peerChans) Add(id map[int]channel.ID, ps ...map[int]wire.Address) {
 	for _, p := range ps {
 		pc.add(id, p)
 	}
 }
 
 // Don't use add, use Add.
-func (pc peerChans) add(id channel.ID, p map[int]wire.Address) {
+func (pc peerChans) add(id map[int]channel.ID, p map[int]wire.Address) {
 	pk := peerKey(p)
 	ids := pc[pk] // nil ok, since we append
 	pc[pk] = append(ids, id)
 }
 
-func (pc peerChans) Delete(id channel.ID) {
+func (pc peerChans) Delete(id map[int]channel.ID) {
 	for pk, ids := range pc {
 		for i, pid := range ids {
-			if id == pid {
+			if channel.EqualIDs(id, pid) {
 				// ch found, unsorted delete
 				lim := len(ids) - 1
 				if lim == 0 {

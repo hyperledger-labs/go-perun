@@ -26,27 +26,27 @@ import (
 // registry. Always initialize instances of this type with MakeChanRegistry().
 type chanRegistry struct {
 	mutex             sync.RWMutex
-	values            map[channel.ID]*Channel
+	values            map[string]*Channel
 	newChannelHandler func(*Channel)
 }
 
 // makeChanRegistry creates a new empty channel registry.
 func makeChanRegistry() chanRegistry {
-	return chanRegistry{values: make(map[channel.ID]*Channel)}
+	return chanRegistry{values: make(map[string]*Channel)}
 }
 
 // Put puts a new channel into the registry.
 // If an entry with the same ID already existed, this call does nothing and
 // returns false. Otherwise, it adds the new channel into the registry and
 // returns true.
-func (r *chanRegistry) Put(id channel.ID, value *Channel) bool {
+func (r *chanRegistry) Put(id map[int]channel.ID, value *Channel) bool {
 	r.mutex.Lock()
 
-	if _, ok := r.values[id]; ok {
+	if _, ok := r.values[channel.IDKey(id)]; ok {
 		r.mutex.Unlock()
 		return false
 	}
-	r.values[id] = value
+	r.values[channel.IDKey(id)] = value
 	handler := r.newChannelHandler
 	r.mutex.Unlock()
 	value.OnCloseAlways(func() { r.Delete(id) })
@@ -68,34 +68,34 @@ func (r *chanRegistry) OnNewChannel(handler func(*Channel)) {
 }
 
 // Has checks whether a channel with the requested ID is registered.
-func (r *chanRegistry) Has(id channel.ID) bool {
+func (r *chanRegistry) Has(id map[int]channel.ID) bool {
 	r.mutex.RLock()
 	defer r.mutex.RUnlock()
 
-	_, ok := r.values[id]
+	_, ok := r.values[channel.IDKey(id)]
 	return ok
 }
 
 // Channel retrieves a channel from the registry.
 // If the channel exists, returns the channel, and true. Otherwise, returns nil,
 // false.
-func (r *chanRegistry) Channel(id channel.ID) (*Channel, bool) {
+func (r *chanRegistry) Channel(id map[int]channel.ID) (*Channel, bool) {
 	r.mutex.RLock()
 	defer r.mutex.RUnlock()
 
-	v, ok := r.values[id]
+	v, ok := r.values[channel.IDKey(id)]
 	return v, ok
 }
 
 // Delete deletes a channel from the registry.
 // If the channel did not exist, does nothing. Returns whether the channel
 // existed.
-func (r *chanRegistry) Delete(id channel.ID) (deleted bool) {
+func (r *chanRegistry) Delete(id map[int]channel.ID) (deleted bool) {
 	r.mutex.Lock()
 	defer r.mutex.Unlock()
 
-	if _, deleted = r.values[id]; deleted {
-		delete(r.values, id)
+	if _, deleted = r.values[channel.IDKey(id)]; deleted {
+		delete(r.values, channel.IDKey(id))
 	}
 	return
 }
@@ -103,7 +103,7 @@ func (r *chanRegistry) Delete(id channel.ID) (deleted bool) {
 func (r *chanRegistry) CloseAll() (err error) {
 	r.mutex.Lock()
 	values := r.values
-	r.values = make(map[channel.ID]*Channel)
+	r.values = make(map[string]*Channel)
 	r.mutex.Unlock()
 
 	for _, c := range values {

@@ -36,7 +36,7 @@ type (
 	}
 
 	updateInterceptors struct {
-		entries map[channel.ID]*updateInterceptor
+		entries map[string]*updateInterceptor
 		sync.RWMutex
 	}
 )
@@ -65,33 +65,33 @@ func (ui *updateInterceptor) Accept(ctx context.Context) error {
 }
 
 func newUpdateInterceptors() *updateInterceptors {
-	return &updateInterceptors{entries: make(map[channel.ID]*updateInterceptor)}
+	return &updateInterceptors{entries: make(map[string]*updateInterceptor)}
 }
 
 // Register assigns the given update interceptor to the given channel.
-func (interceptors *updateInterceptors) Register(id channel.ID, ui *updateInterceptor) {
+func (interceptors *updateInterceptors) Register(id map[int]channel.ID, ui *updateInterceptor) {
 	interceptors.Lock()
 	defer interceptors.Unlock()
-	interceptors.entries[id] = ui
+	interceptors.entries[channel.IDKey(id)] = ui
 }
 
 // UpdateInterceptor gets the update interceptor for the given channel. The second return
 // value indicates whether such an entry could be found.
-func (interceptors *updateInterceptors) UpdateInterceptor(id channel.ID) (*updateInterceptor, bool) {
+func (interceptors *updateInterceptors) UpdateInterceptor(id map[int]channel.ID) (*updateInterceptor, bool) {
 	interceptors.RLock()
 	defer interceptors.RUnlock()
-	ui, ok := interceptors.entries[id]
+	ui, ok := interceptors.entries[channel.IDKey(id)]
 	return ui, ok
 }
 
 // Release releases the update interceptor for the given channel.
-func (interceptors *updateInterceptors) Release(id channel.ID) {
+func (interceptors *updateInterceptors) Release(id map[int]channel.ID) {
 	interceptors.Lock()
 	defer interceptors.Unlock()
-	if ui, ok := interceptors.entries[id]; ok {
+	if ui, ok := interceptors.entries[channel.IDKey(id)]; ok {
 		close(ui.response)
 	}
-	delete(interceptors.entries, id)
+	delete(interceptors.entries, channel.IDKey(id))
 }
 
 // Filter filters for a matching update interceptor. It returns the first

@@ -54,7 +54,7 @@ type (
 	// needed for persistence. The ID, Idx and Params only need to be persisted
 	// once per channel as they stay constant during a channel's lifetime.
 	Source interface {
-		ID() ID                 // ID is the channel ID of this source. It is the same as Params().ID().
+		ID() map[int]ID         // ID is the channel ID of this source. It is the same as Params().ID().
 		Idx() Index             // Idx is the own index in the channel.
 		Params() *Params        // Params are the channel parameters.
 		StagingTX() Transaction // StagingTX is the staged transaction (State+incomplete list of sigs).
@@ -168,7 +168,7 @@ func restoreMachine(acc wallet.Account, source Source) (*machine, error) {
 }
 
 // ID returns the channel id.
-func (m *machine) ID() ID {
+func (m *machine) ID() map[int]ID {
 	return m.params.ID()
 }
 
@@ -484,7 +484,7 @@ func (m *machine) expect(tr PhaseTransition) error {
 // A StateMachine will additionally check the validity of the app-specific
 // transition whereas an ActionMachine checks each Action as being valid.
 func (m *machine) ValidTransition(to *State) error {
-	if to.ID != m.params.id {
+	if !EqualIDs(to.ID, m.params.id) {
 		return errors.New("new state's ID doesn't match")
 	}
 

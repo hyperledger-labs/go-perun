@@ -626,7 +626,7 @@ func (c *Client) completeCPP(
 	return ch, nil
 }
 
-func (c *Client) proposalParent(prop ChannelProposal, partIdx channel.Index) (parentChannelID *channel.ID, parent *Channel, err error) {
+func (c *Client) proposalParent(prop ChannelProposal, partIdx channel.Index) (parentChannelID *map[int]channel.ID, parent *Channel, err error) {
 	switch prop := prop.(type) {
 	case *SubChannelProposalMsg:
 		parentChannelID = &prop.Parent

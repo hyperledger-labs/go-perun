@@ -121,7 +121,7 @@ type (
 	// SubChannelProposalMsg is a channel proposal for subchannels.
 	SubChannelProposalMsg struct {
 		BaseChannelProposal
-		Parent channel.ID
+		Parent map[int]channel.ID
 	}
 )
 
@@ -326,7 +326,7 @@ func (p LedgerChannelProposalMsg) Valid() error {
 // NewSubChannelProposal creates a subchannel proposal and applies the
 // supplied options. For more information, see ProposalOpts.
 func NewSubChannelProposal(
-	parent channel.ID,
+	parent map[int]channel.ID,
 	challengeDuration uint64,
 	initBals *channel.Allocation,
 	opts ...ProposalOpts,
@@ -344,12 +344,12 @@ func NewSubChannelProposal(
 
 // Encode encodes the SubChannelProposal into an io.Writer.
 func (p SubChannelProposalMsg) Encode(w io.Writer) error {
-	return perunio.Encode(w, p.BaseChannelProposal, p.Parent)
+	return perunio.Encode(w, p.BaseChannelProposal, channel.IDMap(p.Parent))
 }
 
 // Decode decodes a SubChannelProposal from an io.Reader.
 func (p *SubChannelProposalMsg) Decode(r io.Reader) error {
-	return perunio.Decode(r, &p.BaseChannelProposal, &p.Parent)
+	return perunio.Decode(r, &p.BaseChannelProposal, (*channel.IDMap)(&p.Parent))
 }
 
 // Type returns wire.SubChannelProposal.
@@ -519,7 +519,7 @@ type (
 		BaseChannelProposal
 		Proposer  map[int]wallet.Address // Proposer's address in the channel.
 		Peers     []map[int]wire.Address // Participants' wire addresses.
-		Parents   []channel.ID           // Parent channels for each participant.
+		Parents   []map[int]channel.ID   // Parent channels for each participant.
 		IndexMaps [][]channel.Index      // Index mapping for each participant in relation to the root channel.
 	}
 
@@ -537,7 +537,7 @@ func NewVirtualChannelProposal(
 	participant map[int]wallet.Address,
 	initBals *channel.Allocation,
 	peers []map[int]wire.Address,
-	parents []channel.ID,
+	parents []map[int]channel.ID,
 	indexMaps [][]channel.Index,
 	opts ...ProposalOpts,
 ) (prop *VirtualChannelProposalMsg, err error) {

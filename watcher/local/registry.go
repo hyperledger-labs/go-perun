@@ -25,22 +25,22 @@ import (
 type (
 	registry struct {
 		mtx sync.Mutex
-		chs map[channel.ID]*ch
+		chs map[string]*ch
 	}
 )
 
 func newRegistry() *registry {
 	return &registry{
-		chs: make(map[channel.ID]*ch),
+		chs: make(map[string]*ch),
 	}
 }
 
 // addIfSucceeds adds the channel to the registry, if it is not already present
 // in the registry and if the "chInitializer" does not return an error.
-func (r *registry) addIfSucceeds(id channel.ID, chInitializer chInitializer) (*ch, error) {
+func (r *registry) addIfSucceeds(id map[int]channel.ID, chInitializer chInitializer) (*ch, error) {
 	r.mtx.Lock()
 	defer r.mtx.Unlock()
-	if _, ok := r.chs[id]; ok {
+	if _, ok := r.chs[channel.IDKey(id)]; ok {
 		return nil, errors.New("already watching for this channel")
 	}
 
@@ -49,22 +49,22 @@ func (r *registry) addIfSucceeds(id channel.ID, chInitializer chInitializer) (*c
 		return nil, err
 	}
 
-	r.chs[ch.id] = ch
+	r.chs[channel.IDKey(ch.id)] = ch
 	return ch, nil
 }
 
 // retrieve retrieves the channel from registry.
-func (r *registry) retrieve(id channel.ID) (*ch, bool) {
+func (r *registry) retrieve(id map[int]channel.ID) (*ch, bool) {
 	r.mtx.Lock()
-	ch, ok := r.chs[id]
+	ch, ok := r.chs[channel.IDKey(id)]
 	r.mtx.Unlock()
 	return ch, ok
 }
 
 // remove removes the channel from registry, if it is present.
 // It does not do any validation on the channel to be removed.
-func (r *registry) remove(id channel.ID) {
+func (r *registry) remove(id map[int]channel.ID) {
 	r.mtx.Lock()
-	delete(r.chs, id)
+	delete(r.chs, channel.IDKey(id))
 	r.mtx.Unlock()
 }

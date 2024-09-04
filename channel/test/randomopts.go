@@ -127,7 +127,7 @@ func WithFirstPart(part map[int]wallet.Address) RandomOpt {
 }
 
 // WithID sets the channel ID that should be used.
-func WithID(id channel.ID) RandomOpt {
+func WithID(id map[int]channel.ID) RandomOpt {
 	return RandomOpt{"id": id}
 }
 
@@ -153,7 +153,7 @@ func WithLockedBals(bals ...channel.Bal) RandomOpt {
 }
 
 // WithLockedID sets the channel id that should be used when generating a single sub-allocation with `NewRandomSubAlloc`.
-func WithLockedID(id channel.ID) RandomOpt {
+func WithLockedID(id map[int]channel.ID) RandomOpt {
 	return RandomOpt{"lockedId": id}
 }
 
@@ -347,11 +347,11 @@ func (o RandomOpt) ChallengeDuration(rng *rand.Rand) uint64 {
 
 // ID returns the `ID` value of the `RandomOpt`.
 // If not present, returns `false` as second argument.
-func (o RandomOpt) ID() (id channel.ID, valid bool) {
+func (o RandomOpt) ID() (id map[int]channel.ID, valid bool) {
 	if _, ok := o["id"]; !ok {
-		return channel.ID{}, false
+		return map[int]channel.ID{}, false
 	}
-	return o["id"].(channel.ID), true
+	return o["id"].(map[int]channel.ID), true
 }
 
 // FirstPart returns the `FirstPart` value of the `RandomOpt`.
@@ -392,20 +392,20 @@ func (o RandomOpt) LockedBals() []channel.Bal {
 
 // LockedID returns the `LockedID` value of the `RandomOpt`.
 // If not present, a random value is generated with `rng` as entropy source.
-func (o RandomOpt) LockedID(rng *rand.Rand) channel.ID {
+func (o RandomOpt) LockedID(rng *rand.Rand) map[int]channel.ID {
 	if _, ok := o["lockedId"]; !ok {
 		o["lockedId"] = NewRandomChannelID(rng)
 	}
-	return o["lockedId"].(channel.ID)
+	return o["lockedId"].(map[int]channel.ID)
 }
 
 // LockedIDs returns the `LockedIDs` value of the `RandomOpt`.
 // If not present, returns nil.
-func (o RandomOpt) LockedIDs(rng *rand.Rand) (ids []channel.ID) {
+func (o RandomOpt) LockedIDs(rng *rand.Rand) (ids []map[int]channel.ID) {
 	if _, ok := o["lockedIds"]; !ok {
 		return nil
 	}
-	return o["lockedIds"].([]channel.ID)
+	return o["lockedIds"].([]map[int]channel.ID)
 }
 
 // Nonce returns the `Nonce` value of the `RandomOpt`.

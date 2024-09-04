@@ -61,7 +61,7 @@ func (m *ChannelSyncMsg) Decode(r io.Reader) error {
 }
 
 // ID returns the channel's ID.
-func (m *ChannelSyncMsg) ID() channel.ID {
+func (m *ChannelSyncMsg) ID() map[int]channel.ID {
 	return m.CurrentTX.ID
 }
 

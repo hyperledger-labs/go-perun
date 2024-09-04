@@ -239,7 +239,7 @@ func (c *Client) validateVirtualChannelFundingProposal(
 	prop *VirtualChannelFundingProposalMsg,
 ) error {
 	switch {
-	case prop.Initial.Params.ID() != prop.Initial.State.ID:
+	case !channel.EqualIDs(prop.Initial.Params.ID(), prop.Initial.State.ID):
 		return errors.New("state does not match parameters")
 	case !prop.Initial.Params.VirtualChannel:
 		return errors.New("virtual channel flag not set")

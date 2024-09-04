@@ -41,10 +41,10 @@ func clientChannelFromSource(
 func (c *Client) reconstructChannel(
 	channelFromSource channelFromSourceSig,
 	pch *persistence.Channel,
-	db map[channel.ID]*persistence.Channel,
-	chans map[channel.ID]*Channel,
+	db map[string]*persistence.Channel,
+	chans map[string]*Channel,
 ) *Channel {
-	if ch, ok := chans[pch.ID()]; ok {
+	if ch, ok := chans[channel.IDKey(pch.ID())]; ok {
 		return ch
 	}
 
@@ -52,7 +52,7 @@ func (c *Client) reconstructChannel(
 	if pch.Parent != nil {
 		parent = c.reconstructChannel(
 			channelFromSource,
-			db[*pch.Parent],
+			db[channel.IDKey(*pch.Parent)],
 			db,
 			chans)
 	}
@@ -62,7 +62,7 @@ func (c *Client) reconstructChannel(
 		c.logChan(pch.ID()).Panicf("Reconstruct channel: %v", err)
 	}
 
-	chans[pch.ID()] = ch
+	chans[channel.IDKey(pch.ID())] = ch
 	return ch
 }
 
@@ -77,13 +77,13 @@ func (c *Client) restorePeerChannels(ctx context.Context, p map[int]wire.Address
 		}
 	}()
 
-	db := make(map[channel.ID]*persistence.Channel)
+	db := make(map[string]*persistence.Channel)
 
 	// Serially restore channels. We might change this to parallel restoring once
 	// we initiate the sync protocol from here again.
 	for it.Next(ctx) {
 		chdata := it.Channel()
-		db[chdata.ID()] = chdata
+		db[channel.IDKey(chdata.ID())] = chdata
 	}
 
 	if err := it.Close(); err != nil {
@@ -95,10 +95,10 @@ func (c *Client) restorePeerChannels(ctx context.Context, p map[int]wire.Address
 }
 
 func (c *Client) restoreChannelCollection(
-	db map[channel.ID]*persistence.Channel,
+	db map[string]*persistence.Channel,
 	channelFromSource channelFromSourceSig,
 ) {
-	chs := make(map[channel.ID]*Channel)
+	chs := make(map[string]*Channel)
 	for _, pch := range db {
 		ch := c.reconstructChannel(channelFromSource, pch, db, chs)
 		log := c.logChan(ch.ID())

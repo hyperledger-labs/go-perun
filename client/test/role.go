@@ -58,7 +58,7 @@ type (
 	}
 
 	channelMap struct {
-		entries map[channel.ID]*paymentChannel
+		entries map[string]*paymentChannel
 		sync.RWMutex
 	}
 
@@ -211,7 +211,7 @@ func (c *BaseExecConfig) App() client.ProposalOpts {
 func makeRole(t *testing.T, setup RoleSetup, numStages int) (r role) {
 	t.Helper()
 	r = role{
-		chans:             &channelMap{entries: make(map[channel.ID]*paymentChannel)},
+		chans:             &channelMap{entries: make(map[string]*paymentChannel)},
 		setup:             setup,
 		timeout:           setup.Timeout,
 		errs:              setup.Errors,
@@ -243,17 +243,17 @@ func (r *role) setClient(cl *client.Client) {
 	r.log = log.AppendField(cl, "role", r.setup.Name)
 }
 
-func (chs *channelMap) channel(ch channel.ID) (_ch *paymentChannel, ok bool) {
+func (chs *channelMap) channel(ch map[int]channel.ID) (_ch *paymentChannel, ok bool) {
 	chs.RLock()
 	defer chs.RUnlock()
-	_ch, ok = chs.entries[ch]
+	_ch, ok = chs.entries[channel.IDKey(ch)]
 	return
 }
 
 func (chs *channelMap) add(ch *paymentChannel) {
 	chs.Lock()
 	defer chs.Unlock()
-	chs.entries[ch.ID()] = ch
+	chs.entries[channel.IDKey(ch.ID())] = ch
 }
 
 func (r *role) OnNewChannel(callback func(ch *paymentChannel)) {

@@ -86,7 +86,7 @@ func GenericPersistRestorerTest(
 ) {
 	t.Helper()
 	t.Run("RestoreChannel error", func(t *testing.T) {
-		var id channel.ID
+		var id map[int]channel.ID
 		ch, err := pr.RestoreChannel(context.Background(), id)
 		assert.Error(t, err)
 		assert.Nil(t, ch)
@@ -96,10 +96,10 @@ func GenericPersistRestorerTest(
 	c := NewClient(ctx, t, rng, pr)
 	peers := test.NewRandomAddressesMap(rng, numPeers)
 
-	channels := make([]map[channel.ID]*Channel, numPeers)
+	channels := make([]map[string]*Channel, numPeers)
 	var prevCh *Channel
 	for p := 0; p < numPeers; p++ {
-		channels[p] = make(map[channel.ID]*Channel)
+		channels[p] = make(map[string]*Channel)
 		for i := 0; i < numChans; i++ {
 			var parent *Channel
 			// Every second channel is set to have a parent.
@@ -108,7 +108,7 @@ func GenericPersistRestorerTest(
 			}
 			ch := c.NewChannel(t, peers[p], parent)
 			prevCh = ch
-			channels[p][ch.ID()] = ch
+			channels[p][channel.IDKey(ch.ID())] = ch
 			t.Logf("created channel %d for peer %d", i, p)
 		}
 	}
@@ -173,7 +173,7 @@ func GenericPersistRestorerTest(
 
 		for it.Next(ctx) {
 			ch := it.Channel()
-			cached := channels[pIdx][ch.ID()]
+			cached := channels[pIdx][channel.IDKey(ch.ID())]
 			cached.RequireEqual(t, ch)
 		}
 	}

@@ -23,18 +23,18 @@ import (
 type (
 	// StateTransitionError happens in case of an invalid channel state transition.
 	StateTransitionError struct {
-		ID ID
+		ID map[int]ID
 	}
 
 	// ActionError happens if an invalid action is applied to a channel state.
 	ActionError struct {
-		ID ID
+		ID map[int]ID
 	}
 
 	// PhaseTransitionError happens in case of an invalid channel machine phase
 	// transition.
 	PhaseTransitionError struct {
-		ID      ID
+		ID      map[int]ID
 		current Phase
 		PhaseTransition
 	}
@@ -56,20 +56,20 @@ func (e *PhaseTransitionError) Error() string {
 }
 
 // NewStateTransitionError creates a new StateTransitionError.
-func NewStateTransitionError(id ID, msg string) error {
+func NewStateTransitionError(id map[int]ID, msg string) error {
 	return errors.Wrap(&StateTransitionError{
 		ID: id,
 	}, msg)
 }
 
 // NewActionError creates a new ActionError.
-func NewActionError(id ID, msg string) error {
+func NewActionError(id map[int]ID, msg string) error {
 	return errors.Wrap(&ActionError{
 		ID: id,
 	}, msg)
 }
 
-func newPhaseTransitionError(id ID, current Phase, expected PhaseTransition, msg string) error {
+func newPhaseTransitionError(id map[int]ID, current Phase, expected PhaseTransition, msg string) error {
 	return errors.Wrap(&PhaseTransitionError{
 		ID:              id,
 		current:         current,
@@ -78,7 +78,7 @@ func newPhaseTransitionError(id ID, current Phase, expected PhaseTransition, msg
 }
 
 func newPhaseTransitionErrorf(
-	id ID,
+	id map[int]ID,
 	current Phase,
 	expected PhaseTransition,
 	format string,

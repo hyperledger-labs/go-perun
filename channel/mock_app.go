@@ -168,9 +168,9 @@ func (a MockApp) execMockOp(op *MockOp) error {
 	case OpErr:
 		return errors.New("MockOp: runtime error")
 	case OpTransitionErr:
-		return NewStateTransitionError(ID{}, "MockOp: state transition error")
+		return NewStateTransitionError(map[int]ID{}, "MockOp: state transition error")
 	case OpActionErr:
-		return NewActionError(ID{}, "MockOp: action error")
+		return NewActionError(map[int]ID{}, "MockOp: action error")
 	case OpPanic:
 		panic("MockOp: panic")
 	case OpValid:

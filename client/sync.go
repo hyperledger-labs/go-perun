@@ -74,7 +74,7 @@ func (c *Client) syncChannel(ctx context.Context, ch *persistence.Channel, p map
 	id := ch.ID()
 	err = c.conn.Subscribe(recv, func(m *wire.Envelope) bool {
 		msg, ok := m.Msg.(*ChannelSyncMsg)
-		return ok && msg.ID() == id
+		return ok && channel.EqualIDs(msg.ID(), id)
 	})
 	if err != nil {
 		return errors.WithMessage(err, "subscribing on relay")
@@ -122,7 +122,7 @@ func validateMessage(ch *persistence.Channel, msg *ChannelSyncMsg) error {
 	v := ch.CurrentTX().Version
 	mv := msg.CurrentTX.Version
 
-	if msg.CurrentTX.ID != ch.ID() {
+	if channel.EqualIDs(msg.CurrentTX.ID, ch.ID()) {
 		return errors.New("channel ID mismatch")
 	}
 	if mv == v {

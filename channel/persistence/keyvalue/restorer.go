@@ -63,7 +63,7 @@ func (pr *PersistRestorer) ActivePeers(ctx context.Context) ([]map[int]wire.Addr
 
 // channelPeers returns a slice of peer addresses for a given channel id from
 // the db of PersistRestorer.
-func (pr *PersistRestorer) channelPeers(id channel.ID) ([]map[int]wire.Address, error) {
+func (pr *PersistRestorer) channelPeers(id map[int]channel.ID) ([]map[int]wire.Address, error) {
 	var ps wire.AddressMapArray
 	peers, err := pr.channelDB(id).Get(prefix.Peers)
 	if err != nil {
@@ -116,11 +116,11 @@ func peerChannelsKey(addr map[int]wire.Address) (string, error) {
 }
 
 // RestoreChannel restores a single channel.
-func (pr *PersistRestorer) RestoreChannel(ctx context.Context, id channel.ID) (*persistence.Channel, error) {
+func (pr *PersistRestorer) RestoreChannel(ctx context.Context, id map[int]channel.ID) (*persistence.Channel, error) {
 	chandb := sortedkv.NewTable(pr.db, prefix.ChannelDB)
 	it := &ChannelIterator{
 		restorer: pr,
-		its:      []sortedkv.Iterator{chandb.NewIteratorWithPrefix(string(id[:]))},
+		its:      []sortedkv.Iterator{chandb.NewIteratorWithPrefix(channel.IDKey(id))},
 	}
 
 	if it.Next(ctx) {

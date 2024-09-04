@@ -80,7 +80,7 @@ type (
 	// The size of the balances slice must be of the same size as the assets slice
 	// of the channel Params.
 	SubAlloc struct {
-		ID       ID
+		ID       map[int]ID
 		Bals     []Bal
 		IndexMap []Index // Maps participant indices of the sub-channel to participant indices of the parent channel.
 	}
@@ -547,7 +547,7 @@ func (b Balances) Sum() []Bal {
 }
 
 // NewSubAlloc creates a new sub-allocation.
-func NewSubAlloc(id ID, bals []Bal, indexMap []Index) *SubAlloc {
+func NewSubAlloc(id map[int]ID, bals []Bal, indexMap []Index) *SubAlloc {
 	if indexMap == nil {
 		indexMap = []Index{}
 	}
@@ -556,9 +556,9 @@ func NewSubAlloc(id ID, bals []Bal, indexMap []Index) *SubAlloc {
 
 // SubAlloc tries to return the sub-allocation for the given subchannel.
 // The second return value indicates success.
-func (a Allocation) SubAlloc(subchannel ID) (subAlloc SubAlloc, ok bool) {
+func (a Allocation) SubAlloc(subchannel map[int]ID) (subAlloc SubAlloc, ok bool) {
 	for _, subAlloc = range a.Locked {
-		if subAlloc.ID == subchannel {
+		if EqualIDs(subAlloc.ID, subchannel) {
 			ok = true
 			return
 		}
@@ -577,10 +577,7 @@ func (a *Allocation) RemoveSubAlloc(subAlloc SubAlloc) error {
 	for i := range a.Locked {
 		if subAlloc.Equal(&a.Locked[i]) == nil {
 			// remove element at index i
-			b := a.Locked
-			copy(b[i:], b[i+1:])
-			b[len(b)-1] = SubAlloc{}
-			a.Locked = b[:len(b)-1]
+			a.Locked = append(a.Locked[:i], a.Locked[i+1:]...)
 			return nil
 		}
 	}
@@ -644,7 +641,7 @@ func (s SubAlloc) Encode(w io.Writer) error {
 			err, "invalid sub-allocations cannot be encoded, got %v", s)
 	}
 	// encode ID and dimension
-	if err := perunio.Encode(w, s.ID, Index(len(s.Bals))); err != nil {
+	if err := perunio.Encode(w, IDMap(s.ID), Index(len(s.Bals))); err != nil {
 		return errors.WithMessagef(
 			err, "encoding sub-allocation ID or dimension, id %v", s.ID)
 	}
@@ -673,7 +670,7 @@ func (s SubAlloc) Encode(w io.Writer) error {
 func (s *SubAlloc) Decode(r io.Reader) error {
 	var numAssets Index
 	// decode ID and dimension
-	if err := perunio.Decode(r, &s.ID, &numAssets); err != nil {
+	if err := perunio.Decode(r, (*IDMap)(&s.ID), &numAssets); err != nil {
 		return errors.WithMessage(err, "decoding sub-allocation ID or dimension")
 	}
 	if numAssets > MaxNumAssets {
@@ -708,7 +705,7 @@ func (s *SubAlloc) Equal(t *SubAlloc) error {
 	if s == t {
 		return nil
 	}
-	if s.ID != t.ID {
+	if !EqualIDs(s.ID, t.ID) {
 		return errors.New("different ID")
 	}
 	if !s.BalancesEqual(t.Bals) {

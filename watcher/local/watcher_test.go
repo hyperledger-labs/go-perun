@@ -774,6 +774,7 @@ func (t *adjEventSource) close() {
 // the "Subscribe" method to be called once. The adjSub and the err are set as
 // the return values for the call and will be returned when the method is
 // called.
+//
 //nolint:unparam
 func setExpectationSubscribeCall(rs *mocks.RegisterSubscriber, adjSub channel.AdjudicatorSubscription, err error) {
 	rs.On("Subscribe", testifyMock.Anything, testifyMock.Anything).Return(adjSub, err).Once()
@@ -953,7 +954,7 @@ func startWatchingForSubChannel(
 	t *testing.T,
 	w *local.Watcher,
 	signedState channel.SignedState,
-	parentID channel.ID,
+	parentID map[int]channel.ID,
 ) (watcher.StatesPub, watcher.AdjudicatorSub) {
 	t.Helper()
 	statesPub, eventsSub, err := w.StartWatchingSubChannel(context.TODO(), parentID, signedState)

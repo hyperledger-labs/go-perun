@@ -50,26 +50,26 @@ func patchChFromSource(
 
 func TestReconstructChannel(t *testing.T) {
 	rng := pkgtest.Prng(t)
-	db := map[channel.ID]*persistence.Channel{}
+	db := map[string]*persistence.Channel{}
 
 	restParent := mkRndChan(rng)
-	db[restParent.ID()] = restParent
+	db[channel.IDKey(restParent.ID())] = restParent
 
 	restChild := mkRndChan(rng)
 	parentID := restParent.ID()
 	restChild.Parent = &parentID
-	db[restChild.ID()] = restChild
+	db[channel.IDKey(restChild.ID())] = restChild
 
 	c := &Client{log: log.Default()}
 
 	t.Run("parent first", func(t *testing.T) {
-		chans := map[channel.ID]*Channel{}
+		chans := map[string]*Channel{}
 		parent := c.reconstructChannel(patchChFromSource, restParent, db, chans)
 		child := c.reconstructChannel(patchChFromSource, restChild, db, chans)
 		assert.Same(t, child.parent, parent)
 	})
 	t.Run("child first", func(t *testing.T) {
-		chans := map[channel.ID]*Channel{}
+		chans := map[string]*Channel{}
 		child := c.reconstructChannel(patchChFromSource, restChild, db, chans)
 		parent := c.reconstructChannel(patchChFromSource, restParent, db, chans)
 		assert.Same(t, child.parent, parent)
@@ -80,20 +80,20 @@ func TestRestoreChannelCollection(t *testing.T) {
 	rng := pkgtest.Prng(t)
 
 	// Generate multiple trees of channels into one collection.
-	db := make(map[channel.ID]*persistence.Channel)
+	db := make(map[string]*persistence.Channel)
 	for i := 0; i < 3; i++ {
 		mkRndChanTree(rng, 3, 1, 3, db)
 	}
 
 	// Remember channels that have been published.
-	witnessedChans := make(map[channel.ID]struct{})
+	witnessedChans := make(map[string]struct{})
 	c := &Client{log: log.Default(), channels: makeChanRegistry()}
 	c.OnNewChannel(func(ch *Channel) {
-		_, ok := witnessedChans[ch.ID()]
+		_, ok := witnessedChans[channel.IDKey(ch.ID())]
 		require.False(t, ok)
-		_, ok = db[ch.ID()]
+		_, ok = db[channel.IDKey(ch.ID())]
 		require.True(t, ok)
-		witnessedChans[ch.ID()] = struct{}{}
+		witnessedChans[channel.IDKey(ch.ID())] = struct{}{}
 	})
 
 	// Restore all channels into the client and check the published channels.
@@ -130,10 +130,10 @@ func mkRndChan(rng *rand.Rand) *persistence.Channel {
 func mkRndChanTree(
 	rng *rand.Rand,
 	depth, minChildren, maxChildren int,
-	db map[channel.ID]*persistence.Channel,
+	db map[string]*persistence.Channel,
 ) (root *persistence.Channel) {
 	root = mkRndChan(rng)
-	db[root.ID()] = root
+	db[channel.IDKey(root.ID())] = root
 
 	if depth > 0 && maxChildren > 0 {
 		children := minChildren + rng.Intn(maxChildren-minChildren+1)
@@ -142,7 +142,7 @@ func mkRndChanTree(
 		}
 		for i := 0; i < children; i++ {
 			t := mkRndChanTree(rng, depth-1, minChildren, maxChildren-1, db)
-			t.Parent = new(channel.ID)
+			t.Parent = &map[int]channel.ID{0: *new(channel.ID)}
 			*t.Parent = root.ID()
 		}
 	}

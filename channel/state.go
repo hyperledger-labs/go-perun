@@ -32,7 +32,7 @@ type (
 	// during disputes.
 	State struct {
 		// id is the immutable id of the channel this state belongs to
-		ID ID
+		ID map[int]ID
 		// version counter
 		Version uint64
 		// App identifies the application that this channel is running.
@@ -114,14 +114,14 @@ func (s *State) Clone() *State {
 // Encode encodes a state into an `io.Writer` or returns an `error`.
 func (s State) Encode(w io.Writer) error {
 	return errors.WithMessage(
-		perunio.Encode(w, s.ID, s.Version, s.Allocation, s.IsFinal, OptAppAndDataEnc{s.App, s.Data}),
+		perunio.Encode(w, IDMap(s.ID), s.Version, s.Allocation, s.IsFinal, OptAppAndDataEnc{s.App, s.Data}),
 		"state encode")
 }
 
 // Decode decodes a state from an `io.Reader` or returns an `error`.
 func (s *State) Decode(r io.Reader) error {
 	return errors.WithMessage(
-		perunio.Decode(r, &s.ID, &s.Version, &s.Allocation, &s.IsFinal, &OptAppAndDataDec{&s.App, &s.Data}),
+		perunio.Decode(r, (*IDMap)(&s.ID), &s.Version, &s.Allocation, &s.IsFinal, &OptAppAndDataDec{&s.App, &s.Data}),
 		"app decode")
 }
 
@@ -131,7 +131,7 @@ func (s *State) Equal(t *State) error {
 	if s == t {
 		return nil
 	}
-	if s.ID != t.ID {
+	if !EqualIDs(s.ID, t.ID) {
 		return errors.New("different IDs")
 	}
 	if s.Version != t.Version {

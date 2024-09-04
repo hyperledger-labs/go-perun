@@ -141,5 +141,5 @@ func MockActionAppTest(t *testing.T, app MockApp) {
 }
 
 func createState(op MockOp) *State {
-	return &State{ID: ID{}, Version: 0, Allocation: Allocation{}, Data: NewMockOp(op), IsFinal: false}
+	return &State{ID: map[int]ID{}, Version: 0, Allocation: Allocation{}, Data: NewMockOp(op), IsFinal: false}
 }

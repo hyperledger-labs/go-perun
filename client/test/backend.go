@@ -36,8 +36,8 @@ type (
 		rng          rng
 		mu           sync.Mutex
 		assetHolder  *assetHolder
-		latestEvents map[channel.ID]channel.AdjudicatorEvent
-		eventSubs    map[channel.ID][]*MockSubscription
+		latestEvents map[string]channel.AdjudicatorEvent
+		eventSubs    map[string][]*MockSubscription
 		balances     map[addressMapKey]map[assetMapKey]*big.Int
 		id           multi.AssetID
 	}
@@ -67,8 +67,8 @@ func NewMockBackend(rng *rand.Rand, id string) *MockBackend {
 		log:          log.Default(),
 		rng:          newThreadSafePrng(backendRng),
 		assetHolder:  newAssetHolder(newThreadSafePrng(backendRng)),
-		latestEvents: make(map[channel.ID]channel.AdjudicatorEvent),
-		eventSubs:    make(map[channel.ID][]*MockSubscription),
+		latestEvents: make(map[string]channel.AdjudicatorEvent),
+		eventSubs:    make(map[string][]*MockSubscription),
 		balances:     make(map[string]map[string]*big.Int),
 		id:           multi.AssetID{0, LedgerID(id)},
 	}
@@ -191,10 +191,10 @@ func (b *MockBackend) Register(_ context.Context, req channel.AdjudicatorReq, su
 	return nil
 }
 
-func (b *MockBackend) setLatestEvent(ch channel.ID, e channel.AdjudicatorEvent) {
-	b.latestEvents[ch] = e
+func (b *MockBackend) setLatestEvent(ch map[int]channel.ID, e channel.AdjudicatorEvent) {
+	b.latestEvents[channel.IDKey(ch)] = e
 	// Update subscriptions.
-	if channelSubs, ok := b.eventSubs[ch]; ok {
+	if channelSubs, ok := b.eventSubs[channel.IDKey(ch)]; ok {
 		for _, sub := range channelSubs {
 			// Remove previous latest event.
 			select {
@@ -231,7 +231,7 @@ func (b *MockBackend) Progress(_ context.Context, req channel.ProgressReq) error
 func outcomeRecursive(state *channel.State, subStates channel.StateMap) (outcome channel.Balances) {
 	outcome = state.Balances.Clone()
 	for _, subAlloc := range state.Locked {
-		subOutcome := outcomeRecursive(subStates[subAlloc.ID], subStates)
+		subOutcome := outcomeRecursive(subStates[channel.IDKey(subAlloc.ID)], subStates)
 		for a, bals := range subOutcome {
 			for p, bal := range bals {
 				_p := p
@@ -280,7 +280,7 @@ func (b *MockBackend) checkStates(states []*channel.State, op checkStateFunc) er
 }
 
 func (b *MockBackend) checkState(s *channel.State, op checkStateFunc) error {
-	e, ok := b.latestEvents[s.ID]
+	e, ok := b.latestEvents[channel.IDKey(s.ID)]
 	if err := op(e, ok, s); err != nil {
 		return err
 	}
@@ -313,7 +313,7 @@ func (b *MockBackend) Withdraw(_ context.Context, req channel.AdjudicatorReq, su
 		b.log.Infof("Withdraw: %+v, %+v, %+v", req, subStates, outcome)
 		outcomeSum := outcome.Sum()
 
-		funding := b.assetHolder.balances[ch]
+		funding := b.assetHolder.balances[channel.IDKey(ch)]
 		if funding == nil {
 			funding = channel.MakeBalances(len(req.Tx.Assets), req.Tx.NumParts())
 		}
@@ -331,7 +331,7 @@ func (b *MockBackend) Withdraw(_ context.Context, req channel.AdjudicatorReq, su
 	}
 
 	// Payout balances.
-	balances := b.assetHolder.balances[ch]
+	balances := b.assetHolder.balances[channel.IDKey(ch)]
 	for a, assetBalances := range balances {
 		asset := req.Tx.Allocation.Assets[a]
 		p := req.Idx
@@ -346,8 +346,8 @@ func (b *MockBackend) Withdraw(_ context.Context, req channel.AdjudicatorReq, su
 	return nil
 }
 
-func (b *MockBackend) isConcluded(ch channel.ID) bool {
-	e, ok := b.latestEvents[ch]
+func (b *MockBackend) isConcluded(ch map[int]channel.ID) bool {
+	e, ok := b.latestEvents[channel.IDKey(ch)]
 	if !ok {
 		return false
 	}
@@ -442,7 +442,7 @@ func (b *MockBackend) setBalance(p wallet.Address, a channel.Asset, v *big.Int) 
 }
 
 // Subscribe creates an event subscription.
-func (b *MockBackend) Subscribe(ctx context.Context, chID channel.ID) (channel.AdjudicatorSubscription, error) {
+func (b *MockBackend) Subscribe(ctx context.Context, chID map[int]channel.ID) (channel.AdjudicatorSubscription, error) {
 	b.log.Infof("SubscribeRegistered: %+v", chID)
 
 	b.mu.Lock()
@@ -450,23 +450,23 @@ func (b *MockBackend) Subscribe(ctx context.Context, chID channel.ID) (channel.A
 
 	sub := NewMockSubscription(ctx)
 	sub.onClose = func() { b.removeSubscription(chID, sub) }
-	b.eventSubs[chID] = append(b.eventSubs[chID], sub)
+	b.eventSubs[channel.IDKey(chID)] = append(b.eventSubs[channel.IDKey(chID)], sub)
 
 	// Feed latest event if any.
-	if e, ok := b.latestEvents[chID]; ok {
+	if e, ok := b.latestEvents[channel.IDKey(chID)]; ok {
 		sub.events <- e
 	}
 
 	return sub, nil
 }
 
-func (b *MockBackend) removeSubscription(ch channel.ID, sub *MockSubscription) {
+func (b *MockBackend) removeSubscription(ch map[int]channel.ID, sub *MockSubscription) {
 	b.mu.Lock()
 	defer b.mu.Unlock()
 
 	// Find subscription index.
 	i, ok := func() (int, bool) {
-		for i, s := range b.eventSubs[ch] {
+		for i, s := range b.eventSubs[channel.IDKey(ch)] {
 			if sub == s {
 				return i, true
 			}
@@ -479,24 +479,24 @@ func (b *MockBackend) removeSubscription(ch channel.ID, sub *MockSubscription) {
 		return
 	}
 
-	subs := b.eventSubs[ch]
-	b.eventSubs[ch] = append(subs[:i], subs[i+1:]...)
+	subs := b.eventSubs[channel.IDKey(ch)]
+	b.eventSubs[channel.IDKey(ch)] = append(subs[:i], subs[i+1:]...)
 }
 
 // assetHolder mocks an assetHolder for the MockBackend.
 type assetHolder struct {
 	rng       rng
 	mtx       sync.Mutex
-	balances  map[channel.ID]channel.Balances
-	fundedWgs map[channel.ID]*sync.WaitGroup
+	balances  map[string]channel.Balances
+	fundedWgs map[string]*sync.WaitGroup
 }
 
 // newAssetHolder returns a new funder.
 func newAssetHolder(rng rng) *assetHolder {
 	return &assetHolder{
 		rng:       rng,
-		balances:  make(map[channel.ID]channel.Balances),
-		fundedWgs: make(map[channel.ID]*sync.WaitGroup),
+		balances:  make(map[string]channel.Balances),
+		fundedWgs: make(map[string]*sync.WaitGroup),
 	}
 }
 
@@ -508,12 +508,12 @@ func (f *assetHolder) initFund(req channel.FundingReq) {
 	f.mtx.Lock()
 	defer f.mtx.Unlock()
 
-	if f.fundedWgs[req.Params.ID()] == nil {
-		f.fundedWgs[req.Params.ID()] = &sync.WaitGroup{}
-		f.fundedWgs[req.Params.ID()].Add(len(req.Params.Parts))
+	if f.fundedWgs[channel.IDKey(req.Params.ID())] == nil {
+		f.fundedWgs[channel.IDKey(req.Params.ID())] = &sync.WaitGroup{}
+		f.fundedWgs[channel.IDKey(req.Params.ID())].Add(len(req.Params.Parts))
 	}
-	if f.balances[req.Params.ID()] == nil {
-		f.balances[req.Params.ID()] = channel.MakeBalances(len(req.State.Assets), req.State.NumParts())
+	if f.balances[channel.IDKey(req.Params.ID())] == nil {
+		f.balances[channel.IDKey(req.Params.ID())] = channel.MakeBalances(len(req.State.Assets), req.State.NumParts())
 	}
 }
 
@@ -535,12 +535,12 @@ func (f *assetHolder) Fund(req channel.FundingReq, b *MockBackend, acc wallet.Ad
 		b.subBalance(acc, asset, bal)
 		b.mu.Unlock()
 		f.mtx.Lock()
-		fundingBal := f.balances[req.Params.ID()][i][req.Idx]
+		fundingBal := f.balances[channel.IDKey(req.Params.ID())][i][req.Idx]
 		fundingBal.Add(fundingBal, bal)
 		f.mtx.Unlock()
 	}
 
-	f.fundedWgs[req.Params.ID()].Done()
+	f.fundedWgs[channel.IDKey(req.Params.ID())].Done()
 }
 
 // WaitForFunding waits until all participants have funded the channel.
@@ -550,7 +550,7 @@ func (f *assetHolder) WaitForFunding(ctx context.Context, req channel.FundingReq
 	defer cancel()
 
 	select {
-	case <-f.fundedWgs[req.Params.ID()].WaitCh():
+	case <-f.fundedWgs[channel.IDKey(req.Params.ID())].WaitCh():
 		log.Infof("Funded: %+v", req)
 		return nil
 	case <-fundCtx.Done():

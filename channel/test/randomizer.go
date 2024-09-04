@@ -17,7 +17,6 @@ package test
 import (
 	crand "crypto/rand"
 	"fmt"
-	"log"
 	"math/big"
 	"math/rand"
 	"time"
@@ -109,17 +108,40 @@ func NewRandomLocked(rng *rand.Rand, opts ...RandomOpt) []channel.SubAlloc {
 
 // NewRandomLockedIDs generates new random `channel.ID`s used in `channel.SubAlloc`.
 // Options: `WithLockedIDs` and `WithNumLocked`.
-func NewRandomLockedIDs(rng *rand.Rand, opts ...RandomOpt) []channel.ID {
+func NewRandomLockedIDs(rng *rand.Rand, opts ...RandomOpt) []map[int]channel.ID {
 	opt := mergeRandomOpts(opts...)
 
 	if ids := opt.LockedIDs(rng); ids != nil {
 		return ids
 	}
-
 	numLockedIds := opt.NumLocked(rng)
-	ids := make([]channel.ID, numLockedIds)
-	for i := range ids {
-		rng.Read(ids[i][:])
+	bIds, err := opt.BackendID()
+	if err == nil && bIds != nil {
+		ids := make([]map[int]channel.ID, numLockedIds)
+		for i, _ := range ids {
+			for j := range bIds {
+				ids[i] = make(map[int]channel.ID)
+				cId := [32]byte{}
+				rng.Read(cId[:])
+				ids[i][j] = cId
+			}
+		}
+		return ids
+	}
+	b, err := opt.Backend()
+	ids := make([]map[int]channel.ID, numLockedIds)
+	for i, _ := range ids {
+		if err != nil {
+			ids[i] = make(map[int]channel.ID)
+			cId := [32]byte{}
+			rng.Read(cId[:])
+			ids[i][0] = cId
+		} else {
+			ids[i] = make(map[int]channel.ID)
+			cId := [32]byte{}
+			rng.Read(cId[:])
+			ids[i][b] = cId
+		}
 	}
 	return ids
 }
@@ -216,22 +238,38 @@ func NewRandomState(rng *rand.Rand, opts ...RandomOpt) (state *channel.State) {
 
 // NewRandomChannelID generates a new random `channel.ID`.
 // Options: `WithID`.
-func NewRandomChannelID(rng *rand.Rand, opts ...RandomOpt) (id channel.ID) {
+func NewRandomChannelID(rng *rand.Rand, opts ...RandomOpt) (id map[int]channel.ID) {
 	opt := mergeRandomOpts(opts...)
 
 	if id, valid := opt.ID(); valid {
 		return id
 	}
-
-	if _, err := rng.Read(id[:]); err != nil {
-		log.Panic("could not read from rng")
+	id = make(map[int]channel.ID)
+	bIds, err := opt.BackendID()
+	if bIds != nil && err == nil {
+		for _, b := range bIds {
+			cId := [32]byte{}
+			rng.Read(cId[:])
+			id[b] = cId
+		}
+		return
+	}
+	bId, err := opt.Backend()
+	if err != nil {
+		cId := [32]byte{}
+		rng.Read(cId[:])
+		id[0] = cId
+	} else {
+		cId := [32]byte{}
+		rng.Read(cId[:])
+		id[bId] = cId
 	}
 	return
 }
 
 // NewRandomChannelIDs generates a list of random channel IDs.
-func NewRandomChannelIDs(rng *rand.Rand, n int) (ids []channel.ID) {
-	ids = make([]channel.ID, n)
+func NewRandomChannelIDs(rng *rand.Rand, n int) (ids []map[int]channel.ID) {
+	ids = make([]map[int]channel.ID, n)
 	for i := range ids {
 		ids[i] = NewRandomChannelID(rng)
 	}

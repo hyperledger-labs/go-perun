@@ -98,7 +98,7 @@ type (
 	// subscription should be closed by calling Close on the subscription after
 	// the channel is closed.
 	EventSubscriber interface {
-		Subscribe(context.Context, ID) (AdjudicatorSubscription, error)
+		Subscribe(context.Context, map[int]ID) (AdjudicatorSubscription, error)
 	}
 
 	// An AdjudicatorReq collects all necessary information to make calls to the
@@ -158,7 +158,7 @@ type (
 	// cause, currently either a Registered or Progressed event.
 	// The type of the event should be checked with a type switch.
 	AdjudicatorEvent interface {
-		ID() ID
+		ID() map[int]ID
 		Timeout() Timeout
 		Version() uint64
 	}
@@ -166,9 +166,9 @@ type (
 	// An AdjudicatorEventBase implements the AdjudicatorEvent interface. It can
 	// be embedded to implement an AdjudicatorEvent.
 	AdjudicatorEventBase struct {
-		IDV      ID      // Channel ID
-		TimeoutV Timeout // Current phase timeout
-		VersionV uint64  // Registered version
+		IDV      map[int]ID // Channel ID
+		TimeoutV Timeout    // Current phase timeout
+		VersionV uint64     // Registered version
 	}
 
 	// ProgressedEvent is the abstract event that signals an on-chain progression.
@@ -204,7 +204,7 @@ type (
 	}
 
 	// StateMap represents a channel state tree.
-	StateMap map[ID]*State
+	StateMap map[string]*State
 )
 
 // NewProgressReq creates a new ProgressReq object.
@@ -213,7 +213,7 @@ func NewProgressReq(ar AdjudicatorReq, newState *State, sig wallet.Sig) *Progres
 }
 
 // NewAdjudicatorEventBase creates a new AdjudicatorEventBase object.
-func NewAdjudicatorEventBase(c ID, t Timeout, v uint64) *AdjudicatorEventBase {
+func NewAdjudicatorEventBase(c map[int]ID, t Timeout, v uint64) *AdjudicatorEventBase {
 	return &AdjudicatorEventBase{
 		IDV:      c,
 		TimeoutV: t,
@@ -222,7 +222,7 @@ func NewAdjudicatorEventBase(c ID, t Timeout, v uint64) *AdjudicatorEventBase {
 }
 
 // ID returns the channel ID.
-func (b AdjudicatorEventBase) ID() ID { return b.IDV }
+func (b AdjudicatorEventBase) ID() map[int]ID { return b.IDV }
 
 // Timeout returns the phase timeout.
 func (b AdjudicatorEventBase) Timeout() Timeout { return b.TimeoutV }
@@ -231,7 +231,7 @@ func (b AdjudicatorEventBase) Timeout() Timeout { return b.TimeoutV }
 func (b AdjudicatorEventBase) Version() uint64 { return b.VersionV }
 
 // NewRegisteredEvent creates a new RegisteredEvent.
-func NewRegisteredEvent(id ID, timeout Timeout, version uint64, state *State, sigs []wallet.Sig) *RegisteredEvent {
+func NewRegisteredEvent(id map[int]ID, timeout Timeout, version uint64, state *State, sigs []wallet.Sig) *RegisteredEvent {
 	return &RegisteredEvent{
 		AdjudicatorEventBase: AdjudicatorEventBase{
 			IDV:      id,
@@ -244,7 +244,7 @@ func NewRegisteredEvent(id ID, timeout Timeout, version uint64, state *State, si
 }
 
 // NewProgressedEvent creates a new ProgressedEvent.
-func NewProgressedEvent(id ID, timeout Timeout, state *State, idx Index) *ProgressedEvent {
+func NewProgressedEvent(id map[int]ID, timeout Timeout, state *State, idx Index) *ProgressedEvent {
 	return &ProgressedEvent{
 		AdjudicatorEventBase: AdjudicatorEventBase{
 			IDV:      id,
@@ -257,7 +257,7 @@ func NewProgressedEvent(id ID, timeout Timeout, state *State, idx Index) *Progre
 }
 
 // NewConcludedEvent creates a new ConcludedEvent.
-func NewConcludedEvent(id ID, timeout Timeout, version uint64) *ConcludedEvent {
+func NewConcludedEvent(id map[int]ID, timeout Timeout, version uint64) *ConcludedEvent {
 	return &ConcludedEvent{
 		AdjudicatorEventBase: AdjudicatorEventBase{
 			IDV:      id,
@@ -302,12 +302,13 @@ func (t *TimeTimeout) String() string {
 
 // MakeStateMap creates a new StateMap object.
 func MakeStateMap() StateMap {
-	return make(map[ID]*State)
+	return make(map[string]*State)
 }
 
 // Add adds the given states to the state map.
 func (m StateMap) Add(states ...*State) {
 	for _, s := range states {
-		m[s.ID] = s
+		key := IDKey(s.ID)
+		m[key] = s
 	}
 }

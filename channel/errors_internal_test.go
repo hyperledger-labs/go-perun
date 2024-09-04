@@ -23,14 +23,14 @@ import (
 
 func TestTransitionErrors(t *testing.T) {
 	assert.False(t, IsStateTransitionError(errors.New("No StateTransitionError")))
-	assert.True(t, IsStateTransitionError(NewStateTransitionError(Zero, "A StateTransitionError")))
+	assert.True(t, IsStateTransitionError(NewStateTransitionError(map[int]ID{0: Zero}, "A StateTransitionError")))
 
 	assert.False(t, IsActionError(errors.New("No ActionError")))
-	assert.True(t, IsActionError(NewActionError(Zero, "An ActionError")))
+	assert.True(t, IsActionError(NewActionError(map[int]ID{0: Zero}, "An ActionError")))
 
 	assert.False(t, IsPhaseTransitionError(errors.New("No PhaseTransitionError")))
 	assert.True(t, IsPhaseTransitionError(newPhaseTransitionError(
-		Zero, InitActing, PhaseTransition{InitActing, InitActing}, "A PhaseTransitionError")))
+		map[int]ID{0: Zero}, InitActing, PhaseTransition{InitActing, InitActing}, "A PhaseTransitionError")))
 	assert.True(t, IsPhaseTransitionError(newPhaseTransitionErrorf(
-		Zero, InitActing, PhaseTransition{InitActing, InitActing}, "A %s", "PhaseTransitionError")))
+		map[int]ID{0: Zero}, InitActing, PhaseTransition{InitActing, InitActing}, "A %s", "PhaseTransitionError")))
 }

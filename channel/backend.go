@@ -63,22 +63,16 @@ func SetBackend(b Backend, id int) {
 }
 
 // CalcID calculates the CalcID.
-func CalcID(p *Params) (ID, error) {
-	var lastErr error
-	for _, b := range backend {
-		id, err := b.CalcID(p)
-		if err == nil {
-			return id, nil
-		} else {
-			lastErr = err
+func CalcID(p *Params) (map[int]ID, error) {
+	id := make(map[int]ID)
+	var err error
+	for i := range p.Parts[0] {
+		id[i], err = backend[i].CalcID(p)
+		if err != nil {
+			return nil, err
 		}
 	}
-
-	if lastErr != nil {
-		return ID{}, errors.Join(lastErr)
-	}
-
-	return ID{}, errors.New("no valid ID found")
+	return id, nil
 }
 
 // Sign creates a signature from the account a on state s.

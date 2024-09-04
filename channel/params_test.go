@@ -15,6 +15,7 @@
 package channel_test
 
 import (
+	"github.com/stretchr/testify/require"
 	"testing"
 
 	"perun.network/go-perun/channel"
@@ -27,7 +28,13 @@ import (
 func TestParams_Clone(t *testing.T) {
 	rng := pkgtest.Prng(t)
 	params := test.NewRandomParams(rng)
-	pkgtest.VerifyClone(t, params)
+	clone := params.Clone()
+
+	require.Equalf(t, params.Parts, clone.Parts, "Clone() = %v, want %v", clone, params)
+	require.Equalf(t, params.App, clone.App, "Clone() = %v, want %v", clone, params)
+	require.Equalf(t, params.ChallengeDuration, clone.ChallengeDuration, "Clone() = %v, want %v", clone, params)
+	require.Equalf(t, params.Nonce, clone.Nonce, "Clone() = %v, want %v", clone, params)
+
 }
 
 func TestParams_Serializer(t *testing.T) {

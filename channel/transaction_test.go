@@ -15,6 +15,7 @@
 package channel_test
 
 import (
+	"github.com/stretchr/testify/require"
 	"testing"
 
 	"perun.network/go-perun/channel"
@@ -83,5 +84,6 @@ func TestTransactionClone(t *testing.T) {
 	size := int(rng.Int31n(5)) + 2
 	testmask := newUniformBoolSlice(size, true)
 	tx := *test.NewRandomTransaction(rng, testmask)
-	pkgtest.VerifyClone(t, tx)
+	clone := tx.Clone()
+	require.Equalf(t, tx, clone, "Clone() = %v, want %v", clone, tx)
 }

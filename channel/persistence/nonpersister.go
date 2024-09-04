@@ -32,10 +32,10 @@ type nonPersistRestorer struct{}
 
 // Persister implementation
 
-func (nonPersistRestorer) ChannelCreated(context.Context, channel.Source, []map[int]wire.Address, *channel.ID) error {
+func (nonPersistRestorer) ChannelCreated(context.Context, channel.Source, []map[int]wire.Address, *map[int]channel.ID) error {
 	return nil
 }
-func (nonPersistRestorer) ChannelRemoved(context.Context, channel.ID) error              { return nil }
+func (nonPersistRestorer) ChannelRemoved(context.Context, map[int]channel.ID) error      { return nil }
 func (nonPersistRestorer) Staged(context.Context, channel.Source) error                  { return nil }
 func (nonPersistRestorer) SigAdded(context.Context, channel.Source, channel.Index) error { return nil }
 func (nonPersistRestorer) Enabled(context.Context, channel.Source) error                 { return nil }
@@ -56,7 +56,7 @@ func (nonPersistRestorer) RestorePeer(map[int]wire.Address) (ChannelIterator, er
 	return emptyChanIterator{}, nil
 }
 
-func (nonPersistRestorer) RestoreChannel(context.Context, channel.ID) (*Channel, error) {
+func (nonPersistRestorer) RestoreChannel(context.Context, map[int]channel.ID) (*Channel, error) {
 	return nil, errors.New("channel not found")
 }
 

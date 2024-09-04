@@ -33,7 +33,7 @@ import (
 type Channel struct {
 	accounts []wallet.Account
 	peers    []map[int]wire.Address
-	parent   *channel.ID
+	parent   *map[int]channel.ID
 	*persistence.StateMachine
 
 	pr  persistence.PersistRestorer
@@ -61,9 +61,9 @@ func NewRandomChannel(
 	csm, err := channel.NewStateMachine(accs[0], *params)
 	require.NoError(t, err)
 
-	var parentID *channel.ID
+	var parentID *map[int]channel.ID
 	if parent != nil {
-		parentID = new(channel.ID)
+		parentID = new(map[int]channel.ID)
 		*parentID = parent.ID()
 	}
 

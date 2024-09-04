@@ -47,7 +47,7 @@ func (c *Channel) equalParticipants(_c *Channel) bool {
 	return true
 }
 
-func (c *Channel) fundSubChannel(ctx context.Context, id channel.ID, alloc *channel.Allocation) error {
+func (c *Channel) fundSubChannel(ctx context.Context, id map[int]channel.ID, alloc *channel.Allocation) error {
 	// We assume that the channel is locked.
 	return c.update(ctx, func(state *channel.State) error {
 		// equal assets and sufficient balances are already checked when validating the sub-channel proposal
@@ -119,7 +119,7 @@ func (c *Channel) withdrawSubChannel(ctx context.Context, sub *Channel) error {
 	return errors.WithMessage(err, "update parent channel")
 }
 
-func (c *Channel) registerSubChannelFunding(id channel.ID, alloc []channel.Bal) {
+func (c *Channel) registerSubChannelFunding(id map[int]channel.ID, alloc []channel.Bal) {
 	filter := func(cu ChannelUpdate) bool {
 		expected := *channel.NewSubAlloc(id, alloc, nil)
 		_, containedBefore := c.machine.State().SubAlloc(expected.ID)
@@ -130,7 +130,7 @@ func (c *Channel) registerSubChannelFunding(id channel.ID, alloc []channel.Bal) 
 	c.subChannelFundings.Register(id, ui)
 }
 
-func (c *Channel) registerSubChannelSettlement(id channel.ID, bals [][]channel.Bal) {
+func (c *Channel) registerSubChannelSettlement(id map[int]channel.ID, bals [][]channel.Bal) {
 	filter := func(cu ChannelUpdate) bool {
 		_, containedBefore := c.machine.State().SubAlloc(id)
 		_, containedAfter := cu.State.SubAlloc(id)
@@ -142,15 +142,15 @@ func (c *Channel) registerSubChannelSettlement(id channel.ID, bals [][]channel.B
 	c.subChannelWithdrawals.Register(id, ui)
 }
 
-func (c *Channel) awaitSubChannelFunding(ctx context.Context, id channel.ID) error {
+func (c *Channel) awaitSubChannelFunding(ctx context.Context, id map[int]channel.ID) error {
 	return c.awaitSubChannelUpdate(ctx, id, c.subChannelFundings)
 }
 
-func (c *Channel) awaitSubChannelWithdrawal(ctx context.Context, id channel.ID) error {
+func (c *Channel) awaitSubChannelWithdrawal(ctx context.Context, id map[int]channel.ID) error {
 	return c.awaitSubChannelUpdate(ctx, id, c.subChannelWithdrawals)
 }
 
-func (c *Channel) awaitSubChannelUpdate(ctx context.Context, id channel.ID, interceptors *updateInterceptors) error {
+func (c *Channel) awaitSubChannelUpdate(ctx context.Context, id map[int]channel.ID, interceptors *updateInterceptors) error {
 	ui, ok := interceptors.UpdateInterceptor(id)
 
 	if !ok {
