@@ -438,7 +438,7 @@ func (c *Channel) gatherSubChannelStates() (states []channel.SignedState, err er
 func (c *Channel) subChannelStateMap() (states channel.StateMap, err error) {
 	states = channel.MakeStateMap()
 	err = c.applyToSubChannelsRecursive(func(c *Channel) error {
-		states[c.ID()] = c.state()
+		states[channel.IDKey(c.ID())] = c.state()
 		return nil
 	})
 	return
