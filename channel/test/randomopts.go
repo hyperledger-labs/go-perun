@@ -66,12 +66,12 @@ func WithApp(app channel.App) RandomOpt {
 }
 
 // WithBackend sets the `backend` that should be used.
-func WithBackend(id int) RandomOpt {
+func WithBackend(id wallet.BackendID) RandomOpt {
 	return RandomOpt{"backend": id}
 }
 
 // WithBackendIDs sets the `backend` that should be used.
-func WithBackendIDs(id []int) RandomOpt {
+func WithBackendIDs(id []wallet.BackendID) RandomOpt {
 	return RandomOpt{"backendIDs": id}
 }
 
@@ -122,12 +122,12 @@ func WithChallengeDuration(d uint64) RandomOpt {
 }
 
 // WithFirstPart sets the first participant that should be used in randomly generated Params. Overrides `WithParts`.
-func WithFirstPart(part map[int]wallet.Address) RandomOpt {
+func WithFirstPart(part map[wallet.BackendID]wallet.Address) RandomOpt {
 	return RandomOpt{"firstPart": part}
 }
 
 // WithID sets the channel ID that should be used.
-func WithID(id map[int]channel.ID) RandomOpt {
+func WithID(id map[wallet.BackendID]channel.ID) RandomOpt {
 	return RandomOpt{"id": id}
 }
 
@@ -153,7 +153,7 @@ func WithLockedBals(bals ...channel.Bal) RandomOpt {
 }
 
 // WithLockedID sets the channel id that should be used when generating a single sub-allocation with `NewRandomSubAlloc`.
-func WithLockedID(id map[int]channel.ID) RandomOpt {
+func WithLockedID(id map[wallet.BackendID]channel.ID) RandomOpt {
 	return RandomOpt{"lockedId": id}
 }
 
@@ -197,7 +197,7 @@ func WithParams(params *channel.Params) RandomOpt {
 
 // WithParts sets the `Parts` that should be used when generating Params.
 // Also sets `WithNumParts`.
-func WithParts(parts []map[int]wallet.Address) RandomOpt {
+func WithParts(parts []map[wallet.BackendID]wallet.Address) RandomOpt {
 	return RandomOpt{"parts": parts, "numParts": len(parts)}
 }
 
@@ -302,19 +302,19 @@ func (o RandomOpt) Assets() []channel.Asset {
 }
 
 // Backend returns the `Backend` value of the `RandomOpt`.
-func (o RandomOpt) Backend() (int, error) {
+func (o RandomOpt) Backend() (wallet.BackendID, error) {
 	if _, ok := o["backend"]; !ok {
 		return 0, fmt.Errorf("backend not set")
 	}
-	return o["backend"].(int), nil
+	return o["backend"].(wallet.BackendID), nil
 }
 
 // BackendID returns the `BackendID` value  from `Allocation` of the `RandomOpt`.
-func (o RandomOpt) BackendID() ([]int, error) {
+func (o RandomOpt) BackendID() ([]wallet.BackendID, error) {
 	if _, ok := o["backendIDs"]; !ok {
-		return []int{0}, fmt.Errorf("backend not set")
+		return []wallet.BackendID{0}, fmt.Errorf("backend not set")
 	}
-	return o["backendIDs"].([]int), nil
+	return o["backendIDs"].([]wallet.BackendID), nil
 }
 
 // Balances returns the `Balances` value of the `RandomOpt`.
@@ -347,20 +347,20 @@ func (o RandomOpt) ChallengeDuration(rng *rand.Rand) uint64 {
 
 // ID returns the `ID` value of the `RandomOpt`.
 // If not present, returns `false` as second argument.
-func (o RandomOpt) ID() (id map[int]channel.ID, valid bool) {
+func (o RandomOpt) ID() (id map[wallet.BackendID]channel.ID, valid bool) {
 	if _, ok := o["id"]; !ok {
-		return map[int]channel.ID{}, false
+		return map[wallet.BackendID]channel.ID{}, false
 	}
-	return o["id"].(map[int]channel.ID), true
+	return o["id"].(map[wallet.BackendID]channel.ID), true
 }
 
 // FirstPart returns the `FirstPart` value of the `RandomOpt`.
 // If not present, returns nil.
-func (o RandomOpt) FirstPart() map[int]wallet.Address {
+func (o RandomOpt) FirstPart() map[wallet.BackendID]wallet.Address {
 	if _, ok := o["firstPart"]; !ok {
 		return nil
 	}
-	return o["firstPart"].(map[int]wallet.Address)
+	return o["firstPart"].(map[wallet.BackendID]wallet.Address)
 }
 
 // IsFinal returns the `IsFinal` value of the `RandomOpt`.
@@ -392,20 +392,20 @@ func (o RandomOpt) LockedBals() []channel.Bal {
 
 // LockedID returns the `LockedID` value of the `RandomOpt`.
 // If not present, a random value is generated with `rng` as entropy source.
-func (o RandomOpt) LockedID(rng *rand.Rand) map[int]channel.ID {
+func (o RandomOpt) LockedID(rng *rand.Rand) map[wallet.BackendID]channel.ID {
 	if _, ok := o["lockedId"]; !ok {
 		o["lockedId"] = NewRandomChannelID(rng)
 	}
-	return o["lockedId"].(map[int]channel.ID)
+	return o["lockedId"].(map[wallet.BackendID]channel.ID)
 }
 
 // LockedIDs returns the `LockedIDs` value of the `RandomOpt`.
 // If not present, returns nil.
-func (o RandomOpt) LockedIDs(rng *rand.Rand) (ids []map[int]channel.ID) {
+func (o RandomOpt) LockedIDs(rng *rand.Rand) (ids []map[wallet.BackendID]channel.ID) {
 	if _, ok := o["lockedIds"]; !ok {
 		return nil
 	}
-	return o["lockedIds"].([]map[int]channel.ID)
+	return o["lockedIds"].([]map[wallet.BackendID]channel.ID)
 }
 
 // Nonce returns the `Nonce` value of the `RandomOpt`.
@@ -498,11 +498,11 @@ func (o RandomOpt) Params() *channel.Params {
 
 // Parts returns the `Parts` value of the `RandomOpt`.
 // If not present, returns nil.
-func (o RandomOpt) Parts() []map[int]wallet.Address {
+func (o RandomOpt) Parts() []map[wallet.BackendID]wallet.Address {
 	if _, ok := o["parts"]; !ok {
 		return nil
 	}
-	return o["parts"].([]map[int]wallet.Address)
+	return o["parts"].([]map[wallet.BackendID]wallet.Address)
 }
 
 // Version returns the `Version` value of the `RandomOpt`.

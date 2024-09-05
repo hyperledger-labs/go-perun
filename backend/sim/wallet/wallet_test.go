@@ -75,7 +75,7 @@ func TestWallet_Unlock(t *testing.T) {
 	})
 
 	t.Run("unknown unlock", func(t *testing.T) {
-		acc, err := w.Unlock(wallet.NewRandomAddresses(rng))
+		acc, err := w.Unlock(wallet.NewRandomAddress(rng))
 		assert.Error(t, err)
 		assert.Nil(t, acc)
 	})
@@ -123,7 +123,7 @@ func TestWallet_UsageCounting(t *testing.T) {
 	})
 
 	t.Run("invalid address", func(t *testing.T) {
-		assert.Panics(t, func() { w.IncrementUsage(wallet.NewRandomAddresses(rng)) })
-		assert.Panics(t, func() { w.DecrementUsage(wallet.NewRandomAddresses(rng)) })
+		assert.Panics(t, func() { w.IncrementUsage(wallet.NewRandomAddress(rng)) })
+		assert.Panics(t, func() { w.DecrementUsage(wallet.NewRandomAddress(rng)) })
 	})
 }

@@ -17,6 +17,7 @@ package net
 import (
 	"context"
 	"net"
+	"perun.network/go-perun/wallet"
 	"sync"
 	"testing"
 	"time"
@@ -51,7 +52,7 @@ func (d *mockDialer) Close() error {
 	return nil
 }
 
-func (d *mockDialer) Dial(ctx context.Context, addr map[int]wire.Address, _ wire.EnvelopeSerializer) (Conn, error) {
+func (d *mockDialer) Dial(ctx context.Context, addr map[wallet.BackendID]wire.Address, _ wire.EnvelopeSerializer) (Conn, error) {
 	d.mutex.Lock()
 	defer d.mutex.Unlock()
 
@@ -104,7 +105,7 @@ func newMockListener() *mockListener {
 	return &mockListener{dialer: mockDialer{dial: make(chan Conn)}}
 }
 
-func nilConsumer(map[int]wire.Address) wire.Consumer { return nil }
+func nilConsumer(map[wallet.BackendID]wire.Address) wire.Consumer { return nil }
 
 // TestRegistry_Get tests that when calling Get(), existing peers are returned,
 // and when unknown peers are requested, a temporary peer is create that is
@@ -114,9 +115,9 @@ func nilConsumer(map[int]wire.Address) wire.Consumer { return nil }
 func TestRegistry_Get(t *testing.T) {
 	t.Parallel()
 	rng := test.Prng(t)
-	id := wiretest.NewRandomAccount(rng)
-	peerID := wiretest.NewRandomAccount(rng)
-	peerAddr := peerID.Address()
+	id := wiretest.NewRandomAccountMap(rng)
+	peerID := wiretest.NewRandomAccountMap(rng)
+	peerAddr := wire.AddressMapfromAccountMap(peerID)
 
 	t.Run("peer already in progress (existing)", func(t *testing.T) {
 		t.Parallel()
@@ -179,12 +180,12 @@ func TestRegistry_Get(t *testing.T) {
 func TestRegistry_authenticatedDial(t *testing.T) {
 	t.Parallel()
 	rng := test.Prng(t)
-	id := wiretest.NewRandomAccount(rng)
+	id := wiretest.NewRandomAccountMap(rng)
 	d := &mockDialer{dial: make(chan Conn)}
 	r := NewEndpointRegistry(id, nilConsumer, d, perunio.Serializer())
 
-	remoteID := wiretest.NewRandomAccount(rng)
-	remoteAddr := remoteID.Address()
+	remoteID := wiretest.NewRandomAccountMap(rng)
+	remoteAddr := wire.AddressMapfromAccountMap(remoteID)
 
 	t.Run("dial fail", func(t *testing.T) {
 		addr := wiretest.NewRandomAddress(rng)
@@ -206,7 +207,7 @@ func TestRegistry_authenticatedDial(t *testing.T) {
 			}
 			err := b.Send(&wire.Envelope{
 				Sender:    remoteAddr,
-				Recipient: id.Address(),
+				Recipient: wire.AddressMapfromAccountMap(id),
 				Msg:       wire.NewPingMsg(),
 			})
 			if err != nil {
@@ -228,7 +229,7 @@ func TestRegistry_authenticatedDial(t *testing.T) {
 		a, b := newPipeConnPair()
 		go ct.Stage("passive", func(rt test.ConcT) {
 			d.put(a)
-			_, err := ExchangeAddrsPassive(ctx, wiretest.NewRandomAccount(rng), b)
+			_, err := ExchangeAddrsPassive(ctx, wiretest.NewRandomAccountMap(rng), b)
 			require.True(rt, IsAuthenticationError(err))
 		})
 		de, created := r.dialingEndpoint(remoteAddr)
@@ -261,8 +262,8 @@ func TestRegistry_authenticatedDial(t *testing.T) {
 func TestRegistry_setupConn(t *testing.T) {
 	t.Parallel()
 	rng := test.Prng(t)
-	id := wiretest.NewRandomAccount(rng)
-	remoteID := wiretest.NewRandomAccount(rng)
+	id := wiretest.NewRandomAccountMap(rng)
+	remoteID := wiretest.NewRandomAccountMap(rng)
 
 	t.Run("ExchangeAddrs fail", func(t *testing.T) {
 		d := &mockDialer{dial: make(chan Conn)}
@@ -270,8 +271,8 @@ func TestRegistry_setupConn(t *testing.T) {
 		a, b := newPipeConnPair()
 		go func() {
 			err := b.Send(&wire.Envelope{
-				Sender:    id.Address(),
-				Recipient: remoteID.Address(),
+				Sender:    wire.AddressMapfromAccountMap(id),
+				Recipient: wire.AddressMapfromAccountMap(remoteID),
 				Msg:       wire.NewPingMsg(),
 			})
 			if err != nil {
@@ -288,13 +289,13 @@ func TestRegistry_setupConn(t *testing.T) {
 		r := NewEndpointRegistry(id, nilConsumer, d, perunio.Serializer())
 		a, b := newPipeConnPair()
 		go func() {
-			err := ExchangeAddrsActive(context.Background(), remoteID, id.Address(), b)
+			err := ExchangeAddrsActive(context.Background(), remoteID, wire.AddressMapfromAccountMap(id), b)
 			if err != nil {
 				panic(err)
 			}
 		}()
 
-		r.addEndpoint(remoteID.Address(), newMockConn(), false)
+		r.addEndpoint(wire.AddressMapfromAccountMap(remoteID), newMockConn(), false)
 		ctxtest.AssertTerminates(t, timeout, func() {
 			assert.NoError(t, r.setupConn(a))
 		})
@@ -305,7 +306,7 @@ func TestRegistry_setupConn(t *testing.T) {
 		r := NewEndpointRegistry(id, nilConsumer, d, perunio.Serializer())
 		a, b := newPipeConnPair()
 		go func() {
-			err := ExchangeAddrsActive(context.Background(), remoteID, id.Address(), b)
+			err := ExchangeAddrsActive(context.Background(), remoteID, wire.AddressMapfromAccountMap(id), b)
 			if err != nil {
 				panic(err)
 			}
@@ -323,10 +324,10 @@ func TestRegistry_Listen(t *testing.T) {
 
 	rng := test.Prng(t)
 
-	id := wiretest.NewRandomAccount(rng)
-	addr := id.Address()
-	remoteID := wiretest.NewRandomAccount(rng)
-	remoteAddr := remoteID.Address()
+	id := wiretest.NewRandomAccountMap(rng)
+	addr := wire.AddressMapfromAccountMap(id)
+	remoteID := wiretest.NewRandomAccountMap(rng)
+	remoteAddr := wire.AddressMapfromAccountMap(remoteID)
 
 	d := newMockDialer()
 	l := newMockListener()
@@ -365,8 +366,8 @@ func TestRegistry_addEndpoint_Subscribe(t *testing.T) {
 	rng := test.Prng(t)
 	called := false
 	r := NewEndpointRegistry(
-		wiretest.NewRandomAccount(rng),
-		func(map[int]wire.Address) wire.Consumer { called = true; return nil },
+		wiretest.NewRandomAccountMap(rng),
+		func(map[wallet.BackendID]wire.Address) wire.Consumer { called = true; return nil },
 		nil,
 		perunio.Serializer(),
 	)
@@ -383,7 +384,7 @@ func TestRegistry_Close(t *testing.T) {
 
 	t.Run("double close error", func(t *testing.T) {
 		r := NewEndpointRegistry(
-			wiretest.NewRandomAccount(rng),
+			wiretest.NewRandomAccountMap(rng),
 			nilConsumer,
 			nil,
 			perunio.Serializer(),
@@ -396,7 +397,7 @@ func TestRegistry_Close(t *testing.T) {
 		d := &mockDialer{dial: make(chan Conn)}
 		d.Close()
 		r := NewEndpointRegistry(
-			wiretest.NewRandomAccount(rng),
+			wiretest.NewRandomAccountMap(rng),
 			nilConsumer,
 			d,
 			perunio.Serializer(),

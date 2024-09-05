@@ -43,7 +43,7 @@ type Channel struct {
 	statesPub   watcher.StatesPub
 	onUpdate    func(from, to *channel.State)
 	adjudicator channel.Adjudicator
-	wallet      wallet.Wallet
+	wallet      map[wallet.BackendID]wallet.Wallet
 
 	parent                *Channel            // must be nil for ledger channel
 	subChannelFundings    *updateInterceptors // awaited subchannel funding updates
@@ -53,9 +53,9 @@ type Channel struct {
 // newChannel is internally used by the Client to create a new channel
 // controller after the channel proposal protocol ran successfully.
 func (c *Client) newChannel(
-	acc wallet.Account,
+	acc map[wallet.BackendID]wallet.Account,
 	parent *Channel,
-	peers []map[int]wire.Address, // peerIdx, BackendID -> Address
+	peers []map[wallet.BackendID]wire.Address, // peerIdx, BackendID -> Address
 	params channel.Params,
 ) (*Channel, error) {
 	machine, err := channel.NewStateMachine(acc, params)
@@ -66,10 +66,14 @@ func (c *Client) newChannel(
 }
 
 // channelFromSource is used to create a channel controller from restored data.
-func (c *Client) channelFromSource(s channel.Source, parent *Channel, peers []map[int]wire.Address) (*Channel, error) {
-	accs, err := c.wallet.Unlock(s.Params().Parts[s.Idx()])
-	if err != nil {
-		return nil, errors.WithMessage(err, "unlocking account for channel")
+func (c *Client) channelFromSource(s channel.Source, parent *Channel, peers []map[wallet.BackendID]wire.Address) (*Channel, error) {
+	accs := make(map[wallet.BackendID]wallet.Account)
+	var err error
+	for i, wall := range c.wallet {
+		accs[i], err = wall.Unlock(s.Params().Parts[s.Idx()][i])
+		if err != nil {
+			return nil, errors.WithMessage(err, "unlocking account for channel")
+		}
 	}
 
 	machine, err := channel.RestoreStateMachine(accs, s)
@@ -81,7 +85,7 @@ func (c *Client) channelFromSource(s channel.Source, parent *Channel, peers []ma
 }
 
 // channelFromMachine creates a channel controller around the passed state machine.
-func (c *Client) channelFromMachine(machine *channel.StateMachine, parent *Channel, peers []map[int]wire.Address) (*Channel, error) {
+func (c *Client) channelFromMachine(machine *channel.StateMachine, parent *Channel, peers []map[wallet.BackendID]wire.Address) (*Channel, error) {
 	logger := c.logChan(machine.ID())
 	machine.SetLog(logger) // client logger has more fields
 	pmachine := persistence.FromStateMachine(machine, c.pr)
@@ -128,7 +132,7 @@ func (c *Channel) logPeer(idx channel.Index) log.Logger {
 }
 
 // ID returns the channel ID.
-func (c *Channel) ID() map[int]channel.ID {
+func (c *Channel) ID() map[wallet.BackendID]channel.ID {
 	return c.machine.ID()
 }
 
@@ -170,7 +174,7 @@ func (c *Channel) Phase() channel.Phase {
 
 // Peers returns the Perun network addresses of all peers, in the order
 // of the channel participants.
-func (c *Channel) Peers() []map[int]wire.Address {
+func (c *Channel) Peers() []map[wallet.BackendID]wire.Address {
 	return c.conn.Peers()
 }
 
@@ -239,16 +243,4 @@ func (c *Channel) initExchangeSigsAndEnable(ctx context.Context) error {
 
 func (c *Channel) hasLockedFunds() bool {
 	return len(c.machine.State().Locked) > 0
-}
-
-func sortPeers(peer map[int][]wire.Address) []map[int]wire.Address {
-	peerNum := 0
-	for i := range peer {
-		peerNum = len(peer[i])
-	}
-	peerSlice := make([]map[int]wire.Address, peerNum)
-	for p := 0; p < peerNum; p++ {
-		peerSlice[p] = GetPeerMapWire(peer, p)
-	}
-	return peerSlice
 }

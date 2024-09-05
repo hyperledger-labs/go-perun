@@ -71,7 +71,7 @@ func ToVirtualChannelProposalMsg(protoEnvMsg *Envelope_VirtualChannelProposalMsg
 	if err != nil {
 		return nil, errors.WithMessage(err, "proposer")
 	}
-	msg.Parents = make([]map[int]channel.ID, len(protoMsg.Parents))
+	msg.Parents = make([]map[wallet.BackendID]channel.ID, len(protoMsg.Parents))
 	for i := range protoMsg.Parents {
 		msg.Parents[i], err = ToIDs(protoMsg.Parents[i])
 	}
@@ -129,26 +129,26 @@ func ToChannelProposalRejMsg(protoEnvMsg *Envelope_ChannelProposalRejMsg) (msg *
 }
 
 // ToWalletAddr converts a protobuf wallet address to a wallet.Address.
-func ToWalletAddr(protoAddr *Address) (map[int]wallet.Address, error) {
-	addrMap := make(map[int]wallet.Address)
+func ToWalletAddr(protoAddr *Address) (map[wallet.BackendID]wallet.Address, error) {
+	addrMap := make(map[wallet.BackendID]wallet.Address)
 	for i := range protoAddr.AddressMapping {
 		var k int32
 		if err := binary.Read(bytes.NewReader(protoAddr.AddressMapping[i].Key), binary.BigEndian, &k); err != nil {
 			return nil, fmt.Errorf("failed to read key: %w", err)
 		}
-		addr := wallet.NewAddress(int(k))
+		addr := wallet.NewAddress(wallet.BackendID(k))
 		if err := addr.UnmarshalBinary(protoAddr.AddressMapping[i].Address); err != nil {
 			return nil, fmt.Errorf("failed to unmarshal address for key %d: %w", k, err)
 		}
 
-		addrMap[int(k)] = addr
+		addrMap[wallet.BackendID(k)] = addr
 	}
 	return addrMap, nil
 }
 
 // ToWireAddr converts a protobuf wallet address to a wallet.Address.
-func ToWireAddr(protoAddr *Address) (map[int]wire.Address, error) {
-	addrMap := make(map[int]wire.Address)
+func ToWireAddr(protoAddr *Address) (map[wallet.BackendID]wire.Address, error) {
+	addrMap := make(map[wallet.BackendID]wire.Address)
 	for i := range protoAddr.AddressMapping {
 		var k int32
 		if err := binary.Read(bytes.NewReader(protoAddr.AddressMapping[i].Key), binary.BigEndian, &k); err != nil {
@@ -159,14 +159,14 @@ func ToWireAddr(protoAddr *Address) (map[int]wire.Address, error) {
 			return nil, fmt.Errorf("failed to unmarshal address for key %d: %w", k, err)
 		}
 
-		addrMap[int(k)] = addr
+		addrMap[wallet.BackendID(k)] = addr
 	}
 	return addrMap, nil
 }
 
 // ToWalletAddrs converts protobuf wallet addresses to a slice of wallet.Address.
-func ToWalletAddrs(protoAddrs []*Address) ([]map[int]wallet.Address, error) {
-	addrs := make([]map[int]wallet.Address, len(protoAddrs))
+func ToWalletAddrs(protoAddrs []*Address) ([]map[wallet.BackendID]wallet.Address, error) {
+	addrs := make([]map[wallet.BackendID]wallet.Address, len(protoAddrs))
 	for i := range protoAddrs {
 		addrMap, err := ToWalletAddr(protoAddrs[i])
 		if err != nil {
@@ -178,8 +178,8 @@ func ToWalletAddrs(protoAddrs []*Address) ([]map[int]wallet.Address, error) {
 }
 
 // ToWireAddrs converts protobuf wire addresses to a slice of wire.Address.
-func ToWireAddrs(protoAddrs []*Address) ([]map[int]wire.Address, error) {
-	addrMap := make([]map[int]wire.Address, len(protoAddrs))
+func ToWireAddrs(protoAddrs []*Address) ([]map[wallet.BackendID]wire.Address, error) {
+	addrMap := make([]map[wallet.BackendID]wire.Address, len(protoAddrs))
 	var err error
 	for i, addMap := range protoAddrs {
 		addrMap[i], err = ToWireAddr(addMap)
@@ -191,8 +191,8 @@ func ToWireAddrs(protoAddrs []*Address) ([]map[int]wire.Address, error) {
 }
 
 // ToIDs converts protobuf ID to a map[int]channel.ID.
-func ToIDs(protoID *ID) (map[int]channel.ID, error) {
-	iDMap := make(map[int]channel.ID)
+func ToIDs(protoID *ID) (map[wallet.BackendID]channel.ID, error) {
+	iDMap := make(map[wallet.BackendID]channel.ID)
 	for i := range protoID.IdMapping {
 		var k int32
 		if err := binary.Read(bytes.NewReader(protoID.IdMapping[i].Key), binary.BigEndian, &k); err != nil {
@@ -204,7 +204,7 @@ func ToIDs(protoID *ID) (map[int]channel.ID, error) {
 		id := channel.ID{}
 		copy(id[:], protoID.IdMapping[i].Id)
 
-		iDMap[int(k)] = id
+		iDMap[wallet.BackendID(k)] = id
 	}
 	return iDMap, nil
 }
@@ -266,8 +266,8 @@ func ToAppAndData(protoApp, protoData []byte) (app channel.App, data channel.Dat
 }
 
 // ToIntSlice converts a [][]byte field from a protobuf message to a []int.
-func ToIntSlice(backends [][]byte) ([]int, error) {
-	ints := make([]int, len(backends))
+func ToIntSlice(backends [][]byte) ([]wallet.BackendID, error) {
+	ints := make([]wallet.BackendID, len(backends))
 
 	for i, backend := range backends {
 		if len(backend) != 4 {
@@ -280,7 +280,7 @@ func ToIntSlice(backends [][]byte) ([]int, error) {
 			return nil, fmt.Errorf("failed to convert backend %d bytes to int: %w", i, err)
 		}
 
-		ints[i] = int(value)
+		ints[i] = wallet.BackendID(value)
 	}
 
 	return ints, nil
@@ -438,7 +438,7 @@ func FromChannelProposalRejMsg(msg *client.ChannelProposalRejMsg) (_ *Envelope_C
 }
 
 // FromWalletAddr converts a wallet.Address to a protobuf wallet address.
-func FromWalletAddr(addr map[int]wallet.Address) (*Address, error) {
+func FromWalletAddr(addr map[wallet.BackendID]wallet.Address) (*Address, error) {
 	var addressMappings []*AddressMapping
 
 	for key, address := range addr {
@@ -462,7 +462,7 @@ func FromWalletAddr(addr map[int]wallet.Address) (*Address, error) {
 }
 
 // FromWireAddr converts a wallet.Address to a protobuf wire address.
-func FromWireAddr(addr map[int]wire.Address) (*Address, error) {
+func FromWireAddr(addr map[wallet.BackendID]wire.Address) (*Address, error) {
 	var addressMappings []*AddressMapping
 
 	for key, address := range addr {
@@ -486,7 +486,7 @@ func FromWireAddr(addr map[int]wire.Address) (*Address, error) {
 }
 
 // FromWalletAddrs converts a slice of wallet.Address to protobuf wallet addresses.
-func FromWalletAddrs(addrs []map[int]wallet.Address) (protoAddrs []*Address, err error) {
+func FromWalletAddrs(addrs []map[wallet.BackendID]wallet.Address) (protoAddrs []*Address, err error) {
 	protoAddrs = make([]*Address, len(addrs))
 	for i := range addrs {
 		protoAddrs[i], err = FromWalletAddr(addrs[i])
@@ -498,7 +498,7 @@ func FromWalletAddrs(addrs []map[int]wallet.Address) (protoAddrs []*Address, err
 }
 
 // FromWireAddrs converts a slice of wire.Address to protobuf wire addresses.
-func FromWireAddrs(addrs []map[int]wire.Address) (protoAddrs []*Address, err error) {
+func FromWireAddrs(addrs []map[wallet.BackendID]wire.Address) (protoAddrs []*Address, err error) {
 	protoAddrs = make([]*Address, len(addrs))
 	for i := range addrs {
 		protoAddrs[i], err = FromWireAddr(addrs[i])
@@ -510,7 +510,7 @@ func FromWireAddrs(addrs []map[int]wire.Address) (protoAddrs []*Address, err err
 }
 
 // FromIDs converts a map[int]channel.ID to a protobuf ID.
-func FromIDs(ids map[int]channel.ID) (*ID, error) {
+func FromIDs(ids map[wallet.BackendID]channel.ID) (*ID, error) {
 	var idMappings []*IDMapping
 
 	for key, id := range ids {

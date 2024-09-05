@@ -70,12 +70,12 @@ type (
 	// RoleSetup contains the injectables for setting up the client.
 	RoleSetup struct {
 		Name              string
-		Identity          wire.Account
+		Identity          map[wallet.BackendID]wire.Account
 		Bus               wire.Bus
 		Funder            channel.Funder
 		Adjudicator       channel.Adjudicator
 		Watcher           watcher.Watcher
-		Wallet            wallettest.Wallet
+		Wallet            map[wallet.BackendID]wallettest.Wallet
 		PR                persistence.PersistRestorer // Optional PersistRestorer
 		Timeout           time.Duration               // Timeout waiting for other role, not challenge duration
 		BalanceReader     BalanceReader
@@ -85,18 +85,20 @@ type (
 
 	// ExecConfig contains additional config parameters for the tests.
 	ExecConfig interface {
-		Peers() [2]map[int]wire.Address // must match the RoleSetup.Identity's
-		Asset() channel.Asset           // single Asset to use in this channel
-		InitBals() [2]*big.Int          // channel deposit of each role
-		App() client.ProposalOpts       // must be either WithApp or WithoutApp
+		Peers() [2]map[wallet.BackendID]wire.Address // must match the RoleSetup.Identity's
+		Asset() channel.Asset                        // single Asset to use in this channel
+		Backend() wallet.BackendID                   // backend corresponding to asset
+		InitBals() [2]*big.Int                       // channel deposit of each role
+		App() client.ProposalOpts                    // must be either WithApp or WithoutApp
 	}
 
 	// BaseExecConfig contains base config parameters.
 	BaseExecConfig struct {
-		peers    [2]map[int]wire.Address // must match the RoleSetup.Identity's
-		asset    channel.Asset           // single Asset to use in this channel
-		initBals [2]*big.Int             // channel deposit of each role
-		app      client.ProposalOpts     // must be either WithApp or WithoutApp
+		peers    [2]map[wallet.BackendID]wire.Address // must match the RoleSetup.Identity's
+		asset    channel.Asset                        // single Asset to use in this channel
+		backend  wallet.BackendID                     // backend corresponding to asset
+		initBals [2]*big.Int                          // channel deposit of each role
+		app      client.ProposalOpts                  // must be either WithApp or WithoutApp
 	}
 
 	// An Executer is a Role that can execute a protocol.
@@ -118,7 +120,7 @@ type (
 	Client struct {
 		*client.Client
 		RoleSetup
-		WalletAddress map[int]wallet.Address
+		WalletAddress map[wallet.BackendID]wallet.Address
 	}
 )
 
@@ -127,12 +129,16 @@ func NewClients(t *testing.T, rng *rand.Rand, setups []RoleSetup) []*Client {
 	t.Helper()
 	clients := make([]*Client, len(setups))
 	for i, setup := range setups {
-		cl, err := client.New(setup.Identity.Address(), setup.Bus, setup.Funder, setup.Adjudicator, setup.Wallet, setup.Watcher)
+		setupWallet := make(map[wallet.BackendID]wallet.Wallet)
+		for i, w := range setup.Wallet {
+			setupWallet[i] = w
+		}
+		cl, err := client.New(wire.AddressMapfromAccountMap(setup.Identity), setup.Bus, setup.Funder, setup.Adjudicator, setupWallet, setup.Watcher)
 		assert.NoError(t, err)
 		clients[i] = &Client{
 			Client:        cl,
 			RoleSetup:     setup,
-			WalletAddress: setup.Wallet.NewRandomAccount(rng).Address(),
+			WalletAddress: map[wallet.BackendID]wallet.Address{0: setup.Wallet[0].NewRandomAccount(rng).Address()},
 		}
 	}
 	return clients
@@ -174,27 +180,34 @@ func ExecuteTwoPartyTest(ctx context.Context, t *testing.T, role [2]Executer, cf
 
 // MakeBaseExecConfig creates a new BaseExecConfig.
 func MakeBaseExecConfig(
-	peers [2]map[int]wire.Address,
+	peers [2]map[wallet.BackendID]wire.Address,
 	asset channel.Asset,
+	backend wallet.BackendID,
 	initBals [2]*big.Int,
 	app client.ProposalOpts,
 ) BaseExecConfig {
 	return BaseExecConfig{
 		peers:    peers,
 		asset:    asset,
+		backend:  backend,
 		initBals: initBals,
 		app:      app,
 	}
 }
 
 // Peers returns the peer addresses.
-func (c *BaseExecConfig) Peers() [2]map[int]wire.Address {
+func (c *BaseExecConfig) Peers() [2]map[wallet.BackendID]wire.Address {
 	return c.peers
 }
 
 // Asset returns the asset.
 func (c *BaseExecConfig) Asset() channel.Asset {
 	return c.asset
+}
+
+// Asset returns the asset.
+func (c *BaseExecConfig) Backend() wallet.BackendID {
+	return c.backend
 }
 
 // InitBals returns the initial balances.
@@ -218,8 +231,12 @@ func makeRole(t *testing.T, setup RoleSetup, numStages int) (r role) {
 		numStages:         numStages,
 		challengeDuration: setup.ChallengeDuration,
 	}
-	cl, err := client.New(r.setup.Identity.Address(),
-		r.setup.Bus, r.setup.Funder, r.setup.Adjudicator, r.setup.Wallet, r.setup.Watcher)
+	setupWallet := make(map[wallet.BackendID]wallet.Wallet)
+	for i, w := range r.setup.Wallet {
+		setupWallet[i] = w
+	}
+	cl, err := client.New(wire.AddressMapfromAccountMap(r.setup.Identity),
+		r.setup.Bus, r.setup.Funder, r.setup.Adjudicator, setupWallet, r.setup.Watcher)
 	if err != nil {
 		t.Fatal("Error creating client: ", err)
 	}
@@ -243,7 +260,7 @@ func (r *role) setClient(cl *client.Client) {
 	r.log = log.AppendField(cl, "role", r.setup.Name)
 }
 
-func (chs *channelMap) channel(ch map[int]channel.ID) (_ch *paymentChannel, ok bool) {
+func (chs *channelMap) channel(ch map[wallet.BackendID]channel.ID) (_ch *paymentChannel, ok bool) {
 	chs.RLock()
 	defer chs.RUnlock()
 	_ch, ok = chs.entries[channel.IDKey(ch)]
@@ -297,10 +314,10 @@ func (r *role) waitStage() {
 
 // Idxs maps the passed addresses to the indices in the 2-party-channel. If the
 // setup's Identity is not found in peers, Idxs panics.
-func (r *role) Idxs(peers [2]map[int]wire.Address) (our, their channel.Index) {
-	if channel.EqualWireMaps(r.setup.Identity.Address(), peers[0]) {
+func (r *role) Idxs(peers [2]map[wallet.BackendID]wire.Address) (our, their channel.Index) {
+	if channel.EqualWireMaps(wire.AddressMapfromAccountMap(r.setup.Identity), peers[0]) {
 		return 0, 1
-	} else if channel.EqualWireMaps(r.setup.Identity.Address(), peers[1]) {
+	} else if channel.EqualWireMaps(wire.AddressMapfromAccountMap(r.setup.Identity), peers[1]) {
 		return 1, 0
 	}
 	panic("identity not in peers")
@@ -397,12 +414,12 @@ func (r *role) LedgerChannelProposal(rng *rand.Rand, cfg ExecConfig) *client.Led
 	}
 
 	peers, asset, bals := cfg.Peers(), cfg.Asset(), cfg.InitBals()
-	alloc := channel.NewAllocation(len(peers), []int{0}, asset)
+	alloc := channel.NewAllocation(len(peers), []wallet.BackendID{0}, asset)
 	alloc.SetAssetBalances(asset, bals[:])
 
 	prop, err := client.NewLedgerChannelProposal(
 		r.challengeDuration,
-		r.setup.Wallet.NewRandomAccount(rng).Address(),
+		map[wallet.BackendID]wallet.Address{0: r.setup.Wallet[0].NewRandomAccount(rng).Address()},
 		alloc,
 		peers[:],
 		client.WithNonceFrom(rng),
@@ -471,8 +488,8 @@ func (h *acceptNextPropHandler) Next() (*paymentChannel, error) {
 	var acc client.ChannelProposalAccept
 	switch p := prop.(type) {
 	case *client.LedgerChannelProposalMsg:
-		part := h.r.setup.Wallet.NewRandomAccount(h.rng).Address()
-		acc = p.Accept(part, client.WithNonceFrom(h.rng))
+		part := h.r.setup.Wallet[0].NewRandomAccount(h.rng).Address()
+		acc = p.Accept(map[wallet.BackendID]wallet.Address{0: part}, client.WithNonceFrom(h.rng))
 		h.r.log.Debugf("Accepting ledger channel proposal with participant: %v", part)
 
 	case *client.SubChannelProposalMsg:

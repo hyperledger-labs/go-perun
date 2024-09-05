@@ -17,15 +17,16 @@ package test
 import (
 	"bytes"
 	"fmt"
+	"perun.network/go-perun/wallet"
 
 	"perun.network/go-perun/channel"
 	"perun.network/go-perun/wire"
 	"perun.network/go-perun/wire/perunio"
 )
 
-type peerChans map[string][]map[int]channel.ID
+type peerChans map[string][]map[wallet.BackendID]channel.ID
 
-func (pc peerChans) ID(p map[int]wire.Address) []map[int]channel.ID {
+func (pc peerChans) ID(p map[wallet.BackendID]wire.Address) []map[wallet.BackendID]channel.ID {
 	ids, ok := pc[peerKey(p)]
 	if !ok {
 		return nil
@@ -33,8 +34,8 @@ func (pc peerChans) ID(p map[int]wire.Address) []map[int]channel.ID {
 	return ids
 }
 
-func (pc peerChans) Peers() []map[int]wire.Address {
-	ps := make([]map[int]wire.Address, 0, len(pc))
+func (pc peerChans) Peers() []map[wallet.BackendID]wire.Address {
+	ps := make([]map[wallet.BackendID]wire.Address, 0, len(pc))
 	for k := range pc {
 		pk, _ := peerFromKey(k)
 		ps = append(ps, pk)
@@ -43,20 +44,20 @@ func (pc peerChans) Peers() []map[int]wire.Address {
 }
 
 // Add adds the given channel id to each peer's id list.
-func (pc peerChans) Add(id map[int]channel.ID, ps ...map[int]wire.Address) {
+func (pc peerChans) Add(id map[wallet.BackendID]channel.ID, ps ...map[wallet.BackendID]wire.Address) {
 	for _, p := range ps {
 		pc.add(id, p)
 	}
 }
 
 // Don't use add, use Add.
-func (pc peerChans) add(id map[int]channel.ID, p map[int]wire.Address) {
+func (pc peerChans) add(id map[wallet.BackendID]channel.ID, p map[wallet.BackendID]wire.Address) {
 	pk := peerKey(p)
 	ids := pc[pk] // nil ok, since we append
 	pc[pk] = append(ids, id)
 }
 
-func (pc peerChans) Delete(id map[int]channel.ID) {
+func (pc peerChans) Delete(id map[wallet.BackendID]channel.ID) {
 	for pk, ids := range pc {
 		for i, pid := range ids {
 			if channel.EqualIDs(id, pid) {
@@ -76,7 +77,7 @@ func (pc peerChans) Delete(id map[int]channel.ID) {
 	}
 }
 
-func peerKey(a map[int]wire.Address) string {
+func peerKey(a map[wallet.BackendID]wire.Address) string {
 	key := new(bytes.Buffer)
 	err := perunio.Encode(key, wire.AddressDecMap(a))
 	if err != nil {
@@ -85,8 +86,8 @@ func peerKey(a map[int]wire.Address) string {
 	return key.String()
 }
 
-func peerFromKey(s string) (map[int]wire.Address, error) {
-	p := make(map[int]wire.Address)
+func peerFromKey(s string) (map[wallet.BackendID]wire.Address, error) {
+	p := make(map[wallet.BackendID]wire.Address)
 	decMap := wire.AddressDecMap(p)
 	err := perunio.Decode(bytes.NewBuffer([]byte(s)), &decMap)
 	if err != nil {

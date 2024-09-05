@@ -18,6 +18,7 @@ import (
 	"context"
 	"fmt"
 	"perun.network/go-perun/channel/persistence/test"
+	"perun.network/go-perun/wallet"
 
 	"github.com/pkg/errors"
 
@@ -28,11 +29,11 @@ import (
 // AuthenticationError describes an error which occures when the ExchangeAddrs
 // protcol fails because it got a different Address than expected.
 type AuthenticationError struct {
-	Sender, Receiver, Own map[int]wire.Address
+	Sender, Receiver, Own map[wallet.BackendID]wire.Address
 }
 
 // NewAuthenticationError creates a new AuthenticationError.
-func NewAuthenticationError(sender, receiver, own map[int]wire.Address, msg string) error {
+func NewAuthenticationError(sender, receiver, own map[wallet.BackendID]wire.Address, msg string) error {
 	return errors.Wrap(&AuthenticationError{
 		Sender:   sender,
 		Receiver: receiver,
@@ -57,7 +58,7 @@ func IsAuthenticationError(err error) bool {
 // In the future, it will be extended to become a proper authentication
 // protocol. The protocol will then exchange Perun addresses and establish
 // authenticity.
-func ExchangeAddrsActive(ctx context.Context, id wire.Account, peer map[int]wire.Address, conn Conn) error {
+func ExchangeAddrsActive(ctx context.Context, id map[wallet.BackendID]wire.Account, peer map[wallet.BackendID]wire.Address, conn Conn) error {
 	var err error
 	ok := pkg.TerminatesCtx(ctx, func() {
 		authMsg, err2 := wire.NewAuthResponseMsg(id)
@@ -66,7 +67,7 @@ func ExchangeAddrsActive(ctx context.Context, id wire.Account, peer map[int]wire
 			return
 		}
 		err = conn.Send(&wire.Envelope{
-			Sender:    id.Address(),
+			Sender:    wire.AddressMapfromAccountMap(id),
 			Recipient: peer,
 			Msg:       authMsg,
 		})
@@ -82,9 +83,9 @@ func ExchangeAddrsActive(ctx context.Context, id wire.Account, peer map[int]wire
 			err = errors.Errorf("expected AuthResponse wire msg, got %v", e.Msg.Type())
 		} else if check := VerifyAddressSignature(peer, e.Msg.(*wire.AuthResponseMsg).Signature); check != nil {
 			err = errors.WithMessage(err, "verifying peer address's signature")
-		} else if !test.EqualWireMaps(e.Recipient, id.Address()) &&
+		} else if !test.EqualWireMaps(e.Recipient, wire.AddressMapfromAccountMap(id)) &&
 			!test.EqualWireMaps(e.Sender, peer) {
-			err = NewAuthenticationError(e.Sender, e.Recipient, id.Address(), "unmatched response sender or recipient")
+			err = NewAuthenticationError(e.Sender, e.Recipient, wire.AddressMapfromAccountMap(id), "unmatched response sender or recipient")
 		}
 	})
 
@@ -98,17 +99,18 @@ func ExchangeAddrsActive(ctx context.Context, id wire.Account, peer map[int]wire
 
 // ExchangeAddrsPassive executes the passive role of the address exchange
 // protocol. It is executed by the person that listens for incoming connections.
-func ExchangeAddrsPassive(ctx context.Context, id wire.Account, conn Conn) (map[int]wire.Address, error) {
-	var addr map[int]wire.Address
+func ExchangeAddrsPassive(ctx context.Context, id map[wallet.BackendID]wire.Account, conn Conn) (map[wallet.BackendID]wire.Address, error) {
+	var addr map[wallet.BackendID]wire.Address
 	var err error
+	addrs := wire.AddressMapfromAccountMap(id)
 	ok := pkg.TerminatesCtx(ctx, func() {
 		var e *wire.Envelope
 		if e, err = conn.Recv(); err != nil {
 			err = errors.WithMessage(err, "receiving auth message")
 		} else if _, ok := e.Msg.(*wire.AuthResponseMsg); !ok {
 			err = errors.Errorf("expected AuthResponse wire msg, got %v", e.Msg.Type())
-		} else if !test.EqualWireMaps(e.Recipient, id.Address()) {
-			err = NewAuthenticationError(e.Sender, e.Recipient, id.Address(), "unmatched response sender or recipient")
+		} else if !test.EqualWireMaps(e.Recipient, addrs) {
+			err = NewAuthenticationError(e.Sender, e.Recipient, wire.AddressMapfromAccountMap(id), "unmatched response sender or recipient")
 		} else if err = VerifyAddressSignature(e.Sender, e.Msg.(*wire.AuthResponseMsg).Signature); err != nil {
 			err = errors.WithMessage(err, "verifying peer address's signature")
 		}
@@ -123,7 +125,7 @@ func ExchangeAddrsPassive(ctx context.Context, id wire.Account, conn Conn) (map[
 			return
 		}
 		addr, err = e.Sender, conn.Send(&wire.Envelope{
-			Sender:    id.Address(),
+			Sender:    wire.AddressMapfromAccountMap(id),
 			Recipient: e.Sender,
 			Msg:       authMsg,
 		})
@@ -141,7 +143,7 @@ func ExchangeAddrsPassive(ctx context.Context, id wire.Account, conn Conn) (map[
 // VerifyAddressSignature verifies a signature against the hash of an address.
 // It relies on the MarshalBinary method of the provided wire.Address interface to generate the address hash.
 // In case the MarshalBinary method doesn't produce the expected hash, the verification may fail.
-func VerifyAddressSignature(addrs map[int]wire.Address, sig []byte) error {
+func VerifyAddressSignature(addrs map[wallet.BackendID]wire.Address, sig []byte) error {
 	var addressBytes []byte
 	addressBytes = append(addressBytes, byte(len(addrs)))
 	for _, addr := range addrs {

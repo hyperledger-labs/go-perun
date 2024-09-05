@@ -18,6 +18,7 @@ import (
 	"context"
 	"math/big"
 	"math/rand"
+	"perun.network/go-perun/wallet"
 	"testing"
 	"time"
 
@@ -50,18 +51,18 @@ func NewSetups(rng *rand.Rand, names []string) []ctest.RoleSetup {
 		if err != nil {
 			panic("Error initializing watcher: " + err.Error())
 		}
-		w := wtest.NewWallet()
-		acc := w.NewRandomAccount(rng)
+		w := map[wallet.BackendID]wtest.Wallet{0: wtest.NewWallet()}
+		acc := w[0].NewRandomAccount(rng)
 		setup[i] = ctest.RoleSetup{
 			Name:              names[i],
-			Identity:          wiretest.NewRandomAccount(rng),
+			Identity:          wiretest.NewRandomAccountMap(rng),
 			Bus:               bus,
-			Funder:            backend.NewFunder(acc.Address()[0]),
-			Adjudicator:       backend.NewAdjudicator(acc.Address()[0]),
+			Funder:            backend.NewFunder(acc.Address()),
+			Adjudicator:       backend.NewAdjudicator(acc.Address()),
 			Watcher:           watcher,
 			Wallet:            w,
 			Timeout:           roleOperationTimeout,
-			BalanceReader:     backend.NewBalanceReader(acc.Address()[0]),
+			BalanceReader:     backend.NewBalanceReader(acc.Address()),
 			ChallengeDuration: 60,
 			Errors:            make(chan error),
 		}
@@ -84,8 +85,9 @@ func runAliceBobTest(ctx context.Context, t *testing.T, setup func(*rand.Rand) (
 
 		cfg := &ctest.AliceBobExecConfig{
 			BaseExecConfig: ctest.MakeBaseExecConfig(
-				[2]map[int]wire.Address{setups[0].Identity.Address(), setups[1].Identity.Address()},
+				[2]map[wallet.BackendID]wire.Address{wire.AddressMapfromAccountMap(setups[0].Identity), wire.AddressMapfromAccountMap(setups[1].Identity)},
 				chtest.NewRandomAsset(rng),
+				0,
 				[2]*big.Int{big.NewInt(100), big.NewInt(100)},
 				app,
 			),

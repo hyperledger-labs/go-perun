@@ -62,7 +62,7 @@ type (
 	// panic.
 	ProposalResponder struct {
 		client *Client
-		peer   map[int]wire.Address
+		peer   map[wallet.BackendID]wire.Address
 		req    ChannelProposal
 		called atomic.Bool
 	}
@@ -252,7 +252,7 @@ func (c *Client) cleanupChannelOpening(prop ChannelProposal, ourIdx channel.Inde
 // The proposer is expected to be the first peer in the participant list.
 //
 // This handler is dispatched from the Client.Handle routine.
-func (c *Client) handleChannelProposal(handler ProposalHandler, p map[int]wire.Address, req ChannelProposal) {
+func (c *Client) handleChannelProposal(handler ProposalHandler, p map[wallet.BackendID]wire.Address, req ChannelProposal) {
 	ourIdx := channel.Index(ProposeeIdx)
 
 	// Prepare and cleanup, e.g., for locking and unlocking parent channel.
@@ -275,7 +275,7 @@ func (c *Client) handleChannelProposal(handler ProposalHandler, p map[int]wire.A
 }
 
 func (c *Client) handleChannelProposalAcc(
-	ctx context.Context, p map[int]wire.Address,
+	ctx context.Context, p map[wallet.BackendID]wire.Address,
 	prop ChannelProposal, acc ChannelProposalAccept,
 ) (ch *Channel, err error) {
 	if err := c.validChannelProposalAcc(prop, acc); err != nil {
@@ -301,7 +301,7 @@ func (c *Client) handleChannelProposalAcc(
 func (c *Client) acceptChannelProposal(
 	ctx context.Context,
 	prop ChannelProposal,
-	p map[int]wire.Address,
+	p map[wallet.BackendID]wire.Address,
 	acc ChannelProposalAccept,
 ) (*Channel, error) {
 	if acc == nil {
@@ -324,7 +324,7 @@ func (c *Client) acceptChannelProposal(
 }
 
 func (c *Client) handleChannelProposalRej(
-	ctx context.Context, p map[int]wire.Address,
+	ctx context.Context, p map[wallet.BackendID]wire.Address,
 	req ChannelProposal, reason string,
 ) error {
 	msgReject := &ChannelProposalRejMsg{
@@ -405,7 +405,7 @@ func (c *Client) proposeTwoPartyChannel(
 func (c *Client) validTwoPartyProposal(
 	proposal ChannelProposal,
 	ourIdx channel.Index,
-	peerAddr map[int]wire.Address,
+	peerAddr map[wallet.BackendID]wire.Address,
 ) error {
 	if err := proposal.Valid(); err != nil {
 		return err
@@ -534,8 +534,8 @@ func (c *Client) validChannelProposalAcc(
 	return nil
 }
 
-func participants(proposer, proposee map[int]wallet.Address) []map[int]wallet.Address {
-	parts := make([]map[int]wallet.Address, proposalNumParts)
+func participants(proposer, proposee map[wallet.BackendID]wallet.Address) []map[wallet.BackendID]wallet.Address {
+	parts := make([]map[wallet.BackendID]wallet.Address, proposalNumParts)
 	parts[ProposerIdx] = proposer
 	parts[ProposeeIdx] = proposee
 	return parts
@@ -590,9 +590,13 @@ func (c *Client) completeCPP(
 		return nil, errors.New("channel already exists")
 	}
 
-	accounts, err := c.wallet.Unlock(params.Parts[partIdx])
-	if err != nil {
-		return nil, errors.WithMessage(err, "unlocking account")
+	accounts := make(map[wallet.BackendID]wallet.Account)
+	var err error
+	for i, wall := range c.wallet {
+		accounts[i], err = wall.Unlock(params.Parts[partIdx][i])
+		if err != nil {
+			return nil, errors.WithMessage(err, "unlocking account")
+		}
 	}
 
 	parentChannelID, parent, err := c.proposalParent(prop, partIdx)
@@ -622,11 +626,13 @@ func (c *Client) completeCPP(
 		return ch, errors.WithMessage(err, "exchanging initial sigs and enabling state")
 	}
 
-	c.wallet.IncrementUsage(params.Parts[int(partIdx)])
+	for i, wall := range c.wallet {
+		wall.IncrementUsage(params.Parts[partIdx][i])
+	}
 	return ch, nil
 }
 
-func (c *Client) proposalParent(prop ChannelProposal, partIdx channel.Index) (parentChannelID *map[int]channel.ID, parent *Channel, err error) {
+func (c *Client) proposalParent(prop ChannelProposal, partIdx channel.Index) (parentChannelID *map[wallet.BackendID]channel.ID, parent *Channel, err error) {
 	switch prop := prop.(type) {
 	case *SubChannelProposalMsg:
 		parentChannelID = &prop.Parent
@@ -648,7 +654,7 @@ func (c *Client) proposalParent(prop ChannelProposal, partIdx channel.Index) (pa
 func (c *Client) mpcppParts(
 	prop ChannelProposal,
 	acc ChannelProposalAccept,
-) (parts []map[int]wallet.Address) {
+) (parts []map[wallet.BackendID]wallet.Address) {
 	switch p := prop.(type) {
 	case *LedgerChannelProposalMsg:
 		ledgerAcc, ok := acc.(*LedgerChannelProposalAccMsg)
@@ -698,7 +704,9 @@ func (c *Client) completeFunding(ctx context.Context, ch *Channel) error {
 	if !c.channels.Put(params.ID(), ch) {
 		return errors.New("channel already exists")
 	}
-	c.wallet.IncrementUsage(params.Parts[ch.machine.Idx()])
+	for i, wall := range c.wallet {
+		wall.IncrementUsage(params.Parts[ch.machine.Idx()][i])
+	}
 	return nil
 }
 
@@ -782,7 +790,7 @@ type version1Cache struct {
 
 type cachedUpdate struct {
 	uh UpdateHandler
-	p  map[int]wire.Address
+	p  map[wallet.BackendID]wire.Address
 	m  ChannelUpdateProposal
 }
 
@@ -803,16 +811,8 @@ func (e ChannelFundingError) Error() string {
 	return fmt.Sprintf("channel funding failed: %v", e.Err.Error())
 }
 
-func GetPeerMap(peers map[int][]wallet.Address, index int) map[int]wallet.Address {
-	address := make(map[int]wallet.Address)
-	for i, p := range peers {
-		address[i] = p[index]
-	}
-	return address
-}
-
-func GetPeerMapWire(peers map[int][]wire.Address, index int) map[int]wire.Address {
-	address := make(map[int]wire.Address)
+func GetPeerMapWire(peers map[wallet.BackendID][]wire.Address, index int) map[wallet.BackendID]wire.Address {
+	address := make(map[wallet.BackendID]wire.Address)
 	for i, p := range peers {
 		address[i] = p[index]
 	}

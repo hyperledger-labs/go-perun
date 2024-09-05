@@ -16,6 +16,7 @@ package persistence
 
 import (
 	"context"
+	"perun.network/go-perun/wallet"
 
 	"github.com/pkg/errors"
 
@@ -32,10 +33,12 @@ type nonPersistRestorer struct{}
 
 // Persister implementation
 
-func (nonPersistRestorer) ChannelCreated(context.Context, channel.Source, []map[int]wire.Address, *map[int]channel.ID) error {
+func (nonPersistRestorer) ChannelCreated(context.Context, channel.Source, []map[wallet.BackendID]wire.Address, *map[wallet.BackendID]channel.ID) error {
 	return nil
 }
-func (nonPersistRestorer) ChannelRemoved(context.Context, map[int]channel.ID) error      { return nil }
+func (nonPersistRestorer) ChannelRemoved(context.Context, map[wallet.BackendID]channel.ID) error {
+	return nil
+}
 func (nonPersistRestorer) Staged(context.Context, channel.Source) error                  { return nil }
 func (nonPersistRestorer) SigAdded(context.Context, channel.Source, channel.Index) error { return nil }
 func (nonPersistRestorer) Enabled(context.Context, channel.Source) error                 { return nil }
@@ -44,7 +47,7 @@ func (nonPersistRestorer) Close() error                                         
 
 // Restorer implementation
 
-func (nonPersistRestorer) ActivePeers(context.Context) ([]map[int]wire.Address, error) {
+func (nonPersistRestorer) ActivePeers(context.Context) ([]map[wallet.BackendID]wire.Address, error) {
 	return nil, nil
 }
 
@@ -52,11 +55,11 @@ func (nonPersistRestorer) RestoreAll() (ChannelIterator, error) {
 	return emptyChanIterator{}, nil
 }
 
-func (nonPersistRestorer) RestorePeer(map[int]wire.Address) (ChannelIterator, error) {
+func (nonPersistRestorer) RestorePeer(map[wallet.BackendID]wire.Address) (ChannelIterator, error) {
 	return emptyChanIterator{}, nil
 }
 
-func (nonPersistRestorer) RestoreChannel(context.Context, map[int]channel.ID) (*Channel, error) {
+func (nonPersistRestorer) RestoreChannel(context.Context, map[wallet.BackendID]channel.ID) (*Channel, error) {
 	return nil, errors.New("channel not found")
 }
 

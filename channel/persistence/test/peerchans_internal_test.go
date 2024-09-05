@@ -15,6 +15,7 @@
 package test
 
 import (
+	"perun.network/go-perun/wallet"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -29,7 +30,7 @@ import (
 func TestEndpointChans(t *testing.T) {
 	assert := assert.New(t)
 	rng := pkgtest.Prng(t)
-	id := []map[int]channel.ID{ctest.NewRandomChannelID(rng), ctest.NewRandomChannelID(rng)}
+	id := []map[wallet.BackendID]channel.ID{ctest.NewRandomChannelID(rng), ctest.NewRandomChannelID(rng)}
 	ps := wiretest.NewRandomAddressesMap(rng, 3)
 
 	pc := make(peerChans)
@@ -43,7 +44,7 @@ func TestEndpointChans(t *testing.T) {
 	pc.Delete(id[0]) // p[1] should be deleted as id[0] was their only channel
 	assert.ElementsMatch(id[1:], pc.ID(ps[0]))
 	assert.ElementsMatch(id[1:], pc.ID(ps[2]))
-	assert.ElementsMatch([]map[int]wire.Address{ps[0], ps[2]}, pc.Peers())
+	assert.ElementsMatch([]map[wallet.BackendID]wire.Address{ps[0], ps[2]}, pc.Peers())
 	assert.Nil(pc.ID(ps[1]))
 
 	pc.Delete(id[1]) // now all peers should have been deleted

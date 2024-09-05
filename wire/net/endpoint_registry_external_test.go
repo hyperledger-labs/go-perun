@@ -17,6 +17,7 @@ package net_test
 import (
 	"context"
 	"perun.network/go-perun/channel"
+	"perun.network/go-perun/wallet"
 	"testing"
 	"time"
 
@@ -35,7 +36,7 @@ import (
 
 var timeout = 100 * time.Millisecond
 
-func nilConsumer(map[int]wire.Address) wire.Consumer { return nil }
+func nilConsumer(map[wallet.BackendID]wire.Address) wire.Consumer { return nil }
 
 // Two nodes (1 dialer, 1 listener node) .Get() each other.
 func TestEndpointRegistry_Get_Pair(t *testing.T) {
@@ -43,11 +44,11 @@ func TestEndpointRegistry_Get_Pair(t *testing.T) {
 	assert, require := assert.New(t), require.New(t)
 	rng := test.Prng(t)
 	var hub nettest.ConnHub
-	dialerID := wiretest.NewRandomAccount(rng)
-	listenerID := wiretest.NewRandomAccount(rng)
+	dialerID := wiretest.NewRandomAccountMap(rng)
+	listenerID := wiretest.NewRandomAccountMap(rng)
 	dialerReg := net.NewEndpointRegistry(dialerID, nilConsumer, hub.NewNetDialer(), perunio.Serializer())
 	listenerReg := net.NewEndpointRegistry(listenerID, nilConsumer, nil, perunio.Serializer())
-	listener := hub.NewNetListener(listenerID.Address())
+	listener := hub.NewNetListener(wire.AddressMapfromAccountMap(listenerID))
 
 	done := make(chan struct{})
 	go func() {
@@ -57,17 +58,17 @@ func TestEndpointRegistry_Get_Pair(t *testing.T) {
 
 	ctx, cancel := context.WithTimeout(context.Background(), 2*timeout)
 	defer cancel()
-	p, err := dialerReg.Endpoint(ctx, listenerID.Address())
+	p, err := dialerReg.Endpoint(ctx, wire.AddressMapfromAccountMap(listenerID))
 	assert.NoError(err)
 	require.NotNil(p)
-	assert.True(channel.EqualWireMaps(p.Address, listenerID.Address()))
+	assert.True(channel.EqualWireMaps(p.Address, wire.AddressMapfromAccountMap(listenerID)))
 
 	// should allow the listener routine to add the peer to its registry
 	time.Sleep(timeout)
-	p, err = listenerReg.Endpoint(ctx, dialerID.Address())
+	p, err = listenerReg.Endpoint(ctx, wire.AddressMapfromAccountMap(dialerID))
 	assert.NoError(err)
 	require.NotNil(p)
-	assert.True(channel.EqualWireMaps(p.Address, dialerID.Address()))
+	assert.True(channel.EqualWireMaps(p.Address, wire.AddressMapfromAccountMap(dialerID)))
 
 	listenerReg.Close()
 	dialerReg.Close()
@@ -83,16 +84,16 @@ func TestEndpointRegistry_Get_Multiple(t *testing.T) {
 	assert := assert.New(t)
 	rng := test.Prng(t)
 	var hub nettest.ConnHub
-	dialerID := wiretest.NewRandomAccount(rng)
-	listenerID := wiretest.NewRandomAccount(rng)
+	dialerID := wiretest.NewRandomAccountMap(rng)
+	listenerID := wiretest.NewRandomAccountMap(rng)
 	dialer := hub.NewNetDialer()
-	logPeer := func(addr map[int]wire.Address) wire.Consumer {
+	logPeer := func(addr map[wallet.BackendID]wire.Address) wire.Consumer {
 		t.Logf("subscribing %s\n", wire.Keys(addr))
 		return nil
 	}
 	dialerReg := net.NewEndpointRegistry(dialerID, logPeer, dialer, perunio.Serializer())
 	listenerReg := net.NewEndpointRegistry(listenerID, logPeer, nil, perunio.Serializer())
-	listener := hub.NewNetListener(listenerID.Address())
+	listener := hub.NewNetListener(wire.AddressMapfromAccountMap(listenerID))
 
 	done := make(chan struct{})
 	go func() {
@@ -107,10 +108,10 @@ func TestEndpointRegistry_Get_Multiple(t *testing.T) {
 	peers := make(chan *net.Endpoint, N)
 	for i := 0; i < N; i++ {
 		go func() {
-			p, err := dialerReg.Endpoint(ctx, listenerID.Address())
+			p, err := dialerReg.Endpoint(ctx, wire.AddressMapfromAccountMap(listenerID))
 			assert.NoError(err)
 			if p != nil {
-				assert.True(channel.EqualWireMaps(p.Address, listenerID.Address()))
+				assert.True(channel.EqualWireMaps(p.Address, wire.AddressMapfromAccountMap(listenerID)))
 			}
 			peers <- p
 		}()
@@ -136,10 +137,10 @@ func TestEndpointRegistry_Get_Multiple(t *testing.T) {
 
 	// should allow the listener routine to add the peer to its registry
 	time.Sleep(timeout)
-	p, err := listenerReg.Endpoint(ctx, dialerID.Address())
+	p, err := listenerReg.Endpoint(ctx, wire.AddressMapfromAccountMap(dialerID))
 	assert.NoError(err)
 	assert.NotNil(p)
-	assert.True(channel.EqualWireMaps(p.Address, dialerID.Address()))
+	assert.True(channel.EqualWireMaps(p.Address, wire.AddressMapfromAccountMap(dialerID)))
 	assert.Equal(1, listener.NumAccepted())
 
 	listenerReg.Close()

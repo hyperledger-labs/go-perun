@@ -17,6 +17,7 @@ package wire
 import (
 	"encoding"
 	stdio "io"
+	"perun.network/go-perun/wallet"
 	"strings"
 
 	"github.com/pkg/errors"
@@ -47,10 +48,10 @@ type Address interface {
 }
 
 // AddressMapArray is a helper type for encoding and decoding address maps.
-type AddressMapArray []map[int]Address
+type AddressMapArray []map[wallet.BackendID]Address
 
 // AddressDecMap is a helper type for encoding and decoding arrays of address maps.
-type AddressDecMap map[int]Address
+type AddressDecMap map[wallet.BackendID]Address
 
 // Encode encodes first the length of the map,
 // then all Addresses and their key in the map.
@@ -91,7 +92,7 @@ func (a *AddressDecMap) Decode(r stdio.Reader) (err error) {
 	if err := perunio.Decode(r, &mapLen); err != nil {
 		return errors.WithMessage(err, "decoding map length")
 	}
-	*a = make(map[int]Address, mapLen)
+	*a = make(map[wallet.BackendID]Address, mapLen)
 	for i := 0; i < int(mapLen); i++ {
 		var idx int32
 		if err := perunio.Decode(r, &idx); err != nil {
@@ -101,7 +102,7 @@ func (a *AddressDecMap) Decode(r stdio.Reader) (err error) {
 		if err := perunio.Decode(r, addr); err != nil {
 			return errors.WithMessagef(err, "decoding %d-th address map entry", i)
 		}
-		(*a)[int(idx)] = addr
+		(*a)[wallet.BackendID(idx)] = addr
 	}
 	return nil
 }
@@ -113,7 +114,7 @@ func (a *AddressMapArray) Decode(r stdio.Reader) (err error) {
 	if err := perunio.Decode(r, &mapLen); err != nil {
 		return errors.WithMessage(err, "decoding array length")
 	}
-	*a = make([]map[int]Address, mapLen)
+	*a = make([]map[wallet.BackendID]Address, mapLen)
 	for i := 0; i < int(mapLen); i++ {
 		if err := perunio.Decode(r, (*AddressDecMap)(&(*a)[i])); err != nil {
 			return errors.WithMessagef(err, "decoding %d-th address map entry", i)
@@ -136,7 +137,7 @@ func IndexOfAddr(addrs []Address, addr Address) int {
 
 // IndexOfAddr returns the index of the given address in the address slice,
 // or -1 if it is not part of the slice.
-func IndexOfAddrs(addrs []map[int]Address, addr map[int]Address) int {
+func IndexOfAddrs(addrs []map[wallet.BackendID]Address, addr map[wallet.BackendID]Address) int {
 	for i, a := range addrs {
 		if addrEqual(a, addr) {
 			return i
@@ -146,7 +147,7 @@ func IndexOfAddrs(addrs []map[int]Address, addr map[int]Address) int {
 	return -1
 }
 
-func addrEqual(a, b map[int]Address) bool {
+func addrEqual(a, b map[wallet.BackendID]Address) bool {
 	if len(a) != len(b) {
 		return false
 	}
@@ -174,11 +175,19 @@ func Key(a Address) AddrKey {
 }
 
 // Keys returns the `AddrKey` corresponding to the passed `map[int]Address`.
-func Keys(addressMap map[int]Address) AddrKey {
+func Keys(addressMap map[wallet.BackendID]Address) AddrKey {
 	var keyParts []string
 	for _, addr := range addressMap {
 		key := Key(addr)
 		keyParts = append(keyParts, string(key)) // Assuming Address has a String() method.
 	}
 	return AddrKey(strings.Join(keyParts, "|"))
+}
+
+func AddressMapfromAccountMap(accs map[wallet.BackendID]Account) map[wallet.BackendID]Address {
+	addresses := make(map[wallet.BackendID]Address)
+	for id, a := range accs {
+		addresses[id] = a.Address()
+	}
+	return addresses
 }

@@ -18,6 +18,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"perun.network/go-perun/wallet"
 
 	"github.com/pkg/errors"
 
@@ -34,8 +35,8 @@ import (
 // Sending messages to a node is done via the Send() method. To receive messages
 // from an Endpoint, use the Receiver helper type (by subscribing).
 type Endpoint struct {
-	Address map[int]wire.Address // The Endpoint's Perun address.
-	conn    Conn                 // The Endpoint's connection.
+	Address map[wallet.BackendID]wire.Address // The Endpoint's Perun address.
+	conn    Conn                              // The Endpoint's connection.
 
 	sending sync.Mutex // Blocks multiple Send calls.
 }
@@ -96,7 +97,7 @@ func (p *Endpoint) Close() (err error) {
 }
 
 // newEndpoint creates a new Endpoint from a wire Address and connection.
-func newEndpoint(addr map[int]wire.Address, conn Conn) *Endpoint {
+func newEndpoint(addr map[wallet.BackendID]wire.Address, conn Conn) *Endpoint {
 	return &Endpoint{
 		Address: addr,
 		conn:    conn,

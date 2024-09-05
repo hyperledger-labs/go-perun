@@ -16,6 +16,7 @@ package wire
 
 import (
 	"context"
+	"perun.network/go-perun/wallet"
 	"sync"
 
 	"github.com/pkg/errors"
@@ -58,7 +59,7 @@ func (h *LocalBus) Publish(ctx context.Context, e *Envelope) error {
 // SubscribeClient implements wire.Bus.SubscribeClient. There can only be one
 // subscription per receiver address.
 // When the Consumer closes, its subscription is removed.
-func (h *LocalBus) SubscribeClient(c Consumer, receiver map[int]Address) error {
+func (h *LocalBus) SubscribeClient(c Consumer, receiver map[wallet.BackendID]Address) error {
 	recv := h.ensureRecv(receiver)
 	recv.recv = c
 	close(recv.exists)
@@ -77,7 +78,7 @@ func (h *LocalBus) SubscribeClient(c Consumer, receiver map[int]Address) error {
 // ensureRecv ensures that there is an entry for a recipient address in the
 // bus' receiver map, and returns it. If it creates a new receiver, it is only
 // a placeholder until a subscription appears.
-func (h *LocalBus) ensureRecv(a map[int]Address) *localBusReceiver {
+func (h *LocalBus) ensureRecv(a map[wallet.BackendID]Address) *localBusReceiver {
 	key := Keys(a)
 	// First, we only use a read lock, hoping that the receiver already exists.
 	h.mutex.RLock()

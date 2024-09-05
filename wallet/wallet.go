@@ -24,7 +24,7 @@ type Wallet interface {
 	// LockAll has been called, or a matching count of IncrementUsage and
 	// DecrementUsage calls on the account's address has been made. Unlock may
 	// be called multiple times for the same Address by the Perun SDK.
-	Unlock(map[int]Address) (Account, error)
+	Unlock(Address) (Account, error)
 
 	// LockAll is called by the framework when a Client shuts down. This should
 	// release all temporary resources held by the wallet, and accesses to
@@ -36,7 +36,7 @@ type Wallet interface {
 	// The address passed to the function belongs to the Account the Client is
 	// using to participate in the channel. Implementing this function with any
 	// behavior is not essential.
-	IncrementUsage(map[int]Address)
+	IncrementUsage(Address)
 
 	// DecrementUsage is called whenever a channel is settled. The address
 	// passed to the function belongs to the Account the Client is using to
@@ -46,5 +46,5 @@ type Wallet interface {
 	// the wallet implementation. In that event, the affected account does not
 	// have to be able to sign messages anymore. Implementing this function with
 	// any behavior is not essential.
-	DecrementUsage(map[int]Address)
+	DecrementUsage(Address)
 }

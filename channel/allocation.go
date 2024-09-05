@@ -19,6 +19,7 @@ import (
 	"io"
 	"log"
 	"math/big"
+	"perun.network/go-perun/wallet"
 
 	"perun.network/go-perun/wire/perunio"
 	perunbig "polycry.pt/poly-go/math/big"
@@ -63,7 +64,7 @@ type (
 	// Locked holds the locked allocations to sub-app-channels.
 	Allocation struct {
 		// Backends is the indexes to which backend the assets belong to
-		Backends []int
+		Backends []wallet.BackendID
 		// Assets are the asset types held in this channel
 		Assets []Asset
 		// Balances is the allocation of assets to the Params.Parts
@@ -80,7 +81,7 @@ type (
 	// The size of the balances slice must be of the same size as the assets slice
 	// of the channel Params.
 	SubAlloc struct {
-		ID       map[int]ID
+		ID       map[wallet.BackendID]ID
 		Bals     []Bal
 		IndexMap []Index // Maps participant indices of the sub-channel to participant indices of the parent channel.
 	}
@@ -111,7 +112,7 @@ var (
 )
 
 // NewAllocation returns a new allocation for the given number of participants and assets.
-func NewAllocation(numParts int, backends []int, assets ...Asset) *Allocation {
+func NewAllocation(numParts int, backends []wallet.BackendID, assets ...Asset) *Allocation {
 	return &Allocation{
 		Assets:   assets,
 		Backends: backends,
@@ -189,7 +190,7 @@ func (a *Allocation) NumParts() int {
 // If it is nil, it returns nil.
 func (a Allocation) Clone() (clone Allocation) {
 	if a.Backends != nil {
-		clone.Backends = make([]int, len(a.Backends))
+		clone.Backends = make([]wallet.BackendID, len(a.Backends))
 		for i, bID := range a.Backends {
 			clone.Backends[i] = bID
 		}
@@ -329,8 +330,11 @@ func (a Allocation) Encode(w io.Writer) error {
 		return err
 	}
 	// encode assets
-	for i, a := range a.Assets {
-		if err := perunio.Encode(w, a); err != nil {
+	for i, asset := range a.Assets {
+		if err := perunio.Encode(w, uint32(a.Backends[i])); err != nil {
+			return errors.WithMessagef(err, "encoding asset %d", i)
+		}
+		if err := perunio.Encode(w, asset); err != nil {
 			return errors.WithMessagef(err, "encoding asset %d", i)
 		}
 	}
@@ -361,12 +365,14 @@ func (a *Allocation) Decode(r io.Reader) error {
 	}
 	// decode assets
 	a.Assets = make([]Asset, numAssets)
-	a.Backends = make([]int, numAssets)
+	a.Backends = make([]wallet.BackendID, numAssets)
 	for i := range a.Assets {
 		// decode backend index
-		if err := perunio.Decode(r); err != nil {
+		var id uint32
+		if err := perunio.Decode(r, &id); err != nil {
 			return errors.WithMessagef(err, "decoding backend index for asset %d", i)
 		}
+		a.Backends[i] = wallet.BackendID(id)
 		asset := NewAsset(a.Backends[i])
 		if err := perunio.Decode(r, asset); err != nil {
 			return errors.WithMessagef(err, "decoding asset %d", i)
@@ -547,7 +553,7 @@ func (b Balances) Sum() []Bal {
 }
 
 // NewSubAlloc creates a new sub-allocation.
-func NewSubAlloc(id map[int]ID, bals []Bal, indexMap []Index) *SubAlloc {
+func NewSubAlloc(id map[wallet.BackendID]ID, bals []Bal, indexMap []Index) *SubAlloc {
 	if indexMap == nil {
 		indexMap = []Index{}
 	}
@@ -556,7 +562,7 @@ func NewSubAlloc(id map[int]ID, bals []Bal, indexMap []Index) *SubAlloc {
 
 // SubAlloc tries to return the sub-allocation for the given subchannel.
 // The second return value indicates success.
-func (a Allocation) SubAlloc(subchannel map[int]ID) (subAlloc SubAlloc, ok bool) {
+func (a Allocation) SubAlloc(subchannel map[wallet.BackendID]ID) (subAlloc SubAlloc, ok bool) {
 	for _, subAlloc = range a.Locked {
 		if EqualIDs(subAlloc.ID, subchannel) {
 			ok = true

@@ -22,6 +22,7 @@ import (
 	"encoding/binary"
 	"math/big"
 	"math/rand"
+	"perun.network/go-perun/wallet"
 
 	"perun.network/go-perun/wire"
 )
@@ -193,7 +194,7 @@ func NewRandomAddress(rng *rand.Rand) *Address {
 }
 
 // NewRandomAddress returns a new random peer address.
-func NewRandomAddresses(rng *rand.Rand) map[int]wire.Address {
+func NewRandomAddresses(rng *rand.Rand) map[wallet.BackendID]wire.Address {
 	const addrLen = 32
 	l := rng.Intn(addrLen)
 	d := make([]byte, l)
@@ -204,7 +205,7 @@ func NewRandomAddresses(rng *rand.Rand) map[int]wire.Address {
 	a := Address{
 		Name: string(d),
 	}
-	return map[int]wire.Address{0: &a}
+	return map[wallet.BackendID]wire.Address{0: &a}
 }
 
 // Verify verifies a message signature.

@@ -21,7 +21,7 @@ import (
 
 // backend is set to the global wallet backend. Must not be set directly but
 // through importing the needed backend.
-var backend map[int]Backend
+var backend map[BackendID]Backend
 
 // Backend provides useful methods for this blockchain.
 type Backend interface {
@@ -43,18 +43,18 @@ type Backend interface {
 // through importing the needed backend.
 func SetBackend(b Backend, id int) {
 	if backend == nil {
-		backend = make(map[int]Backend)
+		backend = make(map[BackendID]Backend)
 
 	}
-	if backend[id] != nil {
+	if backend[BackendID(id)] != nil {
 		panic("wallet backend already set")
 	}
-	backend[id] = b
+	backend[BackendID(id)] = b
 }
 
 // NewAddress returns a variable of type Address, which can be used
 // for unmarshalling an address from its binary representation.
-func NewAddress(id int) Address {
+func NewAddress(id BackendID) Address {
 	return backend[id].NewAddress()
 }
 
@@ -79,15 +79,6 @@ func DecodeSig(r io.Reader) (Sig, error) {
 }
 
 // VerifySignature calls VerifySignature of the current backend.
-func VerifySignature(msg []byte, sign Sig, a map[int]Address) (bool, error) {
-	var errs []error
-	for _, addr := range a {
-		v, err := backend[addr.BackendID()].VerifySignature(msg, sign, addr)
-		if err == nil && v {
-			return v, nil
-		} else {
-			errs = append(errs, err)
-		}
-	}
-	return false, errors.Join(errs...)
+func VerifySignature(msg []byte, sign Sig, a Address) (bool, error) {
+	return backend[a.BackendID()].VerifySignature(msg, sign, a)
 }

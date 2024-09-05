@@ -56,7 +56,7 @@ type (
 	// controller.
 	ChannelMsg interface {
 		wire.Msg
-		ID() map[int]channel.ID
+		ID() map[wallet.BackendID]channel.ID
 	}
 
 	channelUpdateResMsg interface {
@@ -85,7 +85,7 @@ type (
 	// signature on the accepted new state by the sender.
 	ChannelUpdateAccMsg struct {
 		// ChannelID is the channel ID.
-		ChannelID map[int]channel.ID
+		ChannelID map[wallet.BackendID]channel.ID
 		// Version of the state that is accepted.
 		Version uint64
 		// Sig is the signature on the proposed new state by the sender.
@@ -99,7 +99,7 @@ type (
 	// Reason should be a UTF-8 encodable string.
 	ChannelUpdateRejMsg struct {
 		// ChannelID is the channel ID.
-		ChannelID map[int]channel.ID
+		ChannelID map[wallet.BackendID]channel.ID
 		// Version of the state that is accepted.
 		Version uint64
 		// Reason states why the sender rejectes the proposed new state.
@@ -175,17 +175,17 @@ func (c *ChannelUpdateRejMsg) Decode(r io.Reader) (err error) {
 }
 
 // ID returns the id of the channel this update refers to.
-func (c *ChannelUpdateMsg) ID() map[int]channel.ID {
+func (c *ChannelUpdateMsg) ID() map[wallet.BackendID]channel.ID {
 	return c.State.ID
 }
 
 // ID returns the id of the channel this update acceptance refers to.
-func (c *ChannelUpdateAccMsg) ID() map[int]channel.ID {
+func (c *ChannelUpdateAccMsg) ID() map[wallet.BackendID]channel.ID {
 	return c.ChannelID
 }
 
 // ID returns the id of the channel this update rejection refers to.
-func (c *ChannelUpdateRejMsg) ID() map[int]channel.ID {
+func (c *ChannelUpdateRejMsg) ID() map[wallet.BackendID]channel.ID {
 	return c.ChannelID
 }
 
@@ -255,7 +255,7 @@ func (m *VirtualChannelFundingProposalMsg) Decode(r io.Reader) (err error) {
 	}
 
 	m.Initial.Sigs = make([]wallet.Sig, m.Initial.State.NumParts())
-	return wallet.DecodeSparseSigs(r, &m.Initial.Sigs, m.Initial.State.Allocation.Backends)
+	return wallet.DecodeSparseSigs(r, &m.Initial.Sigs)
 }
 
 // Type returns the message type.
@@ -293,5 +293,5 @@ func (m *VirtualChannelSettlementProposalMsg) Decode(r io.Reader) (err error) {
 	}
 
 	m.Final.Sigs = make([]wallet.Sig, m.Final.State.NumParts())
-	return wallet.DecodeSparseSigs(r, &m.Final.Sigs, m.Final.State.Allocation.Backends)
+	return wallet.DecodeSparseSigs(r, &m.Final.Sigs)
 }

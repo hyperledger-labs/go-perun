@@ -15,6 +15,7 @@
 package local
 
 import (
+	"perun.network/go-perun/wallet"
 	"sync"
 
 	"github.com/pkg/errors"
@@ -37,7 +38,7 @@ func newRegistry() *registry {
 
 // addIfSucceeds adds the channel to the registry, if it is not already present
 // in the registry and if the "chInitializer" does not return an error.
-func (r *registry) addIfSucceeds(id map[int]channel.ID, chInitializer chInitializer) (*ch, error) {
+func (r *registry) addIfSucceeds(id map[wallet.BackendID]channel.ID, chInitializer chInitializer) (*ch, error) {
 	r.mtx.Lock()
 	defer r.mtx.Unlock()
 	if _, ok := r.chs[channel.IDKey(id)]; ok {
@@ -54,7 +55,7 @@ func (r *registry) addIfSucceeds(id map[int]channel.ID, chInitializer chInitiali
 }
 
 // retrieve retrieves the channel from registry.
-func (r *registry) retrieve(id map[int]channel.ID) (*ch, bool) {
+func (r *registry) retrieve(id map[wallet.BackendID]channel.ID) (*ch, bool) {
 	r.mtx.Lock()
 	ch, ok := r.chs[channel.IDKey(id)]
 	r.mtx.Unlock()
@@ -63,7 +64,7 @@ func (r *registry) retrieve(id map[int]channel.ID) (*ch, bool) {
 
 // remove removes the channel from registry, if it is present.
 // It does not do any validation on the channel to be removed.
-func (r *registry) remove(id map[int]channel.ID) {
+func (r *registry) remove(id map[wallet.BackendID]channel.ID) {
 	r.mtx.Lock()
 	delete(r.chs, channel.IDKey(id))
 	r.mtx.Unlock()

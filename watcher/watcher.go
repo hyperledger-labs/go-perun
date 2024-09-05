@@ -16,6 +16,7 @@ package watcher
 
 import (
 	"context"
+	"perun.network/go-perun/wallet"
 
 	"perun.network/go-perun/channel"
 )
@@ -40,9 +41,9 @@ type (
 	// this.
 	Watcher interface {
 		StartWatchingLedgerChannel(context.Context, channel.SignedState) (StatesPub, AdjudicatorSub, error)
-		StartWatchingSubChannel(_ context.Context, parent map[int]channel.ID, _ channel.SignedState) (
+		StartWatchingSubChannel(_ context.Context, parent map[wallet.BackendID]channel.ID, _ channel.SignedState) (
 			StatesPub, AdjudicatorSub, error)
-		StopWatching(context.Context, map[int]channel.ID) error
+		StopWatching(context.Context, map[wallet.BackendID]channel.ID) error
 	}
 
 	// StatesPub is the interface used to send newer off-chain states from the

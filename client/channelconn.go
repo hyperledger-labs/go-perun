@@ -18,6 +18,7 @@ import (
 	"context"
 	"github.com/pkg/errors"
 	"golang.org/x/sync/errgroup"
+	"perun.network/go-perun/wallet"
 
 	"perun.network/go-perun/channel"
 	"perun.network/go-perun/log"
@@ -33,7 +34,7 @@ type channelConn struct {
 
 	pub   wire.Publisher // outgoing message publisher
 	r     *wire.Relay    // update response relay/incoming messages
-	peers []map[int]wire.Address
+	peers []map[wallet.BackendID]wire.Address
 	idx   channel.Index // our index
 
 	log log.Logger
@@ -41,7 +42,7 @@ type channelConn struct {
 
 // newChannelConn creates a new channel connection for the given channel ID. It
 // subscribes on the subscriber to all messages regarding this channel.
-func newChannelConn(id map[int]channel.ID, peers []map[int]wire.Address, idx channel.Index, sub wire.Subscriber, pub wire.Publisher) (_ *channelConn, err error) {
+func newChannelConn(id map[wallet.BackendID]channel.ID, peers []map[wallet.BackendID]wire.Address, idx channel.Index, sub wire.Subscriber, pub wire.Publisher) (_ *channelConn, err error) {
 	// relay to receive all update responses
 	relay := wire.NewRelay()
 	// we cache all responses for the lifetime of the relay
@@ -83,7 +84,7 @@ func newChannelConn(id map[int]channel.ID, peers []map[int]wire.Address, idx cha
 	}, nil
 }
 
-func (c *channelConn) sender() map[int]wire.Address {
+func (c *channelConn) sender() map[wallet.BackendID]wire.Address {
 	return c.peers[c.idx]
 }
 
@@ -118,7 +119,7 @@ func (c *channelConn) Send(ctx context.Context, msg wire.Msg) error {
 
 // Peers returns the ordered list of peer addresses. Note that the own peer is
 // included in the list.
-func (c *channelConn) Peers() []map[int]wire.Address {
+func (c *channelConn) Peers() []map[wallet.BackendID]wire.Address {
 	return c.peers
 }
 
@@ -146,7 +147,7 @@ type (
 	// with Next(), which returns the peer's channel index and the message.
 	channelMsgRecv struct {
 		*wire.Receiver
-		peers []map[int]wire.Address
+		peers []map[wallet.BackendID]wire.Address
 		log   log.Logger
 	}
 )

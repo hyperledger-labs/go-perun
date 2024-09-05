@@ -16,6 +16,7 @@ package net
 
 import (
 	"context"
+	"perun.network/go-perun/wallet"
 	"sync"
 	"time"
 
@@ -44,13 +45,13 @@ const (
 
 // NewBus creates a new network bus. The dialer and listener are used to
 // establish new connections internally, while id is this node's identity.
-func NewBus(id wire.Account, d Dialer, s wire.EnvelopeSerializer) *Bus {
+func NewBus(id map[wallet.BackendID]wire.Account, d Dialer, s wire.EnvelopeSerializer) *Bus {
 	b := &Bus{
 		mainRecv: wire.NewReceiver(),
 		recvs:    make(map[wire.AddrKey]wire.Consumer),
 	}
 
-	onNewEndpoint := func(map[int]wire.Address) wire.Consumer { return b.mainRecv }
+	onNewEndpoint := func(map[wallet.BackendID]wire.Address) wire.Consumer { return b.mainRecv }
 	b.reg = NewEndpointRegistry(id, onNewEndpoint, d, s)
 	go b.dispatchMsgs()
 
@@ -65,7 +66,7 @@ func (b *Bus) Listen(l Listener) {
 // SubscribeClient subscribes a new client to the bus. Duplicate subscriptions
 // are forbidden and will cause a panic. The supplied consumer will receive all
 // messages that are sent to the requested address.
-func (b *Bus) SubscribeClient(c wire.Consumer, addr map[int]wire.Address) error {
+func (b *Bus) SubscribeClient(c wire.Consumer, addr map[wallet.BackendID]wire.Address) error {
 	b.addSubscriber(c, addr)
 	c.OnCloseAlways(func() { b.removeSubscriber(addr) })
 	return nil
@@ -114,7 +115,7 @@ func (b *Bus) Close() error {
 	return b.reg.Close()
 }
 
-func (b *Bus) addSubscriber(c wire.Consumer, addr map[int]wire.Address) {
+func (b *Bus) addSubscriber(c wire.Consumer, addr map[wallet.BackendID]wire.Address) {
 	b.mutex.Lock()
 	defer b.mutex.Unlock()
 
@@ -152,7 +153,7 @@ func (b *Bus) dispatchMsgs() {
 	}
 }
 
-func (b *Bus) removeSubscriber(addr map[int]wire.Address) {
+func (b *Bus) removeSubscriber(addr map[wallet.BackendID]wire.Address) {
 	b.mutex.Lock()
 	defer b.mutex.Unlock()
 

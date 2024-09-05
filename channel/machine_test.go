@@ -15,6 +15,7 @@
 package channel_test
 
 import (
+	"perun.network/go-perun/wallet"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -27,15 +28,15 @@ import (
 func TestMachineClone(t *testing.T) {
 	rng := pkgtest.Prng(t)
 
-	acc := wtest.NewRandomAccount(rng)
-	params := *test.NewRandomParams(rng, test.WithFirstPart(acc.Address()))
+	acc := wtest.NewRandomAccountMapSlice(rng, 0, 1)
+	params := *test.NewRandomParams(rng, test.WithFirstPart(map[wallet.BackendID]wallet.Address{0: acc[0][0].Address()}))
 
-	sm, err := channel.NewStateMachine(acc, params)
+	sm, err := channel.NewStateMachine(acc[0], params)
 	require.NoError(t, err)
 	cloneSM := sm.Clone()
 	require.Equal(t, sm, cloneSM)
 
-	am, err := channel.NewActionMachine(acc, params)
+	am, err := channel.NewActionMachine(acc[0], params)
 	require.NoError(t, err)
 	cloneAM := am.Clone()
 	require.Equal(t, am, cloneAM)

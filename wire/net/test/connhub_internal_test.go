@@ -16,6 +16,7 @@ package test
 
 import (
 	"context"
+	"perun.network/go-perun/wallet"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -121,7 +122,7 @@ func TestConnHub_Close(t *testing.T) {
 		l := c.NewNetListener(wiretest.NewRandomAddress(rng))
 		l2 := NewNetListener()
 		l2.Close()
-		err := c.insert(wiretest.NewRandomAccount(rng).Address(), l2)
+		err := c.insert(map[wallet.BackendID]wire.Address{0: wiretest.NewRandomAccount(rng).Address()}, l2)
 		assert.NoError(err)
 		assert.Error(c.Close())
 		assert.True(l.IsClosed())

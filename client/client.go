@@ -35,12 +35,12 @@ import (
 //
 // Currently, only the two-party protocol is fully implemented.
 type Client struct {
-	address           map[int]wire.Address
+	address           map[wallet.BackendID]wire.Address
 	conn              clientConn
 	channels          chanRegistry
 	funder            channel.Funder
 	adjudicator       channel.Adjudicator
-	wallet            wallet.Wallet
+	wallet            map[wallet.BackendID]wallet.Wallet
 	pr                persistence.PersistRestorer
 	log               log.Logger // structured logger for this client
 	version1Cache     version1Cache
@@ -68,11 +68,11 @@ type Client struct {
 //
 // If any argument is nil, New panics.
 func New(
-	address map[int]wire.Address,
+	address map[wallet.BackendID]wire.Address,
 	bus wire.Bus,
 	funder channel.Funder,
 	adjudicator channel.Adjudicator,
-	wallet wallet.Wallet,
+	wallet map[wallet.BackendID]wallet.Wallet,
 	watcher watcher.Watcher,
 ) (c *Client, err error) {
 	if address == nil {
@@ -146,7 +146,7 @@ func (c *Client) EnablePersistence(pr persistence.PersistRestorer) {
 }
 
 // Channel queries a channel by its ID.
-func (c *Client) Channel(id map[int]channel.ID) (*Channel, error) {
+func (c *Client) Channel(id map[wallet.BackendID]channel.ID) (*Channel, error) {
 	if ch, ok := c.channels.Channel(id); ok {
 		return ch, nil
 	}
@@ -201,11 +201,11 @@ func (c *Client) SetLog(l log.Logger) {
 	c.log = l
 }
 
-func (c *Client) logPeer(p map[int]wire.Address) log.Logger {
+func (c *Client) logPeer(p map[wallet.BackendID]wire.Address) log.Logger {
 	return c.log.WithField("peer", p)
 }
 
-func (c *Client) logChan(id map[int]channel.ID) log.Logger {
+func (c *Client) logChan(id map[wallet.BackendID]channel.ID) log.Logger {
 	return c.log.WithField("channel", id)
 }
 

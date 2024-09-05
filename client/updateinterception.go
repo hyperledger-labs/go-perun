@@ -16,6 +16,7 @@ package client
 
 import (
 	"context"
+	"perun.network/go-perun/wallet"
 	"sync"
 
 	"perun.network/go-perun/channel"
@@ -69,7 +70,7 @@ func newUpdateInterceptors() *updateInterceptors {
 }
 
 // Register assigns the given update interceptor to the given channel.
-func (interceptors *updateInterceptors) Register(id map[int]channel.ID, ui *updateInterceptor) {
+func (interceptors *updateInterceptors) Register(id map[wallet.BackendID]channel.ID, ui *updateInterceptor) {
 	interceptors.Lock()
 	defer interceptors.Unlock()
 	interceptors.entries[channel.IDKey(id)] = ui
@@ -77,7 +78,7 @@ func (interceptors *updateInterceptors) Register(id map[int]channel.ID, ui *upda
 
 // UpdateInterceptor gets the update interceptor for the given channel. The second return
 // value indicates whether such an entry could be found.
-func (interceptors *updateInterceptors) UpdateInterceptor(id map[int]channel.ID) (*updateInterceptor, bool) {
+func (interceptors *updateInterceptors) UpdateInterceptor(id map[wallet.BackendID]channel.ID) (*updateInterceptor, bool) {
 	interceptors.RLock()
 	defer interceptors.RUnlock()
 	ui, ok := interceptors.entries[channel.IDKey(id)]
@@ -85,7 +86,7 @@ func (interceptors *updateInterceptors) UpdateInterceptor(id map[int]channel.ID)
 }
 
 // Release releases the update interceptor for the given channel.
-func (interceptors *updateInterceptors) Release(id map[int]channel.ID) {
+func (interceptors *updateInterceptors) Release(id map[wallet.BackendID]channel.ID) {
 	interceptors.Lock()
 	defer interceptors.Unlock()
 	if ui, ok := interceptors.entries[channel.IDKey(id)]; ok {

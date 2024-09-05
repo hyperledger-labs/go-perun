@@ -17,7 +17,7 @@ package wallet
 // Account represents a single account.
 type Account interface {
 	// Address used by this account.
-	Address() map[int]Address
+	Address() Address
 
 	// SignData requests a signature from this account.
 	// It returns the signature or an error.

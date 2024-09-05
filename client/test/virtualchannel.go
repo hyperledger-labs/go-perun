@@ -18,6 +18,7 @@ import (
 	"context"
 	"math/big"
 	"math/rand"
+	"perun.network/go-perun/wallet"
 	"testing"
 	"time"
 
@@ -217,8 +218,8 @@ func setupVirtualChannelTest(
 	go ingrid.Client.Handle(openingProposalHandlerIngrid, updateProposalHandlerIngrid)
 
 	// Establish ledger channel between Alice and Ingrid.
-	peersAlice := []map[int]wire.Address{alice.Identity.Address(), ingrid.Identity.Address()}
-	initAllocAlice := channel.NewAllocation(len(peersAlice), []int{0}, asset)
+	peersAlice := []map[wallet.BackendID]wire.Address{wire.AddressMapfromAccountMap(alice.Identity), wire.AddressMapfromAccountMap(ingrid.Identity)}
+	initAllocAlice := channel.NewAllocation(len(peersAlice), []wallet.BackendID{0}, asset)
 	initAllocAlice.SetAssetBalances(asset, vct.initBalsAlice)
 	lcpAlice, err := client.NewLedgerChannelProposal(
 		setup.ChallengeDuration,
@@ -237,8 +238,8 @@ func setupVirtualChannelTest(
 	}
 
 	// Establish ledger channel between Bob and Ingrid.
-	peersBob := []map[int]wire.Address{bob.Identity.Address(), ingrid.Identity.Address()}
-	initAllocBob := channel.NewAllocation(len(peersBob), []int{0}, asset)
+	peersBob := []map[wallet.BackendID]wire.Address{wire.AddressMapfromAccountMap(bob.Identity), wire.AddressMapfromAccountMap(ingrid.Identity)}
+	initAllocBob := channel.NewAllocation(len(peersBob), []wallet.BackendID{0}, asset)
 	initAllocBob.SetAssetBalances(asset, vct.initBalsBob)
 	lcpBob, err := client.NewLedgerChannelProposal(
 		setup.ChallengeDuration,
@@ -286,6 +287,7 @@ func setupVirtualChannelTest(
 	initAllocVirtual := channel.Allocation{
 		Assets:   []channel.Asset{asset},
 		Balances: [][]channel.Bal{initBalsVirtual},
+		Backends: []wallet.BackendID{0},
 	}
 	indexMapAlice := []channel.Index{0, 1}
 	indexMapBob := []channel.Index{1, 0}
@@ -293,8 +295,8 @@ func setupVirtualChannelTest(
 		setup.ChallengeDuration,
 		alice.WalletAddress,
 		&initAllocVirtual,
-		[]map[int]wire.Address{alice.Identity.Address(), bob.Identity.Address()},
-		[]map[int]channel.ID{vct.chAliceIngrid.ID(), vct.chBobIngrid.ID()},
+		[]map[wallet.BackendID]wire.Address{wire.AddressMapfromAccountMap(alice.Identity), wire.AddressMapfromAccountMap(bob.Identity)},
+		[]map[wallet.BackendID]channel.ID{vct.chAliceIngrid.ID(), vct.chBobIngrid.ID()},
 		[][]channel.Index{indexMapAlice, indexMapBob},
 	)
 	require.NoError(err, "creating virtual channel proposal")

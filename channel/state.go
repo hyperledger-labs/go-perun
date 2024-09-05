@@ -17,6 +17,7 @@ package channel
 import (
 	"encoding"
 	"io"
+	"perun.network/go-perun/wallet"
 	"perun.network/go-perun/wire"
 
 	"github.com/pkg/errors"
@@ -32,7 +33,7 @@ type (
 	// during disputes.
 	State struct {
 		// id is the immutable id of the channel this state belongs to
-		ID map[int]ID
+		ID map[wallet.BackendID]ID
 		// version counter
 		Version uint64
 		// App identifies the application that this channel is running.
@@ -160,7 +161,7 @@ func (s *State) ToSubAlloc() *SubAlloc {
 	return NewSubAlloc(s.ID, s.Allocation.Sum(), nil)
 }
 
-func EqualWireMaps(a, b map[int]wire.Address) bool {
+func EqualWireMaps(a, b map[wallet.BackendID]wire.Address) bool {
 	if len(a) != len(b) {
 		return false
 	}

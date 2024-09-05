@@ -17,6 +17,7 @@ package test
 import (
 	"context"
 	"math/big"
+	"perun.network/go-perun/wallet"
 	"testing"
 	"time"
 
@@ -61,8 +62,8 @@ func TestMultiLedgerDispute(
 	// Establish ledger channel between Alice and Bob.
 
 	// Create channel proposal.
-	parts := []map[int]wire.Address{alice.WireAddress, bob.WireAddress}
-	initAlloc := channel.NewAllocation(len(parts), []int{0}, mlt.Asset1, mlt.Asset2)
+	parts := []map[wallet.BackendID]wire.Address{alice.WireAddress, bob.WireAddress}
+	initAlloc := channel.NewAllocation(len(parts), []wallet.BackendID{0, 0}, mlt.Asset1, mlt.Asset2)
 	initAlloc.Balances = initBals
 	prop, err := client.NewLedgerChannelProposal(
 		challengeDuration,

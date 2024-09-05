@@ -26,7 +26,7 @@ import (
 
 // AlwaysAcceptChannelHandler returns a channel proposal handler that accepts
 // all channel proposals.
-func AlwaysAcceptChannelHandler(ctx context.Context, addr map[int]wallet.Address, channels chan *client.Channel, errs chan<- error) client.ProposalHandlerFunc {
+func AlwaysAcceptChannelHandler(ctx context.Context, addr map[wallet.BackendID]wallet.Address, channels chan *client.Channel, errs chan<- error) client.ProposalHandlerFunc {
 	return func(cp client.ChannelProposal, pr *client.ProposalResponder) {
 		switch cp := cp.(type) {
 		case *client.LedgerChannelProposalMsg:

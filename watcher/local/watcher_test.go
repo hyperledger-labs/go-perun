@@ -18,6 +18,7 @@ import (
 	"context"
 	"fmt"
 	"math/rand"
+	"perun.network/go-perun/wallet"
 	"sync"
 	"testing"
 	"time"
@@ -954,7 +955,7 @@ func startWatchingForSubChannel(
 	t *testing.T,
 	w *local.Watcher,
 	signedState channel.SignedState,
-	parentID map[int]channel.ID,
+	parentID map[wallet.BackendID]channel.ID,
 ) (watcher.StatesPub, watcher.AdjudicatorSub) {
 	t.Helper()
 	statesPub, eventsSub, err := w.StartWatchingSubChannel(context.TODO(), parentID, signedState)

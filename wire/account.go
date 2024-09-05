@@ -18,6 +18,7 @@ import (
 	"encoding/binary"
 	"fmt"
 	"io"
+	"perun.network/go-perun/wallet"
 )
 
 func init() {
@@ -32,7 +33,7 @@ func init() {
 // authenticity within the Perun peer-to-peer network.
 type Account interface {
 	// Address used by this account.
-	Address() map[int]Address
+	Address() Address
 
 	// Sign signs the given message with this account's private key.
 	Sign(msg []byte) ([]byte, error)
@@ -80,8 +81,11 @@ func (m *AuthResponseMsg) Decode(r io.Reader) (err error) {
 }
 
 // NewAuthResponseMsg creates an authentication response message.
-func NewAuthResponseMsg(acc Account) (Msg, error) {
-	addressMap := acc.Address()
+func NewAuthResponseMsg(acc map[wallet.BackendID]Account) (Msg, error) {
+	addressMap := make(map[wallet.BackendID]Address)
+	for id, a := range acc {
+		addressMap[id] = a.Address()
+	}
 	var addressBytes []byte
 	addressBytes = append(addressBytes, byte(len(addressMap)))
 	for _, addr := range addressMap {
@@ -91,7 +95,7 @@ func NewAuthResponseMsg(acc Account) (Msg, error) {
 		}
 		addressBytes = append(addressBytes, addrBytes...)
 	}
-	signature, err := acc.Sign(addressBytes)
+	signature, err := acc[0].Sign(addressBytes)
 	if err != nil {
 		return nil, fmt.Errorf("failed to sign address: %w", err)
 	}

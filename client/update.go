@@ -33,7 +33,7 @@ import (
 // is unknown, an error is logged.
 //
 // This handler is dispatched from the Client.Handle routine.
-func (c *Client) handleChannelUpdate(uh UpdateHandler, p map[int]wire.Address, m ChannelUpdateProposal) {
+func (c *Client) handleChannelUpdate(uh UpdateHandler, p map[wallet.BackendID]wire.Address, m ChannelUpdateProposal) {
 	ch, ok := c.channels.Channel(m.Base().ID())
 	if !ok {
 		if !c.cacheVersion1Update(uh, p, m) {
@@ -45,7 +45,7 @@ func (c *Client) handleChannelUpdate(uh UpdateHandler, p map[int]wire.Address, m
 	ch.handleUpdateReq(pidx, m, uh) //nolint:contextcheck
 }
 
-func (c *Client) cacheVersion1Update(uh UpdateHandler, p map[int]wire.Address, m ChannelUpdateProposal) bool {
+func (c *Client) cacheVersion1Update(uh UpdateHandler, p map[wallet.BackendID]wire.Address, m ChannelUpdateProposal) bool {
 	c.version1Cache.mu.Lock()
 	defer c.version1Cache.mu.Unlock()
 

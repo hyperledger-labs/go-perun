@@ -61,7 +61,7 @@ type Wallet struct {
 // Unlock retrieves the account belonging to the supplied address, and unlocks
 // it. If the address does not have a corresponding account in the wallet,
 // returns an error.
-func (w *Wallet) Unlock(a map[int]wallet.Address) (wallet.Account, error) {
+func (w *Wallet) Unlock(a wallet.Address) (wallet.Account, error) {
 	w.accMutex.RLock()
 	defer w.accMutex.RUnlock()
 	key := wallet.Key(a)
@@ -87,7 +87,7 @@ func (w *Wallet) LockAll() {
 // IncrementUsage increases an account's usage count, which is used for
 // resource management. Panics if the wallet does not have an account that
 // corresponds to the supplied address.
-func (w *Wallet) IncrementUsage(a map[int]wallet.Address) {
+func (w *Wallet) IncrementUsage(a wallet.Address) {
 	w.accMutex.RLock()
 	defer w.accMutex.RUnlock()
 	key := wallet.Key(a)
@@ -103,7 +103,7 @@ func (w *Wallet) IncrementUsage(a map[int]wallet.Address) {
 // locks and deletes the account from the wallet. Panics if the call is not
 // matched to another preceding IncrementUsage call or if the supplied address
 // does not correspond to any of the wallet's accounts.
-func (w *Wallet) DecrementUsage(a map[int]wallet.Address) {
+func (w *Wallet) DecrementUsage(a wallet.Address) {
 	w.accMutex.Lock()
 	defer w.accMutex.Unlock()
 	key := wallet.Key(a)
@@ -126,7 +126,7 @@ func (w *Wallet) DecrementUsage(a map[int]wallet.Address) {
 // UsageCount retrieves an account's usage count (controlled via IncrementUsage
 // and DecrementUsage). Panics if the supplied address does not correspond to
 // any of the wallet's accounts.
-func (w *Wallet) UsageCount(a map[int]wallet.Address) int {
+func (w *Wallet) UsageCount(a wallet.Address) int {
 	w.accMutex.RLock()
 	defer w.accMutex.RUnlock()
 	key := wallet.Key(a)

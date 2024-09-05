@@ -16,6 +16,7 @@ package client
 
 import (
 	"io"
+	"perun.network/go-perun/wallet"
 
 	"github.com/pkg/errors"
 	"perun.network/go-perun/channel"
@@ -24,7 +25,7 @@ import (
 
 type (
 	sliceLen          = uint16
-	channelIDsWithLen []map[int]channel.ID
+	channelIDsWithLen []map[wallet.BackendID]channel.ID
 	indexMapWithLen   []channel.Index
 	indexMapsWithLen  [][]channel.Index
 )
@@ -49,7 +50,7 @@ func (a *channelIDsWithLen) Decode(r io.Reader) (err error) {
 	if err := perunio.Decode(r, &mapLen); err != nil {
 		return errors.WithMessage(err, "decoding array length")
 	}
-	*a = make([]map[int]channel.ID, mapLen)
+	*a = make([]map[wallet.BackendID]channel.ID, mapLen)
 	for i := 0; i < int(mapLen); i++ {
 		if err := perunio.Decode(r, (*channel.IDMap)(&(*a)[i])); err != nil {
 			return errors.WithMessagef(err, "decoding %d-th id map entry", i)

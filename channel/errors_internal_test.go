@@ -16,6 +16,7 @@ package channel
 
 import (
 	"errors"
+	"perun.network/go-perun/wallet"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -23,14 +24,14 @@ import (
 
 func TestTransitionErrors(t *testing.T) {
 	assert.False(t, IsStateTransitionError(errors.New("No StateTransitionError")))
-	assert.True(t, IsStateTransitionError(NewStateTransitionError(map[int]ID{0: Zero}, "A StateTransitionError")))
+	assert.True(t, IsStateTransitionError(NewStateTransitionError(map[wallet.BackendID]ID{0: Zero}, "A StateTransitionError")))
 
 	assert.False(t, IsActionError(errors.New("No ActionError")))
-	assert.True(t, IsActionError(NewActionError(map[int]ID{0: Zero}, "An ActionError")))
+	assert.True(t, IsActionError(NewActionError(map[wallet.BackendID]ID{0: Zero}, "An ActionError")))
 
 	assert.False(t, IsPhaseTransitionError(errors.New("No PhaseTransitionError")))
 	assert.True(t, IsPhaseTransitionError(newPhaseTransitionError(
-		map[int]ID{0: Zero}, InitActing, PhaseTransition{InitActing, InitActing}, "A PhaseTransitionError")))
+		map[wallet.BackendID]ID{0: Zero}, InitActing, PhaseTransition{InitActing, InitActing}, "A PhaseTransitionError")))
 	assert.True(t, IsPhaseTransitionError(newPhaseTransitionErrorf(
-		map[int]ID{0: Zero}, InitActing, PhaseTransition{InitActing, InitActing}, "A %s", "PhaseTransitionError")))
+		map[wallet.BackendID]ID{0: Zero}, InitActing, PhaseTransition{InitActing, InitActing}, "A %s", "PhaseTransitionError")))
 }

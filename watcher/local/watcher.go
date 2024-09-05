@@ -17,6 +17,7 @@ package local
 import (
 	"context"
 	stderrors "errors"
+	"perun.network/go-perun/wallet"
 	"time"
 
 	"github.com/pkg/errors"
@@ -55,7 +56,7 @@ type (
 	}
 
 	ch struct {
-		id          map[int]channel.ID
+		id          map[wallet.BackendID]channel.ID
 		params      *channel.Params
 		isClosed    bool
 		done        chan struct{}
@@ -157,7 +158,7 @@ func (w *Watcher) StartWatchingLedgerChannel(
 // sub-channels is supported.
 func (w *Watcher) StartWatchingSubChannel(
 	ctx context.Context,
-	parent map[int]channel.ID,
+	parent map[wallet.BackendID]channel.ID,
 	signedState channel.SignedState,
 ) (watcher.StatesPub, watcher.AdjudicatorSub, error) {
 	parentCh, ok := w.registry.retrieve(parent)
@@ -212,7 +213,7 @@ func (w *Watcher) startWatching(
 }
 
 func newCh(
-	id map[int]channel.ID,
+	id map[wallet.BackendID]channel.ID,
 	parent *ch,
 	params *channel.Params,
 	eventsFromChainSub channel.AdjudicatorSubscription,
@@ -458,7 +459,7 @@ func makeAdjudicatorReq(params *channel.Params, tx channel.Transaction) channel.
 // has stopped watching for some of the sub-channel).
 //
 // Context is not used, it is for implementing watcher.Watcher interface.
-func (w *Watcher) StopWatching(_ context.Context, id map[int]channel.ID) error {
+func (w *Watcher) StopWatching(_ context.Context, id map[wallet.BackendID]channel.ID) error {
 	ch, ok := w.retrieve(id)
 	if !ok {
 		return errors.New("channel not registered with the watcher")

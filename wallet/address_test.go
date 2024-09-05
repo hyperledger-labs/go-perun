@@ -60,15 +60,15 @@ func TestAddresses_Serializer(t *testing.T) {
 	peruniotest.GenericSerializerTest(t, &testAddresses{addrs: wallet.AddressMapArray{Addr: addrs}})
 
 	addrs = wallettest.NewRandomAddressesMap(rng, 1)
-	peruniotest.GenericSerializerTest(t, &testAddresses{addrs: wallet.AddressMapArray{addrs}})
+	peruniotest.GenericSerializerTest(t, &testAddresses{addrs: wallet.AddressMapArray{Addr: addrs}})
 
 	addrs = wallettest.NewRandomAddressesMap(rng, 5)
-	peruniotest.GenericSerializerTest(t, &testAddresses{addrs: wallet.AddressMapArray{addrs}})
+	peruniotest.GenericSerializerTest(t, &testAddresses{addrs: wallet.AddressMapArray{Addr: addrs}})
 }
 
 func TestAddrKey_Equal(t *testing.T) {
 	rng := pkgtest.Prng(t)
-	addrs := wallettest.NewRandomAddressesMap(rng, 10)
+	addrs := wallettest.NewRandomAddressArray(rng, 10)
 
 	// Test all properties of an equivalence relation.
 	for i, a := range addrs {
@@ -93,13 +93,13 @@ func TestAddrKey_Equal(t *testing.T) {
 
 func TestAddrKey(t *testing.T) {
 	rng := pkgtest.Prng(t)
-	addrs := wallettest.NewRandomAddressesMap(rng, 10)
+	addrs := wallettest.NewRandomAddressArray(rng, 10)
 
 	for _, a := range addrs {
 		// Test that Key and FromKey are dual to each other.
 		require.Equal(t, wallet.Key(a), wallet.Key(wallet.FromKey(wallet.Key(a))))
 		// Test that FromKey returns the correct Address.
-		require.True(t, EqualWalletMaps(a, wallet.FromKey(wallet.Key(a))))
+		require.True(t, a.Equal(wallet.FromKey(wallet.Key(a))))
 	}
 }
 
@@ -120,16 +120,4 @@ func TestCloneAddresses(t *testing.T) {
 	for i, a := range addrs {
 		require.NotSame(t, a, addrs0[i])
 	}
-}
-
-func EqualWalletMaps(a, b map[int]wallet.Address) bool {
-	if len(a) != len(b) {
-		return false
-	}
-	for i, addr := range a {
-		if !addr.Equal(b[i]) {
-			return false
-		}
-	}
-	return true
 }

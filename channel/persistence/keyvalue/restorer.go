@@ -41,12 +41,12 @@ type ChannelIterator struct {
 }
 
 // ActivePeers returns a list of all peers with which a channel is persisted.
-func (pr *PersistRestorer) ActivePeers(ctx context.Context) ([]map[int]wire.Address, error) {
+func (pr *PersistRestorer) ActivePeers(ctx context.Context) ([]map[wallet.BackendID]wire.Address, error) {
 	it := sortedkv.NewTable(pr.db, prefix.PeerDB).NewIterator()
 
-	peermap := make(map[wire.AddrKey]map[int]wire.Address)
+	peermap := make(map[wire.AddrKey]map[wallet.BackendID]wire.Address)
 	for it.Next() {
-		var addr map[int]wire.Address
+		var addr map[wallet.BackendID]wire.Address
 		err := perunio.Decode(bytes.NewBufferString(it.Key()), (*wire.AddressDecMap)(&addr))
 		if err != nil {
 			return nil, errors.WithMessagef(err, "decoding peer key (%x)", it.Key())
@@ -54,7 +54,7 @@ func (pr *PersistRestorer) ActivePeers(ctx context.Context) ([]map[int]wire.Addr
 		peermap[wire.Keys(addr)] = addr
 	}
 
-	peers := make([]map[int]wire.Address, 0, len(peermap))
+	peers := make([]map[wallet.BackendID]wire.Address, 0, len(peermap))
 	for _, peer := range peermap {
 		peers = append(peers, peer)
 	}
@@ -63,7 +63,7 @@ func (pr *PersistRestorer) ActivePeers(ctx context.Context) ([]map[int]wire.Addr
 
 // channelPeers returns a slice of peer addresses for a given channel id from
 // the db of PersistRestorer.
-func (pr *PersistRestorer) channelPeers(id map[int]channel.ID) ([]map[int]wire.Address, error) {
+func (pr *PersistRestorer) channelPeers(id map[wallet.BackendID]channel.ID) ([]map[wallet.BackendID]wire.Address, error) {
 	var ps wire.AddressMapArray
 	peers, err := pr.channelDB(id).Get(prefix.Peers)
 	if err != nil {
@@ -83,7 +83,7 @@ func (pr *PersistRestorer) RestoreAll() (persistence.ChannelIterator, error) {
 
 // RestorePeer should return an iterator over all persisted channels which
 // the given peer is a part of.
-func (pr *PersistRestorer) RestorePeer(addr map[int]wire.Address) (persistence.ChannelIterator, error) {
+func (pr *PersistRestorer) RestorePeer(addr map[wallet.BackendID]wire.Address) (persistence.ChannelIterator, error) {
 	it := &ChannelIterator{restorer: pr}
 	chandb := sortedkv.NewTable(pr.db, prefix.ChannelDB)
 
@@ -106,7 +106,7 @@ func (pr *PersistRestorer) RestorePeer(addr map[int]wire.Address) (persistence.C
 }
 
 // peerChannelsKey creates a db-key-string for a given wire.Address.
-func peerChannelsKey(addr map[int]wire.Address) (string, error) {
+func peerChannelsKey(addr map[wallet.BackendID]wire.Address) (string, error) {
 	var key strings.Builder
 	if err := perunio.Encode(&key, wire.AddressDecMap(addr)); err != nil {
 		return "", errors.WithMessage(err, "encoding peer address")
@@ -116,7 +116,7 @@ func peerChannelsKey(addr map[int]wire.Address) (string, error) {
 }
 
 // RestoreChannel restores a single channel.
-func (pr *PersistRestorer) RestoreChannel(ctx context.Context, id map[int]channel.ID) (*persistence.Channel, error) {
+func (pr *PersistRestorer) RestoreChannel(ctx context.Context, id map[wallet.BackendID]channel.ID) (*persistence.Channel, error) {
 	chandb := sortedkv.NewTable(pr.db, prefix.ChannelDB)
 	it := &ChannelIterator{
 		restorer: pr,

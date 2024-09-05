@@ -56,8 +56,8 @@ func NewRandomAccount(rng io.Reader) *Account {
 }
 
 // Address returns the address of this account.
-func (a *Account) Address() map[int]wallet.Address {
-	return map[int]wallet.Address{0: (*Address)(&a.privKey.PublicKey)}
+func (a *Account) Address() wallet.Address {
+	return (*Address)(&a.privKey.PublicKey)
 }
 
 // SignData is used to sign data with this account. If the account is locked,

@@ -18,6 +18,7 @@ import (
 	"context"
 	"math/rand"
 	"perun.network/go-perun/channel"
+	"perun.network/go-perun/wallet"
 	"sync"
 	"testing"
 	"time"
@@ -54,7 +55,7 @@ func makeSetup(rng *rand.Rand) *setup {
 }
 
 // Dial simulates creating a connection to a.
-func (s *setup) Dial(ctx context.Context, addr map[int]wire.Address, _ wire.EnvelopeSerializer) (Conn, error) {
+func (s *setup) Dial(ctx context.Context, addr map[wallet.BackendID]wire.Address, _ wire.EnvelopeSerializer) (Conn, error) {
 	s.mutex.RLock()
 	defer s.mutex.RUnlock()
 
@@ -98,7 +99,7 @@ type client struct {
 // makeClient creates a simulated test client.
 func makeClient(conn Conn, rng *rand.Rand, dialer Dialer) *client {
 	receiver := wire.NewReceiver()
-	registry := NewEndpointRegistry(wiretest.NewRandomAccount(rng), func(map[int]wire.Address) wire.Consumer {
+	registry := NewEndpointRegistry(wiretest.NewRandomAccountMap(rng), func(map[wallet.BackendID]wire.Address) wire.Consumer {
 		return receiver
 	}, dialer, perunio.Serializer())
 

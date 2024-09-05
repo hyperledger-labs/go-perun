@@ -43,7 +43,7 @@ func TestExchangeAddrs_ConnFail(t *testing.T) {
 	rng := test.Prng(t)
 	a, _ := newPipeConnPair()
 	a.Close()
-	addr, err := wirenet.ExchangeAddrsPassive(context.Background(), wiretest.NewRandomAccount(rng), a)
+	addr, err := wirenet.ExchangeAddrsPassive(context.Background(), wiretest.NewRandomAccountMap(rng), a)
 	assert.Nil(t, addr)
 	assert.Error(t, err)
 }
@@ -52,7 +52,7 @@ func TestExchangeAddrs_Success(t *testing.T) {
 	rng := test.Prng(t)
 	conn0, conn1 := newPipeConnPair()
 	defer conn0.Close()
-	account0, account1 := wiretest.NewRandomAccount(rng), wiretest.NewRandomAccount(rng)
+	account0, account1 := wiretest.NewRandomAccountMap(rng), wiretest.NewRandomAccountMap(rng)
 	var wg sync.WaitGroup
 	wg.Add(1)
 
@@ -62,10 +62,10 @@ func TestExchangeAddrs_Success(t *testing.T) {
 
 		recvAddr0, err := wirenet.ExchangeAddrsPassive(context.Background(), account1, conn1)
 		assert.NoError(t, err)
-		assert.True(t, channel.EqualWireMaps(recvAddr0, account0.Address()))
+		assert.True(t, channel.EqualWireMaps(recvAddr0, wire.AddressMapfromAccountMap(account0)))
 	}()
 
-	err := wirenet.ExchangeAddrsActive(context.Background(), account0, account1.Address(), conn0)
+	err := wirenet.ExchangeAddrsActive(context.Background(), account0, wire.AddressMapfromAccountMap(account1), conn0)
 	assert.NoError(t, err)
 
 	wg.Wait()
@@ -78,7 +78,7 @@ func TestExchangeAddrs_Timeout(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 	ctxtest.AssertTerminates(t, 20*timeout, func() {
-		addr, err := wirenet.ExchangeAddrsPassive(ctx, wiretest.NewRandomAccount(rng), a)
+		addr, err := wirenet.ExchangeAddrsPassive(ctx, wiretest.NewRandomAccountMap(rng), a)
 		assert.Nil(t, addr)
 		assert.Error(t, err)
 	})
@@ -86,7 +86,7 @@ func TestExchangeAddrs_Timeout(t *testing.T) {
 
 func TestExchangeAddrs_BogusMsg(t *testing.T) {
 	rng := test.Prng(t)
-	acc := wiretest.NewRandomAccount(rng)
+	acc := wiretest.NewRandomAccountMap(rng)
 	conn := newMockConn()
 	conn.recvQueue <- newRandomEnvelope(rng, wire.NewPingMsg())
 	addr, err := wirenet.ExchangeAddrsPassive(context.Background(), acc, conn)

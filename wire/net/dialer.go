@@ -16,6 +16,7 @@ package net
 
 import (
 	"context"
+	"perun.network/go-perun/wallet"
 
 	"perun.network/go-perun/wire"
 )
@@ -31,7 +32,7 @@ type Dialer interface {
 	//
 	// Dial needs to be reentrant, and concurrent calls to Close() must abort
 	// any ongoing Dial() calls.
-	Dial(ctx context.Context, addr map[int]wire.Address, ser wire.EnvelopeSerializer) (Conn, error)
+	Dial(ctx context.Context, addr map[wallet.BackendID]wire.Address, ser wire.EnvelopeSerializer) (Conn, error)
 	// Close aborts any ongoing calls to Dial().
 	//
 	// Close() needs to be reentrant, and repeated calls to Close() need to

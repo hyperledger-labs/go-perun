@@ -35,7 +35,7 @@ const IDLen = 32
 type ID = [IDLen]byte
 
 // IDMap is a map of IDs with keys corresponding to backendIDs
-type IDMap map[int]ID
+type IDMap map[wallet.BackendID]ID
 
 // MaxNonceLen is the maximum byte count of a nonce.
 const MaxNonceLen = 32
@@ -57,7 +57,7 @@ func NonceFromBytes(b []byte) Nonce {
 // Zero is the default channelID.
 var Zero = ID{}
 
-func EqualIDs(a, b map[int]ID) bool {
+func EqualIDs(a, b map[wallet.BackendID]ID) bool {
 	if len(a) != len(b) {
 		return false
 	}
@@ -94,7 +94,7 @@ func (ids *IDMap) Decode(r stdio.Reader) error {
 	if err := perunio.Decode(r, &mapLen); err != nil {
 		return errors.WithMessage(err, "decoding map length")
 	}
-	*ids = make(map[int]ID, mapLen)
+	*ids = make(map[wallet.BackendID]ID, mapLen)
 	for i := 0; i < int(mapLen); i++ {
 		var idx int32
 		if err := perunio.Decode(r, &idx); err != nil {
@@ -104,7 +104,7 @@ func (ids *IDMap) Decode(r stdio.Reader) error {
 		if err := perunio.Decode(r, &id); err != nil {
 			return errors.WithMessagef(err, "decoding %d-th address map entry", i)
 		}
-		(*ids)[int(idx)] = id
+		(*ids)[wallet.BackendID(idx)] = id
 	}
 	return nil
 }
@@ -138,7 +138,7 @@ func FromIDKey(k string) IDMap {
 	if err := binary.Read(buff, binary.BigEndian, &numElements); err != nil {
 		log.Panicf("could not decode map length in FromIDKey: " + err.Error())
 	}
-	a := make(map[int]ID, numElements)
+	a := make(map[wallet.BackendID]ID, numElements)
 	// Decode each key-value pair and insert them into the map.
 	for i := 0; i < int(numElements); i++ {
 		var key int32
@@ -149,7 +149,7 @@ func FromIDKey(k string) IDMap {
 		if err := perunio.Decode(buff, id); err != nil {
 			log.Panicf("could not decode map[int]ID in FromIDKey: " + err.Error())
 		}
-		a[int(key)] = id
+		a[wallet.BackendID(key)] = id
 	}
 	return a
 }
@@ -162,11 +162,11 @@ var _ perunio.Serializer = (*Params)(nil)
 // It should only be created through NewParams().
 type Params struct {
 	// ChannelID is the channel ID as calculated by the backend
-	id map[int]ID
+	id map[wallet.BackendID]ID
 	// ChallengeDuration in seconds during disputes
 	ChallengeDuration uint64
 	// Parts are the channel participants
-	Parts []map[int]wallet.Address
+	Parts []map[wallet.BackendID]wallet.Address
 	// App identifies the application that this channel is running. It is
 	// optional, and if nil, signifies that a channel is a payment channel.
 	App App `cloneable:"shallow"`
@@ -179,7 +179,7 @@ type Params struct {
 }
 
 // ID returns the channelID of this channel.
-func (p *Params) ID() map[int]ID {
+func (p *Params) ID() map[wallet.BackendID]ID {
 	return p.id
 }
 
@@ -187,7 +187,7 @@ func (p *Params) ID() map[int]ID {
 // appDef optional: if it is nil, it describes a payment channel. The channel id
 // is also calculated here and persisted because it probably is an expensive
 // hash operation.
-func NewParams(challengeDuration uint64, parts []map[int]wallet.Address, app App, nonce Nonce, ledger bool, virtual bool) (*Params, error) {
+func NewParams(challengeDuration uint64, parts []map[wallet.BackendID]wallet.Address, app App, nonce Nonce, ledger bool, virtual bool) (*Params, error) {
 	if err := ValidateParameters(challengeDuration, len(parts), app, nonce); err != nil {
 		return nil, errors.WithMessage(err, "invalid parameter for NewParams")
 	}
@@ -243,7 +243,7 @@ func ValidateParameters(challengeDuration uint64, numParts int, app App, nonce N
 // NewParamsUnsafe creates Params from the given data and does NOT perform
 // sanity checks. The channel id is also calculated here and persisted because
 // it probably is an expensive hash operation.
-func NewParamsUnsafe(challengeDuration uint64, parts []map[int]wallet.Address, app App, nonce Nonce, ledger bool, virtual bool) *Params {
+func NewParamsUnsafe(challengeDuration uint64, parts []map[wallet.BackendID]wallet.Address, app App, nonce Nonce, ledger bool, virtual bool) *Params {
 	p := &Params{
 		ChallengeDuration: challengeDuration,
 		Parts:             parts,
@@ -255,7 +255,7 @@ func NewParamsUnsafe(challengeDuration uint64, parts []map[int]wallet.Address, a
 
 	// probably an expensive hash operation, do it only once during creation.
 	id, err := CalcID(p)
-	if err != nil || EqualIDs(id, map[int]ID{}) {
+	if err != nil || EqualIDs(id, map[wallet.BackendID]ID{}) {
 		log.Panicf("Could not calculate channel id: %v", err)
 	}
 	p.id = id
@@ -264,8 +264,8 @@ func NewParamsUnsafe(challengeDuration uint64, parts []map[int]wallet.Address, a
 
 // CloneAddress returns a clone of an Address using its binary marshaling
 // implementation. It panics if an error occurs during binary (un)marshaling.
-func CloneAddresses(as []map[int]wallet.Address) []map[int]wallet.Address {
-	var cloneMap []map[int]wallet.Address
+func CloneAddresses(as []map[wallet.BackendID]wallet.Address) []map[wallet.BackendID]wallet.Address {
+	var cloneMap []map[wallet.BackendID]wallet.Address
 	for _, a := range as {
 		cloneMap = append(cloneMap, wallet.CloneAddressesMap(a))
 	}

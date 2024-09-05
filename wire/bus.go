@@ -14,6 +14,8 @@
 
 package wire
 
+import "perun.network/go-perun/wallet"
+
 // A Bus is a central message bus over which all clients of a channel network
 // communicate. It is used as the transport layer abstraction for the
 // client.Client.
@@ -22,5 +24,5 @@ type Bus interface {
 
 	// SubscribeClient should route all messages with clientAddr as recipient to
 	// the provided Consumer. Every address may only be subscribed to once.
-	SubscribeClient(c Consumer, clientAddr map[int]Address) error
+	SubscribeClient(c Consumer, clientAddr map[wallet.BackendID]Address) error
 }

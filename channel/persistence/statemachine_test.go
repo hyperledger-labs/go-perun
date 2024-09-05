@@ -16,6 +16,7 @@ package persistence_test
 
 import (
 	"context"
+	"perun.network/go-perun/wallet"
 	"testing"
 	"time"
 
@@ -69,8 +70,11 @@ func TestStateMachine(t *testing.T) {
 		tpr.AssertEqual(csm)
 		// remote signers
 		for i := 1; i < n; i++ {
-			sig, err := channel.Sign(accs[i], csm.StagingState())
-			require.NoError(err)
+			var sig wallet.Sig
+			for _, acc := range accs[i] {
+				sig, err = channel.Sign(acc, csm.StagingState())
+				require.NoError(err)
+			}
 			err = sm.AddSig(ctx, channel.Index(i), sig)
 			require.NoError(err)
 			tpr.AssertEqual(csm)

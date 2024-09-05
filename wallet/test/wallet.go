@@ -32,75 +32,73 @@ type UnlockedAccount func() (wallet.Account, error)
 
 // Setup provides all objects needed for the generic tests.
 type Setup struct {
-	Backend           wallet.Backend         // backend implementation
-	Wallet            wallet.Wallet          // the wallet instance used for testing
-	AddressInWallet   map[int]wallet.Address // an address of an account in the test wallet
-	ZeroAddress       wallet.Address         // an address that is less or equal to any other address
-	DataToSign        []byte                 // some data to sign
-	AddressMarshalled []byte                 // a valid nonzero address not in the wallet
+	Backend           wallet.Backend // backend implementation
+	Wallet            wallet.Wallet  // the wallet instance used for testing
+	AddressInWallet   wallet.Address // an address of an account in the test wallet
+	ZeroAddress       wallet.Address // an address that is less or equal to any other address
+	DataToSign        []byte         // some data to sign
+	AddressMarshalled []byte         // a valid nonzero address not in the wallet
 }
 
 // TestAccountWithWalletAndBackend tests an account implementation together with
 // a corresponding wallet and backend implementation.
 // This function should be called by every implementation of the wallet interface.
 func TestAccountWithWalletAndBackend(t *testing.T, s *Setup) { //nolint:revive // `test.Test...` stutters, but we accept that here.
-	for _, address := range s.AddressInWallet {
-		acc, err := s.Wallet.Unlock(s.AddressInWallet)
-		assert.NoError(t, err)
-		// Check unlocked account
-		sig, err := acc.SignData(s.DataToSign)
-		assert.NoError(t, err, "Sign with unlocked account should succeed")
-		valid, err := s.Backend.VerifySignature(s.DataToSign, sig, address)
-		assert.True(t, valid, "Verification should succeed")
-		assert.NoError(t, err, "Verification should not produce error")
+	acc, err := s.Wallet.Unlock(s.AddressInWallet)
+	assert.NoError(t, err)
+	// Check unlocked account
+	sig, err := acc.SignData(s.DataToSign)
+	assert.NoError(t, err, "Sign with unlocked account should succeed")
+	valid, err := s.Backend.VerifySignature(s.DataToSign, sig, s.AddressInWallet)
+	assert.True(t, valid, "Verification should succeed")
+	assert.NoError(t, err, "Verification should not produce error")
 
-		addr := s.Backend.NewAddress()
-		err = addr.UnmarshalBinary(s.AddressMarshalled)
-		assert.NoError(t, err, "Binary unmarshalling of address should work")
-		valid, err = s.Backend.VerifySignature(s.DataToSign, sig, addr)
-		assert.False(t, valid, "Verification with wrong address should fail")
-		assert.NoError(t, err, "Verification of valid signature should not produce error")
+	addr := s.Backend.NewAddress()
+	err = addr.UnmarshalBinary(s.AddressMarshalled)
+	assert.NoError(t, err, "Binary unmarshalling of address should work")
+	valid, err = s.Backend.VerifySignature(s.DataToSign, sig, addr)
+	assert.False(t, valid, "Verification with wrong address should fail")
+	assert.NoError(t, err, "Verification of valid signature should not produce error")
 
-		tampered := make([]byte, len(sig))
-		copy(tampered, sig)
-		// Invalidate the signature and check for error
-		tampered[0] = ^sig[0]
-		valid, err = s.Backend.VerifySignature(s.DataToSign, tampered, address)
-		if valid && err == nil {
-			t.Error("Verification of invalid signature should produce error or return false")
-		}
-		// Truncate the signature and check for error
-		tampered = sig[:len(sig)-1]
-		valid, err = s.Backend.VerifySignature(s.DataToSign, tampered, address)
-		if valid && err != nil {
-			t.Error("Verification of invalid signature should produce error or return false")
-		}
-		// Expand the signature and check for error
-		//nolint:gocritic
-		tampered = append(sig, 0)
-		valid, err = s.Backend.VerifySignature(s.DataToSign, tampered, address)
-		if valid && err != nil {
-			t.Error("Verification of invalid signature should produce error or return false")
-		}
-
-		// Test DecodeSig
-		sig, err = acc.SignData(s.DataToSign)
-		require.NoError(t, err, "Sign with unlocked account should succeed")
-
-		buff := new(bytes.Buffer)
-		err = perunio.Encode(buff, sig)
-		require.NoError(t, err, "encode sig")
-		sign2, err := s.Backend.DecodeSig(buff)
-		assert.NoError(t, err, "Decoded signature should work")
-		assert.Equal(t, sig, sign2, "Decoded signature should be equal to the original")
-
-		// Test DecodeSig on short stream
-		err = perunio.Encode(buff, sig)
-		require.NoError(t, err, "encode sig")
-		shortBuff := bytes.NewBuffer(buff.Bytes()[:len(buff.Bytes())-1]) // remove one byte
-		_, err = s.Backend.DecodeSig(shortBuff)
-		assert.Error(t, err, "DecodeSig on short stream should error")
+	tampered := make([]byte, len(sig))
+	copy(tampered, sig)
+	// Invalidate the signature and check for error
+	tampered[0] = ^sig[0]
+	valid, err = s.Backend.VerifySignature(s.DataToSign, tampered, s.AddressInWallet)
+	if valid && err == nil {
+		t.Error("Verification of invalid signature should produce error or return false")
 	}
+	// Truncate the signature and check for error
+	tampered = sig[:len(sig)-1]
+	valid, err = s.Backend.VerifySignature(s.DataToSign, tampered, s.AddressInWallet)
+	if valid && err != nil {
+		t.Error("Verification of invalid signature should produce error or return false")
+	}
+	// Expand the signature and check for error
+	//nolint:gocritic
+	tampered = append(sig, 0)
+	valid, err = s.Backend.VerifySignature(s.DataToSign, tampered, s.AddressInWallet)
+	if valid && err != nil {
+		t.Error("Verification of invalid signature should produce error or return false")
+	}
+
+	// Test DecodeSig
+	sig, err = acc.SignData(s.DataToSign)
+	require.NoError(t, err, "Sign with unlocked account should succeed")
+
+	buff := new(bytes.Buffer)
+	err = perunio.Encode(buff, sig)
+	require.NoError(t, err, "encode sig")
+	sign2, err := s.Backend.DecodeSig(buff)
+	assert.NoError(t, err, "Decoded signature should work")
+	assert.Equal(t, sig, sign2, "Decoded signature should be equal to the original")
+
+	// Test DecodeSig on short stream
+	err = perunio.Encode(buff, sig)
+	require.NoError(t, err, "encode sig")
+	shortBuff := bytes.NewBuffer(buff.Bytes()[:len(buff.Bytes())-1]) // remove one byte
+	_, err = s.Backend.DecodeSig(shortBuff)
+	assert.Error(t, err, "DecodeSig on short stream should error")
 }
 
 // GenericSignatureSizeTest tests that the size of the signatures produced by

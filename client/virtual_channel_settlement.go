@@ -105,15 +105,17 @@ func (c *Client) validateVirtualChannelSettlementProposal(
 
 	// Validate signatures.
 	for i, sig := range prop.Final.Sigs {
-		ok, err := channel.Verify(
-			prop.Final.Params.Parts[i],
-			prop.Final.State,
-			sig,
-		)
-		if err != nil {
-			return err
-		} else if !ok {
-			return errors.New("invalid signature")
+		for _, p := range prop.Final.Params.Parts[i] {
+			ok, err := channel.Verify(
+				p,
+				prop.Final.State,
+				sig,
+			)
+			if err != nil {
+				return err
+			} else if !ok {
+				return errors.New("invalid signature")
+			}
 		}
 	}
 

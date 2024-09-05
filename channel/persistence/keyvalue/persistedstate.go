@@ -16,6 +16,7 @@ package keyvalue
 
 import (
 	"io"
+	"perun.network/go-perun/wallet"
 
 	"perun.network/go-perun/channel"
 	"perun.network/go-perun/wire/perunio"
@@ -48,11 +49,11 @@ func (s *PersistedState) Decode(r io.Reader) error {
 
 type (
 	optChannelIDEnc struct {
-		ID *map[int]channel.ID
+		ID *map[wallet.BackendID]channel.ID
 	}
 
 	optChannelIDDec struct {
-		ID **map[int]channel.ID
+		ID **map[wallet.BackendID]channel.ID
 	}
 )
 
@@ -69,7 +70,7 @@ func (id optChannelIDDec) Decode(r io.Reader) error {
 		return err
 	}
 	if exists {
-		*id.ID = new(map[int]channel.ID)
+		*id.ID = new(map[wallet.BackendID]channel.ID)
 		return perunio.Decode(r, (*channel.IDMap)(*id.ID))
 	}
 	*id.ID = nil

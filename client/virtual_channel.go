@@ -150,10 +150,10 @@ func (c *Channel) watchVirtual() error {
 
 // dummyAcount represents an address but cannot be used for signing.
 type dummyAccount struct {
-	address map[int]wallet.Address
+	address wallet.Address
 }
 
-func (a *dummyAccount) Address() map[int]wallet.Address {
+func (a *dummyAccount) Address() wallet.Address {
 	return a.address
 }
 
@@ -163,14 +163,18 @@ func (a *dummyAccount) SignData([]byte) ([]byte, error) {
 
 const hubIndex = 0 // The hub's index in a virtual channel machine.
 
-func (c *Client) persistVirtualChannel(ctx context.Context, parent *Channel, peers []map[int]wire.Address, params channel.Params, state channel.State, sigs []wallet.Sig) (*Channel, error) {
+func (c *Client) persistVirtualChannel(ctx context.Context, parent *Channel, peers []map[wallet.BackendID]wire.Address, params channel.Params, state channel.State, sigs []wallet.Sig) (*Channel, error) {
 	cID := params.ID()
 	if _, err := c.Channel(cID); err == nil {
 		return nil, errors.New("channel already exists")
 	}
 
 	// We use a dummy account because we don't have the keys to the account.
-	ch, err := c.newChannel(&dummyAccount{params.Parts[hubIndex]}, parent, peers, params)
+	accs := make(map[wallet.BackendID]wallet.Account)
+	for i, part := range params.Parts[hubIndex] {
+		accs[i] = &dummyAccount{part}
+	}
+	ch, err := c.newChannel(accs, parent, peers, params)
 	if err != nil {
 		return nil, err
 	}
@@ -249,15 +253,17 @@ func (c *Client) validateVirtualChannelFundingProposal(
 
 	// Validate signatures.
 	for i, sig := range prop.Initial.Sigs {
-		ok, err := channel.Verify(
-			prop.Initial.Params.Parts[i],
-			prop.Initial.State,
-			sig,
-		)
-		if err != nil {
-			return err
-		} else if !ok {
-			return errors.New("invalid signature")
+		for _, part := range prop.Initial.Params.Parts[i] {
+			ok, err := channel.Verify(
+				part,
+				prop.Initial.State,
+				sig,
+			)
+			if err != nil {
+				return err
+			} else if !ok {
+				return errors.New("invalid signature")
+			}
 		}
 	}
 
@@ -379,8 +385,8 @@ func (c *Client) gatherChannels(props ...*VirtualChannelFundingProposalMsg) ([]*
 	return channels, nil
 }
 
-func (c *Client) gatherPeers(channels ...*Channel) (peers []map[int]wire.Address) {
-	peers = make([]map[int]wire.Address, len(channels))
+func (c *Client) gatherPeers(channels ...*Channel) (peers []map[wallet.BackendID]wire.Address) {
+	peers = make([]map[wallet.BackendID]wire.Address, len(channels))
 	for i, ch := range channels {
 		chPeers := ch.Peers()
 		if len(chPeers) != gatherNumPeers {

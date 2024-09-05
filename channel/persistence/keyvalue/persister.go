@@ -19,6 +19,7 @@ import (
 	"context"
 	"fmt"
 	"math"
+	"perun.network/go-perun/wallet"
 	"regexp"
 	"strconv"
 	"strings"
@@ -32,7 +33,7 @@ import (
 )
 
 // ChannelCreated inserts a channel into the database.
-func (pr *PersistRestorer) ChannelCreated(_ context.Context, s channel.Source, peers []map[int]wire.Address, parent *map[int]channel.ID) error {
+func (pr *PersistRestorer) ChannelCreated(_ context.Context, s channel.Source, peers []map[wallet.BackendID]wire.Address, parent *map[wallet.BackendID]channel.ID) error {
 	db := pr.channelDB(s.ID()).NewBatch()
 	// Write the channel data in the "Channel" table.
 	numParts := len(s.Params().Parts)
@@ -77,7 +78,7 @@ func sigKey(idx, numParts int) string {
 }
 
 // ChannelRemoved deletes a channel from the database.
-func (pr *PersistRestorer) ChannelRemoved(ctx context.Context, id map[int]channel.ID) error {
+func (pr *PersistRestorer) ChannelRemoved(ctx context.Context, id map[wallet.BackendID]channel.ID) error {
 	db := pr.channelDB(id).NewBatch()
 	peerdb := sortedkv.NewTable(pr.db, prefix.PeerDB).NewBatch()
 	// All keys a channel has.
@@ -116,7 +117,7 @@ func (pr *PersistRestorer) ChannelRemoved(ctx context.Context, id map[int]channe
 
 // paramsForChan returns the channel parameters for a given channel id from
 // the db.
-func (pr *PersistRestorer) paramsForChan(id map[int]channel.ID) (channel.Params, error) {
+func (pr *PersistRestorer) paramsForChan(id map[wallet.BackendID]channel.ID) (channel.Params, error) {
 	params := channel.Params{}
 	b, err := pr.channelDB(id).GetBytes("params")
 	if err != nil {
@@ -244,7 +245,7 @@ func decodeIdxFromDBKey(key string) (int, error) {
 	return strconv.Atoi(vals[len(vals)-1])
 }
 
-func peerChannelKey(p map[int]wire.Address, ch map[int]channel.ID) (string, error) {
+func peerChannelKey(p map[wallet.BackendID]wire.Address, ch map[wallet.BackendID]channel.ID) (string, error) {
 	var key bytes.Buffer
 	if err := perunio.Encode(&key, wire.AddressDecMap(p)); err != nil {
 		return "", errors.WithMessage(err, "encoding peer address")
@@ -257,6 +258,6 @@ func peerChannelKey(p map[int]wire.Address, ch map[int]channel.ID) (string, erro
 }
 
 // channelDB creates a prefixed database for persisting a channel's data.
-func (pr *PersistRestorer) channelDB(id map[int]channel.ID) sortedkv.Database {
+func (pr *PersistRestorer) channelDB(id map[wallet.BackendID]channel.ID) sortedkv.Database {
 	return sortedkv.NewTable(pr.db, prefix.ChannelDB+channel.IDKey(id)+":")
 }

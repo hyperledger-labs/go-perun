@@ -28,7 +28,7 @@ import (
 type Address ecdsa.PublicKey
 
 // BackendID returns the backend id of the address.
-func (a Address) BackendID() int {
+func (a Address) BackendID() wallet.BackendID {
 	return 0
 }
 

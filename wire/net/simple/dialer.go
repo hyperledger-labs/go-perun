@@ -18,6 +18,7 @@ import (
 	"context"
 	"crypto/tls"
 	"net"
+	"perun.network/go-perun/wallet"
 	"sync"
 	"time"
 
@@ -77,7 +78,7 @@ func (d *Dialer) host(key wire.AddrKey) (string, bool) {
 }
 
 // Dial implements Dialer.Dial().
-func (d *Dialer) Dial(ctx context.Context, addr map[int]wire.Address, ser wire.EnvelopeSerializer) (wirenet.Conn, error) {
+func (d *Dialer) Dial(ctx context.Context, addr map[wallet.BackendID]wire.Address, ser wire.EnvelopeSerializer) (wirenet.Conn, error) {
 	done := make(chan struct{})
 	defer close(done)
 
@@ -107,7 +108,7 @@ func (d *Dialer) Dial(ctx context.Context, addr map[int]wire.Address, ser wire.E
 }
 
 // Register registers a network address for a peer address.
-func (d *Dialer) Register(addr map[int]wire.Address, address string) {
+func (d *Dialer) Register(addr map[wallet.BackendID]wire.Address, address string) {
 	d.mutex.Lock()
 	defer d.mutex.Unlock()
 

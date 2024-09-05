@@ -18,6 +18,7 @@ import (
 	"context"
 	"math/big"
 	"math/rand"
+	"perun.network/go-perun/wallet"
 	"testing"
 
 	chtest "perun.network/go-perun/channel/test"
@@ -55,8 +56,9 @@ func TestPaymentDispute(t *testing.T) {
 
 	cfg := &ctest.MalloryCarolExecConfig{
 		BaseExecConfig: ctest.MakeBaseExecConfig(
-			[2]map[int]wire.Address{setups[mallory].Identity.Address(), setups[carol].Identity.Address()},
+			[2]map[wallet.BackendID]wire.Address{wire.AddressMapfromAccountMap(setups[mallory].Identity), wire.AddressMapfromAccountMap(setups[carol].Identity)},
 			chtest.NewRandomAsset(rng),
+			0,
 			[2]*big.Int{big.NewInt(100), big.NewInt(1)},
 			client.WithoutApp(),
 		),

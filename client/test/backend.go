@@ -191,7 +191,7 @@ func (b *MockBackend) Register(_ context.Context, req channel.AdjudicatorReq, su
 	return nil
 }
 
-func (b *MockBackend) setLatestEvent(ch map[int]channel.ID, e channel.AdjudicatorEvent) {
+func (b *MockBackend) setLatestEvent(ch map[wallet.BackendID]channel.ID, e channel.AdjudicatorEvent) {
 	b.latestEvents[channel.IDKey(ch)] = e
 	// Update subscriptions.
 	if channelSubs, ok := b.eventSubs[channel.IDKey(ch)]; ok {
@@ -346,7 +346,7 @@ func (b *MockBackend) Withdraw(_ context.Context, req channel.AdjudicatorReq, su
 	return nil
 }
 
-func (b *MockBackend) isConcluded(ch map[int]channel.ID) bool {
+func (b *MockBackend) isConcluded(ch map[wallet.BackendID]channel.ID) bool {
 	e, ok := b.latestEvents[channel.IDKey(ch)]
 	if !ok {
 		return false
@@ -442,7 +442,7 @@ func (b *MockBackend) setBalance(p wallet.Address, a channel.Asset, v *big.Int) 
 }
 
 // Subscribe creates an event subscription.
-func (b *MockBackend) Subscribe(ctx context.Context, chID map[int]channel.ID) (channel.AdjudicatorSubscription, error) {
+func (b *MockBackend) Subscribe(ctx context.Context, chID map[wallet.BackendID]channel.ID) (channel.AdjudicatorSubscription, error) {
 	b.log.Infof("SubscribeRegistered: %+v", chID)
 
 	b.mu.Lock()
@@ -460,7 +460,7 @@ func (b *MockBackend) Subscribe(ctx context.Context, chID map[int]channel.ID) (c
 	return sub, nil
 }
 
-func (b *MockBackend) removeSubscription(ch map[int]channel.ID, sub *MockSubscription) {
+func (b *MockBackend) removeSubscription(ch map[wallet.BackendID]channel.ID, sub *MockSubscription) {
 	b.mu.Lock()
 	defer b.mu.Unlock()
 

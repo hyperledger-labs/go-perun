@@ -17,6 +17,7 @@ package test
 import (
 	"context"
 	"math/big"
+	"perun.network/go-perun/wallet"
 	"testing"
 	"time"
 
@@ -45,7 +46,11 @@ const (
 // ReplaceClient replaces the client instance of the Role. Useful for
 // persistence testing.
 func (r *multiClientRole) ReplaceClient() {
-	cl, err := client.New(r.setup.Identity.Address(), r.setup.Bus, r.setup.Funder, r.setup.Adjudicator, r.setup.Wallet, r.setup.Watcher)
+	setupWallet := make(map[wallet.BackendID]wallet.Wallet)
+	for i, w := range r.setup.Wallet {
+		setupWallet[i] = w
+	}
+	cl, err := client.New(wire.AddressMapfromAccountMap(r.setup.Identity), r.setup.Bus, r.setup.Funder, r.setup.Adjudicator, setupWallet, r.setup.Watcher)
 	r.RequireNoErrorf(err, "recreating client")
 	r.setClient(cl)
 }
@@ -214,9 +219,9 @@ func (r *multiClientRole) Errors() <-chan error {
 	return r.errs
 }
 
-type addresses []map[int]wire.Address
+type addresses []map[wallet.BackendID]wire.Address
 
-func (a addresses) contains(b map[int]wire.Address) bool {
+func (a addresses) contains(b map[wallet.BackendID]wire.Address) bool {
 	for _, addr := range a {
 		if channel.EqualWireMaps(addr, b) {
 			return true

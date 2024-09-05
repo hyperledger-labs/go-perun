@@ -17,6 +17,7 @@ package wire
 import (
 	"fmt"
 	"io"
+	"perun.network/go-perun/wallet"
 	"strconv"
 
 	"github.com/pkg/errors"
@@ -35,8 +36,8 @@ type (
 	// An Envelope encapsulates a message with routing information, that is, the
 	// sender and intended recipient.
 	Envelope struct {
-		Sender    map[int]Address // Sender of the message.
-		Recipient map[int]Address // Recipient of the message.
+		Sender    map[wallet.BackendID]Address // Sender of the message.
+		Recipient map[wallet.BackendID]Address // Recipient of the message.
 		// Msg contained in this Envelope. Not embedded so Envelope doesn't implement Msg.
 		Msg Msg
 	}

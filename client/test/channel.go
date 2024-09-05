@@ -19,6 +19,7 @@ import (
 	"errors"
 	"io"
 	"math/big"
+	"perun.network/go-perun/wallet"
 	"time"
 
 	"perun.network/go-perun/channel"
@@ -67,7 +68,8 @@ func (ch *paymentChannel) openSubChannel(
 ) *paymentChannel {
 	initAlloc := channel.Allocation{
 		Assets:   []channel.Asset{cfg.Asset()},
-		Balances: [][]channel.Bal{[]*big.Int{initBals[0], initBals[1]}},
+		Backends: []wallet.BackendID{0},
+		Balances: [][]channel.Bal{{initBals[0], initBals[1]}},
 	}
 
 	prop := ch.r.SubChannelProposal(rng, cfg, ch.Channel, &initAlloc, app)

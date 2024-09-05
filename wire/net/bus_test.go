@@ -15,6 +15,7 @@
 package net_test
 
 import (
+	"perun.network/go-perun/wallet"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -32,10 +33,10 @@ func TestBus(t *testing.T) {
 
 	var hub nettest.ConnHub
 
-	wiretest.GenericBusTest(t, func(acc wire.Account) (wire.Bus, wire.Bus) {
+	wiretest.GenericBusTest(t, func(acc map[wallet.BackendID]wire.Account) (wire.Bus, wire.Bus) {
 		bus := net.NewBus(acc, hub.NewNetDialer(), perunio.Serializer())
 		hub.OnClose(func() { bus.Close() })
-		go bus.Listen(hub.NewNetListener(acc.Address()))
+		go bus.Listen(hub.NewNetListener(wire.AddressMapfromAccountMap(acc)))
 		return bus, bus
 	}, numClients, numMsgs)
 

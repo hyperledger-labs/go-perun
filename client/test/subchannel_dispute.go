@@ -17,6 +17,7 @@ package test
 import (
 	"fmt"
 	"math/big"
+	"perun.network/go-perun/wallet"
 	"testing"
 	"time"
 
@@ -121,7 +122,7 @@ func (r *DisputeSusie) exec(_cfg ExecConfig, ledgerChannel *paymentChannel) {
 type DisputeTim struct {
 	Responder
 	registered chan *channel.RegisteredEvent
-	subCh      map[int]channel.ID
+	subCh      map[wallet.BackendID]channel.ID
 }
 
 // time to wait until a parent channel watcher becomes active.

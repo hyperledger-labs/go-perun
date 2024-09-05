@@ -16,6 +16,7 @@ package test
 
 import (
 	"context"
+	"perun.network/go-perun/wallet"
 	"testing"
 	"time"
 
@@ -38,7 +39,7 @@ const testNoReceiveTimeout = 10 * time.Millisecond
 // can either return the same bus twice, or separately select a bus to subscribe
 // the client to, and a bus the client should use for publishing messages.
 func GenericBusTest(t *testing.T,
-	busAssigner func(wire.Account) (pub wire.Bus, sub wire.Bus),
+	busAssigner func(map[wallet.BackendID]wire.Account) (pub wire.Bus, sub wire.Bus),
 	numClients, numMsgs int,
 ) {
 	t.Helper()
@@ -49,13 +50,13 @@ func GenericBusTest(t *testing.T,
 	type Client struct {
 		r        *wire.Relay
 		pub, sub wire.Bus
-		id       wire.Account
+		id       map[wallet.BackendID]wire.Account
 	}
 
 	clients := make([]Client, numClients)
 	for i := range clients {
 		clients[i].r = wire.NewRelay()
-		clients[i].id = NewRandomAccount(rng)
+		clients[i].id = NewRandomAccountMap(rng)
 		clients[i].pub, clients[i].sub = busAssigner(clients[i].id)
 	}
 
@@ -95,14 +96,14 @@ func GenericBusTest(t *testing.T,
 				}
 				sender, recipient := sender, recipient
 				origEnv := &wire.Envelope{
-					Sender:    clients[sender].id.Address(),
-					Recipient: clients[recipient].id.Address(),
+					Sender:    wire.AddressMapfromAccountMap(clients[sender].id),
+					Recipient: wire.AddressMapfromAccountMap(clients[recipient].id),
 					Msg:       wire.NewPingMsg(),
 				}
 				// Only subscribe to the current sender.
 				recv := wire.NewReceiver()
 				err := clients[recipient].r.Subscribe(recv, func(e *wire.Envelope) bool {
-					return equalMaps(e.Sender, clients[sender].id.Address())
+					return equalMaps(e.Sender, wire.AddressMapfromAccountMap(clients[sender].id))
 				})
 				require.NoError(t, err)
 
@@ -139,7 +140,7 @@ func GenericBusTest(t *testing.T,
 	// publishing.
 	testPublishAndReceive(t, func() {
 		for i := range clients {
-			err := clients[i].sub.SubscribeClient(clients[i].r, clients[i].id.Address())
+			err := clients[i].sub.SubscribeClient(clients[i].r, wire.AddressMapfromAccountMap(clients[i].id))
 			require.NoError(t, err)
 		}
 	})
@@ -150,7 +151,7 @@ func GenericBusTest(t *testing.T,
 	testPublishAndReceive(t, func() {})
 }
 
-func equalMaps(a, b map[int]wire.Address) bool {
+func equalMaps(a, b map[wallet.BackendID]wire.Address) bool {
 	if len(a) != len(b) {
 		return false
 	}

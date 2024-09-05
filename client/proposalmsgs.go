@@ -114,20 +114,20 @@ type (
 	// LedgerChannelProposalMsg is a channel proposal for ledger channels.
 	LedgerChannelProposalMsg struct {
 		BaseChannelProposal
-		Participant map[int]wallet.Address // Proposer's address in the channel.
-		Peers       []map[int]wire.Address // Participants' wire addresses.
+		Participant map[wallet.BackendID]wallet.Address // Proposer's address in the channel.
+		Peers       []map[wallet.BackendID]wire.Address // Participants' wire addresses.
 	}
 
 	// SubChannelProposalMsg is a channel proposal for subchannels.
 	SubChannelProposalMsg struct {
 		BaseChannelProposal
-		Parent map[int]channel.ID
+		Parent map[wallet.BackendID]channel.ID
 	}
 )
 
 // proposalPeers returns the wire addresses of a proposed channel's
 // participants.
-func (c *Client) proposalPeers(p ChannelProposal) (peers []map[int]wire.Address) {
+func (c *Client) proposalPeers(p ChannelProposal) (peers []map[wallet.BackendID]wire.Address) {
 	switch prop := p.(type) {
 	case *LedgerChannelProposalMsg:
 		peers = prop.Peers
@@ -230,7 +230,7 @@ func (p *BaseChannelProposal) Valid() error {
 // Accept constructs an accept message that belongs to a proposal message. It
 // should be used instead of manually constructing an accept message.
 func (p LedgerChannelProposalMsg) Accept(
-	participant map[int]wallet.Address,
+	participant map[wallet.BackendID]wallet.Address,
 	nonceShare ProposalOpts,
 ) *LedgerChannelProposalAccMsg {
 	if !nonceShare.isNonce() {
@@ -259,9 +259,9 @@ func (LedgerChannelProposalMsg) Matches(acc ChannelProposalAccept) bool {
 // For more information, see ProposalOpts.
 func NewLedgerChannelProposal(
 	challengeDuration uint64,
-	participant map[int]wallet.Address,
+	participant map[wallet.BackendID]wallet.Address,
 	initBals *channel.Allocation,
-	peers []map[int]wire.Address,
+	peers []map[wallet.BackendID]wire.Address,
 	opts ...ProposalOpts,
 ) (prop *LedgerChannelProposalMsg, err error) {
 	prop = &LedgerChannelProposalMsg{
@@ -326,7 +326,7 @@ func (p LedgerChannelProposalMsg) Valid() error {
 // NewSubChannelProposal creates a subchannel proposal and applies the
 // supplied options. For more information, see ProposalOpts.
 func NewSubChannelProposal(
-	parent map[int]channel.ID,
+	parent map[wallet.BackendID]channel.ID,
 	challengeDuration uint64,
 	initBals *channel.Allocation,
 	opts ...ProposalOpts,
@@ -404,7 +404,7 @@ type (
 	// each channel instantiation.
 	LedgerChannelProposalAccMsg struct {
 		BaseChannelProposalAcc
-		Participant map[int]wallet.Address // Responder's participant address.
+		Participant map[wallet.BackendID]wallet.Address // Responder's participant address.
 	}
 
 	// SubChannelProposalAccMsg is the accept message type corresponding to sub
@@ -517,27 +517,27 @@ type (
 	// VirtualChannelProposalMsg is a channel proposal for virtual channels.
 	VirtualChannelProposalMsg struct {
 		BaseChannelProposal
-		Proposer  map[int]wallet.Address // Proposer's address in the channel.
-		Peers     []map[int]wire.Address // Participants' wire addresses.
-		Parents   []map[int]channel.ID   // Parent channels for each participant.
-		IndexMaps [][]channel.Index      // Index mapping for each participant in relation to the root channel.
+		Proposer  map[wallet.BackendID]wallet.Address // Proposer's address in the channel.
+		Peers     []map[wallet.BackendID]wire.Address // Participants' wire addresses.
+		Parents   []map[wallet.BackendID]channel.ID   // Parent channels for each participant.
+		IndexMaps [][]channel.Index                   // Index mapping for each participant in relation to the root channel.
 	}
 
 	// VirtualChannelProposalAccMsg is the accept message type corresponding to
 	// virtual channel proposals.
 	VirtualChannelProposalAccMsg struct {
 		BaseChannelProposalAcc
-		Responder map[int]wallet.Address // Responder's participant address.
+		Responder map[wallet.BackendID]wallet.Address // Responder's participant address.
 	}
 )
 
 // NewVirtualChannelProposal creates a virtual channel proposal.
 func NewVirtualChannelProposal(
 	challengeDuration uint64,
-	participant map[int]wallet.Address,
+	participant map[wallet.BackendID]wallet.Address,
 	initBals *channel.Allocation,
-	peers []map[int]wire.Address,
-	parents []map[int]channel.ID,
+	peers []map[wallet.BackendID]wire.Address,
+	parents []map[wallet.BackendID]channel.ID,
 	indexMaps [][]channel.Index,
 	opts ...ProposalOpts,
 ) (prop *VirtualChannelProposalMsg, err error) {
@@ -590,7 +590,7 @@ func (VirtualChannelProposalMsg) Type() wire.Type {
 
 // Accept constructs an accept message that belongs to a proposal message.
 func (p VirtualChannelProposalMsg) Accept(
-	responder map[int]wallet.Address,
+	responder map[wallet.BackendID]wallet.Address,
 	opts ...ProposalOpts,
 ) *VirtualChannelProposalAccMsg {
 	_opts := union(opts...)

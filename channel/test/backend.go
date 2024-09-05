@@ -25,7 +25,7 @@ import (
 	"perun.network/go-perun/wallet"
 )
 
-type addressCreator = func() map[int]wallet.Address
+type addressCreator = func() map[wallet.BackendID]wallet.Address
 
 // Setup provides all objects needed for the generic channel tests.
 type (
@@ -135,7 +135,7 @@ func genericVerifyTest(t *testing.T, s *Setup, opts ...GenericTestOption) {
 
 	// Different address and same state and params
 	for i := 0; i < 10; i++ {
-		ok, err := channel.Verify(s.RandomAddress(), s.State, sig)
+		ok, err := channel.Verify(s.RandomAddress()[0], s.State, sig)
 		assert.NoError(t, err, "Verify should not return an error")
 		assert.False(t, ok, "Verify should return false")
 	}
@@ -168,7 +168,7 @@ func buildModifiedParams(p1, p2 *channel.Params, s *Setup) (ret []channel.Params
 			// Modify Parts[0]
 			{
 				modParams := *p1
-				modParams.Parts = make([]map[int]wallet.Address, len(p1.Parts))
+				modParams.Parts = make([]map[wallet.BackendID]wallet.Address, len(p1.Parts))
 				copy(modParams.Parts, p1.Parts)
 				modParams.Parts[0] = s.RandomAddress()
 				ret = appendModParams(ret, modParams)
@@ -242,6 +242,7 @@ func buildModifiedStates(s1, s2 *channel.State, _opts ...GenericTestOption) (ret
 				{
 					modState := s1.Clone()
 					modState.Assets = s2.Assets
+					modState.Backends = s2.Backends
 					modState = ensureConsistentBalances(modState)
 					ret = append(ret, *modState)
 				}
@@ -249,6 +250,7 @@ func buildModifiedStates(s1, s2 *channel.State, _opts ...GenericTestOption) (ret
 				{
 					modState := s1.Clone()
 					modState.Allocation.Assets[0] = s2.Allocation.Assets[0]
+					modState.Allocation.Backends[0] = s2.Allocation.Backends[0]
 					ret = append(ret, *modState)
 				}
 			}

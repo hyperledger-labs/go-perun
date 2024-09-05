@@ -16,6 +16,7 @@ package client
 
 import (
 	"math/rand"
+	"perun.network/go-perun/wallet"
 	"testing"
 
 	"github.com/pkg/errors"
@@ -51,7 +52,7 @@ func TestClient_validTwoPartyProposal(t *testing.T) {
 	tests := []struct {
 		prop     *LedgerChannelProposalMsg
 		ourIdx   channel.Index
-		peerAddr map[int]wire.Address
+		peerAddr map[wallet.BackendID]wire.Address
 		valid    bool
 	}{
 		{
@@ -97,7 +98,7 @@ func TestChannelProposal_assertValidNumParts(t *testing.T) {
 	rng := pkgtest.Prng(t)
 	c := NewRandomLedgerChannelProposal(rng)
 	require.NoError(c.assertValidNumParts())
-	c.Peers = make([]map[int]wire.Address, channel.MaxNumParts+1)
+	c.Peers = make([]map[wallet.BackendID]wire.Address, channel.MaxNumParts+1)
 	require.Error(c.assertValidNumParts())
 }
 

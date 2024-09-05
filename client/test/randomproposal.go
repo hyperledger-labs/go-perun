@@ -36,7 +36,7 @@ func NewRandomLedgerChannelProposal(rng *rand.Rand, opts ...client.ProposalOpts)
 // NewRandomLedgerChannelProposalBy creates a random channel proposal with the
 // supplied options and proposer. Number of participants is fixed to
 // randomProposalNumParts.
-func NewRandomLedgerChannelProposalBy(rng *rand.Rand, proposer map[int]wallet.Address, opts ...client.ProposalOpts) *client.LedgerChannelProposalMsg {
+func NewRandomLedgerChannelProposalBy(rng *rand.Rand, proposer map[wallet.BackendID]wallet.Address, opts ...client.ProposalOpts) *client.LedgerChannelProposalMsg {
 	prop, err := client.NewLedgerChannelProposal(
 		rng.Uint64(),
 		proposer,

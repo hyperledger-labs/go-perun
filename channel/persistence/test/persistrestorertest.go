@@ -17,6 +17,7 @@ package test
 import (
 	"context"
 	"math/rand"
+	"perun.network/go-perun/wallet"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -32,7 +33,7 @@ import (
 
 // Client is a mock client that can be used to create channels.
 type Client struct {
-	addr map[int]wire.Address
+	addr map[wallet.BackendID]wire.Address
 
 	rng *rand.Rand
 	pr  persistence.PersistRestorer
@@ -55,9 +56,9 @@ func NewClient(ctx context.Context, t *testing.T, rng *rand.Rand, pr persistence
 
 // NewChannel creates a new channel with the supplied peer as the other
 // participant. The client's participant index is randomly chosen.
-func (c *Client) NewChannel(t require.TestingT, p map[int]wire.Address, parent *Channel) *Channel {
+func (c *Client) NewChannel(t require.TestingT, p map[wallet.BackendID]wire.Address, parent *Channel) *Channel {
 	idx := c.rng.Intn(channelNumPeers)
-	peers := make([]map[int]wire.Address, channelNumPeers)
+	peers := make([]map[wallet.BackendID]wire.Address, channelNumPeers)
 	peers[idx] = c.addr
 	peers[idx^1] = p
 
@@ -86,7 +87,7 @@ func GenericPersistRestorerTest(
 ) {
 	t.Helper()
 	t.Run("RestoreChannel error", func(t *testing.T) {
-		var id map[int]channel.ID
+		var id map[wallet.BackendID]channel.ID
 		ch, err := pr.RestoreChannel(context.Background(), id)
 		assert.Error(t, err)
 		assert.Nil(t, ch)

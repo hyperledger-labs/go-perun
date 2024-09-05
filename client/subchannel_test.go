@@ -17,6 +17,7 @@ package client_test
 import (
 	"context"
 	"math/big"
+	"perun.network/go-perun/wallet"
 	"testing"
 
 	"perun.network/go-perun/apps/payment"
@@ -38,8 +39,9 @@ func TestSubChannelHappy(t *testing.T) {
 
 	cfg := ctest.NewSusieTimExecConfig(
 		ctest.MakeBaseExecConfig(
-			[2]map[int]wire.Address{setups[0].Identity.Address(), setups[1].Identity.Address()},
+			[2]map[wallet.BackendID]wire.Address{wire.AddressMapfromAccountMap(setups[0].Identity), wire.AddressMapfromAccountMap(setups[1].Identity)},
 			chtest.NewRandomAsset(rng),
+			0,
 			[2]*big.Int{big.NewInt(100), big.NewInt(100)},
 			client.WithoutApp(),
 		),
@@ -75,8 +77,9 @@ func TestSubChannelDispute(t *testing.T) {
 	}
 
 	baseCfg := ctest.MakeBaseExecConfig(
-		[2]map[int]wire.Address{setups[0].Identity.Address(), setups[1].Identity.Address()},
+		[2]map[wallet.BackendID]wire.Address{wire.AddressMapfromAccountMap(setups[0].Identity), wire.AddressMapfromAccountMap(setups[1].Identity)},
 		chtest.NewRandomAsset(rng),
+		0,
 		[2]*big.Int{big.NewInt(100), big.NewInt(100)},
 		client.WithoutApp(),
 	)

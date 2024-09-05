@@ -15,6 +15,7 @@
 package client
 
 import (
+	"perun.network/go-perun/wallet"
 	"sync"
 
 	"perun.network/go-perun/channel"
@@ -39,7 +40,7 @@ func makeChanRegistry() chanRegistry {
 // If an entry with the same ID already existed, this call does nothing and
 // returns false. Otherwise, it adds the new channel into the registry and
 // returns true.
-func (r *chanRegistry) Put(id map[int]channel.ID, value *Channel) bool {
+func (r *chanRegistry) Put(id map[wallet.BackendID]channel.ID, value *Channel) bool {
 	r.mutex.Lock()
 
 	if _, ok := r.values[channel.IDKey(id)]; ok {
@@ -68,7 +69,7 @@ func (r *chanRegistry) OnNewChannel(handler func(*Channel)) {
 }
 
 // Has checks whether a channel with the requested ID is registered.
-func (r *chanRegistry) Has(id map[int]channel.ID) bool {
+func (r *chanRegistry) Has(id map[wallet.BackendID]channel.ID) bool {
 	r.mutex.RLock()
 	defer r.mutex.RUnlock()
 
@@ -79,7 +80,7 @@ func (r *chanRegistry) Has(id map[int]channel.ID) bool {
 // Channel retrieves a channel from the registry.
 // If the channel exists, returns the channel, and true. Otherwise, returns nil,
 // false.
-func (r *chanRegistry) Channel(id map[int]channel.ID) (*Channel, bool) {
+func (r *chanRegistry) Channel(id map[wallet.BackendID]channel.ID) (*Channel, bool) {
 	r.mutex.RLock()
 	defer r.mutex.RUnlock()
 
@@ -90,7 +91,7 @@ func (r *chanRegistry) Channel(id map[int]channel.ID) (*Channel, bool) {
 // Delete deletes a channel from the registry.
 // If the channel did not exist, does nothing. Returns whether the channel
 // existed.
-func (r *chanRegistry) Delete(id map[int]channel.ID) (deleted bool) {
+func (r *chanRegistry) Delete(id map[wallet.BackendID]channel.ID) (deleted bool) {
 	r.mutex.Lock()
 	defer r.mutex.Unlock()
 

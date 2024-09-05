@@ -19,6 +19,7 @@ import (
 	"errors"
 	"math/big"
 	"math/rand"
+	"perun.network/go-perun/wallet"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -92,7 +93,7 @@ func runFredFridaTest(
 
 	clients := NewClients(t, rng, setups[:])
 	frida, fred := clients[fridaIdx], clients[fredIdx]
-	fridaWireAddr, fredWireAddr := frida.Identity.Address(), fred.Identity.Address()
+	fridaWireAddr, fredWireAddr := wire.AddressMapfromAccountMap(frida.Identity), wire.AddressMapfromAccountMap(fred.Identity)
 	fridaWalletAddr, fredWalletAddr := frida.WalletAddress, fred.WalletAddress
 
 	// Store client balances before running test.
@@ -113,9 +114,9 @@ func runFredFridaTest(
 	)
 
 	// Create the proposal.
-	initAlloc := channel.NewAllocation(numParts, []int{0}, asset)
+	initAlloc := channel.NewAllocation(numParts, []wallet.BackendID{0}, asset)
 	initAlloc.SetAssetBalances(asset, []*big.Int{fridaInitBal, fredInitBal})
-	parts := []map[int]wire.Address{fridaWireAddr, fredWireAddr}
+	parts := []map[wallet.BackendID]wire.Address{fridaWireAddr, fredWireAddr}
 	prop, err := client.NewLedgerChannelProposal(
 		challengeDuration,
 		fridaWalletAddr,

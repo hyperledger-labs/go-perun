@@ -143,8 +143,8 @@ func (a *MultiLedgerAsset) UnmarshalBinary(data []byte) error {
 // MultiLedgerClient represents a test client.
 type MultiLedgerClient struct {
 	*client.Client
-	WireAddress                    map[int]wire.Address
-	WalletAddress                  map[int]wallet.Address
+	WireAddress                    map[wallet.BackendID]wire.Address
+	WalletAddress                  map[wallet.BackendID]wallet.Address
 	Events                         chan channel.AdjudicatorEvent
 	Adjudicator1, Adjudicator2     channel.Adjudicator
 	BalanceReader1, BalanceReader2 BalanceReader
@@ -172,17 +172,13 @@ func setupClient(
 
 	// Setup funder.
 	funder := multi.NewFunder()
-	for _, add := range acc.Address() {
-		funder.RegisterFunder(l1.ID(), l1.NewFunder(add))
-		funder.RegisterFunder(l2.ID(), l2.NewFunder(add))
-	}
+	funder.RegisterFunder(l1.ID(), l1.NewFunder(acc.Address()))
+	funder.RegisterFunder(l2.ID(), l2.NewFunder(acc.Address()))
 
 	// Setup adjudicator.
 	adj := multi.NewAdjudicator()
-	for _, add := range acc.Address() {
-		adj.RegisterAdjudicator(l1.ID(), l1.NewAdjudicator(add))
-		adj.RegisterAdjudicator(l2.ID(), l2.NewAdjudicator(add))
-	}
+	adj.RegisterAdjudicator(l1.ID(), l1.NewAdjudicator(acc.Address()))
+	adj.RegisterAdjudicator(l2.ID(), l2.NewAdjudicator(acc.Address()))
 
 	// Setup watcher.
 	watcher, err := local.NewWatcher(adj)
@@ -193,7 +189,7 @@ func setupClient(
 		bus,
 		funder,
 		adj,
-		w,
+		map[wallet.BackendID]wallet.Wallet{0: w},
 		watcher,
 	)
 	require.NoError(err)
@@ -201,11 +197,11 @@ func setupClient(
 	return MultiLedgerClient{
 		Client:         c,
 		WireAddress:    wireAddr[0],
-		WalletAddress:  acc.Address(),
+		WalletAddress:  map[wallet.BackendID]wallet.Address{0: acc.Address()},
 		Events:         make(chan channel.AdjudicatorEvent),
-		Adjudicator1:   l1.NewAdjudicator(acc.Address()[0]),
-		Adjudicator2:   l2.NewAdjudicator(acc.Address()[0]),
-		BalanceReader1: l1.NewBalanceReader(acc.Address()[0]),
-		BalanceReader2: l2.NewBalanceReader(acc.Address()[0]),
+		Adjudicator1:   l1.NewAdjudicator(acc.Address()),
+		Adjudicator2:   l2.NewAdjudicator(acc.Address()),
+		BalanceReader1: l1.NewBalanceReader(acc.Address()),
+		BalanceReader2: l2.NewBalanceReader(acc.Address()),
 	}
 }

@@ -18,6 +18,7 @@ import (
 	"encoding/binary"
 	"fmt"
 	"io"
+	"perun.network/go-perun/wallet"
 
 	"github.com/pkg/errors"
 	"google.golang.org/protobuf/proto"
@@ -181,7 +182,7 @@ func readEnvelope(r io.Reader) (*Envelope, error) {
 	return &protoEnv, errors.Wrap(proto.Unmarshal(data, &protoEnv), "unmarshalling envelope")
 }
 
-func unmarshalSenderRecipient(protoEnv *Envelope) (map[int]wire.Address, map[int]wire.Address, error) {
+func unmarshalSenderRecipient(protoEnv *Envelope) (map[wallet.BackendID]wire.Address, map[wallet.BackendID]wire.Address, error) {
 	sender, err := ToWireAddr(protoEnv.Sender)
 	if err != nil {
 		return nil, nil, errors.Wrap(err, "unmarshalling sender address")

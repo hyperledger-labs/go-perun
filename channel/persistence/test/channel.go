@@ -31,9 +31,9 @@ import (
 // Channel is a wrapper around a persisted channel and its participants, as well
 // as the associated persister and restorer.
 type Channel struct {
-	accounts []wallet.Account
-	peers    []map[int]wire.Address
-	parent   *map[int]channel.ID
+	accounts []map[wallet.BackendID]wallet.Account
+	peers    []map[wallet.BackendID]wire.Address
+	parent   *map[wallet.BackendID]channel.ID
 	*persistence.StateMachine
 
 	pr  persistence.PersistRestorer
@@ -52,7 +52,7 @@ func NewRandomChannel(
 	t require.TestingT,
 	pr persistence.PersistRestorer,
 	user channel.Index,
-	peers []map[int]wire.Address,
+	peers []map[wallet.BackendID]wire.Address,
 	parent *Channel,
 	rng *rand.Rand,
 ) (c *Channel) {
@@ -61,9 +61,9 @@ func NewRandomChannel(
 	csm, err := channel.NewStateMachine(accs[0], *params)
 	require.NoError(t, err)
 
-	var parentID *map[int]channel.ID
+	var parentID *map[wallet.BackendID]channel.ID
 	if parent != nil {
-		parentID = new(map[int]channel.ID)
+		parentID = new(map[wallet.BackendID]channel.ID)
 		*parentID = parent.ID()
 	}
 
@@ -82,7 +82,7 @@ func NewRandomChannel(
 	return c
 }
 
-func requireEqualPeers(t require.TestingT, expected, actual []map[int]wire.Address) {
+func requireEqualPeers(t require.TestingT, expected, actual []map[wallet.BackendID]wire.Address) {
 	require.Equal(t, len(expected), len(actual))
 	for i, p := range expected {
 		if !EqualWireMaps(p, actual[i]) {
@@ -93,7 +93,7 @@ func requireEqualPeers(t require.TestingT, expected, actual []map[int]wire.Addre
 	}
 }
 
-func EqualWireMaps(a, b map[int]wire.Address) bool {
+func EqualWireMaps(a, b map[wallet.BackendID]wire.Address) bool {
 	if len(a) != len(b) {
 		return false
 	}
@@ -186,7 +186,7 @@ func (c *Channel) SignAll(ctx context.Context, t require.TestingT) {
 	c.AssertPersisted(ctx, t)
 	// remote signers
 	for i := range c.accounts {
-		sig, err := channel.Sign(c.accounts[i], c.StagingState())
+		sig, err := channel.Sign(c.accounts[i][0], c.StagingState())
 		require.NoError(t, err)
 		c.AddSig(ctx, channel.Index(i), sig) //nolint:errcheck
 		c.AssertPersisted(ctx, t)

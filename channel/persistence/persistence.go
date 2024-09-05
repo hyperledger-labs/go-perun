@@ -17,6 +17,7 @@ package persistence
 import (
 	"context"
 	"io"
+	"perun.network/go-perun/wallet"
 
 	"perun.network/go-perun/channel"
 	"perun.network/go-perun/wire"
@@ -35,12 +36,12 @@ type (
 		// state will be empty. The passed peers are the channel network peers,
 		// which should also be persisted. The parent field is the parent
 		// channel's ID, or nil, if it is a ledger channel.
-		ChannelCreated(ctx context.Context, source channel.Source, peers []map[int]wire.Address, parent *map[int]channel.ID) error
+		ChannelCreated(ctx context.Context, source channel.Source, peers []map[wallet.BackendID]wire.Address, parent *map[wallet.BackendID]channel.ID) error
 
 		// ChannelRemoved is called by the client when a channel is removed because
 		// it has been successfully settled and its data is no longer needed. All
 		// data associated with this channel may be discarded.
-		ChannelRemoved(ctx context.Context, id map[int]channel.ID) error
+		ChannelRemoved(ctx context.Context, id map[wallet.BackendID]channel.ID) error
 
 		// Staged is called when a new valid state got set as the new staging
 		// state. It may already contain one valid signature, either by a remote
@@ -72,14 +73,14 @@ type (
 	Restorer interface {
 		// ActivePeers should return a list of all peers with which any channel is
 		// persisted.
-		ActivePeers(context.Context) ([]map[int]wire.Address, error)
+		ActivePeers(context.Context) ([]map[wallet.BackendID]wire.Address, error)
 
 		// RestorePeer should return an iterator over all persisted channels which
 		// the given peer is a part of.
-		RestorePeer(map[int]wire.Address) (ChannelIterator, error)
+		RestorePeer(map[wallet.BackendID]wire.Address) (ChannelIterator, error)
 
 		// RestoreChannel should return the channel with the requested ID.
-		RestoreChannel(context.Context, map[int]channel.ID) (*Channel, error)
+		RestoreChannel(context.Context, map[wallet.BackendID]channel.ID) (*Channel, error)
 	}
 
 	// PersistRestorer is a Persister and Restorer on the same data source and
@@ -125,8 +126,8 @@ type (
 	// sub-channel, also holds the parent channel's ID.
 	Channel struct {
 		chSource
-		PeersV []map[int]wire.Address
-		Parent *map[int]channel.ID
+		PeersV []map[wallet.BackendID]wire.Address
+		Parent *map[wallet.BackendID]channel.ID
 	}
 )
 
@@ -156,7 +157,7 @@ func NewChannel() *Channel {
 
 // FromSource creates a new Channel object from given `channel.Source`, the
 // channel's network peers, and the parent channel ID, if it exists.
-func FromSource(s channel.Source, ps []map[int]wire.Address, parent *map[int]channel.ID) *Channel {
+func FromSource(s channel.Source, ps []map[wallet.BackendID]wire.Address, parent *map[wallet.BackendID]channel.ID) *Channel {
 	return &Channel{
 		chSource{
 			IdxV:       s.Idx(),
@@ -171,7 +172,7 @@ func FromSource(s channel.Source, ps []map[int]wire.Address, parent *map[int]cha
 }
 
 // ID is the channel ID of this source. It is the same as Params().ID().
-func (c *chSource) ID() map[int]channel.ID { return c.ParamsV.ID() }
+func (c *chSource) ID() map[wallet.BackendID]channel.ID { return c.ParamsV.ID() }
 
 // Idx is the own index in the channel.
 func (c *chSource) Idx() channel.Index { return c.IdxV }

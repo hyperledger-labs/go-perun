@@ -21,7 +21,7 @@ import (
 
 // backend is set to the global channel backend. Must not be set directly but
 // through importing the needed backend.
-var backend map[int]Backend
+var backend map[wallet.BackendID]Backend
 
 // Backend is an interface that needs to be implemented for every blockchain.
 // It provides basic functionalities to the framework.
@@ -54,20 +54,20 @@ type Backend interface {
 // through importing the needed backend.
 func SetBackend(b Backend, id int) {
 	if backend == nil {
-		backend = make(map[int]Backend)
+		backend = make(map[wallet.BackendID]Backend)
 	}
-	if backend[id] != nil {
+	if backend[wallet.BackendID(id)] != nil {
 		panic("channel backend already set")
 	}
-	backend[id] = b
+	backend[wallet.BackendID(id)] = b
 }
 
 // CalcID calculates the CalcID.
-func CalcID(p *Params) (map[int]ID, error) {
-	id := make(map[int]ID)
+func CalcID(p *Params) (map[wallet.BackendID]ID, error) {
+	id := make(map[wallet.BackendID]ID)
 	var err error
 	for i := range p.Parts[0] {
-		id[i], err = backend[i].CalcID(p)
+		id[wallet.BackendID(i)], err = backend[wallet.BackendID(i)].CalcID(p)
 		if err != nil {
 			return nil, err
 		}
@@ -93,25 +93,13 @@ func Sign(a wallet.Account, s *State) (wallet.Sig, error) {
 }
 
 // Verify verifies that a signature was a valid signature from addr on a state.
-func Verify(a map[int]wallet.Address, state *State, sig wallet.Sig) (bool, error) {
-	errs := make([]error, len(backend))
-	for i, addr := range a {
-		v, err := backend[i].Verify(addr, state, sig)
-		if v {
-			return true, nil
-		} else {
-			errs = append(errs, err)
-		}
-	}
-	if len(errs) > 0 {
-		return false, errors.Join(errs...)
-	}
-	return false, errors.New("could not validate signature")
+func Verify(a wallet.Address, state *State, sig wallet.Sig) (bool, error) {
+	return backend[a.BackendID()].Verify(a, state, sig)
 }
 
 // NewAsset returns a variable of type Asset, which can be used
 // for unmarshalling an asset from its binary representation.
-func NewAsset(id int) Asset {
+func NewAsset(id wallet.BackendID) Asset {
 	return backend[id].NewAsset()
 }
 

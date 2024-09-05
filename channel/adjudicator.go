@@ -98,7 +98,7 @@ type (
 	// subscription should be closed by calling Close on the subscription after
 	// the channel is closed.
 	EventSubscriber interface {
-		Subscribe(context.Context, map[int]ID) (AdjudicatorSubscription, error)
+		Subscribe(context.Context, map[wallet.BackendID]ID) (AdjudicatorSubscription, error)
 	}
 
 	// An AdjudicatorReq collects all necessary information to make calls to the
@@ -110,7 +110,7 @@ type (
 	// protocol, possibly saving unnecessary double sending of transactions.
 	AdjudicatorReq struct {
 		Params    *Params
-		Acc       wallet.Account
+		Acc       map[wallet.BackendID]wallet.Account
 		Tx        Transaction
 		Idx       Index // Always the own index
 		Secondary bool  // Optimized secondary call protocol
@@ -158,7 +158,7 @@ type (
 	// cause, currently either a Registered or Progressed event.
 	// The type of the event should be checked with a type switch.
 	AdjudicatorEvent interface {
-		ID() map[int]ID
+		ID() map[wallet.BackendID]ID
 		Timeout() Timeout
 		Version() uint64
 	}
@@ -166,9 +166,9 @@ type (
 	// An AdjudicatorEventBase implements the AdjudicatorEvent interface. It can
 	// be embedded to implement an AdjudicatorEvent.
 	AdjudicatorEventBase struct {
-		IDV      map[int]ID // Channel ID
-		TimeoutV Timeout    // Current phase timeout
-		VersionV uint64     // Registered version
+		IDV      map[wallet.BackendID]ID // Channel ID
+		TimeoutV Timeout                 // Current phase timeout
+		VersionV uint64                  // Registered version
 	}
 
 	// ProgressedEvent is the abstract event that signals an on-chain progression.
@@ -213,7 +213,7 @@ func NewProgressReq(ar AdjudicatorReq, newState *State, sig wallet.Sig) *Progres
 }
 
 // NewAdjudicatorEventBase creates a new AdjudicatorEventBase object.
-func NewAdjudicatorEventBase(c map[int]ID, t Timeout, v uint64) *AdjudicatorEventBase {
+func NewAdjudicatorEventBase(c map[wallet.BackendID]ID, t Timeout, v uint64) *AdjudicatorEventBase {
 	return &AdjudicatorEventBase{
 		IDV:      c,
 		TimeoutV: t,
@@ -222,7 +222,7 @@ func NewAdjudicatorEventBase(c map[int]ID, t Timeout, v uint64) *AdjudicatorEven
 }
 
 // ID returns the channel ID.
-func (b AdjudicatorEventBase) ID() map[int]ID { return b.IDV }
+func (b AdjudicatorEventBase) ID() map[wallet.BackendID]ID { return b.IDV }
 
 // Timeout returns the phase timeout.
 func (b AdjudicatorEventBase) Timeout() Timeout { return b.TimeoutV }
@@ -231,7 +231,7 @@ func (b AdjudicatorEventBase) Timeout() Timeout { return b.TimeoutV }
 func (b AdjudicatorEventBase) Version() uint64 { return b.VersionV }
 
 // NewRegisteredEvent creates a new RegisteredEvent.
-func NewRegisteredEvent(id map[int]ID, timeout Timeout, version uint64, state *State, sigs []wallet.Sig) *RegisteredEvent {
+func NewRegisteredEvent(id map[wallet.BackendID]ID, timeout Timeout, version uint64, state *State, sigs []wallet.Sig) *RegisteredEvent {
 	return &RegisteredEvent{
 		AdjudicatorEventBase: AdjudicatorEventBase{
 			IDV:      id,
@@ -244,7 +244,7 @@ func NewRegisteredEvent(id map[int]ID, timeout Timeout, version uint64, state *S
 }
 
 // NewProgressedEvent creates a new ProgressedEvent.
-func NewProgressedEvent(id map[int]ID, timeout Timeout, state *State, idx Index) *ProgressedEvent {
+func NewProgressedEvent(id map[wallet.BackendID]ID, timeout Timeout, state *State, idx Index) *ProgressedEvent {
 	return &ProgressedEvent{
 		AdjudicatorEventBase: AdjudicatorEventBase{
 			IDV:      id,
@@ -257,7 +257,7 @@ func NewProgressedEvent(id map[int]ID, timeout Timeout, state *State, idx Index)
 }
 
 // NewConcludedEvent creates a new ConcludedEvent.
-func NewConcludedEvent(id map[int]ID, timeout Timeout, version uint64) *ConcludedEvent {
+func NewConcludedEvent(id map[wallet.BackendID]ID, timeout Timeout, version uint64) *ConcludedEvent {
 	return &ConcludedEvent{
 		AdjudicatorEventBase: AdjudicatorEventBase{
 			IDV:      id,

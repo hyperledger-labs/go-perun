@@ -22,11 +22,11 @@ import (
 
 // Account is a wire account.
 type Account struct {
-	addr map[int]wire.Address
+	addr wire.Address
 }
 
 // Address returns the account's address.
-func (acc *Account) Address() map[int]wire.Address {
+func (acc *Account) Address() wire.Address {
 	return acc.addr
 }
 
@@ -38,6 +38,6 @@ func (acc *Account) Sign(msg []byte) ([]byte, error) {
 // NewRandomAccount generates a new random account.
 func NewRandomAccount(rng *rand.Rand) *Account {
 	return &Account{
-		addr: map[int]wire.Address{0: NewRandomAddress(rng)},
+		addr: NewRandomAddress(rng),
 	}
 }

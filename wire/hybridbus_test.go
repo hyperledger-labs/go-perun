@@ -15,6 +15,7 @@
 package wire_test
 
 import (
+	"perun.network/go-perun/wallet"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -41,7 +42,7 @@ func TestHybridBus(t *testing.T) {
 	hybridBus := NewHybridBus(buses...)
 
 	i := 0
-	test.GenericBusTest(t, func(Account) (pub Bus, sub Bus) {
+	test.GenericBusTest(t, func(map[wallet.BackendID]Account) (pub Bus, sub Bus) {
 		i++
 		// Split the clients evenly among the sub-buses, and let them publish
 		// over the hybrid bus.
@@ -51,7 +52,7 @@ func TestHybridBus(t *testing.T) {
 
 func TestHybridBus_Single(t *testing.T) {
 	hybridBus := NewHybridBus(NewLocalBus())
-	test.GenericBusTest(t, func(Account) (Bus, Bus) {
+	test.GenericBusTest(t, func(map[wallet.BackendID]Account) (Bus, Bus) {
 		return hybridBus, hybridBus
 	}, 16, 10)
 }
