@@ -135,9 +135,12 @@ func genericVerifyTest(t *testing.T, s *Setup, opts ...GenericTestOption) {
 
 	// Different address and same state and params
 	for i := 0; i < 10; i++ {
-		ok, err := channel.Verify(s.RandomAddress()[0], s.State, sig)
-		assert.NoError(t, err, "Verify should not return an error")
-		assert.False(t, ok, "Verify should return false")
+		add := s.RandomAddress()
+		for _, a := range add {
+			ok, err := channel.Verify(a, s.State, sig)
+			assert.NoError(t, err, "Verify should not return an error")
+			assert.False(t, ok, "Verify should return false")
+		}
 	}
 }
 

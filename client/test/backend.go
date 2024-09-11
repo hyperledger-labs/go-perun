@@ -180,7 +180,7 @@ func (b *MockBackend) Register(_ context.Context, req channel.AdjudicatorReq, su
 		b.setLatestEvent(
 			ch.Params.ID(),
 			channel.NewRegisteredEvent(
-				ch.Params.ID(),
+				ch.Params.ID()[0],
 				&channel.TimeTimeout{Time: timeout},
 				ch.State.Version,
 				ch.State,
@@ -218,7 +218,7 @@ func (b *MockBackend) Progress(_ context.Context, req channel.ProgressReq) error
 	b.setLatestEvent(
 		req.Params.ID(),
 		channel.NewProgressedEvent(
-			req.Params.ID(),
+			req.Params.ID()[0],
 			&channel.TimeTimeout{Time: timeout},
 			req.NewState.Clone(),
 			req.Idx,
@@ -341,7 +341,7 @@ func (b *MockBackend) Withdraw(_ context.Context, req channel.AdjudicatorReq, su
 	}
 
 	if !b.isConcluded(ch) {
-		b.setLatestEvent(ch, channel.NewConcludedEvent(ch, &channel.ElapsedTimeout{}, req.Tx.Version))
+		b.setLatestEvent(ch, channel.NewConcludedEvent(ch[0], &channel.ElapsedTimeout{}, req.Tx.Version))
 	}
 	return nil
 }

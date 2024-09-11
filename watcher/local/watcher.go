@@ -187,7 +187,7 @@ func (w *Watcher) startWatching(
 
 	var statesPubSub *statesPubSub
 	var eventsToClientPubSub *adjudicatorPubSub
-	chInitializer := func() (*ch, error) {
+	chInitializer1 := func() (*ch, error) {
 		eventsFromChainSub, err := w.rs.Subscribe(ctx, id)
 		if err != nil {
 			return nil, errors.WithMessage(err, "subscribing to adjudicator events from blockchain")
@@ -198,7 +198,7 @@ func (w *Watcher) startWatching(
 		return newCh(id, parent, signedState.Params, eventsFromChainSub, eventsToClientPubSub, statesPubSub, multiLedger), nil
 	}
 
-	ch, err := w.registry.addIfSucceeds(id, chInitializer)
+	ch, err := w.registry.addIfSucceeds(id, chInitializer1)
 	if err != nil {
 		return nil, nil, err
 	}

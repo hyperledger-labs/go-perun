@@ -16,9 +16,8 @@ package multi
 
 import (
 	"context"
-	"perun.network/go-perun/wallet"
-
 	"perun.network/go-perun/channel"
+	"perun.network/go-perun/wallet"
 )
 
 // Subscribe creates a new multi-ledger AdjudicatorSubscription.

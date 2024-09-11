@@ -897,7 +897,7 @@ func makeRegisteredEvents(txs ...channel.Transaction) []channel.AdjudicatorEvent
 			State: tx.State,
 			Sigs:  tx.Sigs,
 			AdjudicatorEventBase: channel.AdjudicatorEventBase{
-				IDV:      tx.State.ID,
+				IDV:      tx.State.ID[0],
 				TimeoutV: &channel.ElapsedTimeout{},
 				VersionV: tx.State.Version,
 			},
@@ -913,7 +913,7 @@ func makeProgressedEvents(txs ...channel.Transaction) []channel.AdjudicatorEvent
 			State: tx.State,
 			Idx:   channel.Index(0),
 			AdjudicatorEventBase: channel.AdjudicatorEventBase{
-				IDV:      tx.State.ID,
+				IDV:      tx.State.ID[0],
 				TimeoutV: &channel.ElapsedTimeout{},
 				VersionV: tx.State.Version,
 			},
@@ -927,7 +927,7 @@ func makeConcludedEvents(txs ...channel.Transaction) []channel.AdjudicatorEvent 
 	for i, tx := range txs {
 		events[i] = &channel.ConcludedEvent{
 			AdjudicatorEventBase: channel.AdjudicatorEventBase{
-				IDV:      tx.State.ID,
+				IDV:      tx.State.ID[0],
 				TimeoutV: &channel.ElapsedTimeout{},
 				VersionV: tx.State.Version,
 			},

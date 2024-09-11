@@ -158,7 +158,7 @@ type (
 	// cause, currently either a Registered or Progressed event.
 	// The type of the event should be checked with a type switch.
 	AdjudicatorEvent interface {
-		ID() map[wallet.BackendID]ID
+		ID() ID
 		Timeout() Timeout
 		Version() uint64
 	}
@@ -166,9 +166,9 @@ type (
 	// An AdjudicatorEventBase implements the AdjudicatorEvent interface. It can
 	// be embedded to implement an AdjudicatorEvent.
 	AdjudicatorEventBase struct {
-		IDV      map[wallet.BackendID]ID // Channel ID
-		TimeoutV Timeout                 // Current phase timeout
-		VersionV uint64                  // Registered version
+		IDV      ID      // Channel ID
+		TimeoutV Timeout // Current phase timeout
+		VersionV uint64  // Registered version
 	}
 
 	// ProgressedEvent is the abstract event that signals an on-chain progression.
@@ -213,7 +213,7 @@ func NewProgressReq(ar AdjudicatorReq, newState *State, sig wallet.Sig) *Progres
 }
 
 // NewAdjudicatorEventBase creates a new AdjudicatorEventBase object.
-func NewAdjudicatorEventBase(c map[wallet.BackendID]ID, t Timeout, v uint64) *AdjudicatorEventBase {
+func NewAdjudicatorEventBase(c ID, t Timeout, v uint64) *AdjudicatorEventBase {
 	return &AdjudicatorEventBase{
 		IDV:      c,
 		TimeoutV: t,
@@ -222,7 +222,7 @@ func NewAdjudicatorEventBase(c map[wallet.BackendID]ID, t Timeout, v uint64) *Ad
 }
 
 // ID returns the channel ID.
-func (b AdjudicatorEventBase) ID() map[wallet.BackendID]ID { return b.IDV }
+func (b AdjudicatorEventBase) ID() ID { return b.IDV }
 
 // Timeout returns the phase timeout.
 func (b AdjudicatorEventBase) Timeout() Timeout { return b.TimeoutV }
@@ -231,7 +231,7 @@ func (b AdjudicatorEventBase) Timeout() Timeout { return b.TimeoutV }
 func (b AdjudicatorEventBase) Version() uint64 { return b.VersionV }
 
 // NewRegisteredEvent creates a new RegisteredEvent.
-func NewRegisteredEvent(id map[wallet.BackendID]ID, timeout Timeout, version uint64, state *State, sigs []wallet.Sig) *RegisteredEvent {
+func NewRegisteredEvent(id ID, timeout Timeout, version uint64, state *State, sigs []wallet.Sig) *RegisteredEvent {
 	return &RegisteredEvent{
 		AdjudicatorEventBase: AdjudicatorEventBase{
 			IDV:      id,
@@ -244,7 +244,7 @@ func NewRegisteredEvent(id map[wallet.BackendID]ID, timeout Timeout, version uin
 }
 
 // NewProgressedEvent creates a new ProgressedEvent.
-func NewProgressedEvent(id map[wallet.BackendID]ID, timeout Timeout, state *State, idx Index) *ProgressedEvent {
+func NewProgressedEvent(id ID, timeout Timeout, state *State, idx Index) *ProgressedEvent {
 	return &ProgressedEvent{
 		AdjudicatorEventBase: AdjudicatorEventBase{
 			IDV:      id,
@@ -257,7 +257,7 @@ func NewProgressedEvent(id map[wallet.BackendID]ID, timeout Timeout, state *Stat
 }
 
 // NewConcludedEvent creates a new ConcludedEvent.
-func NewConcludedEvent(id map[wallet.BackendID]ID, timeout Timeout, version uint64) *ConcludedEvent {
+func NewConcludedEvent(id ID, timeout Timeout, version uint64) *ConcludedEvent {
 	return &ConcludedEvent{
 		AdjudicatorEventBase: AdjudicatorEventBase{
 			IDV:      id,
