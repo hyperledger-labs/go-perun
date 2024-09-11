@@ -135,10 +135,14 @@ func NewClients(t *testing.T, rng *rand.Rand, setups []RoleSetup) []*Client {
 		}
 		cl, err := client.New(wire.AddressMapfromAccountMap(setup.Identity), setup.Bus, setup.Funder, setup.Adjudicator, setupWallet, setup.Watcher)
 		assert.NoError(t, err)
+		walletAddress := make(map[wallet.BackendID]wallet.Address)
+		for i, w := range setup.Wallet {
+			walletAddress[i] = w.NewRandomAccount(rng).Address()
+		}
 		clients[i] = &Client{
 			Client:        cl,
 			RoleSetup:     setup,
-			WalletAddress: map[wallet.BackendID]wallet.Address{0: setup.Wallet[0].NewRandomAccount(rng).Address()},
+			WalletAddress: walletAddress,
 		}
 	}
 	return clients
