@@ -418,12 +418,12 @@ func (r *role) LedgerChannelProposal(rng *rand.Rand, cfg ExecConfig) *client.Led
 	}
 
 	peers, asset, bals := cfg.Peers(), cfg.Asset(), cfg.InitBals()
-	alloc := channel.NewAllocation(len(peers), []wallet.BackendID{0}, asset)
+	alloc := channel.NewAllocation(len(peers), []wallet.BackendID{cfg.Backend()}, asset)
 	alloc.SetAssetBalances(asset, bals[:])
 
 	prop, err := client.NewLedgerChannelProposal(
 		r.challengeDuration,
-		map[wallet.BackendID]wallet.Address{0: r.setup.Wallet[0].NewRandomAccount(rng).Address()},
+		map[wallet.BackendID]wallet.Address{cfg.Backend(): r.setup.Wallet[cfg.Backend()].NewRandomAccount(rng).Address()},
 		alloc,
 		peers[:],
 		client.WithNonceFrom(rng),
@@ -476,7 +476,11 @@ func (h *acceptNextPropHandler) HandleProposal(prop client.ChannelProposal, res 
 func (h *acceptNextPropHandler) Next() (*paymentChannel, error) {
 	var prop client.ChannelProposal
 	var res *client.ProposalResponder
-
+	var bID wallet.BackendID
+	for i := range h.r.setup.Identity {
+		bID = i
+		break
+	}
 	select {
 	case pr := <-h.props:
 		prop = pr.prop
@@ -492,8 +496,8 @@ func (h *acceptNextPropHandler) Next() (*paymentChannel, error) {
 	var acc client.ChannelProposalAccept
 	switch p := prop.(type) {
 	case *client.LedgerChannelProposalMsg:
-		part := h.r.setup.Wallet[0].NewRandomAccount(h.rng).Address()
-		acc = p.Accept(map[wallet.BackendID]wallet.Address{0: part}, client.WithNonceFrom(h.rng))
+		part := h.r.setup.Wallet[bID].NewRandomAccount(h.rng).Address()
+		acc = p.Accept(map[wallet.BackendID]wallet.Address{bID: part}, client.WithNonceFrom(h.rng))
 		h.r.log.Debugf("Accepting ledger channel proposal with participant: %v", part)
 
 	case *client.SubChannelProposalMsg:

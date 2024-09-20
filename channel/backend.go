@@ -67,7 +67,7 @@ func CalcID(p *Params) (map[wallet.BackendID]ID, error) {
 	id := make(map[wallet.BackendID]ID)
 	var err error
 	for i := range p.Parts[0] {
-		id[wallet.BackendID(i)], err = backend[wallet.BackendID(i)].CalcID(p)
+		id[i], err = backend[i].CalcID(p)
 		if err != nil {
 			return nil, err
 		}

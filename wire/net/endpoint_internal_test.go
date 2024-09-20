@@ -99,7 +99,7 @@ type client struct {
 // makeClient creates a simulated test client.
 func makeClient(conn Conn, rng *rand.Rand, dialer Dialer) *client {
 	receiver := wire.NewReceiver()
-	registry := NewEndpointRegistry(wiretest.NewRandomAccountMap(rng), func(map[wallet.BackendID]wire.Address) wire.Consumer {
+	registry := NewEndpointRegistry(wiretest.NewRandomAccountMap(rng, 0), func(map[wallet.BackendID]wire.Address) wire.Consumer {
 		return receiver
 	}, dialer, perunio.Serializer())
 

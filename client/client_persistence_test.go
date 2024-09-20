@@ -39,7 +39,7 @@ func TestPersistencePetraRobert(t *testing.T) {
 
 func NewSetupsPersistence(t *testing.T, rng *rand.Rand, names []string) []ctest.RoleSetup {
 	t.Helper()
-	setups := NewSetups(rng, names)
+	setups := NewSetups(rng, names, 0)
 	for i := range names {
 		setups[i].PR = chprtest.NewPersistRestorer(t)
 	}

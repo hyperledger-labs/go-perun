@@ -56,7 +56,7 @@ func GenericBusTest(t *testing.T,
 	clients := make([]Client, numClients)
 	for i := range clients {
 		clients[i].r = wire.NewRelay()
-		clients[i].id = NewRandomAccountMap(rng)
+		clients[i].id = NewRandomAccountMap(rng, 0)
 		clients[i].pub, clients[i].sub = busAssigner(clients[i].id)
 	}
 

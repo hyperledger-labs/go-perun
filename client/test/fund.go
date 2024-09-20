@@ -112,9 +112,13 @@ func runFredFridaTest(
 		AlwaysAcceptChannelHandler(ctx, fredWalletAddr, chsFred, errsFred),
 		AlwaysRejectUpdateHandler(ctx, errsFred),
 	)
-
+	var bID wallet.BackendID
+	for i := range fridaWalletAddr {
+		bID = i
+		break
+	}
 	// Create the proposal.
-	initAlloc := channel.NewAllocation(numParts, []wallet.BackendID{0}, asset)
+	initAlloc := channel.NewAllocation(numParts, []wallet.BackendID{bID}, asset)
 	initAlloc.SetAssetBalances(asset, []*big.Int{fridaInitBal, fredInitBal})
 	parts := []map[wallet.BackendID]wire.Address{fridaWireAddr, fredWireAddr}
 	prop, err := client.NewLedgerChannelProposal(

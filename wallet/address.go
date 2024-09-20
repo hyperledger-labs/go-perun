@@ -49,6 +49,10 @@ type Address interface {
 	BackendID() BackendID
 }
 
+func (a *BackendID) Equal(b BackendID) bool {
+	return *a == b
+}
+
 // IndexOfAddr returns the index of the given address in the address slice,
 // or -1 if it is not part of the slice.
 func IndexOfAddr(addrs []map[BackendID]Address, addr Address) int {

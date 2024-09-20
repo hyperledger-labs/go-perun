@@ -292,6 +292,11 @@ func (c *Client) validateVirtualChannelFundingProposal(
 		return errors.WithMessage(err, "assets do not match")
 	}
 
+	// Assert equal backends.
+	if err := channel.AssertBackendsEqual(ch.state().Backends, prop.Initial.State.Backends); err != nil {
+		return errors.WithMessage(err, "backends do not match")
+	}
+
 	// Assert sufficient funds in parent channel.
 	virtual := transformBalances(prop.Initial.State.Balances, ch.state().NumParts(), subAlloc.IndexMap)
 	if err := ch.state().Balances.AssertGreaterOrEqual(virtual); err != nil {

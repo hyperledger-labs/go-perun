@@ -44,8 +44,8 @@ func TestEndpointRegistry_Get_Pair(t *testing.T) {
 	assert, require := assert.New(t), require.New(t)
 	rng := test.Prng(t)
 	var hub nettest.ConnHub
-	dialerID := wiretest.NewRandomAccountMap(rng)
-	listenerID := wiretest.NewRandomAccountMap(rng)
+	dialerID := wiretest.NewRandomAccountMap(rng, 0)
+	listenerID := wiretest.NewRandomAccountMap(rng, 0)
 	dialerReg := net.NewEndpointRegistry(dialerID, nilConsumer, hub.NewNetDialer(), perunio.Serializer())
 	listenerReg := net.NewEndpointRegistry(listenerID, nilConsumer, nil, perunio.Serializer())
 	listener := hub.NewNetListener(wire.AddressMapfromAccountMap(listenerID))
@@ -84,8 +84,8 @@ func TestEndpointRegistry_Get_Multiple(t *testing.T) {
 	assert := assert.New(t)
 	rng := test.Prng(t)
 	var hub nettest.ConnHub
-	dialerID := wiretest.NewRandomAccountMap(rng)
-	listenerID := wiretest.NewRandomAccountMap(rng)
+	dialerID := wiretest.NewRandomAccountMap(rng, 0)
+	listenerID := wiretest.NewRandomAccountMap(rng, 0)
 	dialer := hub.NewNetDialer()
 	logPeer := func(addr map[wallet.BackendID]wire.Address) wire.Consumer {
 		t.Logf("subscribing %s\n", wire.Keys(addr))

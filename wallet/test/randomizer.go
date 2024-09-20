@@ -117,9 +117,9 @@ func NewRandomAccountMapSlice(rng *rand.Rand, b wallet.BackendID, n int) []map[w
 
 // NewRandomAccountMap returns a slice of new random accounts
 // by calling NewRandomAccount.
-func NewRandomAccountMap(rng *rand.Rand) map[wallet.BackendID]wallet.Account {
+func NewRandomAccountMap(rng *rand.Rand, id wallet.BackendID) map[wallet.BackendID]wallet.Account {
 	accs := make(map[wallet.BackendID]wallet.Account)
-	accs[0] = NewRandomAccount(rng)
+	accs[id] = NewRandomAccount(rng)
 	return accs
 }
 

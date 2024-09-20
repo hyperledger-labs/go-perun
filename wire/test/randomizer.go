@@ -54,8 +54,8 @@ func NewRandomAccount(rng *rand.Rand) wire.Account {
 }
 
 // NewRandomAccountMap returns a new random account.
-func NewRandomAccountMap(rng *rand.Rand) map[wallet.BackendID]wire.Account {
-	return map[wallet.BackendID]wire.Account{0: newRandomAccount(rng)}
+func NewRandomAccountMap(rng *rand.Rand, bID wallet.BackendID) map[wallet.BackendID]wire.Account {
+	return map[wallet.BackendID]wire.Account{bID: newRandomAccount(rng)}
 }
 
 // NewRandomAddresses returns a slice of random peer addresses.

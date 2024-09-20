@@ -146,7 +146,7 @@ func FromIDKey(k string) IDMap {
 			log.Panicf("could not decode map key in FromIDKey: " + err.Error())
 		}
 		id := ID{}
-		if err := perunio.Decode(buff, id); err != nil {
+		if err := perunio.Decode(buff, &id); err != nil {
 			log.Panicf("could not decode map[int]ID in FromIDKey: " + err.Error())
 		}
 		a[wallet.BackendID(key)] = id

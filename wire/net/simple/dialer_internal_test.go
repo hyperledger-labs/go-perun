@@ -78,7 +78,7 @@ func TestDialer_Dial(t *testing.T) {
 	timeout := 100 * time.Millisecond
 	rng := test.Prng(t)
 	lhost := "127.0.0.1:7357"
-	laddr := wire.AddressMapfromAccountMap(wiretest.NewRandomAccountMap(rng))
+	laddr := wire.AddressMapfromAccountMap(wiretest.NewRandomAccountMap(rng, 0))
 
 	commonName := "127.0.0.1"
 	sans := []string{"127.0.0.1", "localhost"}
@@ -92,7 +92,7 @@ func TestDialer_Dial(t *testing.T) {
 	ser := perunio.Serializer()
 	d := NewTCPDialer(timeout, dConfig)
 	d.Register(laddr, lhost)
-	daddr := wire.AddressMapfromAccountMap(wiretest.NewRandomAccountMap(rng))
+	daddr := wire.AddressMapfromAccountMap(wiretest.NewRandomAccountMap(rng, 0))
 	defer d.Close()
 
 	t.Run("happy", func(t *testing.T) {

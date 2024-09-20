@@ -70,7 +70,7 @@ func makeVirtualChannelSetup(rng *rand.Rand) ctest.VirtualChannelSetup {
 
 func createVirtualChannelClients(rng *rand.Rand) [3]ctest.RoleSetup {
 	var setupsArray [3]ctest.RoleSetup
-	setups := NewSetups(rng, []string{"Alice", "Bob", "Ingrid"})
+	setups := NewSetups(rng, []string{"Alice", "Bob", "Ingrid"}, 0)
 	copy(setupsArray[:], setups)
 	return setupsArray
 }

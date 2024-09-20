@@ -65,10 +65,11 @@ func (ch *paymentChannel) openSubChannel(
 	cfg ExecConfig,
 	initBals []*big.Int,
 	app client.ProposalOpts,
+	bID wallet.BackendID,
 ) *paymentChannel {
 	initAlloc := channel.Allocation{
 		Assets:   []channel.Asset{cfg.Asset()},
-		Backends: []wallet.BackendID{0},
+		Backends: []wallet.BackendID{bID},
 		Balances: [][]channel.Bal{{initBals[0], initBals[1]}},
 	}
 

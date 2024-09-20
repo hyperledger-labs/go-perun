@@ -31,7 +31,7 @@ import (
 func TestSubChannelHappy(t *testing.T) {
 	rng := test.Prng(t)
 
-	setups := NewSetups(rng, []string{"Susie", "Tim"})
+	setups := NewSetups(rng, []string{"Susie", "Tim"}, 0)
 	roles := [2]ctest.Executer{
 		ctest.NewSusie(t, setups[0]),
 		ctest.NewTim(t, setups[1]),
@@ -70,7 +70,7 @@ func TestSubChannelHappy(t *testing.T) {
 func TestSubChannelDispute(t *testing.T) {
 	rng := test.Prng(t)
 
-	setups := NewSetups(rng, []string{"DisputeSusie", "DisputeTim"})
+	setups := NewSetups(rng, []string{"DisputeSusie", "DisputeTim"}, 0)
 	roles := [2]ctest.Executer{
 		ctest.NewDisputeSusie(t, setups[0]),
 		ctest.NewDisputeTim(t, setups[1]),

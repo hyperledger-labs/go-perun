@@ -468,6 +468,10 @@ func (c *Client) validSubChannelProposal(proposal *SubChannelProposalMsg) error 
 		return errors.WithMessage(err, "parent channel and sub-channel assets do not match")
 	}
 
+	if err := channel.AssertBackendsEqual(parentState.Backends, base.InitBals.Backends); err != nil {
+		return errors.New("parent channel and sub-channel backends do not match")
+	}
+
 	if err := parentState.Balances.AssertGreaterOrEqual(base.InitBals.Balances); err != nil {
 		return errors.WithMessage(err, "insufficient funds")
 	}
@@ -491,6 +495,10 @@ func (c *Client) validVirtualChannelProposal(prop *VirtualChannelProposalMsg, ou
 
 	if err := channel.AssertAssetsEqual(parentState.Assets, prop.InitBals.Assets); err != nil {
 		return errors.WithMessage(err, "unequal assets")
+	}
+
+	if err := channel.AssertBackendsEqual(parentState.Backends, prop.InitBals.Backends); err != nil {
+		return errors.New("unequal backends")
 	}
 
 	if !prop.InitBals.Balances.Equal(prop.FundingAgreement) {

@@ -31,7 +31,7 @@ import (
 func TestProgression(t *testing.T) {
 	rng := pkgtest.Prng(t)
 
-	setups := NewSetups(rng, []string{"Paul", "Paula"})
+	setups := NewSetups(rng, []string{"Paul", "Paula"}, 0)
 	roles := [2]clienttest.Executer{
 		clienttest.NewPaul(t, setups[0]),
 		clienttest.NewPaula(t, setups[1]),

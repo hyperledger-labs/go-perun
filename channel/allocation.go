@@ -332,7 +332,7 @@ func (a Allocation) Encode(w io.Writer) error {
 	// encode assets
 	for i, asset := range a.Assets {
 		if err := perunio.Encode(w, uint32(a.Backends[i])); err != nil {
-			return errors.WithMessagef(err, "encoding asset %d", i)
+			return errors.WithMessagef(err, "encoding backends %d", i)
 		}
 		if err := perunio.Encode(w, asset); err != nil {
 			return errors.WithMessagef(err, "encoding asset %d", i)
@@ -596,6 +596,12 @@ func (a *Allocation) Equal(b *Allocation) error {
 	if a == b {
 		return nil
 	}
+
+	// Compare Backends
+	if err := AssertBackendsEqual(a.Backends, b.Backends); err != nil {
+		return errors.WithMessage(err, "comparing backends")
+	}
+
 	// Compare Assets
 	if err := AssertAssetsEqual(a.Assets, b.Assets); err != nil {
 		return errors.WithMessage(err, "comparing assets")
@@ -618,6 +624,21 @@ func AssertAssetsEqual(a []Asset, b []Asset) error {
 
 	for i, asset := range a {
 		if !asset.Equal(b[i]) {
+			return errors.Errorf("value mismatch at index %d", i)
+		}
+	}
+
+	return nil
+}
+
+// AssertAssetsEqual returns an error if the given assets are not equal.
+func AssertBackendsEqual(a []wallet.BackendID, b []wallet.BackendID) error {
+	if len(a) != len(b) {
+		return errors.New("length mismatch")
+	}
+
+	for i, bID := range a {
+		if !bID.Equal(b[i]) {
 			return errors.Errorf("value mismatch at index %d", i)
 		}
 	}

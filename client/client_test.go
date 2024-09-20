@@ -94,7 +94,7 @@ func TestChannelRejection(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
 	defer cancel()
 
-	roles := NewSetups(rng, []string{"Alice", "Bob"})
+	roles := NewSetups(rng, []string{"Alice", "Bob"}, 0)
 	asset := chtest.NewRandomAsset(rng)
 	clients := ctest.NewClients(t, rng, roles)
 	require := require.New(t)
@@ -113,7 +113,12 @@ func TestChannelRejection(t *testing.T) {
 
 	// Create channel proposal.
 	parts := []map[wallet.BackendID]wire.Address{wire.AddressMapfromAccountMap(alice.Identity), wire.AddressMapfromAccountMap(bob.Identity)}
-	initAlloc := channel.NewAllocation(len(parts), []wallet.BackendID{0}, asset)
+	var bID wallet.BackendID
+	for i := range parts[0] {
+		bID = i
+		break
+	}
+	initAlloc := channel.NewAllocation(len(parts), []wallet.BackendID{bID}, asset)
 	prop, err := client.NewLedgerChannelProposal(
 		challengeDuration,
 		alice.WalletAddress,

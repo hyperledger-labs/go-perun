@@ -59,7 +59,7 @@ func (r *DisputeSusie) exec(_cfg ExecConfig, ledgerChannel *paymentChannel) {
 	r.waitStage()
 
 	// Stage 2 - Open sub-channel.
-	subChannel := ledgerChannel.openSubChannel(rng, cfg, cfg.SubChannelFunds[:], client.WithoutApp())
+	subChannel := ledgerChannel.openSubChannel(rng, cfg, cfg.SubChannelFunds[:], client.WithoutApp(), _cfg.Backend())
 	subReq0 := client.NewTestChannel(subChannel.Channel).AdjudicatorReq() // Store AdjudicatorReq for version 0
 	r.waitStage()
 

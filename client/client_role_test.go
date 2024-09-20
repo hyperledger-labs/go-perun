@@ -38,7 +38,7 @@ const (
 	twoPartyTestTimeout  = 20 * time.Second
 )
 
-func NewSetups(rng *rand.Rand, names []string) []ctest.RoleSetup {
+func NewSetups(rng *rand.Rand, names []string, bID wallet.BackendID) []ctest.RoleSetup {
 	var (
 		bus     = wiretest.NewSerializingLocalBus()
 		n       = len(names)
@@ -51,11 +51,11 @@ func NewSetups(rng *rand.Rand, names []string) []ctest.RoleSetup {
 		if err != nil {
 			panic("Error initializing watcher: " + err.Error())
 		}
-		w := map[wallet.BackendID]wtest.Wallet{0: wtest.NewWallet()}
+		w := map[wallet.BackendID]wtest.Wallet{bID: wtest.NewWallet()}
 		acc := w[0].NewRandomAccount(rng)
 		setup[i] = ctest.RoleSetup{
 			Name:              names[i],
-			Identity:          wiretest.NewRandomAccountMap(rng),
+			Identity:          wiretest.NewRandomAccountMap(rng, bID),
 			Bus:               bus,
 			Funder:            backend.NewFunder(acc.Address()),
 			Adjudicator:       backend.NewAdjudicator(acc.Address()),
