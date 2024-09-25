@@ -131,8 +131,10 @@ const channelWatcherWait = 100 * time.Millisecond
 // HandleAdjudicatorEvent is the callback for adjudicator event handling.
 func (r *DisputeTim) HandleAdjudicatorEvent(e channel.AdjudicatorEvent) {
 	r.log.Infof("HandleAdjudicatorEvent: channelID = %x, version = %v, type = %T", e.ID(), e.Version(), e)
-	if e, ok := e.(*channel.RegisteredEvent); ok && e.ID() == r.subCh[0] {
-		r.registered <- e
+	for _, id := range r.subCh {
+		if e, ok := e.(*channel.RegisteredEvent); ok && e.ID() == id {
+			r.registered <- e
+		}
 	}
 }
 
