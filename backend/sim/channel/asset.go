@@ -65,3 +65,8 @@ func (a Asset) Equal(b channel.Asset) bool {
 	}
 	return a.ID == simAsset.ID
 }
+
+// Address returns the address of the asset.
+func (a Asset) Address() string {
+	return fmt.Sprintf("Asset(%d)", a.ID)
+}

@@ -101,6 +101,8 @@ type (
 		encoding.BinaryUnmarshaler
 		// Equal returns true iff this asset is equal to the given asset.
 		Equal(Asset) bool
+		// Address returns the address in string representation.
+		Address() string
 	}
 )
 

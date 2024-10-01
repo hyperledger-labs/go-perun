@@ -118,6 +118,11 @@ func (a *MultiLedgerAsset) Equal(b channel.Asset) bool {
 	return a.id.LedgerId.MapKey() == bm.id.LedgerId.MapKey() && a.asset.Equal(bm.asset) && a.id.BackendID == bm.id.BackendID
 }
 
+// Address returns the asset's address.
+func (a *MultiLedgerAsset) Address() string {
+	return a.asset.Address()
+}
+
 // LedgerID returns the asset's ledger ID.
 func (a *MultiLedgerAsset) LedgerID() multi.AssetID {
 	return a.id
