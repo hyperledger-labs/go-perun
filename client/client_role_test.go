@@ -51,7 +51,7 @@ func NewSetups(rng *rand.Rand, names []string, bID wallet.BackendID) []ctest.Rol
 		if err != nil {
 			panic("Error initializing watcher: " + err.Error())
 		}
-		w := map[wallet.BackendID]wtest.Wallet{bID: wtest.NewWallet()}
+		w := map[wallet.BackendID]wtest.Wallet{bID: wtest.NewWallet(bID)}
 		acc := w[0].NewRandomAccount(rng)
 		setup[i] = ctest.RoleSetup{
 			Name:              names[i],
@@ -86,7 +86,7 @@ func runAliceBobTest(ctx context.Context, t *testing.T, setup func(*rand.Rand) (
 		cfg := &ctest.AliceBobExecConfig{
 			BaseExecConfig: ctest.MakeBaseExecConfig(
 				[2]map[wallet.BackendID]wire.Address{wire.AddressMapfromAccountMap(setups[0].Identity), wire.AddressMapfromAccountMap(setups[1].Identity)},
-				chtest.NewRandomAsset(rng),
+				chtest.NewRandomAsset(rng, 0),
 				0,
 				[2]*big.Int{big.NewInt(100), big.NewInt(100)},
 				app,

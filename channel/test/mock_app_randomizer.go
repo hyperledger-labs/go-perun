@@ -16,6 +16,7 @@ package test
 
 import (
 	"math/rand"
+	"perun.network/go-perun/wallet"
 
 	"github.com/google/uuid"
 	"perun.network/go-perun/channel"
@@ -32,8 +33,8 @@ func NewMockAppRandomizer() *MockAppRandomizer {
 }
 
 // NewRandomApp creates a new MockApp with a random address.
-func (MockAppRandomizer) NewRandomApp(rng *rand.Rand) channel.App {
-	return channel.NewMockApp(NewRandomAppID(rng))
+func (MockAppRandomizer) NewRandomApp(rng *rand.Rand, bID wallet.BackendID) channel.App {
+	return channel.NewMockApp(NewRandomAppID(rng, bID))
 }
 
 // NewRandomData creates a new MockOp with a random operation.

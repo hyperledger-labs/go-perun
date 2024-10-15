@@ -233,6 +233,7 @@ func (p LedgerChannelProposalMsg) Accept(
 	participant map[wallet.BackendID]wallet.Address,
 	nonceShare ProposalOpts,
 ) *LedgerChannelProposalAccMsg {
+	log.Println("LedgerChannelProposalMsg.Accept")
 	if !nonceShare.isNonce() {
 		log.WithField("proposal", p.ProposalID).
 			Panic("LedgerChannelProposal.Accept: nonceShare has no configured nonce")

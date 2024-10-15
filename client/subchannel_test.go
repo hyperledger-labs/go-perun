@@ -40,7 +40,7 @@ func TestSubChannelHappy(t *testing.T) {
 	cfg := ctest.NewSusieTimExecConfig(
 		ctest.MakeBaseExecConfig(
 			[2]map[wallet.BackendID]wire.Address{wire.AddressMapfromAccountMap(setups[0].Identity), wire.AddressMapfromAccountMap(setups[1].Identity)},
-			chtest.NewRandomAsset(rng),
+			chtest.NewRandomAsset(rng, 0),
 			0,
 			[2]*big.Int{big.NewInt(100), big.NewInt(100)},
 			client.WithoutApp(),
@@ -78,7 +78,7 @@ func TestSubChannelDispute(t *testing.T) {
 
 	baseCfg := ctest.MakeBaseExecConfig(
 		[2]map[wallet.BackendID]wire.Address{wire.AddressMapfromAccountMap(setups[0].Identity), wire.AddressMapfromAccountMap(setups[1].Identity)},
-		chtest.NewRandomAsset(rng),
+		chtest.NewRandomAsset(rng, 0),
 		0,
 		[2]*big.Int{big.NewInt(100), big.NewInt(100)},
 		client.WithoutApp(),

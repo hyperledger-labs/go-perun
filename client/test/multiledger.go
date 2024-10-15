@@ -59,12 +59,12 @@ func SetupMultiLedgerTest(t *testing.T) MultiLedgerSetup {
 	bus := wire.NewLocalBus()
 
 	// Setup clients.
-	c1 := setupClient(t, rng, l1, l2, bus)
-	c2 := setupClient(t, rng, l1, l2, bus)
+	c1 := setupClient(t, rng, l1, l2, bus, 0)
+	c2 := setupClient(t, rng, l1, l2, bus, 0)
 
 	// Define assets.
-	a1 := NewMultiLedgerAsset(l1.ID(), chtest.NewRandomAsset(rng))
-	a2 := NewMultiLedgerAsset(l2.ID(), chtest.NewRandomAsset(rng))
+	a1 := NewMultiLedgerAsset(l1.ID(), chtest.NewRandomAsset(rng, 0))
+	a2 := NewMultiLedgerAsset(l2.ID(), chtest.NewRandomAsset(rng, 0))
 
 	return MultiLedgerSetup{
 		Client1: c1,
@@ -115,7 +115,7 @@ func (a *MultiLedgerAsset) Equal(b channel.Asset) bool {
 		return false
 	}
 
-	return a.id.LedgerId.MapKey() == bm.id.LedgerId.MapKey() && a.asset.Equal(bm.asset) && a.id.BackendID == bm.id.BackendID
+	return a.id.LedgerId().MapKey() == bm.id.LedgerId().MapKey() && a.asset.Equal(bm.asset) && a.id.BackendID() == bm.id.BackendID()
 }
 
 // Address returns the asset's address.
@@ -131,7 +131,7 @@ func (a *MultiLedgerAsset) LedgerID() multi.AssetID {
 // MarshalBinary encodes the asset to its byte representation.
 func (a *MultiLedgerAsset) MarshalBinary() ([]byte, error) {
 	var buf bytes.Buffer
-	err := perunio.Encode(&buf, string(a.id.LedgerId.MapKey()), a.id.BackendID, a.asset)
+	err := perunio.Encode(&buf, string(a.id.LedgerId().MapKey()), a.id.BackendID(), a.asset)
 	if err != nil {
 		return nil, err
 	}
@@ -142,7 +142,7 @@ func (a *MultiLedgerAsset) MarshalBinary() ([]byte, error) {
 // UnmarshalBinary decodes the asset from its byte representation.
 func (a *MultiLedgerAsset) UnmarshalBinary(data []byte) error {
 	buf := bytes.NewBuffer(data)
-	return perunio.Decode(buf, string(a.id.LedgerId.MapKey()), a.id.BackendID, a.asset)
+	return perunio.Decode(buf, string(a.id.LedgerId().MapKey()), a.id.BackendID(), a.asset)
 }
 
 // MultiLedgerClient represents a test client.
@@ -164,6 +164,7 @@ func (c MultiLedgerClient) HandleAdjudicatorEvent(e channel.AdjudicatorEvent) {
 func setupClient(
 	t *testing.T, rng *rand.Rand,
 	l1, l2 *MockBackend, bus wire.Bus,
+	bID wallet.BackendID,
 ) MultiLedgerClient {
 	t.Helper()
 	require := require.New(t)
@@ -172,7 +173,7 @@ func setupClient(
 	wireAddr := wiretest.NewRandomAddressesMap(rng, 1)
 
 	// Setup wallet and account.
-	w := wtest.NewWallet()
+	w := wtest.NewWallet(bID)
 	acc := w.NewRandomAccount(rng)
 
 	// Setup funder.

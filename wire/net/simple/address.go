@@ -95,6 +95,16 @@ func (a *Address) UnmarshalBinary(data []byte) error {
 	return nil
 }
 
+// String returns the string representation of the address.
+func (a *Address) String() string {
+	return a.Name
+}
+
+// Backend returns the backend ID of the address.
+func (a *Address) Backend() wallet.BackendID {
+	return 0
+}
+
 // encodePublicKey encodes the public key into the buffer.
 func encodePublicKey(buf *bytes.Buffer, key *rsa.PublicKey) error {
 	// Encode modulus length and modulus

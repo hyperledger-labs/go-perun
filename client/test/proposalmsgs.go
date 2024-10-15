@@ -67,7 +67,7 @@ func channelProposalAccSerializationTest(t *testing.T, serializerTest func(t *te
 	t.Run("ledger channel", func(t *testing.T) {
 		for i := 0; i < 16; i++ {
 			proposal := NewRandomLedgerChannelProposal(rng)
-			m := proposal.Accept(wallettest.NewRandomAddresses(rng), client.WithNonceFrom(rng))
+			m := proposal.Accept(wallettest.NewRandomAddresses(rng, 0), client.WithNonceFrom(rng))
 			serializerTest(t, m)
 		}
 	})
@@ -85,7 +85,7 @@ func channelProposalAccSerializationTest(t *testing.T, serializerTest func(t *te
 			var err error
 			proposal, err := NewRandomVirtualChannelProposal(rng)
 			require.NoError(t, err)
-			m := proposal.Accept(wallettest.NewRandomAddresses(rng))
+			m := proposal.Accept(wallettest.NewRandomAddresses(rng, 0))
 			serializerTest(t, m)
 		}
 	})

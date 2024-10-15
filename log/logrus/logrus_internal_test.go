@@ -49,7 +49,7 @@ func testLogrusInfo(t *testing.T) {
 
 func testLogrusStringer(t *testing.T) {
 	rng := pkgtest.Prng(t)
-	addr := wtest.NewRandomAddress(rng)
+	addr := wtest.NewRandomAddress(rng, 0)
 	var data [32]byte
 	rng.Read(data[:])
 	logger, hook := test.NewNullLogger()

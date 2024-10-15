@@ -42,6 +42,11 @@ type (
 		id           multi.AssetID
 	}
 
+	AssetID struct {
+		backendID uint32
+		ledgerID  LedgerID
+	}
+
 	rng interface {
 		Intn(n int) int
 	}
@@ -54,6 +59,14 @@ type (
 	// LedgerID is the type of the ledger identifier.
 	LedgerID string
 )
+
+func (id AssetID) LedgerId() multi.LedgerID {
+	return id.ledgerID
+}
+
+func (id AssetID) BackendID() uint32 {
+	return id.backendID
+}
 
 // maximal amount of milliseconds that the Fund method waits before returning.
 const fundMaxSleepMs = 100
@@ -70,7 +83,7 @@ func NewMockBackend(rng *rand.Rand, id string) *MockBackend {
 		latestEvents: make(map[string]channel.AdjudicatorEvent),
 		eventSubs:    make(map[string][]*MockSubscription),
 		balances:     make(map[string]map[string]*big.Int),
-		id:           multi.AssetID{0, LedgerID(id)},
+		id:           AssetID{0, LedgerID(id)},
 	}
 }
 

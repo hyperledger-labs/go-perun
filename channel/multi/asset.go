@@ -27,9 +27,9 @@ type (
 		AssetID() AssetID
 	}
 
-	AssetID struct {
-		BackendID uint32
-		LedgerId  LedgerID
+	AssetID interface {
+		BackendID() uint32
+		LedgerId() LedgerID
 	}
 
 	// LedgerIDMapKey is the map key representation of a ledger identifier.
@@ -73,7 +73,7 @@ func IsMultiLedgerAssets(assets []channel.Asset) bool {
 		case !hasMulti:
 			hasMulti = true
 			id = multiAsset.AssetID()
-		case id.LedgerId.MapKey() != multiAsset.AssetID().LedgerId.MapKey():
+		case id.LedgerId().MapKey() != multiAsset.AssetID().LedgerId().MapKey():
 			return true
 		}
 	}

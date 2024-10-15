@@ -30,7 +30,7 @@ const randomProposalNumParts = 2
 // NewRandomLedgerChannelProposal creates a random channel proposal with the supplied
 // options. Number of participants is fixed to randomProposalNumParts.
 func NewRandomLedgerChannelProposal(rng *rand.Rand, opts ...client.ProposalOpts) *client.LedgerChannelProposalMsg {
-	return NewRandomLedgerChannelProposalBy(rng, wallettest.NewRandomAddresses(rng), opts...)
+	return NewRandomLedgerChannelProposalBy(rng, wallettest.NewRandomAddresses(rng, 0), opts...)
 }
 
 // NewRandomLedgerChannelProposalBy creates a random channel proposal with the
@@ -65,7 +65,7 @@ func NewRandomVirtualChannelProposal(rng *rand.Rand, opts ...client.ProposalOpts
 	numParts := 2
 	return client.NewVirtualChannelProposal(
 		rng.Uint64(),
-		wallettest.NewRandomAddresses(rng),
+		wallettest.NewRandomAddresses(rng, 0),
 		channeltest.NewRandomAllocation(rng, channeltest.WithNumParts(numParts)),
 		wiretest.NewRandomAddressesMap(rng, numParts),
 		channeltest.NewRandomChannelIDs(rng, numParts),

@@ -153,9 +153,13 @@ func NewRandomLedgerChannelProposal(rng *rand.Rand, opts ...channeltest.RandomOp
 	opt := make(channeltest.RandomOpt).Append(opts...)
 	base := NewRandomBaseChannelProposal(rng, opt)
 	peers := wiretest.NewRandomAddressesMap(rng, base.NumPeers())
+	var bID wallet.BackendID
+	for i := range peers[0] {
+		bID = i
+	}
 	return &LedgerChannelProposalMsg{
 		BaseChannelProposal: base,
-		Participant:         wallettest.NewRandomAddresses(rng),
+		Participant:         wallettest.NewRandomAddresses(rng, bID),
 		Peers:               peers,
 	}
 }

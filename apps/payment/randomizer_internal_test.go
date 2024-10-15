@@ -28,7 +28,7 @@ func TestRandomizer(t *testing.T) {
 	rng := pkgtest.Prng(t)
 
 	r := new(Randomizer)
-	app := r.NewRandomApp(rng)
+	app := r.NewRandomApp(rng, 0)
 	channel.RegisterApp(app)
 	regApp, err := channel.Resolve(app.Def())
 	assert.NoError(t, err)

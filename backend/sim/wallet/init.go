@@ -21,5 +21,5 @@ import (
 
 func init() {
 	wallet.SetBackend(new(Backend), 0)
-	test.SetRandomizer(newRandomizer())
+	test.SetRandomizer(newRandomizer(), 0)
 }

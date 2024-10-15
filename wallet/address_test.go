@@ -53,22 +53,22 @@ func (t *testAddress) Decode(r io.Reader) error {
 
 func TestAddresses_Serializer(t *testing.T) {
 	rng := pkgtest.Prng(t)
-	addr := wallettest.NewRandomAddressesMap(rng, 1)[0]
+	addr := wallettest.NewRandomAddressesMap(rng, 1, 0)[0]
 	peruniotest.GenericSerializerTest(t, &testAddress{addrs: addr})
 
-	addrs := wallettest.NewRandomAddressesMap(rng, 0)
+	addrs := wallettest.NewRandomAddressesMap(rng, 0, 0)
 	peruniotest.GenericSerializerTest(t, &testAddresses{addrs: wallet.AddressMapArray{Addr: addrs}})
 
-	addrs = wallettest.NewRandomAddressesMap(rng, 1)
+	addrs = wallettest.NewRandomAddressesMap(rng, 1, 0)
 	peruniotest.GenericSerializerTest(t, &testAddresses{addrs: wallet.AddressMapArray{Addr: addrs}})
 
-	addrs = wallettest.NewRandomAddressesMap(rng, 5)
+	addrs = wallettest.NewRandomAddressesMap(rng, 5, 0)
 	peruniotest.GenericSerializerTest(t, &testAddresses{addrs: wallet.AddressMapArray{Addr: addrs}})
 }
 
 func TestAddrKey_Equal(t *testing.T) {
 	rng := pkgtest.Prng(t)
-	addrs := wallettest.NewRandomAddressArray(rng, 10)
+	addrs := wallettest.NewRandomAddressArray(rng, 10, 0)
 
 	// Test all properties of an equivalence relation.
 	for i, a := range addrs {
@@ -93,7 +93,7 @@ func TestAddrKey_Equal(t *testing.T) {
 
 func TestAddrKey(t *testing.T) {
 	rng := pkgtest.Prng(t)
-	addrs := wallettest.NewRandomAddressArray(rng, 10)
+	addrs := wallettest.NewRandomAddressArray(rng, 10, 0)
 
 	for _, a := range addrs {
 		// Test that Key and FromKey are dual to each other.
@@ -105,7 +105,7 @@ func TestAddrKey(t *testing.T) {
 
 func TestCloneAddress(t *testing.T) {
 	rng := pkgtest.Prng(t)
-	addr := wallettest.NewRandomAddress(rng)
+	addr := wallettest.NewRandomAddress(rng, 0)
 	addr0 := wallet.CloneAddress(addr)
 	require.Equal(t, addr, addr0)
 	require.NotSame(t, addr, addr0)
@@ -113,7 +113,7 @@ func TestCloneAddress(t *testing.T) {
 
 func TestCloneAddresses(t *testing.T) {
 	rng := pkgtest.Prng(t)
-	addrs := wallettest.NewRandomAddressArray(rng, 3)
+	addrs := wallettest.NewRandomAddressArray(rng, 3, 0)
 	addrs0 := wallet.CloneAddresses(addrs)
 	require.Equal(t, addrs, addrs0)
 	require.NotSame(t, addrs, addrs0)

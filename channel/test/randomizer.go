@@ -32,14 +32,17 @@ type Randomizer interface {
 	NewRandomAsset(*rand.Rand) channel.Asset
 }
 
-var randomizer Randomizer
+var randomizer map[wallet.BackendID]Randomizer
 
 // SetRandomizer sets the global Randomizer variable.
-func SetRandomizer(r Randomizer) {
-	if randomizer != nil {
+func SetRandomizer(r Randomizer, bID wallet.BackendID) {
+	if randomizer == nil {
+		randomizer = make(map[wallet.BackendID]Randomizer)
+	}
+	if randomizer[bID] != nil {
 		panic("channel/test randomizer already set")
 	}
-	randomizer = r
+	randomizer[bID] = r
 }
 
 // NewRandomPhase generates a random channel machine phase.
@@ -48,8 +51,8 @@ func NewRandomPhase(rng *rand.Rand) channel.Phase {
 }
 
 // NewRandomAsset generates a new random `channel.Asset`.
-func NewRandomAsset(rng *rand.Rand) channel.Asset {
-	return randomizer.NewRandomAsset(rng)
+func NewRandomAsset(rng *rand.Rand, bID wallet.BackendID) channel.Asset {
+	return randomizer[bID].NewRandomAsset(rng)
 }
 
 // NewRandomAssets generates new random `channel.Asset`s.
@@ -60,9 +63,25 @@ func NewRandomAssets(rng *rand.Rand, opts ...RandomOpt) []channel.Asset {
 		return assets
 	}
 	numAssets := opt.NumAssets(rng)
+	if backend, err := opt.Backend(); err == nil {
+		assets := make([]channel.Asset, opt.NumAssets(rng))
+		for i := range assets {
+			assets[i] = NewRandomAsset(rng, backend)
+		}
+		updateOpts(opts, WithAssets(assets...))
+		return assets
+	}
+	if backends, err := opt.BackendID(); err == nil {
+		assets := make([]channel.Asset, numAssets)
+		for i := range assets {
+			assets[i] = NewRandomAsset(rng, backends[i])
+		}
+		updateOpts(opts, WithAssets(assets...))
+		return assets
+	}
 	as := make([]channel.Asset, numAssets)
 	for i := range as {
-		as[i] = NewRandomAsset(rng)
+		as[i] = NewRandomAsset(rng, 0)
 	}
 
 	updateOpts(opts, WithAssets(as...))
@@ -140,7 +159,7 @@ func NewRandomLockedIDs(rng *rand.Rand, opts ...RandomOpt) []map[wallet.BackendI
 			ids[i] = make(map[wallet.BackendID]channel.ID)
 			cId := [32]byte{}
 			rng.Read(cId[:])
-			ids[i][wallet.BackendID(b)] = cId
+			ids[i][b] = cId
 		}
 	}
 	return ids
@@ -187,9 +206,9 @@ func NewRandomParams(rng *rand.Rand, opts ...RandomOpt) *channel.Params {
 		for i := range parts {
 			var backend wallet.BackendID
 			if backend, _ = opt.Backend(); backend != 0 {
-				parts[i] = map[wallet.BackendID]wallet.Address{backend: test.NewRandomAddress(rng)}
+				parts[i] = map[wallet.BackendID]wallet.Address{backend: test.NewRandomAddress(rng, backend)}
 			} else {
-				parts[i] = map[wallet.BackendID]wallet.Address{0: test.NewRandomAddress(rng)}
+				parts[i] = map[wallet.BackendID]wallet.Address{0: test.NewRandomAddress(rng, 0)}
 			}
 		}
 	}
@@ -380,18 +399,22 @@ func NewRandomBackends(rng *rand.Rand, num int, opts ...RandomOpt) []wallet.Back
 // Options: all from `NewRandomParamsAndState`.
 func NewRandomTransaction(rng *rand.Rand, sigMask []bool, opts ...RandomOpt) *channel.Transaction {
 	opt := mergeRandomOpts(opts...)
+	bID, err := opt.Backend()
+	if err != nil {
+		bID = 0
+	}
 	numParts := len(sigMask)
-	accs, addrs := test.NewRandomAccounts(rng, numParts)
+	accs, addrs := test.NewRandomAccounts(rng, numParts, bID)
 	params := NewRandomParams(rng, WithParts(addrs), opt)
 	state := NewRandomState(rng, WithID(params.ID()), WithNumParts(numParts), opt)
 
 	sigs := make([]wallet.Sig, numParts)
-	var err error
+	err = nil
 	for i, choice := range sigMask {
 		if !choice {
 			sigs[i] = nil
 		} else {
-			sigs[i], err = channel.Sign(accs[i][0], state)
+			sigs[i], err = channel.Sign(accs[i][bID], state)
 		}
 		if err != nil {
 			panic(err)

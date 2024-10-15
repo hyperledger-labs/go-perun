@@ -16,6 +16,7 @@ package test
 
 import (
 	"math/rand"
+	"perun.network/go-perun/wallet"
 
 	"perun.network/go-perun/channel"
 )
@@ -23,7 +24,7 @@ import (
 // The AppRandomizer interface provides functionality for creating random
 // data and apps which is useful for testing.
 type AppRandomizer interface {
-	NewRandomApp(*rand.Rand) channel.App
+	NewRandomApp(*rand.Rand, wallet.BackendID) channel.App
 	NewRandomData(*rand.Rand) channel.Data
 }
 
@@ -53,8 +54,13 @@ func NewRandomApp(rng *rand.Rand, opts ...RandomOpt) channel.App {
 		app, _ := channel.Resolve(def)
 		return app
 	}
+	var bID wallet.BackendID
+	bID, err := opt.Backend()
+	if err != nil {
+		bID = wallet.BackendID(0)
+	}
 	// WithAppDef does not set the app in the options
-	app := opt.AppRandomizer().NewRandomApp(rng)
+	app := opt.AppRandomizer().NewRandomApp(rng, bID)
 	channel.RegisterApp(app)
 	updateOpts(opts, WithApp(app))
 	return app
@@ -82,14 +88,17 @@ func NewRandomAppAndData(rng *rand.Rand, opts ...RandomOpt) (channel.App, channe
 // NewRandomAppIDFunc is an app identifier randomizer function.
 type NewRandomAppIDFunc = func(*rand.Rand) channel.AppID
 
-var newRandomAppID NewRandomAppIDFunc
+var newRandomAppID map[wallet.BackendID]NewRandomAppIDFunc
 
 // SetNewRandomAppID sets the function generating a new app identifier.
-func SetNewRandomAppID(f NewRandomAppIDFunc) {
-	newRandomAppID = f
+func SetNewRandomAppID(f NewRandomAppIDFunc, bID wallet.BackendID) {
+	if newRandomAppID == nil {
+		newRandomAppID = make(map[wallet.BackendID]NewRandomAppIDFunc)
+	}
+	newRandomAppID[bID] = f
 }
 
 // NewRandomAppID creates a new random channel.AppID.
-func NewRandomAppID(rng *rand.Rand) channel.AppID {
-	return newRandomAppID(rng)
+func NewRandomAppID(rng *rand.Rand, bID wallet.BackendID) channel.AppID {
+	return newRandomAppID[bID](rng)
 }

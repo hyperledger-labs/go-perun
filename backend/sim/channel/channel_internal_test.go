@@ -40,7 +40,7 @@ func newChannelSetup(t *testing.T) *chtest.Setup {
 		Params2:       params2,
 		State:         state,
 		State2:        state2,
-		Account:       wtest.NewRandomAccount(rng),
-		RandomAddress: func() map[wallet.BackendID]wallet.Address { return wtest.NewRandomAddresses(rng) },
+		Account:       wtest.NewRandomAccount(rng, 0),
+		RandomAddress: func() map[wallet.BackendID]wallet.Address { return wtest.NewRandomAddresses(rng, 0) },
 	}
 }

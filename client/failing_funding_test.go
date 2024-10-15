@@ -43,7 +43,7 @@ func TestFailingFunding(t *testing.T) {
 		},
 		func(r *rand.Rand) ([2]ctest.RoleSetup, channel.Asset) {
 			roles := NewSetups(rng, []string{"Frida", "Fred"}, 0)
-			asset := chtest.NewRandomAsset(rng)
+			asset := chtest.NewRandomAsset(rng, 0)
 			return [2]ctest.RoleSetup{roles[0], roles[1]}, asset
 		},
 	)

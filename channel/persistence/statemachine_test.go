@@ -39,8 +39,8 @@ func TestStateMachine(t *testing.T) {
 	require := require.New(t)
 	rng := pkgtest.Prng(t)
 
-	const n = 5                                    // number of participants
-	accs, parts := wtest.NewRandomAccounts(rng, n) // local participant idx 0
+	const n = 5                                       // number of participants
+	accs, parts := wtest.NewRandomAccounts(rng, n, 0) // local participant idx 0
 	params := ctest.NewRandomParams(rng, ctest.WithParts(parts))
 	t.Log("Participants:", parts, "accs:", accs)
 	t.Log("Params:", params)

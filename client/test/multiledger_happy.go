@@ -43,7 +43,7 @@ func TestMultiLedgerHappy(ctx context.Context, t *testing.T, mlt MultiLedgerSetu
 
 	// Create channel proposal.
 	parts := []map[wallet.BackendID]wire.Address{alice.WireAddress, bob.WireAddress}
-	initAlloc := channel.NewAllocation(len(parts), []wallet.BackendID{wallet.BackendID(mlt.Asset1.AssetID().BackendID), wallet.BackendID(mlt.Asset2.AssetID().BackendID)}, mlt.Asset1, mlt.Asset2)
+	initAlloc := channel.NewAllocation(len(parts), []wallet.BackendID{wallet.BackendID(mlt.Asset1.AssetID().BackendID()), wallet.BackendID(mlt.Asset2.AssetID().BackendID())}, mlt.Asset1, mlt.Asset2)
 	initAlloc.Balances = initBals
 	prop, err := client.NewLedgerChannelProposal(
 		challengeDuration,

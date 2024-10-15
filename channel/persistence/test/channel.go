@@ -56,7 +56,13 @@ func NewRandomChannel(
 	parent *Channel,
 	rng *rand.Rand,
 ) (c *Channel) {
-	accs, parts := wtest.NewRandomAccounts(rng, len(peers))
+	bID := wallet.BackendID(0)
+	if len(peers) > 0 {
+		for i := range peers[0] {
+			bID = i
+		}
+	}
+	accs, parts := wtest.NewRandomAccounts(rng, len(peers), bID)
 	params := ctest.NewRandomParams(rng, ctest.WithParts(parts))
 	csm, err := channel.NewStateMachine(accs[0], *params)
 	require.NoError(t, err)
