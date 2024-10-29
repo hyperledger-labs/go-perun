@@ -223,12 +223,12 @@ func (m *machine) Sig() (sig wallet.Sig, err error) {
 	}
 
 	if m.stagingTX.Sigs[m.idx] == nil {
-		for _, acc := range m.acc {
-			sig, err = Sign(acc, m.stagingTX.State)
-			if err != nil {
+		for b, acc := range m.acc {
+			sig, err = Sign(acc, m.stagingTX.State, b)
+			if err == nil {
+				m.stagingTX.Sigs[m.idx] = sig
 				return
 			}
-			m.stagingTX.Sigs[m.idx] = sig
 		}
 	} else {
 		sig = m.stagingTX.Sigs[m.idx]

@@ -109,7 +109,7 @@ func genericChannelIDTest(t *testing.T, s *Setup) {
 
 func genericSignTest(t *testing.T, s *Setup) {
 	t.Helper()
-	_, err := channel.Sign(s.Account, s.State)
+	_, err := channel.Sign(s.Account, s.State, s.State.Backends[0])
 	assert.NoError(t, err, "Sign should not return an error")
 }
 
@@ -119,7 +119,7 @@ func genericVerifyTest(t *testing.T, s *Setup, opts ...GenericTestOption) {
 	id, err := channel.CalcID(s.Params)
 	require.NoError(t, err, "CalcID should not return an error")
 	require.Equal(t, s.Params.ID(), id, "Invalid test params")
-	sig, err := channel.Sign(s.Account, s.State)
+	sig, err := channel.Sign(s.Account, s.State, s.State.Backends[0])
 	require.NoError(t, err, "Sign should not return an error")
 
 	ok, err := channel.Verify(addr, s.State, sig)

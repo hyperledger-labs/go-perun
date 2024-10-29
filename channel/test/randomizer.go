@@ -414,7 +414,7 @@ func NewRandomTransaction(rng *rand.Rand, sigMask []bool, opts ...RandomOpt) *ch
 		if !choice {
 			sigs[i] = nil
 		} else {
-			sigs[i], err = channel.Sign(accs[i][bID], state)
+			sigs[i], err = channel.Sign(accs[i][bID], state, bID)
 		}
 		if err != nil {
 			panic(err)

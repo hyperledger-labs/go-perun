@@ -19,6 +19,7 @@ import (
 	"encoding/binary"
 	stdio "io"
 	"math/big"
+	"sort"
 	"strings"
 
 	"github.com/pkg/errors"
@@ -119,8 +120,9 @@ func IDKey(ids IDMap) string {
 
 	}
 	// Iterate over the map and encode each key-value pair.
-	for key, id := range ids {
-		if err := binary.Write(&buff, binary.BigEndian, int32(key)); err != nil {
+	sortedKeys, sortedIDs := sortIDMap(ids)
+	for i, id := range sortedIDs {
+		if err := binary.Write(&buff, binary.BigEndian, int32(sortedKeys[i])); err != nil {
 			log.Panicf("could not encode map key: " + err.Error())
 		}
 		if err := perunio.Encode(&buff, id); err != nil {
@@ -128,6 +130,21 @@ func IDKey(ids IDMap) string {
 		}
 	}
 	return buff.String()
+}
+
+func sortIDMap(ids IDMap) ([]wallet.BackendID, []ID) {
+	var indexes []int
+	for i := range ids {
+		indexes = append(indexes, int(i))
+	}
+	sort.Ints(indexes)
+	sortedIndexes := make([]wallet.BackendID, len(indexes))
+	sortedIDs := make([]ID, len(indexes))
+	for i, index := range indexes {
+		sortedIndexes[i] = wallet.BackendID(index)
+		sortedIDs[i] = ids[wallet.BackendID(index)]
+	}
+	return sortedIndexes, sortedIDs
 }
 
 func FromIDKey(k string) IDMap {

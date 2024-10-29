@@ -71,8 +71,8 @@ func TestStateMachine(t *testing.T) {
 		// remote signers
 		for i := 1; i < n; i++ {
 			var sig wallet.Sig
-			for _, acc := range accs[i] {
-				sig, err = channel.Sign(acc, csm.StagingState())
+			for b, acc := range accs[i] {
+				sig, err = channel.Sign(acc, csm.StagingState(), b)
 				require.NoError(err)
 			}
 			err = sm.AddSig(ctx, channel.Index(i), sig)

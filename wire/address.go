@@ -18,6 +18,7 @@ import (
 	"encoding"
 	stdio "io"
 	"perun.network/go-perun/wallet"
+	"sort"
 	"strings"
 
 	"github.com/pkg/errors"
@@ -177,8 +178,13 @@ func Key(a Address) AddrKey {
 // Keys returns the `AddrKey` corresponding to the passed `map[int]Address`.
 func Keys(addressMap map[wallet.BackendID]Address) AddrKey {
 	var keyParts []string
-	for _, addr := range addressMap {
-		key := Key(addr)
+	var indexes []int
+	for i := range addressMap {
+		indexes = append(indexes, int(i))
+	}
+	sort.Ints(indexes)
+	for _, index := range indexes {
+		key := Key(addressMap[wallet.BackendID(index)])
 		keyParts = append(keyParts, string(key)) // Assuming Address has a String() method.
 	}
 	return AddrKey(strings.Join(keyParts, "|"))

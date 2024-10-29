@@ -119,7 +119,7 @@ func (a *MultiLedgerAsset) Equal(b channel.Asset) bool {
 }
 
 // Address returns the asset's address.
-func (a *MultiLedgerAsset) Address() string {
+func (a *MultiLedgerAsset) Address() []byte {
 	return a.asset.Address()
 }
 

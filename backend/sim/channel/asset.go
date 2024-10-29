@@ -67,6 +67,7 @@ func (a Asset) Equal(b channel.Asset) bool {
 }
 
 // Address returns the address of the asset.
-func (a Asset) Address() string {
-	return fmt.Sprintf("Asset(%d)", a.ID)
+func (a Asset) Address() []byte {
+	data, _ := a.MarshalBinary()
+	return data
 }

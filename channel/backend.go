@@ -76,20 +76,8 @@ func CalcID(p *Params) (map[wallet.BackendID]ID, error) {
 }
 
 // Sign creates a signature from the account a on state s.
-func Sign(a wallet.Account, s *State) (wallet.Sig, error) {
-	errs := make([]error, len(backend))
-	for _, b := range backend {
-		sig, err := b.Sign(a, s)
-		if err == nil {
-			return sig, nil
-		} else {
-			errs = append(errs, err)
-		}
-	}
-	if len(errs) > 0 {
-		return nil, errors.Join(errs...)
-	}
-	return nil, errors.New("no valid signature found")
+func Sign(a wallet.Account, s *State, b wallet.BackendID) (wallet.Sig, error) {
+	return backend[b].Sign(a, s)
 }
 
 // Verify verifies that a signature was a valid signature from addr on a state.
