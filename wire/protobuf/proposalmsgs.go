@@ -18,11 +18,9 @@ import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
+	"github.com/pkg/errors"
 	"math"
 	"math/big"
-	"perun.network/go-perun/log"
-
-	"github.com/pkg/errors"
 	"perun.network/go-perun/channel"
 	"perun.network/go-perun/client"
 	"perun.network/go-perun/wallet"
@@ -293,8 +291,6 @@ func ToAllocation(protoAlloc *Allocation) (alloc *channel.Allocation, err error)
 	if err != nil {
 		return nil, errors.WithMessage(err, "backends")
 	}
-	log.Printf("ToAllocation: alloc.Backends length: %d, protoAlloc.Assets length: %d", len(alloc.Backends), len(protoAlloc.Assets))
-	log.Println("ToAllocation: ", alloc.Backends)
 	alloc.Assets = make([]channel.Asset, len(protoAlloc.Assets))
 	for i := range protoAlloc.Assets {
 		alloc.Assets[i] = channel.NewAsset(alloc.Backends[i])
