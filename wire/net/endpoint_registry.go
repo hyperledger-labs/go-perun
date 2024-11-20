@@ -251,7 +251,6 @@ func (r *EndpointRegistry) authenticatedDial(
 	if err != nil {
 		return nil, errors.WithMessage(err, "failed to dial")
 	}
-
 	if err := ExchangeAddrsActive(ctx, r.id, addr, conn); err != nil {
 		conn.Close()
 		return nil, errors.WithMessage(err, "ExchangeAddrs failed")
@@ -294,16 +293,26 @@ func (r *EndpointRegistry) Has(addr wire.Address) bool {
 
 // addEndpoint adds a new peer to the registry.
 func (r *EndpointRegistry) addEndpoint(addr wire.Address, conn Conn, dialer bool) *Endpoint {
+	r.mutex.Lock()
+	defer r.mutex.Unlock()
 	r.Log().WithField("peer", addr).Trace("EndpointRegistry.addEndpoint")
 
 	e := newEndpoint(addr, conn)
 	fe, created := r.fullEndpoint(addr, e)
+	var newE *Endpoint
 	if !created {
-		if e, closed := fe.replace(e, r.id.Address(), dialer); closed {
-			return e
+		var closed bool
+		newE, closed = fe.replace(e, r.id.Address(), dialer)
+		key := wire.Key(addr)
+		entry := newFullEndpoint(newE)
+		r.endpoints[key] = entry
+		if closed {
+			return newE
 		}
 	}
-
+	if newE != nil {
+		e = newE
+	}
 	consumer := r.onNewEndpoint(addr)
 	// Start receiving messages.
 	go func() {
@@ -319,8 +328,6 @@ func (r *EndpointRegistry) addEndpoint(addr wire.Address, conn Conn, dialer bool
 // fullEndpoint retrieves or creates a fullEndpoint for the passed address.
 func (r *EndpointRegistry) fullEndpoint(addr wire.Address, e *Endpoint) (_ *fullEndpoint, created bool) {
 	key := wire.Key(addr)
-	r.mutex.Lock()
-	defer r.mutex.Unlock()
 	entry, ok := r.endpoints[key]
 	if !ok {
 		entry = newFullEndpoint(e)
@@ -360,7 +367,6 @@ func (p *fullEndpoint) replace(newValue *Endpoint, self wire.Address, dialer boo
 			log.Warn("Old Endpoint was already closed")
 		}
 	}
-
 	return newValue, false
 }
 

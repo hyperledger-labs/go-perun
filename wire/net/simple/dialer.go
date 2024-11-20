@@ -17,6 +17,7 @@ package simple
 import (
 	"context"
 	"crypto/tls"
+	"fmt"
 	"net"
 	"sync"
 	"time"
@@ -30,10 +31,11 @@ import (
 // Dialer is a simple lookup-table based dialer that can dial known peers.
 // New peer addresses can be added via Register().
 type Dialer struct {
-	mutex   sync.RWMutex            // Protects peers.
-	peers   map[wire.AddrKey]string // Known peer addresses.
-	dialer  tls.Dialer              // Used to dial connections.
-	network string                  // The socket type.
+	mutex       sync.RWMutex            // Protects peers.
+	peers       map[wire.AddrKey]string // Known peer addresses.
+	dialer      tls.Dialer              // Used to dial connections.
+	network     string                  // The socket type.
+	connections []wirenet.Conn
 
 	pkgsync.Closer
 }
@@ -54,7 +56,8 @@ func NewNetDialer(network string, defaultTimeout time.Duration, tlsConfig *tls.C
 			NetDialer: netDialer,
 			Config:    tlsConfig,
 		},
-		network: network,
+		network:     network,
+		connections: make([]wirenet.Conn, 0),
 	}
 }
 
@@ -103,7 +106,9 @@ func (d *Dialer) Dial(ctx context.Context, addr wire.Address, ser wire.EnvelopeS
 		return nil, errors.Wrap(err, "failed to dial peer")
 	}
 
-	return wirenet.NewIoConn(conn, ser), nil
+	wireConn := wirenet.NewIoConn(conn, ser)
+	d.connections = append(d.connections, wireConn)
+	return wireConn, nil
 }
 
 // Register registers a network address for a peer address.
@@ -112,4 +117,20 @@ func (d *Dialer) Register(addr wire.Address, address string) {
 	defer d.mutex.Unlock()
 
 	d.peers[wire.Key(addr)] = address
+}
+
+// Close closes the Dialer and cleans up any associated resources.
+func (d *Dialer) Close() error {
+	if !d.IsClosed() {
+		// Mark the Dialer as closed.
+		d.Closer.Close()
+
+		// Close all associated connections
+		for _, conn := range d.connections {
+			conn.Close()
+		}
+		return nil
+	}
+
+	return fmt.Errorf("dialer already closed")
 }

@@ -39,7 +39,7 @@ const (
 	PublishAttempts = 3
 	// PublishCooldown defines how long should be waited before Bus.Publish is
 	// called again in case it failed.
-	PublishCooldown = 3 * time.Second
+	PublishCooldown = 1 * time.Second
 )
 
 // NewBus creates a new network bus. The dialer and listener are used to
@@ -84,7 +84,6 @@ func (b *Bus) Publish(ctx context.Context, e *wire.Envelope) (err error) {
 			}
 		}
 		log.WithError(err).Warn("Publishing failed.")
-
 		// Authentication errors are not retried.
 		if IsAuthenticationError(err) {
 			return err
