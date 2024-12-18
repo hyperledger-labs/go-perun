@@ -4,6 +4,30 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.12.0] Leda - 2024-11-19 [:boom:]
+Flexibility in funding for payment channels and basic Layer-2 security.
+
+## Added :boom:
+
+* Egoistic funding allows users to wait for their peers to fund before they fund themselves. This change has to be adopted by the Perun backends to be usable ([in case of Ethereum](https://github.com/hyperledger-labs/perun-eth-backend/pull/45)): [#397 ]
+
+* Wire authentication for Layer2 communication between Perun clients, using TLS: [#402] :boom:
+
+* Support for Stellar backend in README: [#408]
+
+## Changed
+* Update go to 1.22: [#406 ]
+
+[#397]: https://github.com/hyperledger-labs/go-perun/pull/397
+[#406]: https://github.com/hyperledger-labs/go-perun/pull/406
+[#402]: https://github.com/hyperledger-labs/go-perun/pull/402
+[#408]: https://github.com/hyperledger-labs/go-perun/pull/408
+
+## Legend
+- <span id="breaking">:boom:</span> This is a breaking change, e.g., it changes the external API.
+
+[:boom:]: #breaking
+
 ## [0.11.0] Kiviuq - 2024-02-21 [:boom:]
 Exposure of protobuf converters & `SignedState`, abstraction of tests and bug fixes.
 
