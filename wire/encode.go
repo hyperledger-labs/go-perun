@@ -17,8 +17,9 @@ package wire
 import (
 	"fmt"
 	"io"
-	"perun.network/go-perun/wallet"
 	"strconv"
+
+	"perun.network/go-perun/wallet"
 
 	"github.com/pkg/errors"
 

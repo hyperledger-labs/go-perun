@@ -17,9 +17,10 @@ package wire
 import (
 	"encoding"
 	stdio "io"
-	"perun.network/go-perun/wallet"
 	"sort"
 	"strings"
+
+	"perun.network/go-perun/wallet"
 
 	"github.com/pkg/errors"
 	"perun.network/go-perun/wire/perunio"
@@ -126,6 +127,8 @@ func (a *AddressMapArray) Decode(r stdio.Reader) (err error) {
 
 // IndexOfAddr returns the index of the given address in the address slice,
 // or -1 if it is not part of the slice.
+//
+//nolint:unused
 func IndexOfAddr(addrs []Address, addr Address) int {
 	for i, a := range addrs {
 		if addr.Equal(a) {
