@@ -208,7 +208,7 @@ func (c *Client) ProposeChannel(ctx context.Context, prop ChannelProposal) (*Cha
 	// cache version 1 updates until channel is opened
 	c.enableVer1Cache()
 	// replay cached version 1 updates
-	defer c.releaseVer1Cache() //nolint:contextcheck
+	defer c.releaseVer1Cache()
 	ch, err := c.proposeTwoPartyChannel(ctx, prop)
 	if err != nil {
 		return nil, errors.WithMessage(err, "channel proposal")
@@ -285,7 +285,7 @@ func (c *Client) handleChannelProposalAcc(
 	// cache version 1 updates
 	c.enableVer1Cache()
 	// replay cached version 1 updates
-	defer c.releaseVer1Cache() //nolint:contextcheck
+	defer c.releaseVer1Cache()
 
 	if ch, err = c.acceptChannelProposal(ctx, prop, p, acc); err != nil {
 		return ch, errors.WithMessage(err, "accept channel proposal")
@@ -785,7 +785,7 @@ func (c *Client) releaseVer1Cache() {
 
 	c.version1Cache.enabled--
 	for _, u := range c.version1Cache.cache {
-		go c.handleChannelUpdate(u.uh, u.p, u.m) //nolint:contextcheck
+		go c.handleChannelUpdate(u.uh, u.p, u.m)
 	}
 	c.version1Cache.cache = nil
 }

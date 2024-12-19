@@ -67,7 +67,6 @@ func (s *setup) Dial(ctx context.Context, addr map[wallet.BackendID]wire.Address
 	// a: Alice's end, b: Bob's end.
 	a, b := newPipeConnPair()
 
-	//nolint:gocritic
 	if channel.EqualWireMaps(addr, s.alice.endpoint.Address) { // Dialing Bob?
 		s.bob.Registry.addEndpoint(s.bob.endpoint.Address, b, true) // Bob accepts connection.
 		return a, nil

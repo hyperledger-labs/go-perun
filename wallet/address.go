@@ -206,7 +206,7 @@ func (a *AddressMapArray) Decode(r stdio.Reader) (err error) {
 // Panics when the `Address` can't be encoded.
 func Key(a Address) AddrKey {
 	var buff strings.Builder
-	if err := perunio.Encode(&buff, uint32(a.BackendID())); err != nil { //nolint:gosec
+	if err := perunio.Encode(&buff, uint32(a.BackendID())); err != nil {
 		panic("Could not encode id in AddrKey: " + err.Error())
 	}
 	if err := perunio.Encode(&buff, a); err != nil {

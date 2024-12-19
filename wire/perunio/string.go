@@ -23,7 +23,7 @@ import (
 
 // encodeString writes the length as an uint16 and then the string itself to the io.Writer.
 func encodeString(w io.Writer, s string) error {
-	l := uint16(len(s)) //nolint:gosec
+	l := uint16(len(s))
 	if int(l) != len(s) {
 		return errors.Errorf("string length exceeded: %d", len(s))
 	}
