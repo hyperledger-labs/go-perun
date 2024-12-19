@@ -151,7 +151,7 @@ func newMachine(acc map[wallet.BackendID]wallet.Account, params Params) (*machin
 	return &machine{
 		phase:     InitActing,
 		acc:       acc,
-		idx:       Index(idx), //nolint:gosec
+		idx:       Index(idx),
 		params:    params,
 		Embedding: log.MakeEmbedding(log.WithField("ID", params.id)),
 	}, nil
@@ -190,7 +190,7 @@ func (m *machine) Params() *Params {
 
 // N returns the number of participants of the channel parameters of this machine.
 func (m *machine) N() Index {
-	return Index(len(m.params.Parts)) //nolint:gosec
+	return Index(len(m.params.Parts))
 }
 
 // Phase returns the current phase.

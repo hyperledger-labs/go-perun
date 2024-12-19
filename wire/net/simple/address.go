@@ -47,7 +47,7 @@ func (a *Address) MarshalBinary() ([]byte, error) {
 	var buf bytes.Buffer
 
 	// Encode the length of the name string and the name itself
-	nameLen := uint16(len(a.Name)) //nolint:gosec
+	nameLen := uint16(len(a.Name))
 	if err := binary.Write(&buf, binary.BigEndian, nameLen); err != nil {
 		return nil, err
 	}
@@ -110,7 +110,7 @@ func (a *Address) Backend() wallet.BackendID {
 func encodePublicKey(buf *bytes.Buffer, key *rsa.PublicKey) error {
 	// Encode modulus length and modulus
 	modulusBytes := key.N.Bytes()
-	modulusLen := uint16(len(modulusBytes)) //nolint:gosec
+	modulusLen := uint16(len(modulusBytes))
 	if err := binary.Write(buf, binary.BigEndian, modulusLen); err != nil {
 		return err
 	}
@@ -119,7 +119,7 @@ func encodePublicKey(buf *bytes.Buffer, key *rsa.PublicKey) error {
 	}
 
 	// Encode public exponent
-	if err := binary.Write(buf, binary.BigEndian, int32(key.E)); err != nil { //nolint:gosec
+	if err := binary.Write(buf, binary.BigEndian, int32(key.E)); err != nil {
 		return err
 	}
 

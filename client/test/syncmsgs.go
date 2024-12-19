@@ -31,7 +31,7 @@ func ChannelSyncMsgSerializationTest(t *testing.T, serializerTest func(t *testin
 	for i := 0; i < 4; i++ {
 		state := test.NewRandomState(rng)
 		m := &client.ChannelSyncMsg{
-			Phase: channel.Phase(rng.Intn(channel.LastPhase)), //nolint:gosec
+			Phase: channel.Phase(rng.Intn(channel.LastPhase)),
 			CurrentTX: channel.Transaction{
 				State: state,
 				Sigs:  newRandomSigs(rng, state.NumParts()),

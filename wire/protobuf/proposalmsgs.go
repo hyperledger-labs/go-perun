@@ -354,7 +354,7 @@ func ToIndexMap(protoIndexMap []uint32) (indexMap []channel.Index, err error) {
 		if protoIndexMap[i] > math.MaxUint16 {
 			return nil, fmt.Errorf("%d'th index is invalid", i) //nolint:goerr113  // We do not want to define this as constant error.
 		}
-		indexMap[i] = channel.Index(uint16(protoIndexMap[i])) //nolint:gosec
+		indexMap[i] = channel.Index(uint16(protoIndexMap[i]))
 	}
 	return indexMap, nil
 }
@@ -453,8 +453,8 @@ func FromWalletAddr(addr map[wallet.BackendID]wallet.Address) (*Address, error) 
 	var addressMappings []*AddressMapping //nolint:prealloc
 
 	for key, address := range addr {
-		keyBytes := make([]byte, 4)                       //nolint:gomnd
-		binary.BigEndian.PutUint32(keyBytes, uint32(key)) //nolint:gosec
+		keyBytes := make([]byte, 4) //nolint:gomnd
+		binary.BigEndian.PutUint32(keyBytes, uint32(key))
 
 		addressBytes, err := address.MarshalBinary()
 		if err != nil {
@@ -477,8 +477,8 @@ func FromWireAddr(addr map[wallet.BackendID]wire.Address) (*Address, error) {
 	var addressMappings []*AddressMapping //nolint:prealloc
 
 	for key, address := range addr {
-		keyBytes := make([]byte, 4)                       //nolint:gomnd
-		binary.BigEndian.PutUint32(keyBytes, uint32(key)) //nolint:gosec
+		keyBytes := make([]byte, 4) //nolint:gomnd
+		binary.BigEndian.PutUint32(keyBytes, uint32(key))
 
 		addressBytes, err := address.MarshalBinary()
 		if err != nil {
@@ -525,8 +525,8 @@ func FromIDs(ids map[wallet.BackendID]channel.ID) (*ID, error) {
 	var idMappings []*IDMapping //nolint:prealloc
 
 	for key, id := range ids {
-		keyBytes := make([]byte, 4)                       //nolint:gomnd
-		binary.BigEndian.PutUint32(keyBytes, uint32(key)) //nolint:gosec
+		keyBytes := make([]byte, 4) //nolint:gomnd
+		binary.BigEndian.PutUint32(keyBytes, uint32(key))
 
 		idBytes := make([]byte, 32) //nolint:gomnd
 		copy(idBytes, id[:])
@@ -603,8 +603,8 @@ func FromAllocation(alloc channel.Allocation) (protoAlloc *Allocation, err error
 	protoAlloc = &Allocation{}
 	protoAlloc.Backends = make([][]byte, len(alloc.Backends))
 	for i := range alloc.Backends {
-		protoAlloc.Backends[i] = make([]byte, 4)                                      //nolint:gomnd
-		binary.BigEndian.PutUint32(protoAlloc.Backends[i], uint32(alloc.Backends[i])) //nolint:gosec
+		protoAlloc.Backends[i] = make([]byte, 4) //nolint:gomnd
+		binary.BigEndian.PutUint32(protoAlloc.Backends[i], uint32(alloc.Backends[i]))
 	}
 	protoAlloc.Assets = make([][]byte, len(alloc.Assets))
 	for i := range alloc.Assets {

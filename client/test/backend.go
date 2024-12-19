@@ -189,7 +189,7 @@ func (b *MockBackend) Register(_ context.Context, req channel.AdjudicatorReq, su
 		},
 	}, subChannels...)
 
-	timeout := time.Now().Add(time.Duration(req.Params.ChallengeDuration) * time.Millisecond) //nolint:gosec
+	timeout := time.Now().Add(time.Duration(req.Params.ChallengeDuration) * time.Millisecond)
 	for _, ch := range channels {
 		b.setLatestEvent(
 			ch.Params.ID(),
@@ -228,7 +228,7 @@ func (b *MockBackend) Progress(_ context.Context, req channel.ProgressReq) error
 	b.mu.Lock()
 	defer b.mu.Unlock()
 
-	timeout := time.Now().Add(time.Duration(req.Params.ChallengeDuration) * time.Millisecond) //nolint:gosec
+	timeout := time.Now().Add(time.Duration(req.Params.ChallengeDuration) * time.Millisecond)
 	b.setLatestEvent(
 		req.Params.ID(),
 		channel.NewProgressedEvent(
@@ -559,7 +559,7 @@ func (f *assetHolder) Fund(req channel.FundingReq, b *MockBackend, acc wallet.Ad
 
 // WaitForFunding waits until all participants have funded the channel.
 func (f *assetHolder) WaitForFunding(ctx context.Context, req channel.FundingReq) error {
-	challengeDuration := time.Duration(req.Params.ChallengeDuration) * time.Second //nolint:gosec
+	challengeDuration := time.Duration(req.Params.ChallengeDuration) * time.Second
 	fundCtx, cancel := context.WithTimeout(ctx, challengeDuration)
 	defer cancel()
 

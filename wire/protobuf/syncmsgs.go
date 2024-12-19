@@ -23,7 +23,7 @@ func toChannelSyncMsg(protoEnvMsg *Envelope_ChannelSyncMsg) (msg *client.Channel
 	protoMsg := protoEnvMsg.ChannelSyncMsg
 
 	msg = &client.ChannelSyncMsg{}
-	msg.Phase = channel.Phase(protoMsg.Phase) //nolint:gosec
+	msg.Phase = channel.Phase(protoMsg.Phase)
 	msg.CurrentTX.Sigs = make([][]byte, len(protoMsg.CurrentTx.Sigs))
 	for i := range protoMsg.CurrentTx.Sigs {
 		msg.CurrentTX.Sigs[i] = make([]byte, len(protoMsg.CurrentTx.Sigs[i]))

@@ -104,7 +104,7 @@ func (c *channelConn) Close() error {
 func (c *channelConn) Send(ctx context.Context, msg wire.Msg) error {
 	var eg errgroup.Group
 	for i, peer := range c.peers {
-		if channel.Index(i) == c.idx { //nolint:gosec
+		if channel.Index(i) == c.idx {
 			continue // skip own peer
 		}
 		c.log.WithField("peer", peer).Debugf("channelConn: publishing message: %v: %+v", msg.Type(), msg)
@@ -168,5 +168,5 @@ func (r *channelMsgRecv) Next(ctx context.Context) (channel.Index, ChannelMsg, e
 	if !ok {
 		return 0, nil, errors.Errorf("unexpected message type: expected ChannelMsg, got %T", env.Msg)
 	}
-	return channel.Index(idx), msg, nil //nolint:gosec
+	return channel.Index(idx), msg, nil
 }

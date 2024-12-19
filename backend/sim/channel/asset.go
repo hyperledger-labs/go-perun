@@ -44,7 +44,7 @@ func NewRandomAsset(rng *rand.Rand) *Asset {
 // MarshalBinary marshals the address into its binary representation.
 func (a Asset) MarshalBinary() ([]byte, error) {
 	data := make([]byte, assetLen)
-	byteOrder.PutUint64(data, uint64(a.ID)) //nolint:gosec
+	byteOrder.PutUint64(data, uint64(a.ID))
 	return data, nil
 }
 
@@ -53,7 +53,7 @@ func (a *Asset) UnmarshalBinary(data []byte) error {
 	if len(data) != assetLen {
 		return fmt.Errorf("unexpected length %d, want %d", len(data), assetLen) //nolint:goerr113  // We do not want to define this as constant error.
 	}
-	a.ID = int64(byteOrder.Uint64(data)) //nolint:gosec
+	a.ID = int64(byteOrder.Uint64(data))
 	return nil
 }
 

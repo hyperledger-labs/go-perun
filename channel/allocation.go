@@ -127,7 +127,7 @@ func NewAllocation(numParts int, backends []wallet.BackendID, assets ...Asset) *
 func (a *Allocation) AssetIndex(asset Asset) (Index, bool) {
 	for idx, _asset := range a.Assets {
 		if asset.Equal(_asset) {
-			return Index(idx), true //nolint:gosec
+			return Index(idx), true
 		}
 	}
 	return 0, false
@@ -325,12 +325,12 @@ func (a Allocation) Encode(w io.Writer) error {
 			err, "invalid allocations cannot be encoded, got %v", a)
 	}
 	// encode dimensions
-	if err := perunio.Encode(w, Index(len(a.Assets)), Index(len(a.Balances[0])), Index(len(a.Locked))); err != nil { //nolint:gosec
+	if err := perunio.Encode(w, Index(len(a.Assets)), Index(len(a.Balances[0])), Index(len(a.Locked))); err != nil {
 		return err
 	}
 	// encode assets
 	for i, asset := range a.Assets {
-		if err := perunio.Encode(w, uint32(a.Backends[i])); err != nil { //nolint:gosec
+		if err := perunio.Encode(w, uint32(a.Backends[i])); err != nil {
 			return errors.WithMessagef(err, "encoding backends %d", i)
 		}
 		if err := perunio.Encode(w, asset); err != nil {
@@ -436,7 +436,7 @@ func (b Balances) Encode(w io.Writer) error {
 		return errors.Errorf("expected maximum number of parts %d, got %d", MaxNumParts, numParts)
 	}
 
-	if err := perunio.Encode(w, Index(numAssets), Index(numParts)); err != nil { //nolint:gosec
+	if err := perunio.Encode(w, Index(numAssets), Index(numParts)); err != nil {
 		return errors.WithMessage(err, "encoding dimensions")
 	}
 	for i := range b {
@@ -667,7 +667,7 @@ func (s SubAlloc) Encode(w io.Writer) error {
 			err, "invalid sub-allocations cannot be encoded, got %v", s)
 	}
 	// encode ID and dimension
-	if err := perunio.Encode(w, IDMap(s.ID), Index(len(s.Bals))); err != nil { //nolint:gosec
+	if err := perunio.Encode(w, IDMap(s.ID), Index(len(s.Bals))); err != nil {
 		return errors.WithMessagef(
 			err, "encoding sub-allocation ID or dimension, id %v", s.ID)
 	}
@@ -679,7 +679,7 @@ func (s SubAlloc) Encode(w io.Writer) error {
 		}
 	}
 	// Encode IndexMap.
-	if err := perunio.Encode(w, Index(len(s.IndexMap))); err != nil { //nolint:gosec
+	if err := perunio.Encode(w, Index(len(s.IndexMap))); err != nil {
 		return errors.WithMessage(err, "encoding length of index map")
 	}
 	for i, x := range s.IndexMap {

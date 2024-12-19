@@ -67,7 +67,7 @@ func (c *Client) NewChannel(t require.TestingT, p map[wallet.BackendID]wire.Addr
 		c.ctx,
 		t,
 		c.pr,
-		channel.Index(idx), //nolint:gosec
+		channel.Index(idx),
 		peers,
 		parent,
 		c.rng)
