@@ -95,7 +95,7 @@ func TestApp_ValidTransition(t *testing.T) {
 			numParticipants := len(tt.from[0])
 			for i := 0; i < numParticipants; i++ {
 				// valid self-transition
-				assert.NoError(app.ValidTransition(nil, from, from, channel.Index(i)))
+				assert.NoError(app.ValidTransition(nil, from, from, channel.Index(i))) //nolint:gosec
 			}
 
 			for _, tto := range tt.tos {
@@ -105,7 +105,7 @@ func TestApp_ValidTransition(t *testing.T) {
 					test.WithBalances(asBalances(tto.alloc...)...),
 				)
 				for i := 0; i < numParticipants; i++ {
-					err := app.ValidTransition(nil, from, to, channel.Index(i))
+					err := app.ValidTransition(nil, from, to, channel.Index(i)) //nolint:gosec
 					if i == tto.valid {
 						assert.NoError(err)
 					} else {

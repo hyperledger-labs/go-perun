@@ -125,7 +125,7 @@ func newRandomMsgChannelUpdate(rng *rand.Rand) *client.ChannelUpdateMsg {
 	return &client.ChannelUpdateMsg{
 		ChannelUpdate: client.ChannelUpdate{
 			State:    state,
-			ActorIdx: channel.Index(rng.Intn(state.NumParts())),
+			ActorIdx: channel.Index(rng.Intn(state.NumParts())), //nolint:gosec
 		},
 		Sig: sig,
 	}

@@ -53,7 +53,7 @@ func (a *Asset) UnmarshalBinary(data []byte) error {
 	if len(data) != assetLen {
 		return fmt.Errorf("unexpected length %d, want %d", len(data), assetLen) //nolint:goerr113  // We do not want to define this as constant error.
 	}
-	a.ID = int64(byteOrder.Uint64(data))
+	a.ID = int64(byteOrder.Uint64(data)) //nolint:gosec
 	return nil
 }
 

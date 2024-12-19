@@ -142,6 +142,9 @@ func ToParams(protoParams *Params) (*channel.Params, error) {
 func ToState(protoState *State) (state *channel.State, err error) {
 	state = &channel.State{}
 	state.ID, err = ToIDs(protoState.Id)
+	if err != nil {
+		return nil, errors.WithMessage(err, "id")
+	}
 	state.Version = protoState.Version
 	state.IsFinal = protoState.IsFinal
 	allocation, err := ToAllocation(protoState.Allocation)

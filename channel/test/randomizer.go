@@ -269,7 +269,7 @@ func NewRandomChannelID(rng *rand.Rand, opts ...RandomOpt) (id map[wallet.Backen
 		for _, b := range bIds {
 			cId := [32]byte{}
 			rng.Read(cId[:])
-			id[wallet.BackendID(b)] = cId
+			id[b] = cId
 		}
 		return
 	}
@@ -281,7 +281,7 @@ func NewRandomChannelID(rng *rand.Rand, opts ...RandomOpt) (id map[wallet.Backen
 	} else {
 		cId := [32]byte{}
 		rng.Read(cId[:])
-		id[wallet.BackendID(bId)] = cId
+		id[bId] = cId
 	}
 	return
 }
@@ -299,7 +299,7 @@ func NewRandomChannelIDs(rng *rand.Rand, n int) (ids []map[wallet.BackendID]chan
 func NewRandomIndexMap(rng *rand.Rand, numParts int, numPartsParent int) (m []channel.Index) {
 	m = make([]channel.Index, numParts)
 	for i := range m {
-		m[i] = channel.Index(rng.Intn(numPartsParent))
+		m[i] = channel.Index(rng.Intn(numPartsParent)) //nolint:gosec
 	}
 	return
 }

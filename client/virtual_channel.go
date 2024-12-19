@@ -185,7 +185,7 @@ func (c *Client) persistVirtualChannel(ctx context.Context, parent *Channel, pee
 	}
 
 	for i, sig := range sigs {
-		err = ch.machine.AddSig(ctx, channel.Index(i), sig)
+		err = ch.machine.AddSig(ctx, channel.Index(i), sig) //nolint:gosec
 		if err != nil {
 			return nil, err
 		}
@@ -223,7 +223,7 @@ func (c *Channel) pushVirtualUpdate(ctx context.Context, state *channel.State, s
 	}
 
 	for i, sig := range sigs {
-		idx := channel.Index(i)
+		idx := channel.Index(i) //nolint:gosec
 		if err := m.AddSig(ctx, idx, sig); err != nil {
 			return err
 		}

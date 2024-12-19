@@ -228,7 +228,7 @@ func (b *MockBackend) Progress(_ context.Context, req channel.ProgressReq) error
 	b.mu.Lock()
 	defer b.mu.Unlock()
 
-	timeout := time.Now().Add(time.Duration(req.Params.ChallengeDuration) * time.Millisecond)
+	timeout := time.Now().Add(time.Duration(req.Params.ChallengeDuration) * time.Millisecond) //nolint:gosec
 	b.setLatestEvent(
 		req.Params.ID(),
 		channel.NewProgressedEvent(

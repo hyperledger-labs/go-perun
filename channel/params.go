@@ -112,14 +112,14 @@ func (ids *IDMap) Decode(r stdio.Reader) error {
 
 func IDKey(ids IDMap) string {
 	var buff strings.Builder
-	length := int32(len(ids))                            //nolint:gosec
-	err := binary.Write(&buff, binary.BigEndian, length) //nolint:gosec
+	length := int32(len(ids)) //nolint:gosec
+	err := binary.Write(&buff, binary.BigEndian, length)
 	if err != nil {
 		log.Panic("could not encode map length in Key: ", err)
 	}
 	sortedKeys, sortedIDs := sortIDMap(ids)
 	for i, id := range sortedIDs {
-		if err := binary.Write(&buff, binary.BigEndian, int32(sortedKeys[i])); err != nil {
+		if err := binary.Write(&buff, binary.BigEndian, int32(sortedKeys[i])); err != nil { //nolint:gosec
 			log.Panicf("could not encode map key: " + err.Error())
 		}
 		if err := perunio.Encode(&buff, id); err != nil {

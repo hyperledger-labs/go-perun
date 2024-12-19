@@ -33,7 +33,7 @@ type (
 
 // Encode encodes the object to the writer.
 func (a channelIDsWithLen) Encode(w io.Writer) (err error) {
-	length := int32(len(a))
+	length := int32(len(a)) //nolint:gosec
 	if err := perunio.Encode(w, length); err != nil {
 		return errors.WithMessage(err, "encoding array length")
 	}
@@ -62,7 +62,7 @@ func (a *channelIDsWithLen) Decode(r io.Reader) (err error) {
 
 // Encode encodes the object to the writer.
 func (a indexMapsWithLen) Encode(w io.Writer) (err error) {
-	err = perunio.Encode(w, sliceLen(len(a)))
+	err = perunio.Encode(w, sliceLen(len(a))) //nolint:gosec
 	if err != nil {
 		return
 	}
@@ -94,7 +94,7 @@ func (a *indexMapsWithLen) Decode(r io.Reader) (err error) {
 
 // Encode encodes the object to the writer.
 func (a indexMapWithLen) Encode(w io.Writer) (err error) {
-	err = perunio.Encode(w, sliceLen(len(a)))
+	err = perunio.Encode(w, sliceLen(len(a))) //nolint:gosec
 	if err != nil {
 		return
 	}

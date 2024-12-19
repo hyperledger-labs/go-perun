@@ -104,7 +104,7 @@ func writeEnvelope(w io.Writer, env *Envelope) error {
 	if err != nil {
 		return errors.Wrap(err, "marshalling envelope")
 	}
-	if err := binary.Write(w, binary.BigEndian, uint16(len(data))); err != nil {
+	if err := binary.Write(w, binary.BigEndian, uint16(len(data))); err != nil { //nolint:gosec
 		return errors.Wrap(err, "writing length to wire")
 	}
 	_, err = w.Write(data)

@@ -76,6 +76,9 @@ func ToVirtualChannelProposalMsg(protoEnvMsg *Envelope_VirtualChannelProposalMsg
 	msg.Parents = make([]map[wallet.BackendID]channel.ID, len(protoMsg.Parents))
 	for i := range protoMsg.Parents {
 		msg.Parents[i], err = ToIDs(protoMsg.Parents[i])
+		if err != nil {
+			return nil, err
+		}
 	}
 	msg.IndexMaps = make([][]channel.Index, len(protoMsg.IndexMaps))
 	for i := range protoMsg.IndexMaps {
@@ -200,7 +203,7 @@ func ToIDs(protoID *ID) (map[wallet.BackendID]channel.ID, error) {
 		if err := binary.Read(bytes.NewReader(protoID.IdMapping[i].Key), binary.BigEndian, &k); err != nil {
 			return nil, fmt.Errorf("failed to read key: %w", err)
 		}
-		if len(protoID.IdMapping[i].Id) != 32 {
+		if len(protoID.IdMapping[i].Id) != 32 { //nolint:gomnd
 			return nil, fmt.Errorf("id has incorrect length")
 		}
 		id := channel.ID{}
@@ -272,7 +275,7 @@ func ToIntSlice(backends [][]byte) ([]wallet.BackendID, error) {
 	ints := make([]wallet.BackendID, len(backends))
 
 	for i, backend := range backends {
-		if len(backend) != 4 {
+		if len(backend) != 4 { //nolint:gomnd
 			return nil, fmt.Errorf("backend %d length is not 4 bytes", i)
 		}
 
@@ -337,7 +340,9 @@ func ToSubAlloc(protoSubAlloc *SubAlloc) (subAlloc channel.SubAlloc, err error) 
 	subAlloc = channel.SubAlloc{}
 	subAlloc.Bals = ToBalance(protoSubAlloc.Bals)
 	subAlloc.ID, err = ToIDs(protoSubAlloc.Id)
-
+	if err != nil {
+		return subAlloc, err
+	}
 	subAlloc.IndexMap, err = ToIndexMap(protoSubAlloc.IndexMap.IndexMap)
 	return subAlloc, err
 }
@@ -374,6 +379,9 @@ func FromLedgerChannelProposalMsg(msg *client.LedgerChannelProposalMsg) (_ *Enve
 func FromSubChannelProposalMsg(msg *client.SubChannelProposalMsg) (_ *Envelope_SubChannelProposalMsg, err error) {
 	protoMsg := &SubChannelProposalMsg{}
 	protoMsg.Parent, err = FromIDs(msg.Parent)
+	if err != nil {
+		return nil, err
+	}
 	protoMsg.BaseChannelProposal, err = FromBaseChannelProposal(msg.BaseChannelProposal)
 	return &Envelope_SubChannelProposalMsg{protoMsg}, err
 }
@@ -393,6 +401,9 @@ func FromVirtualChannelProposalMsg(msg *client.VirtualChannelProposalMsg) (_ *En
 	protoMsg.Parents = make([]*ID, len(msg.Parents))
 	for i := range msg.Parents {
 		protoMsg.Parents[i], err = FromIDs(msg.Parents[i])
+		if err != nil {
+			return nil, errors.WithMessage(err, "fromIDs")
+		}
 	}
 	protoMsg.IndexMaps = make([]*IndexMap, len(msg.IndexMaps))
 	for i := range msg.IndexMaps {
@@ -439,11 +450,11 @@ func FromChannelProposalRejMsg(msg *client.ChannelProposalRejMsg) (_ *Envelope_C
 
 // FromWalletAddr converts a wallet.Address to a protobuf wallet address.
 func FromWalletAddr(addr map[wallet.BackendID]wallet.Address) (*Address, error) {
-	var addressMappings []*AddressMapping
+	var addressMappings []*AddressMapping //nolint:prealloc
 
 	for key, address := range addr {
-		keyBytes := make([]byte, 4)
-		binary.BigEndian.PutUint32(keyBytes, uint32(key))
+		keyBytes := make([]byte, 4)                       //nolint:gomnd
+		binary.BigEndian.PutUint32(keyBytes, uint32(key)) //nolint:gosec
 
 		addressBytes, err := address.MarshalBinary()
 		if err != nil {
@@ -463,11 +474,11 @@ func FromWalletAddr(addr map[wallet.BackendID]wallet.Address) (*Address, error) 
 
 // FromWireAddr converts a wallet.Address to a protobuf wire address.
 func FromWireAddr(addr map[wallet.BackendID]wire.Address) (*Address, error) {
-	var addressMappings []*AddressMapping
+	var addressMappings []*AddressMapping //nolint:prealloc
 
 	for key, address := range addr {
-		keyBytes := make([]byte, 4)
-		binary.BigEndian.PutUint32(keyBytes, uint32(key))
+		keyBytes := make([]byte, 4)                       //nolint:gomnd
+		binary.BigEndian.PutUint32(keyBytes, uint32(key)) //nolint:gosec
 
 		addressBytes, err := address.MarshalBinary()
 		if err != nil {
@@ -511,13 +522,13 @@ func FromWireAddrs(addrs []map[wallet.BackendID]wire.Address) (protoAddrs []*Add
 
 // FromIDs converts a map[int]channel.ID to a protobuf ID.
 func FromIDs(ids map[wallet.BackendID]channel.ID) (*ID, error) {
-	var idMappings []*IDMapping
+	var idMappings []*IDMapping //nolint:prealloc
 
 	for key, id := range ids {
-		keyBytes := make([]byte, 4)
-		binary.BigEndian.PutUint32(keyBytes, uint32(key))
+		keyBytes := make([]byte, 4)                       //nolint:gomnd
+		binary.BigEndian.PutUint32(keyBytes, uint32(key)) //nolint:gosec
 
-		idBytes := make([]byte, 32)
+		idBytes := make([]byte, 32) //nolint:gomnd
 		copy(idBytes, id[:])
 
 		idMappings = append(idMappings, &IDMapping{
@@ -593,7 +604,7 @@ func FromAllocation(alloc channel.Allocation) (protoAlloc *Allocation, err error
 	protoAlloc.Backends = make([][]byte, len(alloc.Backends))
 	for i := range alloc.Backends {
 		protoAlloc.Backends[i] = make([]byte, 4)
-		binary.BigEndian.PutUint32(protoAlloc.Backends[i], uint32(alloc.Backends[i]))
+		binary.BigEndian.PutUint32(protoAlloc.Backends[i], uint32(alloc.Backends[i])) //nolint:gosec
 	}
 	protoAlloc.Assets = make([][]byte, len(alloc.Assets))
 	for i := range alloc.Assets {
@@ -648,6 +659,9 @@ func FromBalance(balance []channel.Bal) (protoBalance *Balance, err error) {
 func FromSubAlloc(subAlloc channel.SubAlloc) (protoSubAlloc *SubAlloc, err error) {
 	protoSubAlloc = &SubAlloc{}
 	protoSubAlloc.Id, err = FromIDs(subAlloc.ID)
+	if err != nil {
+		return nil, errors.WithMessage(err, "fromIDs")
+	}
 	protoSubAlloc.IndexMap = &IndexMap{IndexMap: FromIndexMap(subAlloc.IndexMap)}
 	protoSubAlloc.Bals, err = FromBalance(subAlloc.Bals)
 	return protoSubAlloc, err

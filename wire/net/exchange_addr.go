@@ -82,8 +82,10 @@ func ExchangeAddrsActive(ctx context.Context, id map[wallet.BackendID]wire.Accou
 			err = errors.WithMessage(err, "receiving message")
 		} else if _, ok := e.Msg.(*wire.AuthResponseMsg); !ok {
 			err = errors.Errorf("expected AuthResponse wire msg, got %v", e.Msg.Type())
-		} else if check := VerifyAddressSignature(peer, e.Msg.(*wire.AuthResponseMsg).Signature); check != nil {
-			err = errors.WithMessage(err, "verifying peer address's signature")
+		} else if msg, ok := e.Msg.(*wire.AuthResponseMsg); ok {
+			if check := VerifyAddressSignature(peer, msg.Signature); check != nil {
+				err = errors.WithMessage(check, "verifying peer address's signature")
+			}
 		} else if !test.EqualWireMaps(e.Recipient, wire.AddressMapfromAccountMap(id)) &&
 			!test.EqualWireMaps(e.Sender, peer) {
 			err = NewAuthenticationError(e.Sender, e.Recipient, wire.AddressMapfromAccountMap(id), "unmatched response sender or recipient")
@@ -112,8 +114,10 @@ func ExchangeAddrsPassive(ctx context.Context, id map[wallet.BackendID]wire.Acco
 			err = errors.Errorf("expected AuthResponse wire msg, got %v", e.Msg.Type())
 		} else if !test.EqualWireMaps(e.Recipient, addrs) {
 			err = NewAuthenticationError(e.Sender, e.Recipient, wire.AddressMapfromAccountMap(id), "unmatched response sender or recipient")
-		} else if err = VerifyAddressSignature(e.Sender, e.Msg.(*wire.AuthResponseMsg).Signature); err != nil {
-			err = errors.WithMessage(err, "verifying peer address's signature")
+		} else if msg, ok := e.Msg.(*wire.AuthResponseMsg); ok {
+			if err = VerifyAddressSignature(e.Sender, msg.Signature); err != nil {
+				err = errors.WithMessage(err, "verifying peer address's signature")
+			}
 		}
 
 		if err != nil {

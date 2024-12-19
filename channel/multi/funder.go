@@ -62,7 +62,7 @@ func (f *Funder) SetEgoisticChain(l AssetID, id int, egoistic bool) {
 // channel. If any of the funder calls fails, the method returns an error.
 func (f *Funder) Fund(ctx context.Context, request channel.FundingReq) error {
 	// Define funding timeout.
-	d := time.Duration(request.Params.ChallengeDuration) * time.Second
+	d := time.Duration(request.Params.ChallengeDuration) * time.Second //nolint:gosec
 	ctx, cancel := context.WithTimeout(ctx, d)
 	defer cancel()
 
