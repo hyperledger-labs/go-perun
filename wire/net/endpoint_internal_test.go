@@ -17,11 +17,12 @@ package net
 import (
 	"context"
 	"math/rand"
-	"perun.network/go-perun/channel"
-	"perun.network/go-perun/wallet"
 	"sync"
 	"testing"
 	"time"
+
+	"perun.network/go-perun/channel"
+	"perun.network/go-perun/wallet"
 
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"

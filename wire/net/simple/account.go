@@ -19,8 +19,9 @@ import (
 	crypto_rand "crypto/rand"
 	"crypto/rsa"
 	"crypto/sha256"
-	"github.com/pkg/errors"
 	"math/rand"
+
+	"github.com/pkg/errors"
 	"perun.network/go-perun/wire"
 )
 

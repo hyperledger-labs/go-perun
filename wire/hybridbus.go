@@ -17,6 +17,7 @@ package wire
 import (
 	"context"
 	"fmt"
+
 	"perun.network/go-perun/wallet"
 
 	"polycry.pt/poly-go/errors"

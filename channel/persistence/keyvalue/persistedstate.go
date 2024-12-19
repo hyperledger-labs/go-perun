@@ -16,6 +16,7 @@ package keyvalue
 
 import (
 	"io"
+
 	"perun.network/go-perun/wallet"
 
 	"perun.network/go-perun/channel"

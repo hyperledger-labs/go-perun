@@ -19,10 +19,11 @@ import (
 	"context"
 	"fmt"
 	"math"
-	"perun.network/go-perun/wallet"
 	"regexp"
 	"strconv"
 	"strings"
+
+	"perun.network/go-perun/wallet"
 
 	"github.com/pkg/errors"
 

@@ -17,8 +17,9 @@ package client_test
 import (
 	"context"
 	"math/big"
-	"perun.network/go-perun/wallet"
 	"testing"
+
+	"perun.network/go-perun/wallet"
 
 	"perun.network/go-perun/apps/payment"
 	chtest "perun.network/go-perun/channel/test"

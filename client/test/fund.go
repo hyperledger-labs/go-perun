@@ -19,8 +19,9 @@ import (
 	"errors"
 	"math/big"
 	"math/rand"
-	"perun.network/go-perun/wallet"
 	"testing"
+
+	"perun.network/go-perun/wallet"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"

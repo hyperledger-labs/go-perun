@@ -18,6 +18,7 @@ import (
 	"encoding/binary"
 	"fmt"
 	"io"
+
 	"perun.network/go-perun/wallet"
 
 	"github.com/pkg/errors"

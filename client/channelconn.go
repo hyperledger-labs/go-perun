@@ -16,6 +16,7 @@ package client
 
 import (
 	"context"
+
 	"github.com/pkg/errors"
 	"golang.org/x/sync/errgroup"
 	"perun.network/go-perun/wallet"

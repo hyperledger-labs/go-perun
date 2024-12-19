@@ -22,10 +22,11 @@ import (
 	"context"
 	"math/rand"
 	"net"
-	"perun.network/go-perun/channel"
 	"sync"
 	"testing"
 	"time"
+
+	"perun.network/go-perun/channel"
 
 	"github.com/stretchr/testify/assert"
 

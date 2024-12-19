@@ -25,9 +25,10 @@ import (
 	"fmt"
 	"math/big"
 	"net"
-	"perun.network/go-perun/wallet"
 	"testing"
 	"time"
+
+	"perun.network/go-perun/wallet"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"

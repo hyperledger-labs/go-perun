@@ -19,8 +19,9 @@ import (
 	"errors"
 	"io"
 	"math/big"
-	"perun.network/go-perun/wallet"
 	"time"
+
+	"perun.network/go-perun/wallet"
 
 	"perun.network/go-perun/channel"
 	"perun.network/go-perun/client"

@@ -18,9 +18,10 @@ import (
 	"context"
 	"crypto/tls"
 	"net"
-	"perun.network/go-perun/wallet"
 	"sync"
 	"time"
+
+	"perun.network/go-perun/wallet"
 
 	"github.com/pkg/errors"
 	"perun.network/go-perun/wire"

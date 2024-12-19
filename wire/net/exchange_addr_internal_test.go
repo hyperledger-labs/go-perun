@@ -16,9 +16,10 @@ package net
 
 import (
 	"context"
-	"perun.network/go-perun/channel"
 	"sync"
 	"testing"
+
+	"perun.network/go-perun/channel"
 
 	"github.com/stretchr/testify/assert"
 

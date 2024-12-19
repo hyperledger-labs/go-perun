@@ -18,9 +18,10 @@ import (
 	"context"
 	"math/big"
 	"math/rand"
-	"perun.network/go-perun/wallet"
 	"testing"
 	"time"
+
+	"perun.network/go-perun/wallet"
 
 	"perun.network/go-perun/apps/payment"
 	chtest "perun.network/go-perun/channel/test"

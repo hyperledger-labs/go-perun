@@ -16,8 +16,9 @@ package channel
 
 import (
 	"encoding"
-	"github.com/pkg/errors"
 	"io"
+
+	"github.com/pkg/errors"
 
 	"perun.network/go-perun/wire/perunio"
 )

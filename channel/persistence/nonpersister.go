@@ -16,6 +16,7 @@ package persistence
 
 import (
 	"context"
+
 	"perun.network/go-perun/wallet"
 
 	"github.com/pkg/errors"

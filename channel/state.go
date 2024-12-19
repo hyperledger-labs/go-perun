@@ -17,6 +17,7 @@ package channel
 import (
 	"encoding"
 	"io"
+
 	"perun.network/go-perun/wallet"
 	"perun.network/go-perun/wire"
 

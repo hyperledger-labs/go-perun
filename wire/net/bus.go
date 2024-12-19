@@ -16,9 +16,10 @@ package net
 
 import (
 	"context"
-	"perun.network/go-perun/wallet"
 	"sync"
 	"time"
+
+	"perun.network/go-perun/wallet"
 
 	"github.com/pkg/errors"
 

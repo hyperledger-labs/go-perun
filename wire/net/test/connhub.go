@@ -15,8 +15,9 @@
 package test
 
 import (
-	"perun.network/go-perun/wallet"
 	gosync "sync"
+
+	"perun.network/go-perun/wallet"
 
 	"github.com/pkg/errors"
 

@@ -16,8 +16,9 @@ package channel
 
 import (
 	"fmt"
-	"github.com/pkg/errors"
 	stdio "io"
+
+	"github.com/pkg/errors"
 
 	"perun.network/go-perun/log"
 	"perun.network/go-perun/wallet"

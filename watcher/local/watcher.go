@@ -17,8 +17,9 @@ package local
 import (
 	"context"
 	stderrors "errors"
-	"perun.network/go-perun/wallet"
 	"time"
+
+	"perun.network/go-perun/wallet"
 
 	"github.com/pkg/errors"
 

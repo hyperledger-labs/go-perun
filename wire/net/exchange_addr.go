@@ -17,6 +17,7 @@ package net
 import (
 	"context"
 	"fmt"
+
 	"perun.network/go-perun/channel/persistence/test"
 	"perun.network/go-perun/wallet"
 

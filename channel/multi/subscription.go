@@ -16,6 +16,7 @@ package multi
 
 import (
 	"context"
+
 	"perun.network/go-perun/channel"
 	"perun.network/go-perun/wallet"
 )

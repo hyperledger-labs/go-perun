@@ -16,8 +16,9 @@ package channel
 
 import (
 	"errors"
-	"perun.network/go-perun/wallet"
 	"testing"
+
+	"perun.network/go-perun/wallet"
 
 	"github.com/stretchr/testify/assert"
 )

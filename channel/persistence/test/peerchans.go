@@ -17,6 +17,7 @@ package test
 import (
 	"bytes"
 	"fmt"
+
 	"perun.network/go-perun/wallet"
 
 	"perun.network/go-perun/channel"

@@ -16,6 +16,7 @@ package watcher
 
 import (
 	"context"
+
 	"perun.network/go-perun/wallet"
 
 	"perun.network/go-perun/channel"

@@ -18,10 +18,11 @@ import (
 	"context"
 	"fmt"
 	"math/rand"
-	"perun.network/go-perun/wallet"
 	"sync"
 	"testing"
 	"time"
+
+	"perun.network/go-perun/wallet"
 
 	"github.com/stretchr/testify/assert"
 	testifyMock "github.com/stretchr/testify/mock"

@@ -15,7 +15,7 @@
 package wallet
 
 import (
-	"errors"
+	"fmt"
 	"io"
 )
 
@@ -60,22 +60,15 @@ func NewAddress(id BackendID) Address {
 
 // DecodeSig calls DecodeSig of all Backends and returns an error if none return a valid signature.
 func DecodeSig(r io.Reader) (Sig, error) {
-	var errs []error
+	var err error
 	for _, b := range backend {
 		sig, err := b.DecodeSig(r)
 		if err == nil {
 			return sig, nil
-		} else {
-			errs = append(errs, err)
 		}
 	}
 
-	if len(errs) > 0 {
-		// Join all errors into a single error message.
-		return nil, errors.Join(errs...)
-	}
-
-	return nil, errors.New("no valid signature found")
+	return nil, fmt.Errorf("no valid signature found: %v", err)
 }
 
 // VerifySignature calls VerifySignature of the current backend.

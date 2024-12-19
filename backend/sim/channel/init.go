@@ -16,6 +16,7 @@ package channel
 
 import (
 	"math/rand"
+
 	"perun.network/go-perun/channel"
 	"perun.network/go-perun/channel/test"
 )

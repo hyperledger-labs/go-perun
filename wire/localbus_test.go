@@ -15,8 +15,9 @@
 package wire_test
 
 import (
-	"perun.network/go-perun/wallet"
 	"testing"
+
+	"perun.network/go-perun/wallet"
 
 	. "perun.network/go-perun/wire"
 	"perun.network/go-perun/wire/test"

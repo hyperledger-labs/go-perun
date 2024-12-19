@@ -17,8 +17,9 @@ package test
 import (
 	"context"
 	"net"
-	"perun.network/go-perun/wallet"
 	"sync/atomic"
+
+	"perun.network/go-perun/wallet"
 
 	"github.com/pkg/errors"
 

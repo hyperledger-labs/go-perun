@@ -17,9 +17,10 @@ package test
 import (
 	"fmt"
 	"math/big"
-	"perun.network/go-perun/wallet"
 	"testing"
 	"time"
+
+	"perun.network/go-perun/wallet"
 
 	"perun.network/go-perun/channel"
 	"perun.network/go-perun/client"

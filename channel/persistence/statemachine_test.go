@@ -16,9 +16,10 @@ package persistence_test
 
 import (
 	"context"
-	"perun.network/go-perun/wallet"
 	"testing"
 	"time"
+
+	"perun.network/go-perun/wallet"
 
 	"github.com/stretchr/testify/require"
 

@@ -16,8 +16,9 @@ package wire
 
 import (
 	"context"
-	"perun.network/go-perun/wallet"
 	"sync"
+
+	"perun.network/go-perun/wallet"
 
 	"github.com/pkg/errors"
 

@@ -17,6 +17,7 @@ package channel
 import (
 	"encoding/binary"
 	"fmt"
+
 	"perun.network/go-perun/wallet"
 
 	"github.com/pkg/errors"

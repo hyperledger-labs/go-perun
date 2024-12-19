@@ -17,6 +17,7 @@ package persistence
 import (
 	"context"
 	"io"
+
 	"perun.network/go-perun/wallet"
 
 	"perun.network/go-perun/channel"

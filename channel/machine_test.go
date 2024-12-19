@@ -15,8 +15,9 @@
 package channel_test
 
 import (
-	"perun.network/go-perun/wallet"
 	"testing"
+
+	"perun.network/go-perun/wallet"
 
 	"github.com/stretchr/testify/require"
 	"perun.network/go-perun/channel"

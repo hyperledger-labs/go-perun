@@ -18,9 +18,10 @@ import (
 	"context"
 	"math/big"
 	"math/rand"
-	"perun.network/go-perun/wallet"
 	"testing"
 	"time"
+
+	"perun.network/go-perun/wallet"
 
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"

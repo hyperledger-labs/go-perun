@@ -16,6 +16,7 @@ package channel
 
 import (
 	"errors"
+
 	"perun.network/go-perun/wallet"
 )
 

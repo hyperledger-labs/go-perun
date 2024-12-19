@@ -16,10 +16,11 @@ package net_test
 
 import (
 	"context"
-	"perun.network/go-perun/channel"
-	"perun.network/go-perun/wallet"
 	"testing"
 	"time"
+
+	"perun.network/go-perun/channel"
+	"perun.network/go-perun/wallet"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"

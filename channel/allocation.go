@@ -19,6 +19,7 @@ import (
 	"io"
 	"log"
 	"math/big"
+
 	"perun.network/go-perun/wallet"
 
 	"perun.network/go-perun/wire/perunio"

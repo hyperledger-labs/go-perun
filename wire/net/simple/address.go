@@ -22,6 +22,7 @@ import (
 	"encoding/binary"
 	"math/big"
 	"math/rand"
+
 	"perun.network/go-perun/wallet"
 
 	"perun.network/go-perun/wire"

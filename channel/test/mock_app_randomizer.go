@@ -16,6 +16,7 @@ package test
 
 import (
 	"math/rand"
+
 	"perun.network/go-perun/wallet"
 
 	"github.com/google/uuid"

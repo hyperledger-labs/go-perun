@@ -17,6 +17,7 @@ package multi
 import (
 	"context"
 	"fmt"
+
 	"perun.network/go-perun/channel"
 )
 

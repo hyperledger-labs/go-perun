@@ -17,8 +17,9 @@ package client
 import (
 	"context"
 	"log"
-	"perun.network/go-perun/wallet"
 	"time"
+
+	"perun.network/go-perun/wallet"
 
 	"github.com/pkg/errors"
 

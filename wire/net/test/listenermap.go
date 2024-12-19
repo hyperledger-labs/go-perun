@@ -15,9 +15,10 @@
 package test
 
 import (
+	"sync"
+
 	"perun.network/go-perun/channel/persistence/test"
 	"perun.network/go-perun/wallet"
-	"sync"
 
 	"github.com/pkg/errors"
 	"perun.network/go-perun/wire"

@@ -16,6 +16,7 @@ package payment
 
 import (
 	"math/rand"
+
 	"perun.network/go-perun/wallet"
 
 	"perun.network/go-perun/channel"

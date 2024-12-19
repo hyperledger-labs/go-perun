@@ -16,12 +16,13 @@ package net
 
 import (
 	"context"
-	"perun.network/go-perun/channel/persistence/test"
-	"perun.network/go-perun/wallet"
 	"sync"
 	"sync/atomic"
 	"time"
 	"unsafe"
+
+	"perun.network/go-perun/channel/persistence/test"
+	"perun.network/go-perun/wallet"
 
 	"github.com/pkg/errors"
 

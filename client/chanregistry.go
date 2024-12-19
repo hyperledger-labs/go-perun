@@ -15,8 +15,9 @@
 package client
 
 import (
-	"perun.network/go-perun/wallet"
 	"sync"
+
+	"perun.network/go-perun/wallet"
 
 	"perun.network/go-perun/channel"
 	psync "polycry.pt/poly-go/sync"
