@@ -208,7 +208,7 @@ func (w *Watcher) startWatching(
 		Sigs:  signedState.Sigs,
 	}
 	ch.Go(func() { ch.handleStatesFromClient(initialTx) })
-	ch.Go(func() { ch.handleEventsFromChain(w.rs, w.registry) }) //nolint:contextcheck
+	ch.Go(func() { ch.handleEventsFromChain(w.rs, w.registry) })
 
 	return statesPubSub, eventsToClientPubSub, nil
 }

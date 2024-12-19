@@ -38,7 +38,8 @@ func (a channelIDsWithLen) Encode(w io.Writer) (err error) {
 		return errors.WithMessage(err, "encoding array length")
 	}
 	for i, id := range a {
-		if err := perunio.Encode(w, (*channel.IDMap)(&id)); err != nil {
+		idCopy := id
+		if err := perunio.Encode(w, (*channel.IDMap)(&idCopy)); err != nil {
 			return errors.WithMessagef(err, "encoding %d-th id array entry", i)
 		}
 	}

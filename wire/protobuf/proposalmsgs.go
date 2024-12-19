@@ -603,7 +603,7 @@ func FromAllocation(alloc channel.Allocation) (protoAlloc *Allocation, err error
 	protoAlloc = &Allocation{}
 	protoAlloc.Backends = make([][]byte, len(alloc.Backends))
 	for i := range alloc.Backends {
-		protoAlloc.Backends[i] = make([]byte, 4)
+		protoAlloc.Backends[i] = make([]byte, 4)                                      //nolint:gomnd
 		binary.BigEndian.PutUint32(protoAlloc.Backends[i], uint32(alloc.Backends[i])) //nolint:gosec
 	}
 	protoAlloc.Assets = make([][]byte, len(alloc.Assets))

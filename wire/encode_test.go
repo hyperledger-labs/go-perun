@@ -25,7 +25,7 @@ import (
 	"polycry.pt/poly-go/test"
 )
 
-var nilDecoder = func(io.Reader) (wire.Msg, error) { return nil, nil } //nolint:nilnil
+var nilDecoder = func(io.Reader) (wire.Msg, error) { return nil, nil }
 
 func TestType_Valid_String(t *testing.T) {
 	test.OnlyOnce(t)
