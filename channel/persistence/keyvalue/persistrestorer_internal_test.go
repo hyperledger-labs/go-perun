@@ -16,7 +16,7 @@ package keyvalue
 
 import (
 	"context"
-	"io/ioutil"
+	"os"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -31,7 +31,7 @@ import (
 )
 
 func TestPersistRestorer_Generic(t *testing.T) {
-	tmpdir, err := ioutil.TempDir("", "perun-test-kvpersistrestorer-db-*")
+	tmpdir, err := os.MkdirTemp("", "perun-test-kvpersistrestorer-db-*")
 	require.NoError(t, err)
 	lvldb, err := leveldb.LoadDatabase(tmpdir)
 	require.NoError(t, err)
