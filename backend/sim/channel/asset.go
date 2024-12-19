@@ -65,3 +65,9 @@ func (a Asset) Equal(b channel.Asset) bool {
 	}
 	return a.ID == simAsset.ID
 }
+
+// Address returns the address of the asset.
+func (a Asset) Address() []byte {
+	data, _ := a.MarshalBinary()
+	return data
+}

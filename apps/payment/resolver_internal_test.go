@@ -32,7 +32,7 @@ func TestResolver(t *testing.T) {
 	rng := pkgtest.Prng(t)
 	assert, require := assert.New(t), require.New(t)
 
-	def := ctest.NewRandomAppID(rng)
+	def := ctest.NewRandomAppID(rng, 0)
 	channel.RegisterAppResolver(def.Equal, &Resolver{})
 
 	app, err := channel.Resolve(def)

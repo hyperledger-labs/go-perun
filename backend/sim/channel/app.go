@@ -48,5 +48,5 @@ func (id AppID) Key() channel.AppIDKey {
 // NewRandomAppID generates a new random app identifier.
 func NewRandomAppID(rng *rand.Rand) AppID {
 	addr := wallet.NewRandomAddress(rng)
-	return AppID{addr}
+	return AppID{Address: addr}
 }

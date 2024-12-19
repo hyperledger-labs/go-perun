@@ -21,6 +21,8 @@ import (
 	"math/rand"
 	"testing"
 
+	"perun.network/go-perun/wallet"
+
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"perun.network/go-perun/channel"
@@ -92,7 +94,7 @@ func runFredFridaTest(
 
 	clients := NewClients(t, rng, setups[:])
 	frida, fred := clients[fridaIdx], clients[fredIdx]
-	fridaWireAddr, fredWireAddr := frida.Identity.Address(), fred.Identity.Address()
+	fridaWireAddr, fredWireAddr := wire.AddressMapfromAccountMap(frida.Identity), wire.AddressMapfromAccountMap(fred.Identity)
 	fridaWalletAddr, fredWalletAddr := frida.WalletAddress, fred.WalletAddress
 
 	// Store client balances before running test.
@@ -111,11 +113,15 @@ func runFredFridaTest(
 		AlwaysAcceptChannelHandler(ctx, fredWalletAddr, chsFred, errsFred),
 		AlwaysRejectUpdateHandler(ctx, errsFred),
 	)
-
+	var bID wallet.BackendID
+	for i := range fridaWalletAddr {
+		bID = i
+		break
+	}
 	// Create the proposal.
-	initAlloc := channel.NewAllocation(numParts, asset)
+	initAlloc := channel.NewAllocation(numParts, []wallet.BackendID{bID}, asset)
 	initAlloc.SetAssetBalances(asset, []*big.Int{fridaInitBal, fredInitBal})
-	parts := []wire.Address{fridaWireAddr, fredWireAddr}
+	parts := []map[wallet.BackendID]wire.Address{fridaWireAddr, fredWireAddr}
 	prop, err := client.NewLedgerChannelProposal(
 		challengeDuration,
 		fridaWalletAddr,
@@ -126,6 +132,7 @@ func runFredFridaTest(
 
 	// Frida sends the proposal.
 	chFrida, err := frida.ProposeChannel(ctx, prop)
+	t.Log(err.Error())
 	require.IsType(t, &client.ChannelFundingError{}, err)
 	require.NotNil(t, chFrida)
 	// Frida settles the channel.

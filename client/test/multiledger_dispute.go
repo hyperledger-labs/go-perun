@@ -20,6 +20,8 @@ import (
 	"testing"
 	"time"
 
+	"perun.network/go-perun/wallet"
+
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -60,9 +62,11 @@ func TestMultiLedgerDispute(
 
 	// Establish ledger channel between Alice and Bob.
 
+	bID1 := wallet.BackendID(mlt.Asset1.AssetID().BackendID())
+	bID2 := wallet.BackendID(mlt.Asset2.AssetID().BackendID())
 	// Create channel proposal.
-	parts := []wire.Address{alice.WireAddress, bob.WireAddress}
-	initAlloc := channel.NewAllocation(len(parts), mlt.Asset1, mlt.Asset2)
+	parts := []map[wallet.BackendID]wire.Address{alice.WireAddress, bob.WireAddress}
+	initAlloc := channel.NewAllocation(len(parts), []wallet.BackendID{bID1, bID2}, mlt.Asset1, mlt.Asset2)
 	initAlloc.Balances = initBals
 	prop, err := client.NewLedgerChannelProposal(
 		challengeDuration,

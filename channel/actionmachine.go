@@ -33,7 +33,7 @@ type ActionMachine struct {
 }
 
 // NewActionMachine creates a new ActionMachine.
-func NewActionMachine(acc wallet.Account, params Params) (*ActionMachine, error) {
+func NewActionMachine(acc map[wallet.BackendID]wallet.Account, params Params) (*ActionMachine, error) {
 	app, ok := params.App.(ActionApp)
 	if !ok {
 		return nil, errors.New("app must be ActionApp")

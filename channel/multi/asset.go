@@ -24,6 +24,12 @@ type (
 	// Asset defines a multi-ledger asset.
 	Asset interface {
 		channel.Asset
+		AssetID() AssetID
+	}
+
+	// AssetID represents an asset identifier.
+	AssetID interface {
+		BackendID() uint32
 		LedgerID() LedgerID
 	}
 
@@ -39,19 +45,19 @@ type (
 )
 
 // LedgerIDs returns the identifiers of the associated ledgers.
-func (a assets) LedgerIDs() ([]LedgerID, error) {
-	ids := make(map[LedgerIDMapKey]LedgerID)
+func (a assets) LedgerIDs() ([]AssetID, error) {
+	ids := make(map[AssetIDKey]AssetID)
 	for _, asset := range a {
 		ma, ok := asset.(Asset)
 		if !ok {
-			return nil, fmt.Errorf("wrong asset type: expected multi.Asset, got %T", a)
+			return nil, fmt.Errorf("wrong asset type: expected Asset, got %T", asset)
 		}
 
-		id := ma.LedgerID()
-		ids[id.MapKey()] = id
-	}
+		assetID := ma.AssetID()
 
-	idsArray := make([]LedgerID, len(ids))
+		ids[AssetIDKey{BackendID: assetID.BackendID(), LedgerID: string(assetID.LedgerID().MapKey())}] = assetID
+	}
+	idsArray := make([]AssetID, len(ids))
 	i := 0
 	for _, v := range ids {
 		idsArray[i] = v
@@ -64,7 +70,7 @@ func (a assets) LedgerIDs() ([]LedgerID, error) {
 // IsMultiLedgerAssets returns whether the assets are from multiple ledgers.
 func IsMultiLedgerAssets(assets []channel.Asset) bool {
 	hasMulti := false
-	var id LedgerID
+	var id AssetID
 	for _, asset := range assets {
 		multiAsset, ok := asset.(Asset)
 		switch {
@@ -72,8 +78,8 @@ func IsMultiLedgerAssets(assets []channel.Asset) bool {
 			continue
 		case !hasMulti:
 			hasMulti = true
-			id = multiAsset.LedgerID()
-		case id.MapKey() != multiAsset.LedgerID().MapKey():
+			id = multiAsset.AssetID()
+		case id.LedgerID().MapKey() != multiAsset.AssetID().LedgerID().MapKey():
 			return true
 		}
 	}

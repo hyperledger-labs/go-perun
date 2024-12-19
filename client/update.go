@@ -33,7 +33,7 @@ import (
 // is unknown, an error is logged.
 //
 // This handler is dispatched from the Client.Handle routine.
-func (c *Client) handleChannelUpdate(uh UpdateHandler, p wire.Address, m ChannelUpdateProposal) {
+func (c *Client) handleChannelUpdate(uh UpdateHandler, p map[wallet.BackendID]wire.Address, m ChannelUpdateProposal) {
 	ch, ok := c.channels.Channel(m.Base().ID())
 	if !ok {
 		if !c.cacheVersion1Update(uh, p, m) {
@@ -42,10 +42,10 @@ func (c *Client) handleChannelUpdate(uh UpdateHandler, p wire.Address, m Channel
 		return
 	}
 	pidx := ch.Idx() ^ 1
-	ch.handleUpdateReq(pidx, m, uh) //nolint:contextcheck
+	ch.handleUpdateReq(pidx, m, uh)
 }
 
-func (c *Client) cacheVersion1Update(uh UpdateHandler, p wire.Address, m ChannelUpdateProposal) bool {
+func (c *Client) cacheVersion1Update(uh UpdateHandler, p map[wallet.BackendID]wire.Address, m ChannelUpdateProposal) bool {
 	c.version1Cache.mu.Lock()
 	defer c.version1Cache.mu.Unlock()
 
@@ -287,10 +287,10 @@ func (c *Channel) handleUpdateReq(
 	// Check whether we have an update related to a virtual channel.
 	switch prop := req.(type) {
 	case *VirtualChannelFundingProposalMsg:
-		client.handleVirtualChannelFundingProposal(c, prop, responder) //nolint:contextcheck
+		client.handleVirtualChannelFundingProposal(c, prop, responder)
 		return
 	case *VirtualChannelSettlementProposalMsg:
-		client.handleVirtualChannelSettlementProposal(c, prop, responder) //nolint:contextcheck
+		client.handleVirtualChannelSettlementProposal(c, prop, responder)
 		return
 	}
 

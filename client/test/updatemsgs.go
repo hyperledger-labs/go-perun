@@ -94,7 +94,7 @@ func channelUpdateAccSerializationTest(t *testing.T, serializerTest func(t *test
 	t.Helper()
 	rng := pkgtest.Prng(t)
 	for i := 0; i < 4; i++ {
-		sig := newRandomSig(rng)
+		sig := newRandomSig(rng, 0)
 		m := &client.ChannelUpdateAccMsg{
 			ChannelID: test.NewRandomChannelID(rng),
 			Version:   uint64(rng.Int63()),
@@ -121,7 +121,7 @@ func channelUpdateRejSerializationTest(t *testing.T, serializerTest func(t *test
 
 func newRandomMsgChannelUpdate(rng *rand.Rand) *client.ChannelUpdateMsg {
 	state := test.NewRandomState(rng)
-	sig := newRandomSig(rng)
+	sig := newRandomSig(rng, 0)
 	return &client.ChannelUpdateMsg{
 		ChannelUpdate: client.ChannelUpdate{
 			State:    state,
@@ -133,8 +133,8 @@ func newRandomMsgChannelUpdate(rng *rand.Rand) *client.ChannelUpdateMsg {
 
 // newRandomSig generates a random account and then returns the signature on
 // some random data.
-func newRandomSig(rng *rand.Rand) wallet.Sig {
-	acc := wallettest.NewRandomAccount(rng)
+func newRandomSig(rng *rand.Rand, bID wallet.BackendID) wallet.Sig {
+	acc := wallettest.NewRandomAccount(rng, bID)
 	maxLenOfData := 256
 	data := make([]byte, rng.Intn(maxLenOfData))
 	rng.Read(data)
@@ -149,7 +149,7 @@ func newRandomSig(rng *rand.Rand) wallet.Sig {
 func newRandomSigs(rng *rand.Rand, n int) (a []wallet.Sig) {
 	a = make([]wallet.Sig, n)
 	for i := range a {
-		a[i] = newRandomSig(rng)
+		a[i] = newRandomSig(rng, 0)
 	}
 	return
 }

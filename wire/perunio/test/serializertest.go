@@ -46,6 +46,7 @@ func genericDecodeEncodeTest(t *testing.T, serializers ...perunio.Serializer) {
 			}
 			w.Close()
 		}()
+		t.Log("v: ", v)
 
 		dest := reflect.New(reflect.TypeOf(v).Elem())
 		err := perunio.Decode(br, dest.Interface().(perunio.Serializer))

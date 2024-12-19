@@ -20,6 +20,8 @@ import (
 	"math/rand"
 	"testing"
 
+	"perun.network/go-perun/wallet"
+
 	chtest "perun.network/go-perun/channel/test"
 	"perun.network/go-perun/client"
 	ctest "perun.network/go-perun/client/test"
@@ -32,7 +34,7 @@ func TestPaymentHappy(t *testing.T) {
 	defer cancel()
 
 	runAliceBobTest(ctx, t, func(rng *rand.Rand) ([]ctest.RoleSetup, [2]ctest.Executer) {
-		setups := NewSetups(rng, []string{"Alice", "Bob"})
+		setups := NewSetups(rng, []string{"Alice", "Bob"}, 0)
 		roles := [2]ctest.Executer{
 			ctest.NewAlice(t, setups[0]),
 			ctest.NewBob(t, setups[1]),
@@ -47,7 +49,7 @@ func TestPaymentDispute(t *testing.T) {
 	defer cancel()
 
 	const mallory, carol = 0, 1 // Indices of Mallory and Carol
-	setups := NewSetups(rng, []string{"Mallory", "Carol"})
+	setups := NewSetups(rng, []string{"Mallory", "Carol"}, 0)
 	roles := [2]ctest.Executer{
 		ctest.NewMallory(t, setups[0]),
 		ctest.NewCarol(t, setups[1]),
@@ -55,8 +57,9 @@ func TestPaymentDispute(t *testing.T) {
 
 	cfg := &ctest.MalloryCarolExecConfig{
 		BaseExecConfig: ctest.MakeBaseExecConfig(
-			[2]wire.Address{setups[mallory].Identity.Address(), setups[carol].Identity.Address()},
-			chtest.NewRandomAsset(rng),
+			[2]map[wallet.BackendID]wire.Address{wire.AddressMapfromAccountMap(setups[mallory].Identity), wire.AddressMapfromAccountMap(setups[carol].Identity)},
+			chtest.NewRandomAsset(rng, 0),
+			0,
 			[2]*big.Int{big.NewInt(100), big.NewInt(1)},
 			client.WithoutApp(),
 		),
