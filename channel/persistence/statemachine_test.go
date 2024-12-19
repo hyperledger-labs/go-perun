@@ -76,7 +76,7 @@ func TestStateMachine(t *testing.T) {
 				sig, err = channel.Sign(acc, csm.StagingState(), b)
 				require.NoError(err)
 			}
-			err = sm.AddSig(ctx, channel.Index(i), sig) //nolint:gosec
+			err = sm.AddSig(ctx, channel.Index(i), sig)
 			require.NoError(err)
 			tpr.AssertEqual(csm)
 		}
@@ -152,7 +152,7 @@ func TestStateMachine(t *testing.T) {
 
 	// Set Progressed
 	timeout := ctest.NewRandomTimeout(rng)
-	idx := channel.Index(rng.Intn(s.NumParts())) //nolint:gosec
+	idx := channel.Index(rng.Intn(s.NumParts()))
 	e := channel.NewProgressedEvent(s.ID[0], timeout, s, idx)
 	err = sm.SetProgressed(ctx, e)
 	require.NoError(err)

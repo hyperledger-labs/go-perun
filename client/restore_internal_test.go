@@ -120,7 +120,7 @@ func mkRndChan(rng *rand.Rand, bID wallet.BackendID) *persistence.Channel {
 		parts[i] = map[wallet.BackendID]wallet.Address{bID: wallettest.NewRandomAccount(rng, bID).Address()}
 	}
 	ch := persistence.NewChannel()
-	ch.IdxV = channel.Index(rng.Intn(channel.MaxNumParts)) //nolint:gosec
+	ch.IdxV = channel.Index(rng.Intn(channel.MaxNumParts))
 	ch.ParamsV = test.NewRandomParams(rng, test.WithParts(parts))
 	sigs := make([]bool, channel.MaxNumParts)
 	opts := test.WithParams(ch.ParamsV)
