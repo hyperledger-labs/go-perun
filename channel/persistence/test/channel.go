@@ -194,7 +194,7 @@ func (c *Channel) SignAll(ctx context.Context, t require.TestingT) {
 	for i := range c.accounts {
 		sig, err := channel.Sign(c.accounts[i][0], c.StagingState(), 0)
 		require.NoError(t, err)
-		c.AddSig(ctx, channel.Index(i), sig) //nolint:errcheck
+		c.AddSig(ctx, channel.Index(i), sig) //nolint:errcheck, gosec
 		c.AssertPersisted(ctx, t)
 	}
 }

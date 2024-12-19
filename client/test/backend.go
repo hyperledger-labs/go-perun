@@ -42,6 +42,7 @@ type (
 		id           multi.AssetID
 	}
 
+	// AssetID is the unique asset identifier.
 	AssetID struct {
 		backendID uint32
 		ledgerID  LedgerID
@@ -188,7 +189,7 @@ func (b *MockBackend) Register(_ context.Context, req channel.AdjudicatorReq, su
 		},
 	}, subChannels...)
 
-	timeout := time.Now().Add(time.Duration(req.Params.ChallengeDuration) * time.Millisecond)
+	timeout := time.Now().Add(time.Duration(req.Params.ChallengeDuration) * time.Millisecond) //nolint:gosec
 	for _, ch := range channels {
 		b.setLatestEvent(
 			ch.Params.ID(),
@@ -558,7 +559,7 @@ func (f *assetHolder) Fund(req channel.FundingReq, b *MockBackend, acc wallet.Ad
 
 // WaitForFunding waits until all participants have funded the channel.
 func (f *assetHolder) WaitForFunding(ctx context.Context, req channel.FundingReq) error {
-	challengeDuration := time.Duration(req.Params.ChallengeDuration) * time.Second
+	challengeDuration := time.Duration(req.Params.ChallengeDuration) * time.Second //nolint:gosec
 	fundCtx, cancel := context.WithTimeout(ctx, challengeDuration)
 	defer cancel()
 

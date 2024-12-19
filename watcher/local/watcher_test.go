@@ -735,7 +735,7 @@ func randomTxsForSingleCh(rng *rand.Rand, n int) (*channel.Params, []channel.Tra
 	txs := make([]channel.Transaction, n)
 	for i := range txs {
 		txs[i] = channel.Transaction{State: initialState.Clone()}
-		txs[i].State.Version = uint64(i)
+		txs[i].State.Version = uint64(i) //nolint:gosec
 	}
 	return params, txs
 }

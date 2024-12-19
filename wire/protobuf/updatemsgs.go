@@ -95,7 +95,7 @@ func ToChannelUpdate(protoUpdate *ChannelUpdateMsg) (update client.ChannelUpdate
 	if protoUpdate.ChannelUpdate.ActorIdx > math.MaxUint16 {
 		return update, errors.New("actor index is invalid")
 	}
-	update.ActorIdx = channel.Index(protoUpdate.ChannelUpdate.ActorIdx)
+	update.ActorIdx = channel.Index(protoUpdate.ChannelUpdate.ActorIdx) //nolint:gosec
 	update.Sig = make([]byte, len(protoUpdate.Sig))
 	copy(update.Sig, protoUpdate.Sig)
 	update.State, err = ToState(protoUpdate.ChannelUpdate.State)

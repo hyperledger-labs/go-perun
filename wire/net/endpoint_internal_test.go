@@ -74,9 +74,8 @@ func (s *setup) Dial(ctx context.Context, addr map[wallet.BackendID]wire.Address
 	} else if channel.EqualWireMaps(addr, s.bob.endpoint.Address) { // Dialing Alice?
 		s.alice.Registry.addEndpoint(s.alice.endpoint.Address, a, true) // Alice accepts connection.
 		return b, nil
-	} else {
-		return nil, errors.New("unknown peer")
 	}
+	return nil, errors.New("unknown peer")
 }
 
 func (s *setup) Close() error {

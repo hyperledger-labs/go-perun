@@ -44,7 +44,7 @@ func NewRandomAsset(rng *rand.Rand) *Asset {
 // MarshalBinary marshals the address into its binary representation.
 func (a Asset) MarshalBinary() ([]byte, error) {
 	data := make([]byte, assetLen)
-	byteOrder.PutUint64(data, uint64(a.ID))
+	byteOrder.PutUint64(data, uint64(a.ID)) //nolint:gosec
 	return data, nil
 }
 

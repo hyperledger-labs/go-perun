@@ -15,7 +15,6 @@
 package serializer
 
 import (
-	"encoding/binary"
 	"io"
 
 	"github.com/pkg/errors"
@@ -59,27 +58,4 @@ func (serializer) Decode(r io.Reader) (env *wire.Envelope, err error) {
 	}
 
 	return env, nil
-}
-
-// decodeAddressMap decodes a map[int]Address from the reader.
-func decodeAddressMap(r io.Reader) (map[int]wire.Address, error) {
-	var numEntries int32
-	if err := binary.Read(r, binary.BigEndian, &numEntries); err != nil {
-		return nil, errors.New("could not decode map length: " + err.Error())
-	}
-
-	addrMap := make(map[int]wire.Address, numEntries)
-	for i := 0; i < int(numEntries); i++ {
-		var idx int32
-		if err := binary.Read(r, binary.BigEndian, &idx); err != nil {
-			return nil, errors.New("could not decode map index: " + err.Error())
-		}
-		addrs := wire.NewAddress()
-		if err := perunio.Decode(r, addrs); err != nil {
-			return nil, errors.WithMessagef(err, "decoding %d-th address map entry", i)
-		}
-		addrMap[int(idx)] = addrs
-	}
-
-	return addrMap, nil
 }

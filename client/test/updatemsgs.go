@@ -97,7 +97,7 @@ func channelUpdateAccSerializationTest(t *testing.T, serializerTest func(t *test
 		sig := newRandomSig(rng, 0)
 		m := &client.ChannelUpdateAccMsg{
 			ChannelID: test.NewRandomChannelID(rng),
-			Version:   uint64(rng.Int63()),
+			Version:   uint64(rng.Int63()), //nolint:gosec
 			Sig:       sig,
 		}
 		serializerTest(t, m)
@@ -112,7 +112,7 @@ func channelUpdateRejSerializationTest(t *testing.T, serializerTest func(t *test
 	for i := 0; i < 4; i++ {
 		m := &client.ChannelUpdateRejMsg{
 			ChannelID: test.NewRandomChannelID(rng),
-			Version:   uint64(rng.Int63()),
+			Version:   uint64(rng.Int63()), //nolint:gosec
 			Reason:    newRandomASCIIString(rng, minLen, maxLenDiff),
 		}
 		serializerTest(t, m)

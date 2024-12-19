@@ -35,7 +35,7 @@ const IDLen = 32
 // ID represents a channelID.
 type ID = [IDLen]byte
 
-// IDMap is a map of IDs with keys corresponding to backendIDs
+// IDMap is a map of IDs with keys corresponding to backendIDs.
 type IDMap map[wallet.BackendID]ID
 
 // MaxNonceLen is the maximum byte count of a nonce.
@@ -75,12 +75,12 @@ func EqualIDs(a, b map[wallet.BackendID]ID) bool {
 }
 
 func (ids IDMap) Encode(w stdio.Writer) error {
-	length := int32(len(ids))
+	length := int32(len(ids)) //nolint:gosec
 	if err := perunio.Encode(w, length); err != nil {
 		return errors.WithMessage(err, "encoding map length")
 	}
 	for i, id := range ids {
-		if err := perunio.Encode(w, int32(i)); err != nil {
+		if err := perunio.Encode(w, int32(i)); err != nil { //nolint:gosec
 			return errors.WithMessage(err, "encoding map index")
 		}
 		if err := perunio.Encode(w, id); err != nil {
@@ -112,14 +112,11 @@ func (ids *IDMap) Decode(r stdio.Reader) error {
 
 func IDKey(ids IDMap) string {
 	var buff strings.Builder
-	// Encode the number of elements in the map first.
-	length := int32(len(ids)) // Using int32 to encode the length
-	err := binary.Write(&buff, binary.BigEndian, length)
+	length := int32(len(ids))                            //nolint:gosec
+	err := binary.Write(&buff, binary.BigEndian, length) //nolint:gosec
 	if err != nil {
 		log.Panic("could not encode map length in Key: ", err)
-
 	}
-	// Iterate over the map and encode each key-value pair.
 	sortedKeys, sortedIDs := sortIDMap(ids)
 	for i, id := range sortedIDs {
 		if err := binary.Write(&buff, binary.BigEndian, int32(sortedKeys[i])); err != nil {
@@ -133,9 +130,9 @@ func IDKey(ids IDMap) string {
 }
 
 func sortIDMap(ids IDMap) ([]wallet.BackendID, []ID) {
-	var indexes []int
+	indexes := make([]int, len(ids))
 	for i := range ids {
-		indexes = append(indexes, int(i))
+		indexes[i] = int(i)
 	}
 	sort.Ints(indexes)
 	sortedIndexes := make([]wallet.BackendID, len(indexes))
@@ -279,12 +276,12 @@ func NewParamsUnsafe(challengeDuration uint64, parts []map[wallet.BackendID]wall
 	return p
 }
 
-// CloneAddress returns a clone of an Address using its binary marshaling
+// CloneAddresses returns a clone of an Address using its binary marshaling
 // implementation. It panics if an error occurs during binary (un)marshaling.
 func CloneAddresses(as []map[wallet.BackendID]wallet.Address) []map[wallet.BackendID]wallet.Address {
-	var cloneMap []map[wallet.BackendID]wallet.Address
-	for _, a := range as {
-		cloneMap = append(cloneMap, wallet.CloneAddressesMap(a))
+	cloneMap := make([]map[wallet.BackendID]wallet.Address, len(as))
+	for i, a := range as {
+		cloneMap[i] = wallet.CloneAddressesMap(a)
 	}
 	return cloneMap
 }
@@ -304,7 +301,6 @@ func (p *Params) Clone() *Params {
 
 // Encode uses the pkg/io module to serialize a params instance.
 func (p *Params) Encode(w stdio.Writer) error {
-
 	return perunio.Encode(w,
 		p.ChallengeDuration,
 		wallet.AddressMapArray{Addr: p.Parts},

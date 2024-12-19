@@ -238,6 +238,7 @@ func (c *Channel) pushVirtualUpdate(ctx context.Context, state *channel.State, s
 	return err
 }
 
+//nolint:funlen
 func (c *Client) validateVirtualChannelFundingProposal(
 	ch *Channel,
 	prop *VirtualChannelFundingProposalMsg,

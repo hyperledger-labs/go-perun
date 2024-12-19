@@ -228,7 +228,7 @@ func (m *machine) Sig() (sig wallet.Sig, err error) {
 			sig, err = Sign(acc, m.stagingTX.State, b)
 			if err == nil {
 				m.stagingTX.Sigs[m.idx] = sig
-				return
+				return sig, nil
 			}
 		}
 	} else {

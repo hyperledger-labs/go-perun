@@ -139,7 +139,7 @@ func IndexOfAddr(addrs []Address, addr Address) int {
 	return -1
 }
 
-// IndexOfAddr returns the index of the given address in the address slice,
+// IndexOfAddrs returns the index of the given address in the address slice,
 // or -1 if it is not part of the slice.
 func IndexOfAddrs(addrs []map[wallet.BackendID]Address, addr map[wallet.BackendID]Address) int {
 	for i, a := range addrs {
@@ -180,15 +180,16 @@ func Key(a Address) AddrKey {
 
 // Keys returns the `AddrKey` corresponding to the passed `map[int]Address`.
 func Keys(addressMap map[wallet.BackendID]Address) AddrKey {
-	var keyParts []string
-	var indexes []int
+	indexes := make([]int, len(addressMap))
 	for i := range addressMap {
-		indexes = append(indexes, int(i))
+		indexes[i] = int(i)
 	}
 	sort.Ints(indexes)
-	for _, index := range indexes {
+
+	keyParts := make([]string, len(indexes))
+	for i, index := range indexes {
 		key := Key(addressMap[wallet.BackendID(index)])
-		keyParts = append(keyParts, string(key)) // Assuming Address has a String() method.
+		keyParts[i] = string(key)
 	}
 	return AddrKey(strings.Join(keyParts, "|"))
 }

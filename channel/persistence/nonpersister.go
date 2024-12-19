@@ -37,6 +37,7 @@ type nonPersistRestorer struct{}
 func (nonPersistRestorer) ChannelCreated(context.Context, channel.Source, []map[wallet.BackendID]wire.Address, *map[wallet.BackendID]channel.ID) error {
 	return nil
 }
+
 func (nonPersistRestorer) ChannelRemoved(context.Context, map[wallet.BackendID]channel.ID) error {
 	return nil
 }

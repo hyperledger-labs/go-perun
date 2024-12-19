@@ -44,7 +44,6 @@ type Backend interface {
 func SetBackend(b Backend, id int) {
 	if backend == nil {
 		backend = make(map[BackendID]Backend)
-
 	}
 	if backend[BackendID(id)] != nil {
 		panic("wallet backend already set")

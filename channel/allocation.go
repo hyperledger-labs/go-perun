@@ -127,7 +127,7 @@ func NewAllocation(numParts int, backends []wallet.BackendID, assets ...Asset) *
 func (a *Allocation) AssetIndex(asset Asset) (Index, bool) {
 	for idx, _asset := range a.Assets {
 		if asset.Equal(_asset) {
-			return Index(idx), true
+			return Index(idx), true //nolint:gosec
 		}
 	}
 	return 0, false
@@ -194,15 +194,11 @@ func (a *Allocation) NumParts() int {
 func (a Allocation) Clone() (clone Allocation) {
 	if a.Backends != nil {
 		clone.Backends = make([]wallet.BackendID, len(a.Backends))
-		for i, bID := range a.Backends {
-			clone.Backends[i] = bID
-		}
+		copy(clone.Backends, a.Backends)
 	}
 	if a.Assets != nil {
 		clone.Assets = make([]Asset, len(a.Assets))
-		for i, asset := range a.Assets {
-			clone.Assets[i] = asset
-		}
+		copy(clone.Assets, a.Assets)
 	}
 
 	clone.Balances = a.Balances.Clone()
@@ -334,7 +330,7 @@ func (a Allocation) Encode(w io.Writer) error {
 	}
 	// encode assets
 	for i, asset := range a.Assets {
-		if err := perunio.Encode(w, uint32(a.Backends[i])); err != nil {
+		if err := perunio.Encode(w, uint32(a.Backends[i])); err != nil { //nolint:gosec
 			return errors.WithMessagef(err, "encoding backends %d", i)
 		}
 		if err := perunio.Encode(w, asset); err != nil {
@@ -634,7 +630,7 @@ func AssertAssetsEqual(a []Asset, b []Asset) error {
 	return nil
 }
 
-// AssertAssetsEqual returns an error if the given assets are not equal.
+// AssertBackendsEqual returns an error if the given assets are not equal.
 func AssertBackendsEqual(a []wallet.BackendID, b []wallet.BackendID) error {
 	if len(a) != len(b) {
 		return errors.New("length mismatch")

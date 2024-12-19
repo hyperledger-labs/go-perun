@@ -56,7 +56,7 @@ func (m *AuthResponseMsg) Type() Type {
 // It writes the signature to the writer.
 func (m *AuthResponseMsg) Encode(w io.Writer) error {
 	// Write the length of the signature
-	err := binary.Write(w, binary.BigEndian, uint32(len(m.Signature)))
+	err := binary.Write(w, binary.BigEndian, uint32(len(m.Signature))) //nolint:gosec
 	if err != nil {
 		return fmt.Errorf("failed to write signature length: %w", err)
 	}

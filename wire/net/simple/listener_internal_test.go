@@ -31,6 +31,8 @@ const addr = "0.0.0.0:1337"
 // serverKey and serverCert are generated with the following commands:
 // openssl ecparam -genkey -name prime256v1 -out server.key
 // openssl req -new -x509 -key server.key -out server.pem -days 3650.
+//
+//nolint:gosec
 const testServerKey = `-----BEGIN EC PARAMETERS-----
 BggqhkjOPQMBBw==
 -----END EC PARAMETERS-----
@@ -41,6 +43,7 @@ cSqrxhPubawptX5MSr02ft32kfOlYbaF5Q==
 -----END EC PRIVATE KEY-----
 `
 
+//nolint:gosec
 const testServerCert = `-----BEGIN CERTIFICATE-----
 MIIB+TCCAZ+gAwIBAgIJAL05LKXo6PrrMAoGCCqGSM49BAMCMFkxCzAJBgNVBAYT
 AkFVMRMwEQYDVQQIDApTb21lLVN0YXRlMSEwHwYDVQQKDBhJbnRlcm5ldCBXaWRn

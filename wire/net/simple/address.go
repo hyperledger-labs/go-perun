@@ -204,7 +204,7 @@ func NewRandomAddress(rng *rand.Rand) *Address {
 	return a
 }
 
-// NewRandomAddress returns a new random peer address.
+// NewRandomAddresses returns a new random peer address.
 func NewRandomAddresses(rng *rand.Rand) map[wallet.BackendID]wire.Address {
 	const addrLen = 32
 	l := rng.Intn(addrLen)

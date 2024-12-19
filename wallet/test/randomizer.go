@@ -70,7 +70,7 @@ func NewRandomAddress(rng *rand.Rand, bID wallet.BackendID) wallet.Address {
 	return randomizer[bID].NewRandomAddress(rng)
 }
 
-// NewRandomAddressMap returns a new random address by calling the currently set
+// NewRandomAddresses returns a new random address by calling the currently set
 // wallet randomizer.
 func NewRandomAddresses(rng *rand.Rand, bID wallet.BackendID) map[wallet.BackendID]wallet.Address {
 	return map[wallet.BackendID]wallet.Address{bID: randomizer[bID].NewRandomAddress(rng)}
@@ -126,7 +126,7 @@ func NewRandomAccountMap(rng *rand.Rand, bID wallet.BackendID) map[wallet.Backen
 	return accs
 }
 
-// NewRandomAddresses returns a slice of new random addresses.
+// NewRandomAddressArray returns a slice of new random addresses.
 func NewRandomAddressArray(rng *rand.Rand, n int, bID wallet.BackendID) []wallet.Address {
 	addrs := make([]wallet.Address, n)
 	for i := range addrs {
@@ -135,7 +135,7 @@ func NewRandomAddressArray(rng *rand.Rand, n int, bID wallet.BackendID) []wallet
 	return addrs
 }
 
-// NewRandomAddresses returns a slice of new random addresses.
+// NewRandomAddressesMap returns a slice of new random address maps.
 func NewRandomAddressesMap(rng *rand.Rand, n int, bID wallet.BackendID) []map[wallet.BackendID]wallet.Address {
 	addrs := make([]map[wallet.BackendID]wallet.Address, n)
 	for i := range addrs {

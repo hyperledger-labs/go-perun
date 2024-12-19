@@ -49,6 +49,7 @@ type Address interface {
 	BackendID() BackendID
 }
 
+// Equal compares two BackendIDs for equality.
 func (a *BackendID) Equal(b BackendID) bool {
 	return *a == b
 }
@@ -67,7 +68,7 @@ func IndexOfAddr(addrs []map[BackendID]Address, addr Address) int {
 	return -1
 }
 
-// IndexOfAddr returns the index of the given address in the address slice,
+// IndexOfAddrs returns the index of the given address in the address slice,
 // or -1 if it is not part of the slice.
 func IndexOfAddrs(addrs []map[BackendID]Address, addr map[BackendID]Address) int {
 	for i, as := range addrs {
@@ -204,7 +205,7 @@ func (a *AddressMapArray) Decode(r stdio.Reader) (err error) {
 // Panics when the `Address` can't be encoded.
 func Key(a Address) AddrKey {
 	var buff strings.Builder
-	if err := perunio.Encode(&buff, uint32(a.BackendID())); err != nil {
+	if err := perunio.Encode(&buff, uint32(a.BackendID())); err != nil { //nolint:gosec
 		panic("Could not encode id in AddrKey: " + err.Error())
 	}
 	if err := perunio.Encode(&buff, a); err != nil {
@@ -220,10 +221,13 @@ func FromKey(k AddrKey) Address {
 	buff := bytes.NewBuffer([]byte(k))
 	var id uint32
 	err := perunio.Decode(buff, &id)
+	if err != nil {
+		panic("Could not decode id: " + err.Error())
+	}
 	a := NewAddress(BackendID(int(id)))
 	err = perunio.Decode(buff, a)
 	if err != nil {
-		panic("Could not decode address in FromKey: " + err.Error())
+		panic("Could not decode address: " + err.Error())
 	}
 	return a
 }

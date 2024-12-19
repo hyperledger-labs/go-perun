@@ -278,7 +278,7 @@ func TestAllocationValidLimits(t *testing.T) {
 		}
 
 		allocation.Assets = test.NewRandomAssets(rng, test.WithNumAssets(x.numAssets))
-		for i, _ := range allocation.Assets {
+		for i := range allocation.Assets {
 			allocation.Backends[i] = 0
 		}
 

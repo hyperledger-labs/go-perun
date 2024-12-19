@@ -209,7 +209,7 @@ func (c *BaseExecConfig) Asset() channel.Asset {
 	return c.asset
 }
 
-// Asset returns the asset.
+// Backend returns the asset.
 func (c *BaseExecConfig) Backend() wallet.BackendID {
 	return c.backend
 }

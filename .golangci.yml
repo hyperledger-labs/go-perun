@@ -48,6 +48,8 @@ linters-settings:
     template-path: ".scripts/copyright-notice"
   forbidigo:
     forbid:
+      - exclude-rules:
+          - path: ".*\\.pb\\.go$" # Exclude protobuf generated files.
       # Forbid functions to start with "get" or "Get".
       - ^[Gg]et.*$
       - ^[Ee]quals$

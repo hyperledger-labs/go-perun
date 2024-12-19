@@ -819,7 +819,8 @@ func (e ChannelFundingError) Error() string {
 	return fmt.Sprintf("channel funding failed: %v", e.Err.Error())
 }
 
-func GetPeerMapWire(peers map[wallet.BackendID][]wire.Address, index int) map[wallet.BackendID]wire.Address {
+// WirePeerMap returns the map at a specific index.
+func WirePeerMap(peers map[wallet.BackendID][]wire.Address, index int) map[wallet.BackendID]wire.Address {
 	address := make(map[wallet.BackendID]wire.Address)
 	for i, p := range peers {
 		address[i] = p[index]

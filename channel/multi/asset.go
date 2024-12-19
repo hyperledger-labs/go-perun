@@ -27,6 +27,7 @@ type (
 		AssetID() AssetID
 	}
 
+	// AssetID represents an asset identifier.
 	AssetID interface {
 		BackendID() uint32
 		LedgerId() LedgerID

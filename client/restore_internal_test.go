@@ -149,7 +149,7 @@ func mkRndChanTree(
 		}
 		for i := 0; i < children; i++ {
 			t := mkRndChanTree(rng, depth-1, minChildren, maxChildren-1, db, bID)
-			t.Parent = &map[wallet.BackendID]channel.ID{bID: *new(channel.ID)}
+			t.Parent = &map[wallet.BackendID]channel.ID{bID: {}}
 			*t.Parent = root.ID()
 		}
 	}

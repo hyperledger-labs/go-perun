@@ -37,7 +37,7 @@ func (*backend) CalcID(p *channel.Params) (id channel.ID, err error) {
 	w := sha256.New()
 
 	// Write Parts
-	if err := perunio.Encode(w, wallet.AddressMapArray{p.Parts}); err != nil {
+	if err := perunio.Encode(w, wallet.AddressMapArray{Addr: p.Parts}); err != nil {
 		log.Panic("Could not write to sha256 hasher")
 	}
 

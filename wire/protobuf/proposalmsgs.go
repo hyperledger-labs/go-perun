@@ -52,6 +52,9 @@ func ToSubChannelProposalMsg(protoEnvMsg *Envelope_SubChannelProposalMsg) (msg *
 
 	msg = &client.SubChannelProposalMsg{}
 	msg.Parent, err = ToIDs(protoMsg.Parent)
+	if err != nil {
+		return nil, errors.WithMessage(err, "parent")
+	}
 	msg.BaseChannelProposal, err = ToBaseChannelProposal(protoMsg.BaseChannelProposal)
 	return msg, err
 }
@@ -346,7 +349,7 @@ func ToIndexMap(protoIndexMap []uint32) (indexMap []channel.Index, err error) {
 		if protoIndexMap[i] > math.MaxUint16 {
 			return nil, fmt.Errorf("%d'th index is invalid", i) //nolint:goerr113  // We do not want to define this as constant error.
 		}
-		indexMap[i] = channel.Index(uint16(protoIndexMap[i]))
+		indexMap[i] = channel.Index(uint16(protoIndexMap[i])) //nolint:gosec
 	}
 	return indexMap, nil
 }
