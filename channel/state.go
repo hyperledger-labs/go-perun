@@ -162,6 +162,7 @@ func (s *State) ToSubAlloc() *SubAlloc {
 	return NewSubAlloc(s.ID, s.Allocation.Sum(), nil)
 }
 
+// EqualWireMaps compares two wire.Address maps for equality.
 func EqualWireMaps(a, b map[wallet.BackendID]wire.Address) bool {
 	if len(a) != len(b) {
 		return false

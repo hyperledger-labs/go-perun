@@ -21,7 +21,8 @@ import (
 	"time"
 	"unsafe"
 
-	"perun.network/go-perun/channel/persistence/test"
+	"perun.network/go-perun/channel"
+
 	"perun.network/go-perun/wallet"
 
 	"github.com/pkg/errors"
@@ -178,7 +179,7 @@ func (r *EndpointRegistry) setupConn(conn Conn) error {
 		return err
 	}
 
-	if test.EqualWireMaps(peerAddr, wire.AddressMapfromAccountMap(r.id)) {
+	if channel.EqualWireMaps(peerAddr, wire.AddressMapfromAccountMap(r.id)) {
 		r.Log().Error("dialed by self")
 		return errors.New("dialed by self")
 	}
@@ -194,7 +195,7 @@ func (r *EndpointRegistry) Endpoint(ctx context.Context, addr map[wallet.Backend
 	log := r.Log().WithField("peer", addr)
 	key := wire.Keys(addr)
 
-	if test.EqualWireMaps(addr, wire.AddressMapfromAccountMap(r.id)) {
+	if channel.EqualWireMaps(addr, wire.AddressMapfromAccountMap(r.id)) {
 		log.Panic("tried to dial self")
 	}
 

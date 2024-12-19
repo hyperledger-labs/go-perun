@@ -17,7 +17,8 @@ package test
 import (
 	"sync"
 
-	"perun.network/go-perun/channel/persistence/test"
+	"perun.network/go-perun/channel"
+
 	"perun.network/go-perun/wallet"
 
 	"github.com/pkg/errors"
@@ -40,7 +41,7 @@ type listenerMap struct {
 // other functions.
 func (m *listenerMap) findEntry(key map[wallet.BackendID]wire.Address) (listenerMapEntry, int, bool) {
 	for i, v := range m.entries {
-		if test.EqualWireMaps(v.key, key) {
+		if channel.EqualWireMaps(v.key, key) {
 			return v, i, true
 		}
 	}

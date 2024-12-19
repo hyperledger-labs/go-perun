@@ -192,6 +192,7 @@ func Keys(addressMap map[wallet.BackendID]Address) AddrKey {
 	return AddrKey(strings.Join(keyParts, "|"))
 }
 
+// AddressMapfromAccountMap converts a map of accounts to a map of addresses.
 func AddressMapfromAccountMap(accs map[wallet.BackendID]Account) map[wallet.BackendID]Address {
 	addresses := make(map[wallet.BackendID]Address)
 	for id, a := range accs {

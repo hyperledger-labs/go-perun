@@ -576,6 +576,7 @@ func (m *machine) forceState(p Phase, s *State) {
 	m.addTx(m.newTransaction(s))
 }
 
+// AddressMapfromAccountMap returns a map of addresses from a map of accounts.
 func AddressMapfromAccountMap(accs map[wallet.BackendID]wallet.Account) map[wallet.BackendID]wallet.Address {
 	addresses := make(map[wallet.BackendID]wallet.Address)
 	for id, a := range accs {

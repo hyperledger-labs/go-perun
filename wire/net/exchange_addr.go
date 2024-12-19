@@ -18,7 +18,8 @@ import (
 	"context"
 	"fmt"
 
-	"perun.network/go-perun/channel/persistence/test"
+	"perun.network/go-perun/channel"
+
 	"perun.network/go-perun/wallet"
 
 	"github.com/pkg/errors"
@@ -86,8 +87,8 @@ func ExchangeAddrsActive(ctx context.Context, id map[wallet.BackendID]wire.Accou
 			if check := VerifyAddressSignature(peer, msg.Signature); check != nil {
 				err = errors.WithMessage(check, "verifying peer address's signature")
 			}
-		} else if !test.EqualWireMaps(e.Recipient, wire.AddressMapfromAccountMap(id)) &&
-			!test.EqualWireMaps(e.Sender, peer) {
+		} else if !channel.EqualWireMaps(e.Recipient, wire.AddressMapfromAccountMap(id)) &&
+			!channel.EqualWireMaps(e.Sender, peer) {
 			err = NewAuthenticationError(e.Sender, e.Recipient, wire.AddressMapfromAccountMap(id), "unmatched response sender or recipient")
 		}
 	})
@@ -112,7 +113,7 @@ func ExchangeAddrsPassive(ctx context.Context, id map[wallet.BackendID]wire.Acco
 			err = errors.WithMessage(err, "receiving auth message")
 		} else if _, ok := e.Msg.(*wire.AuthResponseMsg); !ok {
 			err = errors.Errorf("expected AuthResponse wire msg, got %v", e.Msg.Type())
-		} else if !test.EqualWireMaps(e.Recipient, addrs) {
+		} else if !channel.EqualWireMaps(e.Recipient, addrs) {
 			err = NewAuthenticationError(e.Sender, e.Recipient, wire.AddressMapfromAccountMap(id), "unmatched response sender or recipient")
 		} else if msg, ok := e.Msg.(*wire.AuthResponseMsg); ok {
 			if err = VerifyAddressSignature(e.Sender, msg.Signature); err != nil {

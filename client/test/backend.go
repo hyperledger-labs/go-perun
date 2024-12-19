@@ -61,10 +61,12 @@ type (
 	LedgerID string
 )
 
-func (id AssetID) LedgerId() multi.LedgerID {
+// LedgerID returns the ledger identifier.
+func (id AssetID) LedgerID() multi.LedgerID {
 	return id.ledgerID
 }
 
+// BackendID returns the backend identifier.
 func (id AssetID) BackendID() uint32 {
 	return id.backendID
 }

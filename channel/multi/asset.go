@@ -30,7 +30,7 @@ type (
 	// AssetID represents an asset identifier.
 	AssetID interface {
 		BackendID() uint32
-		LedgerId() LedgerID
+		LedgerID() LedgerID
 	}
 
 	// LedgerIDMapKey is the map key representation of a ledger identifier.
@@ -55,7 +55,7 @@ func (a assets) LedgerIDs() ([]AssetID, error) {
 
 		assetID := ma.AssetID()
 
-		ids[AssetIDKey{BackendID: assetID.BackendID(), LedgerID: string(assetID.LedgerId().MapKey())}] = assetID
+		ids[AssetIDKey{BackendID: assetID.BackendID(), LedgerID: string(assetID.LedgerID().MapKey())}] = assetID
 	}
 	idsArray := make([]AssetID, len(ids))
 	i := 0
@@ -79,7 +79,7 @@ func IsMultiLedgerAssets(assets []channel.Asset) bool {
 		case !hasMulti:
 			hasMulti = true
 			id = multiAsset.AssetID()
-		case id.LedgerId().MapKey() != multiAsset.AssetID().LedgerId().MapKey():
+		case id.LedgerID().MapKey() != multiAsset.AssetID().LedgerID().MapKey():
 			return true
 		}
 	}

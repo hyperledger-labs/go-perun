@@ -187,7 +187,7 @@ func GenericPersistRestorerTest(
 peerLoop:
 	for idx, addr := range peers {
 		for _, paddr := range persistedPeers {
-			if EqualWireMaps(addr, paddr) {
+			if channel.EqualWireMaps(addr, paddr) {
 				continue peerLoop // found, next address
 			}
 		}

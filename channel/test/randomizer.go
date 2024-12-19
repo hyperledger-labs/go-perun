@@ -140,9 +140,9 @@ func NewRandomLockedIDs(rng *rand.Rand, opts ...RandomOpt) []map[wallet.BackendI
 		for i := range ids {
 			for j := range bIds {
 				ids[i] = make(map[wallet.BackendID]channel.ID)
-				cId := [32]byte{}
-				rng.Read(cId[:])
-				ids[i][wallet.BackendID(j)] = cId
+				cID := [32]byte{}
+				rng.Read(cID[:])
+				ids[i][wallet.BackendID(j)] = cID
 			}
 		}
 		return ids
@@ -152,14 +152,14 @@ func NewRandomLockedIDs(rng *rand.Rand, opts ...RandomOpt) []map[wallet.BackendI
 	for i := range ids {
 		if err != nil {
 			ids[i] = make(map[wallet.BackendID]channel.ID)
-			cId := [32]byte{}
-			rng.Read(cId[:])
-			ids[i][0] = cId
+			cID := [32]byte{}
+			rng.Read(cID[:])
+			ids[i][0] = cID
 		} else {
 			ids[i] = make(map[wallet.BackendID]channel.ID)
-			cId := [32]byte{}
-			rng.Read(cId[:])
-			ids[i][b] = cId
+			cID := [32]byte{}
+			rng.Read(cID[:])
+			ids[i][b] = cID
 		}
 	}
 	return ids
@@ -267,21 +267,21 @@ func NewRandomChannelID(rng *rand.Rand, opts ...RandomOpt) (id map[wallet.Backen
 	bIds, err := opt.BackendID()
 	if bIds != nil && err == nil {
 		for _, b := range bIds {
-			cId := [32]byte{}
-			rng.Read(cId[:])
-			id[b] = cId
+			cID := [32]byte{}
+			rng.Read(cID[:])
+			id[b] = cID
 		}
 		return
 	}
 	bId, err := opt.Backend()
 	if err != nil {
-		cId := [32]byte{}
-		rng.Read(cId[:])
-		id[0] = cId
+		cID := [32]byte{}
+		rng.Read(cID[:])
+		id[0] = cID
 	} else {
-		cId := [32]byte{}
-		rng.Read(cId[:])
-		id[bId] = cId
+		cID := [32]byte{}
+		rng.Read(cID[:])
+		id[bId] = cID
 	}
 	return
 }

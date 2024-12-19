@@ -91,24 +91,12 @@ func NewRandomChannel(
 func requireEqualPeers(t require.TestingT, expected, actual []map[wallet.BackendID]wire.Address) {
 	require.Equal(t, len(expected), len(actual))
 	for i, p := range expected {
-		if !EqualWireMaps(p, actual[i]) {
+		if !channel.EqualWireMaps(p, actual[i]) {
 			t.Errorf("restored peers for channel do not match\nexpected: %v\nactual: %v",
 				actual, expected)
 			t.FailNow()
 		}
 	}
-}
-
-func EqualWireMaps(a, b map[wallet.BackendID]wire.Address) bool {
-	if len(a) != len(b) {
-		return false
-	}
-	for i, addr := range a {
-		if !addr.Equal(b[i]) {
-			return false
-		}
-	}
-	return true
 }
 
 // AssertPersisted reads the channel state from the restorer and compares it

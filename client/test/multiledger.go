@@ -96,6 +96,7 @@ type MultiLedgerAsset struct {
 	asset channel.Asset
 }
 
+// AssetID returns the asset's ID.
 func (a *MultiLedgerAsset) AssetID() multi.AssetID {
 	return a.id
 }
@@ -115,7 +116,7 @@ func (a *MultiLedgerAsset) Equal(b channel.Asset) bool {
 		return false
 	}
 
-	return a.id.LedgerId().MapKey() == bm.id.LedgerId().MapKey() && a.asset.Equal(bm.asset) && a.id.BackendID() == bm.id.BackendID()
+	return a.id.LedgerID().MapKey() == bm.id.LedgerID().MapKey() && a.asset.Equal(bm.asset) && a.id.BackendID() == bm.id.BackendID()
 }
 
 // Address returns the asset's address.
@@ -131,7 +132,7 @@ func (a *MultiLedgerAsset) LedgerID() multi.AssetID {
 // MarshalBinary encodes the asset to its byte representation.
 func (a *MultiLedgerAsset) MarshalBinary() ([]byte, error) {
 	var buf bytes.Buffer
-	err := perunio.Encode(&buf, string(a.id.LedgerId().MapKey()), a.id.BackendID(), a.asset)
+	err := perunio.Encode(&buf, string(a.id.LedgerID().MapKey()), a.id.BackendID(), a.asset)
 	if err != nil {
 		return nil, err
 	}
@@ -142,7 +143,7 @@ func (a *MultiLedgerAsset) MarshalBinary() ([]byte, error) {
 // UnmarshalBinary decodes the asset from its byte representation.
 func (a *MultiLedgerAsset) UnmarshalBinary(data []byte) error {
 	buf := bytes.NewBuffer(data)
-	return perunio.Decode(buf, string(a.id.LedgerId().MapKey()), a.id.BackendID(), a.asset)
+	return perunio.Decode(buf, string(a.id.LedgerID().MapKey()), a.id.BackendID(), a.asset)
 }
 
 // MultiLedgerClient represents a test client.

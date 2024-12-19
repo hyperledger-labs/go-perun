@@ -58,6 +58,7 @@ func NonceFromBytes(b []byte) Nonce {
 // Zero is the default channelID.
 var Zero = ID{}
 
+// EqualIDs compares two IDs for equality.
 func EqualIDs(a, b map[wallet.BackendID]ID) bool {
 	if len(a) != len(b) {
 		return false
@@ -74,6 +75,7 @@ func EqualIDs(a, b map[wallet.BackendID]ID) bool {
 	return true
 }
 
+// Encode encodes the IDMap to the given writer.
 func (ids IDMap) Encode(w stdio.Writer) error {
 	length := int32(len(ids))
 	if err := perunio.Encode(w, length); err != nil {
@@ -90,6 +92,7 @@ func (ids IDMap) Encode(w stdio.Writer) error {
 	return nil
 }
 
+// Decode decodes the IDMap from the given reader.
 func (ids *IDMap) Decode(r stdio.Reader) error {
 	var mapLen int32
 	if err := perunio.Decode(r, &mapLen); err != nil {
@@ -110,6 +113,7 @@ func (ids *IDMap) Decode(r stdio.Reader) error {
 	return nil
 }
 
+// IDKey returns a string representation of the IDMap.
 func IDKey(ids IDMap) string {
 	var buff strings.Builder
 	length := int32(len(ids))
@@ -144,6 +148,7 @@ func sortIDMap(ids IDMap) ([]wallet.BackendID, []ID) {
 	return sortedIndexes, sortedIDs
 }
 
+// FromIDKey decodes an IDMap from a string representation.
 func FromIDKey(k string) IDMap {
 	buff := bytes.NewBuffer([]byte(k))
 	var numElements int32

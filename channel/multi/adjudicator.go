@@ -35,13 +35,13 @@ func NewAdjudicator() *Adjudicator {
 
 // RegisterAdjudicator registers an adjudicator for a given ledger.
 func (a *Adjudicator) RegisterAdjudicator(l AssetID, la channel.Adjudicator) {
-	key := AssetIDKey{BackendID: l.BackendID(), LedgerID: string(l.LedgerId().MapKey())}
+	key := AssetIDKey{BackendID: l.BackendID(), LedgerID: string(l.LedgerID().MapKey())}
 	a.adjudicators[key] = la
 }
 
 // LedgerAdjudicator returns the adjudicator for a given ledger.
 func (a *Adjudicator) LedgerAdjudicator(l AssetID) (channel.Adjudicator, bool) {
-	key := AssetIDKey{BackendID: l.BackendID(), LedgerID: string(l.LedgerId().MapKey())}
+	key := AssetIDKey{BackendID: l.BackendID(), LedgerID: string(l.LedgerID().MapKey())}
 	adj, ok := a.adjudicators[key]
 	return adj, ok
 }
@@ -98,7 +98,7 @@ func (a *Adjudicator) dispatch(assetIds []AssetID, f func(channel.Adjudicator) e
 	for _, l := range assetIds {
 		go func(l AssetID) {
 			err := func() error {
-				key := AssetIDKey{BackendID: l.BackendID(), LedgerID: string(l.LedgerId().MapKey())}
+				key := AssetIDKey{BackendID: l.BackendID(), LedgerID: string(l.LedgerID().MapKey())}
 				adjs, ok := a.adjudicators[key]
 				if !ok {
 					return fmt.Errorf("adjudicator not found for id %v", l)

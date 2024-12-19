@@ -46,14 +46,14 @@ func NewFunder() *Funder {
 
 // RegisterFunder registers a funder for a given ledger.
 func (f *Funder) RegisterFunder(l AssetID, lf channel.Funder) {
-	key := AssetIDKey{BackendID: l.BackendID(), LedgerID: string(l.LedgerId().MapKey())}
+	key := AssetIDKey{BackendID: l.BackendID(), LedgerID: string(l.LedgerID().MapKey())}
 	f.funders[key] = lf
 	f.egoisticChains[key] = false
 }
 
 // SetEgoisticChain sets the egoistic chain flag for a given ledger.
 func (f *Funder) SetEgoisticChain(l AssetID, id int, egoistic bool) {
-	key := AssetIDKey{BackendID: l.BackendID(), LedgerID: string(l.LedgerId().MapKey())}
+	key := AssetIDKey{BackendID: l.BackendID(), LedgerID: string(l.LedgerID().MapKey())}
 	f.egoisticChains[key] = egoistic
 }
 
@@ -75,7 +75,7 @@ func (f *Funder) Fund(ctx context.Context, request channel.FundingReq) error {
 	var nonEgoisticLedgers []AssetID
 
 	for _, l := range assetIDs {
-		key := AssetIDKey{BackendID: l.BackendID(), LedgerID: string(l.LedgerId().MapKey())}
+		key := AssetIDKey{BackendID: l.BackendID(), LedgerID: string(l.LedgerID().MapKey())}
 		if f.egoisticChains[key] {
 			egoisticLedgers = append(egoisticLedgers, l)
 		} else {
@@ -107,11 +107,11 @@ func fundLedgers(ctx context.Context, request channel.FundingReq, assetIDs []Ass
 	// Iterate over blockchains to get the LedgerIDs
 	for _, assetID := range assetIDs {
 		go func(assetID AssetID) {
-			key := AssetIDKey{BackendID: assetID.BackendID(), LedgerID: string(assetID.LedgerId().MapKey())}
+			key := AssetIDKey{BackendID: assetID.BackendID(), LedgerID: string(assetID.LedgerID().MapKey())}
 			// Get the Funder from the funders map
 			funder, ok := funders[key]
 			if !ok {
-				errs <- fmt.Errorf("funder map not found for blockchain %d and ledger %d", assetID.BackendID(), assetID.LedgerId())
+				errs <- fmt.Errorf("funder map not found for blockchain %d and ledger %d", assetID.BackendID(), assetID.LedgerID())
 				return
 			}
 
