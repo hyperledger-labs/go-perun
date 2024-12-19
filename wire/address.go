@@ -58,12 +58,12 @@ type AddressDecMap map[wallet.BackendID]Address
 // Encode encodes first the length of the map,
 // then all Addresses and their key in the map.
 func (a AddressDecMap) Encode(w stdio.Writer) error {
-	length := int32(len(a)) //nolint:gosec
+	length := int32(len(a))
 	if err := perunio.Encode(w, length); err != nil {
 		return errors.WithMessage(err, "encoding map length")
 	}
 	for i, addr := range a {
-		if err := perunio.Encode(w, int32(i)); err != nil { //nolint:gosec
+		if err := perunio.Encode(w, int32(i)); err != nil {
 			return errors.WithMessage(err, "encoding map index")
 		}
 		if err := perunio.Encode(w, addr); err != nil {
@@ -76,7 +76,7 @@ func (a AddressDecMap) Encode(w stdio.Writer) error {
 // Encode encodes first the length of the array,
 // then all AddressDecMaps in the array.
 func (a AddressMapArray) Encode(w stdio.Writer) error {
-	length := int32(len(a)) //nolint:gosec
+	length := int32(len(a))
 	if err := perunio.Encode(w, length); err != nil {
 		return errors.WithMessage(err, "encoding array length")
 	}
