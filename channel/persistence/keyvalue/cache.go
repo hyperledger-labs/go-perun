@@ -78,7 +78,6 @@ func (c *channelCache) deleteChannel(id channel.ID) []wire.Address {
 	return peers
 }
 
-//nolint:unused
 func (c *channelCache) clear() {
 	c.mutex.Lock()
 	defer c.mutex.Unlock()

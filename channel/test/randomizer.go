@@ -47,7 +47,7 @@ func SetRandomizer(r Randomizer, bID wallet.BackendID) {
 
 // NewRandomPhase generates a random channel machine phase.
 func NewRandomPhase(rng *rand.Rand) channel.Phase {
-	return channel.Phase(rng.Intn(channel.LastPhase + 1)) //nolint:gosec
+	return channel.Phase(rng.Intn(channel.LastPhase + 1))
 }
 
 // NewRandomAsset generates a new random `channel.Asset`.
@@ -299,7 +299,7 @@ func NewRandomChannelIDs(rng *rand.Rand, n int) (ids []map[wallet.BackendID]chan
 func NewRandomIndexMap(rng *rand.Rand, numParts int, numPartsParent int) (m []channel.Index) {
 	m = make([]channel.Index, numParts)
 	for i := range m {
-		m[i] = channel.Index(rng.Intn(numPartsParent)) //nolint:gosec
+		m[i] = channel.Index(rng.Intn(numPartsParent))
 	}
 	return
 }

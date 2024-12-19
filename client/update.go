@@ -42,7 +42,7 @@ func (c *Client) handleChannelUpdate(uh UpdateHandler, p map[wallet.BackendID]wi
 		return
 	}
 	pidx := ch.Idx() ^ 1
-	ch.handleUpdateReq(pidx, m, uh) //nolint:contextcheck
+	ch.handleUpdateReq(pidx, m, uh)
 }
 
 func (c *Client) cacheVersion1Update(uh UpdateHandler, p map[wallet.BackendID]wire.Address, m ChannelUpdateProposal) bool {
@@ -287,10 +287,10 @@ func (c *Channel) handleUpdateReq(
 	// Check whether we have an update related to a virtual channel.
 	switch prop := req.(type) {
 	case *VirtualChannelFundingProposalMsg:
-		client.handleVirtualChannelFundingProposal(c, prop, responder) //nolint:contextcheck
+		client.handleVirtualChannelFundingProposal(c, prop, responder)
 		return
 	case *VirtualChannelSettlementProposalMsg:
-		client.handleVirtualChannelSettlementProposal(c, prop, responder) //nolint:contextcheck
+		client.handleVirtualChannelSettlementProposal(c, prop, responder)
 		return
 	}
 
