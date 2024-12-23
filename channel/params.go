@@ -134,9 +134,9 @@ func IDKey(ids IDMap) string {
 }
 
 func sortIDMap(ids IDMap) ([]wallet.BackendID, []ID) {
-	indexes := make([]int, len(ids))
+	var indexes []int //nolint:prealloc
 	for i := range ids {
-		indexes[i] = int(i)
+		indexes = append(indexes, int(i))
 	}
 	sort.Ints(indexes)
 	sortedIndexes := make([]wallet.BackendID, len(indexes))

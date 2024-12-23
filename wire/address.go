@@ -178,9 +178,9 @@ func Key(a Address) AddrKey {
 
 // Keys returns the `AddrKey` corresponding to the passed `map[int]Address`.
 func Keys(addressMap map[wallet.BackendID]Address) AddrKey {
-	indexes := make([]int, len(addressMap))
+	var indexes []int //nolint:prealloc
 	for i := range addressMap {
-		indexes[i] = int(i)
+		indexes = append(indexes, int(i))
 	}
 	sort.Ints(indexes)
 
