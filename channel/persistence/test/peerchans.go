@@ -25,9 +25,9 @@ import (
 	"perun.network/go-perun/wire/perunio"
 )
 
-type peerChans map[string][]map[wallet.BackendID]channel.ID
+type peerChans map[string][]channel.ID
 
-func (pc peerChans) ID(p map[wallet.BackendID]wire.Address) []map[wallet.BackendID]channel.ID {
+func (pc peerChans) ID(p map[wallet.BackendID]wire.Address) []channel.ID {
 	ids, ok := pc[peerKey(p)]
 	if !ok {
 		return nil
@@ -45,23 +45,23 @@ func (pc peerChans) Peers() []map[wallet.BackendID]wire.Address {
 }
 
 // Add adds the given channel id to each peer's id list.
-func (pc peerChans) Add(id map[wallet.BackendID]channel.ID, ps ...map[wallet.BackendID]wire.Address) {
+func (pc peerChans) Add(id channel.ID, ps ...map[wallet.BackendID]wire.Address) {
 	for _, p := range ps {
 		pc.add(id, p)
 	}
 }
 
 // Don't use add, use Add.
-func (pc peerChans) add(id map[wallet.BackendID]channel.ID, p map[wallet.BackendID]wire.Address) {
+func (pc peerChans) add(id channel.ID, p map[wallet.BackendID]wire.Address) {
 	pk := peerKey(p)
 	ids := pc[pk] // nil ok, since we append
 	pc[pk] = append(ids, id)
 }
 
-func (pc peerChans) Delete(id map[wallet.BackendID]channel.ID) {
+func (pc peerChans) Delete(id channel.ID) {
 	for pk, ids := range pc {
 		for i, pid := range ids {
-			if channel.EqualIDs(id, pid) {
+			if id == pid {
 				// ch found, unsorted delete
 				lim := len(ids) - 1
 				if lim == 0 {

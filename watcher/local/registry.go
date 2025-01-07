@@ -17,8 +17,6 @@ package local
 import (
 	"sync"
 
-	"perun.network/go-perun/wallet"
-
 	"github.com/pkg/errors"
 
 	"perun.network/go-perun/channel"
@@ -27,22 +25,22 @@ import (
 type (
 	registry struct {
 		mtx sync.Mutex
-		chs map[string]*ch
+		chs map[channel.ID]*ch
 	}
 )
 
 func newRegistry() *registry {
 	return &registry{
-		chs: make(map[string]*ch),
+		chs: make(map[channel.ID]*ch),
 	}
 }
 
 // addIfSucceeds adds the channel to the registry, if it is not already present
 // in the registry and if the "chInitializer" does not return an error.
-func (r *registry) addIfSucceeds(id map[wallet.BackendID]channel.ID, chInitializer chInitializer) (*ch, error) {
+func (r *registry) addIfSucceeds(id channel.ID, chInitializer chInitializer) (*ch, error) {
 	r.mtx.Lock()
 	defer r.mtx.Unlock()
-	if _, ok := r.chs[channel.IDKey(id)]; ok {
+	if _, ok := r.chs[id]; ok {
 		return nil, errors.New("already watching for this channel")
 	}
 
@@ -51,22 +49,22 @@ func (r *registry) addIfSucceeds(id map[wallet.BackendID]channel.ID, chInitializ
 		return nil, err
 	}
 
-	r.chs[channel.IDKey(ch.id)] = ch
+	r.chs[ch.id] = ch
 	return ch, nil
 }
 
 // retrieve retrieves the channel from registry.
-func (r *registry) retrieve(id map[wallet.BackendID]channel.ID) (*ch, bool) {
+func (r *registry) retrieve(id channel.ID) (*ch, bool) {
 	r.mtx.Lock()
-	ch, ok := r.chs[channel.IDKey(id)]
+	ch, ok := r.chs[id]
 	r.mtx.Unlock()
 	return ch, ok
 }
 
 // remove removes the channel from registry, if it is present.
 // It does not do any validation on the channel to be removed.
-func (r *registry) remove(id map[wallet.BackendID]channel.ID) {
+func (r *registry) remove(id channel.ID) {
 	r.mtx.Lock()
-	delete(r.chs, channel.IDKey(id))
+	delete(r.chs, id)
 	r.mtx.Unlock()
 }

@@ -176,7 +176,7 @@ func Key(a Address) AddrKey {
 	return AddrKey(buff.String())
 }
 
-// Keys returns the `AddrKey` corresponding to the passed `map[int]Address`.
+// Keys returns the `AddrKey` corresponding to the passed `map[wallet.BackendID]Address`.
 func Keys(addressMap map[wallet.BackendID]Address) AddrKey {
 	var indexes []int //nolint:prealloc
 	for i := range addressMap {

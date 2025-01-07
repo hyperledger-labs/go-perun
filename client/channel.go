@@ -132,7 +132,7 @@ func (c *Channel) logPeer(idx channel.Index) log.Logger {
 }
 
 // ID returns the channel ID.
-func (c *Channel) ID() map[wallet.BackendID]channel.ID {
+func (c *Channel) ID() channel.ID {
 	return c.machine.ID()
 }
 

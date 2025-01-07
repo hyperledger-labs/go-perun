@@ -34,11 +34,11 @@ type nonPersistRestorer struct{}
 
 // Persister implementation
 
-func (nonPersistRestorer) ChannelCreated(context.Context, channel.Source, []map[wallet.BackendID]wire.Address, *map[wallet.BackendID]channel.ID) error {
+func (nonPersistRestorer) ChannelCreated(context.Context, channel.Source, []map[wallet.BackendID]wire.Address, *channel.ID) error {
 	return nil
 }
 
-func (nonPersistRestorer) ChannelRemoved(context.Context, map[wallet.BackendID]channel.ID) error {
+func (nonPersistRestorer) ChannelRemoved(context.Context, channel.ID) error {
 	return nil
 }
 func (nonPersistRestorer) Staged(context.Context, channel.Source) error                  { return nil }
@@ -61,7 +61,7 @@ func (nonPersistRestorer) RestorePeer(map[wallet.BackendID]wire.Address) (Channe
 	return emptyChanIterator{}, nil
 }
 
-func (nonPersistRestorer) RestoreChannel(context.Context, map[wallet.BackendID]channel.ID) (*Channel, error) {
+func (nonPersistRestorer) RestoreChannel(context.Context, channel.ID) (*Channel, error) {
 	return nil, errors.New("channel not found")
 }
 

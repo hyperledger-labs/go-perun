@@ -61,13 +61,13 @@ func NewRandomAddress(rng io.Reader) *Address {
 
 // NewRandomAddresses creates a new address using the randomness
 // provided by rng.
-func NewRandomAddresses(rng io.Reader) map[int]wallet.Address {
+func NewRandomAddresses(rng io.Reader) map[wallet.BackendID]wallet.Address {
 	privateKey, err := ecdsa.GenerateKey(curve, rng)
 	if err != nil {
 		log.Panicf("Creation of account failed with error", err)
 	}
 
-	return map[int]wallet.Address{0: &Address{
+	return map[wallet.BackendID]wallet.Address{0: &Address{
 		Curve: privateKey.Curve,
 		X:     privateKey.X,
 		Y:     privateKey.Y,

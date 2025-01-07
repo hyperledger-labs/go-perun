@@ -82,7 +82,7 @@ type (
 	// The size of the balances slice must be of the same size as the assets slice
 	// of the channel Params.
 	SubAlloc struct {
-		ID       map[wallet.BackendID]ID
+		ID       ID
 		Bals     []Bal
 		IndexMap []Index // Maps participant indices of the sub-channel to participant indices of the parent channel.
 	}
@@ -552,7 +552,7 @@ func (b Balances) Sum() []Bal {
 }
 
 // NewSubAlloc creates a new sub-allocation.
-func NewSubAlloc(id map[wallet.BackendID]ID, bals []Bal, indexMap []Index) *SubAlloc {
+func NewSubAlloc(id ID, bals []Bal, indexMap []Index) *SubAlloc {
 	if indexMap == nil {
 		indexMap = []Index{}
 	}
@@ -561,9 +561,9 @@ func NewSubAlloc(id map[wallet.BackendID]ID, bals []Bal, indexMap []Index) *SubA
 
 // SubAlloc tries to return the sub-allocation for the given subchannel.
 // The second return value indicates success.
-func (a Allocation) SubAlloc(subchannel map[wallet.BackendID]ID) (subAlloc SubAlloc, ok bool) {
+func (a Allocation) SubAlloc(subchannel ID) (subAlloc SubAlloc, ok bool) {
 	for _, subAlloc = range a.Locked {
-		if EqualIDs(subAlloc.ID, subchannel) {
+		if subAlloc.ID == subchannel {
 			ok = true
 			return
 		}
@@ -667,7 +667,7 @@ func (s SubAlloc) Encode(w io.Writer) error {
 			err, "invalid sub-allocations cannot be encoded, got %v", s)
 	}
 	// encode ID and dimension
-	if err := perunio.Encode(w, IDMap(s.ID), Index(len(s.Bals))); err != nil {
+	if err := perunio.Encode(w, s.ID, Index(len(s.Bals))); err != nil {
 		return errors.WithMessagef(
 			err, "encoding sub-allocation ID or dimension, id %v", s.ID)
 	}
@@ -696,7 +696,7 @@ func (s SubAlloc) Encode(w io.Writer) error {
 func (s *SubAlloc) Decode(r io.Reader) error {
 	var numAssets Index
 	// decode ID and dimension
-	if err := perunio.Decode(r, (*IDMap)(&s.ID), &numAssets); err != nil {
+	if err := perunio.Decode(r, &s.ID, &numAssets); err != nil {
 		return errors.WithMessage(err, "decoding sub-allocation ID or dimension")
 	}
 	if numAssets > MaxNumAssets {
@@ -731,7 +731,7 @@ func (s *SubAlloc) Equal(t *SubAlloc) error {
 	if s == t {
 		return nil
 	}
-	if !EqualIDs(s.ID, t.ID) {
+	if s.ID != t.ID {
 		return errors.New("different ID")
 	}
 	if !s.BalancesEqual(t.Bals) {

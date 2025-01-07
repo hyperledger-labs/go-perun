@@ -20,8 +20,6 @@ import (
 	"testing"
 	"time"
 
-	"perun.network/go-perun/wallet"
-
 	"perun.network/go-perun/channel"
 	"perun.network/go-perun/client"
 )
@@ -123,7 +121,7 @@ func (r *DisputeSusie) exec(_cfg ExecConfig, ledgerChannel *paymentChannel) {
 type DisputeTim struct {
 	Responder
 	registered chan *channel.RegisteredEvent
-	subCh      map[wallet.BackendID]channel.ID
+	subCh      channel.ID
 }
 
 // time to wait until a parent channel watcher becomes active.
@@ -132,10 +130,8 @@ const channelWatcherWait = 100 * time.Millisecond
 // HandleAdjudicatorEvent is the callback for adjudicator event handling.
 func (r *DisputeTim) HandleAdjudicatorEvent(e channel.AdjudicatorEvent) {
 	r.log.Infof("HandleAdjudicatorEvent: channelID = %x, version = %v, type = %T", e.ID(), e.Version(), e)
-	for _, id := range r.subCh {
-		if e, ok := e.(*channel.RegisteredEvent); ok && e.ID() == id {
-			r.registered <- e
-		}
+	if e, ok := e.(*channel.RegisteredEvent); ok && e.ID() == r.subCh {
+		r.registered <- e
 	}
 }
 

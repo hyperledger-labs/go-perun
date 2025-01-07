@@ -43,7 +43,7 @@ type channelConn struct {
 
 // newChannelConn creates a new channel connection for the given channel ID. It
 // subscribes on the subscriber to all messages regarding this channel.
-func newChannelConn(id map[wallet.BackendID]channel.ID, peers []map[wallet.BackendID]wire.Address, idx channel.Index, sub wire.Subscriber, pub wire.Publisher) (_ *channelConn, err error) {
+func newChannelConn(id channel.ID, peers []map[wallet.BackendID]wire.Address, idx channel.Index, sub wire.Subscriber, pub wire.Publisher) (_ *channelConn, err error) {
 	// relay to receive all update responses
 	relay := wire.NewRelay()
 	// we cache all responses for the lifetime of the relay
@@ -63,9 +63,9 @@ func newChannelConn(id map[wallet.BackendID]channel.ID, peers []map[wallet.Backe
 	isUpdateRes := func(e *wire.Envelope) bool {
 		switch msg := e.Msg.(type) {
 		case *ChannelUpdateAccMsg:
-			return channel.EqualIDs(msg.ID(), id)
+			return msg.ID() == id
 		case *ChannelUpdateRejMsg:
-			return channel.EqualIDs(msg.ID(), id)
+			return msg.ID() == id
 		default:
 			return false
 		}

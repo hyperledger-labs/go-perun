@@ -301,7 +301,7 @@ func setupVirtualChannelTest(
 		alice.WalletAddress,
 		&initAllocVirtual,
 		[]map[wallet.BackendID]wire.Address{wire.AddressMapfromAccountMap(alice.Identity), wire.AddressMapfromAccountMap(bob.Identity)},
-		[]map[wallet.BackendID]channel.ID{vct.chAliceIngrid.ID(), vct.chBobIngrid.ID()},
+		[]channel.ID{vct.chAliceIngrid.ID(), vct.chBobIngrid.ID()},
 		[][]channel.Index{indexMapAlice, indexMapBob},
 	)
 	require.NoError(err, "creating virtual channel proposal")
