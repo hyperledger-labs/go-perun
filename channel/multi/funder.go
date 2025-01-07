@@ -30,17 +30,18 @@ type AssetIDKey struct {
 
 // Funder is a multi-ledger funder.
 // funders is a map of LedgerIDs corresponding to a funder on some chain.
-// egoisticChains is a map of LedgerIDs corresponding to a boolean indicating whether the chain should be funded last.
+// egoistic controls whether the funder uses the egoisticIndex to control the funding order.
+// egoisticIndex controls which participant index will fund last.
 type Funder struct {
-	funders        map[AssetIDKey]channel.Funder
-	egoisticChains map[AssetIDKey]bool
+	funders       map[AssetIDKey]channel.Funder
+	egoistic      bool
+	egoisticIndex int
 }
 
 // NewFunder creates a new funder.
 func NewFunder() *Funder {
 	return &Funder{
-		funders:        make(map[AssetIDKey]channel.Funder),
-		egoisticChains: make(map[AssetIDKey]bool),
+		funders: make(map[AssetIDKey]channel.Funder),
 	}
 }
 
@@ -48,13 +49,12 @@ func NewFunder() *Funder {
 func (f *Funder) RegisterFunder(l AssetID, lf channel.Funder) {
 	key := AssetIDKey{BackendID: l.BackendID(), LedgerID: string(l.LedgerID().MapKey())}
 	f.funders[key] = lf
-	f.egoisticChains[key] = false
 }
 
-// SetEgoisticChain sets the egoistic chain flag for a given ledger.
-func (f *Funder) SetEgoisticChain(l AssetID, id int, egoistic bool) {
-	key := AssetIDKey{BackendID: l.BackendID(), LedgerID: string(l.LedgerID().MapKey())}
-	f.egoisticChains[key] = egoistic
+// SetEgoisticPart sets the egoistic chain flag for a given ledger.
+func (f *Funder) SetEgoisticPart(index int) {
+	f.egoisticIndex = index
+	f.egoistic = true
 }
 
 // Fund funds a multi-ledger channel. It dispatches funding calls to all
@@ -74,9 +74,8 @@ func (f *Funder) Fund(ctx context.Context, request channel.FundingReq) error {
 	var egoisticLedgers []AssetID
 	var nonEgoisticLedgers []AssetID
 
-	for _, l := range assetIDs {
-		key := AssetIDKey{BackendID: l.BackendID(), LedgerID: string(l.LedgerID().MapKey())}
-		if f.egoisticChains[key] {
+	for i, l := range assetIDs {
+		if f.egoisticIndex == i {
 			egoisticLedgers = append(egoisticLedgers, l)
 		} else {
 			nonEgoisticLedgers = append(nonEgoisticLedgers, l)
