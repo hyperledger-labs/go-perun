@@ -17,13 +17,15 @@ package wire_test
 import (
 	"testing"
 
+	"perun.network/go-perun/wallet"
+
 	. "perun.network/go-perun/wire"
 	"perun.network/go-perun/wire/test"
 )
 
 func TestLocalBus(t *testing.T) {
 	bus := NewLocalBus()
-	test.GenericBusTest(t, func(Account) (Bus, Bus) {
+	test.GenericBusTest(t, func(map[wallet.BackendID]Account) (Bus, Bus) {
 		return bus, bus
 	}, 16, 10)
 }

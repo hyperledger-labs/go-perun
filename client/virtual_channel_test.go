@@ -53,7 +53,7 @@ func makeVirtualChannelSetup(rng *rand.Rand) ctest.VirtualChannelSetup {
 	return ctest.VirtualChannelSetup{
 		Clients:           createVirtualChannelClients(rng),
 		ChallengeDuration: challengeDuration,
-		Asset:             chtest.NewRandomAsset(rng),
+		Asset:             chtest.NewRandomAsset(rng, 0),
 		Balances: ctest.VirtualChannelBalances{
 			InitBalsAliceIngrid: []*big.Int{big.NewInt(10), big.NewInt(10)},
 			InitBalsBobIngrid:   []*big.Int{big.NewInt(10), big.NewInt(10)},
@@ -70,7 +70,7 @@ func makeVirtualChannelSetup(rng *rand.Rand) ctest.VirtualChannelSetup {
 
 func createVirtualChannelClients(rng *rand.Rand) [3]ctest.RoleSetup {
 	var setupsArray [3]ctest.RoleSetup
-	setups := NewSetups(rng, []string{"Alice", "Bob", "Ingrid"})
+	setups := NewSetups(rng, []string{"Alice", "Bob", "Ingrid"}, 0)
 	copy(setupsArray[:], setups)
 	return setupsArray
 }

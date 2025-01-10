@@ -47,7 +47,8 @@ const bitsPerByte = 8
 
 // SigDec is a helper type to decode signatures.
 type SigDec struct {
-	Sig *Sig
+	Sig       *Sig
+	BackendID int
 }
 
 // Decode decodes a single signature.

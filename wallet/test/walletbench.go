@@ -53,7 +53,7 @@ func GenericBackendBenchmark(b *testing.B, s *Setup) {
 
 func benchBackendVerifySig(b *testing.B, s *Setup) {
 	b.Helper()
-	// We dont want to measure the SignDataWithPW here, just need it for the verification
+	// We do not want to measure the SignDataWithPW here, just need it for the verification
 	b.StopTimer()
 	perunAcc, err := s.Wallet.Unlock(s.AddressInWallet)
 	require.NoError(b, err)

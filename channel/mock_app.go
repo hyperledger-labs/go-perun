@@ -18,6 +18,8 @@ import (
 	"encoding/binary"
 	"fmt"
 
+	"perun.network/go-perun/wallet"
+
 	"github.com/pkg/errors"
 )
 
@@ -168,9 +170,9 @@ func (a MockApp) execMockOp(op *MockOp) error {
 	case OpErr:
 		return errors.New("MockOp: runtime error")
 	case OpTransitionErr:
-		return NewStateTransitionError(ID{}, "MockOp: state transition error")
+		return NewStateTransitionError(map[wallet.BackendID]ID{}, "MockOp: state transition error")
 	case OpActionErr:
-		return NewActionError(ID{}, "MockOp: action error")
+		return NewActionError(map[wallet.BackendID]ID{}, "MockOp: action error")
 	case OpPanic:
 		panic("MockOp: panic")
 	case OpValid:

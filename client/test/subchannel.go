@@ -77,7 +77,7 @@ func (r *Susie) exec(_cfg ExecConfig, ledgerChannel *paymentChannel) {
 
 	// stage 2 - open subchannels
 	openSubChannel := func(parentChannel *paymentChannel, funds []*big.Int, app client.ProposalOpts) *paymentChannel {
-		return parentChannel.openSubChannel(rng, cfg, funds, app)
+		return parentChannel.openSubChannel(rng, cfg, funds, app, cfg.backend)
 	}
 
 	var subChannels []*paymentChannel

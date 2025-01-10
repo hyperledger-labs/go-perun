@@ -17,6 +17,8 @@ package test
 import (
 	"math/rand"
 
+	"perun.network/go-perun/wallet"
+
 	"perun.network/go-perun/wire"
 )
 
@@ -43,8 +45,8 @@ func SetNewRandomAccount(f NewRandomAccountFunc) {
 }
 
 // NewRandomAddress returns a new random address.
-func NewRandomAddress(rng *rand.Rand) wire.Address {
-	return newRandomAddress(rng)
+func NewRandomAddress(rng *rand.Rand) map[wallet.BackendID]wire.Address {
+	return map[wallet.BackendID]wire.Address{0: newRandomAddress(rng)}
 }
 
 // NewRandomAccount returns a new random account.
@@ -52,9 +54,23 @@ func NewRandomAccount(rng *rand.Rand) wire.Account {
 	return newRandomAccount(rng)
 }
 
+// NewRandomAccountMap returns a new random account.
+func NewRandomAccountMap(rng *rand.Rand, bID wallet.BackendID) map[wallet.BackendID]wire.Account {
+	return map[wallet.BackendID]wire.Account{bID: newRandomAccount(rng)}
+}
+
 // NewRandomAddresses returns a slice of random peer addresses.
-func NewRandomAddresses(rng *rand.Rand, n int) []wire.Address {
-	addresses := make([]wire.Address, n)
+func NewRandomAddresses(rng *rand.Rand, n int) []map[wallet.BackendID]wire.Address {
+	addresses := make([]map[wallet.BackendID]wire.Address, n)
+	for i := range addresses {
+		addresses[i] = NewRandomAddress(rng)
+	}
+	return addresses
+}
+
+// NewRandomAddressesMap returns a slice of random peer addresses.
+func NewRandomAddressesMap(rng *rand.Rand, n int) []map[wallet.BackendID]wire.Address {
+	addresses := make([]map[wallet.BackendID]wire.Address, n)
 	for i := range addresses {
 		addresses[i] = NewRandomAddress(rng)
 	}

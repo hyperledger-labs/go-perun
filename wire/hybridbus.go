@@ -18,6 +18,8 @@ import (
 	"context"
 	"fmt"
 
+	"perun.network/go-perun/wallet"
+
 	"polycry.pt/poly-go/errors"
 	"polycry.pt/poly-go/sync/atomic"
 )
@@ -88,7 +90,7 @@ func (b *hybridBus) Publish(ctx context.Context, e *Envelope) error {
 }
 
 // SubscribeClient subscribes an envelope consumer to all sub-buses.
-func (b *hybridBus) SubscribeClient(c Consumer, receiver Address) error {
+func (b *hybridBus) SubscribeClient(c Consumer, receiver map[wallet.BackendID]Address) error {
 	errg := errors.NewGatherer()
 	for _, bus := range b.buses {
 		errg.Add(bus.SubscribeClient(c, receiver))

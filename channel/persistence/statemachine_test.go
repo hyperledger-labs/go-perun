@@ -19,6 +19,8 @@ import (
 	"testing"
 	"time"
 
+	"perun.network/go-perun/wallet"
+
 	"github.com/stretchr/testify/require"
 
 	"perun.network/go-perun/channel"
@@ -38,9 +40,11 @@ func TestStateMachine(t *testing.T) {
 	require := require.New(t)
 	rng := pkgtest.Prng(t)
 
-	const n = 5                                    // number of participants
-	accs, parts := wtest.NewRandomAccounts(rng, n) // local participant idx 0
-	params := ctest.NewRandomParams(rng, ctest.WithParts(parts...))
+	const n = 5                                       // number of participants
+	accs, parts := wtest.NewRandomAccounts(rng, n, 0) // local participant idx 0
+	params := ctest.NewRandomParams(rng, ctest.WithParts(parts))
+	t.Log("Participants:", parts, "accs:", accs)
+	t.Log("Params:", params)
 	csm, err := channel.NewStateMachine(accs[0], *params)
 	require.NoError(err)
 
@@ -67,8 +71,11 @@ func TestStateMachine(t *testing.T) {
 		tpr.AssertEqual(csm)
 		// remote signers
 		for i := 1; i < n; i++ {
-			sig, err := channel.Sign(accs[i], csm.StagingState())
-			require.NoError(err)
+			var sig wallet.Sig
+			for b, acc := range accs[i] {
+				sig, err = channel.Sign(acc, csm.StagingState(), b)
+				require.NoError(err)
+			}
 			err = sm.AddSig(ctx, channel.Index(i), sig)
 			require.NoError(err)
 			tpr.AssertEqual(csm)
@@ -146,7 +153,7 @@ func TestStateMachine(t *testing.T) {
 	// Set Progressed
 	timeout := ctest.NewRandomTimeout(rng)
 	idx := channel.Index(rng.Intn(s.NumParts()))
-	e := channel.NewProgressedEvent(s.ID, timeout, s, idx)
+	e := channel.NewProgressedEvent(s.ID[0], timeout, s, idx)
 	err = sm.SetProgressed(ctx, e)
 	require.NoError(err)
 	tpr.AssertEqual(csm)

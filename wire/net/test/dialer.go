@@ -19,6 +19,8 @@ import (
 	"net"
 	"sync/atomic"
 
+	"perun.network/go-perun/wallet"
+
 	"github.com/pkg/errors"
 
 	"perun.network/go-perun/wire"
@@ -44,7 +46,7 @@ func NewDialer(hub *ConnHub) *Dialer {
 }
 
 // Dial tries to connect to a wire.
-func (d *Dialer) Dial(ctx context.Context, address wire.Address, ser wire.EnvelopeSerializer) (wirenet.Conn, error) {
+func (d *Dialer) Dial(ctx context.Context, address map[wallet.BackendID]wire.Address, ser wire.EnvelopeSerializer) (wirenet.Conn, error) {
 	if d.IsClosed() {
 		return nil, errors.New("dialer closed")
 	}
