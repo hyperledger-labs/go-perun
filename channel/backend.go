@@ -70,9 +70,8 @@ func CalcID(p *Params) (ID, error) {
 		id, err := b.CalcID(p)
 		if err == nil {
 			return id, nil
-		} else {
-			lastErr = err
 		}
+		lastErr = err
 	}
 
 	if lastErr != nil {
