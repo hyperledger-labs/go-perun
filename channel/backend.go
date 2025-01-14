@@ -76,7 +76,7 @@ func CalcID(p *Params) (ID, error) {
 	}
 
 	if lastErr != nil {
-		return ID{}, errors.Join(lastErr)
+		return ID{}, lastErr
 	}
 
 	return ID{}, errors.New("no valid ID found")
