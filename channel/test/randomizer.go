@@ -208,7 +208,7 @@ func NewRandomParams(rng *rand.Rand, opts ...RandomOpt) *channel.Params {
 			if backend, _ = opt.Backend(); backend != 0 {
 				parts[i] = map[wallet.BackendID]wallet.Address{backend: test.NewRandomAddress(rng, backend)}
 			} else {
-				parts[i] = map[wallet.BackendID]wallet.Address{channel.TestBackendID: test.NewRandomAddress(rng, 0)}
+				parts[i] = map[wallet.BackendID]wallet.Address{channel.TestBackendID: test.NewRandomAddress(rng, channel.TestBackendID)}
 			}
 		}
 	}

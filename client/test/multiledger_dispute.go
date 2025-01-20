@@ -62,8 +62,8 @@ func TestMultiLedgerDispute(
 
 	// Establish ledger channel between Alice and Bob.
 
-	bID1 := wallet.BackendID(mlt.Asset1.MultiLedgerID().BackendID())
-	bID2 := wallet.BackendID(mlt.Asset2.MultiLedgerID().BackendID())
+	bID1 := wallet.BackendID(mlt.Asset1.LedgerBackendID().BackendID())
+	bID2 := wallet.BackendID(mlt.Asset2.LedgerBackendID().BackendID())
 	// Create channel proposal.
 	parts := []map[wallet.BackendID]wire.Address{alice.WireAddress, bob.WireAddress}
 	initAlloc := channel.NewAllocation(len(parts), []wallet.BackendID{bID1, bID2}, mlt.Asset1, mlt.Asset2)

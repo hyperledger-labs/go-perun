@@ -15,11 +15,12 @@
 package wallet
 
 import (
+	"perun.network/go-perun/channel"
 	"perun.network/go-perun/wallet"
 	"perun.network/go-perun/wallet/test"
 )
 
 func init() {
-	wallet.SetBackend(new(Backend), 0)
-	test.SetRandomizer(newRandomizer(), 0)
+	wallet.SetBackend(new(Backend), channel.TestBackendID)
+	test.SetRandomizer(newRandomizer(), channel.TestBackendID)
 }

@@ -92,17 +92,17 @@ func SetupMultiLedgerTest(t *testing.T) MultiLedgerSetup {
 
 // MultiLedgerAsset is a multi-ledger asset.
 type MultiLedgerAsset struct {
-	id    multi.MultiLedgerID
+	id    multi.LedgerBackendID
 	asset channel.Asset
 }
 
 // AssetID returns the asset's ID.
-func (a *MultiLedgerAsset) MultiLedgerID() multi.MultiLedgerID {
+func (a *MultiLedgerAsset) LedgerBackendID() multi.LedgerBackendID {
 	return a.id
 }
 
 // NewMultiLedgerAsset returns a new multi-ledger asset.
-func NewMultiLedgerAsset(id multi.MultiLedgerID, asset channel.Asset) *MultiLedgerAsset {
+func NewMultiLedgerAsset(id multi.LedgerBackendID, asset channel.Asset) *MultiLedgerAsset {
 	return &MultiLedgerAsset{
 		id:    id,
 		asset: asset,
@@ -125,7 +125,7 @@ func (a *MultiLedgerAsset) Address() []byte {
 }
 
 // LedgerID returns the asset's ledger ID.
-func (a *MultiLedgerAsset) LedgerID() multi.MultiLedgerID {
+func (a *MultiLedgerAsset) LedgerID() multi.LedgerBackendID {
 	return a.id
 }
 

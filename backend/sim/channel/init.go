@@ -22,9 +22,9 @@ import (
 )
 
 func init() {
-	channel.SetBackend(new(backend), 0)
-	test.SetRandomizer(new(randomizer), 0)
+	channel.SetBackend(new(backend), channel.TestBackendID)
+	test.SetRandomizer(new(randomizer), channel.TestBackendID)
 	test.SetNewRandomAppID(func(r *rand.Rand) channel.AppID {
 		return NewRandomAppID(r)
-	}, 0)
+	}, channel.TestBackendID)
 }

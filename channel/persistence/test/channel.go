@@ -180,7 +180,7 @@ func (c *Channel) SignAll(ctx context.Context, t require.TestingT) {
 	c.AssertPersisted(ctx, t)
 	// remote signers
 	for i := range c.accounts {
-		sig, err := channel.Sign(c.accounts[i][channel.TestBackendID], c.StagingState(), 0)
+		sig, err := channel.Sign(c.accounts[i][channel.TestBackendID], c.StagingState(), channel.TestBackendID)
 		require.NoError(t, err)
 		c.AddSig(ctx, channel.Index(i), sig) //nolint:errcheck
 		c.AssertPersisted(ctx, t)

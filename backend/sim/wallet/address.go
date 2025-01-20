@@ -31,7 +31,7 @@ type Address ecdsa.PublicKey
 
 // BackendID returns the backend id of the address.
 func (a Address) BackendID() wallet.BackendID {
-	return 0
+	return channel.TestBackendID
 }
 
 const (
