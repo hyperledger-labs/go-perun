@@ -96,7 +96,7 @@ type MultiLedgerAsset struct {
 	asset channel.Asset
 }
 
-// AssetID returns the asset's ID.
+// LedgerBackendID returns the asset's ID.
 func (a *MultiLedgerAsset) LedgerBackendID() multi.LedgerBackendID {
 	return a.id
 }
