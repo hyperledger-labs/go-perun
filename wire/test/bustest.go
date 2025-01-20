@@ -28,7 +28,10 @@ import (
 )
 
 // timeout testNoReceive sub-test.
-const testNoReceiveTimeout = 10 * time.Millisecond
+const (
+	testNoReceiveTimeout = 10 * time.Millisecond
+	TestBackendID        = 0
+)
 
 // GenericBusTest tests the general functionality of a bus in the happy case: it
 // tests that messages sent over the bus arrive at the correct destination. The
@@ -57,7 +60,7 @@ func GenericBusTest(t *testing.T,
 	clients := make([]Client, numClients)
 	for i := range clients {
 		clients[i].r = wire.NewRelay()
-		clients[i].id = NewRandomAccountMap(rng, 0)
+		clients[i].id = NewRandomAccountMap(rng, TestBackendID)
 		clients[i].pub, clients[i].sub = busAssigner(clients[i].id)
 	}
 

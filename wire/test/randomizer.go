@@ -46,7 +46,7 @@ func SetNewRandomAccount(f NewRandomAccountFunc) {
 
 // NewRandomAddress returns a new random address.
 func NewRandomAddress(rng *rand.Rand) map[wallet.BackendID]wire.Address {
-	return map[wallet.BackendID]wire.Address{0: newRandomAddress(rng)}
+	return map[wallet.BackendID]wire.Address{TestBackendID: newRandomAddress(rng)}
 }
 
 // NewRandomAccount returns a new random account.

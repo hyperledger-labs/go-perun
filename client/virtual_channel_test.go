@@ -21,13 +21,15 @@ import (
 	"testing"
 	"time"
 
+	"perun.network/go-perun/channel"
+
 	chtest "perun.network/go-perun/channel/test"
 	ctest "perun.network/go-perun/client/test"
 	"polycry.pt/poly-go/test"
 )
 
 const (
-	challengeDuration = 10
+	challengeDuration = 15
 	testDuration      = 10 * time.Second
 )
 
@@ -53,7 +55,7 @@ func makeVirtualChannelSetup(rng *rand.Rand) ctest.VirtualChannelSetup {
 	return ctest.VirtualChannelSetup{
 		Clients:           createVirtualChannelClients(rng),
 		ChallengeDuration: challengeDuration,
-		Asset:             chtest.NewRandomAsset(rng, 0),
+		Asset:             chtest.NewRandomAsset(rng, channel.TestBackendID),
 		Balances: ctest.VirtualChannelBalances{
 			InitBalsAliceIngrid: []*big.Int{big.NewInt(10), big.NewInt(10)},
 			InitBalsBobIngrid:   []*big.Int{big.NewInt(10), big.NewInt(10)},
@@ -70,7 +72,7 @@ func makeVirtualChannelSetup(rng *rand.Rand) ctest.VirtualChannelSetup {
 
 func createVirtualChannelClients(rng *rand.Rand) [3]ctest.RoleSetup {
 	var setupsArray [3]ctest.RoleSetup
-	setups := NewSetups(rng, []string{"Alice", "Bob", "Ingrid"}, 0)
+	setups := NewSetups(rng, []string{"Alice", "Bob", "Ingrid"}, channel.TestBackendID)
 	copy(setupsArray[:], setups)
 	return setupsArray
 }

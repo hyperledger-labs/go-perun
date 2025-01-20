@@ -27,7 +27,7 @@ import (
 
 func TestApp_Def(t *testing.T) {
 	rng := pkgtest.Prng(t)
-	def := test.NewRandomAppID(rng, 0)
+	def := test.NewRandomAppID(rng, channel.TestBackendID)
 	app := &App{def}
 	assert.True(t, app.Def().Equal(app.Def()))
 }

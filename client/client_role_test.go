@@ -21,6 +21,8 @@ import (
 	"testing"
 	"time"
 
+	"perun.network/go-perun/channel"
+
 	"perun.network/go-perun/wallet"
 
 	"perun.network/go-perun/apps/payment"
@@ -87,8 +89,8 @@ func runAliceBobTest(ctx context.Context, t *testing.T, setup func(*rand.Rand) (
 		cfg := &ctest.AliceBobExecConfig{
 			BaseExecConfig: ctest.MakeBaseExecConfig(
 				[2]map[wallet.BackendID]wire.Address{wire.AddressMapfromAccountMap(setups[0].Identity), wire.AddressMapfromAccountMap(setups[1].Identity)},
-				chtest.NewRandomAsset(rng, 0),
-				0,
+				chtest.NewRandomAsset(rng, channel.TestBackendID),
+				channel.TestBackendID,
 				[2]*big.Int{big.NewInt(100), big.NewInt(100)},
 				app,
 			),

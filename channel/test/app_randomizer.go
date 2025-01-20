@@ -58,7 +58,7 @@ func NewRandomApp(rng *rand.Rand, opts ...RandomOpt) channel.App {
 	var bID wallet.BackendID
 	bID, err := opt.Backend()
 	if err != nil {
-		bID = wallet.BackendID(0)
+		bID = wallet.BackendID(channel.TestBackendID)
 	}
 	// WithAppDef does not set the app in the options
 	app := opt.AppRandomizer().NewRandomApp(rng, bID)

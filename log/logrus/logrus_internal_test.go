@@ -30,6 +30,9 @@ import (
 	pkgtest "polycry.pt/poly-go/test"
 )
 
+// TestBackendID is the identifier for the simulated Backend.
+const TestBackendID = 0
+
 func TestLogrus(t *testing.T) {
 	t.Run("Info", testLogrusInfo)
 	t.Run("Stringer", testLogrusStringer)
@@ -49,7 +52,7 @@ func testLogrusInfo(t *testing.T) {
 
 func testLogrusStringer(t *testing.T) {
 	rng := pkgtest.Prng(t)
-	addr := wtest.NewRandomAddress(rng, 0)
+	addr := wtest.NewRandomAddress(rng, TestBackendID)
 	var data [32]byte
 	rng.Read(data[:])
 	logger, hook := test.NewNullLogger()

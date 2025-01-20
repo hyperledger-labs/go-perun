@@ -20,6 +20,8 @@ import (
 	"io"
 	"math/big"
 
+	"perun.network/go-perun/channel"
+
 	"perun.network/go-perun/log"
 	"perun.network/go-perun/wallet"
 )
@@ -67,7 +69,7 @@ func NewRandomAddresses(rng io.Reader) map[int]wallet.Address {
 		log.Panicf("Creation of account failed with error", err)
 	}
 
-	return map[int]wallet.Address{0: &Address{
+	return map[int]wallet.Address{channel.TestBackendID: &Address{
 		Curve: privateKey.Curve,
 		X:     privateKey.X,
 		Y:     privateKey.Y,

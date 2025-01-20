@@ -153,7 +153,7 @@ func TestStateMachine(t *testing.T) {
 	// Set Progressed
 	timeout := ctest.NewRandomTimeout(rng)
 	idx := channel.Index(rng.Intn(s.NumParts()))
-	e := channel.NewProgressedEvent(s.ID[0], timeout, s, idx)
+	e := channel.NewProgressedEvent(s.ID[channel.TestBackendID], timeout, s, idx)
 	err = sm.SetProgressed(ctx, e)
 	require.NoError(err)
 	tpr.AssertEqual(csm)

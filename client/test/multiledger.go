@@ -59,12 +59,12 @@ func SetupMultiLedgerTest(t *testing.T) MultiLedgerSetup {
 	bus := wire.NewLocalBus()
 
 	// Setup clients.
-	c1 := setupClient(t, rng, l1, l2, bus, 0)
-	c2 := setupClient(t, rng, l1, l2, bus, 0)
+	c1 := setupClient(t, rng, l1, l2, bus, channel.TestBackendID)
+	c2 := setupClient(t, rng, l1, l2, bus, channel.TestBackendID)
 
 	// Define assets.
-	a1 := NewMultiLedgerAsset(l1.ID(), chtest.NewRandomAsset(rng, 0))
-	a2 := NewMultiLedgerAsset(l2.ID(), chtest.NewRandomAsset(rng, 0))
+	a1 := NewMultiLedgerAsset(l1.ID(), chtest.NewRandomAsset(rng, channel.TestBackendID))
+	a2 := NewMultiLedgerAsset(l2.ID(), chtest.NewRandomAsset(rng, channel.TestBackendID))
 
 	return MultiLedgerSetup{
 		Client1: c1,
@@ -92,17 +92,17 @@ func SetupMultiLedgerTest(t *testing.T) MultiLedgerSetup {
 
 // MultiLedgerAsset is a multi-ledger asset.
 type MultiLedgerAsset struct {
-	id    multi.AssetID
+	id    multi.MultiLedgerID
 	asset channel.Asset
 }
 
 // AssetID returns the asset's ID.
-func (a *MultiLedgerAsset) AssetID() multi.AssetID {
+func (a *MultiLedgerAsset) MultiLedgerID() multi.MultiLedgerID {
 	return a.id
 }
 
 // NewMultiLedgerAsset returns a new multi-ledger asset.
-func NewMultiLedgerAsset(id multi.AssetID, asset channel.Asset) *MultiLedgerAsset {
+func NewMultiLedgerAsset(id multi.MultiLedgerID, asset channel.Asset) *MultiLedgerAsset {
 	return &MultiLedgerAsset{
 		id:    id,
 		asset: asset,
@@ -125,7 +125,7 @@ func (a *MultiLedgerAsset) Address() []byte {
 }
 
 // LedgerID returns the asset's ledger ID.
-func (a *MultiLedgerAsset) LedgerID() multi.AssetID {
+func (a *MultiLedgerAsset) LedgerID() multi.MultiLedgerID {
 	return a.id
 }
 
@@ -196,7 +196,7 @@ func setupClient(
 		bus,
 		funder,
 		adj,
-		map[wallet.BackendID]wallet.Wallet{0: w},
+		map[wallet.BackendID]wallet.Wallet{channel.TestBackendID: w},
 		watcher,
 	)
 	require.NoError(err)
@@ -204,7 +204,7 @@ func setupClient(
 	return MultiLedgerClient{
 		Client:         c,
 		WireAddress:    wireAddr[0],
-		WalletAddress:  map[wallet.BackendID]wallet.Address{0: acc.Address()},
+		WalletAddress:  map[wallet.BackendID]wallet.Address{channel.TestBackendID: acc.Address()},
 		Events:         make(chan channel.AdjudicatorEvent),
 		Adjudicator1:   l1.NewAdjudicator(acc.Address()),
 		Adjudicator2:   l2.NewAdjudicator(acc.Address()),

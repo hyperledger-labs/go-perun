@@ -19,6 +19,8 @@ import (
 	"math/rand"
 	"testing"
 
+	"perun.network/go-perun/channel"
+
 	chprtest "perun.network/go-perun/channel/persistence/test"
 	ctest "perun.network/go-perun/client/test"
 )
@@ -39,7 +41,7 @@ func TestPersistencePetraRobert(t *testing.T) {
 
 func NewSetupsPersistence(t *testing.T, rng *rand.Rand, names []string) []ctest.RoleSetup {
 	t.Helper()
-	setups := NewSetups(rng, names, 0)
+	setups := NewSetups(rng, names, channel.TestBackendID)
 	for i := range names {
 		setups[i].PR = chprtest.NewPersistRestorer(t)
 	}

@@ -23,7 +23,6 @@ import (
 	"strings"
 
 	"github.com/pkg/errors"
-
 	"perun.network/go-perun/log"
 	"perun.network/go-perun/wallet"
 	"perun.network/go-perun/wire/perunio"

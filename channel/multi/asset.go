@@ -21,14 +21,16 @@ import (
 )
 
 type (
-	// Asset defines a multi-ledger asset.
+	// Asset defines a multi-ledger asset, extending channel.asset by a method MultiLedgerID() which returns the LedgerID and BackendID.
 	Asset interface {
 		channel.Asset
-		AssetID() AssetID
+		MultiLedgerID() MultiLedgerID
 	}
 
-	// AssetID represents an asset identifier.
-	AssetID interface {
+	// MultiLedgerID represents an asset identifier.
+	// BackendID returns the identifier of the backend the asset belongs to.
+	// LedgerID returns the identifier of the ledger the asset belongs to.
+	MultiLedgerID interface {
 		BackendID() uint32
 		LedgerID() LedgerID
 	}
@@ -45,19 +47,19 @@ type (
 )
 
 // LedgerIDs returns the identifiers of the associated ledgers.
-func (a assets) LedgerIDs() ([]AssetID, error) {
-	ids := make(map[AssetIDKey]AssetID)
+func (a assets) LedgerIDs() ([]MultiLedgerID, error) {
+	ids := make(map[MultiLedgerIDKey]MultiLedgerID)
 	for _, asset := range a {
 		ma, ok := asset.(Asset)
 		if !ok {
 			return nil, fmt.Errorf("wrong asset type: expected Asset, got %T", asset)
 		}
 
-		assetID := ma.AssetID()
+		assetID := ma.MultiLedgerID()
 
-		ids[AssetIDKey{BackendID: assetID.BackendID(), LedgerID: string(assetID.LedgerID().MapKey())}] = assetID
+		ids[MultiLedgerIDKey{BackendID: assetID.BackendID(), LedgerID: string(assetID.LedgerID().MapKey())}] = assetID
 	}
-	idsArray := make([]AssetID, len(ids))
+	idsArray := make([]MultiLedgerID, len(ids))
 	i := 0
 	for _, v := range ids {
 		idsArray[i] = v
@@ -70,7 +72,7 @@ func (a assets) LedgerIDs() ([]AssetID, error) {
 // IsMultiLedgerAssets returns whether the assets are from multiple ledgers.
 func IsMultiLedgerAssets(assets []channel.Asset) bool {
 	hasMulti := false
-	var id AssetID
+	var id MultiLedgerID
 	for _, asset := range assets {
 		multiAsset, ok := asset.(Asset)
 		switch {
@@ -78,8 +80,8 @@ func IsMultiLedgerAssets(assets []channel.Asset) bool {
 			continue
 		case !hasMulti:
 			hasMulti = true
-			id = multiAsset.AssetID()
-		case id.LedgerID().MapKey() != multiAsset.AssetID().LedgerID().MapKey():
+			id = multiAsset.MultiLedgerID()
+		case id.LedgerID().MapKey() != multiAsset.MultiLedgerID().LedgerID().MapKey():
 			return true
 		}
 	}

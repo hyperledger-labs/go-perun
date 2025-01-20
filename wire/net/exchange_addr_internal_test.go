@@ -33,7 +33,7 @@ func TestExchangeAddrs_ConnFail(t *testing.T) {
 	rng := test.Prng(t)
 	a, _ := newPipeConnPair()
 	a.Close()
-	addr, err := ExchangeAddrsPassive(context.Background(), wiretest.NewRandomAccountMap(rng, 0), a)
+	addr, err := ExchangeAddrsPassive(context.Background(), wiretest.NewRandomAccountMap(rng, channel.TestBackendID), a)
 	assert.Nil(t, addr)
 	assert.Error(t, err)
 }
@@ -42,7 +42,7 @@ func TestExchangeAddrs_Success(t *testing.T) {
 	rng := test.Prng(t)
 	conn0, conn1 := newPipeConnPair()
 	defer conn0.Close()
-	account0, account1 := wiretest.NewRandomAccountMap(rng, 0), wiretest.NewRandomAccountMap(rng, 0)
+	account0, account1 := wiretest.NewRandomAccountMap(rng, channel.TestBackendID), wiretest.NewRandomAccountMap(rng, channel.TestBackendID)
 	var wg sync.WaitGroup
 	wg.Add(1)
 
@@ -68,7 +68,7 @@ func TestExchangeAddrs_Timeout(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 	ctxtest.AssertTerminates(t, 2*timeout, func() {
-		addr, err := ExchangeAddrsPassive(ctx, wiretest.NewRandomAccountMap(rng, 0), a)
+		addr, err := ExchangeAddrsPassive(ctx, wiretest.NewRandomAccountMap(rng, channel.TestBackendID), a)
 		assert.Nil(t, addr)
 		assert.Error(t, err)
 	})
@@ -76,7 +76,7 @@ func TestExchangeAddrs_Timeout(t *testing.T) {
 
 func TestExchangeAddrs_BogusMsg(t *testing.T) {
 	rng := test.Prng(t)
-	acc := wiretest.NewRandomAccountMap(rng, 0)
+	acc := wiretest.NewRandomAccountMap(rng, channel.TestBackendID)
 	conn := newMockConn()
 	conn.recvQueue <- wiretest.NewRandomEnvelope(rng, wire.NewPingMsg())
 	addr, err := ExchangeAddrsPassive(context.Background(), acc, conn)

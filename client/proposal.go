@@ -128,7 +128,7 @@ func (r *ProposalResponder) Accept(ctx context.Context, acc ChannelProposalAccep
 }
 
 // SetEgoisticChain sets the egoistic chain flag for a given ledger.
-func (r *ProposalResponder) SetEgoisticChain(egoistic multi.AssetID, id int) {
+func (r *ProposalResponder) SetEgoisticChain(egoistic multi.MultiLedgerID, id int) {
 	mf, ok := r.client.funder.(*multi.Funder)
 	if !ok {
 		log.Panic("unexpected type for funder")
@@ -137,7 +137,7 @@ func (r *ProposalResponder) SetEgoisticChain(egoistic multi.AssetID, id int) {
 }
 
 // RemoveEgoisticChain removes the egoistic chain flag for a given ledger.
-func (r *ProposalResponder) RemoveEgoisticChain(egoistic multi.AssetID, id int) {
+func (r *ProposalResponder) RemoveEgoisticChain(egoistic multi.MultiLedgerID, id int) {
 	mf, ok := r.client.funder.(*multi.Funder)
 	if !ok {
 		log.Panic("unexpected type for funder")

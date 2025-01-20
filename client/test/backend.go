@@ -39,7 +39,7 @@ type (
 		latestEvents map[string]channel.AdjudicatorEvent
 		eventSubs    map[string][]*MockSubscription
 		balances     map[addressMapKey]map[assetMapKey]*big.Int
-		id           multi.AssetID
+		id           multi.MultiLedgerID
 	}
 
 	// AssetID is the unique asset identifier.
@@ -91,7 +91,7 @@ func NewMockBackend(rng *rand.Rand, id string) *MockBackend {
 }
 
 // ID returns the ledger's identifier.
-func (b *MockBackend) ID() multi.AssetID {
+func (b *MockBackend) ID() multi.MultiLedgerID {
 	return b.id
 }
 
@@ -542,7 +542,7 @@ func (f *assetHolder) Fund(req channel.FundingReq, b *MockBackend, acc wallet.Ad
 
 	for i, asset := range req.State.Assets {
 		ma, ok := asset.(*MultiLedgerAsset)
-		if ok && ma.AssetID() != b.ID() {
+		if ok && ma.MultiLedgerID() != b.ID() {
 			continue
 		}
 

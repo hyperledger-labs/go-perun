@@ -279,7 +279,7 @@ func TestAllocationValidLimits(t *testing.T) {
 
 		allocation.Assets = test.NewRandomAssets(rng, test.WithNumAssets(x.numAssets))
 		for i := range allocation.Assets {
-			allocation.Backends[i] = 0
+			allocation.Backends[i] = channel.TestBackendID
 		}
 
 		for i := range allocation.Balances {
@@ -291,12 +291,12 @@ func TestAllocationValidLimits(t *testing.T) {
 
 		for i := range allocation.Locked {
 			allocation.Locked[i] = *channel.NewSubAlloc(
-				map[wallet.BackendID]channel.ID{0: {byte(i), byte(i >> 8), byte(i >> 16), byte(i >> 24)}},
+				map[wallet.BackendID]channel.ID{channel.TestBackendID: {byte(i), byte(i >> 8), byte(i >> 16), byte(i >> 24)}},
 				make([]channel.Bal, x.numAssets),
 				nil,
 			)
 			allocation.Locked[i] = *channel.NewSubAlloc(
-				map[wallet.BackendID]channel.ID{0: {byte(i), byte(i >> 8), byte(i >> 16), byte(i >> 24)}},
+				map[wallet.BackendID]channel.ID{channel.TestBackendID: {byte(i), byte(i >> 8), byte(i >> 16), byte(i >> 24)}},
 				make([]channel.Bal, x.numAssets),
 				nil,
 			)
@@ -500,7 +500,7 @@ func TestAllocation_Valid(t *testing.T) {
 					{big.NewInt(64), big.NewInt(128)},
 				},
 				Locked: []channel.SubAlloc{
-					*channel.NewSubAlloc(map[wallet.BackendID]channel.ID{0: channel.Zero}, []channel.Bal{big.NewInt(4)}, nil),
+					*channel.NewSubAlloc(map[wallet.BackendID]channel.ID{channel.TestBackendID: channel.Zero}, []channel.Bal{big.NewInt(4)}, nil),
 				},
 			},
 			false,
@@ -516,7 +516,7 @@ func TestAllocation_Valid(t *testing.T) {
 					{big.NewInt(64), big.NewInt(128)},
 				},
 				Locked: []channel.SubAlloc{
-					*channel.NewSubAlloc(map[wallet.BackendID]channel.ID{0: channel.Zero}, []channel.Bal{big.NewInt(-1)}, nil),
+					*channel.NewSubAlloc(map[wallet.BackendID]channel.ID{channel.TestBackendID: channel.Zero}, []channel.Bal{big.NewInt(-1)}, nil),
 				},
 			},
 			false,
@@ -544,7 +544,7 @@ func TestAllocation_Valid(t *testing.T) {
 					{big.NewInt(2), big.NewInt(16)},
 				},
 				Locked: []channel.SubAlloc{
-					*channel.NewSubAlloc(map[wallet.BackendID]channel.ID{0: channel.Zero}, []channel.Bal{big.NewInt(4), big.NewInt(-1)}, nil),
+					*channel.NewSubAlloc(map[wallet.BackendID]channel.ID{channel.TestBackendID: channel.Zero}, []channel.Bal{big.NewInt(4), big.NewInt(-1)}, nil),
 				},
 			},
 			false,
@@ -564,9 +564,9 @@ func TestAllocation_Valid(t *testing.T) {
 // suballocation serialization.
 func TestSuballocSerialization(t *testing.T) {
 	ss := []perunio.Serializer{
-		channel.NewSubAlloc(map[wallet.BackendID]channel.ID{0: {2}}, []channel.Bal{}, nil),
-		channel.NewSubAlloc(map[wallet.BackendID]channel.ID{0: {3}}, []channel.Bal{big.NewInt(0)}, nil),
-		channel.NewSubAlloc(map[wallet.BackendID]channel.ID{0: {4}}, []channel.Bal{big.NewInt(5), big.NewInt(1 << 62)}, nil),
+		channel.NewSubAlloc(map[wallet.BackendID]channel.ID{channel.TestBackendID: {2}}, []channel.Bal{}, nil),
+		channel.NewSubAlloc(map[wallet.BackendID]channel.ID{channel.TestBackendID: {3}}, []channel.Bal{big.NewInt(0)}, nil),
+		channel.NewSubAlloc(map[wallet.BackendID]channel.ID{channel.TestBackendID: {4}}, []channel.Bal{big.NewInt(5), big.NewInt(1 << 62)}, nil),
 	}
 
 	peruniotest.GenericSerializerTest(t, ss...)

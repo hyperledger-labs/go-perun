@@ -23,25 +23,25 @@ import (
 
 // Adjudicator is a multi-ledger adjudicator.
 type Adjudicator struct {
-	adjudicators map[AssetIDKey]channel.Adjudicator
+	adjudicators map[MultiLedgerIDKey]channel.Adjudicator
 }
 
 // NewAdjudicator creates a new adjudicator.
 func NewAdjudicator() *Adjudicator {
 	return &Adjudicator{
-		adjudicators: make(map[AssetIDKey]channel.Adjudicator),
+		adjudicators: make(map[MultiLedgerIDKey]channel.Adjudicator),
 	}
 }
 
 // RegisterAdjudicator registers an adjudicator for a given ledger.
-func (a *Adjudicator) RegisterAdjudicator(l AssetID, la channel.Adjudicator) {
-	key := AssetIDKey{BackendID: l.BackendID(), LedgerID: string(l.LedgerID().MapKey())}
+func (a *Adjudicator) RegisterAdjudicator(l MultiLedgerID, la channel.Adjudicator) {
+	key := MultiLedgerIDKey{BackendID: l.BackendID(), LedgerID: string(l.LedgerID().MapKey())}
 	a.adjudicators[key] = la
 }
 
 // LedgerAdjudicator returns the adjudicator for a given ledger.
-func (a *Adjudicator) LedgerAdjudicator(l AssetID) (channel.Adjudicator, bool) {
-	key := AssetIDKey{BackendID: l.BackendID(), LedgerID: string(l.LedgerID().MapKey())}
+func (a *Adjudicator) LedgerAdjudicator(l MultiLedgerID) (channel.Adjudicator, bool) {
+	key := MultiLedgerIDKey{BackendID: l.BackendID(), LedgerID: string(l.LedgerID().MapKey())}
 	adj, ok := a.adjudicators[key]
 	return adj, ok
 }
@@ -92,13 +92,13 @@ func (a *Adjudicator) Withdraw(ctx context.Context, req channel.AdjudicatorReq, 
 }
 
 // dispatch dispatches an adjudicator call on all given ledgers.
-func (a *Adjudicator) dispatch(assetIds []AssetID, f func(channel.Adjudicator) error) error {
+func (a *Adjudicator) dispatch(assetIds []MultiLedgerID, f func(channel.Adjudicator) error) error {
 	n := len(assetIds)
 	errs := make(chan error, n)
 	for _, l := range assetIds {
-		go func(l AssetID) {
+		go func(l MultiLedgerID) {
 			err := func() error {
-				key := AssetIDKey{BackendID: l.BackendID(), LedgerID: string(l.LedgerID().MapKey())}
+				key := MultiLedgerIDKey{BackendID: l.BackendID(), LedgerID: string(l.LedgerID().MapKey())}
 				adjs, ok := a.adjudicators[key]
 				if !ok {
 					return fmt.Errorf("adjudicator not found for id %v", l)
