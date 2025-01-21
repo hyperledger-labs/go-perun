@@ -41,7 +41,8 @@ type Funder struct {
 // NewFunder creates a new funder.
 func NewFunder() *Funder {
 	return &Funder{
-		funders: make(map[AssetIDKey]channel.Funder),
+		funders:  make(map[AssetIDKey]channel.Funder),
+		egoistic: false,
 	}
 }
 
@@ -75,7 +76,7 @@ func (f *Funder) Fund(ctx context.Context, request channel.FundingReq) error {
 	var nonEgoisticLedgers []AssetID
 
 	for i, l := range assetIDs {
-		if f.egoisticIndex == i {
+		if f.egoistic && f.egoisticIndex == i {
 			egoisticLedgers = append(egoisticLedgers, l)
 		} else {
 			nonEgoisticLedgers = append(nonEgoisticLedgers, l)
