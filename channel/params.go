@@ -40,6 +40,12 @@ const MinNumParts = 2
 // Nonce is the channel parameters' nonce type.
 type Nonce = *big.Int
 
+// AuxMaxLen is the maximum byte count of the auxiliary data.
+const AuxMaxLen = 256
+
+// Aux is the channel parameters' auxiliary data type.
+type Aux = [AuxMaxLen]byte
+
 // NonceFromBytes creates a nonce from a byte slice.
 func NonceFromBytes(b []byte) Nonce {
 	if len(b) > MaxNonceLen {
@@ -50,6 +56,8 @@ func NonceFromBytes(b []byte) Nonce {
 
 // Zero is the default channelID.
 var Zero = ID{}
+
+var ZeroAux = Aux{}
 
 var _ perunio.Serializer = (*Params)(nil)
 
@@ -73,6 +81,8 @@ type Params struct {
 	LedgerChannel bool
 	// VirtualChannel specifies whether this is a virtual channel.
 	VirtualChannel bool
+	// Aux is an optional field that can be used to store additional information.
+	Aux Aux
 }
 
 // ID returns the channelID of this channel.
@@ -84,11 +94,11 @@ func (p *Params) ID() ID {
 // appDef optional: if it is nil, it describes a payment channel. The channel id
 // is also calculated here and persisted because it probably is an expensive
 // hash operation.
-func NewParams(challengeDuration uint64, parts []wallet.Address, app App, nonce Nonce, ledger bool, virtual bool) (*Params, error) {
+func NewParams(challengeDuration uint64, parts []wallet.Address, app App, nonce Nonce, ledger bool, virtual bool, aux Aux) (*Params, error) {
 	if err := ValidateParameters(challengeDuration, len(parts), app, nonce); err != nil {
 		return nil, errors.WithMessage(err, "invalid parameter for NewParams")
 	}
-	return NewParamsUnsafe(challengeDuration, parts, app, nonce, ledger, virtual), nil
+	return NewParamsUnsafe(challengeDuration, parts, app, nonce, ledger, virtual, aux), nil
 }
 
 // ValidateProposalParameters validates all parameters that are part of the
@@ -130,7 +140,7 @@ func ValidateParameters(challengeDuration uint64, numParts int, app App, nonce N
 // NewParamsUnsafe creates Params from the given data and does NOT perform
 // sanity checks. The channel id is also calculated here and persisted because
 // it probably is an expensive hash operation.
-func NewParamsUnsafe(challengeDuration uint64, parts []wallet.Address, app App, nonce Nonce, ledger bool, virtual bool) *Params {
+func NewParamsUnsafe(challengeDuration uint64, parts []wallet.Address, app App, nonce Nonce, ledger bool, virtual bool, aux Aux) *Params {
 	p := &Params{
 		ChallengeDuration: challengeDuration,
 		Parts:             parts,
@@ -138,6 +148,7 @@ func NewParamsUnsafe(challengeDuration uint64, parts []wallet.Address, app App, 
 		Nonce:             nonce,
 		LedgerChannel:     ledger,
 		VirtualChannel:    virtual,
+		Aux:               aux,
 	}
 	// probably an expensive hash operation, do it only once during creation.
 	p.id = CalcID(p)
@@ -154,6 +165,7 @@ func (p *Params) Clone() *Params {
 		Nonce:             new(big.Int).Set(p.Nonce),
 		LedgerChannel:     p.LedgerChannel,
 		VirtualChannel:    p.VirtualChannel,
+		Aux:               p.Aux,
 	}
 }
 
@@ -166,6 +178,7 @@ func (p *Params) Encode(w stdio.Writer) error {
 		p.Nonce,
 		p.LedgerChannel,
 		p.VirtualChannel,
+		p.Aux,
 	)
 }
 
@@ -178,6 +191,7 @@ func (p *Params) Decode(r stdio.Reader) error {
 		nonce             Nonce
 		ledger            bool
 		virtual           bool
+		aux               Aux
 	)
 
 	err := perunio.Decode(r,
@@ -187,12 +201,13 @@ func (p *Params) Decode(r stdio.Reader) error {
 		&nonce,
 		&ledger,
 		&virtual,
+		&aux,
 	)
 	if err != nil {
 		return err
 	}
 
-	_p, err := NewParams(challengeDuration, parts, app, nonce, ledger, virtual)
+	_p, err := NewParams(challengeDuration, parts, app, nonce, ledger, virtual, aux)
 	if err != nil {
 		return err
 	}

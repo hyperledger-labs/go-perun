@@ -109,6 +109,7 @@ type (
 		InitData          channel.Data        // Initial App data.
 		InitBals          *channel.Allocation // Initial balances.
 		FundingAgreement  channel.Balances    // Possibly different funding agreement from initial state's balances.
+		Aux               channel.Aux         // Auxiliary data.
 	}
 
 	// LedgerChannelProposalMsg is a channel proposal for ledger channels.
@@ -177,6 +178,7 @@ func makeBaseChannelProposal(
 		InitData:          opt.AppData(),
 		InitBals:          initBals,
 		FundingAgreement:  fundingAgreement,
+		Aux:               opt.aux(),
 	}, nil
 }
 

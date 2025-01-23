@@ -127,13 +127,18 @@ func ToParams(protoParams *Params) (*channel.Params, error) {
 	if err != nil {
 		return nil, errors.WithMessage(err, "parts")
 	}
+
+	var aux channel.Aux
+	copy(aux[:], protoParams.Aux)
 	params := channel.NewParamsUnsafe(
 		protoParams.ChallengeDuration,
 		parts,
 		app,
 		(new(big.Int)).SetBytes(protoParams.Nonce),
 		protoParams.LedgerChannel,
-		protoParams.VirtualChannel)
+		protoParams.VirtualChannel,
+		aux,
+	)
 
 	return params, nil
 }
@@ -255,6 +260,7 @@ func FromParams(params *channel.Params) (protoParams *Params, err error) {
 		return nil, errors.WithMessage(err, "parts")
 	}
 	protoParams.App, err = FromApp(params.App)
+	protoParams.Aux = params.Aux[:]
 	return protoParams, err
 }
 

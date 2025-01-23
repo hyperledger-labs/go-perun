@@ -584,6 +584,7 @@ func (c *Client) completeCPP(
 		calcNonce(nonceShares(propBase.NonceShare, acc.Base().NonceShare)),
 		prop.Type() == wire.LedgerChannelProposal,
 		prop.Type() == wire.VirtualChannelProposal,
+		propBase.Aux,
 	)
 
 	if c.channels.Has(params.ID()) {

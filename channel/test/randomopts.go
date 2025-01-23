@@ -211,6 +211,11 @@ func WithVirtualChannel(b bool) RandomOpt {
 	return RandomOpt{nameVirtualChannel: b}
 }
 
+// WithAux sets the `Aux` attribute.
+func WithAux(aux channel.Aux) RandomOpt {
+	return RandomOpt{"aux": aux}
+}
+
 // Append inserts all `opts` into the receiving object and returns the result.
 // Overrides entries that occur more than once with the last occurrence.
 func (o RandomOpt) Append(opts ...RandomOpt) RandomOpt {
@@ -421,6 +426,20 @@ func (o RandomOpt) VirtualChannel(rng io.Reader) bool {
 		o[nameVirtualChannel] = a[0]%2 == 0 //nolint:gomnd
 	}
 	return o[nameVirtualChannel].(bool)
+}
+
+// Aux returns the `Aux` value of the `RandomOpt`.
+// If not present, a random value is generated with `rng` as entropy source.
+func (o RandomOpt) Aux(rng io.Reader) channel.Aux {
+	if _, ok := o["aux"]; !ok {
+		a := make([]byte, channel.AuxMaxLen)
+		_, err := rng.Read(a)
+		if err != nil {
+			panic(err)
+		}
+		o["aux"] = channel.Aux(a)
+	}
+	return o["aux"].(channel.Aux)
 }
 
 // NumAssets returns the `NumAssets` value of the `RandomOpt`.

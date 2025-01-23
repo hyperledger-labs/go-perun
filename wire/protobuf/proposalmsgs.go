@@ -171,6 +171,7 @@ func ToBaseChannelProposal(protoProp *BaseChannelProposal) (prop client.BaseChan
 		return prop, errors.WithMessage(err, "funding agreement")
 	}
 	prop.App, prop.InitData, err = ToAppAndData(protoProp.App, protoProp.InitData)
+	copy(prop.Aux[:], protoProp.Aux)
 	return prop, err
 }
 
@@ -403,6 +404,9 @@ func FromBaseChannelProposal(prop client.BaseChannelProposal) (protoProp *BaseCh
 
 	protoProp.NonceShare = make([]byte, len(prop.NonceShare))
 	copy(protoProp.NonceShare, prop.NonceShare[:])
+
+	protoProp.Aux = make([]byte, len(prop.Aux))
+	copy(protoProp.Aux, prop.Aux[:])
 
 	protoProp.ChallengeDuration = prop.ChallengeDuration
 

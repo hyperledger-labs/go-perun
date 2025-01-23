@@ -43,6 +43,8 @@ func Encode(writer io.Writer, values ...interface{}) (err error) { //nolint: cyc
 			err = BigInt{v}.Encode(writer)
 		case [32]byte:
 			_, err = writer.Write(v[:])
+		case [256]byte:
+			_, err = writer.Write(v[:])
 		case []byte:
 			err = ByteSlice(v).Encode(writer)
 		case string:
@@ -100,6 +102,8 @@ func Decode(reader io.Reader, values ...interface{}) (err error) {
 			err = d.Decode(reader)
 			*v = d.Int
 		case *[32]byte:
+			_, err = io.ReadFull(reader, v[:])
+		case *[256]byte:
 			_, err = io.ReadFull(reader, v[:])
 		case *[]byte:
 			d := ByteSlice(*v)

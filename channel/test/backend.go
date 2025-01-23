@@ -189,6 +189,7 @@ func appendModParams(a []channel.Params, modParams channel.Params) []channel.Par
 		modParams.Nonce,
 		modParams.LedgerChannel,
 		modParams.VirtualChannel,
+		modParams.Aux,
 	)
 	return append(a, *p)
 }

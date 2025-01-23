@@ -27,7 +27,7 @@ import (
 // NoData is set, and a random nonce share is generated.
 type ProposalOpts map[string]interface{}
 
-var optNames = struct{ nonce, app, appData, fundingAgreement string }{nonce: "nonce", app: "app", appData: "appData", fundingAgreement: "fundingAgreement"}
+var optNames = struct{ nonce, app, appData, fundingAgreement, aux string }{nonce: "nonce", app: "app", appData: "appData", fundingAgreement: "fundingAgreement", aux: "aux"}
 
 // App returns the option's configured app.
 func (o ProposalOpts) App() channel.App {
@@ -92,6 +92,19 @@ func (o ProposalOpts) nonce() NonceShare {
 	return share
 }
 
+// aux returns the option's configured auxiliary data.
+func (o ProposalOpts) aux() channel.Aux {
+	a, ok := o[optNames.aux]
+	if !ok {
+		return channel.ZeroAux
+	}
+	aux, ok := a.(channel.Aux)
+	if !ok {
+		log.Panicf("wrong type: expected []byte, got %T", a)
+	}
+	return aux
+}
+
 // isNonce returns whether a ProposalOpts contains a manually set nonce.
 func (o ProposalOpts) isNonce() bool {
 	_, ok := o[optNames.nonce]
@@ -120,6 +133,11 @@ func WithFundingAgreement(alloc channel.Balances) ProposalOpts {
 // WithNonce configures a fixed nonce share.
 func WithNonce(share NonceShare) ProposalOpts {
 	return ProposalOpts{optNames.nonce: share}
+}
+
+// WithAux configures an auxiliary data field.
+func WithAux(aux []byte) ProposalOpts {
+	return ProposalOpts{optNames.aux: aux}
 }
 
 // WithNonceFrom reads a nonce share from a reader (should be random stream).
