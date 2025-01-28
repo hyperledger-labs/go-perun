@@ -1,4 +1,4 @@
-// Copyright 2019 - See NOTICE file for copyright holders.
+// Copyright 2024 - See NOTICE file for copyright holders.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -20,6 +20,8 @@ import (
 	"io"
 	"math/big"
 
+	"perun.network/go-perun/channel"
+
 	"perun.network/go-perun/log"
 	"perun.network/go-perun/wallet"
 )
@@ -29,7 +31,7 @@ type Address ecdsa.PublicKey
 
 // BackendID returns the backend id of the address.
 func (a Address) BackendID() wallet.BackendID {
-	return 0
+	return channel.TestBackendID
 }
 
 const (
@@ -67,7 +69,7 @@ func NewRandomAddresses(rng io.Reader) map[wallet.BackendID]wallet.Address {
 		log.Panicf("Creation of account failed with error", err)
 	}
 
-	return map[wallet.BackendID]wallet.Address{0: &Address{
+	return map[wallet.BackendID]wallet.Address{channel.TestBackendID: &Address{
 		Curve: privateKey.Curve,
 		X:     privateKey.X,
 		Y:     privateKey.Y,

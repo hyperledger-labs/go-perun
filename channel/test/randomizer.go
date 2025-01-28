@@ -1,4 +1,4 @@
-// Copyright 2019 - See NOTICE file for copyright holders.
+// Copyright 2024 - See NOTICE file for copyright holders.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -82,7 +82,7 @@ func NewRandomAssets(rng *rand.Rand, opts ...RandomOpt) []channel.Asset {
 	}
 	as := make([]channel.Asset, numAssets)
 	for i := range as {
-		as[i] = NewRandomAsset(rng, 0)
+		as[i] = NewRandomAsset(rng, channel.TestBackendID)
 	}
 
 	updateOpts(opts, WithAssets(as...))
@@ -186,7 +186,7 @@ func NewRandomParams(rng *rand.Rand, opts ...RandomOpt) *channel.Params {
 			if backend, _ = opt.Backend(); backend != 0 {
 				parts[i] = map[wallet.BackendID]wallet.Address{backend: test.NewRandomAddress(rng, backend)}
 			} else {
-				parts[i] = map[wallet.BackendID]wallet.Address{0: test.NewRandomAddress(rng, 0)}
+				parts[i] = map[wallet.BackendID]wallet.Address{channel.TestBackendID: test.NewRandomAddress(rng, channel.TestBackendID)}
 			}
 		}
 	}
@@ -363,7 +363,7 @@ func NewRandomTransaction(rng *rand.Rand, sigMask []bool, opts ...RandomOpt) *ch
 	opt := mergeRandomOpts(opts...)
 	bID, err := opt.Backend()
 	if err != nil {
-		bID = 0
+		bID = channel.TestBackendID
 	}
 	numParts := len(sigMask)
 	accs, addrs := test.NewRandomAccounts(rng, numParts, bID)

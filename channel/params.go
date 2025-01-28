@@ -1,4 +1,4 @@
-// Copyright 2019 - See NOTICE file for copyright holders.
+// Copyright 2024 - See NOTICE file for copyright holders.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -19,7 +19,6 @@ import (
 	"math/big"
 
 	"github.com/pkg/errors"
-
 	"perun.network/go-perun/log"
 	"perun.network/go-perun/wallet"
 	"perun.network/go-perun/wire/perunio"

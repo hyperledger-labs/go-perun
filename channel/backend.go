@@ -1,4 +1,4 @@
-// Copyright 2019 - See NOTICE file for copyright holders.
+// Copyright 2024 - See NOTICE file for copyright holders.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -82,8 +82,8 @@ func CalcID(p *Params) (ID, error) {
 }
 
 // Sign creates a signature from the account a on state s.
-func Sign(a wallet.Account, s *State, b wallet.BackendID) (wallet.Sig, error) {
-	return backend[b].Sign(a, s)
+func Sign(a wallet.Account, s *State, bID wallet.BackendID) (wallet.Sig, error) {
+	return backend[bID].Sign(a, s)
 }
 
 // Verify verifies that a signature was a valid signature from addr on a state.

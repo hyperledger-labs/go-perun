@@ -1,4 +1,4 @@
-// Copyright 2019 - See NOTICE file for copyright holders.
+// Copyright 2024 - See NOTICE file for copyright holders.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -22,9 +22,9 @@ import (
 )
 
 func init() {
-	channel.SetBackend(new(backend), 0)
-	test.SetRandomizer(new(randomizer), 0)
+	channel.SetBackend(new(backend), channel.TestBackendID)
+	test.SetRandomizer(new(randomizer), channel.TestBackendID)
 	test.SetNewRandomAppID(func(r *rand.Rand) channel.AppID {
 		return NewRandomAppID(r)
-	}, 0)
+	}, channel.TestBackendID)
 }

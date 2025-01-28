@@ -1,4 +1,4 @@
-// Copyright 2019 - See NOTICE file for copyright holders.
+// Copyright 2024 - See NOTICE file for copyright holders.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -27,7 +27,7 @@ import (
 
 func TestApp_Def(t *testing.T) {
 	rng := pkgtest.Prng(t)
-	def := test.NewRandomAppID(rng, 0)
+	def := test.NewRandomAppID(rng, channel.TestBackendID)
 	app := &App{def}
 	assert.True(t, app.Def().Equal(app.Def()))
 }

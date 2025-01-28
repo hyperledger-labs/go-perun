@@ -1,4 +1,4 @@
-// Copyright 2022 - See NOTICE file for copyright holders.
+// Copyright 2024 - See NOTICE file for copyright holders.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -27,6 +27,9 @@ import (
 
 	"perun.network/go-perun/wire"
 )
+
+// testBackendID is the identifier for the simulated Backend.
+const testBackendID = 0
 
 // Address is a wire address.
 type Address struct {
@@ -216,7 +219,7 @@ func NewRandomAddresses(rng *rand.Rand) map[wallet.BackendID]wire.Address {
 	a := Address{
 		Name: string(d),
 	}
-	return map[wallet.BackendID]wire.Address{0: &a}
+	return map[wallet.BackendID]wire.Address{testBackendID: &a}
 }
 
 // Verify verifies a message signature.

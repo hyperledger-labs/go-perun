@@ -1,4 +1,4 @@
-// Copyright 2019 - See NOTICE file for copyright holders.
+// Copyright 2024 - See NOTICE file for copyright holders.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -128,7 +128,7 @@ func (r *ProposalResponder) Accept(ctx context.Context, acc ChannelProposalAccep
 }
 
 // SetEgoisticChain sets the egoistic chain flag for a given ledger.
-func (r *ProposalResponder) SetEgoisticChain(egoistic multi.AssetID, id int) {
+func (r *ProposalResponder) SetEgoisticChain(egoistic multi.LedgerBackendID, id int) {
 	mf, ok := r.client.funder.(*multi.Funder)
 	if !ok {
 		log.Panic("unexpected type for funder")
@@ -137,7 +137,7 @@ func (r *ProposalResponder) SetEgoisticChain(egoistic multi.AssetID, id int) {
 }
 
 // RemoveEgoisticChain removes the egoistic chain flag for a given ledger.
-func (r *ProposalResponder) RemoveEgoisticChain(egoistic multi.AssetID, id int) {
+func (r *ProposalResponder) RemoveEgoisticChain(egoistic multi.LedgerBackendID, id int) {
 	mf, ok := r.client.funder.(*multi.Funder)
 	if !ok {
 		log.Panic("unexpected type for funder")

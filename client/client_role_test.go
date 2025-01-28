@@ -1,4 +1,4 @@
-// Copyright 2020 - See NOTICE file for copyright holders.
+// Copyright 2024 - See NOTICE file for copyright holders.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -20,6 +20,8 @@ import (
 	"math/rand"
 	"testing"
 	"time"
+
+	"perun.network/go-perun/channel"
 
 	"perun.network/go-perun/wallet"
 
@@ -87,8 +89,8 @@ func runAliceBobTest(ctx context.Context, t *testing.T, setup func(*rand.Rand) (
 		cfg := &ctest.AliceBobExecConfig{
 			BaseExecConfig: ctest.MakeBaseExecConfig(
 				[2]map[wallet.BackendID]wire.Address{wire.AddressMapfromAccountMap(setups[0].Identity), wire.AddressMapfromAccountMap(setups[1].Identity)},
-				chtest.NewRandomAsset(rng, 0),
-				0,
+				chtest.NewRandomAsset(rng, channel.TestBackendID),
+				channel.TestBackendID,
 				[2]*big.Int{big.NewInt(100), big.NewInt(100)},
 				app,
 			),

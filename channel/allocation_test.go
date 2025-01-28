@@ -1,4 +1,4 @@
-// Copyright 2019 - See NOTICE file for copyright holders.
+// Copyright 2024 - See NOTICE file for copyright holders.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -279,7 +279,7 @@ func TestAllocationValidLimits(t *testing.T) {
 
 		allocation.Assets = test.NewRandomAssets(rng, test.WithNumAssets(x.numAssets))
 		for i := range allocation.Assets {
-			allocation.Backends[i] = 0
+			allocation.Backends[i] = channel.TestBackendID
 		}
 
 		for i := range allocation.Balances {
@@ -544,7 +544,7 @@ func TestAllocation_Valid(t *testing.T) {
 					{big.NewInt(2), big.NewInt(16)},
 				},
 				Locked: []channel.SubAlloc{
-					*channel.NewSubAlloc(channel.Zero, []channel.Bal{big.NewInt(4), big.NewInt(-1)}, nil),
+					*channel.NewSubAlloc(map[wallet.BackendID]channel.ID{0: channel.Zero}, []channel.Bal{big.NewInt(4), big.NewInt(-1)}, nil),
 				},
 			},
 			false,

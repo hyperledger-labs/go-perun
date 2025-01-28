@@ -1,4 +1,4 @@
-// Copyright 2020 - See NOTICE file for copyright holders.
+// Copyright 2024 - See NOTICE file for copyright holders.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -27,6 +27,8 @@ import (
 	"net"
 	"testing"
 	"time"
+
+	"perun.network/go-perun/channel"
 
 	"perun.network/go-perun/wallet"
 
@@ -68,7 +70,7 @@ func TestDialer_Register(t *testing.T) {
 	_, ok := d.host(key)
 	require.False(t, ok)
 
-	d.Register(map[wallet.BackendID]wire.Address{0: addr}, "host")
+	d.Register(map[wallet.BackendID]wire.Address{channel.TestBackendID: addr}, "host")
 
 	host, ok := d.host(key)
 	assert.True(t, ok)
@@ -79,7 +81,7 @@ func TestDialer_Dial(t *testing.T) {
 	timeout := 100 * time.Millisecond
 	rng := test.Prng(t)
 	lhost := "127.0.0.1:7357"
-	laddr := wire.AddressMapfromAccountMap(wiretest.NewRandomAccountMap(rng, 0))
+	laddr := wire.AddressMapfromAccountMap(wiretest.NewRandomAccountMap(rng, channel.TestBackendID))
 
 	commonName := "127.0.0.1"
 	sans := []string{"127.0.0.1", "localhost"}
@@ -93,7 +95,7 @@ func TestDialer_Dial(t *testing.T) {
 	ser := perunio.Serializer()
 	d := NewTCPDialer(timeout, dConfig)
 	d.Register(laddr, lhost)
-	daddr := wire.AddressMapfromAccountMap(wiretest.NewRandomAccountMap(rng, 0))
+	daddr := wire.AddressMapfromAccountMap(wiretest.NewRandomAccountMap(rng, channel.TestBackendID))
 	defer d.Close()
 
 	t.Run("happy", func(t *testing.T) {

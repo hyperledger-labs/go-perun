@@ -1,4 +1,4 @@
-// Copyright 2022 - See NOTICE file for copyright holders.
+// Copyright 2024 - See NOTICE file for copyright holders.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -62,8 +62,8 @@ func TestMultiLedgerDispute(
 
 	// Establish ledger channel between Alice and Bob.
 
-	bID1 := wallet.BackendID(mlt.Asset1.AssetID().BackendID())
-	bID2 := wallet.BackendID(mlt.Asset2.AssetID().BackendID())
+	bID1 := wallet.BackendID(mlt.Asset1.LedgerBackendID().BackendID())
+	bID2 := wallet.BackendID(mlt.Asset2.LedgerBackendID().BackendID())
 	// Create channel proposal.
 	parts := []map[wallet.BackendID]wire.Address{alice.WireAddress, bob.WireAddress}
 	initAlloc := channel.NewAllocation(len(parts), []wallet.BackendID{bID1, bID2}, mlt.Asset1, mlt.Asset2)

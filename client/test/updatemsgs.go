@@ -1,4 +1,4 @@
-// Copyright 2022 - See NOTICE file for copyright holders.
+// Copyright 2024 - See NOTICE file for copyright holders.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -94,7 +94,7 @@ func channelUpdateAccSerializationTest(t *testing.T, serializerTest func(t *test
 	t.Helper()
 	rng := pkgtest.Prng(t)
 	for i := 0; i < 4; i++ {
-		sig := newRandomSig(rng, 0)
+		sig := newRandomSig(rng, channel.TestBackendID)
 		m := &client.ChannelUpdateAccMsg{
 			ChannelID: test.NewRandomChannelID(rng),
 			Version:   uint64(rng.Int63()),
@@ -121,7 +121,7 @@ func channelUpdateRejSerializationTest(t *testing.T, serializerTest func(t *test
 
 func newRandomMsgChannelUpdate(rng *rand.Rand) *client.ChannelUpdateMsg {
 	state := test.NewRandomState(rng)
-	sig := newRandomSig(rng, 0)
+	sig := newRandomSig(rng, channel.TestBackendID)
 	return &client.ChannelUpdateMsg{
 		ChannelUpdate: client.ChannelUpdate{
 			State:    state,
@@ -149,7 +149,7 @@ func newRandomSig(rng *rand.Rand, bID wallet.BackendID) wallet.Sig {
 func newRandomSigs(rng *rand.Rand, n int) (a []wallet.Sig) {
 	a = make([]wallet.Sig, n)
 	for i := range a {
-		a[i] = newRandomSig(rng, 0)
+		a[i] = newRandomSig(rng, channel.TestBackendID)
 	}
 	return
 }

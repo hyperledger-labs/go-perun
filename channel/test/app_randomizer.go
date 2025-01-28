@@ -1,4 +1,4 @@
-// Copyright 2019 - See NOTICE file for copyright holders.
+// Copyright 2024 - See NOTICE file for copyright holders.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -58,7 +58,7 @@ func NewRandomApp(rng *rand.Rand, opts ...RandomOpt) channel.App {
 	var bID wallet.BackendID
 	bID, err := opt.Backend()
 	if err != nil {
-		bID = wallet.BackendID(0)
+		bID = wallet.BackendID(channel.TestBackendID)
 	}
 	// WithAppDef does not set the app in the options
 	app := opt.AppRandomizer().NewRandomApp(rng, bID)

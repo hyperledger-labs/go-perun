@@ -1,4 +1,4 @@
-// Copyright 2020 - See NOTICE file for copyright holders.
+// Copyright 2024 - See NOTICE file for copyright holders.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -56,7 +56,7 @@ func NewRandomChannel(
 	parent *Channel,
 	rng *rand.Rand,
 ) (c *Channel) {
-	bID := wallet.BackendID(0)
+	bID := wallet.BackendID(channel.TestBackendID)
 	if len(peers) > 0 {
 		for i := range peers[0] {
 			bID = i
@@ -180,7 +180,7 @@ func (c *Channel) SignAll(ctx context.Context, t require.TestingT) {
 	c.AssertPersisted(ctx, t)
 	// remote signers
 	for i := range c.accounts {
-		sig, err := channel.Sign(c.accounts[i][0], c.StagingState(), 0)
+		sig, err := channel.Sign(c.accounts[i][channel.TestBackendID], c.StagingState(), channel.TestBackendID)
 		require.NoError(t, err)
 		c.AddSig(ctx, channel.Index(i), sig) //nolint:errcheck
 		c.AssertPersisted(ctx, t)

@@ -1,4 +1,4 @@
-// Copyright 2019 - See NOTICE file for copyright holders.
+// Copyright 2024 - See NOTICE file for copyright holders.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -46,7 +46,7 @@ func SetNewRandomAccount(f NewRandomAccountFunc) {
 
 // NewRandomAddress returns a new random address.
 func NewRandomAddress(rng *rand.Rand) map[wallet.BackendID]wire.Address {
-	return map[wallet.BackendID]wire.Address{0: newRandomAddress(rng)}
+	return map[wallet.BackendID]wire.Address{TestBackendID: newRandomAddress(rng)}
 }
 
 // NewRandomAccount returns a new random account.

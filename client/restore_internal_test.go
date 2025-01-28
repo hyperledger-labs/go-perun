@@ -1,4 +1,4 @@
-// Copyright 2020 - See NOTICE file for copyright holders.
+// Copyright 2024 - See NOTICE file for copyright holders.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -38,14 +38,14 @@ func patchChFromSource(
 	parent *Channel,
 	peers ...map[wallet.BackendID]wire.Address,
 ) (*Channel, error) {
-	bID := wallet.BackendID(0)
+	bID := wallet.BackendID(channel.TestBackendID)
 	if len(peers) > 0 {
 		for i := range peers[0] {
 			bID = i
 		}
 	}
-	acc, _ := wallettest.RandomWallet(bID).Unlock(ch.ParamsV.Parts[ch.IdxV][0])
-	machine, _ := channel.NewStateMachine(map[wallet.BackendID]wallet.Account{0: acc}, *ch.ParamsV)
+	acc, _ := wallettest.RandomWallet(bID).Unlock(ch.ParamsV.Parts[ch.IdxV][channel.TestBackendID])
+	machine, _ := channel.NewStateMachine(map[wallet.BackendID]wallet.Account{channel.TestBackendID: acc}, *ch.ParamsV)
 	pmachine := persistence.FromStateMachine(machine, nil)
 
 	_ch := &Channel{parent: parent, machine: pmachine, OnCloser: new(sync.Closer)}
@@ -58,10 +58,10 @@ func TestReconstructChannel(t *testing.T) {
 	rng := pkgtest.Prng(t)
 	db := map[channel.ID]*persistence.Channel{}
 
-	restParent := mkRndChan(rng, 0)
+	restParent := mkRndChan(rng, channel.TestBackendID)
 	db[restParent.ID()] = restParent
 
-	restChild := mkRndChan(rng, 0)
+	restChild := mkRndChan(rng, channel.TestBackendID)
 	parentID := restParent.ID()
 	restChild.Parent = &parentID
 	db[restChild.ID()] = restChild
@@ -88,7 +88,7 @@ func TestRestoreChannelCollection(t *testing.T) {
 	// Generate multiple trees of channels into one collection.
 	db := make(map[channel.ID]*persistence.Channel)
 	for i := 0; i < 3; i++ {
-		mkRndChanTree(rng, 3, 1, 3, db, 0)
+		mkRndChanTree(rng, 3, 1, 3, db, channel.TestBackendID)
 	}
 
 	// Remember channels that have been published.

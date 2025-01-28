@@ -1,4 +1,4 @@
-// Copyright 2020 - See NOTICE file for copyright holders.
+// Copyright 2024 - See NOTICE file for copyright holders.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -18,6 +18,8 @@ import (
 	"context"
 	"math/rand"
 	"testing"
+
+	"perun.network/go-perun/channel"
 
 	chprtest "perun.network/go-perun/channel/persistence/test"
 	ctest "perun.network/go-perun/client/test"
@@ -39,7 +41,7 @@ func TestPersistencePetraRobert(t *testing.T) {
 
 func NewSetupsPersistence(t *testing.T, rng *rand.Rand, names []string) []ctest.RoleSetup {
 	t.Helper()
-	setups := NewSetups(rng, names, 0)
+	setups := NewSetups(rng, names, channel.TestBackendID)
 	for i := range names {
 		setups[i].PR = chprtest.NewPersistRestorer(t)
 	}

@@ -1,4 +1,4 @@
-// Copyright 2021 - See NOTICE file for copyright holders.
+// Copyright 2024 - See NOTICE file for copyright holders.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -39,7 +39,7 @@ type (
 		latestEvents map[channel.ID]channel.AdjudicatorEvent
 		eventSubs    map[channel.ID][]*MockSubscription
 		balances     map[addressMapKey]map[assetMapKey]*big.Int
-		id           multi.AssetID
+		id           multi.LedgerBackendID
 	}
 
 	// AssetID is the unique asset identifier.
@@ -91,7 +91,7 @@ func NewMockBackend(rng *rand.Rand, id string) *MockBackend {
 }
 
 // ID returns the ledger's identifier.
-func (b *MockBackend) ID() multi.AssetID {
+func (b *MockBackend) ID() multi.LedgerBackendID {
 	return b.id
 }
 
@@ -542,7 +542,7 @@ func (f *assetHolder) Fund(req channel.FundingReq, b *MockBackend, acc wallet.Ad
 
 	for i, asset := range req.State.Assets {
 		ma, ok := asset.(*MultiLedgerAsset)
-		if ok && ma.AssetID() != b.ID() {
+		if ok && ma.LedgerBackendID() != b.ID() {
 			continue
 		}
 
