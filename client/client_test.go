@@ -1,4 +1,4 @@
-// Copyright 2021 - See NOTICE file for copyright holders.
+// Copyright 2024 - See NOTICE file for copyright holders.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -18,6 +18,8 @@ import (
 	"context"
 	"testing"
 	"time"
+
+	"perun.network/go-perun/wallet"
 
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
@@ -43,15 +45,15 @@ func (d DummyBus) Publish(context.Context, *wire.Envelope) error {
 	return errors.New("DummyBus.Publish called")
 }
 
-func (d DummyBus) SubscribeClient(wire.Consumer, wire.Address) error {
+func (d DummyBus) SubscribeClient(wire.Consumer, map[wallet.BackendID]wire.Address) error {
 	return nil
 }
 
 func TestClient_New_NilArgs(t *testing.T) {
 	rng := test.Prng(t)
-	id := wiretest.NewRandomAddress(rng)
+	id := wiretest.NewRandomAddressesMap(rng, 1)[0]
 	backend := &ctest.MockBackend{}
-	b, f, a, w := &DummyBus{t}, &ctest.MockFunder{}, &ctest.MockAdjudicator{}, wtest.RandomWallet()
+	b, f, a, w := &DummyBus{t}, &ctest.MockFunder{}, &ctest.MockAdjudicator{}, map[wallet.BackendID]wallet.Wallet{channel.TestBackendID: wtest.RandomWallet(channel.TestBackendID)}
 	watcher, err := local.NewWatcher(backend)
 	require.NoError(t, err, "initializing the watcher should not error")
 	assert.Panics(t, func() { client.New(nil, b, f, a, w, watcher) })  //nolint:errcheck
@@ -68,7 +70,7 @@ func TestClient_Handle_NilArgs(t *testing.T) {
 	watcher, err := local.NewWatcher(backend)
 	require.NoError(t, err, "initializing the watcher should not error")
 	c, err := client.New(wiretest.NewRandomAddress(rng),
-		&DummyBus{t}, &ctest.MockFunder{}, &ctest.MockAdjudicator{}, wtest.RandomWallet(), watcher)
+		&DummyBus{t}, &ctest.MockFunder{}, &ctest.MockAdjudicator{}, map[wallet.BackendID]wallet.Wallet{channel.TestBackendID: wtest.RandomWallet(channel.TestBackendID)}, watcher)
 	require.NoError(t, err)
 
 	dummyUH := client.UpdateHandlerFunc(func(*channel.State, client.ChannelUpdate, *client.UpdateResponder) {})
@@ -82,8 +84,8 @@ func TestClient_New(t *testing.T) {
 	backend := &ctest.MockBackend{}
 	watcher, err := local.NewWatcher(backend)
 	require.NoError(t, err, "initializing the watcher should not error")
-	c, err := client.New(wiretest.NewRandomAddress(rng),
-		&DummyBus{t}, &ctest.MockFunder{}, &ctest.MockAdjudicator{}, wtest.RandomWallet(), watcher)
+	c, err := client.New(wiretest.NewRandomAddressesMap(rng, 1)[0],
+		&DummyBus{t}, &ctest.MockFunder{}, &ctest.MockAdjudicator{}, map[wallet.BackendID]wallet.Wallet{channel.TestBackendID: wtest.RandomWallet(channel.TestBackendID)}, watcher)
 	assert.NoError(t, err)
 	require.NotNil(t, c)
 }
@@ -93,8 +95,8 @@ func TestChannelRejection(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
 	defer cancel()
 
-	roles := NewSetups(rng, []string{"Alice", "Bob"})
-	asset := chtest.NewRandomAsset(rng)
+	roles := NewSetups(rng, []string{"Alice", "Bob"}, channel.TestBackendID)
+	asset := chtest.NewRandomAsset(rng, channel.TestBackendID)
 	clients := ctest.NewClients(t, rng, roles)
 	require := require.New(t)
 	alice, bob := clients[0], clients[1]
@@ -111,8 +113,13 @@ func TestChannelRejection(t *testing.T) {
 	)
 
 	// Create channel proposal.
-	parts := []wire.Address{alice.Identity.Address(), bob.Identity.Address()}
-	initAlloc := channel.NewAllocation(len(parts), asset)
+	parts := []map[wallet.BackendID]wire.Address{wire.AddressMapfromAccountMap(alice.Identity), wire.AddressMapfromAccountMap(bob.Identity)}
+	var bID wallet.BackendID
+	for i := range parts[0] {
+		bID = i
+		break
+	}
+	initAlloc := channel.NewAllocation(len(parts), []wallet.BackendID{bID}, asset)
 	prop, err := client.NewLedgerChannelProposal(
 		challengeDuration,
 		alice.WalletAddress,
