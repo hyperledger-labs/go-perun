@@ -1,4 +1,4 @@
-// Copyright 2024 - See NOTICE file for copyright holders.
+// Copyright 2025 - See NOTICE file for copyright holders.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -29,7 +29,7 @@ import (
 )
 
 const (
-	challengeDuration = 15
+	challengeDuration = 10
 	testDuration      = 10 * time.Second
 )
 

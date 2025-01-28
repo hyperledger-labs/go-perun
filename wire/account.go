@@ -1,4 +1,4 @@
-// Copyright 2024 - See NOTICE file for copyright holders.
+// Copyright 2025 - See NOTICE file for copyright holders.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -39,6 +39,8 @@ type Account interface {
 	// Sign signs the given message with this account's private key.
 	Sign(msg []byte) ([]byte, error)
 }
+
+const testBackendID = 0
 
 var _ Msg = (*AuthResponseMsg)(nil)
 
@@ -96,7 +98,7 @@ func NewAuthResponseMsg(acc map[wallet.BackendID]Account) (Msg, error) {
 		}
 		addressBytes = append(addressBytes, addrBytes...)
 	}
-	signature, err := acc[0].Sign(addressBytes)
+	signature, err := acc[testBackendID].Sign(addressBytes)
 	if err != nil {
 		return nil, fmt.Errorf("failed to sign address: %w", err)
 	}

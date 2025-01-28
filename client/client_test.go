@@ -1,4 +1,4 @@
-// Copyright 2024 - See NOTICE file for copyright holders.
+// Copyright 2025 - See NOTICE file for copyright holders.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -51,7 +51,7 @@ func (d DummyBus) SubscribeClient(wire.Consumer, map[wallet.BackendID]wire.Addre
 
 func TestClient_New_NilArgs(t *testing.T) {
 	rng := test.Prng(t)
-	id := wiretest.NewRandomAddressesMap(rng, 1)[0]
+	id := wiretest.NewRandomAddress(rng)
 	backend := &ctest.MockBackend{}
 	b, f, a, w := &DummyBus{t}, &ctest.MockFunder{}, &ctest.MockAdjudicator{}, map[wallet.BackendID]wallet.Wallet{channel.TestBackendID: wtest.RandomWallet(channel.TestBackendID)}
 	watcher, err := local.NewWatcher(backend)
@@ -84,7 +84,7 @@ func TestClient_New(t *testing.T) {
 	backend := &ctest.MockBackend{}
 	watcher, err := local.NewWatcher(backend)
 	require.NoError(t, err, "initializing the watcher should not error")
-	c, err := client.New(wiretest.NewRandomAddressesMap(rng, 1)[0],
+	c, err := client.New(wiretest.NewRandomAddress(rng),
 		&DummyBus{t}, &ctest.MockFunder{}, &ctest.MockAdjudicator{}, map[wallet.BackendID]wallet.Wallet{channel.TestBackendID: wtest.RandomWallet(channel.TestBackendID)}, watcher)
 	assert.NoError(t, err)
 	require.NotNil(t, c)
@@ -114,12 +114,7 @@ func TestChannelRejection(t *testing.T) {
 
 	// Create channel proposal.
 	parts := []map[wallet.BackendID]wire.Address{wire.AddressMapfromAccountMap(alice.Identity), wire.AddressMapfromAccountMap(bob.Identity)}
-	var bID wallet.BackendID
-	for i := range parts[0] {
-		bID = i
-		break
-	}
-	initAlloc := channel.NewAllocation(len(parts), []wallet.BackendID{bID}, asset)
+	initAlloc := channel.NewAllocation(len(parts), []wallet.BackendID{channel.TestBackendID}, asset)
 	prop, err := client.NewLedgerChannelProposal(
 		challengeDuration,
 		alice.WalletAddress,

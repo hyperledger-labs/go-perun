@@ -1,4 +1,4 @@
-// Copyright 2024 - See NOTICE file for copyright holders.
+// Copyright 2025 - See NOTICE file for copyright holders.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -37,7 +37,7 @@ func TestClient_validTwoPartyProposal(t *testing.T) {
 
 	// dummy client that only has an id
 	c := &Client{
-		address: wiretest.NewRandomAddressesMap(rng, 1)[0],
+		address: wiretest.NewRandomAddress(rng),
 	}
 	validProp := NewRandomLedgerChannelProposal(rng, channeltest.WithNumParts(2))
 	validProp.Peers[0] = c.address // set us as the proposer
@@ -155,8 +155,9 @@ func NewRandomLedgerChannelProposal(rng *rand.Rand, opts ...channeltest.RandomOp
 	base := NewRandomBaseChannelProposal(rng, opt)
 	peers := wiretest.NewRandomAddressesMap(rng, base.NumPeers())
 	var bID wallet.BackendID
-	for i := range peers[0] {
-		bID = i
+	bID, err := opt.Backend()
+	if err != nil {
+		bID = wallet.BackendID(channel.TestBackendID)
 	}
 	return &LedgerChannelProposalMsg{
 		BaseChannelProposal: base,
