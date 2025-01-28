@@ -544,7 +544,7 @@ func TestAllocation_Valid(t *testing.T) {
 					{big.NewInt(2), big.NewInt(16)},
 				},
 				Locked: []channel.SubAlloc{
-					*channel.NewSubAlloc(map[wallet.BackendID]channel.ID{0: channel.Zero}, []channel.Bal{big.NewInt(4), big.NewInt(-1)}, nil),
+					*channel.NewSubAlloc(channel.Zero, []channel.Bal{big.NewInt(4), big.NewInt(-1)}, nil),
 				},
 			},
 			false,
