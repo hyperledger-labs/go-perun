@@ -1,4 +1,4 @@
-// Copyright 2020 - See NOTICE file for copyright holders.
+// Copyright 2024 - See NOTICE file for copyright holders.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -17,6 +17,8 @@ package test
 import (
 	"math/rand"
 
+	"perun.network/go-perun/channel"
+
 	channeltest "perun.network/go-perun/channel/test"
 	"perun.network/go-perun/client"
 	"perun.network/go-perun/wallet"
@@ -30,7 +32,7 @@ const randomProposalNumParts = 2
 // NewRandomLedgerChannelProposal creates a random channel proposal with the supplied
 // options. Number of participants is fixed to randomProposalNumParts.
 func NewRandomLedgerChannelProposal(rng *rand.Rand, opts ...client.ProposalOpts) *client.LedgerChannelProposalMsg {
-	return NewRandomLedgerChannelProposalBy(rng, wallettest.NewRandomAddresses(rng, 0), opts...)
+	return NewRandomLedgerChannelProposalBy(rng, wallettest.NewRandomAddresses(rng, channel.TestBackendID), opts...)
 }
 
 // NewRandomLedgerChannelProposalBy creates a random channel proposal with the
@@ -65,7 +67,7 @@ func NewRandomVirtualChannelProposal(rng *rand.Rand, opts ...client.ProposalOpts
 	numParts := 2
 	return client.NewVirtualChannelProposal(
 		rng.Uint64(),
-		wallettest.NewRandomAddresses(rng, 0),
+		wallettest.NewRandomAddresses(rng, channel.TestBackendID),
 		channeltest.NewRandomAllocation(rng, channeltest.WithNumParts(numParts)),
 		wiretest.NewRandomAddressesMap(rng, numParts),
 		channeltest.NewRandomChannelIDs(rng, numParts),

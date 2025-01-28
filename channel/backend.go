@@ -1,4 +1,4 @@
-// Copyright 2019 - See NOTICE file for copyright holders.
+// Copyright 2024 - See NOTICE file for copyright holders.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -64,21 +64,26 @@ func SetBackend(b Backend, id int) {
 }
 
 // CalcID calculates the CalcID.
-func CalcID(p *Params) (map[wallet.BackendID]ID, error) {
-	id := make(map[wallet.BackendID]ID)
-	var err error
-	for i := range p.Parts[0] {
-		id[i], err = backend[i].CalcID(p)
-		if err != nil {
-			return nil, err
+func CalcID(p *Params) (ID, error) {
+	var lastErr error
+	for _, b := range backend {
+		id, err := b.CalcID(p)
+		if err == nil {
+			return id, nil
 		}
+		lastErr = err
 	}
-	return id, nil
+
+	if lastErr != nil {
+		return ID{}, lastErr
+	}
+
+	return ID{}, errors.New("no valid ID found")
 }
 
 // Sign creates a signature from the account a on state s.
-func Sign(a wallet.Account, s *State, b wallet.BackendID) (wallet.Sig, error) {
-	return backend[b].Sign(a, s)
+func Sign(a wallet.Account, s *State, bID wallet.BackendID) (wallet.Sig, error) {
+	return backend[bID].Sign(a, s)
 }
 
 // Verify verifies that a signature was a valid signature from addr on a state.

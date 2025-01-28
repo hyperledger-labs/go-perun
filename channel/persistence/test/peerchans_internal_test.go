@@ -1,4 +1,4 @@
-// Copyright 2020 - See NOTICE file for copyright holders.
+// Copyright 2024 - See NOTICE file for copyright holders.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -31,7 +31,7 @@ import (
 func TestEndpointChans(t *testing.T) {
 	assert := assert.New(t)
 	rng := pkgtest.Prng(t)
-	id := []map[wallet.BackendID]channel.ID{ctest.NewRandomChannelID(rng), ctest.NewRandomChannelID(rng)}
+	id := []channel.ID{ctest.NewRandomChannelID(rng), ctest.NewRandomChannelID(rng)}
 	ps := wiretest.NewRandomAddressesMap(rng, 3)
 
 	pc := make(peerChans)

@@ -1,4 +1,4 @@
-// Copyright 2020 - See NOTICE file for copyright holders.
+// Copyright 2024 - See NOTICE file for copyright holders.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -127,7 +127,7 @@ func WithFirstPart(part map[wallet.BackendID]wallet.Address) RandomOpt {
 }
 
 // WithID sets the channel ID that should be used.
-func WithID(id map[wallet.BackendID]channel.ID) RandomOpt {
+func WithID(id channel.ID) RandomOpt {
 	return RandomOpt{"id": id}
 }
 
@@ -153,7 +153,7 @@ func WithLockedBals(bals ...channel.Bal) RandomOpt {
 }
 
 // WithLockedID sets the channel id that should be used when generating a single sub-allocation with `NewRandomSubAlloc`.
-func WithLockedID(id map[wallet.BackendID]channel.ID) RandomOpt {
+func WithLockedID(id channel.ID) RandomOpt {
 	return RandomOpt{"lockedId": id}
 }
 
@@ -347,11 +347,11 @@ func (o RandomOpt) ChallengeDuration(rng *rand.Rand) uint64 {
 
 // ID returns the `ID` value of the `RandomOpt`.
 // If not present, returns `false` as second argument.
-func (o RandomOpt) ID() (id map[wallet.BackendID]channel.ID, valid bool) {
+func (o RandomOpt) ID() (id channel.ID, valid bool) {
 	if _, ok := o["id"]; !ok {
-		return map[wallet.BackendID]channel.ID{}, false
+		return channel.ID{}, false
 	}
-	return o["id"].(map[wallet.BackendID]channel.ID), true
+	return o["id"].(channel.ID), true
 }
 
 // FirstPart returns the `FirstPart` value of the `RandomOpt`.
@@ -392,20 +392,20 @@ func (o RandomOpt) LockedBals() []channel.Bal {
 
 // LockedID returns the `LockedID` value of the `RandomOpt`.
 // If not present, a random value is generated with `rng` as entropy source.
-func (o RandomOpt) LockedID(rng *rand.Rand) map[wallet.BackendID]channel.ID {
+func (o RandomOpt) LockedID(rng *rand.Rand) channel.ID {
 	if _, ok := o["lockedId"]; !ok {
 		o["lockedId"] = NewRandomChannelID(rng)
 	}
-	return o["lockedId"].(map[wallet.BackendID]channel.ID)
+	return o["lockedId"].(channel.ID)
 }
 
 // LockedIDs returns the `LockedIDs` value of the `RandomOpt`.
 // If not present, returns nil.
-func (o RandomOpt) LockedIDs(rng *rand.Rand) (ids []map[wallet.BackendID]channel.ID) {
+func (o RandomOpt) LockedIDs(rng *rand.Rand) (ids []channel.ID) {
 	if _, ok := o["lockedIds"]; !ok {
 		return nil
 	}
-	return o["lockedIds"].([]map[wallet.BackendID]channel.ID)
+	return o["lockedIds"].([]channel.ID)
 }
 
 // Nonce returns the `Nonce` value of the `RandomOpt`.

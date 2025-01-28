@@ -1,4 +1,4 @@
-// Copyright 2020 - See NOTICE file for copyright holders.
+// Copyright 2024 - See NOTICE file for copyright holders.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -18,8 +18,6 @@ import (
 	"context"
 	"sync"
 
-	"perun.network/go-perun/wallet"
-
 	"perun.network/go-perun/channel"
 )
 
@@ -38,7 +36,7 @@ type (
 	}
 
 	updateInterceptors struct {
-		entries map[string]*updateInterceptor
+		entries map[channel.ID]*updateInterceptor
 		sync.RWMutex
 	}
 )
@@ -67,33 +65,33 @@ func (ui *updateInterceptor) Accept(ctx context.Context) error {
 }
 
 func newUpdateInterceptors() *updateInterceptors {
-	return &updateInterceptors{entries: make(map[string]*updateInterceptor)}
+	return &updateInterceptors{entries: make(map[channel.ID]*updateInterceptor)}
 }
 
 // Register assigns the given update interceptor to the given channel.
-func (interceptors *updateInterceptors) Register(id map[wallet.BackendID]channel.ID, ui *updateInterceptor) {
+func (interceptors *updateInterceptors) Register(id channel.ID, ui *updateInterceptor) {
 	interceptors.Lock()
 	defer interceptors.Unlock()
-	interceptors.entries[channel.IDKey(id)] = ui
+	interceptors.entries[id] = ui
 }
 
 // UpdateInterceptor gets the update interceptor for the given channel. The second return
 // value indicates whether such an entry could be found.
-func (interceptors *updateInterceptors) UpdateInterceptor(id map[wallet.BackendID]channel.ID) (*updateInterceptor, bool) {
+func (interceptors *updateInterceptors) UpdateInterceptor(id channel.ID) (*updateInterceptor, bool) {
 	interceptors.RLock()
 	defer interceptors.RUnlock()
-	ui, ok := interceptors.entries[channel.IDKey(id)]
+	ui, ok := interceptors.entries[id]
 	return ui, ok
 }
 
 // Release releases the update interceptor for the given channel.
-func (interceptors *updateInterceptors) Release(id map[wallet.BackendID]channel.ID) {
+func (interceptors *updateInterceptors) Release(id channel.ID) {
 	interceptors.Lock()
 	defer interceptors.Unlock()
-	if ui, ok := interceptors.entries[channel.IDKey(id)]; ok {
+	if ui, ok := interceptors.entries[id]; ok {
 		close(ui.response)
 	}
-	delete(interceptors.entries, channel.IDKey(id))
+	delete(interceptors.entries, id)
 }
 
 // Filter filters for a matching update interceptor. It returns the first

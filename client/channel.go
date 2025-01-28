@@ -1,4 +1,4 @@
-// Copyright 2021 - See NOTICE file for copyright holders.
+// Copyright 2024 - See NOTICE file for copyright holders.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -132,7 +132,7 @@ func (c *Channel) logPeer(idx channel.Index) log.Logger {
 }
 
 // ID returns the channel ID.
-func (c *Channel) ID() map[wallet.BackendID]channel.ID {
+func (c *Channel) ID() channel.ID {
 	return c.machine.ID()
 }
 

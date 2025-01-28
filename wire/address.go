@@ -1,4 +1,4 @@
-// Copyright 2019 - See NOTICE file for copyright holders.
+// Copyright 2024 - See NOTICE file for copyright holders.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -176,7 +176,7 @@ func Key(a Address) AddrKey {
 	return AddrKey(buff.String())
 }
 
-// Keys returns the `AddrKey` corresponding to the passed `map[int]Address`.
+// Keys returns the `AddrKey` corresponding to the passed `map[wallet.BackendID]Address`.
 func Keys(addressMap map[wallet.BackendID]Address) AddrKey {
 	var indexes []int //nolint:prealloc
 	for i := range addressMap {

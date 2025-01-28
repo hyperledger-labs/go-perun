@@ -1,4 +1,4 @@
-// Copyright 2020 - See NOTICE file for copyright holders.
+// Copyright 2024 - See NOTICE file for copyright holders.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -153,7 +153,7 @@ func TestStateMachine(t *testing.T) {
 	// Set Progressed
 	timeout := ctest.NewRandomTimeout(rng)
 	idx := channel.Index(rng.Intn(s.NumParts()))
-	e := channel.NewProgressedEvent(s.ID[0], timeout, s, idx)
+	e := channel.NewProgressedEvent(s.ID, timeout, s, idx)
 	err = sm.SetProgressed(ctx, e)
 	require.NoError(err)
 	tpr.AssertEqual(csm)

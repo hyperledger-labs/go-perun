@@ -1,4 +1,4 @@
-// Copyright 2022 - See NOTICE file for copyright holders.
+// Copyright 2024 - See NOTICE file for copyright holders.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -72,17 +72,6 @@ message Address {
   repeated AddressMapping address_mapping = 1;
 }
 
-// AddressMapping represents an element of a address mapping.
-message IDMapping {
-  bytes key = 1;
-  bytes id = 2;
-}
-
-// Address represents the map of addresses for each participant in the channel.
-message ID {
-  repeated IDMapping id_mapping = 1;
-}
-
 // IndexMap represents the mapping of a participant indices in a sub allocation
 // or a virtual channel funding proposal to the corresponding indices in the
 // parent channel.
@@ -92,7 +81,7 @@ message IndexMap {
 
 // SubAlloc represts a sub allocation.
 message SubAlloc {
-  ID id = 1;
+  bytes id = 1;
   Balance bals = 2;
   IndexMap index_map = 3;
 }
@@ -124,7 +113,7 @@ message BaseChannelProposalAcc {
 
 // Params represents channel.Params.
 message Params {
-  ID id = 1;
+  bytes id = 1;
   uint64 challenge_duration = 2;
   repeated Address parts = 3;
   bytes app = 4;
@@ -135,7 +124,7 @@ message Params {
 
 // State represents channel.State.
 message State {
-  ID id = 1;
+  bytes id = 1;
   uint64 version = 2;
   bytes app = 3;
   Allocation allocation = 4;
@@ -199,7 +188,7 @@ message LedgerChannelProposalAccMsg {
 // SubChannelProposalMsg represents client.SubChannelProposalMsg.
 message SubChannelProposalMsg {
   BaseChannelProposal base_channel_proposal = 1;
-  ID parent = 2;
+  bytes parent = 2;
 }
 
 // SubChannelProposalAccMsg represents client.SubChannelProposalAccMsg.
@@ -212,7 +201,7 @@ message VirtualChannelProposalMsg {
   BaseChannelProposal base_channel_proposal = 1;
   Address proposer = 2;
   repeated Address peers = 3;
-  repeated ID parents = 4;
+  repeated bytes parents = 4;
   repeated IndexMap index_maps = 5;
 }
 
@@ -252,14 +241,14 @@ message VirtualChannelSettlementProposalMsg {
 
 // ChannelUpdateAccMsg represents client.ChannelUpdateAccMsg.
 message ChannelUpdateAccMsg {
-  ID channel_id = 1;
+  bytes channel_id = 1;
   uint64 version = 2;
   bytes sig = 3;
 }
 
 // ChannelUpdateRejMsg represents client.ChannelUpdateRejMsg.
 message ChannelUpdateRejMsg {
-  ID channel_id = 1;
+  bytes channel_id = 1;
   uint64 version = 2;
   string reason = 3;
 }

@@ -1,4 +1,4 @@
-// Copyright 2020 - See NOTICE file for copyright holders.
+// Copyright 2024 - See NOTICE file for copyright holders.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -38,14 +38,14 @@ func patchChFromSource(
 	parent *Channel,
 	peers ...map[wallet.BackendID]wire.Address,
 ) (*Channel, error) {
-	bID := wallet.BackendID(0)
+	bID := wallet.BackendID(channel.TestBackendID)
 	if len(peers) > 0 {
 		for i := range peers[0] {
 			bID = i
 		}
 	}
-	acc, _ := wallettest.RandomWallet(bID).Unlock(ch.ParamsV.Parts[ch.IdxV][0])
-	machine, _ := channel.NewStateMachine(map[wallet.BackendID]wallet.Account{0: acc}, *ch.ParamsV)
+	acc, _ := wallettest.RandomWallet(bID).Unlock(ch.ParamsV.Parts[ch.IdxV][channel.TestBackendID])
+	machine, _ := channel.NewStateMachine(map[wallet.BackendID]wallet.Account{channel.TestBackendID: acc}, *ch.ParamsV)
 	pmachine := persistence.FromStateMachine(machine, nil)
 
 	_ch := &Channel{parent: parent, machine: pmachine, OnCloser: new(sync.Closer)}
@@ -56,26 +56,26 @@ func patchChFromSource(
 
 func TestReconstructChannel(t *testing.T) {
 	rng := pkgtest.Prng(t)
-	db := map[string]*persistence.Channel{}
+	db := map[channel.ID]*persistence.Channel{}
 
-	restParent := mkRndChan(rng, 0)
-	db[channel.IDKey(restParent.ID())] = restParent
+	restParent := mkRndChan(rng, channel.TestBackendID)
+	db[restParent.ID()] = restParent
 
-	restChild := mkRndChan(rng, 0)
+	restChild := mkRndChan(rng, channel.TestBackendID)
 	parentID := restParent.ID()
 	restChild.Parent = &parentID
-	db[channel.IDKey(restChild.ID())] = restChild
+	db[restChild.ID()] = restChild
 
 	c := &Client{log: log.Default()}
 
 	t.Run("parent first", func(t *testing.T) {
-		chans := map[string]*Channel{}
+		chans := map[channel.ID]*Channel{}
 		parent := c.reconstructChannel(patchChFromSource, restParent, db, chans)
 		child := c.reconstructChannel(patchChFromSource, restChild, db, chans)
 		assert.Same(t, child.parent, parent)
 	})
 	t.Run("child first", func(t *testing.T) {
-		chans := map[string]*Channel{}
+		chans := map[channel.ID]*Channel{}
 		child := c.reconstructChannel(patchChFromSource, restChild, db, chans)
 		parent := c.reconstructChannel(patchChFromSource, restParent, db, chans)
 		assert.Same(t, child.parent, parent)
@@ -86,20 +86,20 @@ func TestRestoreChannelCollection(t *testing.T) {
 	rng := pkgtest.Prng(t)
 
 	// Generate multiple trees of channels into one collection.
-	db := make(map[string]*persistence.Channel)
+	db := make(map[channel.ID]*persistence.Channel)
 	for i := 0; i < 3; i++ {
-		mkRndChanTree(rng, 3, 1, 3, db, 0)
+		mkRndChanTree(rng, 3, 1, 3, db, channel.TestBackendID)
 	}
 
 	// Remember channels that have been published.
-	witnessedChans := make(map[string]struct{})
+	witnessedChans := make(map[channel.ID]struct{})
 	c := &Client{log: log.Default(), channels: makeChanRegistry()}
 	c.OnNewChannel(func(ch *Channel) {
-		_, ok := witnessedChans[channel.IDKey(ch.ID())]
+		_, ok := witnessedChans[ch.ID()]
 		require.False(t, ok)
-		_, ok = db[channel.IDKey(ch.ID())]
+		_, ok = db[ch.ID()]
 		require.True(t, ok)
-		witnessedChans[channel.IDKey(ch.ID())] = struct{}{}
+		witnessedChans[ch.ID()] = struct{}{}
 	})
 
 	// Restore all channels into the client and check the published channels.
@@ -136,11 +136,11 @@ func mkRndChan(rng *rand.Rand, bID wallet.BackendID) *persistence.Channel {
 func mkRndChanTree(
 	rng *rand.Rand,
 	depth, minChildren, maxChildren int,
-	db map[string]*persistence.Channel,
+	db map[channel.ID]*persistence.Channel,
 	bID wallet.BackendID,
 ) (root *persistence.Channel) {
 	root = mkRndChan(rng, bID)
-	db[channel.IDKey(root.ID())] = root
+	db[root.ID()] = root
 
 	if depth > 0 && maxChildren > 0 {
 		children := minChildren + rng.Intn(maxChildren-minChildren+1)
@@ -149,7 +149,7 @@ func mkRndChanTree(
 		}
 		for i := 0; i < children; i++ {
 			t := mkRndChanTree(rng, depth-1, minChildren, maxChildren-1, db, bID)
-			t.Parent = &map[wallet.BackendID]channel.ID{bID: {}}
+			t.Parent = new(channel.ID)
 			*t.Parent = root.ID()
 		}
 	}

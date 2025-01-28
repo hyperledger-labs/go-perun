@@ -1,4 +1,4 @@
-// Copyright 2019 - See NOTICE file for copyright holders.
+// Copyright 2024 - See NOTICE file for copyright holders.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -146,7 +146,7 @@ func (c *Client) EnablePersistence(pr persistence.PersistRestorer) {
 }
 
 // Channel queries a channel by its ID.
-func (c *Client) Channel(id map[wallet.BackendID]channel.ID) (*Channel, error) {
+func (c *Client) Channel(id channel.ID) (*Channel, error) {
 	if ch, ok := c.channels.Channel(id); ok {
 		return ch, nil
 	}
@@ -205,7 +205,7 @@ func (c *Client) logPeer(p map[wallet.BackendID]wire.Address) log.Logger {
 	return c.log.WithField("peer", p)
 }
 
-func (c *Client) logChan(id map[wallet.BackendID]channel.ID) log.Logger {
+func (c *Client) logChan(id channel.ID) log.Logger {
 	return c.log.WithField("channel", id)
 }
 

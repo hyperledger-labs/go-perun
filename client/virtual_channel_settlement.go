@@ -1,4 +1,4 @@
-// Copyright 2021 - See NOTICE file for copyright holders.
+// Copyright 2024 - See NOTICE file for copyright holders.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -99,7 +99,7 @@ func (c *Client) validateVirtualChannelSettlementProposal(
 	prop *VirtualChannelSettlementProposalMsg,
 ) error {
 	// Validate parameters.
-	if !channel.EqualIDs(prop.Final.Params.ID(), prop.Final.State.ID) {
+	if prop.Final.Params.ID() != prop.Final.State.ID {
 		return errors.New("invalid parameters")
 	}
 

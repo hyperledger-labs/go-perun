@@ -1,4 +1,4 @@
-// Copyright 2019 - See NOTICE file for copyright holders.
+// Copyright 2024 - See NOTICE file for copyright holders.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -55,12 +55,12 @@ type (
 	// needed for persistence. The ID, Idx and Params only need to be persisted
 	// once per channel as they stay constant during a channel's lifetime.
 	Source interface {
-		ID() map[wallet.BackendID]ID // ID is the channel ID of this source. It is the same as Params().ID().
-		Idx() Index                  // Idx is the own index in the channel.
-		Params() *Params             // Params are the channel parameters.
-		StagingTX() Transaction      // StagingTX is the staged transaction (State+incomplete list of sigs).
-		CurrentTX() Transaction      // CurrentTX is the current transaction (State+complete list of sigs).
-		Phase() Phase                // Phase is the phase in which the channel is currently in.
+		ID() ID                 // ID is the channel ID of this source. It is the same as Params().ID().
+		Idx() Index             // Idx is the own index in the channel.
+		Params() *Params        // Params are the channel parameters.
+		StagingTX() Transaction // StagingTX is the staged transaction (State+incomplete list of sigs).
+		CurrentTX() Transaction // CurrentTX is the current transaction (State+complete list of sigs).
+		Phase() Phase           // Phase is the phase in which the channel is currently in.
 	}
 )
 
@@ -169,7 +169,7 @@ func restoreMachine(acc map[wallet.BackendID]wallet.Account, source Source) (*ma
 }
 
 // ID returns the channel id.
-func (m *machine) ID() map[wallet.BackendID]ID {
+func (m *machine) ID() ID {
 	return m.params.ID()
 }
 
@@ -488,7 +488,7 @@ func (m *machine) expect(tr PhaseTransition) error {
 // A StateMachine will additionally check the validity of the app-specific
 // transition whereas an ActionMachine checks each Action as being valid.
 func (m *machine) ValidTransition(to *State) error {
-	if !EqualIDs(to.ID, m.params.id) {
+	if to.ID != m.params.id {
 		return errors.New("new state's ID doesn't match")
 	}
 

@@ -1,4 +1,4 @@
-// Copyright 2019 - See NOTICE file for copyright holders.
+// Copyright 2024 - See NOTICE file for copyright holders.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -16,6 +16,8 @@ package channel
 
 import (
 	"testing"
+
+	"perun.network/go-perun/channel"
 
 	chtest "perun.network/go-perun/channel/test"
 	"perun.network/go-perun/wallet"
@@ -36,11 +38,13 @@ func newChannelSetup(t *testing.T) *chtest.Setup {
 	params2, state2 := chtest.NewRandomParamsAndState(rng, chtest.WithIsFinal(!state.IsFinal), chtest.WithNumLocked(int(rng.Int31n(4)+1)))
 
 	return &chtest.Setup{
-		Params:        params,
-		Params2:       params2,
-		State:         state,
-		State2:        state2,
-		Account:       wtest.NewRandomAccount(rng, 0),
-		RandomAddress: func() map[wallet.BackendID]wallet.Address { return wtest.NewRandomAddresses(rng, 0) },
+		Params:  params,
+		Params2: params2,
+		State:   state,
+		State2:  state2,
+		Account: wtest.NewRandomAccount(rng, channel.TestBackendID),
+		RandomAddress: func() map[wallet.BackendID]wallet.Address {
+			return wtest.NewRandomAddresses(rng, channel.TestBackendID)
+		},
 	}
 }

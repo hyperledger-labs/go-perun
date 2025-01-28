@@ -1,4 +1,4 @@
-// Copyright 2019 - See NOTICE file for copyright holders.
+// Copyright 2024 - See NOTICE file for copyright holders.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -15,15 +15,10 @@
 package channel
 
 import (
-	"bytes"
-	"encoding/binary"
 	stdio "io"
 	"math/big"
-	"sort"
-	"strings"
 
 	"github.com/pkg/errors"
-
 	"perun.network/go-perun/log"
 	"perun.network/go-perun/wallet"
 	"perun.network/go-perun/wire/perunio"
@@ -34,9 +29,6 @@ const IDLen = 32
 
 // ID represents a channelID.
 type ID = [IDLen]byte
-
-// IDMap is a map of IDs with keys corresponding to backendIDs.
-type IDMap map[wallet.BackendID]ID
 
 // MaxNonceLen is the maximum byte count of a nonce.
 const MaxNonceLen = 32
@@ -58,121 +50,6 @@ func NonceFromBytes(b []byte) Nonce {
 // Zero is the default channelID.
 var Zero = ID{}
 
-// EqualIDs compares two IDs for equality.
-func EqualIDs(a, b map[wallet.BackendID]ID) bool {
-	if len(a) != len(b) {
-		return false
-	}
-
-	// Compare each key-value pair
-	for key, val1 := range a {
-		val2, exists := b[key]
-		if !exists || val1 != val2 {
-			return false
-		}
-	}
-
-	return true
-}
-
-// Encode encodes the IDMap to the given writer.
-func (ids IDMap) Encode(w stdio.Writer) error {
-	length := int32(len(ids))
-	if err := perunio.Encode(w, length); err != nil {
-		return errors.WithMessage(err, "encoding map length")
-	}
-	for i, id := range ids {
-		if err := perunio.Encode(w, int32(i)); err != nil {
-			return errors.WithMessage(err, "encoding map index")
-		}
-		if err := perunio.Encode(w, id); err != nil {
-			return errors.WithMessagef(err, "encoding %d-th channel id map entry", i)
-		}
-	}
-	return nil
-}
-
-// Decode decodes the IDMap from the given reader.
-func (ids *IDMap) Decode(r stdio.Reader) error {
-	var mapLen int32
-	if err := perunio.Decode(r, &mapLen); err != nil {
-		return errors.WithMessage(err, "decoding map length")
-	}
-	*ids = make(map[wallet.BackendID]ID, mapLen)
-	for i := 0; i < int(mapLen); i++ {
-		var idx int32
-		if err := perunio.Decode(r, &idx); err != nil {
-			return errors.WithMessage(err, "decoding map index")
-		}
-		id := ID{}
-		if err := perunio.Decode(r, &id); err != nil {
-			return errors.WithMessagef(err, "decoding %d-th address map entry", i)
-		}
-		(*ids)[wallet.BackendID(idx)] = id
-	}
-	return nil
-}
-
-// IDKey returns a string representation of the IDMap.
-func IDKey(ids IDMap) string {
-	var buff strings.Builder
-	length := int32(len(ids))
-	err := binary.Write(&buff, binary.BigEndian, length)
-	if err != nil {
-		log.Panic("could not encode map length in Key: ", err)
-	}
-	sortedKeys, sortedIDs := sortIDMap(ids)
-	for i, id := range sortedIDs {
-		if err := binary.Write(&buff, binary.BigEndian, int32(sortedKeys[i])); err != nil {
-			log.Panicf("could not encode map key: " + err.Error())
-		}
-		if err := perunio.Encode(&buff, id); err != nil {
-			log.Panicf("could not encode map[int]ID: " + err.Error())
-		}
-	}
-	return buff.String()
-}
-
-func sortIDMap(ids IDMap) ([]wallet.BackendID, []ID) {
-	var indexes []int //nolint:prealloc
-	for i := range ids {
-		indexes = append(indexes, int(i))
-	}
-	sort.Ints(indexes)
-	sortedIndexes := make([]wallet.BackendID, len(indexes))
-	sortedIDs := make([]ID, len(indexes))
-	for i, index := range indexes {
-		sortedIndexes[i] = wallet.BackendID(index)
-		sortedIDs[i] = ids[wallet.BackendID(index)]
-	}
-	return sortedIndexes, sortedIDs
-}
-
-// FromIDKey decodes an IDMap from a string representation.
-func FromIDKey(k string) IDMap {
-	buff := bytes.NewBuffer([]byte(k))
-	var numElements int32
-
-	// Manually decode the number of elements in the map.
-	if err := binary.Read(buff, binary.BigEndian, &numElements); err != nil {
-		log.Panicf("could not decode map length in FromIDKey: " + err.Error())
-	}
-	a := make(map[wallet.BackendID]ID, numElements)
-	// Decode each key-value pair and insert them into the map.
-	for i := 0; i < int(numElements); i++ {
-		var key int32
-		if err := binary.Read(buff, binary.BigEndian, &key); err != nil {
-			log.Panicf("could not decode map key in FromIDKey: " + err.Error())
-		}
-		id := ID{}
-		if err := perunio.Decode(buff, &id); err != nil {
-			log.Panicf("could not decode map[int]ID in FromIDKey: " + err.Error())
-		}
-		a[wallet.BackendID(key)] = id
-	}
-	return a
-}
-
 var _ perunio.Serializer = (*Params)(nil)
 
 // Params are a channel's immutable parameters. A channel's id is the hash of
@@ -181,7 +58,7 @@ var _ perunio.Serializer = (*Params)(nil)
 // It should only be created through NewParams().
 type Params struct {
 	// ChannelID is the channel ID as calculated by the backend
-	id map[wallet.BackendID]ID
+	id ID
 	// ChallengeDuration in seconds during disputes
 	ChallengeDuration uint64
 	// Parts are the channel participants
@@ -198,7 +75,7 @@ type Params struct {
 }
 
 // ID returns the channelID of this channel.
-func (p *Params) ID() map[wallet.BackendID]ID {
+func (p *Params) ID() ID {
 	return p.id
 }
 
@@ -274,7 +151,7 @@ func NewParamsUnsafe(challengeDuration uint64, parts []map[wallet.BackendID]wall
 
 	// probably an expensive hash operation, do it only once during creation.
 	id, err := CalcID(p)
-	if err != nil || EqualIDs(id, map[wallet.BackendID]ID{}) {
+	if err != nil || id == Zero {
 		log.Panicf("Could not calculate channel id: %v", err)
 	}
 	p.id = id

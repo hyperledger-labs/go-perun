@@ -1,4 +1,4 @@
-// Copyright 2022 - See NOTICE file for copyright holders.
+// Copyright 2024 - See NOTICE file for copyright holders.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -44,7 +44,7 @@ func TestMultiLedgerHappy(ctx context.Context, t *testing.T, mlt MultiLedgerSetu
 
 	// Create channel proposal.
 	parts := []map[wallet.BackendID]wire.Address{alice.WireAddress, bob.WireAddress}
-	initAlloc := channel.NewAllocation(len(parts), []wallet.BackendID{wallet.BackendID(mlt.Asset1.AssetID().BackendID()), wallet.BackendID(mlt.Asset2.AssetID().BackendID())}, mlt.Asset1, mlt.Asset2)
+	initAlloc := channel.NewAllocation(len(parts), []wallet.BackendID{wallet.BackendID(mlt.Asset1.LedgerBackendID().BackendID()), wallet.BackendID(mlt.Asset2.LedgerBackendID().BackendID())}, mlt.Asset1, mlt.Asset2)
 	initAlloc.Balances = initBals
 	prop, err := client.NewLedgerChannelProposal(
 		challengeDuration,

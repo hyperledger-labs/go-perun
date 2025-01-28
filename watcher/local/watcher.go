@@ -1,4 +1,4 @@
-// Copyright 2021 - See NOTICE file for copyright holders.
+// Copyright 2024 - See NOTICE file for copyright holders.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -18,8 +18,6 @@ import (
 	"context"
 	stderrors "errors"
 	"time"
-
-	"perun.network/go-perun/wallet"
 
 	"github.com/pkg/errors"
 
@@ -57,7 +55,7 @@ type (
 	}
 
 	ch struct {
-		id          map[wallet.BackendID]channel.ID
+		id          channel.ID
 		params      *channel.Params
 		isClosed    bool
 		done        chan struct{}
@@ -68,7 +66,7 @@ type (
 		// registered with the watcher.
 		// Sub-channels are added when they are registered with the watcher and
 		// removed when they are de-registered from the watcher.
-		subChs map[string]struct{}
+		subChs map[channel.ID]struct{}
 
 		// For keeping track of the last received signed states for a
 		// sub-channel, after it is de-registered from the watcher.  These
@@ -76,7 +74,7 @@ type (
 		// required while disputing any other channel in the channel tree and
 		// the particular sub-channel has already been de-registered from the
 		// watcher.
-		archivedSubChStates map[string]channel.SignedState
+		archivedSubChStates map[channel.ID]channel.SignedState
 
 		// For keeping track of the version registered on the blockchain for
 		// this channel. This is used to prevent registering the same state
@@ -159,7 +157,7 @@ func (w *Watcher) StartWatchingLedgerChannel(
 // sub-channels is supported.
 func (w *Watcher) StartWatchingSubChannel(
 	ctx context.Context,
-	parent map[wallet.BackendID]channel.ID,
+	parent channel.ID,
 	signedState channel.SignedState,
 ) (watcher.StatesPub, watcher.AdjudicatorSub, error) {
 	parentCh, ok := w.registry.retrieve(parent)
@@ -175,7 +173,7 @@ func (w *Watcher) StartWatchingSubChannel(
 	if err != nil {
 		return nil, nil, err
 	}
-	parentCh.subChs[channel.IDKey(signedState.State.ID)] = struct{}{}
+	parentCh.subChs[signedState.State.ID] = struct{}{}
 	return statesPub, eventsSub, nil
 }
 
@@ -214,7 +212,7 @@ func (w *Watcher) startWatching(
 }
 
 func newCh(
-	id map[wallet.BackendID]channel.ID,
+	id channel.ID,
 	parent *ch,
 	params *channel.Params,
 	eventsFromChainSub channel.AdjudicatorSubscription,
@@ -228,8 +226,8 @@ func newCh(
 		parent:      parent,
 		multiLedger: multiLedger,
 
-		subChs:              make(map[string]struct{}),
-		archivedSubChStates: make(map[string]channel.SignedState),
+		subChs:              make(map[channel.ID]struct{}),
+		archivedSubChStates: make(map[channel.ID]channel.SignedState),
 
 		registered:        false,
 		registeredVersion: 0,
@@ -425,7 +423,7 @@ func retrieveLatestSubStates(r *registry, parent *ch) (channel.Transaction, []ch
 			subChTx := subCh.txRetriever.retrieve()
 			subStates[i] = makeSignedState(subCh.params, subChTx)
 		} else {
-			subStates[i] = parent.archivedSubChStates[channel.IDKey(parentTx.Allocation.Locked[i].ID)]
+			subStates[i] = parent.archivedSubChStates[parentTx.Allocation.Locked[i].ID]
 		}
 	}
 	return parentTx, subStates
@@ -460,7 +458,7 @@ func makeAdjudicatorReq(params *channel.Params, tx channel.Transaction) channel.
 // has stopped watching for some of the sub-channel).
 //
 // Context is not used, it is for implementing watcher.Watcher interface.
-func (w *Watcher) StopWatching(_ context.Context, id map[wallet.BackendID]channel.ID) error {
+func (w *Watcher) StopWatching(_ context.Context, id channel.ID) error {
 	ch, ok := w.retrieve(id)
 	if !ok {
 		return errors.New("channel not registered with the watcher")
@@ -481,9 +479,9 @@ func (w *Watcher) StopWatching(_ context.Context, id map[wallet.BackendID]channe
 	if ch.isSubChannel() {
 		latestParentTx := ch.parent.txRetriever.retrieve()
 		if _, ok := latestParentTx.SubAlloc(id); ok {
-			parent.archivedSubChStates[channel.IDKey(id)] = makeSignedState(ch.params, ch.txRetriever.retrieve())
+			parent.archivedSubChStates[id] = makeSignedState(ch.params, ch.txRetriever.retrieve())
 		}
-		delete(parent.subChs, channel.IDKey(id))
+		delete(parent.subChs, id)
 	} else if len(ch.subChs) > 0 {
 		return errors.WithMessagef(ErrSubChannelsPresent, "cannot de-register: %d %v", len(ch.subChs), ch.id)
 	}

@@ -1,4 +1,4 @@
-// Copyright 2019 - See NOTICE file for copyright holders.
+// Copyright 2024 - See NOTICE file for copyright holders.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -17,6 +17,7 @@ package test
 import (
 	crand "crypto/rand"
 	"fmt"
+	"log"
 	"math/big"
 	"math/rand"
 	"time"
@@ -81,7 +82,7 @@ func NewRandomAssets(rng *rand.Rand, opts ...RandomOpt) []channel.Asset {
 	}
 	as := make([]channel.Asset, numAssets)
 	for i := range as {
-		as[i] = NewRandomAsset(rng, 0)
+		as[i] = NewRandomAsset(rng, channel.TestBackendID)
 	}
 
 	updateOpts(opts, WithAssets(as...))
@@ -127,40 +128,17 @@ func NewRandomLocked(rng *rand.Rand, opts ...RandomOpt) []channel.SubAlloc {
 
 // NewRandomLockedIDs generates new random `channel.ID`s used in `channel.SubAlloc`.
 // Options: `WithLockedIDs` and `WithNumLocked`.
-func NewRandomLockedIDs(rng *rand.Rand, opts ...RandomOpt) []map[wallet.BackendID]channel.ID {
+func NewRandomLockedIDs(rng *rand.Rand, opts ...RandomOpt) []channel.ID {
 	opt := mergeRandomOpts(opts...)
 
 	if ids := opt.LockedIDs(rng); ids != nil {
 		return ids
 	}
+
 	numLockedIds := opt.NumLocked(rng)
-	bIDs, err := opt.BackendID()
-	if err == nil && bIDs != nil {
-		ids := make([]map[wallet.BackendID]channel.ID, numLockedIds)
-		for i := range ids {
-			for j := range bIDs {
-				ids[i] = make(map[wallet.BackendID]channel.ID)
-				cID := [32]byte{}
-				rng.Read(cID[:])
-				ids[i][wallet.BackendID(j)] = cID
-			}
-		}
-		return ids
-	}
-	b, err := opt.Backend()
-	ids := make([]map[wallet.BackendID]channel.ID, numLockedIds)
+	ids := make([]channel.ID, numLockedIds)
 	for i := range ids {
-		if err != nil {
-			ids[i] = make(map[wallet.BackendID]channel.ID)
-			cID := [32]byte{}
-			rng.Read(cID[:])
-			ids[i][0] = cID
-		} else {
-			ids[i] = make(map[wallet.BackendID]channel.ID)
-			cID := [32]byte{}
-			rng.Read(cID[:])
-			ids[i][b] = cID
-		}
+		rng.Read(ids[i][:])
 	}
 	return ids
 }
@@ -208,7 +186,7 @@ func NewRandomParams(rng *rand.Rand, opts ...RandomOpt) *channel.Params {
 			if backend, _ = opt.Backend(); backend != 0 {
 				parts[i] = map[wallet.BackendID]wallet.Address{backend: test.NewRandomAddress(rng, backend)}
 			} else {
-				parts[i] = map[wallet.BackendID]wallet.Address{0: test.NewRandomAddress(rng, 0)}
+				parts[i] = map[wallet.BackendID]wallet.Address{channel.TestBackendID: test.NewRandomAddress(rng, channel.TestBackendID)}
 			}
 		}
 	}
@@ -257,38 +235,22 @@ func NewRandomState(rng *rand.Rand, opts ...RandomOpt) (state *channel.State) {
 
 // NewRandomChannelID generates a new random `channel.ID`.
 // Options: `WithID`.
-func NewRandomChannelID(rng *rand.Rand, opts ...RandomOpt) (id map[wallet.BackendID]channel.ID) {
+func NewRandomChannelID(rng *rand.Rand, opts ...RandomOpt) (id channel.ID) {
 	opt := mergeRandomOpts(opts...)
 
 	if id, valid := opt.ID(); valid {
 		return id
 	}
-	id = make(map[wallet.BackendID]channel.ID)
-	bIDs, err := opt.BackendID()
-	if bIDs != nil && err == nil {
-		for _, b := range bIDs {
-			cID := [32]byte{}
-			rng.Read(cID[:])
-			id[b] = cID
-		}
-		return
-	}
-	bID, err := opt.Backend()
-	if err != nil {
-		cID := [32]byte{}
-		rng.Read(cID[:])
-		id[0] = cID
-	} else {
-		cID := [32]byte{}
-		rng.Read(cID[:])
-		id[bID] = cID
+
+	if _, err := rng.Read(id[:]); err != nil {
+		log.Panic("could not read from rng")
 	}
 	return
 }
 
 // NewRandomChannelIDs generates a list of random channel IDs.
-func NewRandomChannelIDs(rng *rand.Rand, n int) (ids []map[wallet.BackendID]channel.ID) {
-	ids = make([]map[wallet.BackendID]channel.ID, n)
+func NewRandomChannelIDs(rng *rand.Rand, n int) (ids []channel.ID) {
+	ids = make([]channel.ID, n)
 	for i := range ids {
 		ids[i] = NewRandomChannelID(rng)
 	}
@@ -401,7 +363,7 @@ func NewRandomTransaction(rng *rand.Rand, sigMask []bool, opts ...RandomOpt) *ch
 	opt := mergeRandomOpts(opts...)
 	bID, err := opt.Backend()
 	if err != nil {
-		bID = 0
+		bID = channel.TestBackendID
 	}
 	numParts := len(sigMask)
 	accs, addrs := test.NewRandomAccounts(rng, numParts, bID)

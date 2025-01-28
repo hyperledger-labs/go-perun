@@ -1,4 +1,4 @@
-// Copyright 2020 - See NOTICE file for copyright holders.
+// Copyright 2024 - See NOTICE file for copyright holders.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -64,8 +64,7 @@ type Wallet struct {
 func (w *Wallet) Unlock(a wallet.Address) (wallet.Account, error) {
 	w.accMutex.RLock()
 	defer w.accMutex.RUnlock()
-	key := wallet.Key(a)
-	acc, ok := w.accs[key]
+	acc, ok := w.accs[wallet.Key(a)]
 	if !ok {
 		return nil, errors.Errorf("unlock unknown address: %v", a)
 	}
@@ -90,8 +89,7 @@ func (w *Wallet) LockAll() {
 func (w *Wallet) IncrementUsage(a wallet.Address) {
 	w.accMutex.RLock()
 	defer w.accMutex.RUnlock()
-	key := wallet.Key(a)
-	acc, ok := w.accs[key]
+	acc, ok := w.accs[wallet.Key(a)]
 	if !ok {
 		panic("invalid address")
 	}
@@ -106,8 +104,7 @@ func (w *Wallet) IncrementUsage(a wallet.Address) {
 func (w *Wallet) DecrementUsage(a wallet.Address) {
 	w.accMutex.Lock()
 	defer w.accMutex.Unlock()
-	key := wallet.Key(a)
-	acc, ok := w.accs[key]
+	acc, ok := w.accs[wallet.Key(a)]
 	if !ok {
 		panic("invalid address")
 	}
@@ -119,7 +116,7 @@ func (w *Wallet) DecrementUsage(a wallet.Address) {
 
 	if newCount == 0 {
 		acc.locked.Set()
-		delete(w.accs, key)
+		delete(w.accs, wallet.Key(a))
 	}
 }
 
@@ -129,8 +126,7 @@ func (w *Wallet) DecrementUsage(a wallet.Address) {
 func (w *Wallet) UsageCount(a wallet.Address) int {
 	w.accMutex.RLock()
 	defer w.accMutex.RUnlock()
-	key := wallet.Key(a)
-	acc, ok := w.accs[key]
+	acc, ok := w.accs[wallet.Key(a)]
 	if !ok {
 		panic("invalid address")
 	}
@@ -153,15 +149,13 @@ func (w *Wallet) NewRandomAccount(rng *rand.Rand) wallet.Account {
 // account was already registered beforehand, an error is returned. Does not
 // lock or unlock the account.
 func (w *Wallet) AddAccount(acc *Account) error {
-	key := wallet.Key(acc.Address())
-
 	w.accMutex.Lock()
 	defer w.accMutex.Unlock()
 
-	if _, ok := w.accs[key]; ok {
+	if _, ok := w.accs[wallet.Key(acc.Address())]; ok {
 		return errors.New("duplicate insertion")
 	}
-	w.accs[key] = acc
+	w.accs[wallet.Key(acc.Address())] = acc
 
 	return nil
 }
@@ -171,7 +165,6 @@ func (w *Wallet) AddAccount(acc *Account) error {
 func (w *Wallet) HasAccount(acc *Account) bool {
 	w.accMutex.RLock()
 	defer w.accMutex.RUnlock()
-	key := wallet.Key(acc.Address())
-	_, ok := w.accs[key]
+	_, ok := w.accs[wallet.Key(acc.Address())]
 	return ok
 }

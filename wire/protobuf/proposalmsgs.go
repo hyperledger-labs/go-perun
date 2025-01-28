@@ -1,4 +1,4 @@
-// Copyright 2022 - See NOTICE file for copyright holders.
+// Copyright 2024 - See NOTICE file for copyright holders.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -51,10 +51,7 @@ func ToSubChannelProposalMsg(protoEnvMsg *Envelope_SubChannelProposalMsg) (msg *
 	protoMsg := protoEnvMsg.SubChannelProposalMsg
 
 	msg = &client.SubChannelProposalMsg{}
-	msg.Parent, err = ToIDs(protoMsg.Parent)
-	if err != nil {
-		return nil, errors.WithMessage(err, "parent")
-	}
+	copy(msg.Parent[:], protoMsg.Parent)
 	msg.BaseChannelProposal, err = ToBaseChannelProposal(protoMsg.BaseChannelProposal)
 	return msg, err
 }
@@ -73,12 +70,9 @@ func ToVirtualChannelProposalMsg(protoEnvMsg *Envelope_VirtualChannelProposalMsg
 	if err != nil {
 		return nil, errors.WithMessage(err, "proposer")
 	}
-	msg.Parents = make([]map[wallet.BackendID]channel.ID, len(protoMsg.Parents))
+	msg.Parents = make([]channel.ID, len(protoMsg.Parents))
 	for i := range protoMsg.Parents {
-		msg.Parents[i], err = ToIDs(protoMsg.Parents[i])
-		if err != nil {
-			return nil, err
-		}
+		copy(msg.Parents[i][:], protoMsg.Parents[i])
 	}
 	msg.IndexMaps = make([][]channel.Index, len(protoMsg.IndexMaps))
 	for i := range protoMsg.IndexMaps {
@@ -193,25 +187,6 @@ func ToWireAddrs(protoAddrs []*Address) ([]map[wallet.BackendID]wire.Address, er
 		}
 	}
 	return addrMap, nil
-}
-
-// ToIDs converts protobuf ID to a map[int]channel.ID.
-func ToIDs(protoID *ID) (map[wallet.BackendID]channel.ID, error) {
-	iDMap := make(map[wallet.BackendID]channel.ID)
-	for i := range protoID.IdMapping {
-		var k int32
-		if err := binary.Read(bytes.NewReader(protoID.IdMapping[i].Key), binary.BigEndian, &k); err != nil {
-			return nil, fmt.Errorf("failed to read key: %w", err)
-		}
-		if len(protoID.IdMapping[i].Id) != 32 { //nolint:gomnd
-			return nil, fmt.Errorf("id has incorrect length")
-		}
-		id := channel.ID{}
-		copy(id[:], protoID.IdMapping[i].Id)
-
-		iDMap[wallet.BackendID(k)] = id
-	}
-	return iDMap, nil
 }
 
 // ToBaseChannelProposal converts a protobuf BaseChannelProposal to a client BaseChannelProposal.
@@ -339,10 +314,10 @@ func ToBalance(protoBalance *Balance) (balance []channel.Bal) {
 func ToSubAlloc(protoSubAlloc *SubAlloc) (subAlloc channel.SubAlloc, err error) {
 	subAlloc = channel.SubAlloc{}
 	subAlloc.Bals = ToBalance(protoSubAlloc.Bals)
-	subAlloc.ID, err = ToIDs(protoSubAlloc.Id)
-	if err != nil {
-		return subAlloc, err
+	if len(protoSubAlloc.Id) != len(subAlloc.ID) {
+		return subAlloc, errors.New("sub alloc id has incorrect length")
 	}
+	copy(subAlloc.ID[:], protoSubAlloc.Id)
 	subAlloc.IndexMap, err = ToIndexMap(protoSubAlloc.IndexMap.IndexMap)
 	return subAlloc, err
 }
@@ -378,10 +353,8 @@ func FromLedgerChannelProposalMsg(msg *client.LedgerChannelProposalMsg) (_ *Enve
 // FromSubChannelProposalMsg converts a client SubChannelProposalMsg to a protobuf Envelope_SubChannelProposalMsg.
 func FromSubChannelProposalMsg(msg *client.SubChannelProposalMsg) (_ *Envelope_SubChannelProposalMsg, err error) {
 	protoMsg := &SubChannelProposalMsg{}
-	protoMsg.Parent, err = FromIDs(msg.Parent)
-	if err != nil {
-		return nil, err
-	}
+	protoMsg.Parent = make([]byte, len(msg.Parent))
+	copy(protoMsg.Parent, msg.Parent[:])
 	protoMsg.BaseChannelProposal, err = FromBaseChannelProposal(msg.BaseChannelProposal)
 	return &Envelope_SubChannelProposalMsg{protoMsg}, err
 }
@@ -398,12 +371,10 @@ func FromVirtualChannelProposalMsg(msg *client.VirtualChannelProposalMsg) (_ *En
 	if err != nil {
 		return nil, err
 	}
-	protoMsg.Parents = make([]*ID, len(msg.Parents))
+	protoMsg.Parents = make([][]byte, len(msg.Parents))
 	for i := range msg.Parents {
-		protoMsg.Parents[i], err = FromIDs(msg.Parents[i])
-		if err != nil {
-			return nil, errors.WithMessage(err, "fromIDs")
-		}
+		protoMsg.Parents[i] = make([]byte, len(msg.Parents[i]))
+		copy(protoMsg.Parents[i], msg.Parents[i][:])
 	}
 	protoMsg.IndexMaps = make([]*IndexMap, len(msg.IndexMaps))
 	for i := range msg.IndexMaps {
@@ -518,28 +489,6 @@ func FromWireAddrs(addrs []map[wallet.BackendID]wire.Address) (protoAddrs []*Add
 		}
 	}
 	return protoAddrs, nil
-}
-
-// FromIDs converts a map[int]channel.ID to a protobuf ID.
-func FromIDs(ids map[wallet.BackendID]channel.ID) (*ID, error) {
-	var idMappings []*IDMapping //nolint:prealloc
-
-	for key, id := range ids {
-		keyBytes := make([]byte, 4) //nolint:gomnd
-		binary.BigEndian.PutUint32(keyBytes, uint32(key))
-
-		idBytes := make([]byte, 32) //nolint:gomnd
-		copy(idBytes, id[:])
-
-		idMappings = append(idMappings, &IDMapping{
-			Key: keyBytes,
-			Id:  idBytes,
-		})
-	}
-
-	return &ID{
-		IdMapping: idMappings,
-	}, nil
 }
 
 // FromBaseChannelProposal converts a client BaseChannelProposal to a protobuf BaseChannelProposal.
@@ -658,10 +607,8 @@ func FromBalance(balance []channel.Bal) (protoBalance *Balance, err error) {
 // FromSubAlloc converts a channel.SubAlloc to a protobuf SubAlloc.
 func FromSubAlloc(subAlloc channel.SubAlloc) (protoSubAlloc *SubAlloc, err error) {
 	protoSubAlloc = &SubAlloc{}
-	protoSubAlloc.Id, err = FromIDs(subAlloc.ID)
-	if err != nil {
-		return nil, errors.WithMessage(err, "fromIDs")
-	}
+	protoSubAlloc.Id = make([]byte, len(subAlloc.ID))
+	copy(protoSubAlloc.Id, subAlloc.ID[:])
 	protoSubAlloc.IndexMap = &IndexMap{IndexMap: FromIndexMap(subAlloc.IndexMap)}
 	protoSubAlloc.Bals, err = FromBalance(subAlloc.Bals)
 	return protoSubAlloc, err

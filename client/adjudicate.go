@@ -1,4 +1,4 @@
-// Copyright 2020 - See NOTICE file for copyright holders.
+// Copyright 2024 - See NOTICE file for copyright holders.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -442,7 +442,7 @@ func (c *Channel) gatherSubChannelStates() (states []channel.SignedState, err er
 func (c *Channel) subChannelStateMap() (states channel.StateMap, err error) {
 	states = channel.MakeStateMap()
 	err = c.applyToSubChannelsRecursive(func(c *Channel) error {
-		states[channel.IDKey(c.ID())] = c.state()
+		states[c.ID()] = c.state()
 		return nil
 	})
 	return

@@ -1,4 +1,4 @@
-// Copyright 2022 - See NOTICE file for copyright holders.
+// Copyright 2024 - See NOTICE file for copyright holders.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -17,6 +17,8 @@ package test
 import (
 	"math/rand"
 	"testing"
+
+	"perun.network/go-perun/channel"
 
 	"github.com/stretchr/testify/require"
 
@@ -67,7 +69,7 @@ func channelProposalAccSerializationTest(t *testing.T, serializerTest func(t *te
 	t.Run("ledger channel", func(t *testing.T) {
 		for i := 0; i < 16; i++ {
 			proposal := NewRandomLedgerChannelProposal(rng)
-			m := proposal.Accept(wallettest.NewRandomAddresses(rng, 0), client.WithNonceFrom(rng))
+			m := proposal.Accept(wallettest.NewRandomAddresses(rng, channel.TestBackendID), client.WithNonceFrom(rng))
 			serializerTest(t, m)
 		}
 	})
@@ -85,7 +87,7 @@ func channelProposalAccSerializationTest(t *testing.T, serializerTest func(t *te
 			var err error
 			proposal, err := NewRandomVirtualChannelProposal(rng)
 			require.NoError(t, err)
-			m := proposal.Accept(wallettest.NewRandomAddresses(rng, 0))
+			m := proposal.Accept(wallettest.NewRandomAddresses(rng, channel.TestBackendID))
 			serializerTest(t, m)
 		}
 	})

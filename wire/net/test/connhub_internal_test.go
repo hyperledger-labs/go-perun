@@ -1,4 +1,4 @@
-// Copyright 2019 - See NOTICE file for copyright holders.
+// Copyright 2024 - See NOTICE file for copyright holders.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -17,6 +17,8 @@ package test
 import (
 	"context"
 	"testing"
+
+	"perun.network/go-perun/channel"
 
 	"perun.network/go-perun/wallet"
 
@@ -123,7 +125,7 @@ func TestConnHub_Close(t *testing.T) {
 		l := c.NewNetListener(wiretest.NewRandomAddress(rng))
 		l2 := NewNetListener()
 		l2.Close()
-		err := c.insert(map[wallet.BackendID]wire.Address{0: wiretest.NewRandomAccount(rng).Address()}, l2)
+		err := c.insert(map[wallet.BackendID]wire.Address{channel.TestBackendID: wiretest.NewRandomAccount(rng).Address()}, l2)
 		assert.NoError(err)
 		assert.Error(c.Close())
 		assert.True(l.IsClosed())

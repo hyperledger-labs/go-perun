@@ -1,4 +1,4 @@
-// Copyright 2019 - See NOTICE file for copyright holders.
+// Copyright 2024 - See NOTICE file for copyright holders.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -75,7 +75,7 @@ func (c *Client) syncChannel(ctx context.Context, ch *persistence.Channel, p map
 	id := ch.ID()
 	err = c.conn.Subscribe(recv, func(m *wire.Envelope) bool {
 		msg, ok := m.Msg.(*ChannelSyncMsg)
-		return ok && channel.EqualIDs(msg.ID(), id)
+		return ok && msg.ID() == id
 	})
 	if err != nil {
 		return errors.WithMessage(err, "subscribing on relay")
@@ -124,7 +124,7 @@ func validateMessage(ch *persistence.Channel, msg *ChannelSyncMsg) error {
 	v := ch.CurrentTX().Version
 	mv := msg.CurrentTX.Version
 
-	if channel.EqualIDs(msg.CurrentTX.ID, ch.ID()) {
+	if msg.CurrentTX.ID != ch.ID() {
 		return errors.New("channel ID mismatch")
 	}
 	if mv == v {

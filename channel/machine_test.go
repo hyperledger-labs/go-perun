@@ -1,4 +1,4 @@
-// Copyright 2020 - See NOTICE file for copyright holders.
+// Copyright 2024 - See NOTICE file for copyright holders.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -29,8 +29,8 @@ import (
 func TestMachineClone(t *testing.T) {
 	rng := pkgtest.Prng(t)
 
-	acc := wtest.NewRandomAccountMapSlice(rng, 0, 1)
-	params := *test.NewRandomParams(rng, test.WithFirstPart(map[wallet.BackendID]wallet.Address{0: acc[0][0].Address()}))
+	acc := wtest.NewRandomAccountMapSlice(rng, channel.TestBackendID, 1)
+	params := *test.NewRandomParams(rng, test.WithFirstPart(map[wallet.BackendID]wallet.Address{channel.TestBackendID: acc[0][channel.TestBackendID].Address()}))
 
 	sm, err := channel.NewStateMachine(acc[0], params)
 	require.NoError(t, err)

@@ -1,4 +1,4 @@
-// Copyright 2021 - See NOTICE file for copyright holders.
+// Copyright 2024 - See NOTICE file for copyright holders.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -244,7 +244,7 @@ func (c *Client) validateVirtualChannelFundingProposal(
 	prop *VirtualChannelFundingProposalMsg,
 ) error {
 	switch {
-	case !channel.EqualIDs(prop.Initial.Params.ID(), prop.Initial.State.ID):
+	case prop.Initial.Params.ID() != prop.Initial.State.ID:
 		return errors.New("state does not match parameters")
 	case !prop.Initial.Params.VirtualChannel:
 		return errors.New("virtual channel flag not set")

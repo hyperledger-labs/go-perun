@@ -1,4 +1,4 @@
-// Copyright 2020 - See NOTICE file for copyright holders.
+// Copyright 2024 - See NOTICE file for copyright holders.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -211,7 +211,7 @@ func (r *multiClientRole) assertPersistedPeerAndChannel(cfg ExecConfig, state *c
 	r.RequireTrue(chIt.Next(ctx))
 	restoredCh := chIt.Channel()
 	r.RequireNoError(chIt.Close())
-	r.RequireTrue(channel.EqualIDs(restoredCh.ID(), state.ID))
+	r.RequireTrue(restoredCh.ID() == state.ID)
 	r.RequireNoError(restoredCh.CurrentTXV.State.Equal(state))
 }
 

@@ -1,4 +1,4 @@
-// Copyright 2020 - See NOTICE file for copyright holders.
+// Copyright 2024 - See NOTICE file for copyright holders.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -88,7 +88,7 @@ func GenericPersistRestorerTest(
 ) {
 	t.Helper()
 	t.Run("RestoreChannel error", func(t *testing.T) {
-		var id map[wallet.BackendID]channel.ID
+		var id channel.ID
 		ch, err := pr.RestoreChannel(context.Background(), id)
 		assert.Error(t, err)
 		assert.Nil(t, ch)
@@ -98,10 +98,10 @@ func GenericPersistRestorerTest(
 	c := NewClient(ctx, t, rng, pr)
 	peers := test.NewRandomAddressesMap(rng, numPeers)
 
-	channels := make([]map[string]*Channel, numPeers)
+	channels := make([]map[channel.ID]*Channel, numPeers)
 	var prevCh *Channel
 	for p := 0; p < numPeers; p++ {
-		channels[p] = make(map[string]*Channel)
+		channels[p] = make(map[channel.ID]*Channel)
 		for i := 0; i < numChans; i++ {
 			var parent *Channel
 			// Every second channel is set to have a parent.
@@ -110,7 +110,7 @@ func GenericPersistRestorerTest(
 			}
 			ch := c.NewChannel(t, peers[p], parent)
 			prevCh = ch
-			channels[p][channel.IDKey(ch.ID())] = ch
+			channels[p][ch.ID()] = ch
 			t.Logf("created channel %d for peer %d", i, p)
 		}
 	}
@@ -175,7 +175,7 @@ func GenericPersistRestorerTest(
 
 		for it.Next(ctx) {
 			ch := it.Channel()
-			cached := channels[pIdx][channel.IDKey(ch.ID())]
+			cached := channels[pIdx][ch.ID()]
 			cached.RequireEqual(t, ch)
 		}
 	}

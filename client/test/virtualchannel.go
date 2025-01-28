@@ -1,4 +1,4 @@
-// Copyright 2022 - See NOTICE file for copyright holders.
+// Copyright 2024 - See NOTICE file for copyright holders.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -301,7 +301,7 @@ func setupVirtualChannelTest(
 		alice.WalletAddress,
 		&initAllocVirtual,
 		[]map[wallet.BackendID]wire.Address{wire.AddressMapfromAccountMap(alice.Identity), wire.AddressMapfromAccountMap(bob.Identity)},
-		[]map[wallet.BackendID]channel.ID{vct.chAliceIngrid.ID(), vct.chBobIngrid.ID()},
+		[]channel.ID{vct.chAliceIngrid.ID(), vct.chBobIngrid.ID()},
 		[][]channel.Index{indexMapAlice, indexMapBob},
 	)
 	require.NoError(err, "creating virtual channel proposal")

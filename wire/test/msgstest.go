@@ -1,4 +1,4 @@
-// Copyright 2022 - See NOTICE file for copyright holders.
+// Copyright 2024 - See NOTICE file for copyright holders.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -40,7 +40,7 @@ func AuthMsgsSerializationTest(t *testing.T, serializerTest func(t *testing.T, m
 	t.Helper()
 
 	rng := pkgtest.Prng(t)
-	testMsg, err := wire.NewAuthResponseMsg(NewRandomAccountMap(rng, 0))
+	testMsg, err := wire.NewAuthResponseMsg(NewRandomAccountMap(rng, TestBackendID))
 	if err != nil {
 		t.Fatal(err)
 	}

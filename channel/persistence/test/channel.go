@@ -1,4 +1,4 @@
-// Copyright 2020 - See NOTICE file for copyright holders.
+// Copyright 2024 - See NOTICE file for copyright holders.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -33,7 +33,7 @@ import (
 type Channel struct {
 	accounts []map[wallet.BackendID]wallet.Account
 	peers    []map[wallet.BackendID]wire.Address
-	parent   *map[wallet.BackendID]channel.ID
+	parent   *channel.ID
 	*persistence.StateMachine
 
 	pr  persistence.PersistRestorer
@@ -56,7 +56,7 @@ func NewRandomChannel(
 	parent *Channel,
 	rng *rand.Rand,
 ) (c *Channel) {
-	bID := wallet.BackendID(0)
+	bID := wallet.BackendID(channel.TestBackendID)
 	if len(peers) > 0 {
 		for i := range peers[0] {
 			bID = i
@@ -67,9 +67,9 @@ func NewRandomChannel(
 	csm, err := channel.NewStateMachine(accs[0], *params)
 	require.NoError(t, err)
 
-	var parentID *map[wallet.BackendID]channel.ID
+	var parentID *channel.ID
 	if parent != nil {
-		parentID = new(map[wallet.BackendID]channel.ID)
+		parentID = new(channel.ID)
 		*parentID = parent.ID()
 	}
 
@@ -180,7 +180,7 @@ func (c *Channel) SignAll(ctx context.Context, t require.TestingT) {
 	c.AssertPersisted(ctx, t)
 	// remote signers
 	for i := range c.accounts {
-		sig, err := channel.Sign(c.accounts[i][0], c.StagingState(), 0)
+		sig, err := channel.Sign(c.accounts[i][channel.TestBackendID], c.StagingState(), channel.TestBackendID)
 		require.NoError(t, err)
 		c.AddSig(ctx, channel.Index(i), sig) //nolint:errcheck
 		c.AssertPersisted(ctx, t)

@@ -1,4 +1,4 @@
-// Copyright 2019 - See NOTICE file for copyright holders.
+// Copyright 2024 - See NOTICE file for copyright holders.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -622,7 +622,7 @@ func (c *Client) completeCPP(
 	return ch, nil
 }
 
-func (c *Client) proposalParent(prop ChannelProposal, partIdx channel.Index) (parentChannelID *map[wallet.BackendID]channel.ID, parent *Channel, err error) {
+func (c *Client) proposalParent(prop ChannelProposal, partIdx channel.Index) (parentChannelID *channel.ID, parent *Channel, err error) {
 	switch prop := prop.(type) {
 	case *SubChannelProposalMsg:
 		parentChannelID = &prop.Parent
