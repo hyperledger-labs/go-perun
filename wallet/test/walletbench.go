@@ -1,4 +1,4 @@
-// Copyright 2019 - See NOTICE file for copyright holders.
+// Copyright 2025 - See NOTICE file for copyright holders.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -53,7 +53,7 @@ func GenericBackendBenchmark(b *testing.B, s *Setup) {
 
 func benchBackendVerifySig(b *testing.B, s *Setup) {
 	b.Helper()
-	// We dont want to measure the SignDataWithPW here, just need it for the verification
+	// We do not want to measure the SignDataWithPW here, just need it for the verification
 	b.StopTimer()
 	perunAcc, err := s.Wallet.Unlock(s.AddressInWallet)
 	require.NoError(b, err)

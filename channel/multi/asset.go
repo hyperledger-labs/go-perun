@@ -1,4 +1,4 @@
-// Copyright 2022 - See NOTICE file for copyright holders.
+// Copyright 2025 - See NOTICE file for copyright holders.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -21,9 +21,17 @@ import (
 )
 
 type (
-	// Asset defines a multi-ledger asset.
+	// Asset defines a multi-ledger asset, extending channel.asset by a method LedgerBackendID() which returns the LedgerID and BackendID.
 	Asset interface {
 		channel.Asset
+		LedgerBackendID() LedgerBackendID
+	}
+
+	// LedgerBackendID represents an asset identifier.
+	// BackendID returns the identifier of the backend the asset belongs to.
+	// LedgerID returns the identifier of the ledger the asset belongs to.
+	LedgerBackendID interface {
+		BackendID() uint32
 		LedgerID() LedgerID
 	}
 
@@ -39,19 +47,19 @@ type (
 )
 
 // LedgerIDs returns the identifiers of the associated ledgers.
-func (a assets) LedgerIDs() ([]LedgerID, error) {
-	ids := make(map[LedgerIDMapKey]LedgerID)
+func (a assets) LedgerIDs() ([]LedgerBackendID, error) {
+	ids := make(map[LedgerBackendKey]LedgerBackendID)
 	for _, asset := range a {
 		ma, ok := asset.(Asset)
 		if !ok {
-			return nil, fmt.Errorf("wrong asset type: expected multi.Asset, got %T", a)
+			return nil, fmt.Errorf("wrong asset type: expected Asset, got %T", asset)
 		}
 
-		id := ma.LedgerID()
-		ids[id.MapKey()] = id
-	}
+		assetID := ma.LedgerBackendID()
 
-	idsArray := make([]LedgerID, len(ids))
+		ids[LedgerBackendKey{BackendID: assetID.BackendID(), LedgerID: string(assetID.LedgerID().MapKey())}] = assetID
+	}
+	idsArray := make([]LedgerBackendID, len(ids))
 	i := 0
 	for _, v := range ids {
 		idsArray[i] = v
@@ -64,7 +72,7 @@ func (a assets) LedgerIDs() ([]LedgerID, error) {
 // IsMultiLedgerAssets returns whether the assets are from multiple ledgers.
 func IsMultiLedgerAssets(assets []channel.Asset) bool {
 	hasMulti := false
-	var id LedgerID
+	var id LedgerBackendID
 	for _, asset := range assets {
 		multiAsset, ok := asset.(Asset)
 		switch {
@@ -72,8 +80,8 @@ func IsMultiLedgerAssets(assets []channel.Asset) bool {
 			continue
 		case !hasMulti:
 			hasMulti = true
-			id = multiAsset.LedgerID()
-		case id.MapKey() != multiAsset.LedgerID().MapKey():
+			id = multiAsset.LedgerBackendID()
+		case id.LedgerID().MapKey() != multiAsset.LedgerBackendID().LedgerID().MapKey():
 			return true
 		}
 	}

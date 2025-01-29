@@ -1,4 +1,4 @@
-// Copyright 2019 - See NOTICE file for copyright holders.
+// Copyright 2025 - See NOTICE file for copyright holders.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -17,13 +17,17 @@ package test
 import (
 	"sync"
 
+	"perun.network/go-perun/channel"
+
+	"perun.network/go-perun/wallet"
+
 	"github.com/pkg/errors"
 	"perun.network/go-perun/wire"
 )
 
 // listenerMapEntry is a key-value entry inside a listener map.
 type listenerMapEntry struct {
-	key   wire.Address
+	key   map[wallet.BackendID]wire.Address
 	value *Listener
 }
 
@@ -35,9 +39,9 @@ type listenerMap struct {
 
 // findEntry is not mutexed, and is only to be called from within the type's
 // other functions.
-func (m *listenerMap) findEntry(key wire.Address) (listenerMapEntry, int, bool) {
+func (m *listenerMap) findEntry(key map[wallet.BackendID]wire.Address) (listenerMapEntry, int, bool) {
 	for i, v := range m.entries {
-		if v.key.Equal(key) {
+		if channel.EqualWireMaps(v.key, key) {
 			return v, i, true
 		}
 	}
@@ -45,7 +49,7 @@ func (m *listenerMap) findEntry(key wire.Address) (listenerMapEntry, int, bool) 
 	return listenerMapEntry{}, -1, false
 }
 
-func (m *listenerMap) find(key wire.Address) (*Listener, bool) {
+func (m *listenerMap) find(key map[wallet.BackendID]wire.Address) (*Listener, bool) {
 	m.mutex.RLock()
 	defer m.mutex.RUnlock()
 
@@ -55,7 +59,7 @@ func (m *listenerMap) find(key wire.Address) (*Listener, bool) {
 	return nil, false
 }
 
-func (m *listenerMap) insert(key wire.Address, value *Listener) error {
+func (m *listenerMap) insert(key map[wallet.BackendID]wire.Address, value *Listener) error {
 	m.mutex.Lock()
 	defer m.mutex.Unlock()
 	if _, _, ok := m.findEntry(key); ok {
@@ -65,7 +69,7 @@ func (m *listenerMap) insert(key wire.Address, value *Listener) error {
 	return nil
 }
 
-func (m *listenerMap) erase(key wire.Address) error {
+func (m *listenerMap) erase(key map[wallet.BackendID]wire.Address) error {
 	m.mutex.Lock()
 	defer m.mutex.Unlock()
 

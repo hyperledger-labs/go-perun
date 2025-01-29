@@ -1,4 +1,4 @@
-// Copyright 2019 - See NOTICE file for copyright holders.
+// Copyright 2025 - See NOTICE file for copyright holders.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -27,6 +27,9 @@ import (
 	"perun.network/go-perun/wire/perunio"
 )
 
+// BackendID is a unique identifier for a backend.
+type BackendID int
+
 // Address represents a identifier used in a cryptocurrency.
 // It is dependent on the currency and needs to be implemented for every blockchain.
 type Address interface {
@@ -42,14 +45,37 @@ type Address interface {
 	// Equal returns wether the two addresses are equal. The implementation
 	// must be equivalent to checking `Address.Cmp(Address) == 0`.
 	Equal(Address) bool
+	// BackendID returns the id of the backend that created this address.
+	BackendID() BackendID
+}
+
+// Equal compares two BackendIDs for equality.
+func (a *BackendID) Equal(b BackendID) bool {
+	return *a == b
 }
 
 // IndexOfAddr returns the index of the given address in the address slice,
 // or -1 if it is not part of the slice.
-func IndexOfAddr(addrs []Address, addr Address) int {
-	for i, a := range addrs {
-		if addr.Equal(a) {
-			return i
+func IndexOfAddr(addrs []map[BackendID]Address, addr Address) int {
+	for i, as := range addrs {
+		for _, a := range as {
+			if a.Equal(addr) {
+				return i
+			}
+		}
+	}
+
+	return -1
+}
+
+// IndexOfAddrs returns the index of the given address in the address slice,
+// or -1 if it is not part of the slice.
+func IndexOfAddrs(addrs []map[BackendID]Address, addr map[BackendID]Address) int {
+	for i, as := range addrs {
+		for j, a := range as {
+			if a.Equal(addr[j]) {
+				return i
+			}
 		}
 	}
 
@@ -64,7 +90,7 @@ func CloneAddress(a Address) Address {
 		log.WithError(err).Panic("error binary-marshaling Address")
 	}
 
-	clone := NewAddress()
+	clone := NewAddress(a.BackendID())
 	if err := clone.UnmarshalBinary(data); err != nil {
 		log.WithError(err).Panic("error binary-unmarshaling Address")
 	}
@@ -82,76 +108,97 @@ func CloneAddresses(as []Address) []Address {
 	return clones
 }
 
-// Addresses is a helper type for encoding and decoding address slices in
-// situations where the length of the slice is known.
-type Addresses []Address
-
-// AddressesWithLen is a helper type for encoding and decoding address slices
-// of unknown length.
-type AddressesWithLen []Address
-
-// addressSliceLen is needed to break the import cycle with channel. It should
-// be the same as channel.Index.
-type addressSliceLen = uint16
-
-// AddressDec is a helper type to decode single wallet addresses.
-type AddressDec struct {
-	Addr *Address
+// CloneAddressesMap returns a clone of a map of Addresses using their binary
+// marshaling implementation. It panics if an error occurs during binary
+// (un)marshaling.
+func CloneAddressesMap(as map[BackendID]Address) map[BackendID]Address {
+	clones := make(map[BackendID]Address)
+	for i, a := range as {
+		clones[i] = CloneAddress(a)
+	}
+	return clones
 }
+
+// AddressMapArray is a helper type for encoding and decoding arrays of address maps.
+type AddressMapArray struct {
+	Addr []map[BackendID]Address
+}
+
+// AddressDecMap is a helper type for encoding and decoding address maps.
+type AddressDecMap map[BackendID]Address
 
 // AddrKey is a non-human readable representation of an `Address`.
 // It can be compared and therefore used as a key in a map.
 type AddrKey string
 
-// Encode encodes a wallet address slice, the length of which is known to the
-// following decode operation.
-func (a Addresses) Encode(w stdio.Writer) error {
+// Encode encodes first the length of the map,
+// then all Addresses and their key in the map.
+func (a AddressDecMap) Encode(w stdio.Writer) error {
+	length := int32(len(a))
+	if err := perunio.Encode(w, length); err != nil {
+		return errors.WithMessage(err, "encoding map length")
+	}
 	for i, addr := range a {
+		if err := perunio.Encode(w, int32(i)); err != nil {
+			return errors.WithMessage(err, "encoding map index")
+		}
 		if err := perunio.Encode(w, addr); err != nil {
-			return errors.WithMessagef(err, "encoding %d-th address", i)
-		}
-	}
-
-	return nil
-}
-
-// Encode encodes a wallet address slice, the length of which is unknown to the
-// following decode operation.
-func (a AddressesWithLen) Encode(w stdio.Writer) error {
-	return perunio.Encode(w,
-		addressSliceLen(len(a)),
-		(Addresses)(a))
-}
-
-// Decode decodes a wallet address slice of known length. The slice has to be
-// allocated to the correct size already.
-func (a Addresses) Decode(r stdio.Reader) (err error) {
-	for i := range a {
-		a[i] = NewAddress()
-		err = perunio.Decode(r, a[i])
-		if err != nil {
-			return errors.WithMessagef(err, "decoding %d-th address", i)
+			return errors.WithMessagef(err, "encoding %d-th address map entry", i)
 		}
 	}
 	return nil
 }
 
-// Decode decodes a wallet address slice of unknown length.
-func (a *AddressesWithLen) Decode(r stdio.Reader) (err error) {
-	var parts addressSliceLen
-	if err = perunio.Decode(r, &parts); err != nil {
-		return errors.WithMessage(err, "decoding count")
+// Encode encodes first the length of the array,
+// then all AddressDecMaps in the array.
+func (a AddressMapArray) Encode(w stdio.Writer) error {
+	length := int32(len(a.Addr))
+	if err := perunio.Encode(w, length); err != nil {
+		return errors.WithMessage(err, "encoding array length")
 	}
-
-	*a = make(AddressesWithLen, parts)
-	return (*Addresses)(a).Decode(r)
+	for i, addr := range a.Addr {
+		addressCopy := addr
+		if err := perunio.Encode(w, (*AddressDecMap)(&addressCopy)); err != nil {
+			return errors.WithMessagef(err, "encoding %d-th address array entry", i)
+		}
+	}
+	return nil
 }
 
-// Decode decodes a single wallet address.
-func (a AddressDec) Decode(r stdio.Reader) (err error) {
-	*a.Addr = NewAddress()
-	err = perunio.Decode(r, *a.Addr)
-	return err
+// Decode decodes the map length first, then all Addresses and their key in the map.
+func (a *AddressDecMap) Decode(r stdio.Reader) (err error) {
+	var mapLen int32
+	if err := perunio.Decode(r, &mapLen); err != nil {
+		return errors.WithMessage(err, "decoding map length")
+	}
+	*a = make(map[BackendID]Address, mapLen)
+	for i := 0; i < int(mapLen); i++ {
+		var idx int32
+		if err := perunio.Decode(r, &idx); err != nil {
+			return errors.WithMessage(err, "decoding map index")
+		}
+		addr := NewAddress(BackendID(idx))
+		if err := perunio.Decode(r, addr); err != nil {
+			return errors.WithMessagef(err, "decoding %d-th address map entry", i)
+		}
+		(*a)[BackendID(idx)] = addr
+	}
+	return nil
+}
+
+// Decode decodes the array length first, then all AddressDecMaps in the array.
+func (a *AddressMapArray) Decode(r stdio.Reader) (err error) {
+	var mapLen int32
+	if err := perunio.Decode(r, &mapLen); err != nil {
+		return errors.WithMessage(err, "decoding array length")
+	}
+	a.Addr = make([]map[BackendID]Address, mapLen)
+	for i := 0; i < int(mapLen); i++ {
+		if err := perunio.Decode(r, (*AddressDecMap)(&a.Addr[i])); err != nil {
+			return errors.WithMessagef(err, "decoding %d-th address map entry", i)
+		}
+	}
+	return nil
 }
 
 // Key returns the `AddrKey` corresponding to the passed `Address`.
@@ -159,6 +206,9 @@ func (a AddressDec) Decode(r stdio.Reader) (err error) {
 // Panics when the `Address` can't be encoded.
 func Key(a Address) AddrKey {
 	var buff strings.Builder
+	if err := perunio.Encode(&buff, uint32(a.BackendID())); err != nil {
+		panic("Could not encode id in AddrKey: " + err.Error())
+	}
 	if err := perunio.Encode(&buff, a); err != nil {
 		panic("Could not encode address in AddrKey: " + err.Error())
 	}
@@ -169,10 +219,16 @@ func Key(a Address) AddrKey {
 // created by `Key`.
 // Panics when the `Address` can't be decoded.
 func FromKey(k AddrKey) Address {
-	a := NewAddress()
-	err := perunio.Decode(bytes.NewBuffer([]byte(k)), a)
+	buff := bytes.NewBuffer([]byte(k))
+	var id uint32
+	err := perunio.Decode(buff, &id)
 	if err != nil {
-		panic("Could not decode address in FromKey: " + err.Error())
+		panic("Could not decode id: " + err.Error())
+	}
+	a := NewAddress(BackendID(int(id)))
+	err = perunio.Decode(buff, a)
+	if err != nil {
+		panic("Could not decode address: " + err.Error())
 	}
 	return a
 }
@@ -180,5 +236,6 @@ func FromKey(k AddrKey) Address {
 // Equal Returns whether the passed `Address` has the same key as the
 // receiving `AddrKey`.
 func (k AddrKey) Equal(a Address) bool {
-	return k == Key(a)
+	key := Key(a)
+	return k == key
 }

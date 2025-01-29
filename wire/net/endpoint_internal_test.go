@@ -1,4 +1,4 @@
-// Copyright 2019 - See NOTICE file for copyright holders.
+// Copyright 2025 - See NOTICE file for copyright holders.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -20,6 +20,9 @@ import (
 	"sync"
 	"testing"
 	"time"
+
+	"perun.network/go-perun/channel"
+	"perun.network/go-perun/wallet"
 
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
@@ -53,7 +56,7 @@ func makeSetup(rng *rand.Rand) *setup {
 }
 
 // Dial simulates creating a connection to a.
-func (s *setup) Dial(ctx context.Context, addr wire.Address, _ wire.EnvelopeSerializer) (Conn, error) {
+func (s *setup) Dial(ctx context.Context, addr map[wallet.BackendID]wire.Address, _ wire.EnvelopeSerializer) (Conn, error) {
 	s.mutex.RLock()
 	defer s.mutex.RUnlock()
 
@@ -64,16 +67,14 @@ func (s *setup) Dial(ctx context.Context, addr wire.Address, _ wire.EnvelopeSeri
 	// a: Alice's end, b: Bob's end.
 	a, b := newPipeConnPair()
 
-	//nolint:gocritic
-	if addr.Equal(s.alice.endpoint.Address) { // Dialing Bob?
+	if channel.EqualWireMaps(addr, s.alice.endpoint.Address) { // Dialing Bob?
 		s.bob.Registry.addEndpoint(s.bob.endpoint.Address, b, true) // Bob accepts connection.
 		return a, nil
-	} else if addr.Equal(s.bob.endpoint.Address) { // Dialing Alice?
+	} else if channel.EqualWireMaps(addr, s.bob.endpoint.Address) { // Dialing Alice?
 		s.alice.Registry.addEndpoint(s.alice.endpoint.Address, a, true) // Alice accepts connection.
 		return b, nil
-	} else {
-		return nil, errors.New("unknown peer")
 	}
+	return nil, errors.New("unknown peer")
 }
 
 func (s *setup) Close() error {
@@ -97,7 +98,7 @@ type client struct {
 // makeClient creates a simulated test client.
 func makeClient(conn Conn, rng *rand.Rand, dialer Dialer) *client {
 	receiver := wire.NewReceiver()
-	registry := NewEndpointRegistry(wiretest.NewRandomAccount(rng), func(wire.Address) wire.Consumer {
+	registry := NewEndpointRegistry(wiretest.NewRandomAccountMap(rng, channel.TestBackendID), func(map[wallet.BackendID]wire.Address) wire.Consumer {
 		return receiver
 	}, dialer, perunio.Serializer())
 

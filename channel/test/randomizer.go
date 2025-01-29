@@ -1,4 +1,4 @@
-// Copyright 2019 - See NOTICE file for copyright holders.
+// Copyright 2025 - See NOTICE file for copyright holders.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -17,7 +17,6 @@ package test
 import (
 	crand "crypto/rand"
 	"fmt"
-	"log"
 	"math/big"
 	"math/rand"
 	"time"
@@ -33,14 +32,17 @@ type Randomizer interface {
 	NewRandomAsset(*rand.Rand) channel.Asset
 }
 
-var randomizer Randomizer
+var randomizer map[wallet.BackendID]Randomizer
 
 // SetRandomizer sets the global Randomizer variable.
-func SetRandomizer(r Randomizer) {
-	if randomizer != nil {
+func SetRandomizer(r Randomizer, bID wallet.BackendID) {
+	if randomizer == nil {
+		randomizer = make(map[wallet.BackendID]Randomizer)
+	}
+	if randomizer[bID] != nil {
 		panic("channel/test randomizer already set")
 	}
-	randomizer = r
+	randomizer[bID] = r
 }
 
 // NewRandomPhase generates a random channel machine phase.
@@ -49,8 +51,8 @@ func NewRandomPhase(rng *rand.Rand) channel.Phase {
 }
 
 // NewRandomAsset generates a new random `channel.Asset`.
-func NewRandomAsset(rng *rand.Rand) channel.Asset {
-	return randomizer.NewRandomAsset(rng)
+func NewRandomAsset(rng *rand.Rand, bID wallet.BackendID) channel.Asset {
+	return randomizer[bID].NewRandomAsset(rng)
 }
 
 // NewRandomAssets generates new random `channel.Asset`s.
@@ -61,9 +63,25 @@ func NewRandomAssets(rng *rand.Rand, opts ...RandomOpt) []channel.Asset {
 		return assets
 	}
 	numAssets := opt.NumAssets(rng)
+	if backend, err := opt.Backend(); err == nil {
+		assets := make([]channel.Asset, opt.NumAssets(rng))
+		for i := range assets {
+			assets[i] = NewRandomAsset(rng, backend)
+		}
+		updateOpts(opts, WithAssets(assets...))
+		return assets
+	}
+	if backends, err := opt.BackendID(); err == nil {
+		assets := make([]channel.Asset, numAssets)
+		for i := range assets {
+			assets[i] = NewRandomAsset(rng, backends[i])
+		}
+		updateOpts(opts, WithAssets(assets...))
+		return assets
+	}
 	as := make([]channel.Asset, numAssets)
 	for i := range as {
-		as[i] = NewRandomAsset(rng)
+		as[i] = NewRandomAsset(rng, channel.TestBackendID)
 	}
 
 	updateOpts(opts, WithAssets(as...))
@@ -82,8 +100,9 @@ func NewRandomAllocation(rng *rand.Rand, opts ...RandomOpt) *channel.Allocation 
 	assets := NewRandomAssets(rng, opt)
 	bals := NewRandomBalances(rng, opt)
 	locked := NewRandomLocked(rng, opt)
+	backends := NewRandomBackends(rng, len(assets), opt)
 
-	alloc := &channel.Allocation{Assets: assets, Balances: bals, Locked: locked}
+	alloc := &channel.Allocation{Backends: backends, Assets: assets, Balances: bals, Locked: locked}
 	updateOpts(opts, WithAllocation(alloc))
 	return alloc
 }
@@ -108,17 +127,40 @@ func NewRandomLocked(rng *rand.Rand, opts ...RandomOpt) []channel.SubAlloc {
 
 // NewRandomLockedIDs generates new random `channel.ID`s used in `channel.SubAlloc`.
 // Options: `WithLockedIDs` and `WithNumLocked`.
-func NewRandomLockedIDs(rng *rand.Rand, opts ...RandomOpt) []channel.ID {
+func NewRandomLockedIDs(rng *rand.Rand, opts ...RandomOpt) []map[wallet.BackendID]channel.ID {
 	opt := mergeRandomOpts(opts...)
 
 	if ids := opt.LockedIDs(rng); ids != nil {
 		return ids
 	}
-
 	numLockedIds := opt.NumLocked(rng)
-	ids := make([]channel.ID, numLockedIds)
+	bIDs, err := opt.BackendID()
+	if err == nil && bIDs != nil {
+		ids := make([]map[wallet.BackendID]channel.ID, numLockedIds)
+		for i := range ids {
+			for j := range bIDs {
+				ids[i] = make(map[wallet.BackendID]channel.ID)
+				cID := [32]byte{}
+				rng.Read(cID[:])
+				ids[i][wallet.BackendID(j)] = cID
+			}
+		}
+		return ids
+	}
+	b, err := opt.Backend()
+	ids := make([]map[wallet.BackendID]channel.ID, numLockedIds)
 	for i := range ids {
-		rng.Read(ids[i][:])
+		if err != nil {
+			ids[i] = make(map[wallet.BackendID]channel.ID)
+			cID := [32]byte{}
+			rng.Read(cID[:])
+			ids[i][0] = cID
+		} else {
+			ids[i] = make(map[wallet.BackendID]channel.ID)
+			cID := [32]byte{}
+			rng.Read(cID[:])
+			ids[i][b] = cID
+		}
 	}
 	return ids
 }
@@ -157,11 +199,17 @@ func NewRandomParams(rng *rand.Rand, opts ...RandomOpt) *channel.Params {
 		return params
 	}
 	numParts := opt.NumParts(rng)
-	var parts []wallet.Address
+	var parts []map[wallet.BackendID]wallet.Address
 	if parts = opt.Parts(); parts == nil {
-		parts = make([]wallet.Address, numParts)
+		parts = make([]map[wallet.BackendID]wallet.Address, numParts)
+
 		for i := range parts {
-			parts[i] = test.NewRandomAddress(rng)
+			var backend wallet.BackendID
+			if backend, _ = opt.Backend(); backend != 0 {
+				parts[i] = map[wallet.BackendID]wallet.Address{backend: test.NewRandomAddress(rng, backend)}
+			} else {
+				parts[i] = map[wallet.BackendID]wallet.Address{channel.TestBackendID: test.NewRandomAddress(rng, channel.TestBackendID)}
+			}
 		}
 	}
 	if firstPart := opt.FirstPart(); firstPart != nil {
@@ -209,22 +257,38 @@ func NewRandomState(rng *rand.Rand, opts ...RandomOpt) (state *channel.State) {
 
 // NewRandomChannelID generates a new random `channel.ID`.
 // Options: `WithID`.
-func NewRandomChannelID(rng *rand.Rand, opts ...RandomOpt) (id channel.ID) {
+func NewRandomChannelID(rng *rand.Rand, opts ...RandomOpt) (id map[wallet.BackendID]channel.ID) {
 	opt := mergeRandomOpts(opts...)
 
 	if id, valid := opt.ID(); valid {
 		return id
 	}
-
-	if _, err := rng.Read(id[:]); err != nil {
-		log.Panic("could not read from rng")
+	id = make(map[wallet.BackendID]channel.ID)
+	bIDs, err := opt.BackendID()
+	if bIDs != nil && err == nil {
+		for _, b := range bIDs {
+			cID := [32]byte{}
+			rng.Read(cID[:])
+			id[b] = cID
+		}
+		return
+	}
+	bID, err := opt.Backend()
+	if err != nil {
+		cID := [32]byte{}
+		rng.Read(cID[:])
+		id[0] = cID
+	} else {
+		cID := [32]byte{}
+		rng.Read(cID[:])
+		id[bID] = cID
 	}
 	return
 }
 
 // NewRandomChannelIDs generates a list of random channel IDs.
-func NewRandomChannelIDs(rng *rand.Rand, n int) (ids []channel.ID) {
-	ids = make([]channel.ID, n)
+func NewRandomChannelIDs(rng *rand.Rand, n int) (ids []map[wallet.BackendID]channel.ID) {
+	ids = make([]map[wallet.BackendID]channel.ID, n)
 	for i := range ids {
 		ids[i] = NewRandomChannelID(rng)
 	}
@@ -304,6 +368,30 @@ func NewRandomBalances(rng *rand.Rand, opts ...RandomOpt) channel.Balances {
 	return balances
 }
 
+// NewRandomBackends generates new random backend IDs.
+// Options: `WithNumAssets` and `WithBackendIDs`.
+func NewRandomBackends(rng *rand.Rand, num int, opts ...RandomOpt) []wallet.BackendID {
+	opt := mergeRandomOpts(opts...)
+	if backends, err := opt.BackendID(); err == nil {
+		return backends
+	}
+	if backend, err := opt.Backend(); err == nil {
+		backends := make([]wallet.BackendID, num)
+		for i := range backends {
+			backends[i] = backend
+		}
+		updateOpts(opts, WithBackendIDs(backends))
+		return backends
+	}
+	backends := make([]wallet.BackendID, num)
+	for i := range backends {
+		backends[i] = 0
+	}
+
+	updateOpts(opts, WithBackendIDs(backends))
+	return backends
+}
+
 // NewRandomTransaction generates a new random `channel.Transaction`.
 // `sigMask` defines which signatures are generated. `len(sigmask)` is
 // assumed to be the number of participants.
@@ -311,18 +399,22 @@ func NewRandomBalances(rng *rand.Rand, opts ...RandomOpt) channel.Balances {
 // Options: all from `NewRandomParamsAndState`.
 func NewRandomTransaction(rng *rand.Rand, sigMask []bool, opts ...RandomOpt) *channel.Transaction {
 	opt := mergeRandomOpts(opts...)
+	bID, err := opt.Backend()
+	if err != nil {
+		bID = channel.TestBackendID
+	}
 	numParts := len(sigMask)
-	accs, addrs := test.NewRandomAccounts(rng, numParts)
-	params := NewRandomParams(rng, WithParts(addrs...), opt)
+	accs, addrs := test.NewRandomAccounts(rng, numParts, bID)
+	params := NewRandomParams(rng, WithParts(addrs), opt)
 	state := NewRandomState(rng, WithID(params.ID()), WithNumParts(numParts), opt)
 
 	sigs := make([]wallet.Sig, numParts)
-	var err error
+	err = nil
 	for i, choice := range sigMask {
 		if !choice {
 			sigs[i] = nil
 		} else {
-			sigs[i], err = channel.Sign(accs[i], state)
+			sigs[i], err = channel.Sign(accs[i][bID], state, bID)
 		}
 		if err != nil {
 			panic(err)

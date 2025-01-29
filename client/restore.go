@@ -1,4 +1,4 @@
-// Copyright 2020 - See NOTICE file for copyright holders.
+// Copyright 2025 - See NOTICE file for copyright holders.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -17,6 +17,8 @@ package client
 import (
 	"context"
 
+	"perun.network/go-perun/wallet"
+
 	"github.com/pkg/errors"
 
 	"perun.network/go-perun/channel"
@@ -24,7 +26,7 @@ import (
 	"perun.network/go-perun/wire"
 )
 
-type channelFromSourceSig = func(*Client, *persistence.Channel, *Channel, ...wire.Address) (*Channel, error)
+type channelFromSourceSig = func(*Client, *persistence.Channel, *Channel, ...map[wallet.BackendID]wire.Address) (*Channel, error)
 
 // clientChannelFromSource is the production behaviour of reconstructChannel.
 // During testing, it is replaced by a simpler function that needs much less
@@ -33,18 +35,18 @@ func clientChannelFromSource(
 	c *Client,
 	ch *persistence.Channel,
 	parent *Channel,
-	peers ...wire.Address,
+	peers ...map[wallet.BackendID]wire.Address,
 ) (*Channel, error) {
-	return c.channelFromSource(ch, parent, peers...)
+	return c.channelFromSource(ch, parent, peers)
 }
 
 func (c *Client) reconstructChannel(
 	channelFromSource channelFromSourceSig,
 	pch *persistence.Channel,
-	db map[channel.ID]*persistence.Channel,
-	chans map[channel.ID]*Channel,
+	db map[string]*persistence.Channel,
+	chans map[string]*Channel,
 ) *Channel {
-	if ch, ok := chans[pch.ID()]; ok {
+	if ch, ok := chans[channel.IDKey(pch.ID())]; ok {
 		return ch
 	}
 
@@ -52,7 +54,7 @@ func (c *Client) reconstructChannel(
 	if pch.Parent != nil {
 		parent = c.reconstructChannel(
 			channelFromSource,
-			db[*pch.Parent],
+			db[channel.IDKey(*pch.Parent)],
 			db,
 			chans)
 	}
@@ -62,11 +64,11 @@ func (c *Client) reconstructChannel(
 		c.logChan(pch.ID()).Panicf("Reconstruct channel: %v", err)
 	}
 
-	chans[pch.ID()] = ch
+	chans[channel.IDKey(pch.ID())] = ch
 	return ch
 }
 
-func (c *Client) restorePeerChannels(ctx context.Context, p wire.Address) (err error) {
+func (c *Client) restorePeerChannels(ctx context.Context, p map[wallet.BackendID]wire.Address) (err error) {
 	it, err := c.pr.RestorePeer(p)
 	if err != nil {
 		return errors.WithMessagef(err, "restoring channels for peer: %v", err)
@@ -77,13 +79,13 @@ func (c *Client) restorePeerChannels(ctx context.Context, p wire.Address) (err e
 		}
 	}()
 
-	db := make(map[channel.ID]*persistence.Channel)
+	db := make(map[string]*persistence.Channel)
 
 	// Serially restore channels. We might change this to parallel restoring once
 	// we initiate the sync protocol from here again.
 	for it.Next(ctx) {
 		chdata := it.Channel()
-		db[chdata.ID()] = chdata
+		db[channel.IDKey(chdata.ID())] = chdata
 	}
 
 	if err := it.Close(); err != nil {
@@ -95,10 +97,10 @@ func (c *Client) restorePeerChannels(ctx context.Context, p wire.Address) (err e
 }
 
 func (c *Client) restoreChannelCollection(
-	db map[channel.ID]*persistence.Channel,
+	db map[string]*persistence.Channel,
 	channelFromSource channelFromSourceSig,
 ) {
-	chs := make(map[channel.ID]*Channel)
+	chs := make(map[string]*Channel)
 	for _, pch := range db {
 		ch := c.reconstructChannel(channelFromSource, pch, db, chs)
 		log := c.logChan(ch.ID())

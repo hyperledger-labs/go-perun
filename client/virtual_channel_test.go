@@ -1,4 +1,4 @@
-// Copyright 2021 - See NOTICE file for copyright holders.
+// Copyright 2025 - See NOTICE file for copyright holders.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -20,6 +20,8 @@ import (
 	"math/rand"
 	"testing"
 	"time"
+
+	"perun.network/go-perun/channel"
 
 	chtest "perun.network/go-perun/channel/test"
 	ctest "perun.network/go-perun/client/test"
@@ -53,7 +55,7 @@ func makeVirtualChannelSetup(rng *rand.Rand) ctest.VirtualChannelSetup {
 	return ctest.VirtualChannelSetup{
 		Clients:           createVirtualChannelClients(rng),
 		ChallengeDuration: challengeDuration,
-		Asset:             chtest.NewRandomAsset(rng),
+		Asset:             chtest.NewRandomAsset(rng, channel.TestBackendID),
 		Balances: ctest.VirtualChannelBalances{
 			InitBalsAliceIngrid: []*big.Int{big.NewInt(10), big.NewInt(10)},
 			InitBalsBobIngrid:   []*big.Int{big.NewInt(10), big.NewInt(10)},
@@ -70,7 +72,7 @@ func makeVirtualChannelSetup(rng *rand.Rand) ctest.VirtualChannelSetup {
 
 func createVirtualChannelClients(rng *rand.Rand) [3]ctest.RoleSetup {
 	var setupsArray [3]ctest.RoleSetup
-	setups := NewSetups(rng, []string{"Alice", "Bob", "Ingrid"})
+	setups := NewSetups(rng, []string{"Alice", "Bob", "Ingrid"}, channel.TestBackendID)
 	copy(setupsArray[:], setups)
 	return setupsArray
 }

@@ -1,4 +1,4 @@
-// Copyright 2019 - See NOTICE file for copyright holders.
+// Copyright 2025 - See NOTICE file for copyright holders.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -17,6 +17,8 @@ package client
 import (
 	"math/rand"
 	"testing"
+
+	"perun.network/go-perun/wallet"
 
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
@@ -40,7 +42,7 @@ func TestClient_validTwoPartyProposal(t *testing.T) {
 	validProp := NewRandomLedgerChannelProposal(rng, channeltest.WithNumParts(2))
 	validProp.Peers[0] = c.address // set us as the proposer
 	peerAddr := validProp.Peers[1] // peer at 1 as receiver
-	require.False(t, peerAddr.Equal(c.address))
+	require.False(t, channel.EqualWireMaps(peerAddr, c.address))
 	require.Len(t, validProp.Peers, 2)
 
 	validProp3Peers := NewRandomLedgerChannelProposal(rng, channeltest.WithNumParts(3))
@@ -51,7 +53,7 @@ func TestClient_validTwoPartyProposal(t *testing.T) {
 	tests := []struct {
 		prop     *LedgerChannelProposalMsg
 		ourIdx   channel.Index
-		peerAddr wire.Address
+		peerAddr map[wallet.BackendID]wire.Address
 		valid    bool
 	}{
 		{
@@ -97,13 +99,13 @@ func TestChannelProposal_assertValidNumParts(t *testing.T) {
 	rng := pkgtest.Prng(t)
 	c := NewRandomLedgerChannelProposal(rng)
 	require.NoError(c.assertValidNumParts())
-	c.Peers = make([]wire.Address, channel.MaxNumParts+1)
+	c.Peers = make([]map[wallet.BackendID]wire.Address, channel.MaxNumParts+1)
 	require.Error(c.assertValidNumParts())
 }
 
 func TestProposalResponder_Accept_Nil(t *testing.T) {
 	p := new(ProposalResponder)
-	_, err := p.Accept(nil, new(LedgerChannelProposalAccMsg)) //nolint:staticcheck
+	_, err := p.Accept(nil, new(LedgerChannelProposalAccMsg))
 	assert.Error(t, err, "context")
 }
 
@@ -151,10 +153,15 @@ func NewRandomBaseChannelProposal(rng *rand.Rand, opts ...channeltest.RandomOpt)
 func NewRandomLedgerChannelProposal(rng *rand.Rand, opts ...channeltest.RandomOpt) *LedgerChannelProposalMsg {
 	opt := make(channeltest.RandomOpt).Append(opts...)
 	base := NewRandomBaseChannelProposal(rng, opt)
-	peers := wiretest.NewRandomAddresses(rng, base.NumPeers())
+	peers := wiretest.NewRandomAddressesMap(rng, base.NumPeers())
+	var bID wallet.BackendID
+	bID, err := opt.Backend()
+	if err != nil {
+		bID = wallet.BackendID(channel.TestBackendID)
+	}
 	return &LedgerChannelProposalMsg{
 		BaseChannelProposal: base,
-		Participant:         wallettest.NewRandomAddress(rng),
+		Participant:         wallettest.NewRandomAddresses(rng, bID),
 		Peers:               peers,
 	}
 }

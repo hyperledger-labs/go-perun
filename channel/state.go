@@ -1,4 +1,4 @@
-// Copyright 2019 - See NOTICE file for copyright holders.
+// Copyright 2025 - See NOTICE file for copyright holders.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -18,6 +18,9 @@ import (
 	"encoding"
 	"io"
 
+	"perun.network/go-perun/wallet"
+	"perun.network/go-perun/wire"
+
 	"github.com/pkg/errors"
 
 	"perun.network/go-perun/wire/perunio"
@@ -31,7 +34,7 @@ type (
 	// during disputes.
 	State struct {
 		// id is the immutable id of the channel this state belongs to
-		ID ID
+		ID map[wallet.BackendID]ID
 		// version counter
 		Version uint64
 		// App identifies the application that this channel is running.
@@ -78,7 +81,7 @@ func newState(params *Params, initBals Allocation, initData Data) (*State, error
 	n := len(params.Parts)
 	for _, asset := range initBals.Balances {
 		if n != len(asset) {
-			return nil, errors.New("number of participants in parameters and initial balances don't match")
+			return nil, errors.Errorf("number of participants in parameters and initial balances don't match: parts: %d, balances: %d", n, len(asset))
 		}
 	}
 	if err := initBals.Valid(); err != nil {
@@ -113,14 +116,14 @@ func (s *State) Clone() *State {
 // Encode encodes a state into an `io.Writer` or returns an `error`.
 func (s State) Encode(w io.Writer) error {
 	return errors.WithMessage(
-		perunio.Encode(w, s.ID, s.Version, s.Allocation, s.IsFinal, OptAppAndDataEnc{s.App, s.Data}),
+		perunio.Encode(w, IDMap(s.ID), s.Version, s.Allocation, s.IsFinal, OptAppAndDataEnc{s.App, s.Data}),
 		"state encode")
 }
 
 // Decode decodes a state from an `io.Reader` or returns an `error`.
 func (s *State) Decode(r io.Reader) error {
 	return errors.WithMessage(
-		perunio.Decode(r, &s.ID, &s.Version, &s.Allocation, &s.IsFinal, &OptAppAndDataDec{&s.App, &s.Data}),
+		perunio.Decode(r, (*IDMap)(&s.ID), &s.Version, &s.Allocation, &s.IsFinal, &OptAppAndDataDec{&s.App, &s.Data}),
 		"app decode")
 }
 
@@ -130,7 +133,7 @@ func (s *State) Equal(t *State) error {
 	if s == t {
 		return nil
 	}
-	if s.ID != t.ID {
+	if !EqualIDs(s.ID, t.ID) {
 		return errors.New("different IDs")
 	}
 	if s.Version != t.Version {
@@ -157,4 +160,17 @@ func (s *State) Equal(t *State) error {
 // parent channel's locked funds.
 func (s *State) ToSubAlloc() *SubAlloc {
 	return NewSubAlloc(s.ID, s.Allocation.Sum(), nil)
+}
+
+// EqualWireMaps compares two wire.Address maps for equality.
+func EqualWireMaps(a, b map[wallet.BackendID]wire.Address) bool {
+	if len(a) != len(b) {
+		return false
+	}
+	for i, addr := range a {
+		if !addr.Equal(b[i]) {
+			return false
+		}
+	}
+	return true
 }

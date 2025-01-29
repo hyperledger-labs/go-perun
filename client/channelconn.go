@@ -1,4 +1,4 @@
-// Copyright 2019 - See NOTICE file for copyright holders.
+// Copyright 2025 - See NOTICE file for copyright holders.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -19,6 +19,7 @@ import (
 
 	"github.com/pkg/errors"
 	"golang.org/x/sync/errgroup"
+	"perun.network/go-perun/wallet"
 
 	"perun.network/go-perun/channel"
 	"perun.network/go-perun/log"
@@ -34,7 +35,7 @@ type channelConn struct {
 
 	pub   wire.Publisher // outgoing message publisher
 	r     *wire.Relay    // update response relay/incoming messages
-	peers []wire.Address
+	peers []map[wallet.BackendID]wire.Address
 	idx   channel.Index // our index
 
 	log log.Logger
@@ -42,7 +43,7 @@ type channelConn struct {
 
 // newChannelConn creates a new channel connection for the given channel ID. It
 // subscribes on the subscriber to all messages regarding this channel.
-func newChannelConn(id channel.ID, peers []wire.Address, idx channel.Index, sub wire.Subscriber, pub wire.Publisher) (_ *channelConn, err error) {
+func newChannelConn(id map[wallet.BackendID]channel.ID, peers []map[wallet.BackendID]wire.Address, idx channel.Index, sub wire.Subscriber, pub wire.Publisher) (_ *channelConn, err error) {
 	// relay to receive all update responses
 	relay := wire.NewRelay()
 	// we cache all responses for the lifetime of the relay
@@ -62,9 +63,9 @@ func newChannelConn(id channel.ID, peers []wire.Address, idx channel.Index, sub 
 	isUpdateRes := func(e *wire.Envelope) bool {
 		switch msg := e.Msg.(type) {
 		case *ChannelUpdateAccMsg:
-			return msg.ID() == id
+			return channel.EqualIDs(msg.ID(), id)
 		case *ChannelUpdateRejMsg:
-			return msg.ID() == id
+			return channel.EqualIDs(msg.ID(), id)
 		default:
 			return false
 		}
@@ -84,7 +85,7 @@ func newChannelConn(id channel.ID, peers []wire.Address, idx channel.Index, sub 
 	}, nil
 }
 
-func (c *channelConn) sender() wire.Address {
+func (c *channelConn) sender() map[wallet.BackendID]wire.Address {
 	return c.peers[c.idx]
 }
 
@@ -119,7 +120,7 @@ func (c *channelConn) Send(ctx context.Context, msg wire.Msg) error {
 
 // Peers returns the ordered list of peer addresses. Note that the own peer is
 // included in the list.
-func (c *channelConn) Peers() []wire.Address {
+func (c *channelConn) Peers() []map[wallet.BackendID]wire.Address {
 	return c.peers
 }
 
@@ -147,7 +148,7 @@ type (
 	// with Next(), which returns the peer's channel index and the message.
 	channelMsgRecv struct {
 		*wire.Receiver
-		peers []wire.Address
+		peers []map[wallet.BackendID]wire.Address
 		log   log.Logger
 	}
 )
@@ -159,7 +160,7 @@ func (r *channelMsgRecv) Next(ctx context.Context) (channel.Index, ChannelMsg, e
 	if err != nil {
 		return 0, nil, err
 	}
-	idx := wire.IndexOfAddr(r.peers, env.Sender)
+	idx := wire.IndexOfAddrs(r.peers, env.Sender)
 	if idx == -1 {
 		return 0, nil, errors.Errorf("channel connection received message from unexpected peer %v", env.Sender)
 	}
@@ -167,5 +168,5 @@ func (r *channelMsgRecv) Next(ctx context.Context) (channel.Index, ChannelMsg, e
 	if !ok {
 		return 0, nil, errors.Errorf("unexpected message type: expected ChannelMsg, got %T", env.Msg)
 	}
-	return channel.Index(idx), msg, nil // predicate must guarantee that the conversion is safe
+	return channel.Index(idx), msg, nil
 }

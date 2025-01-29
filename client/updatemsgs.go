@@ -1,4 +1,4 @@
-// Copyright 2019 - See NOTICE file for copyright holders.
+// Copyright 2025 - See NOTICE file for copyright holders.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -56,7 +56,7 @@ type (
 	// controller.
 	ChannelMsg interface {
 		wire.Msg
-		ID() channel.ID
+		ID() map[wallet.BackendID]channel.ID
 	}
 
 	channelUpdateResMsg interface {
@@ -85,7 +85,7 @@ type (
 	// signature on the accepted new state by the sender.
 	ChannelUpdateAccMsg struct {
 		// ChannelID is the channel ID.
-		ChannelID channel.ID
+		ChannelID map[wallet.BackendID]channel.ID
 		// Version of the state that is accepted.
 		Version uint64
 		// Sig is the signature on the proposed new state by the sender.
@@ -99,7 +99,7 @@ type (
 	// Reason should be a UTF-8 encodable string.
 	ChannelUpdateRejMsg struct {
 		// ChannelID is the channel ID.
-		ChannelID channel.ID
+		ChannelID map[wallet.BackendID]channel.ID
 		// Version of the state that is accepted.
 		Version uint64
 		// Reason states why the sender rejectes the proposed new state.
@@ -152,12 +152,12 @@ func (c *ChannelUpdateMsg) Decode(r io.Reader) (err error) {
 
 // Encode encodes the ChannelUpdateAccMsg into the io.Writer.
 func (c ChannelUpdateAccMsg) Encode(w io.Writer) error {
-	return perunio.Encode(w, c.ChannelID, c.Version, c.Sig)
+	return perunio.Encode(w, channel.IDMap(c.ChannelID), c.Version, c.Sig)
 }
 
 // Decode decodes the ChannelUpdateAccMsg from the io.Reader.
 func (c *ChannelUpdateAccMsg) Decode(r io.Reader) (err error) {
-	if err := perunio.Decode(r, &c.ChannelID, &c.Version); err != nil {
+	if err := perunio.Decode(r, (*channel.IDMap)(&c.ChannelID), &c.Version); err != nil {
 		return err
 	}
 	c.Sig, err = wallet.DecodeSig(r)
@@ -166,26 +166,26 @@ func (c *ChannelUpdateAccMsg) Decode(r io.Reader) (err error) {
 
 // Encode encodes the ChannelUpdateRejMsg into the io.Writer.
 func (c ChannelUpdateRejMsg) Encode(w io.Writer) error {
-	return perunio.Encode(w, c.ChannelID, c.Version, c.Reason)
+	return perunio.Encode(w, channel.IDMap(c.ChannelID), c.Version, c.Reason)
 }
 
 // Decode decodes the ChannelUpdateRejMsg from the io.Reader.
 func (c *ChannelUpdateRejMsg) Decode(r io.Reader) (err error) {
-	return perunio.Decode(r, &c.ChannelID, &c.Version, &c.Reason)
+	return perunio.Decode(r, (*channel.IDMap)(&c.ChannelID), &c.Version, &c.Reason)
 }
 
 // ID returns the id of the channel this update refers to.
-func (c *ChannelUpdateMsg) ID() channel.ID {
+func (c *ChannelUpdateMsg) ID() map[wallet.BackendID]channel.ID {
 	return c.State.ID
 }
 
 // ID returns the id of the channel this update acceptance refers to.
-func (c *ChannelUpdateAccMsg) ID() channel.ID {
+func (c *ChannelUpdateAccMsg) ID() map[wallet.BackendID]channel.ID {
 	return c.ChannelID
 }
 
 // ID returns the id of the channel this update rejection refers to.
-func (c *ChannelUpdateRejMsg) ID() channel.ID {
+func (c *ChannelUpdateRejMsg) ID() map[wallet.BackendID]channel.ID {
 	return c.ChannelID
 }
 

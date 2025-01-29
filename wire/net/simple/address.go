@@ -1,4 +1,4 @@
-// Copyright 2022 - See NOTICE file for copyright holders.
+// Copyright 2025 - See NOTICE file for copyright holders.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -23,8 +23,13 @@ import (
 	"math/big"
 	"math/rand"
 
+	"perun.network/go-perun/wallet"
+
 	"perun.network/go-perun/wire"
 )
+
+// testBackendID is the identifier for the simulated Backend.
+const testBackendID = 0
 
 // Address is a wire address.
 type Address struct {
@@ -33,7 +38,7 @@ type Address struct {
 }
 
 // NewAddress returns a new address.
-func NewAddress(host string) *Address {
+func NewAddress(host string) wire.Address {
 	return &Address{
 		Name: host,
 	}
@@ -92,6 +97,16 @@ func (a *Address) UnmarshalBinary(data []byte) error {
 	}
 
 	return nil
+}
+
+// String returns the string representation of the address.
+func (a *Address) String() string {
+	return a.Name
+}
+
+// Backend returns the backend ID of the address.
+func (a *Address) Backend() wallet.BackendID {
+	return 0
 }
 
 // encodePublicKey encodes the public key into the buffer.
@@ -190,6 +205,21 @@ func NewRandomAddress(rng *rand.Rand) *Address {
 		Name: string(d),
 	}
 	return a
+}
+
+// NewRandomAddresses returns a new random peer address.
+func NewRandomAddresses(rng *rand.Rand) map[wallet.BackendID]wire.Address {
+	const addrLen = 32
+	l := rng.Intn(addrLen)
+	d := make([]byte, l)
+	if _, err := rng.Read(d); err != nil {
+		panic(err)
+	}
+
+	a := Address{
+		Name: string(d),
+	}
+	return map[wallet.BackendID]wire.Address{testBackendID: &a}
 }
 
 // Verify verifies a message signature.

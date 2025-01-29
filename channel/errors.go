@@ -1,4 +1,4 @@
-// Copyright 2019 - See NOTICE file for copyright holders.
+// Copyright 2025 - See NOTICE file for copyright holders.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -17,24 +17,26 @@ package channel
 import (
 	"fmt"
 
+	"perun.network/go-perun/wallet"
+
 	"github.com/pkg/errors"
 )
 
 type (
 	// StateTransitionError happens in case of an invalid channel state transition.
 	StateTransitionError struct {
-		ID ID
+		ID map[wallet.BackendID]ID
 	}
 
 	// ActionError happens if an invalid action is applied to a channel state.
 	ActionError struct {
-		ID ID
+		ID map[wallet.BackendID]ID
 	}
 
 	// PhaseTransitionError happens in case of an invalid channel machine phase
 	// transition.
 	PhaseTransitionError struct {
-		ID      ID
+		ID      map[wallet.BackendID]ID
 		current Phase
 		PhaseTransition
 	}
@@ -56,20 +58,20 @@ func (e *PhaseTransitionError) Error() string {
 }
 
 // NewStateTransitionError creates a new StateTransitionError.
-func NewStateTransitionError(id ID, msg string) error {
+func NewStateTransitionError(id map[wallet.BackendID]ID, msg string) error {
 	return errors.Wrap(&StateTransitionError{
 		ID: id,
 	}, msg)
 }
 
 // NewActionError creates a new ActionError.
-func NewActionError(id ID, msg string) error {
+func NewActionError(id map[wallet.BackendID]ID, msg string) error {
 	return errors.Wrap(&ActionError{
 		ID: id,
 	}, msg)
 }
 
-func newPhaseTransitionError(id ID, current Phase, expected PhaseTransition, msg string) error {
+func newPhaseTransitionError(id map[wallet.BackendID]ID, current Phase, expected PhaseTransition, msg string) error {
 	return errors.Wrap(&PhaseTransitionError{
 		ID:              id,
 		current:         current,
@@ -78,7 +80,7 @@ func newPhaseTransitionError(id ID, current Phase, expected PhaseTransition, msg
 }
 
 func newPhaseTransitionErrorf(
-	id ID,
+	id map[wallet.BackendID]ID,
 	current Phase,
 	expected PhaseTransition,
 	format string,

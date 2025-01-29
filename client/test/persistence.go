@@ -1,4 +1,4 @@
-// Copyright 2020 - See NOTICE file for copyright holders.
+// Copyright 2025 - See NOTICE file for copyright holders.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -19,6 +19,8 @@ import (
 	"math/big"
 	"testing"
 	"time"
+
+	"perun.network/go-perun/wallet"
 
 	"perun.network/go-perun/channel"
 	"perun.network/go-perun/client"
@@ -45,7 +47,11 @@ const (
 // ReplaceClient replaces the client instance of the Role. Useful for
 // persistence testing.
 func (r *multiClientRole) ReplaceClient() {
-	cl, err := client.New(r.setup.Identity.Address(), r.setup.Bus, r.setup.Funder, r.setup.Adjudicator, r.setup.Wallet, r.setup.Watcher)
+	setupWallet := make(map[wallet.BackendID]wallet.Wallet)
+	for i, w := range r.setup.Wallet {
+		setupWallet[i] = w
+	}
+	cl, err := client.New(wire.AddressMapfromAccountMap(r.setup.Identity), r.setup.Bus, r.setup.Funder, r.setup.Adjudicator, setupWallet, r.setup.Watcher)
 	r.RequireNoErrorf(err, "recreating client")
 	r.setClient(cl)
 }
@@ -205,7 +211,7 @@ func (r *multiClientRole) assertPersistedPeerAndChannel(cfg ExecConfig, state *c
 	r.RequireTrue(chIt.Next(ctx))
 	restoredCh := chIt.Channel()
 	r.RequireNoError(chIt.Close())
-	r.RequireTrue(restoredCh.ID() == state.ID)
+	r.RequireTrue(channel.EqualIDs(restoredCh.ID(), state.ID))
 	r.RequireNoError(restoredCh.CurrentTXV.State.Equal(state))
 }
 
@@ -214,11 +220,11 @@ func (r *multiClientRole) Errors() <-chan error {
 	return r.errs
 }
 
-type addresses []wire.Address
+type addresses []map[wallet.BackendID]wire.Address
 
-func (a addresses) contains(b wire.Address) bool {
+func (a addresses) contains(b map[wallet.BackendID]wire.Address) bool {
 	for _, addr := range a {
-		if addr.Equal(b) {
+		if channel.EqualWireMaps(addr, b) {
 			return true
 		}
 	}

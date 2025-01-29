@@ -1,4 +1,4 @@
-// Copyright 2020 - See NOTICE file for copyright holders.
+// Copyright 2025 - See NOTICE file for copyright holders.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -17,6 +17,8 @@ package wire
 import (
 	"context"
 	"sync"
+
+	"perun.network/go-perun/wallet"
 
 	"github.com/pkg/errors"
 
@@ -58,7 +60,7 @@ func (h *LocalBus) Publish(ctx context.Context, e *Envelope) error {
 // SubscribeClient implements wire.Bus.SubscribeClient. There can only be one
 // subscription per receiver address.
 // When the Consumer closes, its subscription is removed.
-func (h *LocalBus) SubscribeClient(c Consumer, receiver Address) error {
+func (h *LocalBus) SubscribeClient(c Consumer, receiver map[wallet.BackendID]Address) error {
 	recv := h.ensureRecv(receiver)
 	recv.recv = c
 	close(recv.exists)
@@ -66,7 +68,7 @@ func (h *LocalBus) SubscribeClient(c Consumer, receiver Address) error {
 	c.OnCloseAlways(func() {
 		h.mutex.Lock()
 		defer h.mutex.Unlock()
-		delete(h.recvs, Key(receiver))
+		delete(h.recvs, Keys(receiver))
 		log.WithField("id", receiver).Debug("Client unsubscribed.")
 	})
 
@@ -77,8 +79,8 @@ func (h *LocalBus) SubscribeClient(c Consumer, receiver Address) error {
 // ensureRecv ensures that there is an entry for a recipient address in the
 // bus' receiver map, and returns it. If it creates a new receiver, it is only
 // a placeholder until a subscription appears.
-func (h *LocalBus) ensureRecv(a Address) *localBusReceiver {
-	key := Key(a)
+func (h *LocalBus) ensureRecv(a map[wallet.BackendID]Address) *localBusReceiver {
+	key := Keys(a)
 	// First, we only use a read lock, hoping that the receiver already exists.
 	h.mutex.RLock()
 	recv, ok := h.recvs[key]

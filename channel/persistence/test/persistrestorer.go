@@ -1,4 +1,4 @@
-// Copyright 2020 - See NOTICE file for copyright holders.
+// Copyright 2025 - See NOTICE file for copyright holders.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -22,6 +22,8 @@ import (
 	"sync"
 	"testing"
 
+	"perun.network/go-perun/wallet"
+
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 
@@ -38,7 +40,7 @@ type PersistRestorer struct {
 	t *testing.T
 
 	mu    sync.RWMutex // protects chans map and peerChans access
-	chans map[channel.ID]*persistence.Channel
+	chans map[string]*persistence.Channel
 	pcs   peerChans
 }
 
@@ -48,7 +50,7 @@ func NewPersistRestorer(t *testing.T) *PersistRestorer {
 	t.Helper()
 	return &PersistRestorer{
 		t:     t,
-		chans: make(map[channel.ID]*persistence.Channel),
+		chans: make(map[string]*persistence.Channel),
 		pcs:   make(peerChans),
 	}
 }
@@ -57,32 +59,32 @@ func NewPersistRestorer(t *testing.T) *PersistRestorer {
 
 // ChannelCreated fully persists all of the source's data.
 func (pr *PersistRestorer) ChannelCreated(
-	_ context.Context, source channel.Source, peers []wire.Address, parent *channel.ID,
+	_ context.Context, source channel.Source, peers []map[wallet.BackendID]wire.Address, parent *map[wallet.BackendID]channel.ID,
 ) error {
 	pr.mu.Lock()
 	defer pr.mu.Unlock()
 
 	id := source.ID()
-	_, ok := pr.chans[id]
+	_, ok := pr.chans[channel.IDKey(id)]
 	if ok {
 		return errors.Errorf("channel already persisted: %x", id)
 	}
 
-	pr.chans[id] = persistence.FromSource(source, peers, parent)
+	pr.chans[channel.IDKey(id)] = persistence.FromSource(source, peers, parent)
 	pr.pcs.Add(id, peers...)
 	return nil
 }
 
 // ChannelRemoved removes the channel from the test persister's memory.
-func (pr *PersistRestorer) ChannelRemoved(_ context.Context, id channel.ID) error {
+func (pr *PersistRestorer) ChannelRemoved(_ context.Context, id map[wallet.BackendID]channel.ID) error {
 	pr.mu.Lock()
 	defer pr.mu.Unlock()
 
-	_, ok := pr.chans[id]
+	_, ok := pr.chans[channel.IDKey(id)]
 	if !ok {
 		return errors.Errorf("channel doesn't exist: %x", id)
 	}
-	delete(pr.chans, id)
+	delete(pr.chans, channel.IDKey(id))
 	pr.pcs.Delete(id)
 	return nil
 }
@@ -141,7 +143,7 @@ func (pr *PersistRestorer) PhaseChanged(_ context.Context, s channel.Source) err
 // Close resets the persister's memory, i.e., all internally persisted channel
 // data is deleted. It can be reused afterwards.
 func (pr *PersistRestorer) Close() error {
-	pr.chans = make(map[channel.ID]*persistence.Channel)
+	pr.chans = make(map[string]*persistence.Channel)
 	return nil
 }
 
@@ -163,7 +165,7 @@ func (pr *PersistRestorer) AssertEqual(s channel.Source) {
 }
 
 // AssertNotExists asserts that a channel with the given ID does not exist.
-func (pr *PersistRestorer) AssertNotExists(id channel.ID) {
+func (pr *PersistRestorer) AssertNotExists(id map[wallet.BackendID]channel.ID) {
 	_, ok := pr.channel(id)
 	assert.Falsef(pr.t, ok, "channel shouldn't exist: %x", id)
 }
@@ -172,17 +174,17 @@ func (pr *PersistRestorer) AssertNotExists(id channel.ID) {
 // Since persister access is guaranteed to be single-threaded per channel, it
 // makes sense for the Persister implementation methods to use this getter to
 // channel the pointer to the channel storage.
-func (pr *PersistRestorer) channel(id channel.ID) (*persistence.Channel, bool) {
+func (pr *PersistRestorer) channel(id map[wallet.BackendID]channel.ID) (*persistence.Channel, bool) {
 	pr.mu.Lock()
 	defer pr.mu.Unlock()
-	ch, ok := pr.chans[id]
+	ch, ok := pr.chans[channel.IDKey(id)]
 	return ch, ok
 }
 
 // Restorer implementation
 
 // ActivePeers returns all peers that channels are persisted for.
-func (pr *PersistRestorer) ActivePeers(context.Context) ([]wire.Address, error) {
+func (pr *PersistRestorer) ActivePeers(context.Context) ([]map[wallet.BackendID]wire.Address, error) {
 	pr.mu.RLock()
 	defer pr.mu.RUnlock()
 
@@ -191,7 +193,7 @@ func (pr *PersistRestorer) ActivePeers(context.Context) ([]wire.Address, error) 
 
 // RestorePeer returns an iterator over all persisted channels which
 // the given peer is a part of.
-func (pr *PersistRestorer) RestorePeer(peer wire.Address) (persistence.ChannelIterator, error) {
+func (pr *PersistRestorer) RestorePeer(peer map[wallet.BackendID]wire.Address) (persistence.ChannelIterator, error) {
 	pr.mu.RLock()
 	defer pr.mu.RUnlock()
 
@@ -201,17 +203,17 @@ func (pr *PersistRestorer) RestorePeer(peer wire.Address) (persistence.ChannelIt
 		idx:   -1,
 	}
 	for i, id := range ids {
-		it.chans[i] = pr.chans[id]
+		it.chans[i] = pr.chans[channel.IDKey(id)]
 	}
 	return it, nil
 }
 
 // RestoreChannel should return the channel with the requested ID.
-func (pr *PersistRestorer) RestoreChannel(_ context.Context, id channel.ID) (*persistence.Channel, error) {
+func (pr *PersistRestorer) RestoreChannel(_ context.Context, id map[wallet.BackendID]channel.ID) (*persistence.Channel, error) {
 	pr.mu.RLock()
 	defer pr.mu.RUnlock()
 
-	ch, ok := pr.chans[id]
+	ch, ok := pr.chans[channel.IDKey(id)]
 	if !ok {
 		return nil, errors.Errorf("channel not found: %x", id)
 	}

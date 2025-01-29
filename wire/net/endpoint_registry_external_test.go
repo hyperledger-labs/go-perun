@@ -1,4 +1,4 @@
-// Copyright 2019 - See NOTICE file for copyright holders.
+// Copyright 2025 - See NOTICE file for copyright holders.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -19,6 +19,9 @@ import (
 	"testing"
 	"time"
 
+	"perun.network/go-perun/channel"
+	"perun.network/go-perun/wallet"
+
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -34,7 +37,7 @@ import (
 
 var timeout = 100 * time.Millisecond
 
-func nilConsumer(wire.Address) wire.Consumer { return nil }
+func nilConsumer(map[wallet.BackendID]wire.Address) wire.Consumer { return nil }
 
 // Two nodes (1 dialer, 1 listener node) .Get() each other.
 func TestEndpointRegistry_Get_Pair(t *testing.T) {
@@ -42,11 +45,11 @@ func TestEndpointRegistry_Get_Pair(t *testing.T) {
 	assert, require := assert.New(t), require.New(t)
 	rng := test.Prng(t)
 	var hub nettest.ConnHub
-	dialerID := wiretest.NewRandomAccount(rng)
-	listenerID := wiretest.NewRandomAccount(rng)
+	dialerID := wiretest.NewRandomAccountMap(rng, channel.TestBackendID)
+	listenerID := wiretest.NewRandomAccountMap(rng, channel.TestBackendID)
 	dialerReg := net.NewEndpointRegistry(dialerID, nilConsumer, hub.NewNetDialer(), perunio.Serializer())
 	listenerReg := net.NewEndpointRegistry(listenerID, nilConsumer, nil, perunio.Serializer())
-	listener := hub.NewNetListener(listenerID.Address())
+	listener := hub.NewNetListener(wire.AddressMapfromAccountMap(listenerID))
 
 	done := make(chan struct{})
 	go func() {
@@ -56,17 +59,17 @@ func TestEndpointRegistry_Get_Pair(t *testing.T) {
 
 	ctx, cancel := context.WithTimeout(context.Background(), 2*timeout)
 	defer cancel()
-	p, err := dialerReg.Endpoint(ctx, listenerID.Address())
+	p, err := dialerReg.Endpoint(ctx, wire.AddressMapfromAccountMap(listenerID))
 	assert.NoError(err)
 	require.NotNil(p)
-	assert.True(p.Address.Equal(listenerID.Address()))
+	assert.True(channel.EqualWireMaps(p.Address, wire.AddressMapfromAccountMap(listenerID)))
 
 	// should allow the listener routine to add the peer to its registry
 	time.Sleep(timeout)
-	p, err = listenerReg.Endpoint(ctx, dialerID.Address())
+	p, err = listenerReg.Endpoint(ctx, wire.AddressMapfromAccountMap(dialerID))
 	assert.NoError(err)
 	require.NotNil(p)
-	assert.True(p.Address.Equal(dialerID.Address()))
+	assert.True(channel.EqualWireMaps(p.Address, wire.AddressMapfromAccountMap(dialerID)))
 
 	listenerReg.Close()
 	dialerReg.Close()
@@ -82,16 +85,16 @@ func TestEndpointRegistry_Get_Multiple(t *testing.T) {
 	assert := assert.New(t)
 	rng := test.Prng(t)
 	var hub nettest.ConnHub
-	dialerID := wiretest.NewRandomAccount(rng)
-	listenerID := wiretest.NewRandomAccount(rng)
+	dialerID := wiretest.NewRandomAccountMap(rng, channel.TestBackendID)
+	listenerID := wiretest.NewRandomAccountMap(rng, channel.TestBackendID)
 	dialer := hub.NewNetDialer()
-	logPeer := func(addr wire.Address) wire.Consumer {
-		t.Logf("subscribing %s\n", addr)
+	logPeer := func(addr map[wallet.BackendID]wire.Address) wire.Consumer {
+		t.Logf("subscribing %s\n", wire.Keys(addr))
 		return nil
 	}
 	dialerReg := net.NewEndpointRegistry(dialerID, logPeer, dialer, perunio.Serializer())
 	listenerReg := net.NewEndpointRegistry(listenerID, logPeer, nil, perunio.Serializer())
-	listener := hub.NewNetListener(listenerID.Address())
+	listener := hub.NewNetListener(wire.AddressMapfromAccountMap(listenerID))
 
 	done := make(chan struct{})
 	go func() {
@@ -106,10 +109,10 @@ func TestEndpointRegistry_Get_Multiple(t *testing.T) {
 	peers := make(chan *net.Endpoint, N)
 	for i := 0; i < N; i++ {
 		go func() {
-			p, err := dialerReg.Endpoint(ctx, listenerID.Address())
+			p, err := dialerReg.Endpoint(ctx, wire.AddressMapfromAccountMap(listenerID))
 			assert.NoError(err)
 			if p != nil {
-				assert.True(p.Address.Equal(listenerID.Address()))
+				assert.True(channel.EqualWireMaps(p.Address, wire.AddressMapfromAccountMap(listenerID)))
 			}
 			peers <- p
 		}()
@@ -135,10 +138,10 @@ func TestEndpointRegistry_Get_Multiple(t *testing.T) {
 
 	// should allow the listener routine to add the peer to its registry
 	time.Sleep(timeout)
-	p, err := listenerReg.Endpoint(ctx, dialerID.Address())
+	p, err := listenerReg.Endpoint(ctx, wire.AddressMapfromAccountMap(dialerID))
 	assert.NoError(err)
 	assert.NotNil(p)
-	assert.True(p.Address.Equal(dialerID.Address()))
+	assert.True(channel.EqualWireMaps(p.Address, wire.AddressMapfromAccountMap(dialerID)))
 	assert.Equal(1, listener.NumAccepted())
 
 	listenerReg.Close()

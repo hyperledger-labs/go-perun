@@ -1,4 +1,4 @@
-// Copyright 2019 - See NOTICE file for copyright holders.
+// Copyright 2025 - See NOTICE file for copyright holders.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -18,19 +18,21 @@ import (
 	"errors"
 	"testing"
 
+	"perun.network/go-perun/wallet"
+
 	"github.com/stretchr/testify/assert"
 )
 
 func TestTransitionErrors(t *testing.T) {
 	assert.False(t, IsStateTransitionError(errors.New("No StateTransitionError")))
-	assert.True(t, IsStateTransitionError(NewStateTransitionError(Zero, "A StateTransitionError")))
+	assert.True(t, IsStateTransitionError(NewStateTransitionError(map[wallet.BackendID]ID{TestBackendID: Zero}, "A StateTransitionError")))
 
 	assert.False(t, IsActionError(errors.New("No ActionError")))
-	assert.True(t, IsActionError(NewActionError(Zero, "An ActionError")))
+	assert.True(t, IsActionError(NewActionError(map[wallet.BackendID]ID{TestBackendID: Zero}, "An ActionError")))
 
 	assert.False(t, IsPhaseTransitionError(errors.New("No PhaseTransitionError")))
 	assert.True(t, IsPhaseTransitionError(newPhaseTransitionError(
-		Zero, InitActing, PhaseTransition{InitActing, InitActing}, "A PhaseTransitionError")))
+		map[wallet.BackendID]ID{TestBackendID: Zero}, InitActing, PhaseTransition{InitActing, InitActing}, "A PhaseTransitionError")))
 	assert.True(t, IsPhaseTransitionError(newPhaseTransitionErrorf(
-		Zero, InitActing, PhaseTransition{InitActing, InitActing}, "A %s", "PhaseTransitionError")))
+		map[wallet.BackendID]ID{TestBackendID: Zero}, InitActing, PhaseTransition{InitActing, InitActing}, "A %s", "PhaseTransitionError")))
 }

@@ -1,4 +1,4 @@
-// Copyright 2022 - See NOTICE file for copyright holders.
+// Copyright 2025 - See NOTICE file for copyright holders.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -31,7 +31,7 @@ type serializer struct{}
 
 // Encode encodes the envelope into the wire using perunio encoding format.
 func (serializer) Encode(w io.Writer, env *wire.Envelope) error {
-	if err := perunio.Encode(w, env.Sender, env.Recipient); err != nil {
+	if err := perunio.Encode(w, wire.AddressDecMap(env.Sender), wire.AddressDecMap(env.Recipient)); err != nil {
 		return err
 	}
 	return wire.EncodeMsg(env.Msg, w)
@@ -40,14 +40,22 @@ func (serializer) Encode(w io.Writer, env *wire.Envelope) error {
 // Decode decodes an envelope from the wire using perunio encoding format.
 func (serializer) Decode(r io.Reader) (env *wire.Envelope, err error) {
 	env = &wire.Envelope{}
-	env.Sender = wire.NewAddress()
-	if err = perunio.Decode(r, env.Sender); err != nil {
-		return env, errors.WithMessage(err, "decoding sender address")
+	err = perunio.Decode(r, (*wire.AddressDecMap)(&env.Sender))
+	if err != nil {
+		return env, errors.WithMessage(err, "decoding sender addresses")
 	}
-	env.Recipient = wire.NewAddress()
-	if err = perunio.Decode(r, env.Recipient); err != nil {
-		return env, errors.WithMessage(err, "decoding recipient address")
+
+	// Decode the Recipient map
+	err = perunio.Decode(r, (*wire.AddressDecMap)(&env.Recipient))
+	if err != nil {
+		return env, errors.WithMessage(err, "decoding recipient addresses")
 	}
+
+	// Decode the message
 	env.Msg, err = wire.DecodeMsg(r)
-	return env, err
+	if err != nil {
+		return env, errors.WithMessage(err, "decoding message")
+	}
+
+	return env, nil
 }

@@ -1,4 +1,4 @@
-// Copyright 2020 - See NOTICE file for copyright holders.
+// Copyright 2025 - See NOTICE file for copyright holders.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -47,7 +47,8 @@ const bitsPerByte = 8
 
 // SigDec is a helper type to decode signatures.
 type SigDec struct {
-	Sig *Sig
+	Sig       *Sig
+	BackendID int
 }
 
 // Decode decodes a single signature.

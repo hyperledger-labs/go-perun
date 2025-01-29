@@ -1,4 +1,4 @@
-// Copyright 2022 - See NOTICE file for copyright holders.
+// Copyright 2025 - See NOTICE file for copyright holders.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -20,6 +20,8 @@ import (
 	"math/big"
 	"math/rand"
 	"testing"
+
+	"perun.network/go-perun/wallet"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -92,7 +94,7 @@ func runFredFridaTest(
 
 	clients := NewClients(t, rng, setups[:])
 	frida, fred := clients[fridaIdx], clients[fredIdx]
-	fridaWireAddr, fredWireAddr := frida.Identity.Address(), fred.Identity.Address()
+	fridaWireAddr, fredWireAddr := wire.AddressMapfromAccountMap(frida.Identity), wire.AddressMapfromAccountMap(fred.Identity)
 	fridaWalletAddr, fredWalletAddr := frida.WalletAddress, fred.WalletAddress
 
 	// Store client balances before running test.
@@ -113,9 +115,9 @@ func runFredFridaTest(
 	)
 
 	// Create the proposal.
-	initAlloc := channel.NewAllocation(numParts, asset)
+	initAlloc := channel.NewAllocation(numParts, []wallet.BackendID{channel.TestBackendID}, asset)
 	initAlloc.SetAssetBalances(asset, []*big.Int{fridaInitBal, fredInitBal})
-	parts := []wire.Address{fridaWireAddr, fredWireAddr}
+	parts := []map[wallet.BackendID]wire.Address{fridaWireAddr, fredWireAddr}
 	prop, err := client.NewLedgerChannelProposal(
 		challengeDuration,
 		fridaWalletAddr,
@@ -126,6 +128,7 @@ func runFredFridaTest(
 
 	// Frida sends the proposal.
 	chFrida, err := frida.ProposeChannel(ctx, prop)
+	t.Log(err.Error())
 	require.IsType(t, &client.ChannelFundingError{}, err)
 	require.NotNil(t, chFrida)
 	// Frida settles the channel.

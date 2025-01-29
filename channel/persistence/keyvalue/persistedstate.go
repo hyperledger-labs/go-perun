@@ -1,4 +1,4 @@
-// Copyright 2020 - See NOTICE file for copyright holders.
+// Copyright 2025 - See NOTICE file for copyright holders.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -16,6 +16,8 @@ package keyvalue
 
 import (
 	"io"
+
+	"perun.network/go-perun/wallet"
 
 	"perun.network/go-perun/channel"
 	"perun.network/go-perun/wire/perunio"
@@ -48,17 +50,17 @@ func (s *PersistedState) Decode(r io.Reader) error {
 
 type (
 	optChannelIDEnc struct {
-		ID *channel.ID
+		ID *map[wallet.BackendID]channel.ID
 	}
 
 	optChannelIDDec struct {
-		ID **channel.ID
+		ID **map[wallet.BackendID]channel.ID
 	}
 )
 
 func (id optChannelIDEnc) Encode(w io.Writer) error {
 	if id.ID != nil {
-		return perunio.Encode(w, true, *id.ID)
+		return perunio.Encode(w, true, channel.IDMap(*id.ID))
 	}
 	return perunio.Encode(w, false)
 }
@@ -69,8 +71,8 @@ func (id optChannelIDDec) Decode(r io.Reader) error {
 		return err
 	}
 	if exists {
-		*id.ID = new(channel.ID)
-		return perunio.Decode(r, *id.ID)
+		*id.ID = new(map[wallet.BackendID]channel.ID)
+		return perunio.Decode(r, (*channel.IDMap)(*id.ID))
 	}
 	*id.ID = nil
 	return nil

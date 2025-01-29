@@ -1,4 +1,4 @@
-// Copyright 2019 - See NOTICE file for copyright holders.
+// Copyright 2025 - See NOTICE file for copyright holders.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -15,11 +15,14 @@
 package channel
 
 import (
+	"bytes"
+	"encoding/binary"
 	stdio "io"
 	"math/big"
+	"sort"
+	"strings"
 
 	"github.com/pkg/errors"
-
 	"perun.network/go-perun/log"
 	"perun.network/go-perun/wallet"
 	"perun.network/go-perun/wire/perunio"
@@ -30,6 +33,9 @@ const IDLen = 32
 
 // ID represents a channelID.
 type ID = [IDLen]byte
+
+// IDMap is a map of IDs with keys corresponding to backendIDs.
+type IDMap map[wallet.BackendID]ID
 
 // MaxNonceLen is the maximum byte count of a nonce.
 const MaxNonceLen = 32
@@ -51,6 +57,121 @@ func NonceFromBytes(b []byte) Nonce {
 // Zero is the default channelID.
 var Zero = ID{}
 
+// EqualIDs compares two IDs for equality.
+func EqualIDs(a, b map[wallet.BackendID]ID) bool {
+	if len(a) != len(b) {
+		return false
+	}
+
+	// Compare each key-value pair
+	for key, val1 := range a {
+		val2, exists := b[key]
+		if !exists || val1 != val2 {
+			return false
+		}
+	}
+
+	return true
+}
+
+// Encode encodes the IDMap to the given writer.
+func (ids IDMap) Encode(w stdio.Writer) error {
+	length := int32(len(ids))
+	if err := perunio.Encode(w, length); err != nil {
+		return errors.WithMessage(err, "encoding map length")
+	}
+	for i, id := range ids {
+		if err := perunio.Encode(w, int32(i)); err != nil {
+			return errors.WithMessage(err, "encoding map index")
+		}
+		if err := perunio.Encode(w, id); err != nil {
+			return errors.WithMessagef(err, "encoding %d-th channel id map entry", i)
+		}
+	}
+	return nil
+}
+
+// Decode decodes the IDMap from the given reader.
+func (ids *IDMap) Decode(r stdio.Reader) error {
+	var mapLen int32
+	if err := perunio.Decode(r, &mapLen); err != nil {
+		return errors.WithMessage(err, "decoding map length")
+	}
+	*ids = make(map[wallet.BackendID]ID, mapLen)
+	for i := 0; i < int(mapLen); i++ {
+		var idx int32
+		if err := perunio.Decode(r, &idx); err != nil {
+			return errors.WithMessage(err, "decoding map index")
+		}
+		id := ID{}
+		if err := perunio.Decode(r, &id); err != nil {
+			return errors.WithMessagef(err, "decoding %d-th address map entry", i)
+		}
+		(*ids)[wallet.BackendID(idx)] = id
+	}
+	return nil
+}
+
+// IDKey returns a string representation of the IDMap.
+func IDKey(ids IDMap) string {
+	var buff strings.Builder
+	length := int32(len(ids))
+	err := binary.Write(&buff, binary.BigEndian, length)
+	if err != nil {
+		log.Panic("could not encode map length in Key: ", err)
+	}
+	sortedKeys, sortedIDs := sortIDMap(ids)
+	for i, id := range sortedIDs {
+		if err := binary.Write(&buff, binary.BigEndian, int32(sortedKeys[i])); err != nil {
+			log.Panicf("could not encode map key: " + err.Error())
+		}
+		if err := perunio.Encode(&buff, id); err != nil {
+			log.Panicf("could not encode map[int]ID: " + err.Error())
+		}
+	}
+	return buff.String()
+}
+
+func sortIDMap(ids IDMap) ([]wallet.BackendID, []ID) {
+	var indexes []int //nolint:prealloc
+	for i := range ids {
+		indexes = append(indexes, int(i))
+	}
+	sort.Ints(indexes)
+	sortedIndexes := make([]wallet.BackendID, len(indexes))
+	sortedIDs := make([]ID, len(indexes))
+	for i, index := range indexes {
+		sortedIndexes[i] = wallet.BackendID(index)
+		sortedIDs[i] = ids[wallet.BackendID(index)]
+	}
+	return sortedIndexes, sortedIDs
+}
+
+// FromIDKey decodes an IDMap from a string representation.
+func FromIDKey(k string) IDMap {
+	buff := bytes.NewBuffer([]byte(k))
+	var numElements int32
+
+	// Manually decode the number of elements in the map.
+	if err := binary.Read(buff, binary.BigEndian, &numElements); err != nil {
+		log.Panicf("could not decode map length in FromIDKey: " + err.Error())
+	}
+	a := make(map[wallet.BackendID]ID, numElements)
+	// Decode each key-value pair and insert them into the map.
+	for i := 0; i < int(numElements); i++ {
+		var key int32
+		if err := binary.Read(buff, binary.BigEndian, &key); err != nil {
+			log.Panicf("could not decode map key in FromIDKey: " + err.Error())
+		}
+		id := ID{}
+		if err := perunio.Decode(buff, &id); err != nil {
+			log.Panicf("could not decode map[int]ID in FromIDKey: " + err.Error())
+		}
+		a[wallet.BackendID(key)] = id
+	}
+	return a
+}
+
 var _ perunio.Serializer = (*Params)(nil)
 
 // Params are a channel's immutable parameters. A channel's id is the hash of
@@ -59,11 +180,11 @@ var _ perunio.Serializer = (*Params)(nil)
 // It should only be created through NewParams().
 type Params struct {
 	// ChannelID is the channel ID as calculated by the backend
-	id ID
+	id map[wallet.BackendID]ID
 	// ChallengeDuration in seconds during disputes
 	ChallengeDuration uint64
 	// Parts are the channel participants
-	Parts []wallet.Address
+	Parts []map[wallet.BackendID]wallet.Address
 	// App identifies the application that this channel is running. It is
 	// optional, and if nil, signifies that a channel is a payment channel.
 	App App `cloneable:"shallow"`
@@ -76,7 +197,7 @@ type Params struct {
 }
 
 // ID returns the channelID of this channel.
-func (p *Params) ID() ID {
+func (p *Params) ID() map[wallet.BackendID]ID {
 	return p.id
 }
 
@@ -84,9 +205,19 @@ func (p *Params) ID() ID {
 // appDef optional: if it is nil, it describes a payment channel. The channel id
 // is also calculated here and persisted because it probably is an expensive
 // hash operation.
-func NewParams(challengeDuration uint64, parts []wallet.Address, app App, nonce Nonce, ledger bool, virtual bool) (*Params, error) {
+func NewParams(challengeDuration uint64, parts []map[wallet.BackendID]wallet.Address, app App, nonce Nonce, ledger bool, virtual bool) (*Params, error) {
 	if err := ValidateParameters(challengeDuration, len(parts), app, nonce); err != nil {
 		return nil, errors.WithMessage(err, "invalid parameter for NewParams")
+	}
+	for _, ps := range parts {
+		for id, p := range ps {
+			if backend[p.BackendID()] == nil {
+				return nil, errors.Errorf("no backend with id %d", p.BackendID())
+			}
+			if id != p.BackendID() {
+				return nil, errors.Errorf("participant %v has wrong backend id %d", p, p.BackendID())
+			}
+		}
 	}
 	return NewParamsUnsafe(challengeDuration, parts, app, nonce, ledger, virtual), nil
 }
@@ -130,7 +261,7 @@ func ValidateParameters(challengeDuration uint64, numParts int, app App, nonce N
 // NewParamsUnsafe creates Params from the given data and does NOT perform
 // sanity checks. The channel id is also calculated here and persisted because
 // it probably is an expensive hash operation.
-func NewParamsUnsafe(challengeDuration uint64, parts []wallet.Address, app App, nonce Nonce, ledger bool, virtual bool) *Params {
+func NewParamsUnsafe(challengeDuration uint64, parts []map[wallet.BackendID]wallet.Address, app App, nonce Nonce, ledger bool, virtual bool) *Params {
 	p := &Params{
 		ChallengeDuration: challengeDuration,
 		Parts:             parts,
@@ -139,9 +270,24 @@ func NewParamsUnsafe(challengeDuration uint64, parts []wallet.Address, app App, 
 		LedgerChannel:     ledger,
 		VirtualChannel:    virtual,
 	}
+
 	// probably an expensive hash operation, do it only once during creation.
-	p.id = CalcID(p)
+	id, err := CalcID(p)
+	if err != nil || EqualIDs(id, map[wallet.BackendID]ID{}) {
+		log.Panicf("Could not calculate channel id: %v", err)
+	}
+	p.id = id
 	return p
+}
+
+// CloneAddresses returns a clone of an Address using its binary marshaling
+// implementation. It panics if an error occurs during binary (un)marshaling.
+func CloneAddresses(as []map[wallet.BackendID]wallet.Address) []map[wallet.BackendID]wallet.Address {
+	cloneMap := make([]map[wallet.BackendID]wallet.Address, len(as))
+	for i, a := range as {
+		cloneMap[i] = wallet.CloneAddressesMap(a)
+	}
+	return cloneMap
 }
 
 // Clone returns a deep copy of Params.
@@ -149,7 +295,7 @@ func (p *Params) Clone() *Params {
 	return &Params{
 		id:                p.ID(),
 		ChallengeDuration: p.ChallengeDuration,
-		Parts:             wallet.CloneAddresses(p.Parts),
+		Parts:             CloneAddresses(p.Parts),
 		App:               p.App,
 		Nonce:             new(big.Int).Set(p.Nonce),
 		LedgerChannel:     p.LedgerChannel,
@@ -161,8 +307,8 @@ func (p *Params) Clone() *Params {
 func (p *Params) Encode(w stdio.Writer) error {
 	return perunio.Encode(w,
 		p.ChallengeDuration,
-		wallet.AddressesWithLen(p.Parts),
-		OptAppEnc{p.App},
+		wallet.AddressMapArray{Addr: p.Parts},
+		OptAppEnc{App: p.App},
 		p.Nonce,
 		p.LedgerChannel,
 		p.VirtualChannel,
@@ -173,7 +319,7 @@ func (p *Params) Encode(w stdio.Writer) error {
 func (p *Params) Decode(r stdio.Reader) error {
 	var (
 		challengeDuration uint64
-		parts             wallet.AddressesWithLen
+		parts             wallet.AddressMapArray
 		app               App
 		nonce             Nonce
 		ledger            bool
@@ -192,7 +338,7 @@ func (p *Params) Decode(r stdio.Reader) error {
 		return err
 	}
 
-	_p, err := NewParams(challengeDuration, parts, app, nonce, ledger, virtual)
+	_p, err := NewParams(challengeDuration, parts.Addr, app, nonce, ledger, virtual)
 	if err != nil {
 		return err
 	}

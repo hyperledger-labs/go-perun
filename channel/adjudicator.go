@@ -1,4 +1,4 @@
-// Copyright 2020 - See NOTICE file for copyright holders.
+// Copyright 2025 - See NOTICE file for copyright holders.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -98,7 +98,7 @@ type (
 	// subscription should be closed by calling Close on the subscription after
 	// the channel is closed.
 	EventSubscriber interface {
-		Subscribe(context.Context, ID) (AdjudicatorSubscription, error)
+		Subscribe(context.Context, map[wallet.BackendID]ID) (AdjudicatorSubscription, error)
 	}
 
 	// An AdjudicatorReq collects all necessary information to make calls to the
@@ -110,7 +110,7 @@ type (
 	// protocol, possibly saving unnecessary double sending of transactions.
 	AdjudicatorReq struct {
 		Params    *Params
-		Acc       wallet.Account
+		Acc       map[wallet.BackendID]wallet.Account
 		Tx        Transaction
 		Idx       Index // Always the own index
 		Secondary bool  // Optimized secondary call protocol
@@ -204,7 +204,7 @@ type (
 	}
 
 	// StateMap represents a channel state tree.
-	StateMap map[ID]*State
+	StateMap map[string]*State
 )
 
 // NewProgressReq creates a new ProgressReq object.
@@ -302,12 +302,13 @@ func (t *TimeTimeout) String() string {
 
 // MakeStateMap creates a new StateMap object.
 func MakeStateMap() StateMap {
-	return make(map[ID]*State)
+	return make(map[string]*State)
 }
 
 // Add adds the given states to the state map.
 func (m StateMap) Add(states ...*State) {
 	for _, s := range states {
-		m[s.ID] = s
+		key := IDKey(s.ID)
+		m[key] = s
 	}
 }

@@ -1,4 +1,4 @@
-// Copyright 2021 - See NOTICE file for copyright holders.
+// Copyright 2025 - See NOTICE file for copyright holders.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -49,13 +49,13 @@ func newAdjudicatorEventsPubSub() *adjudicatorPubSub {
 //
 // Panics if the pub-sub instance is already closed. It is implemented this
 // way, because
-// 1. The watcher will publish on this pub-sub only when it receives an
-//    adjudicator event from the blockchain.
-// 2. When de-registering a channel from the watcher, watcher will close the
-//    subscription for adjudicator events from blockchain, before closing this
-//    pub-sub.
-// 3. This way, it can be guaranteed that, this method will never be called
-//    after the pub-sub instance is closed.
+//  1. The watcher will publish on this pub-sub only when it receives an
+//     adjudicator event from the blockchain.
+//  2. When de-registering a channel from the watcher, watcher will close the
+//     subscription for adjudicator events from blockchain, before closing this
+//     pub-sub.
+//  3. This way, it can be guaranteed that, this method will never be called
+//     after the pub-sub instance is closed.
 func (a *adjudicatorPubSub) publish(e channel.AdjudicatorEvent) {
 	a.pipe <- e
 }

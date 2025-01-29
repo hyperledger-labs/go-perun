@@ -1,4 +1,4 @@
-// Copyright 2020 - See NOTICE file for copyright holders.
+// Copyright 2025 - See NOTICE file for copyright holders.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -16,6 +16,8 @@ package client
 
 import (
 	"context"
+
+	"perun.network/go-perun/wallet"
 
 	"github.com/pkg/errors"
 
@@ -293,7 +295,9 @@ func (c *Channel) Settle(ctx context.Context, secondary bool) (err error) {
 				return
 			}
 		}
-		c.wallet.DecrementUsage(c.machine.Account().Address())
+		for i, wall := range c.wallet {
+			wall.DecrementUsage(c.machine.Account()[i].Address())
+		}
 		return
 	}); err != nil {
 		return errors.WithMessage(err, "decrementing account usage")
@@ -339,9 +343,9 @@ func (c *Channel) withdraw(ctx context.Context, secondary bool) error {
 }
 
 // hasParticipant returns we are participating in the channel.
-func (c *Channel) hasParticipant(id wire.Address) bool {
+func (c *Channel) hasParticipant(id map[wallet.BackendID]wire.Address) bool {
 	for _, p := range c.Peers() {
-		if id.Equal(p) {
+		if channel.EqualWireMaps(id, p) {
 			return true
 		}
 	}
@@ -438,7 +442,7 @@ func (c *Channel) gatherSubChannelStates() (states []channel.SignedState, err er
 func (c *Channel) subChannelStateMap() (states channel.StateMap, err error) {
 	states = channel.MakeStateMap()
 	err = c.applyToSubChannelsRecursive(func(c *Channel) error {
-		states[c.ID()] = c.state()
+		states[channel.IDKey(c.ID())] = c.state()
 		return nil
 	})
 	return

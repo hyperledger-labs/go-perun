@@ -1,4 +1,4 @@
-// Copyright 2021 - See NOTICE file for copyright holders.
+// Copyright 2025 - See NOTICE file for copyright holders.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -53,11 +53,11 @@ func newStatesPubSub() *statesPubSub {
 //
 // Panics if the pub-sub instance is already closed. It is implemented this
 // way, because
-// 1. Watcher requires that, the Publish method must not be called after stop
-//    watching for a channel. See docs of watcher.StatesPub for more details.
-// 2. Hence, by properly integrating the watcher into the client, it can be
-//    guaranteed that, this method will never be called after the pub-sub
-//    instance is closed and that, this method will never panic.
+//  1. Watcher requires that, the Publish method must not be called after stop
+//     watching for a channel. See docs of watcher.StatesPub for more details.
+//  2. Hence, by properly integrating the watcher into the client, it can be
+//     guaranteed that, this method will never be called after the pub-sub
+//     instance is closed and that, this method will never panic.
 func (s *statesPubSub) Publish(_ context.Context, tx channel.Transaction) error {
 	s.pipe <- tx
 	return nil

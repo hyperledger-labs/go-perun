@@ -1,4 +1,4 @@
-// Copyright 2019 - See NOTICE file for copyright holders.
+// Copyright 2025 - See NOTICE file for copyright holders.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -16,6 +16,8 @@ package test
 
 import (
 	gosync "sync"
+
+	"perun.network/go-perun/wallet"
 
 	"github.com/pkg/errors"
 
@@ -35,7 +37,7 @@ type ConnHub struct {
 // NewNetListener creates a new test listener for the given address.
 // Registers the new listener in the hub. Panics if the address was already
 // entered or the hub is closed.
-func (h *ConnHub) NewNetListener(addr wire.Address) *Listener {
+func (h *ConnHub) NewNetListener(addr map[wallet.BackendID]wire.Address) *Listener {
 	h.mutex.RLock()
 	defer h.mutex.RUnlock()
 

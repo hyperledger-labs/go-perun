@@ -1,4 +1,4 @@
-// Copyright 2022 - See NOTICE file for copyright holders.
+// Copyright 2025 - See NOTICE file for copyright holders.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -18,10 +18,11 @@ import (
 	"context"
 
 	"perun.network/go-perun/channel"
+	"perun.network/go-perun/wallet"
 )
 
 // Subscribe creates a new multi-ledger AdjudicatorSubscription.
-func (a *Adjudicator) Subscribe(ctx context.Context, chID channel.ID) (channel.AdjudicatorSubscription, error) {
+func (a *Adjudicator) Subscribe(ctx context.Context, chID map[wallet.BackendID]channel.ID) (channel.AdjudicatorSubscription, error) {
 	asub := &AdjudicatorSubscription{
 		events: make(chan channel.AdjudicatorEvent),
 		errors: make(chan error),

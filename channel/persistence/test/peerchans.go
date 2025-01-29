@@ -1,4 +1,4 @@
-// Copyright 2020 - See NOTICE file for copyright holders.
+// Copyright 2025 - See NOTICE file for copyright holders.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -16,15 +16,18 @@ package test
 
 import (
 	"bytes"
+	"fmt"
+
+	"perun.network/go-perun/wallet"
 
 	"perun.network/go-perun/channel"
 	"perun.network/go-perun/wire"
 	"perun.network/go-perun/wire/perunio"
 )
 
-type peerChans map[string][]channel.ID
+type peerChans map[string][]map[wallet.BackendID]channel.ID
 
-func (pc peerChans) ID(p wire.Address) []channel.ID {
+func (pc peerChans) ID(p map[wallet.BackendID]wire.Address) []map[wallet.BackendID]channel.ID {
 	ids, ok := pc[peerKey(p)]
 	if !ok {
 		return nil
@@ -32,32 +35,33 @@ func (pc peerChans) ID(p wire.Address) []channel.ID {
 	return ids
 }
 
-func (pc peerChans) Peers() []wire.Address {
-	ps := make([]wire.Address, 0, len(pc))
+func (pc peerChans) Peers() []map[wallet.BackendID]wire.Address {
+	ps := make([]map[wallet.BackendID]wire.Address, 0, len(pc))
 	for k := range pc {
-		ps = append(ps, peerFromKey(k))
+		pk, _ := peerFromKey(k)
+		ps = append(ps, pk)
 	}
 	return ps
 }
 
 // Add adds the given channel id to each peer's id list.
-func (pc peerChans) Add(id channel.ID, ps ...wire.Address) {
+func (pc peerChans) Add(id map[wallet.BackendID]channel.ID, ps ...map[wallet.BackendID]wire.Address) {
 	for _, p := range ps {
 		pc.add(id, p)
 	}
 }
 
 // Don't use add, use Add.
-func (pc peerChans) add(id channel.ID, p wire.Address) {
+func (pc peerChans) add(id map[wallet.BackendID]channel.ID, p map[wallet.BackendID]wire.Address) {
 	pk := peerKey(p)
 	ids := pc[pk] // nil ok, since we append
 	pc[pk] = append(ids, id)
 }
 
-func (pc peerChans) Delete(id channel.ID) {
+func (pc peerChans) Delete(id map[wallet.BackendID]channel.ID) {
 	for pk, ids := range pc {
 		for i, pid := range ids {
-			if id == pid {
+			if channel.EqualIDs(id, pid) {
 				// ch found, unsorted delete
 				lim := len(ids) - 1
 				if lim == 0 {
@@ -74,20 +78,21 @@ func (pc peerChans) Delete(id channel.ID) {
 	}
 }
 
-func peerKey(a wire.Address) string {
+func peerKey(a map[wallet.BackendID]wire.Address) string {
 	key := new(bytes.Buffer)
-	err := perunio.Encode(key, a)
+	err := perunio.Encode(key, wire.AddressDecMap(a))
 	if err != nil {
 		panic("error encoding peer key: " + err.Error())
 	}
 	return key.String()
 }
 
-func peerFromKey(s string) wire.Address {
-	p := wire.NewAddress()
-	err := perunio.Decode(bytes.NewBuffer([]byte(s)), p)
+func peerFromKey(s string) (map[wallet.BackendID]wire.Address, error) {
+	p := make(map[wallet.BackendID]wire.Address)
+	decMap := wire.AddressDecMap(p)
+	err := perunio.Decode(bytes.NewBuffer([]byte(s)), &decMap)
 	if err != nil {
-		panic("error decoding peer key: " + err.Error())
+		return nil, fmt.Errorf("error decoding peer key: %w", err)
 	}
-	return p
+	return decMap, nil
 }

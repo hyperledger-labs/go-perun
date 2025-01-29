@@ -1,4 +1,4 @@
-// Copyright 2020 - See NOTICE file for copyright holders.
+// Copyright 2025 - See NOTICE file for copyright holders.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -36,10 +36,16 @@ func patchChFromSource(
 	c *Client,
 	ch *persistence.Channel,
 	parent *Channel,
-	peers ...wire.Address,
+	peers ...map[wallet.BackendID]wire.Address,
 ) (*Channel, error) {
-	acc, _ := wallettest.RandomWallet().Unlock(ch.ParamsV.Parts[ch.IdxV])
-	machine, _ := channel.NewStateMachine(acc, *ch.ParamsV)
+	bID := wallet.BackendID(channel.TestBackendID)
+	if len(peers) > 0 {
+		for i := range peers[0] {
+			bID = i
+		}
+	}
+	acc, _ := wallettest.RandomWallet(bID).Unlock(ch.ParamsV.Parts[ch.IdxV][channel.TestBackendID])
+	machine, _ := channel.NewStateMachine(map[wallet.BackendID]wallet.Account{channel.TestBackendID: acc}, *ch.ParamsV)
 	pmachine := persistence.FromStateMachine(machine, nil)
 
 	_ch := &Channel{parent: parent, machine: pmachine, OnCloser: new(sync.Closer)}
@@ -50,26 +56,26 @@ func patchChFromSource(
 
 func TestReconstructChannel(t *testing.T) {
 	rng := pkgtest.Prng(t)
-	db := map[channel.ID]*persistence.Channel{}
+	db := map[string]*persistence.Channel{}
 
-	restParent := mkRndChan(rng)
-	db[restParent.ID()] = restParent
+	restParent := mkRndChan(rng, channel.TestBackendID)
+	db[channel.IDKey(restParent.ID())] = restParent
 
-	restChild := mkRndChan(rng)
+	restChild := mkRndChan(rng, channel.TestBackendID)
 	parentID := restParent.ID()
 	restChild.Parent = &parentID
-	db[restChild.ID()] = restChild
+	db[channel.IDKey(restChild.ID())] = restChild
 
 	c := &Client{log: log.Default()}
 
 	t.Run("parent first", func(t *testing.T) {
-		chans := map[channel.ID]*Channel{}
+		chans := map[string]*Channel{}
 		parent := c.reconstructChannel(patchChFromSource, restParent, db, chans)
 		child := c.reconstructChannel(patchChFromSource, restChild, db, chans)
 		assert.Same(t, child.parent, parent)
 	})
 	t.Run("child first", func(t *testing.T) {
-		chans := map[channel.ID]*Channel{}
+		chans := map[string]*Channel{}
 		child := c.reconstructChannel(patchChFromSource, restChild, db, chans)
 		parent := c.reconstructChannel(patchChFromSource, restParent, db, chans)
 		assert.Same(t, child.parent, parent)
@@ -80,20 +86,20 @@ func TestRestoreChannelCollection(t *testing.T) {
 	rng := pkgtest.Prng(t)
 
 	// Generate multiple trees of channels into one collection.
-	db := make(map[channel.ID]*persistence.Channel)
+	db := make(map[string]*persistence.Channel)
 	for i := 0; i < 3; i++ {
-		mkRndChanTree(rng, 3, 1, 3, db)
+		mkRndChanTree(rng, 3, 1, 3, db, channel.TestBackendID)
 	}
 
 	// Remember channels that have been published.
-	witnessedChans := make(map[channel.ID]struct{})
+	witnessedChans := make(map[string]struct{})
 	c := &Client{log: log.Default(), channels: makeChanRegistry()}
 	c.OnNewChannel(func(ch *Channel) {
-		_, ok := witnessedChans[ch.ID()]
+		_, ok := witnessedChans[channel.IDKey(ch.ID())]
 		require.False(t, ok)
-		_, ok = db[ch.ID()]
+		_, ok = db[channel.IDKey(ch.ID())]
 		require.True(t, ok)
-		witnessedChans[ch.ID()] = struct{}{}
+		witnessedChans[channel.IDKey(ch.ID())] = struct{}{}
 	})
 
 	// Restore all channels into the client and check the published channels.
@@ -108,14 +114,14 @@ func TestRestoreChannelCollection(t *testing.T) {
 }
 
 // mkRndChan creates a single random channel.
-func mkRndChan(rng *rand.Rand) *persistence.Channel {
-	parts := make([]wallet.Address, channel.MaxNumParts)
+func mkRndChan(rng *rand.Rand, bID wallet.BackendID) *persistence.Channel {
+	parts := make([]map[wallet.BackendID]wallet.Address, channel.MaxNumParts)
 	for i := range parts {
-		parts[i] = wallettest.NewRandomAccount(rng).Address()
+		parts[i] = map[wallet.BackendID]wallet.Address{bID: wallettest.NewRandomAccount(rng, bID).Address()}
 	}
 	ch := persistence.NewChannel()
 	ch.IdxV = channel.Index(rng.Intn(channel.MaxNumParts))
-	ch.ParamsV = test.NewRandomParams(rng, test.WithParts(parts...))
+	ch.ParamsV = test.NewRandomParams(rng, test.WithParts(parts))
 	sigs := make([]bool, channel.MaxNumParts)
 	opts := test.WithParams(ch.ParamsV)
 	ch.StagingTXV = *test.NewRandomTransaction(rng, sigs, opts)
@@ -130,10 +136,11 @@ func mkRndChan(rng *rand.Rand) *persistence.Channel {
 func mkRndChanTree(
 	rng *rand.Rand,
 	depth, minChildren, maxChildren int,
-	db map[channel.ID]*persistence.Channel,
+	db map[string]*persistence.Channel,
+	bID wallet.BackendID,
 ) (root *persistence.Channel) {
-	root = mkRndChan(rng)
-	db[root.ID()] = root
+	root = mkRndChan(rng, bID)
+	db[channel.IDKey(root.ID())] = root
 
 	if depth > 0 && maxChildren > 0 {
 		children := minChildren + rng.Intn(maxChildren-minChildren+1)
@@ -141,8 +148,8 @@ func mkRndChanTree(
 			minChildren--
 		}
 		for i := 0; i < children; i++ {
-			t := mkRndChanTree(rng, depth-1, minChildren, maxChildren-1, db)
-			t.Parent = new(channel.ID)
+			t := mkRndChanTree(rng, depth-1, minChildren, maxChildren-1, db, bID)
+			t.Parent = &map[wallet.BackendID]channel.ID{bID: {}}
 			*t.Parent = root.ID()
 		}
 	}

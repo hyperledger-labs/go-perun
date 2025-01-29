@@ -1,4 +1,4 @@
-// Copyright 2020 - See NOTICE file for copyright holders.
+// Copyright 2025 - See NOTICE file for copyright holders.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -31,9 +31,9 @@ import (
 // Channel is a wrapper around a persisted channel and its participants, as well
 // as the associated persister and restorer.
 type Channel struct {
-	accounts []wallet.Account
-	peers    []wire.Address
-	parent   *channel.ID
+	accounts []map[wallet.BackendID]wallet.Account
+	peers    []map[wallet.BackendID]wire.Address
+	parent   *map[wallet.BackendID]channel.ID
 	*persistence.StateMachine
 
 	pr  persistence.PersistRestorer
@@ -52,18 +52,24 @@ func NewRandomChannel(
 	t require.TestingT,
 	pr persistence.PersistRestorer,
 	user channel.Index,
-	peers []wire.Address,
+	peers []map[wallet.BackendID]wire.Address,
 	parent *Channel,
 	rng *rand.Rand,
 ) (c *Channel) {
-	accs, parts := wtest.NewRandomAccounts(rng, len(peers))
-	params := ctest.NewRandomParams(rng, ctest.WithParts(parts...))
+	bID := wallet.BackendID(channel.TestBackendID)
+	if len(peers) > 0 {
+		for i := range peers[0] {
+			bID = i
+		}
+	}
+	accs, parts := wtest.NewRandomAccounts(rng, len(peers), bID)
+	params := ctest.NewRandomParams(rng, ctest.WithParts(parts))
 	csm, err := channel.NewStateMachine(accs[0], *params)
 	require.NoError(t, err)
 
-	var parentID *channel.ID
+	var parentID *map[wallet.BackendID]channel.ID
 	if parent != nil {
-		parentID = new(channel.ID)
+		parentID = new(map[wallet.BackendID]channel.ID)
 		*parentID = parent.ID()
 	}
 
@@ -82,10 +88,10 @@ func NewRandomChannel(
 	return c
 }
 
-func requireEqualPeers(t require.TestingT, expected, actual []wire.Address) {
+func requireEqualPeers(t require.TestingT, expected, actual []map[wallet.BackendID]wire.Address) {
 	require.Equal(t, len(expected), len(actual))
 	for i, p := range expected {
-		if !p.Equal(actual[i]) {
+		if !channel.EqualWireMaps(p, actual[i]) {
 			t.Errorf("restored peers for channel do not match\nexpected: %v\nactual: %v",
 				actual, expected)
 			t.FailNow()
@@ -174,7 +180,7 @@ func (c *Channel) SignAll(ctx context.Context, t require.TestingT) {
 	c.AssertPersisted(ctx, t)
 	// remote signers
 	for i := range c.accounts {
-		sig, err := channel.Sign(c.accounts[i], c.StagingState())
+		sig, err := channel.Sign(c.accounts[i][channel.TestBackendID], c.StagingState(), channel.TestBackendID)
 		require.NoError(t, err)
 		c.AddSig(ctx, channel.Index(i), sig) //nolint:errcheck
 		c.AssertPersisted(ctx, t)

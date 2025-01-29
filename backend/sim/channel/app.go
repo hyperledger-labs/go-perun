@@ -1,4 +1,4 @@
-// Copyright 2022 - See NOTICE file for copyright holders.
+// Copyright 2025 - See NOTICE file for copyright holders.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -48,5 +48,5 @@ func (id AppID) Key() channel.AppIDKey {
 // NewRandomAppID generates a new random app identifier.
 func NewRandomAppID(rng *rand.Rand) AppID {
 	addr := wallet.NewRandomAddress(rng)
-	return AppID{addr}
+	return AppID{Address: addr}
 }

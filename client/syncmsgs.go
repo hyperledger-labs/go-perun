@@ -1,4 +1,4 @@
-// Copyright 2020 - See NOTICE file for copyright holders.
+// Copyright 2025 - See NOTICE file for copyright holders.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -16,6 +16,8 @@ package client
 
 import (
 	"io"
+
+	"perun.network/go-perun/wallet"
 
 	"perun.network/go-perun/channel"
 	"perun.network/go-perun/wire"
@@ -61,7 +63,7 @@ func (m *ChannelSyncMsg) Decode(r io.Reader) error {
 }
 
 // ID returns the channel's ID.
-func (m *ChannelSyncMsg) ID() channel.ID {
+func (m *ChannelSyncMsg) ID() map[wallet.BackendID]channel.ID {
 	return m.CurrentTX.ID
 }
 

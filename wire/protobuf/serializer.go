@@ -1,4 +1,4 @@
-// Copyright 2022 - See NOTICE file for copyright holders.
+// Copyright 2025 - See NOTICE file for copyright holders.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -18,6 +18,8 @@ import (
 	"encoding/binary"
 	"fmt"
 	"io"
+
+	"perun.network/go-perun/wallet"
 
 	"github.com/pkg/errors"
 	"google.golang.org/protobuf/proto"
@@ -79,7 +81,8 @@ func (serializer) Encode(w io.Writer, env *wire.Envelope) (err error) { //nolint
 	if err != nil {
 		return err
 	}
-	protoEnv.Sender, protoEnv.Recipient, err = marshalSenderRecipient(env)
+	sender, recipient, err := marshalSenderRecipient(env)
+	protoEnv.Sender, protoEnv.Recipient = sender, recipient
 	if err != nil {
 		return err
 	}
@@ -87,12 +90,12 @@ func (serializer) Encode(w io.Writer, env *wire.Envelope) (err error) { //nolint
 	return writeEnvelope(w, protoEnv)
 }
 
-func marshalSenderRecipient(env *wire.Envelope) ([]byte, []byte, error) {
-	sender, err := env.Sender.MarshalBinary()
+func marshalSenderRecipient(env *wire.Envelope) (*Address, *Address, error) {
+	sender, err := FromWireAddr(env.Sender)
 	if err != nil {
 		return nil, nil, errors.WithMessage(err, "marshalling sender address")
 	}
-	recipient, err := env.Recipient.MarshalBinary()
+	recipient, err := FromWireAddr(env.Recipient)
 	return sender, recipient, errors.WithMessage(err, "marshalling recipient address")
 }
 
@@ -118,7 +121,8 @@ func (serializer) Decode(r io.Reader) (env *wire.Envelope, err error) { //nolint
 		return nil, err
 	}
 
-	env.Sender, env.Recipient, err = unmarshalSenderRecipient(protoEnv)
+	sender, recipient, err := unmarshalSenderRecipient(protoEnv)
+	env.Sender, env.Recipient = sender, recipient
 	if err != nil {
 		return nil, err
 	}
@@ -179,12 +183,14 @@ func readEnvelope(r io.Reader) (*Envelope, error) {
 	return &protoEnv, errors.Wrap(proto.Unmarshal(data, &protoEnv), "unmarshalling envelope")
 }
 
-func unmarshalSenderRecipient(protoEnv *Envelope) (wire.Address, wire.Address, error) {
-	sender := wire.NewAddress()
-	if err := sender.UnmarshalBinary(protoEnv.Sender); err != nil {
+func unmarshalSenderRecipient(protoEnv *Envelope) (map[wallet.BackendID]wire.Address, map[wallet.BackendID]wire.Address, error) {
+	sender, err := ToWireAddr(protoEnv.Sender)
+	if err != nil {
 		return nil, nil, errors.Wrap(err, "unmarshalling sender address")
 	}
-	recipient := wire.NewAddress()
-	err := recipient.UnmarshalBinary(protoEnv.Recipient)
-	return sender, recipient, errors.Wrap(err, "unmarshalling recipient address")
+	recipient, err1 := ToWireAddr(protoEnv.Recipient)
+	if err1 != nil {
+		return nil, nil, errors.Wrap(err, "unmarshalling recipient address")
+	}
+	return sender, recipient, nil
 }

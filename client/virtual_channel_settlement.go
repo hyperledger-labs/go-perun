@@ -1,4 +1,4 @@
-// Copyright 2021 - See NOTICE file for copyright holders.
+// Copyright 2025 - See NOTICE file for copyright holders.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -79,7 +79,7 @@ func (c *Client) handleVirtualChannelSettlementProposal(
 ) {
 	err := c.validateVirtualChannelSettlementProposal(parent, prop)
 	if err != nil {
-		c.rejectProposal(responder, err.Error()) //nolint:contextcheck
+		c.rejectProposal(responder, err.Error())
 	}
 
 	ctx, cancel := context.WithTimeout(c.Ctx(), virtualSettlementTimeout)
@@ -90,7 +90,7 @@ func (c *Client) handleVirtualChannelSettlementProposal(
 		resp: responder,
 	})
 	if err != nil {
-		c.rejectProposal(responder, err.Error()) //nolint:contextcheck
+		c.rejectProposal(responder, err.Error())
 	}
 }
 
@@ -99,21 +99,23 @@ func (c *Client) validateVirtualChannelSettlementProposal(
 	prop *VirtualChannelSettlementProposalMsg,
 ) error {
 	// Validate parameters.
-	if prop.Final.Params.ID() != prop.Final.State.ID {
+	if !channel.EqualIDs(prop.Final.Params.ID(), prop.Final.State.ID) {
 		return errors.New("invalid parameters")
 	}
 
 	// Validate signatures.
 	for i, sig := range prop.Final.Sigs {
-		ok, err := channel.Verify(
-			prop.Final.Params.Parts[i],
-			prop.Final.State,
-			sig,
-		)
-		if err != nil {
-			return err
-		} else if !ok {
-			return errors.New("invalid signature")
+		for _, p := range prop.Final.Params.Parts[i] {
+			ok, err := channel.Verify(
+				p,
+				prop.Final.State,
+				sig,
+			)
+			if err != nil {
+				return err
+			} else if !ok {
+				return errors.New("invalid signature")
+			}
 		}
 	}
 

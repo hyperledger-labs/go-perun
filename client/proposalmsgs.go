@@ -1,4 +1,4 @@
-// Copyright 2019 - See NOTICE file for copyright holders.
+// Copyright 2025 - See NOTICE file for copyright holders.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -114,20 +114,20 @@ type (
 	// LedgerChannelProposalMsg is a channel proposal for ledger channels.
 	LedgerChannelProposalMsg struct {
 		BaseChannelProposal
-		Participant wallet.Address // Proposer's address in the channel.
-		Peers       []wire.Address // Participants' wire addresses.
+		Participant map[wallet.BackendID]wallet.Address // Proposer's address in the channel.
+		Peers       []map[wallet.BackendID]wire.Address // Participants' wire addresses.
 	}
 
 	// SubChannelProposalMsg is a channel proposal for subchannels.
 	SubChannelProposalMsg struct {
 		BaseChannelProposal
-		Parent channel.ID
+		Parent map[wallet.BackendID]channel.ID
 	}
 )
 
 // proposalPeers returns the wire addresses of a proposed channel's
 // participants.
-func (c *Client) proposalPeers(p ChannelProposal) (peers []wire.Address) {
+func (c *Client) proposalPeers(p ChannelProposal) (peers []map[wallet.BackendID]wire.Address) {
 	switch prop := p.(type) {
 	case *LedgerChannelProposalMsg:
 		peers = prop.Peers
@@ -230,7 +230,7 @@ func (p *BaseChannelProposal) Valid() error {
 // Accept constructs an accept message that belongs to a proposal message. It
 // should be used instead of manually constructing an accept message.
 func (p LedgerChannelProposalMsg) Accept(
-	participant wallet.Address,
+	participant map[wallet.BackendID]wallet.Address,
 	nonceShare ProposalOpts,
 ) *LedgerChannelProposalAccMsg {
 	if !nonceShare.isNonce() {
@@ -259,9 +259,9 @@ func (LedgerChannelProposalMsg) Matches(acc ChannelProposalAccept) bool {
 // For more information, see ProposalOpts.
 func NewLedgerChannelProposal(
 	challengeDuration uint64,
-	participant wallet.Address,
+	participant map[wallet.BackendID]wallet.Address,
 	initBals *channel.Allocation,
-	peers []wire.Address,
+	peers []map[wallet.BackendID]wire.Address,
 	opts ...ProposalOpts,
 ) (prop *LedgerChannelProposalMsg, err error) {
 	prop = &LedgerChannelProposalMsg{
@@ -287,16 +287,16 @@ func (p LedgerChannelProposalMsg) Encode(w io.Writer) error {
 	}
 	return perunio.Encode(w,
 		p.BaseChannelProposal,
-		p.Participant,
-		wire.AddressesWithLen(p.Peers))
+		wallet.AddressDecMap(p.Participant),
+		wire.AddressMapArray(p.Peers))
 }
 
 // Decode decodes a ledger channel proposal.
 func (p *LedgerChannelProposalMsg) Decode(r io.Reader) error {
 	err := perunio.Decode(r,
 		&p.BaseChannelProposal,
-		wallet.AddressDec{Addr: &p.Participant},
-		(*wire.AddressesWithLen)(&p.Peers))
+		(*wallet.AddressDecMap)(&p.Participant),
+		(*wire.AddressMapArray)(&p.Peers))
 	if err != nil {
 		return err
 	}
@@ -326,7 +326,7 @@ func (p LedgerChannelProposalMsg) Valid() error {
 // NewSubChannelProposal creates a subchannel proposal and applies the
 // supplied options. For more information, see ProposalOpts.
 func NewSubChannelProposal(
-	parent channel.ID,
+	parent map[wallet.BackendID]channel.ID,
 	challengeDuration uint64,
 	initBals *channel.Allocation,
 	opts ...ProposalOpts,
@@ -344,12 +344,12 @@ func NewSubChannelProposal(
 
 // Encode encodes the SubChannelProposal into an io.Writer.
 func (p SubChannelProposalMsg) Encode(w io.Writer) error {
-	return perunio.Encode(w, p.BaseChannelProposal, p.Parent)
+	return perunio.Encode(w, p.BaseChannelProposal, channel.IDMap(p.Parent))
 }
 
 // Decode decodes a SubChannelProposal from an io.Reader.
 func (p *SubChannelProposalMsg) Decode(r io.Reader) error {
-	return perunio.Decode(r, &p.BaseChannelProposal, &p.Parent)
+	return perunio.Decode(r, &p.BaseChannelProposal, (*channel.IDMap)(&p.Parent))
 }
 
 // Type returns wire.SubChannelProposal.
@@ -404,7 +404,7 @@ type (
 	// each channel instantiation.
 	LedgerChannelProposalAccMsg struct {
 		BaseChannelProposalAcc
-		Participant wallet.Address // Responder's participant address.
+		Participant map[wallet.BackendID]wallet.Address // Responder's participant address.
 	}
 
 	// SubChannelProposalAccMsg is the accept message type corresponding to sub
@@ -452,14 +452,14 @@ func (acc *LedgerChannelProposalAccMsg) Base() *BaseChannelProposalAcc {
 func (acc LedgerChannelProposalAccMsg) Encode(w io.Writer) error {
 	return perunio.Encode(w,
 		acc.BaseChannelProposalAcc,
-		acc.Participant)
+		wallet.AddressDecMap(acc.Participant))
 }
 
 // Decode decodes a LedgerChannelProposalAcc from an io.Reader.
 func (acc *LedgerChannelProposalAccMsg) Decode(r io.Reader) error {
 	return perunio.Decode(r,
 		&acc.BaseChannelProposalAcc,
-		wallet.AddressDec{Addr: &acc.Participant})
+		(*wallet.AddressDecMap)(&acc.Participant))
 }
 
 // Type returns wire.SubChannelProposalAcc.
@@ -517,27 +517,27 @@ type (
 	// VirtualChannelProposalMsg is a channel proposal for virtual channels.
 	VirtualChannelProposalMsg struct {
 		BaseChannelProposal
-		Proposer  wallet.Address    // Proposer's address in the channel.
-		Peers     []wire.Address    // Participants' wire addresses.
-		Parents   []channel.ID      // Parent channels for each participant.
-		IndexMaps [][]channel.Index // Index mapping for each participant in relation to the root channel.
+		Proposer  map[wallet.BackendID]wallet.Address // Proposer's address in the channel.
+		Peers     []map[wallet.BackendID]wire.Address // Participants' wire addresses.
+		Parents   []map[wallet.BackendID]channel.ID   // Parent channels for each participant.
+		IndexMaps [][]channel.Index                   // Index mapping for each participant in relation to the root channel.
 	}
 
 	// VirtualChannelProposalAccMsg is the accept message type corresponding to
 	// virtual channel proposals.
 	VirtualChannelProposalAccMsg struct {
 		BaseChannelProposalAcc
-		Responder wallet.Address // Responder's participant address.
+		Responder map[wallet.BackendID]wallet.Address // Responder's participant address.
 	}
 )
 
 // NewVirtualChannelProposal creates a virtual channel proposal.
 func NewVirtualChannelProposal(
 	challengeDuration uint64,
-	participant wallet.Address,
+	participant map[wallet.BackendID]wallet.Address,
 	initBals *channel.Allocation,
-	peers []wire.Address,
-	parents []channel.ID,
+	peers []map[wallet.BackendID]wire.Address,
+	parents []map[wallet.BackendID]channel.ID,
 	indexMaps [][]channel.Index,
 	opts ...ProposalOpts,
 ) (prop *VirtualChannelProposalMsg, err error) {
@@ -564,8 +564,8 @@ func (p VirtualChannelProposalMsg) Encode(w io.Writer) error {
 	return perunio.Encode(
 		w,
 		p.BaseChannelProposal,
-		p.Proposer,
-		wire.AddressesWithLen(p.Peers),
+		wallet.AddressDecMap(p.Proposer),
+		wire.AddressMapArray(p.Peers),
 		channelIDsWithLen(p.Parents),
 		indexMapsWithLen(p.IndexMaps),
 	)
@@ -576,8 +576,8 @@ func (p *VirtualChannelProposalMsg) Decode(r io.Reader) error {
 	return perunio.Decode(
 		r,
 		&p.BaseChannelProposal,
-		wallet.AddressDec{Addr: &p.Proposer},
-		(*wire.AddressesWithLen)(&p.Peers),
+		(*wallet.AddressDecMap)(&p.Proposer),
+		(*wire.AddressMapArray)(&p.Peers),
 		(*channelIDsWithLen)(&p.Parents),
 		(*indexMapsWithLen)(&p.IndexMaps),
 	)
@@ -590,7 +590,7 @@ func (VirtualChannelProposalMsg) Type() wire.Type {
 
 // Accept constructs an accept message that belongs to a proposal message.
 func (p VirtualChannelProposalMsg) Accept(
-	responder wallet.Address,
+	responder map[wallet.BackendID]wallet.Address,
 	opts ...ProposalOpts,
 ) *VirtualChannelProposalAccMsg {
 	_opts := union(opts...)
@@ -618,10 +618,10 @@ func (acc *VirtualChannelProposalAccMsg) Base() *BaseChannelProposalAcc {
 
 // Encode encodes the message into an io.Writer.
 func (acc VirtualChannelProposalAccMsg) Encode(w io.Writer) error {
-	return perunio.Encode(w, acc.BaseChannelProposalAcc, acc.Responder)
+	return perunio.Encode(w, acc.BaseChannelProposalAcc, wallet.AddressDecMap(acc.Responder))
 }
 
 // Decode decodes a message from an io.Reader.
 func (acc *VirtualChannelProposalAccMsg) Decode(r io.Reader) error {
-	return perunio.Decode(r, &acc.BaseChannelProposalAcc, wallet.AddressDec{Addr: &acc.Responder})
+	return perunio.Decode(r, &acc.BaseChannelProposalAcc, (*wallet.AddressDecMap)(&acc.Responder))
 }

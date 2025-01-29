@@ -1,4 +1,4 @@
-// Copyright 2019 - See NOTICE file for copyright holders.
+// Copyright 2025 - See NOTICE file for copyright holders.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -16,6 +16,8 @@ package channel
 
 import (
 	"testing"
+
+	"perun.network/go-perun/wallet"
 
 	"github.com/stretchr/testify/assert"
 
@@ -141,5 +143,5 @@ func MockActionAppTest(t *testing.T, app MockApp) {
 }
 
 func createState(op MockOp) *State {
-	return &State{ID: ID{}, Version: 0, Allocation: Allocation{}, Data: NewMockOp(op), IsFinal: false}
+	return &State{ID: map[wallet.BackendID]ID{}, Version: 0, Allocation: Allocation{}, Data: NewMockOp(op), IsFinal: false}
 }

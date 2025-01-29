@@ -1,4 +1,4 @@
-// Copyright 2020 - See NOTICE file for copyright holders.
+// Copyright 2025 - See NOTICE file for copyright holders.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -21,6 +21,10 @@ import (
 	"testing"
 	"time"
 
+	"perun.network/go-perun/channel"
+
+	"perun.network/go-perun/wallet"
+
 	"perun.network/go-perun/apps/payment"
 	chtest "perun.network/go-perun/channel/test"
 	"perun.network/go-perun/client"
@@ -37,7 +41,7 @@ const (
 	twoPartyTestTimeout  = 10 * time.Second
 )
 
-func NewSetups(rng *rand.Rand, names []string) []ctest.RoleSetup {
+func NewSetups(rng *rand.Rand, names []string, bID wallet.BackendID) []ctest.RoleSetup {
 	var (
 		bus     = wiretest.NewSerializingLocalBus()
 		n       = len(names)
@@ -50,11 +54,11 @@ func NewSetups(rng *rand.Rand, names []string) []ctest.RoleSetup {
 		if err != nil {
 			panic("Error initializing watcher: " + err.Error())
 		}
-		w := wtest.NewWallet()
-		acc := w.NewRandomAccount(rng)
+		w := map[wallet.BackendID]wtest.Wallet{bID: wtest.NewWallet(bID)}
+		acc := w[bID].NewRandomAccount(rng)
 		setup[i] = ctest.RoleSetup{
 			Name:              names[i],
-			Identity:          wiretest.NewRandomAccount(rng),
+			Identity:          wiretest.NewRandomAccountMap(rng, bID),
 			Bus:               bus,
 			Funder:            backend.NewFunder(acc.Address()),
 			Adjudicator:       backend.NewAdjudicator(acc.Address()),
@@ -84,8 +88,9 @@ func runAliceBobTest(ctx context.Context, t *testing.T, setup func(*rand.Rand) (
 
 		cfg := &ctest.AliceBobExecConfig{
 			BaseExecConfig: ctest.MakeBaseExecConfig(
-				[2]wire.Address{setups[0].Identity.Address(), setups[1].Identity.Address()},
-				chtest.NewRandomAsset(rng),
+				[2]map[wallet.BackendID]wire.Address{wire.AddressMapfromAccountMap(setups[0].Identity), wire.AddressMapfromAccountMap(setups[1].Identity)},
+				chtest.NewRandomAsset(rng, channel.TestBackendID),
+				channel.TestBackendID,
 				[2]*big.Int{big.NewInt(100), big.NewInt(100)},
 				app,
 			),

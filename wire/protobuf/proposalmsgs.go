@@ -1,4 +1,4 @@
-// Copyright 2022 - See NOTICE file for copyright holders.
+// Copyright 2025 - See NOTICE file for copyright holders.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -15,6 +15,8 @@
 package protobuf
 
 import (
+	"bytes"
+	"encoding/binary"
 	"fmt"
 	"math"
 	"math/big"
@@ -49,7 +51,10 @@ func ToSubChannelProposalMsg(protoEnvMsg *Envelope_SubChannelProposalMsg) (msg *
 	protoMsg := protoEnvMsg.SubChannelProposalMsg
 
 	msg = &client.SubChannelProposalMsg{}
-	copy(msg.Parent[:], protoMsg.Parent)
+	msg.Parent, err = ToIDs(protoMsg.Parent)
+	if err != nil {
+		return nil, errors.WithMessage(err, "parent")
+	}
 	msg.BaseChannelProposal, err = ToBaseChannelProposal(protoMsg.BaseChannelProposal)
 	return msg, err
 }
@@ -68,9 +73,12 @@ func ToVirtualChannelProposalMsg(protoEnvMsg *Envelope_VirtualChannelProposalMsg
 	if err != nil {
 		return nil, errors.WithMessage(err, "proposer")
 	}
-	msg.Parents = make([]channel.ID, len(protoMsg.Parents))
+	msg.Parents = make([]map[wallet.BackendID]channel.ID, len(protoMsg.Parents))
 	for i := range protoMsg.Parents {
-		copy(msg.Parents[i][:], protoMsg.Parents[i])
+		msg.Parents[i], err = ToIDs(protoMsg.Parents[i])
+		if err != nil {
+			return nil, err
+		}
 	}
 	msg.IndexMaps = make([][]channel.Index, len(protoMsg.IndexMaps))
 	for i := range protoMsg.IndexMaps {
@@ -126,35 +134,84 @@ func ToChannelProposalRejMsg(protoEnvMsg *Envelope_ChannelProposalRejMsg) (msg *
 }
 
 // ToWalletAddr converts a protobuf wallet address to a wallet.Address.
-func ToWalletAddr(protoAddr []byte) (wallet.Address, error) {
-	addr := wallet.NewAddress()
-	return addr, addr.UnmarshalBinary(protoAddr)
+func ToWalletAddr(protoAddr *Address) (map[wallet.BackendID]wallet.Address, error) {
+	addrMap := make(map[wallet.BackendID]wallet.Address)
+	for i := range protoAddr.AddressMapping {
+		var k int32
+		if err := binary.Read(bytes.NewReader(protoAddr.AddressMapping[i].Key), binary.BigEndian, &k); err != nil {
+			return nil, fmt.Errorf("failed to read key: %w", err)
+		}
+		addr := wallet.NewAddress(wallet.BackendID(k))
+		if err := addr.UnmarshalBinary(protoAddr.AddressMapping[i].Address); err != nil {
+			return nil, fmt.Errorf("failed to unmarshal address for key %d: %w", k, err)
+		}
+
+		addrMap[wallet.BackendID(k)] = addr
+	}
+	return addrMap, nil
+}
+
+// ToWireAddr converts a protobuf wallet address to a wallet.Address.
+func ToWireAddr(protoAddr *Address) (map[wallet.BackendID]wire.Address, error) {
+	addrMap := make(map[wallet.BackendID]wire.Address)
+	for i := range protoAddr.AddressMapping {
+		var k int32
+		if err := binary.Read(bytes.NewReader(protoAddr.AddressMapping[i].Key), binary.BigEndian, &k); err != nil {
+			return nil, fmt.Errorf("failed to read key: %w", err)
+		}
+		addr := wire.NewAddress()
+		if err := addr.UnmarshalBinary(protoAddr.AddressMapping[i].Address); err != nil {
+			return nil, fmt.Errorf("failed to unmarshal address for key %d: %w", k, err)
+		}
+
+		addrMap[wallet.BackendID(k)] = addr
+	}
+	return addrMap, nil
 }
 
 // ToWalletAddrs converts protobuf wallet addresses to a slice of wallet.Address.
-func ToWalletAddrs(protoAddrs [][]byte) ([]wallet.Address, error) {
-	addrs := make([]wallet.Address, len(protoAddrs))
+func ToWalletAddrs(protoAddrs []*Address) ([]map[wallet.BackendID]wallet.Address, error) {
+	addrs := make([]map[wallet.BackendID]wallet.Address, len(protoAddrs))
 	for i := range protoAddrs {
-		addrs[i] = wallet.NewAddress()
-		err := addrs[i].UnmarshalBinary(protoAddrs[i])
+		addrMap, err := ToWalletAddr(protoAddrs[i])
 		if err != nil {
 			return nil, errors.WithMessagef(err, "%d'th address", i)
 		}
+		addrs[i] = addrMap
 	}
 	return addrs, nil
 }
 
 // ToWireAddrs converts protobuf wire addresses to a slice of wire.Address.
-func ToWireAddrs(protoAddrs [][]byte) ([]wire.Address, error) {
-	addrs := make([]wire.Address, len(protoAddrs))
-	for i := range protoAddrs {
-		addrs[i] = wire.NewAddress()
-		err := addrs[i].UnmarshalBinary(protoAddrs[i])
+func ToWireAddrs(protoAddrs []*Address) ([]map[wallet.BackendID]wire.Address, error) {
+	addrMap := make([]map[wallet.BackendID]wire.Address, len(protoAddrs))
+	var err error
+	for i, addMap := range protoAddrs {
+		addrMap[i], err = ToWireAddr(addMap)
 		if err != nil {
 			return nil, errors.WithMessagef(err, "%d'th address", i)
 		}
 	}
-	return addrs, nil
+	return addrMap, nil
+}
+
+// ToIDs converts protobuf ID to a map[int]channel.ID.
+func ToIDs(protoID *ID) (map[wallet.BackendID]channel.ID, error) {
+	iDMap := make(map[wallet.BackendID]channel.ID)
+	for i := range protoID.IdMapping {
+		var k int32
+		if err := binary.Read(bytes.NewReader(protoID.IdMapping[i].Key), binary.BigEndian, &k); err != nil {
+			return nil, fmt.Errorf("failed to read key: %w", err)
+		}
+		if len(protoID.IdMapping[i].Id) != 32 { //nolint:gomnd
+			return nil, fmt.Errorf("id has incorrect length")
+		}
+		id := channel.ID{}
+		copy(id[:], protoID.IdMapping[i].Id)
+
+		iDMap[wallet.BackendID(k)] = id
+	}
+	return iDMap, nil
 }
 
 // ToBaseChannelProposal converts a protobuf BaseChannelProposal to a client BaseChannelProposal.
@@ -167,9 +224,6 @@ func ToBaseChannelProposal(protoProp *BaseChannelProposal) (prop client.BaseChan
 		return prop, errors.WithMessage(err, "init bals")
 	}
 	prop.FundingAgreement = ToBalances(protoProp.FundingAgreement)
-	if err != nil {
-		return prop, errors.WithMessage(err, "funding agreement")
-	}
 	prop.App, prop.InitData, err = ToAppAndData(protoProp.App, protoProp.InitData)
 	return prop, err
 }
@@ -187,7 +241,7 @@ func ToApp(protoApp []byte) (app channel.App, err error) {
 		app = channel.NoApp()
 		return app, nil
 	}
-	appDef := channel.NewAppID()
+	appDef, _ := channel.NewAppID()
 	err = appDef.UnmarshalBinary(protoApp)
 	if err != nil {
 		return app, err
@@ -203,7 +257,7 @@ func ToAppAndData(protoApp, protoData []byte) (app channel.App, data channel.Dat
 		data = channel.NoData()
 		return app, data, nil
 	}
-	appDef := channel.NewAppID()
+	appDef, _ := channel.NewAppID()
 	err = appDef.UnmarshalBinary(protoApp)
 	if err != nil {
 		return nil, nil, err
@@ -216,12 +270,37 @@ func ToAppAndData(protoApp, protoData []byte) (app channel.App, data channel.Dat
 	return app, data, data.UnmarshalBinary(protoData)
 }
 
+// ToIntSlice converts a [][]byte field from a protobuf message to a []int.
+func ToIntSlice(backends [][]byte) ([]wallet.BackendID, error) {
+	ints := make([]wallet.BackendID, len(backends))
+
+	for i, backend := range backends {
+		if len(backend) != 4 { //nolint:gomnd
+			return nil, fmt.Errorf("backend %d length is not 4 bytes", i)
+		}
+
+		var value int32
+		err := binary.Read(bytes.NewReader(backend), binary.BigEndian, &value)
+		if err != nil {
+			return nil, fmt.Errorf("failed to convert backend %d bytes to int: %w", i, err)
+		}
+
+		ints[i] = wallet.BackendID(value)
+	}
+
+	return ints, nil
+}
+
 // ToAllocation converts a protobuf allocation to a channel.Allocation.
 func ToAllocation(protoAlloc *Allocation) (alloc *channel.Allocation, err error) {
 	alloc = &channel.Allocation{}
+	alloc.Backends, err = ToIntSlice(protoAlloc.Backends)
+	if err != nil {
+		return nil, errors.WithMessage(err, "backends")
+	}
 	alloc.Assets = make([]channel.Asset, len(protoAlloc.Assets))
 	for i := range protoAlloc.Assets {
-		alloc.Assets[i] = channel.NewAsset()
+		alloc.Assets[i] = channel.NewAsset(alloc.Backends[i])
 		err = alloc.Assets[i].UnmarshalBinary(protoAlloc.Assets[i])
 		if err != nil {
 			return nil, errors.WithMessagef(err, "%d'th asset", i)
@@ -260,10 +339,10 @@ func ToBalance(protoBalance *Balance) (balance []channel.Bal) {
 func ToSubAlloc(protoSubAlloc *SubAlloc) (subAlloc channel.SubAlloc, err error) {
 	subAlloc = channel.SubAlloc{}
 	subAlloc.Bals = ToBalance(protoSubAlloc.Bals)
-	if len(protoSubAlloc.Id) != len(subAlloc.ID) {
-		return subAlloc, errors.New("sub alloc id has incorrect length")
+	subAlloc.ID, err = ToIDs(protoSubAlloc.Id)
+	if err != nil {
+		return subAlloc, err
 	}
-	copy(subAlloc.ID[:], protoSubAlloc.Id)
 	subAlloc.IndexMap, err = ToIndexMap(protoSubAlloc.IndexMap.IndexMap)
 	return subAlloc, err
 }
@@ -299,8 +378,10 @@ func FromLedgerChannelProposalMsg(msg *client.LedgerChannelProposalMsg) (_ *Enve
 // FromSubChannelProposalMsg converts a client SubChannelProposalMsg to a protobuf Envelope_SubChannelProposalMsg.
 func FromSubChannelProposalMsg(msg *client.SubChannelProposalMsg) (_ *Envelope_SubChannelProposalMsg, err error) {
 	protoMsg := &SubChannelProposalMsg{}
-	protoMsg.Parent = make([]byte, len(msg.Parent))
-	copy(protoMsg.Parent, msg.Parent[:])
+	protoMsg.Parent, err = FromIDs(msg.Parent)
+	if err != nil {
+		return nil, err
+	}
 	protoMsg.BaseChannelProposal, err = FromBaseChannelProposal(msg.BaseChannelProposal)
 	return &Envelope_SubChannelProposalMsg{protoMsg}, err
 }
@@ -317,10 +398,12 @@ func FromVirtualChannelProposalMsg(msg *client.VirtualChannelProposalMsg) (_ *En
 	if err != nil {
 		return nil, err
 	}
-	protoMsg.Parents = make([][]byte, len(msg.Parents))
+	protoMsg.Parents = make([]*ID, len(msg.Parents))
 	for i := range msg.Parents {
-		protoMsg.Parents[i] = make([]byte, len(msg.Parents[i]))
-		copy(protoMsg.Parents[i], msg.Parents[i][:])
+		protoMsg.Parents[i], err = FromIDs(msg.Parents[i])
+		if err != nil {
+			return nil, errors.WithMessage(err, "fromIDs")
+		}
 	}
 	protoMsg.IndexMaps = make([]*IndexMap, len(msg.IndexMaps))
 	for i := range msg.IndexMaps {
@@ -366,15 +449,58 @@ func FromChannelProposalRejMsg(msg *client.ChannelProposalRejMsg) (_ *Envelope_C
 }
 
 // FromWalletAddr converts a wallet.Address to a protobuf wallet address.
-func FromWalletAddr(addr wallet.Address) ([]byte, error) {
-	return addr.MarshalBinary()
+func FromWalletAddr(addr map[wallet.BackendID]wallet.Address) (*Address, error) {
+	var addressMappings []*AddressMapping //nolint:prealloc
+
+	for key, address := range addr {
+		keyBytes := make([]byte, 4) //nolint:gomnd
+		binary.BigEndian.PutUint32(keyBytes, uint32(key))
+
+		addressBytes, err := address.MarshalBinary()
+		if err != nil {
+			return nil, fmt.Errorf("failed to marshal address for key %d: %w", key, err)
+		}
+
+		addressMappings = append(addressMappings, &AddressMapping{
+			Key:     keyBytes,
+			Address: addressBytes,
+		})
+	}
+
+	return &Address{
+		AddressMapping: addressMappings,
+	}, nil
+}
+
+// FromWireAddr converts a wallet.Address to a protobuf wire address.
+func FromWireAddr(addr map[wallet.BackendID]wire.Address) (*Address, error) {
+	var addressMappings []*AddressMapping //nolint:prealloc
+
+	for key, address := range addr {
+		keyBytes := make([]byte, 4) //nolint:gomnd
+		binary.BigEndian.PutUint32(keyBytes, uint32(key))
+
+		addressBytes, err := address.MarshalBinary()
+		if err != nil {
+			return nil, fmt.Errorf("failed to marshal address for key %d: %w", key, err)
+		}
+
+		addressMappings = append(addressMappings, &AddressMapping{
+			Key:     keyBytes,
+			Address: addressBytes,
+		})
+	}
+
+	return &Address{
+		AddressMapping: addressMappings,
+	}, nil
 }
 
 // FromWalletAddrs converts a slice of wallet.Address to protobuf wallet addresses.
-func FromWalletAddrs(addrs []wallet.Address) (protoAddrs [][]byte, err error) {
-	protoAddrs = make([][]byte, len(addrs))
+func FromWalletAddrs(addrs []map[wallet.BackendID]wallet.Address) (protoAddrs []*Address, err error) {
+	protoAddrs = make([]*Address, len(addrs))
 	for i := range addrs {
-		protoAddrs[i], err = addrs[i].MarshalBinary()
+		protoAddrs[i], err = FromWalletAddr(addrs[i])
 		if err != nil {
 			return nil, errors.WithMessagef(err, "%d'th address", i)
 		}
@@ -383,15 +509,37 @@ func FromWalletAddrs(addrs []wallet.Address) (protoAddrs [][]byte, err error) {
 }
 
 // FromWireAddrs converts a slice of wire.Address to protobuf wire addresses.
-func FromWireAddrs(addrs []wire.Address) (protoAddrs [][]byte, err error) {
-	protoAddrs = make([][]byte, len(addrs))
+func FromWireAddrs(addrs []map[wallet.BackendID]wire.Address) (protoAddrs []*Address, err error) {
+	protoAddrs = make([]*Address, len(addrs))
 	for i := range addrs {
-		protoAddrs[i], err = addrs[i].MarshalBinary()
+		protoAddrs[i], err = FromWireAddr(addrs[i])
 		if err != nil {
 			return nil, errors.WithMessagef(err, "%d'th address", i)
 		}
 	}
 	return protoAddrs, nil
+}
+
+// FromIDs converts a map[int]channel.ID to a protobuf ID.
+func FromIDs(ids map[wallet.BackendID]channel.ID) (*ID, error) {
+	var idMappings []*IDMapping //nolint:prealloc
+
+	for key, id := range ids {
+		keyBytes := make([]byte, 4) //nolint:gomnd
+		binary.BigEndian.PutUint32(keyBytes, uint32(key))
+
+		idBytes := make([]byte, 32) //nolint:gomnd
+		copy(idBytes, id[:])
+
+		idMappings = append(idMappings, &IDMapping{
+			Key: keyBytes,
+			Id:  idBytes,
+		})
+	}
+
+	return &ID{
+		IdMapping: idMappings,
+	}, nil
 }
 
 // FromBaseChannelProposal converts a client BaseChannelProposal to a protobuf BaseChannelProposal.
@@ -453,6 +601,11 @@ func FromAppAndData(app channel.App, data channel.Data) (protoApp, protoData []b
 // FromAllocation converts a channel.Allocation to a protobuf Allocation.
 func FromAllocation(alloc channel.Allocation) (protoAlloc *Allocation, err error) {
 	protoAlloc = &Allocation{}
+	protoAlloc.Backends = make([][]byte, len(alloc.Backends))
+	for i := range alloc.Backends {
+		protoAlloc.Backends[i] = make([]byte, 4) //nolint:gomnd
+		binary.BigEndian.PutUint32(protoAlloc.Backends[i], uint32(alloc.Backends[i]))
+	}
 	protoAlloc.Assets = make([][]byte, len(alloc.Assets))
 	for i := range alloc.Assets {
 		protoAlloc.Assets[i], err = alloc.Assets[i].MarshalBinary()
@@ -505,8 +658,10 @@ func FromBalance(balance []channel.Bal) (protoBalance *Balance, err error) {
 // FromSubAlloc converts a channel.SubAlloc to a protobuf SubAlloc.
 func FromSubAlloc(subAlloc channel.SubAlloc) (protoSubAlloc *SubAlloc, err error) {
 	protoSubAlloc = &SubAlloc{}
-	protoSubAlloc.Id = make([]byte, len(subAlloc.ID))
-	copy(protoSubAlloc.Id, subAlloc.ID[:])
+	protoSubAlloc.Id, err = FromIDs(subAlloc.ID)
+	if err != nil {
+		return nil, errors.WithMessage(err, "fromIDs")
+	}
 	protoSubAlloc.IndexMap = &IndexMap{IndexMap: FromIndexMap(subAlloc.IndexMap)}
 	protoSubAlloc.Bals, err = FromBalance(subAlloc.Bals)
 	return protoSubAlloc, err

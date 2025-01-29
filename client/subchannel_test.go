@@ -1,4 +1,4 @@
-// Copyright 2020 - See NOTICE file for copyright holders.
+// Copyright 2025 - See NOTICE file for copyright holders.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -19,6 +19,10 @@ import (
 	"math/big"
 	"testing"
 
+	"perun.network/go-perun/channel"
+
+	"perun.network/go-perun/wallet"
+
 	"perun.network/go-perun/apps/payment"
 	chtest "perun.network/go-perun/channel/test"
 	"perun.network/go-perun/client"
@@ -30,7 +34,7 @@ import (
 func TestSubChannelHappy(t *testing.T) {
 	rng := test.Prng(t)
 
-	setups := NewSetups(rng, []string{"Susie", "Tim"})
+	setups := NewSetups(rng, []string{"Susie", "Tim"}, channel.TestBackendID)
 	roles := [2]ctest.Executer{
 		ctest.NewSusie(t, setups[0]),
 		ctest.NewTim(t, setups[1]),
@@ -38,8 +42,9 @@ func TestSubChannelHappy(t *testing.T) {
 
 	cfg := ctest.NewSusieTimExecConfig(
 		ctest.MakeBaseExecConfig(
-			[2]wire.Address{setups[0].Identity.Address(), setups[1].Identity.Address()},
-			chtest.NewRandomAsset(rng),
+			[2]map[wallet.BackendID]wire.Address{wire.AddressMapfromAccountMap(setups[0].Identity), wire.AddressMapfromAccountMap(setups[1].Identity)},
+			chtest.NewRandomAsset(rng, channel.TestBackendID),
+			channel.TestBackendID,
 			[2]*big.Int{big.NewInt(100), big.NewInt(100)},
 			client.WithoutApp(),
 		),
@@ -68,15 +73,16 @@ func TestSubChannelHappy(t *testing.T) {
 func TestSubChannelDispute(t *testing.T) {
 	rng := test.Prng(t)
 
-	setups := NewSetups(rng, []string{"DisputeSusie", "DisputeTim"})
+	setups := NewSetups(rng, []string{"DisputeSusie", "DisputeTim"}, channel.TestBackendID)
 	roles := [2]ctest.Executer{
 		ctest.NewDisputeSusie(t, setups[0]),
 		ctest.NewDisputeTim(t, setups[1]),
 	}
 
 	baseCfg := ctest.MakeBaseExecConfig(
-		[2]wire.Address{setups[0].Identity.Address(), setups[1].Identity.Address()},
-		chtest.NewRandomAsset(rng),
+		[2]map[wallet.BackendID]wire.Address{wire.AddressMapfromAccountMap(setups[0].Identity), wire.AddressMapfromAccountMap(setups[1].Identity)},
+		chtest.NewRandomAsset(rng, channel.TestBackendID),
+		channel.TestBackendID,
 		[2]*big.Int{big.NewInt(100), big.NewInt(100)},
 		client.WithoutApp(),
 	)

@@ -1,4 +1,4 @@
-// Copyright 2019 - See NOTICE file for copyright holders.
+// Copyright 2025 - See NOTICE file for copyright holders.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -15,12 +15,13 @@
 package wallet
 
 import (
+	"fmt"
 	"io"
 )
 
 // backend is set to the global wallet backend. Must not be set directly but
 // through importing the needed backend.
-var backend Backend
+var backend map[BackendID]Backend
 
 // Backend provides useful methods for this blockchain.
 type Backend interface {
@@ -40,25 +41,36 @@ type Backend interface {
 
 // SetBackend sets the global wallet backend. Must not be called directly but
 // through importing the needed backend.
-func SetBackend(b Backend) {
-	if backend != nil {
+func SetBackend(b Backend, id int) {
+	if backend == nil {
+		backend = make(map[BackendID]Backend)
+	}
+	if backend[BackendID(id)] != nil {
 		panic("wallet backend already set")
 	}
-	backend = b
+	backend[BackendID(id)] = b
 }
 
 // NewAddress returns a variable of type Address, which can be used
 // for unmarshalling an address from its binary representation.
-func NewAddress() Address {
-	return backend.NewAddress()
+func NewAddress(id BackendID) Address {
+	return backend[id].NewAddress()
 }
 
-// DecodeSig calls DecodeSig of the current backend.
+// DecodeSig calls DecodeSig of all Backends and returns an error if none return a valid signature.
 func DecodeSig(r io.Reader) (Sig, error) {
-	return backend.DecodeSig(r)
+	var err error
+	for _, b := range backend {
+		sig, err := b.DecodeSig(r)
+		if err == nil {
+			return sig, nil
+		}
+	}
+
+	return nil, fmt.Errorf("no valid signature found: %v", err)
 }
 
 // VerifySignature calls VerifySignature of the current backend.
 func VerifySignature(msg []byte, sign Sig, a Address) (bool, error) {
-	return backend.VerifySignature(msg, sign, a)
+	return backend[a.BackendID()].VerifySignature(msg, sign, a)
 }

@@ -1,4 +1,4 @@
-// Copyright 2019 - See NOTICE file for copyright holders.
+// Copyright 2025 - See NOTICE file for copyright holders.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -20,12 +20,19 @@ import (
 	"io"
 	"math/big"
 
+	"perun.network/go-perun/channel"
+
 	"perun.network/go-perun/log"
 	"perun.network/go-perun/wallet"
 )
 
 // Address represents a simulated address.
 type Address ecdsa.PublicKey
+
+// BackendID returns the backend id of the address.
+func (a Address) BackendID() wallet.BackendID {
+	return channel.TestBackendID
+}
 
 const (
 	// elemLen is the length of the binary representation of a single element
@@ -52,6 +59,21 @@ func NewRandomAddress(rng io.Reader) *Address {
 		X:     privateKey.X,
 		Y:     privateKey.Y,
 	}
+}
+
+// NewRandomAddresses creates a new address using the randomness
+// provided by rng.
+func NewRandomAddresses(rng io.Reader) map[int]wallet.Address {
+	privateKey, err := ecdsa.GenerateKey(curve, rng)
+	if err != nil {
+		log.Panicf("Creation of account failed with error", err)
+	}
+
+	return map[int]wallet.Address{channel.TestBackendID: &Address{
+		Curve: privateKey.Curve,
+		X:     privateKey.X,
+		Y:     privateKey.Y,
+	}}
 }
 
 // Bytes converts this address to bytes.
@@ -90,9 +112,11 @@ func (a *Address) Equal(addr wallet.Address) bool {
 }
 
 // Cmp checks the ordering of two addresses according to following definition:
-//   -1 if (a.X <  addr.X) || ((a.X == addr.X) && (a.Y < addr.Y))
-//    0 if (a.X == addr.X) && (a.Y == addr.Y)
-//   +1 if (a.X >  addr.X) || ((a.X == addr.X) && (a.Y > addr.Y))
+//
+//	-1 if (a.X <  addr.X) || ((a.X == addr.X) && (a.Y < addr.Y))
+//	 0 if (a.X == addr.X) && (a.Y == addr.Y)
+//	+1 if (a.X >  addr.X) || ((a.X == addr.X) && (a.Y > addr.Y))
+//
 // So the X coordinate is weighted higher.
 // Pancis if the passed address is of the wrong type.
 func (a *Address) Cmp(addr wallet.Address) int {

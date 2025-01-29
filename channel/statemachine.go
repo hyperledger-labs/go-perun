@@ -1,4 +1,4 @@
-// Copyright 2019 - See NOTICE file for copyright holders.
+// Copyright 2025 - See NOTICE file for copyright holders.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -29,7 +29,7 @@ type StateMachine struct {
 }
 
 // NewStateMachine creates a new StateMachine.
-func NewStateMachine(acc wallet.Account, params Params) (*StateMachine, error) {
+func NewStateMachine(acc map[wallet.BackendID]wallet.Account, params Params) (*StateMachine, error) {
 	app, ok := params.App.(StateApp)
 	if !ok {
 		return nil, errors.New("app must be StateApp")
@@ -47,7 +47,7 @@ func NewStateMachine(acc wallet.Account, params Params) (*StateMachine, error) {
 }
 
 // RestoreStateMachine restores a state machine to the data given by Source.
-func RestoreStateMachine(acc wallet.Account, source Source) (*StateMachine, error) {
+func RestoreStateMachine(acc map[wallet.BackendID]wallet.Account, source Source) (*StateMachine, error) {
 	app, ok := source.Params().App.(StateApp)
 	if !ok {
 		return nil, errors.New("app must be StateApp")
@@ -115,11 +115,12 @@ func (m *StateMachine) CheckUpdate(
 	if err := m.validTransition(state, actor); err != nil {
 		return err
 	}
-
-	if ok, err := Verify(m.params.Parts[sigIdx], state, sig); err != nil {
-		return errors.WithMessagef(err, "verifying signature[%d]", sigIdx)
-	} else if !ok {
-		return errors.Errorf("invalid signature[%d]", sigIdx)
+	for _, add := range m.params.Parts[sigIdx] {
+		if ok, err := Verify(add, state, sig); err != nil {
+			return errors.WithMessagef(err, "verifying signature[%d]", sigIdx)
+		} else if !ok {
+			return errors.Errorf("invalid signature[%d]", sigIdx)
+		}
 	}
 	return nil
 }

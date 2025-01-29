@@ -1,4 +1,4 @@
-// Copyright 2020 - See NOTICE file for copyright holders.
+// Copyright 2025 - See NOTICE file for copyright holders.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -17,6 +17,8 @@ package client
 import (
 	"context"
 
+	"perun.network/go-perun/wallet"
+
 	"github.com/pkg/errors"
 
 	"perun.network/go-perun/log"
@@ -28,11 +30,11 @@ type clientConn struct {
 	*wire.Relay // Client relay, subscribed to the bus. Embedded for methods Subscribe and Cache.
 	bus         wire.Bus
 	reqRecv     *wire.Receiver // subscription to incoming requests
-	sender      wire.Address
+	sender      map[wallet.BackendID]wire.Address
 	log.Embedding
 }
 
-func makeClientConn(address wire.Address, bus wire.Bus) (c clientConn, err error) {
+func makeClientConn(address map[wallet.BackendID]wire.Address, bus wire.Bus) (c clientConn, err error) {
 	c.Embedding = log.MakeEmbedding(log.WithField("id", address))
 	c.sender = address
 	c.bus = bus
@@ -76,7 +78,7 @@ func (c clientConn) nextReq(ctx context.Context) (*wire.Envelope, error) {
 
 // pubMsg publishes the given message on the wire bus, setting the own client as
 // the sender.
-func (c *clientConn) pubMsg(ctx context.Context, msg wire.Msg, rec wire.Address) error {
+func (c *clientConn) pubMsg(ctx context.Context, msg wire.Msg, rec map[wallet.BackendID]wire.Address) error {
 	c.Log().WithField("peer", rec).Debugf("Publishing message: %v: %+v", msg.Type(), msg)
 	return c.bus.Publish(ctx, &wire.Envelope{
 		Sender:    c.sender,

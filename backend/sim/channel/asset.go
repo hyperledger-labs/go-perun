@@ -1,4 +1,4 @@
-// Copyright 2019 - See NOTICE file for copyright holders.
+// Copyright 2025 - See NOTICE file for copyright holders.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -64,4 +64,10 @@ func (a Asset) Equal(b channel.Asset) bool {
 		return false
 	}
 	return a.ID == simAsset.ID
+}
+
+// Address returns the address of the asset.
+func (a Asset) Address() []byte {
+	data, _ := a.MarshalBinary()
+	return data
 }

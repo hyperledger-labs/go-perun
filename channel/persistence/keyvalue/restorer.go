@@ -1,4 +1,4 @@
-// Copyright 2020 - See NOTICE file for copyright holders.
+// Copyright 2025 - See NOTICE file for copyright holders.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -41,20 +41,20 @@ type ChannelIterator struct {
 }
 
 // ActivePeers returns a list of all peers with which a channel is persisted.
-func (pr *PersistRestorer) ActivePeers(ctx context.Context) ([]wire.Address, error) {
+func (pr *PersistRestorer) ActivePeers(ctx context.Context) ([]map[wallet.BackendID]wire.Address, error) {
 	it := sortedkv.NewTable(pr.db, prefix.PeerDB).NewIterator()
 
-	peermap := make(map[wire.AddrKey]wire.Address)
+	peermap := make(map[wire.AddrKey]map[wallet.BackendID]wire.Address)
 	for it.Next() {
-		addr := wire.NewAddress()
-		err := perunio.Decode(bytes.NewBufferString(it.Key()), addr)
+		var addr map[wallet.BackendID]wire.Address
+		err := perunio.Decode(bytes.NewBufferString(it.Key()), (*wire.AddressDecMap)(&addr))
 		if err != nil {
 			return nil, errors.WithMessagef(err, "decoding peer key (%x)", it.Key())
 		}
-		peermap[wire.Key(addr)] = addr
+		peermap[wire.Keys(addr)] = addr
 	}
 
-	peers := make([]wire.Address, 0, len(peermap))
+	peers := make([]map[wallet.BackendID]wire.Address, 0, len(peermap))
 	for _, peer := range peermap {
 		peers = append(peers, peer)
 	}
@@ -63,13 +63,13 @@ func (pr *PersistRestorer) ActivePeers(ctx context.Context) ([]wire.Address, err
 
 // channelPeers returns a slice of peer addresses for a given channel id from
 // the db of PersistRestorer.
-func (pr *PersistRestorer) channelPeers(id channel.ID) ([]wire.Address, error) {
-	var ps wire.AddressesWithLen
+func (pr *PersistRestorer) channelPeers(id map[wallet.BackendID]channel.ID) ([]map[wallet.BackendID]wire.Address, error) {
+	var ps wire.AddressMapArray
 	peers, err := pr.channelDB(id).Get(prefix.Peers)
 	if err != nil {
 		return nil, errors.WithMessage(err, "unable to get peerlist from db")
 	}
-	return []wire.Address(ps), errors.WithMessage(perunio.Decode(bytes.NewBuffer([]byte(peers)), &ps),
+	return ps, errors.WithMessage(perunio.Decode(bytes.NewBuffer([]byte(peers)), &ps),
 		"decoding peerlist")
 }
 
@@ -83,7 +83,7 @@ func (pr *PersistRestorer) RestoreAll() (persistence.ChannelIterator, error) {
 
 // RestorePeer should return an iterator over all persisted channels which
 // the given peer is a part of.
-func (pr *PersistRestorer) RestorePeer(addr wire.Address) (persistence.ChannelIterator, error) {
+func (pr *PersistRestorer) RestorePeer(addr map[wallet.BackendID]wire.Address) (persistence.ChannelIterator, error) {
 	it := &ChannelIterator{restorer: pr}
 	chandb := sortedkv.NewTable(pr.db, prefix.ChannelDB)
 
@@ -106,9 +106,9 @@ func (pr *PersistRestorer) RestorePeer(addr wire.Address) (persistence.ChannelIt
 }
 
 // peerChannelsKey creates a db-key-string for a given wire.Address.
-func peerChannelsKey(addr wire.Address) (string, error) {
+func peerChannelsKey(addr map[wallet.BackendID]wire.Address) (string, error) {
 	var key strings.Builder
-	if err := perunio.Encode(&key, addr); err != nil {
+	if err := perunio.Encode(&key, wire.AddressDecMap(addr)); err != nil {
 		return "", errors.WithMessage(err, "encoding peer address")
 	}
 	key.WriteString(":channel:")
@@ -116,11 +116,11 @@ func peerChannelsKey(addr wire.Address) (string, error) {
 }
 
 // RestoreChannel restores a single channel.
-func (pr *PersistRestorer) RestoreChannel(ctx context.Context, id channel.ID) (*persistence.Channel, error) {
+func (pr *PersistRestorer) RestoreChannel(ctx context.Context, id map[wallet.BackendID]channel.ID) (*persistence.Channel, error) {
 	chandb := sortedkv.NewTable(pr.db, prefix.ChannelDB)
 	it := &ChannelIterator{
 		restorer: pr,
-		its:      []sortedkv.Iterator{chandb.NewIteratorWithPrefix(string(id[:]))},
+		its:      []sortedkv.Iterator{chandb.NewIteratorWithPrefix(channel.IDKey(id))},
 	}
 
 	if it.Next(ctx) {
@@ -157,7 +157,7 @@ func (i *ChannelIterator) Next(context.Context) bool {
 		!i.decodeNext("index", &i.ch.IdxV, noOpts) ||
 		!i.decodeNext("params", i.ch.ParamsV, noOpts) ||
 		!i.decodeNext("parent", optChannelIDDec{&i.ch.Parent}, noOpts) ||
-		!i.decodeNext("peers", (*wire.AddressesWithLen)(&i.ch.PeersV), noOpts) ||
+		!i.decodeNext("peers", (*wire.AddressMapArray)(&i.ch.PeersV), noOpts) ||
 		!i.decodeNext("phase", &i.ch.PhaseV, noOpts) {
 		return false
 	}

@@ -1,4 +1,4 @@
-// Copyright 2019 - See NOTICE file for copyright holders.
+// Copyright 2025 - See NOTICE file for copyright holders.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -15,11 +15,12 @@
 package wallet
 
 import (
+	"perun.network/go-perun/channel"
 	"perun.network/go-perun/wallet"
 	"perun.network/go-perun/wallet/test"
 )
 
 func init() {
-	wallet.SetBackend(new(Backend))
-	test.SetRandomizer(newRandomizer())
+	wallet.SetBackend(new(Backend), channel.TestBackendID)
+	test.SetRandomizer(newRandomizer(), channel.TestBackendID)
 }

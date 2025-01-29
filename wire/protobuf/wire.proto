@@ -1,4 +1,4 @@
-// Copyright 2022 - See NOTICE file for copyright holders.
+// Copyright 2025 - See NOTICE file for copyright holders.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -24,9 +24,9 @@ option go_package = "perun.network/go-perun/wire/protobuf";
 // the sender and the intended receiver.
 message Envelope {
   // sender of the message.
-  bytes sender = 1;
+  Address sender = 1;
   // intended recipient of the message.
-  bytes recipient = 2;
+  Address recipient = 2;
   // msg should contain on the valid message types.
   oneof msg {
     PingMsg ping_msg = 3;
@@ -61,6 +61,28 @@ message Balances {
   repeated Balance balances = 1;
 }
 
+// AddressMapping represents an element of a address mapping.
+message AddressMapping {
+  bytes key = 1;
+  bytes address = 2;
+}
+
+// Address represents the map of addresses for each participant in the channel.
+message Address {
+  repeated AddressMapping address_mapping = 1;
+}
+
+// AddressMapping represents an element of a address mapping.
+message IDMapping {
+  bytes key = 1;
+  bytes id = 2;
+}
+
+// Address represents the map of addresses for each participant in the channel.
+message ID {
+  repeated IDMapping id_mapping = 1;
+}
+
 // IndexMap represents the mapping of a participant indices in a sub allocation
 // or a virtual channel funding proposal to the corresponding indices in the
 // parent channel.
@@ -70,16 +92,17 @@ message IndexMap {
 
 // SubAlloc represts a sub allocation.
 message SubAlloc {
-  bytes id = 1;
+  ID id = 1;
   Balance bals = 2;
   IndexMap index_map = 3;
 }
 
 // Allocation represents channel.Allocation.
 message Allocation {
-  repeated bytes assets = 1;
-  Balances balances = 2;
-  repeated SubAlloc locked = 3;
+  repeated bytes backends = 1;
+  repeated bytes assets = 2;
+  Balances balances = 3;
+  repeated SubAlloc locked = 4;
 }
 
 // BaseChannelProposal represents client.BaseChannelProposal.
@@ -101,9 +124,9 @@ message BaseChannelProposalAcc {
 
 // Params represents channel.Params.
 message Params {
-  bytes id = 1;
+  ID id = 1;
   uint64 challenge_duration = 2;
-  repeated bytes parts = 3;
+  repeated Address parts = 3;
   bytes app = 4;
   bytes nonce = 5;
   bool ledger_channel = 6;
@@ -112,7 +135,7 @@ message Params {
 
 // State represents channel.State.
 message State {
-  bytes id = 1;
+  ID id = 1;
   uint64 version = 2;
   bytes app = 3;
   Allocation allocation = 4;
@@ -163,20 +186,20 @@ message AuthResponseMsg {
 // LedgerChannelProposalMsg represents client.LedgerChannelProposalMsg.
 message LedgerChannelProposalMsg {
   BaseChannelProposal base_channel_proposal = 1;
-  bytes participant = 2;
-  repeated bytes peers = 3;
+  Address participant = 2;
+  repeated Address peers = 3;
 }
 
 // LedgerChannelProposalAccMsg represents client.LedgerChannelProposalAccMsg.
 message LedgerChannelProposalAccMsg {
   BaseChannelProposalAcc base_channel_proposal_acc = 1;
-  bytes participant = 2;
+  Address participant = 2;
 }
 
 // SubChannelProposalMsg represents client.SubChannelProposalMsg.
 message SubChannelProposalMsg {
   BaseChannelProposal base_channel_proposal = 1;
-  bytes parent = 2;
+  ID parent = 2;
 }
 
 // SubChannelProposalAccMsg represents client.SubChannelProposalAccMsg.
@@ -187,16 +210,16 @@ message SubChannelProposalAccMsg {
 // VirtualChannelProposalMsg represents client.VirtualChannelProposalMsg.
 message VirtualChannelProposalMsg {
   BaseChannelProposal base_channel_proposal = 1;
-  bytes proposer = 2;
-  repeated bytes peers = 3;
-  repeated bytes parents = 4;
+  Address proposer = 2;
+  repeated Address peers = 3;
+  repeated ID parents = 4;
   repeated IndexMap index_maps = 5;
 }
 
 // VirtualChannelProposalAccMsg represents client.VirtualChannelProposalAccMsg.
 message VirtualChannelProposalAccMsg {
   BaseChannelProposalAcc base_channel_proposal_acc = 1;
-  bytes responder = 2;
+  Address responder = 2;
 }
 
 // ChannelProposalRejMsg represents client.ChannelProposalRejMsg.
@@ -229,14 +252,14 @@ message VirtualChannelSettlementProposalMsg {
 
 // ChannelUpdateAccMsg represents client.ChannelUpdateAccMsg.
 message ChannelUpdateAccMsg {
-  bytes channel_id = 1;
+  ID channel_id = 1;
   uint64 version = 2;
   bytes sig = 3;
 }
 
 // ChannelUpdateRejMsg represents client.ChannelUpdateRejMsg.
 message ChannelUpdateRejMsg {
-  bytes channel_id = 1;
+  ID channel_id = 1;
   uint64 version = 2;
   string reason = 3;
 }

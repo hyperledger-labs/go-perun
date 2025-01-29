@@ -1,4 +1,4 @@
-// Copyright 2022 - See NOTICE file for copyright holders.
+// Copyright 2025 - See NOTICE file for copyright holders.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -20,6 +20,8 @@ import (
 	"math/rand"
 	"testing"
 	"time"
+
+	"perun.network/go-perun/wallet"
 
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
@@ -217,8 +219,13 @@ func setupVirtualChannelTest(
 	go ingrid.Client.Handle(openingProposalHandlerIngrid, updateProposalHandlerIngrid)
 
 	// Establish ledger channel between Alice and Ingrid.
-	peersAlice := []wire.Address{alice.Identity.Address(), ingrid.Identity.Address()}
-	initAllocAlice := channel.NewAllocation(len(peersAlice), asset)
+	peersAlice := []map[wallet.BackendID]wire.Address{wire.AddressMapfromAccountMap(alice.Identity), wire.AddressMapfromAccountMap(ingrid.Identity)}
+	var bID wallet.BackendID
+	for i := range peersAlice[0] {
+		bID = i
+		break
+	}
+	initAllocAlice := channel.NewAllocation(len(peersAlice), []wallet.BackendID{bID}, asset)
 	initAllocAlice.SetAssetBalances(asset, vct.initBalsAlice)
 	lcpAlice, err := client.NewLedgerChannelProposal(
 		setup.ChallengeDuration,
@@ -237,8 +244,8 @@ func setupVirtualChannelTest(
 	}
 
 	// Establish ledger channel between Bob and Ingrid.
-	peersBob := []wire.Address{bob.Identity.Address(), ingrid.Identity.Address()}
-	initAllocBob := channel.NewAllocation(len(peersBob), asset)
+	peersBob := []map[wallet.BackendID]wire.Address{wire.AddressMapfromAccountMap(bob.Identity), wire.AddressMapfromAccountMap(ingrid.Identity)}
+	initAllocBob := channel.NewAllocation(len(peersBob), []wallet.BackendID{bID}, asset)
 	initAllocBob.SetAssetBalances(asset, vct.initBalsBob)
 	lcpBob, err := client.NewLedgerChannelProposal(
 		setup.ChallengeDuration,
@@ -286,6 +293,7 @@ func setupVirtualChannelTest(
 	initAllocVirtual := channel.Allocation{
 		Assets:   []channel.Asset{asset},
 		Balances: [][]channel.Bal{initBalsVirtual},
+		Backends: []wallet.BackendID{bID},
 	}
 	indexMapAlice := []channel.Index{0, 1}
 	indexMapBob := []channel.Index{1, 0}
@@ -293,8 +301,8 @@ func setupVirtualChannelTest(
 		setup.ChallengeDuration,
 		alice.WalletAddress,
 		&initAllocVirtual,
-		[]wire.Address{alice.Identity.Address(), bob.Identity.Address()},
-		[]channel.ID{vct.chAliceIngrid.ID(), vct.chBobIngrid.ID()},
+		[]map[wallet.BackendID]wire.Address{wire.AddressMapfromAccountMap(alice.Identity), wire.AddressMapfromAccountMap(bob.Identity)},
+		[]map[wallet.BackendID]channel.ID{vct.chAliceIngrid.ID(), vct.chBobIngrid.ID()},
 		[][]channel.Index{indexMapAlice, indexMapBob},
 	)
 	require.NoError(err, "creating virtual channel proposal")
