@@ -4,6 +4,31 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.13.0] Metis - 2025-01-19 [:boom:]
+Support for multiple backends, allowing multiple address implementations per client. This enables the simultaneous use of several smaller backends, enhancing modularization.
+
+## Added :boom:
+
+* Backend field in Allocation to identify the backend that implemented each asset. [#410]
+
+## Changed
+
+* Updade action cache [#409]
+
+* Update workflow go version to 1.18 [#410]
+
+* Global Backend map in wire and wallet module [#410]
+
+* Participant map to allow multiple addresses per participant [#410] :boom:
+
+[#409]: https://github.com/hyperledger-labs/go-perun/pull/409
+[#410]: https://github.com/hyperledger-labs/go-perun/pull/410
+
+## Legend
+- <span id="breaking">:boom:</span> This is a breaking change, e.g., it changes the external API.
+
+[:boom:]: #breaking
+
 ## [0.12.0] Leda - 2024-11-19 [:boom:]
 Flexibility in funding for payment channels and basic Layer-2 security.
 
