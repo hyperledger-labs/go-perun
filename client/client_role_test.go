@@ -1,4 +1,4 @@
-// Copyright 2024 - See NOTICE file for copyright holders.
+// Copyright 2025 - See NOTICE file for copyright holders.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -55,7 +55,7 @@ func NewSetups(rng *rand.Rand, names []string, bID wallet.BackendID) []ctest.Rol
 			panic("Error initializing watcher: " + err.Error())
 		}
 		w := map[wallet.BackendID]wtest.Wallet{bID: wtest.NewWallet(bID)}
-		acc := w[0].NewRandomAccount(rng)
+		acc := w[bID].NewRandomAccount(rng)
 		setup[i] = ctest.RoleSetup{
 			Name:              names[i],
 			Identity:          wiretest.NewRandomAccountMap(rng, bID),
@@ -88,9 +88,8 @@ func runAliceBobTest(ctx context.Context, t *testing.T, setup func(*rand.Rand) (
 
 		cfg := &ctest.AliceBobExecConfig{
 			BaseExecConfig: ctest.MakeBaseExecConfig(
-				[2]map[wallet.BackendID]wire.Address{wire.AddressMapfromAccountMap(setups[0].Identity), wire.AddressMapfromAccountMap(setups[1].Identity)},
-				chtest.NewRandomAsset(rng, channel.TestBackendID),
-				channel.TestBackendID,
+				[2]wire.Address{setups[0].Identity.Address(), setups[1].Identity.Address()},
+				chtest.NewRandomAsset(rng),
 				[2]*big.Int{big.NewInt(100), big.NewInt(100)},
 				app,
 			),
