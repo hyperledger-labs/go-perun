@@ -37,7 +37,7 @@ func TestClient_validTwoPartyProposal(t *testing.T) {
 
 	// dummy client that only has an id
 	c := &Client{
-		address: wiretest.NewRandomAddressesMap(rng, 1)[0],
+		address: wiretest.NewRandomAddress(rng),
 	}
 	validProp := NewRandomLedgerChannelProposal(rng, channeltest.WithNumParts(2))
 	validProp.Peers[0] = c.address // set us as the proposer

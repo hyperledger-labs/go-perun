@@ -28,7 +28,7 @@ func TestClient_Channel(t *testing.T) {
 	rng := test.Prng(t)
 	// dummy client that only has an id and a registry
 	c := &Client{
-		address:  wiretest.NewRandomAddressesMap(rng, 1)[0],
+		address:  wiretest.NewRandomAddress(rng),
 		channels: makeChanRegistry(),
 	}
 

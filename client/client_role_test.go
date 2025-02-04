@@ -38,7 +38,7 @@ import (
 
 const (
 	roleOperationTimeout = 1 * time.Second
-	twoPartyTestTimeout  = 20 * time.Second
+	twoPartyTestTimeout  = 10 * time.Second
 )
 
 func NewSetups(rng *rand.Rand, names []string, bID wallet.BackendID) []ctest.RoleSetup {
