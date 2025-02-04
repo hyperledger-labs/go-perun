@@ -17,6 +17,7 @@ package test
 import (
 	crand "crypto/rand"
 	"fmt"
+	"log"
 	"math/big"
 	"math/rand"
 	"time"
