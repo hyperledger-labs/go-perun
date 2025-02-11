@@ -9,7 +9,9 @@ Support for multiple backends, allowing multiple address implementations per cli
 
 ## Added :boom:
 
-* Backend field in Allocation to identify the backend that implemented each asset. [#410]
+* Backend field in Allocation [#410]
+
+* Added interface restrictions to ensure cross-contract compatibility, including new functions and fields in interfaces such as Asset and Address [#410]
 
 ## Changed
 
@@ -19,10 +21,15 @@ Support for multiple backends, allowing multiple address implementations per cli
 
 * Global Backend map in wire and wallet module [#410]
 
+* Global Randomizer map in wallet and channel tests [#410]
+
 * Participant map to allow multiple addresses per participant [#410] :boom:
+
+* Code refactoring from channel ID map to singular channel ID [#413]
 
 [#409]: https://github.com/hyperledger-labs/go-perun/pull/409
 [#410]: https://github.com/hyperledger-labs/go-perun/pull/410
+[#413]: https://github.com/hyperledger-labs/go-perun/pull/413
 
 ## Legend
 - <span id="breaking">:boom:</span> This is a breaking change, e.g., it changes the external API.
