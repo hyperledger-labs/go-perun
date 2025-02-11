@@ -17,26 +17,24 @@ package channel
 import (
 	"fmt"
 
-	"perun.network/go-perun/wallet"
-
 	"github.com/pkg/errors"
 )
 
 type (
 	// StateTransitionError happens in case of an invalid channel state transition.
 	StateTransitionError struct {
-		ID map[wallet.BackendID]ID
+		ID ID
 	}
 
 	// ActionError happens if an invalid action is applied to a channel state.
 	ActionError struct {
-		ID map[wallet.BackendID]ID
+		ID ID
 	}
 
 	// PhaseTransitionError happens in case of an invalid channel machine phase
 	// transition.
 	PhaseTransitionError struct {
-		ID      map[wallet.BackendID]ID
+		ID      ID
 		current Phase
 		PhaseTransition
 	}
@@ -58,20 +56,20 @@ func (e *PhaseTransitionError) Error() string {
 }
 
 // NewStateTransitionError creates a new StateTransitionError.
-func NewStateTransitionError(id map[wallet.BackendID]ID, msg string) error {
+func NewStateTransitionError(id ID, msg string) error {
 	return errors.Wrap(&StateTransitionError{
 		ID: id,
 	}, msg)
 }
 
 // NewActionError creates a new ActionError.
-func NewActionError(id map[wallet.BackendID]ID, msg string) error {
+func NewActionError(id ID, msg string) error {
 	return errors.Wrap(&ActionError{
 		ID: id,
 	}, msg)
 }
 
-func newPhaseTransitionError(id map[wallet.BackendID]ID, current Phase, expected PhaseTransition, msg string) error {
+func newPhaseTransitionError(id ID, current Phase, expected PhaseTransition, msg string) error {
 	return errors.Wrap(&PhaseTransitionError{
 		ID:              id,
 		current:         current,
@@ -80,7 +78,7 @@ func newPhaseTransitionError(id map[wallet.BackendID]ID, current Phase, expected
 }
 
 func newPhaseTransitionErrorf(
-	id map[wallet.BackendID]ID,
+	id ID,
 	current Phase,
 	expected PhaseTransition,
 	format string,

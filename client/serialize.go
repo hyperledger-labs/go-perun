@@ -17,8 +17,6 @@ package client
 import (
 	"io"
 
-	"perun.network/go-perun/wallet"
-
 	"github.com/pkg/errors"
 	"perun.network/go-perun/channel"
 	"perun.network/go-perun/wire/perunio"
@@ -26,39 +24,44 @@ import (
 
 type (
 	sliceLen          = uint16
-	channelIDsWithLen []map[wallet.BackendID]channel.ID
+	channelIDsWithLen []channel.ID
 	indexMapWithLen   []channel.Index
 	indexMapsWithLen  [][]channel.Index
 )
 
 // Encode encodes the object to the writer.
 func (a channelIDsWithLen) Encode(w io.Writer) (err error) {
-	length := int32(len(a))
-	if err := perunio.Encode(w, length); err != nil {
-		return errors.WithMessage(err, "encoding array length")
+	err = perunio.Encode(w, sliceLen(len(a)))
+	if err != nil {
+		return
 	}
-	for i, id := range a {
-		idCopy := id
-		if err := perunio.Encode(w, (*channel.IDMap)(&idCopy)); err != nil {
-			return errors.WithMessagef(err, "encoding %d-th id array entry", i)
+
+	for _, id := range a {
+		err = perunio.Encode(w, id)
+		if err != nil {
+			return
 		}
 	}
-	return nil
+	return
 }
 
 // Decode decodes the object from the reader.
 func (a *channelIDsWithLen) Decode(r io.Reader) (err error) {
-	var mapLen int32
-	if err := perunio.Decode(r, &mapLen); err != nil {
-		return errors.WithMessage(err, "decoding array length")
+	var l sliceLen
+	if err = perunio.Decode(r, &l); err != nil {
+		return errors.WithMessage(err, "decoding length")
 	}
-	*a = make([]map[wallet.BackendID]channel.ID, mapLen)
-	for i := 0; i < int(mapLen); i++ {
-		if err := perunio.Decode(r, (*channel.IDMap)(&(*a)[i])); err != nil {
-			return errors.WithMessagef(err, "decoding %d-th id map entry", i)
+
+	*a = make(channelIDsWithLen, l)
+	for i := range *a {
+		var id channel.ID
+		err = perunio.Decode(r, &id)
+		if err != nil {
+			return errors.WithMessagef(err, "decoding item %d", i)
 		}
+		(*a)[i] = id
 	}
-	return nil
+	return
 }
 
 // Encode encodes the object to the writer.

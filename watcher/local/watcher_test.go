@@ -22,8 +22,6 @@ import (
 	"testing"
 	"time"
 
-	"perun.network/go-perun/wallet"
-
 	"github.com/stretchr/testify/assert"
 	testifyMock "github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
@@ -896,7 +894,7 @@ func makeRegisteredEvents(txs ...channel.Transaction) []channel.AdjudicatorEvent
 			State: tx.State,
 			Sigs:  tx.Sigs,
 			AdjudicatorEventBase: channel.AdjudicatorEventBase{
-				IDV:      tx.State.ID[0],
+				IDV:      tx.State.ID,
 				TimeoutV: &channel.ElapsedTimeout{},
 				VersionV: tx.State.Version,
 			},
@@ -912,7 +910,7 @@ func makeProgressedEvents(txs ...channel.Transaction) []channel.AdjudicatorEvent
 			State: tx.State,
 			Idx:   channel.Index(0),
 			AdjudicatorEventBase: channel.AdjudicatorEventBase{
-				IDV:      tx.State.ID[0],
+				IDV:      tx.State.ID,
 				TimeoutV: &channel.ElapsedTimeout{},
 				VersionV: tx.State.Version,
 			},
@@ -926,7 +924,7 @@ func makeConcludedEvents(txs ...channel.Transaction) []channel.AdjudicatorEvent 
 	for i, tx := range txs {
 		events[i] = &channel.ConcludedEvent{
 			AdjudicatorEventBase: channel.AdjudicatorEventBase{
-				IDV:      tx.State.ID[0],
+				IDV:      tx.State.ID,
 				TimeoutV: &channel.ElapsedTimeout{},
 				VersionV: tx.State.Version,
 			},
@@ -954,7 +952,7 @@ func startWatchingForSubChannel(
 	t *testing.T,
 	w *local.Watcher,
 	signedState channel.SignedState,
-	parentID map[wallet.BackendID]channel.ID,
+	parentID channel.ID,
 ) (watcher.StatesPub, watcher.AdjudicatorSub) {
 	t.Helper()
 	statesPub, eventsSub, err := w.StartWatchingSubChannel(context.TODO(), parentID, signedState)

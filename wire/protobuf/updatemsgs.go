@@ -72,7 +72,7 @@ func ToChannelUpdateAccMsg(protoEnvMsg *Envelope_ChannelUpdateAccMsg) (msg *clie
 	protoMsg := protoEnvMsg.ChannelUpdateAccMsg
 
 	msg = &client.ChannelUpdateAccMsg{}
-	msg.ChannelID, _ = ToIDs(protoEnvMsg.ChannelUpdateAccMsg.ChannelId)
+	copy(msg.ChannelID[:], protoMsg.ChannelId)
 	msg.Version = protoMsg.Version
 	msg.Sig = make([]byte, len(protoMsg.Sig))
 	copy(msg.Sig, protoMsg.Sig)
@@ -84,7 +84,7 @@ func ToChannelUpdateRejMsg(protoEnvMsg *Envelope_ChannelUpdateRejMsg) (msg *clie
 	protoMsg := protoEnvMsg.ChannelUpdateRejMsg
 
 	msg = &client.ChannelUpdateRejMsg{}
-	msg.ChannelID, _ = ToIDs(protoEnvMsg.ChannelUpdateRejMsg.ChannelId)
+	copy(msg.ChannelID[:], protoMsg.ChannelId)
 	msg.Version = protoMsg.Version
 	msg.Reason = protoMsg.Reason
 	return msg
@@ -141,10 +141,7 @@ func ToParams(protoParams *Params) (*channel.Params, error) {
 // ToState converts a protobuf State to a channel.State.
 func ToState(protoState *State) (state *channel.State, err error) {
 	state = &channel.State{}
-	state.ID, err = ToIDs(protoState.Id)
-	if err != nil {
-		return nil, errors.WithMessage(err, "id")
-	}
+	copy(state.ID[:], protoState.Id)
 	state.Version = protoState.Version
 	state.IsFinal = protoState.IsFinal
 	allocation, err := ToAllocation(protoState.Allocation)
@@ -199,7 +196,8 @@ func FromVirtualChannelSettlementProposalMsg(msg *client.VirtualChannelSettlemen
 func FromChannelUpdateAccMsg(msg *client.ChannelUpdateAccMsg) *Envelope_ChannelUpdateAccMsg {
 	protoMsg := &ChannelUpdateAccMsg{}
 
-	protoMsg.ChannelId, _ = FromIDs(msg.ChannelID)
+	protoMsg.ChannelId = make([]byte, len(msg.ChannelID))
+	copy(protoMsg.ChannelId, msg.ChannelID[:])
 	protoMsg.Sig = make([]byte, len(msg.Sig))
 	copy(protoMsg.Sig, msg.Sig)
 	protoMsg.Version = msg.Version
@@ -209,7 +207,8 @@ func FromChannelUpdateAccMsg(msg *client.ChannelUpdateAccMsg) *Envelope_ChannelU
 // FromChannelUpdateRejMsg converts a client.ChannelUpdateRejMsg to a protobuf Envelope_ChannelUpdateRejMsg.
 func FromChannelUpdateRejMsg(msg *client.ChannelUpdateRejMsg) *Envelope_ChannelUpdateRejMsg {
 	protoMsg := &ChannelUpdateRejMsg{}
-	protoMsg.ChannelId, _ = FromIDs(msg.ChannelID)
+	protoMsg.ChannelId = make([]byte, len(msg.ChannelID))
+	copy(protoMsg.ChannelId, msg.ChannelID[:])
 	protoMsg.Version = msg.Version
 	protoMsg.Reason = msg.Reason
 	return &Envelope_ChannelUpdateRejMsg{protoMsg}
@@ -262,7 +261,9 @@ func FromParams(params *channel.Params) (protoParams *Params, err error) {
 // FromState converts a channel.State to a protobuf State.
 func FromState(state *channel.State) (protoState *State, err error) {
 	protoState = &State{}
-	protoState.Id, _ = FromIDs(state.ID)
+
+	protoState.Id = make([]byte, len(state.ID))
+	copy(protoState.Id, state.ID[:])
 	protoState.Version = state.Version
 	protoState.IsFinal = state.IsFinal
 	protoState.Allocation, err = FromAllocation(state.Allocation)

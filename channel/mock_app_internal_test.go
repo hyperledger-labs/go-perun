@@ -17,8 +17,6 @@ package channel
 import (
 	"testing"
 
-	"perun.network/go-perun/wallet"
-
 	"github.com/stretchr/testify/assert"
 
 	wiretest "perun.network/go-perun/wire/test"
@@ -143,5 +141,5 @@ func MockActionAppTest(t *testing.T, app MockApp) {
 }
 
 func createState(op MockOp) *State {
-	return &State{ID: map[wallet.BackendID]ID{}, Version: 0, Allocation: Allocation{}, Data: NewMockOp(op), IsFinal: false}
+	return &State{ID: ID{}, Version: 0, Allocation: Allocation{}, Data: NewMockOp(op), IsFinal: false}
 }
