@@ -99,7 +99,7 @@ func (c *Client) validateVirtualChannelSettlementProposal(
 	prop *VirtualChannelSettlementProposalMsg,
 ) error {
 	// Validate parameters.
-	if !channel.EqualIDs(prop.Final.Params.ID(), prop.Final.State.ID) {
+	if prop.Final.Params.ID() != prop.Final.State.ID {
 		return errors.New("invalid parameters")
 	}
 

@@ -18,11 +18,10 @@ import (
 	"context"
 
 	"perun.network/go-perun/channel"
-	"perun.network/go-perun/wallet"
 )
 
 // Subscribe creates a new multi-ledger AdjudicatorSubscription.
-func (a *Adjudicator) Subscribe(ctx context.Context, chID map[wallet.BackendID]channel.ID) (channel.AdjudicatorSubscription, error) {
+func (a *Adjudicator) Subscribe(ctx context.Context, chID channel.ID) (channel.AdjudicatorSubscription, error) {
 	asub := &AdjudicatorSubscription{
 		events: make(chan channel.AdjudicatorEvent),
 		errors: make(chan error),

@@ -31,7 +31,7 @@ import (
 func TestEndpointChans(t *testing.T) {
 	assert := assert.New(t)
 	rng := pkgtest.Prng(t)
-	id := []map[wallet.BackendID]channel.ID{ctest.NewRandomChannelID(rng), ctest.NewRandomChannelID(rng)}
+	id := []channel.ID{ctest.NewRandomChannelID(rng), ctest.NewRandomChannelID(rng)}
 	ps := wiretest.NewRandomAddressesMap(rng, 3)
 
 	pc := make(peerChans)
