@@ -231,7 +231,7 @@ func (b *MockBackend) Progress(_ context.Context, req channel.ProgressReq) error
 func outcomeRecursive(state *channel.State, subStates channel.StateMap) (outcome channel.Balances) {
 	outcome = state.Balances.Clone()
 	for _, subAlloc := range state.Locked {
-		subOutcome := outcomeRecursive(subStates[subAlloc.ID], subStates)
+		subOutcome := outcomeRecursive(subStates[subAlloc.ID].State, subStates)
 		for a, bals := range subOutcome {
 			for p, bal := range bals {
 				_p := p
@@ -297,7 +297,7 @@ func (b *MockBackend) Withdraw(_ context.Context, req channel.AdjudicatorReq, su
 	states[0] = req.Tx.State
 	i := 1
 	for _, s := range subStates {
-		states[i] = s
+		states[i] = s.State
 		i++
 	}
 	if err := b.checkStates(states, checkWithdraw); err != nil {
