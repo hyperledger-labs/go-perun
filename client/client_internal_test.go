@@ -1,4 +1,4 @@
-// Copyright 2024 - See NOTICE file for copyright holders.
+// Copyright 2025 - See NOTICE file for copyright holders.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -28,7 +28,7 @@ func TestClient_Channel(t *testing.T) {
 	rng := test.Prng(t)
 	// dummy client that only has an id and a registry
 	c := &Client{
-		address:  wiretest.NewRandomAddressesMap(rng, 1)[0],
+		address:  wiretest.NewRandomAddress(rng),
 		channels: makeChanRegistry(),
 	}
 

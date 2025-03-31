@@ -1,4 +1,4 @@
-// Copyright 2024 - See NOTICE file for copyright holders.
+// Copyright 2025 - See NOTICE file for copyright holders.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -38,7 +38,7 @@ import (
 
 const (
 	roleOperationTimeout = 1 * time.Second
-	twoPartyTestTimeout  = 20 * time.Second
+	twoPartyTestTimeout  = 10 * time.Second
 )
 
 func NewSetups(rng *rand.Rand, names []string, bID wallet.BackendID) []ctest.RoleSetup {
@@ -55,7 +55,7 @@ func NewSetups(rng *rand.Rand, names []string, bID wallet.BackendID) []ctest.Rol
 			panic("Error initializing watcher: " + err.Error())
 		}
 		w := map[wallet.BackendID]wtest.Wallet{bID: wtest.NewWallet(bID)}
-		acc := w[0].NewRandomAccount(rng)
+		acc := w[bID].NewRandomAccount(rng)
 		setup[i] = ctest.RoleSetup{
 			Name:              names[i],
 			Identity:          wiretest.NewRandomAccountMap(rng, bID),
