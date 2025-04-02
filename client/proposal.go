@@ -127,24 +127,6 @@ func (r *ProposalResponder) Accept(ctx context.Context, acc ChannelProposalAccep
 	return r.client.handleChannelProposalAcc(ctx, r.peer, r.req, acc)
 }
 
-// SetEgoisticChain sets the egoistic chain flag for a given ledger.
-func (r *ProposalResponder) SetEgoisticChain(egoistic multi.LedgerBackendID, id int) {
-	mf, ok := r.client.funder.(*multi.Funder)
-	if !ok {
-		log.Panic("unexpected type for funder")
-	}
-	mf.SetEgoisticChain(egoistic, id, true)
-}
-
-// RemoveEgoisticChain removes the egoistic chain flag for a given ledger.
-func (r *ProposalResponder) RemoveEgoisticChain(egoistic multi.LedgerBackendID, id int) {
-	mf, ok := r.client.funder.(*multi.Funder)
-	if !ok {
-		log.Panic("unexpected type for funder")
-	}
-	mf.SetEgoisticChain(egoistic, id, false)
-}
-
 // Reject lets the user signal that they reject the channel proposal.
 // Returns whether the rejection message was successfully sent. Panics if the
 // proposal was already accepted or rejected.

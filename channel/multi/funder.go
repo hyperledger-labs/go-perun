@@ -30,17 +30,19 @@ type LedgerBackendKey struct {
 
 // Funder is a multi-ledger funder.
 // funders is a map of LedgerIDs corresponding to a funder on some chain.
-// egoisticChains is a map of LedgerIDs corresponding to a boolean indicating whether the chain should be funded last.
+// egoistic controls whether the funder uses the egoisticIndex to control the funding order.
+// egoisticIndex controls which participant index will fund last.
 type Funder struct {
-	funders        map[LedgerBackendKey]channel.Funder
-	egoisticChains map[LedgerBackendKey]bool
+	funders       map[LedgerBackendKey]channel.Funder
+	egoistic      bool
+	egoisticIndex int
 }
 
 // NewFunder creates a new funder.
 func NewFunder() *Funder {
 	return &Funder{
-		funders:        make(map[LedgerBackendKey]channel.Funder),
-		egoisticChains: make(map[LedgerBackendKey]bool),
+		funders:  make(map[LedgerBackendKey]channel.Funder),
+		egoistic: false,
 	}
 }
 
@@ -48,13 +50,12 @@ func NewFunder() *Funder {
 func (f *Funder) RegisterFunder(l LedgerBackendID, lf channel.Funder) {
 	key := LedgerBackendKey{BackendID: l.BackendID(), LedgerID: string(l.LedgerID().MapKey())}
 	f.funders[key] = lf
-	f.egoisticChains[key] = false
 }
 
-// SetEgoisticChain sets the egoistic chain flag for a given ledger.
-func (f *Funder) SetEgoisticChain(l LedgerBackendID, id int, egoistic bool) {
-	key := LedgerBackendKey{BackendID: l.BackendID(), LedgerID: string(l.LedgerID().MapKey())}
-	f.egoisticChains[key] = egoistic
+// SetEgoisticPart sets the egoistic chain flag for a given ledger.
+func (f *Funder) SetEgoisticPart(index int) {
+	f.egoisticIndex = index
+	f.egoistic = true
 }
 
 // Fund funds a multi-ledger channel. It dispatches funding calls to all
@@ -74,9 +75,8 @@ func (f *Funder) Fund(ctx context.Context, request channel.FundingReq) error {
 	var egoisticLedgers []LedgerBackendID
 	var nonEgoisticLedgers []LedgerBackendID
 
-	for _, l := range ledgerIDs {
-		key := LedgerBackendKey{BackendID: l.BackendID(), LedgerID: string(l.LedgerID().MapKey())}
-		if f.egoisticChains[key] {
+	for i, l := range ledgerIDs {
+		if f.egoistic && f.egoisticIndex == i {
 			egoisticLedgers = append(egoisticLedgers, l)
 		} else {
 			nonEgoisticLedgers = append(nonEgoisticLedgers, l)
@@ -128,6 +128,5 @@ func fundLedgers(ctx context.Context, request channel.FundingReq, assetIDs []Led
 			return err
 		}
 	}
-
 	return nil
 }
