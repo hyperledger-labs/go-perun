@@ -136,7 +136,7 @@ func WithNonce(share NonceShare) ProposalOpts {
 }
 
 // WithAux configures an auxiliary data field.
-func WithAux(aux []byte) ProposalOpts {
+func WithAux(aux channel.Aux) ProposalOpts {
 	return ProposalOpts{optNames.aux: aux}
 }
 

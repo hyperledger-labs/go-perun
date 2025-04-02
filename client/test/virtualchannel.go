@@ -301,6 +301,10 @@ func setupVirtualChannelTest(
 	if setup.IsUTXO {
 		// UTXO Chains need additional auxiliary data to be able to
 		// create a virtual channel.
+		var aux channel.Aux
+		copy(aux[:channel.IDLen], vct.parentIDs[0][:])
+		copy(aux[channel.IDLen:], vct.parentIDs[1][:])
+
 		vcp, err = client.NewVirtualChannelProposal(
 			setup.ChallengeDuration,
 			alice.WalletAddress,
@@ -308,7 +312,7 @@ func setupVirtualChannelTest(
 			[]wire.Address{alice.Identity.Address(), bob.Identity.Address()},
 			[]channel.ID{vct.chAliceIngrid.ID(), vct.chBobIngrid.ID()},
 			[][]channel.Index{indexMapAlice, indexMapBob},
-			client.WithAux(append(vct.parentIDs[0][:], vct.parentIDs[1][:]...)),
+			client.WithAux(aux),
 		)
 	} else {
 		vcp, err = client.NewVirtualChannelProposal(
