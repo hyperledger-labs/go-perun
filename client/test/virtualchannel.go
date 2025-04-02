@@ -39,6 +39,8 @@ type VirtualChannelSetup struct {
 	BalanceDelta       channel.Bal
 	Rng                *rand.Rand
 	WaitWatcherTimeout time.Duration
+	IsUTXO             bool
+	Aux                []byte
 }
 
 // TestVirtualChannelOptimistic tests virtual channel functionality in the
@@ -289,14 +291,30 @@ func setupVirtualChannelTest(
 	}
 	indexMapAlice := []channel.Index{0, 1}
 	indexMapBob := []channel.Index{1, 0}
-	vcp, err := client.NewVirtualChannelProposal(
-		setup.ChallengeDuration,
-		alice.WalletAddress,
-		&initAllocVirtual,
-		[]wire.Address{alice.Identity.Address(), bob.Identity.Address()},
-		[]channel.ID{vct.chAliceIngrid.ID(), vct.chBobIngrid.ID()},
-		[][]channel.Index{indexMapAlice, indexMapBob},
-	)
+
+	var vcp *client.VirtualChannelProposalMsg
+	if setup.IsUTXO {
+		// UTXO Chains need additional auxiliary data to be able to
+		// create a virtual channel.
+		vcp, err = client.NewVirtualChannelProposal(
+			setup.ChallengeDuration,
+			alice.WalletAddress,
+			&initAllocVirtual,
+			[]wire.Address{alice.Identity.Address(), bob.Identity.Address()},
+			[]channel.ID{vct.chAliceIngrid.ID(), vct.chBobIngrid.ID()},
+			[][]channel.Index{indexMapAlice, indexMapBob},
+			client.WithAux(setup.Aux),
+		)
+	} else {
+		vcp, err = client.NewVirtualChannelProposal(
+			setup.ChallengeDuration,
+			alice.WalletAddress,
+			&initAllocVirtual,
+			[]wire.Address{alice.Identity.Address(), bob.Identity.Address()},
+			[]channel.ID{vct.chAliceIngrid.ID(), vct.chBobIngrid.ID()},
+			[][]channel.Index{indexMapAlice, indexMapBob},
+		)
+	}
 	require.NoError(err, "creating virtual channel proposal")
 
 	vct.chAliceBob, err = alice.ProposeChannel(ctx, vcp)
