@@ -40,7 +40,6 @@ type VirtualChannelSetup struct {
 	Rng                *rand.Rand
 	WaitWatcherTimeout time.Duration
 	IsUTXO             bool
-	Aux                []byte
 }
 
 // TestVirtualChannelOptimistic tests virtual channel functionality in the
@@ -149,6 +148,8 @@ type virtualChannelTest struct {
 	errs               chan error
 	asset              channel.Asset
 	balancesBefore     channel.Balances
+	isUTXO             bool
+	parentIDs          [2]channel.ID
 }
 
 // VirtualChannelBalances contains a description of the balances that will be
@@ -180,6 +181,7 @@ func setupVirtualChannelTest(
 	vct.finalBalsAlice = setup.Balances.FinalBalsAlice
 	vct.finalBalsBob = setup.Balances.FinalBalsBob
 	vct.finalBalIngrid = new(big.Int).Add(vct.finalBalsAlice[1], vct.finalBalsBob[1])
+	vct.isUTXO = setup.IsUTXO
 
 	const errBufferLen = 10
 	vct.errs = make(chan error, errBufferLen)
@@ -292,6 +294,9 @@ func setupVirtualChannelTest(
 	indexMapAlice := []channel.Index{0, 1}
 	indexMapBob := []channel.Index{1, 0}
 
+	vct.parentIDs[0] = vct.chAliceIngrid.ID()
+	vct.parentIDs[1] = vct.chBobIngrid.ID()
+
 	var vcp *client.VirtualChannelProposalMsg
 	if setup.IsUTXO {
 		// UTXO Chains need additional auxiliary data to be able to
@@ -303,7 +308,7 @@ func setupVirtualChannelTest(
 			[]wire.Address{alice.Identity.Address(), bob.Identity.Address()},
 			[]channel.ID{vct.chAliceIngrid.ID(), vct.chBobIngrid.ID()},
 			[][]channel.Index{indexMapAlice, indexMapBob},
-			client.WithAux(setup.Aux),
+			client.WithAux(append(vct.parentIDs[0][:], vct.parentIDs[1][:]...)),
 		)
 	} else {
 		vcp, err = client.NewVirtualChannelProposal(

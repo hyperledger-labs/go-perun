@@ -46,6 +46,11 @@ const AuxMaxLen = 256
 // Aux is the channel parameters' auxiliary data type.
 type Aux = [AuxMaxLen]byte
 
+// ConvertIDToBytes converts an ID to a []byte slice.
+func ConvertIDToBytes(id ID) []byte {
+	return id[:]
+}
+
 // NonceFromBytes creates a nonce from a byte slice.
 func NonceFromBytes(b []byte) Nonce {
 	if len(b) > MaxNonceLen {

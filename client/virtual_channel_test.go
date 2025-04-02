@@ -66,7 +66,6 @@ func makeVirtualChannelSetup(rng *rand.Rand) ctest.VirtualChannelSetup {
 		Rng:                rng,
 		WaitWatcherTimeout: 100 * time.Millisecond,
 		IsUTXO:             false,
-		Aux:                nil,
 	}
 }
 
