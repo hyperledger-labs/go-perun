@@ -103,9 +103,20 @@ func TestVirtualChannelDispute( //nolint:revive // test.Test... stutters but OK 
 		time.Sleep(waitTimeout) // Sleep to ensure that events have been processed and local client states have been updated.
 	}
 
+	isSecondary := [2]bool{false, false}
+
 	// Settle the channels in a random order.
-	for _, i := range rand.Perm(len(chs)) {
-		err := chs[i].Settle(ctx, false)
+	perm = rand.Perm(len(chs))
+	t.Logf("Settle order = %v", perm)
+	for _, i := range perm {
+		var err error
+		if i < 2 {
+			err = chs[i].Settle(ctx, isSecondary[0])
+			isSecondary[0] = true
+		} else {
+			err = chs[i].Settle(ctx, isSecondary[1])
+			isSecondary[1] = true
+		}
 		assert.NoErrorf(err, "settle channel: %d", i)
 	}
 
