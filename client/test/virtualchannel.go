@@ -91,6 +91,8 @@ func TestVirtualChannelDispute( //nolint:revive // test.Test... stutters but OK 
 	assert := assert.New(t)
 	waitTimeout := setup.WaitWatcherTimeout
 
+	time.Sleep(waitTimeout) // Sleep to ensure that events have been processed and local client states have been updated.
+
 	chs := []*client.Channel{vct.chAliceIngrid, vct.chIngridAlice, vct.chBobIngrid, vct.chIngridBob}
 	// Register the channels in a random order.
 	perm := rand.Perm(len(chs))
