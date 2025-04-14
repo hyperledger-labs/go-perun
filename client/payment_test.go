@@ -19,11 +19,13 @@ import (
 	"math/big"
 	"math/rand"
 	"testing"
+	"time"
 
 	chtest "perun.network/go-perun/channel/test"
 	"perun.network/go-perun/client"
 	ctest "perun.network/go-perun/client/test"
 	"perun.network/go-perun/wire"
+	"polycry.pt/poly-go/test"
 	pkgtest "polycry.pt/poly-go/test"
 )
 
@@ -64,4 +66,46 @@ func TestPaymentDispute(t *testing.T) {
 		TxAmounts:   [2]*big.Int{big.NewInt(20), big.NewInt(0)},
 	}
 	ctest.ExecuteTwoPartyTest(ctx, t, roles, cfg)
+}
+
+func TestPaymentChannelsOptimistic(t *testing.T) {
+	rng := test.Prng(t)
+	ctx, cancel := context.WithTimeout(context.Background(), testDuration)
+	defer cancel()
+
+	setup := makePaymentChannelSetup(rng)
+	ctest.TestPaymentChannelOptimistic(ctx, t, setup)
+}
+
+func TestPaymentChannelsDispute(t *testing.T) {
+	rng := test.Prng(t)
+	ctx, cancel := context.WithTimeout(context.Background(), testDuration)
+	defer cancel()
+
+	setup := makePaymentChannelSetup(rng)
+	ctest.TestPaymentChannelDispute(ctx, t, setup)
+}
+
+func makePaymentChannelSetup(rng *rand.Rand) ctest.PaymentChannelSetup {
+	return ctest.PaymentChannelSetup{
+		Clients:           createPaymentChannelClients(rng),
+		ChallengeDuration: challengeDuration,
+		Asset:             chtest.NewRandomAsset(rng),
+		Balances: ctest.PaymentChannelBalances{
+			InitBalsAliceBob: []*big.Int{big.NewInt(5), big.NewInt(5)},
+			BalsUpdated:      []*big.Int{big.NewInt(2), big.NewInt(8)},
+			FinalBals:        []*big.Int{big.NewInt(2), big.NewInt(8)},
+		},
+		BalanceDelta:       big.NewInt(0),
+		Rng:                rng,
+		WaitWatcherTimeout: 100 * time.Millisecond,
+		IsUTXO:             true,
+	}
+}
+
+func createPaymentChannelClients(rng *rand.Rand) [2]ctest.RoleSetup {
+	var setupsArray [2]ctest.RoleSetup
+	setups := NewSetups(rng, []string{"Alice", "Bob"})
+	copy(setupsArray[:], setups)
+	return setupsArray
 }
