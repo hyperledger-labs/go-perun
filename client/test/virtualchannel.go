@@ -80,6 +80,14 @@ func TestVirtualChannelOptimistic( //nolint:revive // test.Test... stutters but 
 	assert.NoError(t, err, "Bob: invalid final balances")
 
 	// Close the parents.
+	err = vct.chIngridAlice.Update(ctx, func(s *channel.State) {
+		s.IsFinal = true
+	})
+	assert.NoError(t, err, "Alice: close channel")
+	vct.chIngridBob.Update(ctx, func(s *channel.State) {
+		s.IsFinal = true
+	})
+	assert.NoError(t, err, "Bob: close channel")
 	chs = []*client.Channel{vct.chAliceIngrid, vct.chIngridAlice, vct.chBobIngrid, vct.chIngridBob}
 	isSecondary := [2]bool{false, false}
 	perm := rand.Perm(len(chs))
@@ -335,6 +343,17 @@ func setupVirtualChannelTest(
 		}
 	}
 	go bob.Client.Handle(openingProposalHandlerBob, updateProposalHandlerBob)
+
+	// Setup Alice's handlers.
+	var updateProposalHandlerAlice client.UpdateHandlerFunc = func(
+		s *channel.State, cu client.ChannelUpdate, ur *client.UpdateResponder,
+	) {
+		err := ur.Accept(ctx)
+		if err != nil {
+			vct.errs <- errors.WithMessage(err, "Bob: accepting channel update")
+		}
+	}
+	go alice.Client.Handle(openingProposalHandlerBob, updateProposalHandlerAlice)
 
 	// Establish virtual channel between Alice and Bob via Ingrid.
 	initAllocVirtual := channel.Allocation{
