@@ -133,16 +133,13 @@ func TestPaymentChannelDispute( //nolint:revive // test.Test... stutters but OK 
 		time.Sleep(waitTimeout) // Sleep to ensure that events have been processed and local client states have been updated.
 	}
 
-	isSecondary := false
-
 	// Settle the channels in a random order.
+	isSecondary := false
 	perm = rand.Perm(len(chs))
 	t.Logf("Settle order = %v", perm)
 	for _, i := range perm {
-		var err error
-		err = chs[i].Settle(ctx, isSecondary)
+		err := chs[i].Settle(ctx, isSecondary)
 		isSecondary = true
-
 		assert.NoErrorf(err, "settle channel: %d", i)
 	}
 

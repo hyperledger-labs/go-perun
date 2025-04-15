@@ -78,6 +78,44 @@ func TestVirtualChannelOptimistic( //nolint:revive // test.Test... stutters but 
 	assert.NoError(t, err, "Alice: invalid final balances")
 	err = vct.chBobIngrid.State().Balances.AssertEqual(channel.Balances{vct.finalBalsBob})
 	assert.NoError(t, err, "Bob: invalid final balances")
+
+	// Close the parents.
+	chs = []*client.Channel{vct.chAliceIngrid, vct.chIngridAlice, vct.chBobIngrid, vct.chIngridBob}
+	isSecondary := [2]bool{false, false}
+	perm := rand.Perm(len(chs))
+	t.Logf("Settle order = %v", perm)
+	for _, i := range perm {
+		var err error
+		if i < 2 {
+			err = chs[i].Settle(ctx, isSecondary[0])
+			isSecondary[0] = true
+		} else {
+			err = chs[i].Settle(ctx, isSecondary[1])
+			isSecondary[1] = true
+		}
+		assert.NoErrorf(t, err, "settle channel: %d", i)
+	}
+
+	// Check final balances.
+	balancesAfter := channel.Balances{
+		{
+			vct.alice.BalanceReader.Balance(vct.asset),
+			vct.bob.BalanceReader.Balance(vct.asset),
+			vct.ingrid.BalanceReader.Balance(vct.asset),
+		},
+	}
+
+	balancesDiff := balancesAfter.Sub(vct.balancesBefore)
+	expectedBalancesDiff := channel.Balances{
+		{
+			new(big.Int).Sub(vct.finalBalsAlice[0], vct.initBalsAlice[0]),
+			new(big.Int).Sub(vct.finalBalsBob[0], vct.initBalsBob[0]),
+			big.NewInt(0),
+		},
+	}
+	balanceDelta := setup.BalanceDelta
+	eq := EqualBalancesWithDelta(expectedBalancesDiff, balancesDiff, balanceDelta)
+	assert.Truef(t, eq, "final ledger balances incorrect: expected balance difference %v +- %v, got %v", expectedBalancesDiff, balanceDelta, balancesDiff)
 }
 
 // TestVirtualChannelDispute tests virtual channel functionality in the dispute
@@ -103,9 +141,8 @@ func TestVirtualChannelDispute( //nolint:revive // test.Test... stutters but OK 
 		time.Sleep(waitTimeout) // Sleep to ensure that events have been processed and local client states have been updated.
 	}
 
-	isSecondary := [2]bool{false, false}
-
 	// Settle the channels in a random order.
+	isSecondary := [2]bool{false, false}
 	perm = rand.Perm(len(chs))
 	t.Logf("Settle order = %v", perm)
 	for _, i := range perm {
