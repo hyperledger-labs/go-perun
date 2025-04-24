@@ -1,4 +1,4 @@
-// Copyright 2020 - See NOTICE file for copyright holders.
+// Copyright 2025 - See NOTICE file for copyright holders.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -17,6 +17,8 @@ package channel_test
 import (
 	"testing"
 
+	"perun.network/go-perun/wallet"
+
 	"github.com/stretchr/testify/require"
 	"perun.network/go-perun/channel"
 	"perun.network/go-perun/channel/test"
@@ -27,14 +29,16 @@ import (
 func TestMachineClone(t *testing.T) {
 	rng := pkgtest.Prng(t)
 
-	acc := wtest.NewRandomAccount(rng)
-	params := *test.NewRandomParams(rng, test.WithFirstPart(acc.Address()))
+	acc := wtest.NewRandomAccountMapSlice(rng, channel.TestBackendID, 1)
+	params := *test.NewRandomParams(rng, test.WithFirstPart(map[wallet.BackendID]wallet.Address{channel.TestBackendID: acc[0][channel.TestBackendID].Address()}))
 
-	sm, err := channel.NewStateMachine(acc, params)
+	sm, err := channel.NewStateMachine(acc[0], params)
 	require.NoError(t, err)
-	pkgtest.VerifyClone(t, sm)
+	cloneSM := sm.Clone()
+	require.Equal(t, sm, cloneSM)
 
-	am, err := channel.NewActionMachine(acc, params)
+	am, err := channel.NewActionMachine(acc[0], params)
 	require.NoError(t, err)
-	pkgtest.VerifyClone(t, am)
+	cloneAM := am.Clone()
+	require.Equal(t, am, cloneAM)
 }

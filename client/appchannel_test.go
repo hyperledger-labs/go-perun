@@ -1,4 +1,4 @@
-// Copyright 2022 - See NOTICE file for copyright holders.
+// Copyright 2025 - See NOTICE file for copyright holders.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -19,6 +19,8 @@ import (
 	"math/big"
 	"testing"
 
+	"perun.network/go-perun/wallet"
+
 	"perun.network/go-perun/channel"
 	chtest "perun.network/go-perun/channel/test"
 	"perun.network/go-perun/client"
@@ -30,20 +32,21 @@ import (
 func TestProgression(t *testing.T) {
 	rng := pkgtest.Prng(t)
 
-	setups := NewSetups(rng, []string{"Paul", "Paula"})
+	setups := NewSetups(rng, []string{"Paul", "Paula"}, channel.TestBackendID)
 	roles := [2]clienttest.Executer{
 		clienttest.NewPaul(t, setups[0]),
 		clienttest.NewPaula(t, setups[1]),
 	}
 
-	appAddress := chtest.NewRandomAppID(rng)
+	appAddress := chtest.NewRandomAppID(rng, channel.TestBackendID)
 	app := channel.NewMockApp(appAddress)
 	channel.RegisterApp(app)
 
 	execConfig := &clienttest.ProgressionExecConfig{
 		BaseExecConfig: clienttest.MakeBaseExecConfig(
-			[2]wire.Address{setups[0].Identity.Address(), setups[1].Identity.Address()},
-			chtest.NewRandomAsset(rng),
+			[2]map[wallet.BackendID]wire.Address{wire.AddressMapfromAccountMap(setups[0].Identity), wire.AddressMapfromAccountMap(setups[1].Identity)},
+			chtest.NewRandomAsset(rng, channel.TestBackendID),
+			channel.TestBackendID,
 			[2]*big.Int{big.NewInt(99), big.NewInt(1)},
 			client.WithApp(app, channel.NewMockOp(channel.OpValid)),
 		),

@@ -1,4 +1,4 @@
-// Copyright 2020 - See NOTICE file for copyright holders.
+// Copyright 2025 - See NOTICE file for copyright holders.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -17,6 +17,8 @@ package client
 import (
 	"context"
 
+	"perun.network/go-perun/wallet"
+
 	"github.com/pkg/errors"
 
 	"perun.network/go-perun/channel"
@@ -24,7 +26,7 @@ import (
 	"perun.network/go-perun/wire"
 )
 
-type channelFromSourceSig = func(*Client, *persistence.Channel, *Channel, ...wire.Address) (*Channel, error)
+type channelFromSourceSig = func(*Client, *persistence.Channel, *Channel, ...map[wallet.BackendID]wire.Address) (*Channel, error)
 
 // clientChannelFromSource is the production behaviour of reconstructChannel.
 // During testing, it is replaced by a simpler function that needs much less
@@ -33,9 +35,9 @@ func clientChannelFromSource(
 	c *Client,
 	ch *persistence.Channel,
 	parent *Channel,
-	peers ...wire.Address,
+	peers ...map[wallet.BackendID]wire.Address,
 ) (*Channel, error) {
-	return c.channelFromSource(ch, parent, peers...)
+	return c.channelFromSource(ch, parent, peers)
 }
 
 func (c *Client) reconstructChannel(
@@ -66,7 +68,7 @@ func (c *Client) reconstructChannel(
 	return ch
 }
 
-func (c *Client) restorePeerChannels(ctx context.Context, p wire.Address) (err error) {
+func (c *Client) restorePeerChannels(ctx context.Context, p map[wallet.BackendID]wire.Address) (err error) {
 	it, err := c.pr.RestorePeer(p)
 	if err != nil {
 		return errors.WithMessagef(err, "restoring channels for peer: %v", err)

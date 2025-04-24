@@ -1,4 +1,4 @@
-// Copyright 2019 - See NOTICE file for copyright holders.
+// Copyright 2025 - See NOTICE file for copyright holders.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -19,6 +19,8 @@ import (
 	"io"
 	"strconv"
 
+	"perun.network/go-perun/wallet"
+
 	"github.com/pkg/errors"
 
 	"perun.network/go-perun/wire/perunio"
@@ -35,8 +37,8 @@ type (
 	// An Envelope encapsulates a message with routing information, that is, the
 	// sender and intended recipient.
 	Envelope struct {
-		Sender    Address // Sender of the message.
-		Recipient Address // Recipient of the message.
+		Sender    map[wallet.BackendID]Address // Sender of the message.
+		Recipient map[wallet.BackendID]Address // Recipient of the message.
 		// Msg contained in this Envelope. Not embedded so Envelope doesn't implement Msg.
 		Msg Msg
 	}

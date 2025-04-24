@@ -1,4 +1,4 @@
-// Copyright 2020 - See NOTICE file for copyright holders.
+// Copyright 2025 - See NOTICE file for copyright holders.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -23,6 +23,8 @@ import (
 	"strconv"
 	"strings"
 
+	"perun.network/go-perun/wallet"
+
 	"github.com/pkg/errors"
 
 	"perun.network/go-perun/channel"
@@ -32,7 +34,7 @@ import (
 )
 
 // ChannelCreated inserts a channel into the database.
-func (pr *PersistRestorer) ChannelCreated(_ context.Context, s channel.Source, peers []wire.Address, parent *channel.ID) error {
+func (pr *PersistRestorer) ChannelCreated(_ context.Context, s channel.Source, peers []map[wallet.BackendID]wire.Address, parent *channel.ID) error {
 	db := pr.channelDB(s.ID()).NewBatch()
 	// Write the channel data in the "Channel" table.
 	numParts := len(s.Params().Parts)
@@ -47,7 +49,7 @@ func (pr *PersistRestorer) ChannelCreated(_ context.Context, s channel.Source, p
 	}
 
 	// Write peers in the "Channel" table.
-	if err := dbPut(db, prefix.Peers, wire.AddressesWithLen(peers)); err != nil {
+	if err := dbPut(db, prefix.Peers, (*wire.AddressMapArray)(&peers)); err != nil {
 		return errors.WithMessage(err, "putting peers into channel table")
 	}
 
@@ -244,9 +246,9 @@ func decodeIdxFromDBKey(key string) (int, error) {
 	return strconv.Atoi(vals[len(vals)-1])
 }
 
-func peerChannelKey(p wire.Address, ch channel.ID) (string, error) {
+func peerChannelKey(p map[wallet.BackendID]wire.Address, ch channel.ID) (string, error) {
 	var key bytes.Buffer
-	if err := perunio.Encode(&key, p); err != nil {
+	if err := perunio.Encode(&key, wire.AddressDecMap(p)); err != nil {
 		return "", errors.WithMessage(err, "encoding peer address")
 	}
 	key.WriteString(":channel:")

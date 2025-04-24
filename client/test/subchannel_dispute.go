@@ -1,4 +1,4 @@
-// Copyright 2021 - See NOTICE file for copyright holders.
+// Copyright 2025 - See NOTICE file for copyright holders.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -58,7 +58,7 @@ func (r *DisputeSusie) exec(_cfg ExecConfig, ledgerChannel *paymentChannel) {
 	r.waitStage()
 
 	// Stage 2 - Open sub-channel.
-	subChannel := ledgerChannel.openSubChannel(rng, cfg, cfg.SubChannelFunds[:], client.WithoutApp())
+	subChannel := ledgerChannel.openSubChannel(rng, cfg, cfg.SubChannelFunds[:], client.WithoutApp(), _cfg.Backend())
 	subReq0 := client.NewTestChannel(subChannel.Channel).AdjudicatorReq() // Store AdjudicatorReq for version 0
 	r.waitStage()
 

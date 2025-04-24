@@ -1,4 +1,4 @@
-// Copyright 2020 - See NOTICE file for copyright holders.
+// Copyright 2025 - See NOTICE file for copyright holders.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -21,6 +21,8 @@ import (
 	"context"
 	"sync"
 	"testing"
+
+	"perun.network/go-perun/wallet"
 
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
@@ -57,7 +59,7 @@ func NewPersistRestorer(t *testing.T) *PersistRestorer {
 
 // ChannelCreated fully persists all of the source's data.
 func (pr *PersistRestorer) ChannelCreated(
-	_ context.Context, source channel.Source, peers []wire.Address, parent *channel.ID,
+	_ context.Context, source channel.Source, peers []map[wallet.BackendID]wire.Address, parent *channel.ID,
 ) error {
 	pr.mu.Lock()
 	defer pr.mu.Unlock()
@@ -182,7 +184,7 @@ func (pr *PersistRestorer) channel(id channel.ID) (*persistence.Channel, bool) {
 // Restorer implementation
 
 // ActivePeers returns all peers that channels are persisted for.
-func (pr *PersistRestorer) ActivePeers(context.Context) ([]wire.Address, error) {
+func (pr *PersistRestorer) ActivePeers(context.Context) ([]map[wallet.BackendID]wire.Address, error) {
 	pr.mu.RLock()
 	defer pr.mu.RUnlock()
 
@@ -191,7 +193,7 @@ func (pr *PersistRestorer) ActivePeers(context.Context) ([]wire.Address, error) 
 
 // RestorePeer returns an iterator over all persisted channels which
 // the given peer is a part of.
-func (pr *PersistRestorer) RestorePeer(peer wire.Address) (persistence.ChannelIterator, error) {
+func (pr *PersistRestorer) RestorePeer(peer map[wallet.BackendID]wire.Address) (persistence.ChannelIterator, error) {
 	pr.mu.RLock()
 	defer pr.mu.RUnlock()
 

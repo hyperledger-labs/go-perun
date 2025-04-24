@@ -1,4 +1,4 @@
-// Copyright 2020 - See NOTICE file for copyright holders.
+// Copyright 2025 - See NOTICE file for copyright holders.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -17,6 +17,8 @@ package persistence
 import (
 	"context"
 
+	"perun.network/go-perun/wallet"
+
 	"github.com/pkg/errors"
 
 	"perun.network/go-perun/channel"
@@ -32,10 +34,13 @@ type nonPersistRestorer struct{}
 
 // Persister implementation
 
-func (nonPersistRestorer) ChannelCreated(context.Context, channel.Source, []wire.Address, *channel.ID) error {
+func (nonPersistRestorer) ChannelCreated(context.Context, channel.Source, []map[wallet.BackendID]wire.Address, *channel.ID) error {
 	return nil
 }
-func (nonPersistRestorer) ChannelRemoved(context.Context, channel.ID) error              { return nil }
+
+func (nonPersistRestorer) ChannelRemoved(context.Context, channel.ID) error {
+	return nil
+}
 func (nonPersistRestorer) Staged(context.Context, channel.Source) error                  { return nil }
 func (nonPersistRestorer) SigAdded(context.Context, channel.Source, channel.Index) error { return nil }
 func (nonPersistRestorer) Enabled(context.Context, channel.Source) error                 { return nil }
@@ -44,13 +49,15 @@ func (nonPersistRestorer) Close() error                                         
 
 // Restorer implementation
 
-func (nonPersistRestorer) ActivePeers(context.Context) ([]wire.Address, error) { return nil, nil }
+func (nonPersistRestorer) ActivePeers(context.Context) ([]map[wallet.BackendID]wire.Address, error) {
+	return nil, nil
+}
 
 func (nonPersistRestorer) RestoreAll() (ChannelIterator, error) {
 	return emptyChanIterator{}, nil
 }
 
-func (nonPersistRestorer) RestorePeer(wire.Address) (ChannelIterator, error) {
+func (nonPersistRestorer) RestorePeer(map[wallet.BackendID]wire.Address) (ChannelIterator, error) {
 	return emptyChanIterator{}, nil
 }
 

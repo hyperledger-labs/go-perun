@@ -1,4 +1,4 @@
-// Copyright 2019 - See NOTICE file for copyright holders.
+// Copyright 2025 - See NOTICE file for copyright holders.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -16,6 +16,8 @@ package test
 
 import (
 	"math/rand"
+
+	"perun.network/go-perun/wallet"
 
 	"perun.network/go-perun/wire"
 )
@@ -43,8 +45,8 @@ func SetNewRandomAccount(f NewRandomAccountFunc) {
 }
 
 // NewRandomAddress returns a new random address.
-func NewRandomAddress(rng *rand.Rand) wire.Address {
-	return newRandomAddress(rng)
+func NewRandomAddress(rng *rand.Rand) map[wallet.BackendID]wire.Address {
+	return map[wallet.BackendID]wire.Address{TestBackendID: newRandomAddress(rng)}
 }
 
 // NewRandomAccount returns a new random account.
@@ -52,9 +54,14 @@ func NewRandomAccount(rng *rand.Rand) wire.Account {
 	return newRandomAccount(rng)
 }
 
-// NewRandomAddresses returns a slice of random peer addresses.
-func NewRandomAddresses(rng *rand.Rand, n int) []wire.Address {
-	addresses := make([]wire.Address, n)
+// NewRandomAccountMap returns a new random account.
+func NewRandomAccountMap(rng *rand.Rand, bID wallet.BackendID) map[wallet.BackendID]wire.Account {
+	return map[wallet.BackendID]wire.Account{bID: newRandomAccount(rng)}
+}
+
+// NewRandomAddressesMap returns a slice of random peer addresses.
+func NewRandomAddressesMap(rng *rand.Rand, n int) []map[wallet.BackendID]wire.Address {
+	addresses := make([]map[wallet.BackendID]wire.Address, n)
 	for i := range addresses {
 		addresses[i] = NewRandomAddress(rng)
 	}

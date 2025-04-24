@@ -1,4 +1,4 @@
-// Copyright 2019 - See NOTICE file for copyright holders.
+// Copyright 2025 - See NOTICE file for copyright holders.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -33,7 +33,7 @@ type ActionMachine struct {
 }
 
 // NewActionMachine creates a new ActionMachine.
-func NewActionMachine(acc wallet.Account, params Params) (*ActionMachine, error) {
+func NewActionMachine(acc map[wallet.BackendID]wallet.Account, params Params) (*ActionMachine, error) {
 	app, ok := params.App.(ActionApp)
 	if !ok {
 		return nil, errors.New("app must be ActionApp")

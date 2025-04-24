@@ -1,4 +1,4 @@
-// Copyright 2022 - See NOTICE file for copyright holders.
+// Copyright 2025 - See NOTICE file for copyright holders.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -42,8 +42,8 @@ func TestFailingFunding(t *testing.T) {
 			BalanceDelta:      big.NewInt(0),
 		},
 		func(r *rand.Rand) ([2]ctest.RoleSetup, channel.Asset) {
-			roles := NewSetups(rng, []string{"Frida", "Fred"})
-			asset := chtest.NewRandomAsset(rng)
+			roles := NewSetups(rng, []string{"Frida", "Fred"}, channel.TestBackendID)
+			asset := chtest.NewRandomAsset(rng, channel.TestBackendID)
 			return [2]ctest.RoleSetup{roles[0], roles[1]}, asset
 		},
 	)

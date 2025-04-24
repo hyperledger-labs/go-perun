@@ -1,4 +1,4 @@
-// Copyright 2020 - See NOTICE file for copyright holders.
+// Copyright 2025 - See NOTICE file for copyright holders.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -77,7 +77,7 @@ func (r *Susie) exec(_cfg ExecConfig, ledgerChannel *paymentChannel) {
 
 	// stage 2 - open subchannels
 	openSubChannel := func(parentChannel *paymentChannel, funds []*big.Int, app client.ProposalOpts) *paymentChannel {
-		return parentChannel.openSubChannel(rng, cfg, funds, app)
+		return parentChannel.openSubChannel(rng, cfg, funds, app, cfg.backend)
 	}
 
 	var subChannels []*paymentChannel

@@ -1,4 +1,4 @@
-// Copyright 2020 - See NOTICE file for copyright holders.
+// Copyright 2025 - See NOTICE file for copyright holders.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -17,6 +17,8 @@ package net
 import (
 	"context"
 
+	"perun.network/go-perun/wallet"
+
 	"perun.network/go-perun/wire"
 )
 
@@ -31,7 +33,7 @@ type Dialer interface {
 	//
 	// Dial needs to be reentrant, and concurrent calls to Close() must abort
 	// any ongoing Dial() calls.
-	Dial(ctx context.Context, addr wire.Address, ser wire.EnvelopeSerializer) (Conn, error)
+	Dial(ctx context.Context, addr map[wallet.BackendID]wire.Address, ser wire.EnvelopeSerializer) (Conn, error)
 	// Close aborts any ongoing calls to Dial().
 	//
 	// Close() needs to be reentrant, and repeated calls to Close() need to

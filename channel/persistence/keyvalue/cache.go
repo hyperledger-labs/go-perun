@@ -1,4 +1,4 @@
-// Copyright 2020 - See NOTICE file for copyright holders.
+// Copyright 2025 - See NOTICE file for copyright holders.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -22,7 +22,7 @@ import (
 	"perun.network/go-perun/wire"
 )
 
-//nolint:deadcode,unused
+//nolint:deadcode
 func newChannelCache() *channelCache {
 	return &channelCache{
 		peers:        make(map[channel.ID][]wire.Address),
@@ -31,14 +31,12 @@ func newChannelCache() *channelCache {
 }
 
 // channelCache contains all channels.
-//nolint:unused
 type channelCache struct {
 	mutex        stdsync.RWMutex
 	peers        map[channel.ID][]wire.Address      // Used when closing a channel.
 	peerChannels map[string]map[channel.ID]struct{} // Address -> Set<chID>
 }
 
-//nolint:unused
 func (c *channelCache) addPeerChannel(addr wire.Address, chID channel.ID) {
 	c.mutex.Lock()
 	defer c.mutex.Unlock()
@@ -58,7 +56,6 @@ func (c *channelCache) addPeerChannel(addr wire.Address, chID channel.ID) {
 	}
 }
 
-//nolint:unused
 func (c *channelCache) deleteChannel(id channel.ID) []wire.Address {
 	c.mutex.Lock()
 	defer c.mutex.Unlock()
@@ -81,7 +78,6 @@ func (c *channelCache) deleteChannel(id channel.ID) []wire.Address {
 	return peers
 }
 
-//nolint:unused
 func (c *channelCache) clear() {
 	c.mutex.Lock()
 	defer c.mutex.Unlock()

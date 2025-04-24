@@ -1,4 +1,4 @@
-// Copyright 2022 - See NOTICE file for copyright holders.
+// Copyright 2025 - See NOTICE file for copyright holders.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -17,6 +17,8 @@ package wire
 import (
 	"context"
 	"fmt"
+
+	"perun.network/go-perun/wallet"
 
 	"polycry.pt/poly-go/errors"
 	"polycry.pt/poly-go/sync/atomic"
@@ -88,7 +90,7 @@ func (b *hybridBus) Publish(ctx context.Context, e *Envelope) error {
 }
 
 // SubscribeClient subscribes an envelope consumer to all sub-buses.
-func (b *hybridBus) SubscribeClient(c Consumer, receiver Address) error {
+func (b *hybridBus) SubscribeClient(c Consumer, receiver map[wallet.BackendID]Address) error {
 	errg := errors.NewGatherer()
 	for _, bus := range b.buses {
 		errg.Add(bus.SubscribeClient(c, receiver))

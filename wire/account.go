@@ -1,4 +1,4 @@
-// Copyright 2019 - See NOTICE file for copyright holders.
+// Copyright 2025 - See NOTICE file for copyright holders.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -18,6 +18,8 @@ import (
 	"encoding/binary"
 	"fmt"
 	"io"
+
+	"perun.network/go-perun/wallet"
 )
 
 func init() {
@@ -37,6 +39,8 @@ type Account interface {
 	// Sign signs the given message with this account's private key.
 	Sign(msg []byte) ([]byte, error)
 }
+
+const testBackendID = 0
 
 var _ Msg = (*AuthResponseMsg)(nil)
 
@@ -80,12 +84,21 @@ func (m *AuthResponseMsg) Decode(r io.Reader) (err error) {
 }
 
 // NewAuthResponseMsg creates an authentication response message.
-func NewAuthResponseMsg(acc Account) (Msg, error) {
-	addressBytes, err := acc.Address().MarshalBinary()
-	if err != nil {
-		return nil, fmt.Errorf("failed to marshal address: %w", err)
+func NewAuthResponseMsg(acc map[wallet.BackendID]Account) (Msg, error) {
+	addressMap := make(map[wallet.BackendID]Address)
+	for id, a := range acc {
+		addressMap[id] = a.Address()
 	}
-	signature, err := acc.Sign(addressBytes)
+	var addressBytes []byte
+	addressBytes = append(addressBytes, byte(len(addressMap)))
+	for _, addr := range addressMap {
+		addrBytes, err := addr.MarshalBinary()
+		if err != nil {
+			return nil, fmt.Errorf("failed to marshal address: %w", err)
+		}
+		addressBytes = append(addressBytes, addrBytes...)
+	}
+	signature, err := acc[testBackendID].Sign(addressBytes)
 	if err != nil {
 		return nil, fmt.Errorf("failed to sign address: %w", err)
 	}

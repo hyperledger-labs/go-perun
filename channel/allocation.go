@@ -1,4 +1,4 @@
-// Copyright 2019 - See NOTICE file for copyright holders.
+// Copyright 2025 - See NOTICE file for copyright holders.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -19,6 +19,8 @@ import (
 	"io"
 	"log"
 	"math/big"
+
+	"perun.network/go-perun/wallet"
 
 	"perun.network/go-perun/wire/perunio"
 	perunbig "polycry.pt/poly-go/math/big"
@@ -62,6 +64,8 @@ type (
 	//
 	// Locked holds the locked allocations to sub-app-channels.
 	Allocation struct {
+		// Backends is the indexes to which backend the assets belong to
+		Backends []wallet.BackendID
 		// Assets are the asset types held in this channel
 		Assets []Asset
 		// Balances is the allocation of assets to the Params.Parts
@@ -98,6 +102,8 @@ type (
 		encoding.BinaryUnmarshaler
 		// Equal returns true iff this asset is equal to the given asset.
 		Equal(Asset) bool
+		// Address returns the address in string representation.
+		Address() []byte
 	}
 )
 
@@ -109,9 +115,10 @@ var (
 )
 
 // NewAllocation returns a new allocation for the given number of participants and assets.
-func NewAllocation(numParts int, assets ...Asset) *Allocation {
+func NewAllocation(numParts int, backends []wallet.BackendID, assets ...Asset) *Allocation {
 	return &Allocation{
 		Assets:   assets,
+		Backends: backends,
 		Balances: MakeBalances(len(assets), numParts),
 	}
 }
@@ -185,11 +192,13 @@ func (a *Allocation) NumParts() int {
 // Clone returns a deep copy of the Allocation object.
 // If it is nil, it returns nil.
 func (a Allocation) Clone() (clone Allocation) {
+	if a.Backends != nil {
+		clone.Backends = make([]wallet.BackendID, len(a.Backends))
+		copy(clone.Backends, a.Backends)
+	}
 	if a.Assets != nil {
 		clone.Assets = make([]Asset, len(a.Assets))
-		for i, asset := range a.Assets {
-			clone.Assets[i] = asset
-		}
+		copy(clone.Assets, a.Assets)
 	}
 
 	clone.Balances = a.Balances.Clone()
@@ -320,8 +329,11 @@ func (a Allocation) Encode(w io.Writer) error {
 		return err
 	}
 	// encode assets
-	for i, a := range a.Assets {
-		if err := perunio.Encode(w, a); err != nil {
+	for i, asset := range a.Assets {
+		if err := perunio.Encode(w, uint32(a.Backends[i])); err != nil {
+			return errors.WithMessagef(err, "encoding backends %d", i)
+		}
+		if err := perunio.Encode(w, asset); err != nil {
 			return errors.WithMessagef(err, "encoding asset %d", i)
 		}
 	}
@@ -352,8 +364,15 @@ func (a *Allocation) Decode(r io.Reader) error {
 	}
 	// decode assets
 	a.Assets = make([]Asset, numAssets)
+	a.Backends = make([]wallet.BackendID, numAssets)
 	for i := range a.Assets {
-		asset := NewAsset()
+		// decode backend index
+		var id uint32
+		if err := perunio.Decode(r, &id); err != nil {
+			return errors.WithMessagef(err, "decoding backend index for asset %d", i)
+		}
+		a.Backends[i] = wallet.BackendID(id)
+		asset := NewAsset(a.Backends[i])
 		if err := perunio.Decode(r, asset); err != nil {
 			return errors.WithMessagef(err, "decoding asset %d", i)
 		}
@@ -563,10 +582,7 @@ func (a *Allocation) RemoveSubAlloc(subAlloc SubAlloc) error {
 	for i := range a.Locked {
 		if subAlloc.Equal(&a.Locked[i]) == nil {
 			// remove element at index i
-			b := a.Locked
-			copy(b[i:], b[i+1:])
-			b[len(b)-1] = SubAlloc{}
-			a.Locked = b[:len(b)-1]
+			a.Locked = append(a.Locked[:i], a.Locked[i+1:]...)
 			return nil
 		}
 	}
@@ -579,6 +595,12 @@ func (a *Allocation) Equal(b *Allocation) error {
 	if a == b {
 		return nil
 	}
+
+	// Compare Backends
+	if err := AssertBackendsEqual(a.Backends, b.Backends); err != nil {
+		return errors.WithMessage(err, "comparing backends")
+	}
+
 	// Compare Assets
 	if err := AssertAssetsEqual(a.Assets, b.Assets); err != nil {
 		return errors.WithMessage(err, "comparing assets")
@@ -601,6 +623,21 @@ func AssertAssetsEqual(a []Asset, b []Asset) error {
 
 	for i, asset := range a {
 		if !asset.Equal(b[i]) {
+			return errors.Errorf("value mismatch at index %d", i)
+		}
+	}
+
+	return nil
+}
+
+// AssertBackendsEqual returns an error if the given assets are not equal.
+func AssertBackendsEqual(a []wallet.BackendID, b []wallet.BackendID) error {
+	if len(a) != len(b) {
+		return errors.New("length mismatch")
+	}
+
+	for i, bID := range a {
+		if !bID.Equal(b[i]) {
 			return errors.Errorf("value mismatch at index %d", i)
 		}
 	}

@@ -1,4 +1,4 @@
-// Copyright 2020 - See NOTICE file for copyright holders.
+// Copyright 2025 - See NOTICE file for copyright holders.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -110,7 +110,7 @@ type (
 	// protocol, possibly saving unnecessary double sending of transactions.
 	AdjudicatorReq struct {
 		Params    *Params
-		Acc       wallet.Account
+		Acc       map[wallet.BackendID]wallet.Account
 		Tx        Transaction
 		Idx       Index // Always the own index
 		Secondary bool  // Optimized secondary call protocol

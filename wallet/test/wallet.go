@@ -1,4 +1,4 @@
-// Copyright 2019 - See NOTICE file for copyright holders.
+// Copyright 2025 - See NOTICE file for copyright holders.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -49,7 +49,7 @@ func TestAccountWithWalletAndBackend(t *testing.T, s *Setup) { //nolint:revive /
 	// Check unlocked account
 	sig, err := acc.SignData(s.DataToSign)
 	assert.NoError(t, err, "Sign with unlocked account should succeed")
-	valid, err := s.Backend.VerifySignature(s.DataToSign, sig, acc.Address())
+	valid, err := s.Backend.VerifySignature(s.DataToSign, sig, s.AddressInWallet)
 	assert.True(t, valid, "Verification should succeed")
 	assert.NoError(t, err, "Verification should not produce error")
 
@@ -64,20 +64,20 @@ func TestAccountWithWalletAndBackend(t *testing.T, s *Setup) { //nolint:revive /
 	copy(tampered, sig)
 	// Invalidate the signature and check for error
 	tampered[0] = ^sig[0]
-	valid, err = s.Backend.VerifySignature(s.DataToSign, tampered, acc.Address())
+	valid, err = s.Backend.VerifySignature(s.DataToSign, tampered, s.AddressInWallet)
 	if valid && err == nil {
 		t.Error("Verification of invalid signature should produce error or return false")
 	}
 	// Truncate the signature and check for error
 	tampered = sig[:len(sig)-1]
-	valid, err = s.Backend.VerifySignature(s.DataToSign, tampered, acc.Address())
+	valid, err = s.Backend.VerifySignature(s.DataToSign, tampered, s.AddressInWallet)
 	if valid && err != nil {
 		t.Error("Verification of invalid signature should produce error or return false")
 	}
 	// Expand the signature and check for error
 	//nolint:gocritic
 	tampered = append(sig, 0)
-	valid, err = s.Backend.VerifySignature(s.DataToSign, tampered, acc.Address())
+	valid, err = s.Backend.VerifySignature(s.DataToSign, tampered, s.AddressInWallet)
 	if valid && err != nil {
 		t.Error("Verification of invalid signature should produce error or return false")
 	}

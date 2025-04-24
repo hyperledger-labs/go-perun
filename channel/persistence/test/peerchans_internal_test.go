@@ -1,4 +1,4 @@
-// Copyright 2020 - See NOTICE file for copyright holders.
+// Copyright 2025 - See NOTICE file for copyright holders.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -17,6 +17,8 @@ package test
 import (
 	"testing"
 
+	"perun.network/go-perun/wallet"
+
 	"github.com/stretchr/testify/assert"
 
 	"perun.network/go-perun/channel"
@@ -30,7 +32,7 @@ func TestEndpointChans(t *testing.T) {
 	assert := assert.New(t)
 	rng := pkgtest.Prng(t)
 	id := []channel.ID{ctest.NewRandomChannelID(rng), ctest.NewRandomChannelID(rng)}
-	ps := wiretest.NewRandomAddresses(rng, 3)
+	ps := wiretest.NewRandomAddressesMap(rng, 3)
 
 	pc := make(peerChans)
 	pc.Add(id[0], ps...)
@@ -43,7 +45,7 @@ func TestEndpointChans(t *testing.T) {
 	pc.Delete(id[0]) // p[1] should be deleted as id[0] was their only channel
 	assert.ElementsMatch(id[1:], pc.ID(ps[0]))
 	assert.ElementsMatch(id[1:], pc.ID(ps[2]))
-	assert.ElementsMatch([]wire.Address{ps[0], ps[2]}, pc.Peers())
+	assert.ElementsMatch([]map[wallet.BackendID]wire.Address{ps[0], ps[2]}, pc.Peers())
 	assert.Nil(pc.ID(ps[1]))
 
 	pc.Delete(id[1]) // now all peers should have been deleted

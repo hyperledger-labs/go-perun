@@ -1,4 +1,4 @@
-// Copyright 2019 - See NOTICE file for copyright holders.
+// Copyright 2025 - See NOTICE file for copyright holders.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -33,23 +33,22 @@ type backend struct{}
 var _ channel.Backend = new(backend)
 
 // CalcID calculates a channel's ID by hashing all fields of its parameters.
-func (*backend) CalcID(p *channel.Params) (id channel.ID) {
+func (*backend) CalcID(p *channel.Params) (id channel.ID, err error) {
 	w := sha256.New()
 
 	// Write Parts
-	for _, addr := range p.Parts {
-		if err := perunio.Encode(w, addr); err != nil {
-			log.Panic("Could not write to sha256 hasher")
-		}
-	}
-
-	err := perunio.Encode(w, p.Nonce, p.ChallengeDuration, channel.OptAppEnc{App: p.App}, p.LedgerChannel, p.VirtualChannel)
-	if err != nil {
+	if err := perunio.Encode(w, wallet.AddressMapArray{Addr: p.Parts}); err != nil {
 		log.Panic("Could not write to sha256 hasher")
 	}
 
+	err = perunio.Encode(w, p.Nonce, p.ChallengeDuration, channel.OptAppEnc{App: p.App}, p.LedgerChannel, p.VirtualChannel)
+	if err != nil {
+		return
+	}
+
 	if copy(id[:], w.Sum(nil)) != channel.IDLen {
-		log.Panic("Could not copy id")
+		err = errors.New("Could not copy id")
+		return
 	}
 	return
 }
@@ -83,7 +82,7 @@ func (b *backend) NewAsset() channel.Asset {
 
 // NewAppID returns an object of type AppID, which can be used for
 // unmarshalling an app identifier from its binary representation.
-func (b *backend) NewAppID() channel.AppID {
+func (b *backend) NewAppID() (channel.AppID, error) {
 	addr := &simwallet.Address{}
-	return AppID{addr}
+	return AppID{addr}, nil
 }

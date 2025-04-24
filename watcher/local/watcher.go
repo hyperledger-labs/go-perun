@@ -1,4 +1,4 @@
-// Copyright 2021 - See NOTICE file for copyright holders.
+// Copyright 2025 - See NOTICE file for copyright holders.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -186,7 +186,7 @@ func (w *Watcher) startWatching(
 
 	var statesPubSub *statesPubSub
 	var eventsToClientPubSub *adjudicatorPubSub
-	chInitializer := func() (*ch, error) {
+	chInitializer1 := func() (*ch, error) {
 		eventsFromChainSub, err := w.rs.Subscribe(ctx, id)
 		if err != nil {
 			return nil, errors.WithMessage(err, "subscribing to adjudicator events from blockchain")
@@ -197,7 +197,7 @@ func (w *Watcher) startWatching(
 		return newCh(id, parent, signedState.Params, eventsFromChainSub, eventsToClientPubSub, statesPubSub, multiLedger), nil
 	}
 
-	ch, err := w.registry.addIfSucceeds(id, chInitializer)
+	ch, err := w.registry.addIfSucceeds(id, chInitializer1)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -206,7 +206,7 @@ func (w *Watcher) startWatching(
 		Sigs:  signedState.Sigs,
 	}
 	ch.Go(func() { ch.handleStatesFromClient(initialTx) })
-	ch.Go(func() { ch.handleEventsFromChain(w.rs, w.registry) }) //nolint:contextcheck
+	ch.Go(func() { ch.handleEventsFromChain(w.rs, w.registry) })
 
 	return statesPubSub, eventsToClientPubSub, nil
 }

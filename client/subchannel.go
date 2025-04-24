@@ -1,4 +1,4 @@
-// Copyright 2020 - See NOTICE file for copyright holders.
+// Copyright 2025 - See NOTICE file for copyright holders.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -39,7 +39,7 @@ func (c *Channel) equalParticipants(_c *Channel) bool {
 	}
 
 	for i, _a := range a {
-		if !_a.Equal(b[i]) {
+		if !channel.EqualWireMaps(_a, b[i]) {
 			return false
 		}
 	}

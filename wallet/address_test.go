@@ -1,4 +1,4 @@
-// Copyright 2020 - See NOTICE file for copyright holders.
+// Copyright 2025 - See NOTICE file for copyright holders.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -27,8 +27,11 @@ import (
 	pkgtest "polycry.pt/poly-go/test"
 )
 
+// TestBackendID is the identifier for the simulated Backend.
+const TestBackendID = wallet.BackendID(0)
+
 type testAddresses struct {
-	addrs wallet.AddressesWithLen
+	addrs wallet.AddressMapArray
 }
 
 func (t *testAddresses) Encode(w io.Writer) error {
@@ -39,22 +42,36 @@ func (t *testAddresses) Decode(r io.Reader) error {
 	return t.addrs.Decode(r)
 }
 
+type testAddress struct {
+	addrs wallet.AddressDecMap
+}
+
+func (t *testAddress) Encode(w io.Writer) error {
+	return t.addrs.Encode(w)
+}
+
+func (t *testAddress) Decode(r io.Reader) error {
+	return t.addrs.Decode(r)
+}
+
 func TestAddresses_Serializer(t *testing.T) {
 	rng := pkgtest.Prng(t)
+	addr := wallettest.NewRandomAddressesMap(rng, 1, TestBackendID)[0]
+	peruniotest.GenericSerializerTest(t, &testAddress{addrs: addr})
 
-	addrs := wallettest.NewRandomAddresses(rng, 0)
-	peruniotest.GenericSerializerTest(t, &testAddresses{addrs})
+	addrs := wallettest.NewRandomAddressesMap(rng, 0, TestBackendID)
+	peruniotest.GenericSerializerTest(t, &testAddresses{addrs: wallet.AddressMapArray{Addr: addrs}})
 
-	addrs = wallettest.NewRandomAddresses(rng, 1)
-	peruniotest.GenericSerializerTest(t, &testAddresses{addrs})
+	addrs = wallettest.NewRandomAddressesMap(rng, 1, TestBackendID)
+	peruniotest.GenericSerializerTest(t, &testAddresses{addrs: wallet.AddressMapArray{Addr: addrs}})
 
-	addrs = wallettest.NewRandomAddresses(rng, 5)
-	peruniotest.GenericSerializerTest(t, &testAddresses{addrs})
+	addrs = wallettest.NewRandomAddressesMap(rng, 5, TestBackendID)
+	peruniotest.GenericSerializerTest(t, &testAddresses{addrs: wallet.AddressMapArray{Addr: addrs}})
 }
 
 func TestAddrKey_Equal(t *testing.T) {
 	rng := pkgtest.Prng(t)
-	addrs := wallettest.NewRandomAddresses(rng, 10)
+	addrs := wallettest.NewRandomAddressArray(rng, 10, TestBackendID)
 
 	// Test all properties of an equivalence relation.
 	for i, a := range addrs {
@@ -79,7 +96,7 @@ func TestAddrKey_Equal(t *testing.T) {
 
 func TestAddrKey(t *testing.T) {
 	rng := pkgtest.Prng(t)
-	addrs := wallettest.NewRandomAddresses(rng, 10)
+	addrs := wallettest.NewRandomAddressArray(rng, 10, TestBackendID)
 
 	for _, a := range addrs {
 		// Test that Key and FromKey are dual to each other.
@@ -91,7 +108,7 @@ func TestAddrKey(t *testing.T) {
 
 func TestCloneAddress(t *testing.T) {
 	rng := pkgtest.Prng(t)
-	addr := wallettest.NewRandomAddress(rng)
+	addr := wallettest.NewRandomAddress(rng, TestBackendID)
 	addr0 := wallet.CloneAddress(addr)
 	require.Equal(t, addr, addr0)
 	require.NotSame(t, addr, addr0)
@@ -99,7 +116,7 @@ func TestCloneAddress(t *testing.T) {
 
 func TestCloneAddresses(t *testing.T) {
 	rng := pkgtest.Prng(t)
-	addrs := wallettest.NewRandomAddresses(rng, 3)
+	addrs := wallettest.NewRandomAddressArray(rng, 3, TestBackendID)
 	addrs0 := wallet.CloneAddresses(addrs)
 	require.Equal(t, addrs, addrs0)
 	require.NotSame(t, addrs, addrs0)

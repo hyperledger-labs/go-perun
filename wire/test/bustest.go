@@ -1,4 +1,4 @@
-// Copyright 2020 - See NOTICE file for copyright holders.
+// Copyright 2025 - See NOTICE file for copyright holders.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -19,6 +19,8 @@ import (
 	"testing"
 	"time"
 
+	"perun.network/go-perun/wallet"
+
 	"github.com/stretchr/testify/require"
 
 	"perun.network/go-perun/wire"
@@ -26,7 +28,10 @@ import (
 )
 
 // timeout testNoReceive sub-test.
-const testNoReceiveTimeout = 10 * time.Millisecond
+const (
+	testNoReceiveTimeout = 10 * time.Millisecond
+	TestBackendID        = 0
+)
 
 // GenericBusTest tests the general functionality of a bus in the happy case: it
 // tests that messages sent over the bus arrive at the correct destination. The
@@ -38,7 +43,7 @@ const testNoReceiveTimeout = 10 * time.Millisecond
 // can either return the same bus twice, or separately select a bus to subscribe
 // the client to, and a bus the client should use for publishing messages.
 func GenericBusTest(t *testing.T,
-	busAssigner func(wire.Account) (pub wire.Bus, sub wire.Bus),
+	busAssigner func(map[wallet.BackendID]wire.Account) (pub wire.Bus, sub wire.Bus),
 	numClients, numMsgs int,
 ) {
 	t.Helper()
@@ -49,13 +54,13 @@ func GenericBusTest(t *testing.T,
 	type Client struct {
 		r        *wire.Relay
 		pub, sub wire.Bus
-		id       wire.Account
+		id       map[wallet.BackendID]wire.Account
 	}
 
 	clients := make([]Client, numClients)
 	for i := range clients {
 		clients[i].r = wire.NewRelay()
-		clients[i].id = NewRandomAccount(rng)
+		clients[i].id = NewRandomAccountMap(rng, TestBackendID)
 		clients[i].pub, clients[i].sub = busAssigner(clients[i].id)
 	}
 
@@ -95,14 +100,14 @@ func GenericBusTest(t *testing.T,
 				}
 				sender, recipient := sender, recipient
 				origEnv := &wire.Envelope{
-					Sender:    clients[sender].id.Address(),
-					Recipient: clients[recipient].id.Address(),
+					Sender:    wire.AddressMapfromAccountMap(clients[sender].id),
+					Recipient: wire.AddressMapfromAccountMap(clients[recipient].id),
 					Msg:       wire.NewPingMsg(),
 				}
 				// Only subscribe to the current sender.
 				recv := wire.NewReceiver()
 				err := clients[recipient].r.Subscribe(recv, func(e *wire.Envelope) bool {
-					return e.Sender.Equal(clients[sender].id.Address())
+					return equalMaps(e.Sender, wire.AddressMapfromAccountMap(clients[sender].id))
 				})
 				require.NoError(t, err)
 
@@ -139,7 +144,7 @@ func GenericBusTest(t *testing.T,
 	// publishing.
 	testPublishAndReceive(t, func() {
 		for i := range clients {
-			err := clients[i].sub.SubscribeClient(clients[i].r, clients[i].id.Address())
+			err := clients[i].sub.SubscribeClient(clients[i].r, wire.AddressMapfromAccountMap(clients[i].id))
 			require.NoError(t, err)
 		}
 	})
@@ -148,4 +153,16 @@ func GenericBusTest(t *testing.T,
 	// messages will be received if the subscription was in place before
 	// publishing.
 	testPublishAndReceive(t, func() {})
+}
+
+func equalMaps(a, b map[wallet.BackendID]wire.Address) bool {
+	if len(a) != len(b) {
+		return false
+	}
+	for k, v := range a {
+		if !v.Equal(b[k]) {
+			return false
+		}
+	}
+	return true
 }

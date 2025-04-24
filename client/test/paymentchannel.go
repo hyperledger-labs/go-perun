@@ -26,6 +26,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"perun.network/go-perun/channel"
 	"perun.network/go-perun/client"
+	"perun.network/go-perun/wallet"
 	"perun.network/go-perun/wire"
 )
 
@@ -223,8 +224,13 @@ func setupPaymentChannelTest(
 	go bob.Client.Handle(openingProposalHandlerBob, updateProposalHandlerBob)
 
 	// Establish ledger channel between Alice and Ingrid.
-	peersAlice := []wire.Address{alice.Identity.Address(), bob.Identity.Address()}
-	initAllocAlice := channel.NewAllocation(len(peersAlice), asset)
+	peersAlice := []map[wallet.BackendID]wire.Address{wire.AddressMapfromAccountMap(alice.Identity), wire.AddressMapfromAccountMap(bob.Identity)}
+	var bID wallet.BackendID
+	for i := range peersAlice[0] {
+		bID = i
+		break
+	}
+	initAllocAlice := channel.NewAllocation(len(peersAlice), []wallet.BackendID{bID}, asset)
 	initAllocAlice.SetAssetBalances(asset, []channel.Bal{pct.initBalsAlice, pct.initBalsBob})
 	lcpAlice, err := client.NewLedgerChannelProposal(
 		setup.ChallengeDuration,

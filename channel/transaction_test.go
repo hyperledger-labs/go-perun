@@ -1,4 +1,4 @@
-// Copyright 2020 - See NOTICE file for copyright holders.
+// Copyright 2025 - See NOTICE file for copyright holders.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -16,6 +16,8 @@ package channel_test
 
 import (
 	"testing"
+
+	"github.com/stretchr/testify/require"
 
 	"perun.network/go-perun/channel"
 	"perun.network/go-perun/channel/test"
@@ -83,5 +85,6 @@ func TestTransactionClone(t *testing.T) {
 	size := int(rng.Int31n(5)) + 2
 	testmask := newUniformBoolSlice(size, true)
 	tx := *test.NewRandomTransaction(rng, testmask)
-	pkgtest.VerifyClone(t, tx)
+	clone := tx.Clone()
+	require.Equalf(t, tx, clone, "Clone() = %v, want %v", clone, tx)
 }

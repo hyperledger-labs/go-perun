@@ -1,4 +1,4 @@
-// Copyright 2021 - See NOTICE file for copyright holders.
+// Copyright 2025 - See NOTICE file for copyright holders.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -90,7 +90,7 @@ func (c *Client) handleVirtualChannelFundingProposal(
 ) {
 	err := c.validateVirtualChannelFundingProposal(ch, prop)
 	if err != nil {
-		c.rejectProposal(responder, err.Error()) //nolint:contextcheck
+		c.rejectProposal(responder, err.Error())
 	}
 
 	ctx, cancel := context.WithTimeout(c.Ctx(), virtualFundingTimeout)
@@ -98,10 +98,10 @@ func (c *Client) handleVirtualChannelFundingProposal(
 
 	err = c.fundingWatcher.Await(ctx, prop)
 	if err != nil {
-		c.rejectProposal(responder, err.Error()) //nolint:contextcheck
+		c.rejectProposal(responder, err.Error())
 	}
 
-	c.acceptProposal(responder) //nolint:contextcheck
+	c.acceptProposal(responder)
 }
 
 func (c *Channel) watchVirtual() error {
@@ -163,14 +163,18 @@ func (a *dummyAccount) SignData([]byte) ([]byte, error) {
 
 const hubIndex = 0 // The hub's index in a virtual channel machine.
 
-func (c *Client) persistVirtualChannel(ctx context.Context, parent *Channel, peers []wire.Address, params channel.Params, state channel.State, sigs []wallet.Sig) (*Channel, error) {
+func (c *Client) persistVirtualChannel(ctx context.Context, parent *Channel, peers []map[wallet.BackendID]wire.Address, params channel.Params, state channel.State, sigs []wallet.Sig) (*Channel, error) {
 	cID := params.ID()
 	if _, err := c.Channel(cID); err == nil {
 		return nil, errors.New("channel already exists")
 	}
 
 	// We use a dummy account because we don't have the keys to the account.
-	ch, err := c.newChannel(&dummyAccount{params.Parts[hubIndex]}, parent, peers, params)
+	accs := make(map[wallet.BackendID]wallet.Account)
+	for i, part := range params.Parts[hubIndex] {
+		accs[i] = &dummyAccount{part}
+	}
+	ch, err := c.newChannel(accs, parent, peers, params)
 	if err != nil {
 		return nil, err
 	}
@@ -234,6 +238,7 @@ func (c *Channel) pushVirtualUpdate(ctx context.Context, state *channel.State, s
 	return err
 }
 
+//nolint:funlen
 func (c *Client) validateVirtualChannelFundingProposal(
 	ch *Channel,
 	prop *VirtualChannelFundingProposalMsg,
@@ -249,15 +254,17 @@ func (c *Client) validateVirtualChannelFundingProposal(
 
 	// Validate signatures.
 	for i, sig := range prop.Initial.Sigs {
-		ok, err := channel.Verify(
-			prop.Initial.Params.Parts[i],
-			prop.Initial.State,
-			sig,
-		)
-		if err != nil {
-			return err
-		} else if !ok {
-			return errors.New("invalid signature")
+		for _, part := range prop.Initial.Params.Parts[i] {
+			ok, err := channel.Verify(
+				part,
+				prop.Initial.State,
+				sig,
+			)
+			if err != nil {
+				return err
+			} else if !ok {
+				return errors.New("invalid signature")
+			}
 		}
 	}
 
@@ -284,6 +291,11 @@ func (c *Client) validateVirtualChannelFundingProposal(
 	// Assert equal assets.
 	if err := channel.AssertAssetsEqual(ch.state().Assets, prop.Initial.State.Assets); err != nil {
 		return errors.WithMessage(err, "assets do not match")
+	}
+
+	// Assert equal backends.
+	if err := channel.AssertBackendsEqual(ch.state().Backends, prop.Initial.State.Backends); err != nil {
+		return errors.WithMessage(err, "backends do not match")
 	}
 
 	// Assert sufficient funds in parent channel.
@@ -349,7 +361,7 @@ func (c *Client) matchFundingProposal(ctx context.Context, a, b interface{}) boo
 
 	go func() {
 		// The context will be derived from the channel context.
-		err := virtual.watchVirtual() //nolint:contextcheck
+		err := virtual.watchVirtual()
 		c.log.Debugf("channel %v: watcher stopped: %v", virtual.ID(), err)
 	}()
 	return true
@@ -379,8 +391,8 @@ func (c *Client) gatherChannels(props ...*VirtualChannelFundingProposalMsg) ([]*
 	return channels, nil
 }
 
-func (c *Client) gatherPeers(channels ...*Channel) (peers []wire.Address) {
-	peers = make([]wire.Address, len(channels))
+func (c *Client) gatherPeers(channels ...*Channel) (peers []map[wallet.BackendID]wire.Address) {
+	peers = make([]map[wallet.BackendID]wire.Address, len(channels))
 	for i, ch := range channels {
 		chPeers := ch.Peers()
 		if len(chPeers) != gatherNumPeers {

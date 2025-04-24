@@ -1,4 +1,4 @@
-// Copyright 2019 - See NOTICE file for copyright holders.
+// Copyright 2025 - See NOTICE file for copyright holders.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -35,12 +35,12 @@ import (
 //
 // Currently, only the two-party protocol is fully implemented.
 type Client struct {
-	address           wire.Address
+	address           map[wallet.BackendID]wire.Address
 	conn              clientConn
 	channels          chanRegistry
 	funder            channel.Funder
 	adjudicator       channel.Adjudicator
-	wallet            wallet.Wallet
+	wallet            map[wallet.BackendID]wallet.Wallet
 	pr                persistence.PersistRestorer
 	log               log.Logger // structured logger for this client
 	version1Cache     version1Cache
@@ -68,11 +68,11 @@ type Client struct {
 //
 // If any argument is nil, New panics.
 func New(
-	address wire.Address,
+	address map[wallet.BackendID]wire.Address,
 	bus wire.Bus,
 	funder channel.Funder,
 	adjudicator channel.Adjudicator,
-	wallet wallet.Wallet,
+	wallet map[wallet.BackendID]wallet.Wallet,
 	watcher watcher.Watcher,
 ) (c *Client, err error) {
 	if address == nil {
@@ -201,7 +201,7 @@ func (c *Client) SetLog(l log.Logger) {
 	c.log = l
 }
 
-func (c *Client) logPeer(p wire.Address) log.Logger {
+func (c *Client) logPeer(p map[wallet.BackendID]wire.Address) log.Logger {
 	return c.log.WithField("peer", p)
 }
 
@@ -220,7 +220,7 @@ func (c *Client) Restore(ctx context.Context) error {
 
 	var eg errgroup.Group
 	for _, p := range ps {
-		if p.Equal(c.address) {
+		if channel.EqualWireMaps(p, c.address) {
 			continue // skip own peer
 		}
 		p := p

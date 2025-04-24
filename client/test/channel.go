@@ -1,4 +1,4 @@
-// Copyright 2019 - See NOTICE file for copyright holders.
+// Copyright 2025 - See NOTICE file for copyright holders.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -20,6 +20,8 @@ import (
 	"io"
 	"math/big"
 	"time"
+
+	"perun.network/go-perun/wallet"
 
 	"perun.network/go-perun/channel"
 	"perun.network/go-perun/client"
@@ -64,10 +66,12 @@ func (ch *paymentChannel) openSubChannel(
 	cfg ExecConfig,
 	initBals []*big.Int,
 	app client.ProposalOpts,
+	bID wallet.BackendID,
 ) *paymentChannel {
 	initAlloc := channel.Allocation{
 		Assets:   []channel.Asset{cfg.Asset()},
-		Balances: [][]channel.Bal{[]*big.Int{initBals[0], initBals[1]}},
+		Backends: []wallet.BackendID{bID},
+		Balances: [][]channel.Bal{{initBals[0], initBals[1]}},
 	}
 
 	prop := ch.r.SubChannelProposal(rng, cfg, ch.Channel, &initAlloc, app)

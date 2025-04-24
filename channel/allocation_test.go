@@ -1,4 +1,4 @@
-// Copyright 2019 - See NOTICE file for copyright holders.
+// Copyright 2025 - See NOTICE file for copyright holders.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -18,6 +18,8 @@ import (
 	"math/big"
 	"math/rand"
 	"testing"
+
+	"perun.network/go-perun/wallet"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -270,11 +272,15 @@ func TestAllocationValidLimits(t *testing.T) {
 	for ti, x := range inputs {
 		allocation := &channel.Allocation{
 			Assets:   make([]channel.Asset, x.numAssets),
+			Backends: make([]wallet.BackendID, x.numAssets),
 			Balances: make(channel.Balances, x.numAssets),
 			Locked:   make([]channel.SubAlloc, x.numSuballocations),
 		}
 
 		allocation.Assets = test.NewRandomAssets(rng, test.WithNumAssets(x.numAssets))
+		for i := range allocation.Assets {
+			allocation.Backends[i] = channel.TestBackendID
+		}
 
 		for i := range allocation.Balances {
 			for j := range allocation.Balances[i] {

@@ -1,4 +1,4 @@
-// Copyright 2019 - See NOTICE file for copyright holders.
+// Copyright 2025 - See NOTICE file for copyright holders.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -19,6 +19,8 @@ import (
 	"log"
 	"time"
 
+	"perun.network/go-perun/wallet"
+
 	"github.com/pkg/errors"
 
 	"perun.network/go-perun/channel"
@@ -32,7 +34,7 @@ var syncReplyTimeout = 10 * time.Second
 // exists, it just sends the current channel data to the requester. If the
 // own channel is in the Signing phase, the ongoing update is discarded so that
 // the channel is reverted to the Acting phase.
-func (c *Client) handleSyncMsg(peer wire.Address, msg *ChannelSyncMsg) {
+func (c *Client) handleSyncMsg(peer map[wallet.BackendID]wire.Address, msg *ChannelSyncMsg) {
 	log := c.logChan(msg.ID()).WithField("peer", peer)
 	ch, ok := c.channels.Channel(msg.ID())
 	if !ok {
@@ -67,8 +69,7 @@ func (c *Client) handleSyncMsg(peer wire.Address, msg *ChannelSyncMsg) {
 
 // syncChannel synchronizes the channel state with the given peer and modifies
 // the current state if required.
-// nolint:unused
-func (c *Client) syncChannel(ctx context.Context, ch *persistence.Channel, p wire.Address) (err error) {
+func (c *Client) syncChannel(ctx context.Context, ch *persistence.Channel, p map[wallet.BackendID]wire.Address) (err error) {
 	recv := wire.NewReceiver()
 	defer recv.Close() // ignore error
 	id := ch.ID()
@@ -117,7 +118,8 @@ func (c *Client) syncChannel(ctx context.Context, ch *persistence.Channel, p wir
 }
 
 // validateMessage validates the remote channel sync message.
-// nolint:unused, nestif
+//
+//nolint:nestif
 func validateMessage(ch *persistence.Channel, msg *ChannelSyncMsg) error {
 	v := ch.CurrentTX().Version
 	mv := msg.CurrentTX.Version
@@ -135,19 +137,20 @@ func validateMessage(ch *persistence.Channel, msg *ChannelSyncMsg) error {
 			return errors.New("sigs length mismatch")
 		}
 		for i, sig := range msg.CurrentTX.Sigs {
-			ok, err := channel.Verify(ch.Params().Parts[i], msg.CurrentTX.State, sig)
-			if err != nil {
-				return errors.WithMessagef(err, "validating sig %d", i)
-			}
-			if !ok {
-				return errors.Errorf("invalid sig %d", i)
+			for _, p := range ch.Params().Parts[i] {
+				ok, err := channel.Verify(p, msg.CurrentTX.State, sig)
+				if err != nil {
+					return errors.WithMessagef(err, "validating sig %d", i)
+				}
+				if !ok {
+					return errors.Errorf("invalid sig %d", i)
+				}
 			}
 		}
 	}
 	return nil
 }
 
-// nolint:unused
 func revisePhase(ch *persistence.Channel) error {
 	//nolint:gocritic
 	if ch.PhaseV <= channel.Funding && ch.CurrentTXV.Version == 0 {

@@ -1,4 +1,4 @@
-// Copyright 2020 - See NOTICE file for copyright holders.
+// Copyright 2025 - See NOTICE file for copyright holders.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -17,6 +17,8 @@ package net_test
 import (
 	"testing"
 
+	"perun.network/go-perun/wallet"
+
 	"github.com/stretchr/testify/assert"
 
 	"perun.network/go-perun/wire"
@@ -32,10 +34,10 @@ func TestBus(t *testing.T) {
 
 	var hub nettest.ConnHub
 
-	wiretest.GenericBusTest(t, func(acc wire.Account) (wire.Bus, wire.Bus) {
+	wiretest.GenericBusTest(t, func(acc map[wallet.BackendID]wire.Account) (wire.Bus, wire.Bus) {
 		bus := net.NewBus(acc, hub.NewNetDialer(), perunio.Serializer())
 		hub.OnClose(func() { bus.Close() })
-		go bus.Listen(hub.NewNetListener(acc.Address()))
+		go bus.Listen(hub.NewNetListener(wire.AddressMapfromAccountMap(acc)))
 		return bus, bus
 	}, numClients, numMsgs)
 

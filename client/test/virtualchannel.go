@@ -1,4 +1,4 @@
-// Copyright 2022 - See NOTICE file for copyright holders.
+// Copyright 2025 - See NOTICE file for copyright holders.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -26,6 +26,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"perun.network/go-perun/channel"
 	"perun.network/go-perun/client"
+	"perun.network/go-perun/wallet"
 	"perun.network/go-perun/wire"
 	"polycry.pt/poly-go/sync"
 )
@@ -279,8 +280,13 @@ func setupVirtualChannelTest(
 	go ingrid.Client.Handle(openingProposalHandlerIngrid, updateProposalHandlerIngrid)
 
 	// Establish ledger channel between Alice and Ingrid.
-	peersAlice := []wire.Address{alice.Identity.Address(), ingrid.Identity.Address()}
-	initAllocAlice := channel.NewAllocation(len(peersAlice), asset)
+	peersAlice := []map[wallet.BackendID]wire.Address{wire.AddressMapfromAccountMap(alice.Identity), wire.AddressMapfromAccountMap(ingrid.Identity)}
+	var bID wallet.BackendID
+	for i := range peersAlice[0] {
+		bID = i
+		break
+	}
+	initAllocAlice := channel.NewAllocation(len(peersAlice), []wallet.BackendID{bID}, asset)
 	initAllocAlice.SetAssetBalances(asset, vct.initBalsAlice)
 	lcpAlice, err := client.NewLedgerChannelProposal(
 		setup.ChallengeDuration,
@@ -299,8 +305,8 @@ func setupVirtualChannelTest(
 	}
 
 	// Establish ledger channel between Bob and Ingrid.
-	peersBob := []wire.Address{bob.Identity.Address(), ingrid.Identity.Address()}
-	initAllocBob := channel.NewAllocation(len(peersBob), asset)
+	peersBob := []map[wallet.BackendID]wire.Address{wire.AddressMapfromAccountMap(bob.Identity), wire.AddressMapfromAccountMap(ingrid.Identity)}
+	initAllocBob := channel.NewAllocation(len(peersBob), []wallet.BackendID{bID}, asset)
 	initAllocBob.SetAssetBalances(asset, vct.initBalsBob)
 	lcpBob, err := client.NewLedgerChannelProposal(
 		setup.ChallengeDuration,
@@ -345,20 +351,36 @@ func setupVirtualChannelTest(
 	go bob.Client.Handle(openingProposalHandlerBob, updateProposalHandlerBob)
 
 	// Setup Alice's handlers.
+	channelsAlice := make(chan *client.Channel, 1)
+	var openingProposalHandlerAlice client.ProposalHandlerFunc = func(
+		cp client.ChannelProposal, pr *client.ProposalResponder,
+	) {
+		switch cp := cp.(type) {
+		case *client.VirtualChannelProposalMsg:
+			ch, err := pr.Accept(ctx, cp.Accept(bob.WalletAddress))
+			if err != nil {
+				vct.errs <- errors.WithMessage(err, "accepting virtual channel proposal")
+			}
+			channelsAlice <- ch
+		default:
+			vct.errs <- errors.Errorf("invalid channel proposal: %v", cp)
+		}
+	}
 	var updateProposalHandlerAlice client.UpdateHandlerFunc = func(
 		s *channel.State, cu client.ChannelUpdate, ur *client.UpdateResponder,
 	) {
 		err := ur.Accept(ctx)
 		if err != nil {
-			vct.errs <- errors.WithMessage(err, "Bob: accepting channel update")
+			vct.errs <- errors.WithMessage(err, "Alice: accepting channel update")
 		}
 	}
-	go alice.Client.Handle(openingProposalHandlerBob, updateProposalHandlerAlice)
+	go alice.Client.Handle(openingProposalHandlerAlice, updateProposalHandlerAlice)
 
 	// Establish virtual channel between Alice and Bob via Ingrid.
 	initAllocVirtual := channel.Allocation{
 		Assets:   []channel.Asset{asset},
 		Balances: [][]channel.Bal{initBalsVirtual},
+		Backends: []wallet.BackendID{bID},
 	}
 	indexMapAlice := []channel.Index{0, 1}
 	indexMapBob := []channel.Index{1, 0}
@@ -378,7 +400,7 @@ func setupVirtualChannelTest(
 			setup.ChallengeDuration,
 			alice.WalletAddress,
 			&initAllocVirtual,
-			[]wire.Address{alice.Identity.Address(), bob.Identity.Address()},
+			[]map[wallet.BackendID]wire.Address{wire.AddressMapfromAccountMap(alice.Identity), wire.AddressMapfromAccountMap(bob.Identity)},
 			[]channel.ID{vct.chAliceIngrid.ID(), vct.chBobIngrid.ID()},
 			[][]channel.Index{indexMapAlice, indexMapBob},
 			client.WithAux(aux),
@@ -388,7 +410,7 @@ func setupVirtualChannelTest(
 			setup.ChallengeDuration,
 			alice.WalletAddress,
 			&initAllocVirtual,
-			[]wire.Address{alice.Identity.Address(), bob.Identity.Address()},
+			[]map[wallet.BackendID]wire.Address{wire.AddressMapfromAccountMap(alice.Identity), wire.AddressMapfromAccountMap(bob.Identity)},
 			[]channel.ID{vct.chAliceIngrid.ID(), vct.chBobIngrid.ID()},
 			[][]channel.Index{indexMapAlice, indexMapBob},
 		)

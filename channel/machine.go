@@ -1,4 +1,4 @@
-// Copyright 2019 - See NOTICE file for copyright holders.
+// Copyright 2025 - See NOTICE file for copyright holders.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -130,7 +130,7 @@ var signingPhases = []Phase{InitSigning, Signing, Progressing}
 // individually.
 type machine struct {
 	phase     Phase
-	acc       wallet.Account `cloneable:"shallow"`
+	acc       map[wallet.BackendID]wallet.Account `cloneable:"shallow"`
 	idx       Index
 	params    Params
 	stagingTX Transaction
@@ -142,8 +142,8 @@ type machine struct {
 }
 
 // newMachine returns a new uninitialized machine for the given parameters.
-func newMachine(acc wallet.Account, params Params) (*machine, error) {
-	idx := wallet.IndexOfAddr(params.Parts, acc.Address())
+func newMachine(acc map[wallet.BackendID]wallet.Account, params Params) (*machine, error) {
+	idx := wallet.IndexOfAddrs(params.Parts, AddressMapfromAccountMap(acc))
 	if idx < 0 {
 		return nil, errors.New("account not part of participant set")
 	}
@@ -157,7 +157,7 @@ func newMachine(acc wallet.Account, params Params) (*machine, error) {
 	}, nil
 }
 
-func restoreMachine(acc wallet.Account, source Source) (*machine, error) {
+func restoreMachine(acc map[wallet.BackendID]wallet.Account, source Source) (*machine, error) {
 	m, err := newMachine(acc, *source.Params())
 	if err != nil {
 		return nil, err
@@ -174,7 +174,7 @@ func (m *machine) ID() ID {
 }
 
 // Account returns the account this channel is using for signing state updates.
-func (m *machine) Account() wallet.Account {
+func (m *machine) Account() map[wallet.BackendID]wallet.Account {
 	return m.acc
 }
 
@@ -224,11 +224,13 @@ func (m *machine) Sig() (sig wallet.Sig, err error) {
 	}
 
 	if m.stagingTX.Sigs[m.idx] == nil {
-		sig, err = Sign(m.acc, m.stagingTX.State)
-		if err != nil {
-			return
+		for b, acc := range m.acc {
+			sig, err = Sign(acc, m.stagingTX.State, b)
+			if err == nil {
+				m.stagingTX.Sigs[m.idx] = sig
+				return sig, nil
+			}
 		}
-		m.stagingTX.Sigs[m.idx] = sig
 	} else {
 		sig = m.stagingTX.Sigs[m.idx]
 	}
@@ -289,11 +291,12 @@ func (m *machine) AddSig(idx Index, sig wallet.Sig) error {
 	if m.stagingTX.Sigs[idx] != nil {
 		return errors.Errorf("signature for idx %d already present (ID: %x)", idx, m.params.id)
 	}
-
-	if ok, err := Verify(m.params.Parts[idx], m.stagingTX.State, sig); err != nil {
-		return err
-	} else if !ok {
-		return errors.Errorf("invalid signature for idx %d (ID: %x)", idx, m.params.id)
+	for _, add := range m.params.Parts[idx] {
+		if ok, err := Verify(add, m.stagingTX.State, sig); err != nil {
+			return err
+		} else if !ok {
+			return errors.Errorf("invalid signature for idx %d (ID: %x)", idx, m.params.id)
+		}
 	}
 
 	m.stagingTX.Sigs[idx] = sig
@@ -571,4 +574,13 @@ func (m *machine) addTx(tx *Transaction) {
 func (m *machine) forceState(p Phase, s *State) {
 	m.setPhase(p)
 	m.addTx(m.newTransaction(s))
+}
+
+// AddressMapfromAccountMap returns a map of addresses from a map of accounts.
+func AddressMapfromAccountMap(accs map[wallet.BackendID]wallet.Account) map[wallet.BackendID]wallet.Address {
+	addresses := make(map[wallet.BackendID]wallet.Address)
+	for id, a := range accs {
+		addresses[id] = a.Address()
+	}
+	return addresses
 }

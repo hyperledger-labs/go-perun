@@ -1,4 +1,4 @@
-// Copyright 2022 - See NOTICE file for copyright holders.
+// Copyright 2025 - See NOTICE file for copyright holders.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -17,6 +17,8 @@ package test
 import (
 	"context"
 	"testing"
+
+	"perun.network/go-perun/wallet"
 
 	"github.com/stretchr/testify/require"
 	"perun.network/go-perun/channel"
@@ -41,8 +43,8 @@ func TestMultiLedgerHappy(ctx context.Context, t *testing.T, mlt MultiLedgerSetu
 	// Establish ledger channel between Alice and Bob.
 
 	// Create channel proposal.
-	parts := []wire.Address{alice.WireAddress, bob.WireAddress}
-	initAlloc := channel.NewAllocation(len(parts), mlt.Asset1, mlt.Asset2)
+	parts := []map[wallet.BackendID]wire.Address{alice.WireAddress, bob.WireAddress}
+	initAlloc := channel.NewAllocation(len(parts), []wallet.BackendID{wallet.BackendID(mlt.Asset1.LedgerBackendID().BackendID()), wallet.BackendID(mlt.Asset2.LedgerBackendID().BackendID())}, mlt.Asset1, mlt.Asset2)
 	initAlloc.Balances = initBals
 	prop, err := client.NewLedgerChannelProposal(
 		challengeDuration,
