@@ -15,6 +15,7 @@
 package test
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"math/big"
@@ -29,10 +30,10 @@ var (
 	// It is set to 2 ^ 128 - 1 since when 2 ^ 256 - 1 is used, the faucet
 	// key is depleted.
 	// The production limit can be found in `go-perun/channel.MaxBalance`.
-	MaxBalance = new(big.Int).Sub(new(big.Int).Lsh(big.NewInt(1), 128), big.NewInt(1)) //nolint:gomnd
+	MaxBalance = new(big.Int).Sub(new(big.Int).Lsh(big.NewInt(1), 128), big.NewInt(1)) //nolint:mnd
 
 	// Highest balance that is returned by NewRandomBal. Set to MaxBalance / 2^30.
-	maxRandomBalance = new(big.Int).Rsh(MaxBalance, 30) //nolint:gomnd
+	maxRandomBalance = new(big.Int).Rsh(MaxBalance, 30) //nolint:mnd
 )
 
 const (
@@ -112,8 +113,8 @@ func WithBalances(balances ...[]channel.Bal) RandomOpt {
 }
 
 // WithBalancesInRange sets the range within which balances are randomly generated to [min, max].
-func WithBalancesInRange(min, max channel.Bal) RandomOpt {
-	return RandomOpt{"balanceRange": []channel.Bal{min, max}}
+func WithBalancesInRange(balanceMin, balanceMax channel.Bal) RandomOpt {
+	return RandomOpt{"balanceRange": []channel.Bal{balanceMin, balanceMax}}
 }
 
 // WithChallengeDuration sets the `ChallengeDuration` that should be used.
@@ -309,7 +310,7 @@ func (o RandomOpt) Assets() []channel.Asset {
 // Backend returns the `Backend` value of the `RandomOpt`.
 func (o RandomOpt) Backend() (wallet.BackendID, error) {
 	if _, ok := o["backend"]; !ok {
-		return 0, fmt.Errorf("backend not set")
+		return 0, errors.New("backend not set")
 	}
 	return o["backend"].(wallet.BackendID), nil
 }
@@ -317,7 +318,7 @@ func (o RandomOpt) Backend() (wallet.BackendID, error) {
 // BackendID returns the `BackendID` value  from `Allocation` of the `RandomOpt`.
 func (o RandomOpt) BackendID() ([]wallet.BackendID, error) {
 	if _, ok := o["backendIDs"]; !ok {
-		return []wallet.BackendID{0}, fmt.Errorf("backend not set")
+		return []wallet.BackendID{0}, errors.New("backend not set")
 	}
 	return o["backendIDs"].([]wallet.BackendID), nil
 }
@@ -333,7 +334,7 @@ func (o RandomOpt) Balances() channel.Balances {
 
 // BalancesRange returns the `BalancesRange` value of the `RandomOpt`.
 // If not present, returns nil,nil.
-func (o RandomOpt) BalancesRange() (min, max channel.Bal) {
+func (o RandomOpt) BalancesRange() (balanceMin, balanceMax channel.Bal) {
 	if _, ok := o["balanceRange"]; !ok {
 		return nil, nil
 	}
@@ -372,7 +373,7 @@ func (o RandomOpt) FirstPart() map[wallet.BackendID]wallet.Address {
 // If not present, a random value is generated with `rng` as entropy source.
 func (o RandomOpt) IsFinal(rng *rand.Rand) bool {
 	if _, ok := o["isFinal"]; !ok {
-		o["isFinal"] = (rng.Int31n(2) == 0) //nolint:gomnd
+		o["isFinal"] = (rng.Int31n(2) == 0) //nolint:mnd
 	}
 	return o["isFinal"].(bool)
 }
@@ -435,7 +436,7 @@ func (o RandomOpt) LedgerChannel(rng io.Reader) bool {
 		if err != nil {
 			panic(err)
 		}
-		o[nameLedgerChannel] = a[0]%2 == 0 //nolint:gomnd
+		o[nameLedgerChannel] = a[0]%2 == 0 //nolint:mnd
 	}
 	return o[nameLedgerChannel].(bool)
 }
@@ -449,7 +450,7 @@ func (o RandomOpt) VirtualChannel(rng io.Reader) bool {
 		if err != nil {
 			panic(err)
 		}
-		o[nameVirtualChannel] = a[0]%2 == 0 //nolint:gomnd
+		o[nameVirtualChannel] = a[0]%2 == 0 //nolint:mnd
 	}
 	return o[nameVirtualChannel].(bool)
 }

@@ -114,13 +114,6 @@ func (m *ActionMachine) Update() error {
 	return nil
 }
 
-// setStaging sets the current staging phase and state and additionally clears
-// the staging actions.
-func (m *ActionMachine) setStaging(phase Phase, state *State) {
-	m.stagingActions = make([]Action, m.N())
-	m.machine.setStaging(phase, state)
-}
-
 // Clone returns a deep copy of ActionMachine.
 func (m *ActionMachine) Clone() *ActionMachine {
 	clonedActions := make([]Action, m.N())
@@ -143,4 +136,11 @@ func (m *ActionMachine) Clone() *ActionMachine {
 		app:            m.app,
 		stagingActions: clonedActions,
 	}
+}
+
+// setStaging sets the current staging phase and state and additionally clears
+// the staging actions.
+func (m *ActionMachine) setStaging(phase Phase, state *State) {
+	m.stagingActions = make([]Action, m.N())
+	m.machine.setStaging(phase, state)
 }

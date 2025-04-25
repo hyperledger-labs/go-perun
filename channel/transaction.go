@@ -76,7 +76,7 @@ func (t *Transaction) Decode(r io.Reader) error {
 		return errors.WithMessage(err, "decoding state")
 	}
 
-	t.Sigs = make([]wallet.Sig, t.State.NumParts())
+	t.Sigs = make([]wallet.Sig, t.NumParts())
 
 	return wallet.DecodeSparseSigs(r, &t.Sigs)
 }

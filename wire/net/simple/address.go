@@ -20,9 +20,12 @@ import (
 	"crypto/rsa"
 	"crypto/sha256"
 	"encoding/binary"
+	"math"
 	"math/big"
 	"math/rand"
+	"strings"
 
+	"github.com/pkg/errors"
 	"perun.network/go-perun/wallet"
 
 	"perun.network/go-perun/wire"
@@ -44,13 +47,32 @@ func NewAddress(host string) wire.Address {
 	}
 }
 
+// NewRandomAddress returns a new random peer address.
+func NewRandomAddress(rng *rand.Rand) *Address {
+	const addrLen = 32
+	l := rng.Intn(addrLen)
+	d := make([]byte, l)
+	if _, err := rng.Read(d); err != nil {
+		panic(err)
+	}
+
+	a := &Address{
+		Name: string(d),
+	}
+	return a
+}
+
 // MarshalBinary marshals the address to binary.
 func (a *Address) MarshalBinary() ([]byte, error) {
 	// Initialize a buffer to hold the binary data
 	var buf bytes.Buffer
 
 	// Encode the length of the name string and the name itself
-	nameLen := uint16(len(a.Name))
+	l := len(a.Name)
+	if l > math.MaxUint16 {
+		return nil, errors.New("name length out of bounds")
+	}
+	nameLen := uint16(l)
 	if err := binary.Write(&buf, binary.BigEndian, nameLen); err != nil {
 		return nil, err
 	}
@@ -113,7 +135,11 @@ func (a *Address) Backend() wallet.BackendID {
 func encodePublicKey(buf *bytes.Buffer, key *rsa.PublicKey) error {
 	// Encode modulus length and modulus
 	modulusBytes := key.N.Bytes()
-	modulusLen := uint16(len(modulusBytes))
+	l := len(modulusBytes)
+	if l > math.MaxUint16 {
+		return errors.New("modulus too large")
+	}
+	modulusLen := uint16(l)
 	if err := binary.Write(buf, binary.BigEndian, modulusLen); err != nil {
 		return err
 	}
@@ -122,7 +148,11 @@ func encodePublicKey(buf *bytes.Buffer, key *rsa.PublicKey) error {
 	}
 
 	// Encode public exponent
-	if err := binary.Write(buf, binary.BigEndian, int32(key.E)); err != nil {
+	e := key.E
+	if e < math.MinInt32 || e > math.MaxInt32 {
+		return errors.New("public exponent too large")
+	}
+	if err := binary.Write(buf, binary.BigEndian, int32(e)); err != nil {
 		return err
 	}
 
@@ -184,27 +214,12 @@ func (a *Address) Cmp(b wire.Address) int {
 	}
 
 	// Compare names
-	if cmp := bytes.Compare([]byte(a.Name), []byte(bTyped.Name)); cmp != 0 {
+	if cmp := strings.Compare(a.Name, bTyped.Name); cmp != 0 {
 		return cmp
 	}
 
 	// Compare binary representations
-	return bytes.Compare([]byte(a.Name), []byte(bTyped.Name))
-}
-
-// NewRandomAddress returns a new random peer address.
-func NewRandomAddress(rng *rand.Rand) *Address {
-	const addrLen = 32
-	l := rng.Intn(addrLen)
-	d := make([]byte, l)
-	if _, err := rng.Read(d); err != nil {
-		panic(err)
-	}
-
-	a := &Address{
-		Name: string(d),
-	}
-	return a
+	return strings.Compare(a.Name, bTyped.Name)
 }
 
 // NewRandomAddresses returns a new random peer address.

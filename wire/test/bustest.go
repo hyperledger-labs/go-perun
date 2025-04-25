@@ -21,6 +21,7 @@ import (
 
 	"perun.network/go-perun/wallet"
 
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"perun.network/go-perun/wire"
@@ -48,7 +49,7 @@ func GenericBusTest(t *testing.T,
 ) {
 	t.Helper()
 	require.Greater(t, numClients, 1)
-	require.Greater(t, numMsgs, 0)
+	require.Positive(t, numMsgs)
 
 	rng := test.Prng(t)
 	type Client struct {
@@ -72,14 +73,13 @@ func GenericBusTest(t *testing.T,
 		ctx, cancel := context.WithTimeout(context.Background(), testNoReceiveTimeout)
 		defer cancel()
 		for i := range clients {
-			i := i
 			go ct.StageN("receive timeout", numClients, func(t test.ConcT) {
 				r := wire.NewReceiver()
 				defer r.Close()
 				err := clients[i].r.Subscribe(r, func(e *wire.Envelope) bool { return true })
-				require.NoError(t, err)
+				assert.NoError(t, err)
 				_, err = r.Next(ctx)
-				require.Error(t, err)
+				assert.Error(t, err)
 			})
 		}
 		ct.Wait("receive timeout")
@@ -98,7 +98,6 @@ func GenericBusTest(t *testing.T,
 				if sender == recipient {
 					continue
 				}
-				sender, recipient := sender, recipient
 				origEnv := &wire.Envelope{
 					Sender:    wire.AddressMapfromAccountMap(clients[sender].id),
 					Recipient: wire.AddressMapfromAccountMap(clients[recipient].id),
@@ -113,16 +112,16 @@ func GenericBusTest(t *testing.T,
 
 				go ct.StageN("receive", numClients*(numClients-1), func(t test.ConcT) {
 					defer recv.Close()
-					for i := 0; i < numMsgs; i++ {
+					for range numMsgs {
 						e, err := recv.Next(ctx)
-						require.NoError(t, err)
-						require.Equal(t, e, origEnv)
+						assert.NoError(t, err)
+						assert.Equal(t, e, origEnv)
 					}
 				})
 				go ct.StageN("publish", numClients*(numClients-1), func(t test.ConcT) {
-					for i := 0; i < numMsgs; i++ {
+					for range numMsgs {
 						err := clients[sender].pub.Publish(ctx, origEnv)
-						require.NoError(t, err)
+						assert.NoError(t, err)
 					}
 				})
 			}

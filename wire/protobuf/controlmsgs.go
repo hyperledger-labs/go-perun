@@ -46,24 +46,24 @@ func fromAuthResponseMsg(msg *wire.AuthResponseMsg) *Envelope_AuthResponseMsg {
 
 func toPingMsg(protoMsg *Envelope_PingMsg) (msg *wire.PingMsg) {
 	msg = &wire.PingMsg{}
-	msg.Created = time.Unix(0, protoMsg.PingMsg.Created)
+	msg.Created = time.Unix(0, protoMsg.PingMsg.GetCreated())
 	return msg
 }
 
 func toPongMsg(protoEnvMsg *Envelope_PongMsg) (msg *wire.PongMsg) {
 	msg = &wire.PongMsg{}
-	msg.Created = time.Unix(0, protoEnvMsg.PongMsg.Created)
+	msg.Created = time.Unix(0, protoEnvMsg.PongMsg.GetCreated())
 	return msg
 }
 
 func toShutdownMsg(protoEnvMsg *Envelope_ShutdownMsg) (msg *wire.ShutdownMsg) {
 	msg = &wire.ShutdownMsg{}
-	msg.Reason = protoEnvMsg.ShutdownMsg.Reason
+	msg.Reason = protoEnvMsg.ShutdownMsg.GetReason()
 	return msg
 }
 
 func toAuthResponseMsg(protoEnvMsg *Envelope_AuthResponseMsg) (msg *wire.AuthResponseMsg) {
 	msg = &wire.AuthResponseMsg{}
-	msg.Signature = protoEnvMsg.AuthResponseMsg.Signature
+	msg.Signature = protoEnvMsg.AuthResponseMsg.GetSignature()
 	return msg
 }

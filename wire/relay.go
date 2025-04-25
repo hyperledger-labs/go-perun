@@ -124,6 +124,40 @@ func (p *Relay) Subscribe(c Consumer, predicate Predicate) error {
 	return nil
 }
 
+// Put puts an Envelope in the relay.
+func (p *Relay) Put(e *Envelope) {
+	p.mutex.RLock()
+	defer p.mutex.RUnlock()
+
+	if p.IsClosed() {
+		return
+	}
+
+	found := false
+	for _, sub := range p.consumers {
+		if sub.predicate(e) {
+			sub.consumer.Put(e)
+			found = true
+		}
+	}
+
+	if !found {
+		if !p.cache.Put(e) {
+			p.defaultMsgHandler(e)
+		}
+	}
+}
+
+// SetDefaultMsgHandler sets the default message handler.
+func (p *Relay) SetDefaultMsgHandler(handler func(*Envelope)) {
+	if handler == nil {
+		handler = logUnhandledMsg
+	}
+	p.mutex.Lock()
+	defer p.mutex.Unlock()
+	p.defaultMsgHandler = handler
+}
+
 func (p *Relay) delete(c Consumer) {
 	p.mutex.Lock()
 	defer p.mutex.Unlock()
@@ -151,42 +185,8 @@ func (p *Relay) isEmpty() bool {
 	return len(p.consumers) == 0
 }
 
-// Put puts an Envelope in the relay.
-func (p *Relay) Put(e *Envelope) {
-	p.mutex.RLock()
-	defer p.mutex.RUnlock()
-
-	if p.IsClosed() {
-		return
-	}
-
-	found := false
-	for _, sub := range p.consumers {
-		if sub.predicate(e) {
-			sub.consumer.Put(e)
-			found = true
-		}
-	}
-
-	if !found {
-		if !p.cache.Put(e) {
-			p.defaultMsgHandler(e)
-		}
-	}
-}
-
 func logUnhandledMsg(e *Envelope) {
 	log.WithField("sender", e.Sender).
 		WithField("recipient", e.Recipient).
 		Debugf("Received %T message without subscription: %v", e.Msg, e.Msg)
-}
-
-// SetDefaultMsgHandler sets the default message handler.
-func (p *Relay) SetDefaultMsgHandler(handler func(*Envelope)) {
-	if handler == nil {
-		handler = logUnhandledMsg
-	}
-	p.mutex.Lock()
-	defer p.mutex.Unlock()
-	p.defaultMsgHandler = handler
 }

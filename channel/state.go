@@ -159,7 +159,7 @@ func (s *State) Equal(t *State) error {
 // ToSubAlloc creates a SubAlloc from the state that can be added to the
 // parent channel's locked funds.
 func (s *State) ToSubAlloc() *SubAlloc {
-	return NewSubAlloc(s.ID, s.Allocation.Sum(), nil)
+	return NewSubAlloc(s.ID, s.Sum(), nil)
 }
 
 // EqualWireMaps compares two wire.Address maps for equality.

@@ -124,6 +124,15 @@ type DisputeTim struct {
 	subCh      channel.ID
 }
 
+// NewDisputeTim creates a new Responder that executes the DisputeTim protocol.
+func NewDisputeTim(t *testing.T, setup RoleSetup) *DisputeTim {
+	t.Helper()
+	return &DisputeTim{
+		Responder:  *NewResponder(t, setup, nStagesDisputeSusieTime),
+		registered: make(chan *channel.RegisteredEvent),
+	}
+}
+
 // time to wait until a parent channel watcher becomes active.
 const channelWatcherWait = 100 * time.Millisecond
 
@@ -132,15 +141,6 @@ func (r *DisputeTim) HandleAdjudicatorEvent(e channel.AdjudicatorEvent) {
 	r.log.Infof("HandleAdjudicatorEvent: channelID = %x, version = %v, type = %T", e.ID(), e.Version(), e)
 	if e, ok := e.(*channel.RegisteredEvent); ok && e.ID() == r.subCh {
 		r.registered <- e
-	}
-}
-
-// NewDisputeTim creates a new Responder that executes the DisputeTim protocol.
-func NewDisputeTim(t *testing.T, setup RoleSetup) *DisputeTim {
-	t.Helper()
-	return &DisputeTim{
-		Responder:  *NewResponder(t, setup, nStagesDisputeSusieTime),
-		registered: make(chan *channel.RegisteredEvent),
 	}
 }
 

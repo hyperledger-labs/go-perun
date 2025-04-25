@@ -27,6 +27,16 @@ import (
 
 var _ wallet.Wallet = (*Wallet)(nil)
 
+// Wallet is a collection of accounts. Query accounts using Unlock, track their
+// usage using IncrementUsage and DecrementUsage, and lock them using LockAll.
+// Create new accounts using NewRandomAccount, and add existing accounts using
+// AddAccount. Check whether the wallet owns a particular account via
+// HasAccount.
+type Wallet struct {
+	accMutex sync.RWMutex
+	accs     map[wallet.AddrKey]*Account
+}
+
 // NewWallet creates a new empty wallet.
 func NewWallet() *Wallet {
 	return &Wallet{accs: make(map[wallet.AddrKey]*Account)}
@@ -46,16 +56,6 @@ func NewRestoredWallet(accounts ...*Account) *Wallet {
 	}
 
 	return w
-}
-
-// Wallet is a collection of accounts. Query accounts using Unlock, track their
-// usage using IncrementUsage and DecrementUsage, and lock them using LockAll.
-// Create new accounts using NewRandomAccount, and add existing accounts using
-// AddAccount. Check whether the wallet owns a particular account via
-// HasAccount.
-type Wallet struct {
-	accMutex sync.RWMutex
-	accs     map[wallet.AddrKey]*Account
 }
 
 // Unlock retrieves the account belonging to the supplied address, and unlocks

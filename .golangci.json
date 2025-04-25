@@ -1,0 +1,103 @@
+{
+  "formatters": {
+    "enable": [
+      "gofmt",
+      "gofumpt",
+      "goimports"
+    ],
+    "exclusions": {
+      "generated": "lax",
+      "paths": [
+        "third_party$",
+        "builtin$",
+        "examples$"
+      ]
+    }
+  },
+  "linters": {
+    "default": "all",
+    "disable": [
+      "err113",
+      "errorlint",
+      "gochecknoglobals",
+      "gochecknoinits",
+      "ireturn",
+      "lll",
+      "nlreturn",
+      "paralleltest",
+      "promlinter",
+      "tparallel",
+      "varnamelen",
+      "wrapcheck",
+      "wsl",
+      "testifylint",
+      "revive",
+      "recvcheck",
+      "prealloc",
+      "depguard",
+      "nonamedreturns",
+      "inamedparam",
+      "exhaustruct"
+    ],
+    "exclusions": {
+      "generated": "lax",
+      "paths": [
+        "third_party$",
+        "builtin$",
+        "examples$"
+      ],
+      "presets": [
+        "common-false-positives",
+        "legacy",
+        "std-error-handling"
+      ],
+      "rules": [
+        {
+          "linters": [
+            "err113",
+            "forcetypeassert",
+            "funlen"
+          ],
+          "path": "test"
+        },
+        {
+          "linters": [
+            "revive"
+          ],
+          "path": "test",
+          "text": "context-as-argument"
+        }
+      ]
+    },
+    "settings": {
+      "cyclop": {
+        "max-complexity": 15
+      },
+      "forbidigo": {
+        "forbid": [
+          {
+            "pattern": "^[Ee]quals$"
+          },
+          {
+            "pattern": "^print.*$"
+          },
+          {
+            "pattern": "fmt\\.Print.*"
+          }
+        ]
+      },
+      "goheader": {
+        "template-path": ".scripts/copyright-notice",
+        "values": {
+          "regexp": {
+            "ANY_YEAR": "20(19|2\\d)"
+          }
+        }
+      }
+    }
+  },
+  "run": {
+    "modules-download-mode": "readonly"
+  },
+  "version": "2"
+}

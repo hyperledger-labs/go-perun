@@ -97,7 +97,7 @@ func genericChannelIDTest(t *testing.T, s *Setup) {
 	t.Helper()
 	require.NotNil(t, s.Params.Parts, "params.Parts can not be nil")
 	_, err := channel.CalcID(s.Params)
-	assert.NoError(t, err, "CalcID should not return an error")
+	require.NoError(t, err, "CalcID should not return an error")
 
 	// Check that modifying the state changes the id
 	for _, modParams := range buildModifiedParams(s.Params, s.Params2, s) {
@@ -110,7 +110,7 @@ func genericChannelIDTest(t *testing.T, s *Setup) {
 func genericSignTest(t *testing.T, s *Setup) {
 	t.Helper()
 	_, err := channel.Sign(s.Account, s.State, s.State.Backends[0])
-	assert.NoError(t, err, "Sign should not return an error")
+	require.NoError(t, err, "Sign should not return an error")
 }
 
 func genericVerifyTest(t *testing.T, s *Setup, opts ...GenericTestOption) {
@@ -123,22 +123,22 @@ func genericVerifyTest(t *testing.T, s *Setup, opts ...GenericTestOption) {
 	require.NoError(t, err, "Sign should not return an error")
 
 	ok, err := channel.Verify(addr, s.State, sig)
-	assert.NoError(t, err, "Verify should not return an error")
+	require.NoError(t, err, "Verify should not return an error")
 	assert.True(t, ok, "Verify should return true")
 
 	for i, _modState := range buildModifiedStates(s.State, s.State2, append(opts, IgnoreApp)...) {
 		modState := _modState
 		ok, err = channel.Verify(addr, &modState, sig)
 		assert.Falsef(t, ok, "Verify should return false: index %d", i)
-		assert.NoError(t, err, "Verify should not return an error")
+		require.NoError(t, err, "Verify should not return an error")
 	}
 
 	// Different address and same state and params
-	for i := 0; i < 10; i++ {
+	for range 10 {
 		add := s.RandomAddress()
 		for _, a := range add {
 			ok, err := channel.Verify(a, s.State, sig)
-			assert.NoError(t, err, "Verify should not return an error")
+			require.NoError(t, err, "Verify should not return an error")
 			assert.False(t, ok, "Verify should return false")
 		}
 	}
@@ -253,8 +253,8 @@ func buildModifiedStates(s1, s2 *channel.State, _opts ...GenericTestOption) (ret
 				// Modify Assets[0]
 				{
 					modState := s1.Clone()
-					modState.Allocation.Assets[0] = s2.Allocation.Assets[0]
-					modState.Allocation.Backends[0] = s2.Allocation.Backends[0]
+					modState.Assets[0] = s2.Assets[0]
+					modState.Backends[0] = s2.Backends[0]
 					ret = append(ret, *modState)
 				}
 			}
@@ -270,14 +270,14 @@ func buildModifiedStates(s1, s2 *channel.State, _opts ...GenericTestOption) (ret
 				// Modify Balances[0]
 				{
 					modState := s1.Clone()
-					modState.Allocation.Balances[0] = s2.Allocation.Balances[0]
+					modState.Balances[0] = s2.Balances[0]
 					modState = ensureConsistentBalances(modState)
 					ret = append(ret, *modState)
 				}
 				// Modify Balances[0][0]
 				{
 					modState := s1.Clone()
-					modState.Allocation.Balances[0][0] = s2.Allocation.Balances[0][0]
+					modState.Balances[0][0] = s2.Balances[0][0]
 					ret = append(ret, *modState)
 				}
 			}
@@ -286,7 +286,7 @@ func buildModifiedStates(s1, s2 *channel.State, _opts ...GenericTestOption) (ret
 				// Modify complete Locked
 				{
 					modState := s1.Clone()
-					modState.Allocation.Locked = s2.Clone().Locked
+					modState.Locked = s2.Clone().Locked
 					modState = ensureConsistentBalances(modState)
 					ret = append(ret, *modState)
 				}
@@ -371,8 +371,8 @@ func ensureBalanceVectorLength(bals []channel.Bal, l int) []channel.Bal {
 // GenericStateEqualTest tests the State.Equal function.
 func GenericStateEqualTest(t *testing.T, s1, s2 *channel.State, opts ...GenericTestOption) {
 	t.Helper()
-	assert.NoError(t, s1.Equal(s1)) //nolint:gocritic
-	assert.NoError(t, s2.Equal(s2)) //nolint:gocritic
+	require.NoError(t, s1.Equal(s1)) //nolint:gocritic
+	require.NoError(t, s2.Equal(s2)) //nolint:gocritic
 
 	for _, differentState := range buildModifiedStates(s1, s2, opts...) {
 		assert.Error(t, differentState.Equal(s1))

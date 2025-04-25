@@ -18,6 +18,7 @@ import (
 	crand "crypto/rand"
 	"fmt"
 	"log"
+	"math"
 	"math/big"
 	"math/rand"
 	"time"
@@ -48,7 +49,11 @@ func SetRandomizer(r Randomizer, bID wallet.BackendID) {
 
 // NewRandomPhase generates a random channel machine phase.
 func NewRandomPhase(rng *rand.Rand) channel.Phase {
-	return channel.Phase(rng.Intn(channel.LastPhase + 1))
+	phase := rng.Intn(channel.LastPhase + 1)
+	if phase < 0 || phase > math.MaxUint8 {
+		panic("LastPhase is too large")
+	}
+	return channel.Phase(phase)
 }
 
 // NewRandomAsset generates a new random `channel.Asset`.
@@ -262,7 +267,11 @@ func NewRandomChannelIDs(rng *rand.Rand, n int) (ids []channel.ID) {
 func NewRandomIndexMap(rng *rand.Rand, numParts int, numPartsParent int) (m []channel.Index) {
 	m = make([]channel.Index, numParts)
 	for i := range m {
-		m[i] = channel.Index(rng.Intn(numPartsParent))
+		idx := rng.Intn(numPartsParent)
+		if idx < 0 || idx >= math.MaxUint16 {
+			panic("index out of bounds")
+		}
+		m[i] = channel.Index(idx)
 	}
 	return
 }
@@ -280,24 +289,25 @@ func NewRandomIndexMaps(rng *rand.Rand, numParts int, numPartsParent int) (maps 
 // Options: `WithBalancesRange`.
 func NewRandomBal(rng *rand.Rand, opts ...RandomOpt) channel.Bal {
 	opt := mergeRandomOpts(opts...)
-	min, max := opt.BalancesRange()
-	if min == nil {
+	var balanceMin, balanceMax channel.Bal
+	balanceMin, balanceMax = opt.BalancesRange()
+	if balanceMin == nil {
 		// Use 1 here since 0 is nearly impossible anyway and many
 		// test assume != 0.
-		min = big.NewInt(1)
+		balanceMin = big.NewInt(1)
 	}
-	if max == nil {
-		max = maxRandomBalance
+	if balanceMax == nil {
+		balanceMax = maxRandomBalance
 	}
 
-	// rng(max - min + 1)
-	bal, err := crand.Int(rng, new(big.Int).Add(new(big.Int).Sub(max, min), big.NewInt(1)))
+	// rng(balanceMax - balanceMin + 1)
+	bal, err := crand.Int(rng, new(big.Int).Add(new(big.Int).Sub(balanceMax, balanceMin), big.NewInt(1)))
 	if err != nil {
 		panic(fmt.Sprintf("Error creating random big.Int: %v", err))
 	}
 
-	// min + rng(max - min + 1)
-	return new(big.Int).Add(min, bal)
+	// balanceMin + rng(balanceMax - balanceMin + 1)
+	return new(big.Int).Add(balanceMin, bal)
 }
 
 // NewRandomBals generates new random `channel.Bal`s.
@@ -394,7 +404,6 @@ func NewRandomTransaction(rng *rand.Rand, sigMask []bool, opts ...RandomOpt) *ch
 func ShuffleBalances(rng *rand.Rand, b channel.Balances) channel.Balances {
 	ret := b.Clone()
 	for _, a := range ret {
-		a := a
 		rng.Shuffle(len(a), func(i, j int) {
 			a[i], a[j] = a[j], a[i]
 		})

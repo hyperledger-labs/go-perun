@@ -18,6 +18,7 @@ import (
 	"encoding/binary"
 	"fmt"
 	"io"
+	"math"
 
 	"perun.network/go-perun/wallet"
 )
@@ -58,7 +59,11 @@ func (m *AuthResponseMsg) Type() Type {
 // It writes the signature to the writer.
 func (m *AuthResponseMsg) Encode(w io.Writer) error {
 	// Write the length of the signature
-	err := binary.Write(w, binary.BigEndian, uint32(len(m.Signature)))
+	l := len(m.Signature)
+	if l > math.MaxUint32 {
+		return fmt.Errorf("signature length out of bounds: %d", len(m.Signature))
+	}
+	err := binary.Write(w, binary.BigEndian, uint32(l))
 	if err != nil {
 		return fmt.Errorf("failed to write signature length: %w", err)
 	}

@@ -16,19 +16,25 @@ package perunio
 
 import (
 	"encoding/binary"
+	"fmt"
 	"io"
+	"math"
 
 	"github.com/pkg/errors"
 )
 
 // encodeString writes the length as an uint16 and then the string itself to the io.Writer.
 func encodeString(w io.Writer, s string) error {
-	l := uint16(len(s))
-	if int(l) != len(s) {
+	l := len(s)
+	if l > int(math.MaxUint16) {
+		return fmt.Errorf("string too long: %d", l)
+	}
+	ul := uint16(l)
+	if int(ul) != len(s) {
 		return errors.Errorf("string length exceeded: %d", len(s))
 	}
 
-	if err := binary.Write(w, byteOrder, l); err != nil {
+	if err := binary.Write(w, byteOrder, ul); err != nil {
 		return errors.Wrap(err, "failed to write string length")
 	}
 

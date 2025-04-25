@@ -112,7 +112,7 @@ func (a *Adjudicator) dispatch(assetIds []LedgerBackendID, f func(channel.Adjudi
 		}(l)
 	}
 
-	for i := 0; i < n; i++ {
+	for range n {
 		err := <-errs
 		if err != nil {
 			return err

@@ -126,60 +126,29 @@ type (
 	}
 )
 
-// proposalPeers returns the wire addresses of a proposed channel's
-// participants.
-func (c *Client) proposalPeers(p ChannelProposal) (peers []map[wallet.BackendID]wire.Address) {
-	switch prop := p.(type) {
-	case *LedgerChannelProposalMsg:
-		peers = prop.Peers
-	case *SubChannelProposalMsg:
-		ch, ok := c.channels.Channel(prop.Parent)
-		if !ok {
-			c.log.Panic("ProposalPeers: invalid parent channel")
-		}
-		peers = ch.Peers()
-	case *VirtualChannelProposalMsg:
-		peers = prop.Peers
-	default:
-		c.log.Panicf("ProposalPeers: unhandled proposal type %T")
-	}
-	return
-}
-
-// makeBaseChannelProposal creates a BaseChannelProposal and applies the supplied
-// options. For more information, see ProposalOpts.
-func makeBaseChannelProposal(
+// NewLedgerChannelProposal creates a ledger channel proposal and applies the
+// supplied options.
+// challengeDuration is the on-chain challenge duration in seconds.
+// participant is our wallet address.
+// initBals are the initial balances.
+// peers are the wire addresses of the channel participants.
+// For more information, see ProposalOpts.
+func NewLedgerChannelProposal(
 	challengeDuration uint64,
+	participant map[wallet.BackendID]wallet.Address,
 	initBals *channel.Allocation,
+	peers []map[wallet.BackendID]wire.Address,
 	opts ...ProposalOpts,
-) (BaseChannelProposal, error) {
-	opt := union(opts...)
-
-	fundingAgreement := initBals.Balances
-	if opt.isFundingAgreement() {
-		fundingAgreement = opt.fundingAgreement()
-		if equal, err := perunbig.EqualSum(initBals.Balances, fundingAgreement); err != nil {
-			return BaseChannelProposal{}, errors.WithMessage(err, "comparing FundingAgreement and initial balances sum")
-		} else if !equal {
-			return BaseChannelProposal{}, errors.New("FundingAgreement and initial balances differ")
-		}
+) (prop *LedgerChannelProposalMsg, err error) {
+	prop = &LedgerChannelProposalMsg{
+		Participant: participant,
+		Peers:       peers,
 	}
-
-	var proposalID ProposalID
-	if _, err := io.ReadFull(rand.Reader, proposalID[:]); err != nil {
-		return BaseChannelProposal{}, errors.Wrap(err, "generating proposal ID")
-	}
-
-	return BaseChannelProposal{
-		ChallengeDuration: challengeDuration,
-		ProposalID:        proposalID,
-		NonceShare:        opt.nonce(),
-		App:               opt.App(),
-		InitData:          opt.AppData(),
-		InitBals:          initBals,
-		FundingAgreement:  fundingAgreement,
-		Aux:               opt.aux(),
-	}, nil
+	prop.BaseChannelProposal, err = makeBaseChannelProposal(
+		challengeDuration,
+		initBals,
+		opts...)
+	return
 }
 
 // Base returns the channel proposal's common values.
@@ -252,31 +221,6 @@ func (LedgerChannelProposalMsg) Matches(acc ChannelProposalAccept) bool {
 	return ok
 }
 
-// NewLedgerChannelProposal creates a ledger channel proposal and applies the
-// supplied options.
-// challengeDuration is the on-chain challenge duration in seconds.
-// participant is our wallet address.
-// initBals are the initial balances.
-// peers are the wire addresses of the channel participants.
-// For more information, see ProposalOpts.
-func NewLedgerChannelProposal(
-	challengeDuration uint64,
-	participant map[wallet.BackendID]wallet.Address,
-	initBals *channel.Allocation,
-	peers []map[wallet.BackendID]wire.Address,
-	opts ...ProposalOpts,
-) (prop *LedgerChannelProposalMsg, err error) {
-	prop = &LedgerChannelProposalMsg{
-		Participant: participant,
-		Peers:       peers,
-	}
-	prop.BaseChannelProposal, err = makeBaseChannelProposal(
-		challengeDuration,
-		initBals,
-		opts...)
-	return
-}
-
 // Type returns wire.LedgerChannelProposal.
 func (LedgerChannelProposalMsg) Type() wire.Type {
 	return wire.LedgerChannelProposal
@@ -304,14 +248,6 @@ func (p *LedgerChannelProposalMsg) Decode(r io.Reader) error {
 	}
 
 	return p.assertValidNumParts()
-}
-
-func (p LedgerChannelProposalMsg) assertValidNumParts() error {
-	if len(p.Peers) < 2 || len(p.Peers) > channel.MaxNumParts {
-		return errors.Errorf("expected 2-%d participants, got %d",
-			channel.MaxNumParts, len(p.Peers))
-	}
-	return nil
 }
 
 // Valid checks whether the participant address is nil.
@@ -379,6 +315,70 @@ func (p SubChannelProposalMsg) Accept(
 func (SubChannelProposalMsg) Matches(acc ChannelProposalAccept) bool {
 	_, ok := acc.(*SubChannelProposalAccMsg)
 	return ok
+}
+
+// proposalPeers returns the wire addresses of a proposed channel's
+// participants.
+func (c *Client) proposalPeers(p ChannelProposal) (peers []map[wallet.BackendID]wire.Address) {
+	switch prop := p.(type) {
+	case *LedgerChannelProposalMsg:
+		peers = prop.Peers
+	case *SubChannelProposalMsg:
+		ch, ok := c.channels.Channel(prop.Parent)
+		if !ok {
+			c.log.Panic("ProposalPeers: invalid parent channel")
+		}
+		peers = ch.Peers()
+	case *VirtualChannelProposalMsg:
+		peers = prop.Peers
+	default:
+		c.log.Panicf("ProposalPeers: unhandled proposal type %T")
+	}
+	return
+}
+
+// makeBaseChannelProposal creates a BaseChannelProposal and applies the supplied
+// options. For more information, see ProposalOpts.
+func makeBaseChannelProposal(
+	challengeDuration uint64,
+	initBals *channel.Allocation,
+	opts ...ProposalOpts,
+) (BaseChannelProposal, error) {
+	opt := union(opts...)
+
+	fundingAgreement := initBals.Balances
+	if opt.isFundingAgreement() {
+		fundingAgreement = opt.fundingAgreement()
+		if equal, err := perunbig.EqualSum(initBals.Balances, fundingAgreement); err != nil {
+			return BaseChannelProposal{}, errors.WithMessage(err, "comparing FundingAgreement and initial balances sum")
+		} else if !equal {
+			return BaseChannelProposal{}, errors.New("FundingAgreement and initial balances differ")
+		}
+	}
+
+	var proposalID ProposalID
+	if _, err := io.ReadFull(rand.Reader, proposalID[:]); err != nil {
+		return BaseChannelProposal{}, errors.Wrap(err, "generating proposal ID")
+	}
+
+	return BaseChannelProposal{
+		ChallengeDuration: challengeDuration,
+		ProposalID:        proposalID,
+		NonceShare:        opt.nonce(),
+		App:               opt.App(),
+		InitData:          opt.AppData(),
+		InitBals:          initBals,
+		FundingAgreement:  fundingAgreement,
+		Aux:               opt.aux(),
+	}, nil
+}
+
+func (p LedgerChannelProposalMsg) assertValidNumParts() error {
+	if len(p.Peers) < 2 || len(p.Peers) > channel.MaxNumParts {
+		return errors.Errorf("expected 2-%d participants, got %d",
+			channel.MaxNumParts, len(p.Peers))
+	}
+	return nil
 }
 
 type (

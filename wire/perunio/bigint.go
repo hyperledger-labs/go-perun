@@ -51,7 +51,7 @@ func (b *BigInt) Decode(reader io.Reader) error {
 	if b.Int == nil {
 		b.Int = new(big.Int)
 	}
-	b.Int.SetBytes(bytes)
+	b.SetBytes(bytes)
 	return nil
 }
 
@@ -60,7 +60,7 @@ func (b BigInt) Encode(writer io.Writer) error {
 	if b.Int == nil {
 		panic("logic error: tried to encode nil big.Int")
 	}
-	if b.Int.Sign() == -1 {
+	if b.Sign() == -1 {
 		panic("encoding of negative big.Int not implemented")
 	}
 

@@ -20,6 +20,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	"perun.network/go-perun/wire/perunio"
 	peruniotest "perun.network/go-perun/wire/perunio/test"
@@ -46,7 +47,7 @@ func TestStutter(t *testing.T) {
 
 	var decodedValue perunio.ByteSlice = make([]byte, len(values))
 	ctxtest.AssertTerminatesQuickly(t, func() {
-		assert.NoError(t, decodedValue.Decode(r))
+		require.NoError(t, decodedValue.Decode(r))
 	})
 	for i, v := range values {
 		assert.Equal(t, decodedValue[i], v)

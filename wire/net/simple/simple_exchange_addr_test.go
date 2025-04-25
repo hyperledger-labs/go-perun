@@ -29,6 +29,7 @@ import (
 	"perun.network/go-perun/channel"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	"perun.network/go-perun/wire"
 	wirenet "perun.network/go-perun/wire/net"
@@ -67,7 +68,7 @@ func TestExchangeAddrs_Success(t *testing.T) {
 	}()
 
 	err := wirenet.ExchangeAddrsActive(context.Background(), account0, wire.AddressMapfromAccountMap(account1), conn0)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	wg.Wait()
 }

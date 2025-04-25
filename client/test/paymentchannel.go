@@ -4,7 +4,7 @@
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
 //
-//	http://www.apache.org/licenses/LICENSE-2.0
+//     http://www.apache.org/licenses/LICENSE-2.0
 //
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
@@ -64,7 +64,6 @@ type paymentChannelTest struct {
 	asset          channel.Asset
 	balancesBefore channel.Balances
 	isUTXO         bool
-	parentIDs      [2]channel.ID
 }
 
 // TestPaymentChannelOptimistic tests payment channel functionality in the happy case.
@@ -88,8 +87,7 @@ func TestPaymentChannelOptimistic( //nolint:revive // test.Test... stutters but 
 	perm := rand.Perm(len(chs))
 	t.Logf("Settle order = %v", perm)
 	for _, i := range perm {
-		var err error
-		err = chs[i].Settle(ctx, isSecondary)
+		err := chs[i].Settle(ctx, isSecondary)
 		isSecondary = true
 
 		assert.NoErrorf(err, "settle channel: %d", i)
@@ -170,7 +168,6 @@ func setupPaymentChannelTest(
 	setup PaymentChannelSetup,
 ) (pct paymentChannelTest) {
 	t.Helper()
-	require := require.New(t)
 
 	// Set test values.
 	asset := setup.Asset
@@ -221,7 +218,7 @@ func setupPaymentChannelTest(
 			pct.errs <- errors.WithMessage(err, "Bob: accepting channel update")
 		}
 	}
-	go bob.Client.Handle(openingProposalHandlerBob, updateProposalHandlerBob)
+	go bob.Handle(openingProposalHandlerBob, updateProposalHandlerBob) //nolint:contextcheck
 
 	// Establish ledger channel between Alice and Ingrid.
 	peersAlice := []map[wallet.BackendID]wire.Address{wire.AddressMapfromAccountMap(alice.Identity), wire.AddressMapfromAccountMap(bob.Identity)}
@@ -238,10 +235,10 @@ func setupPaymentChannelTest(
 		initAllocAlice,
 		peersAlice,
 	)
-	require.NoError(err, "creating ledger channel proposal")
+	require.NoError(t, err, "creating ledger channel proposal")
 
 	pct.chAliceBob, err = alice.ProposeChannel(ctx, lcpAlice)
-	require.NoError(err, "opening channel between Alice and Ingrid")
+	require.NoError(t, err, "opening channel between Alice and Ingrid")
 	select {
 	case pct.chBobAlice = <-channelsBob:
 	case err := <-pct.errs:
@@ -251,7 +248,7 @@ func setupPaymentChannelTest(
 	err = pct.chAliceBob.Update(ctx, func(s *channel.State) {
 		s.Balances = channel.Balances{pct.balsUpdated}
 	})
-	require.NoError(err, "updating virtual channel")
+	require.NoError(t, err, "updating virtual channel")
 
 	return pct
 }

@@ -28,7 +28,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"perun.network/go-perun/channel"
 	"perun.network/go-perun/channel/persistence"
 	"perun.network/go-perun/client"
@@ -134,7 +134,7 @@ func NewClients(t *testing.T, rng *rand.Rand, setups []RoleSetup) []*Client {
 			setupWallet[i] = w
 		}
 		cl, err := client.New(wire.AddressMapfromAccountMap(setup.Identity), setup.Bus, setup.Funder, setup.Adjudicator, setupWallet, setup.Watcher)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		walletAddress := make(map[wallet.BackendID]wallet.Address)
 		for i, w := range setup.Wallet {
 			walletAddress[i] = w.NewRandomAccount(rng).Address()
@@ -160,7 +160,7 @@ func ExecuteTwoPartyTest(ctx context.Context, t *testing.T, role [2]Executer, cf
 
 	var wg pkgsync.WaitGroup
 	// start clients
-	for i := 0; i < len(role); i++ {
+	for i := range role {
 		wg.Add(1)
 		go func(i int) {
 			log.Infof("Executing role %d", i)
@@ -224,59 +224,6 @@ func (c *BaseExecConfig) App() client.ProposalOpts {
 	return c.app
 }
 
-// makeRole creates a client for the given setup and wraps it into a Role.
-func makeRole(t *testing.T, setup RoleSetup, numStages int) (r role) {
-	t.Helper()
-	r = role{
-		chans:             &channelMap{entries: make(map[channel.ID]*paymentChannel)},
-		setup:             setup,
-		timeout:           setup.Timeout,
-		errs:              setup.Errors,
-		numStages:         numStages,
-		challengeDuration: setup.ChallengeDuration,
-	}
-	setupWallet := make(map[wallet.BackendID]wallet.Wallet)
-	for i, w := range r.setup.Wallet {
-		setupWallet[i] = w
-	}
-	cl, err := client.New(wire.AddressMapfromAccountMap(r.setup.Identity),
-		r.setup.Bus, r.setup.Funder, r.setup.Adjudicator, setupWallet, r.setup.Watcher)
-	if err != nil {
-		t.Fatal("Error creating client: ", err)
-	}
-	r.setClient(cl) // init client
-	return r
-}
-
-func (r *role) setClient(cl *client.Client) {
-	if r.setup.PR != nil {
-		cl.EnablePersistence(r.setup.PR)
-	}
-	cl.OnNewChannel(func(_ch *client.Channel) {
-		ch := newPaymentChannel(_ch, r)
-		r.chans.add(ch)
-		if r.newChan != nil {
-			r.newChan(ch) // forward callback
-		}
-	})
-	r.Client = cl
-	// Append role field to client logger and set role logger to client logger.
-	r.log = log.AppendField(cl, "role", r.setup.Name)
-}
-
-func (chs *channelMap) channel(ch channel.ID) (_ch *paymentChannel, ok bool) {
-	chs.RLock()
-	defer chs.RUnlock()
-	_ch, ok = chs.entries[ch]
-	return
-}
-
-func (chs *channelMap) add(ch *paymentChannel) {
-	chs.Lock()
-	defer chs.Unlock()
-	chs.entries[ch.ID()] = ch
-}
-
 func (r *role) OnNewChannel(callback func(ch *paymentChannel)) {
 	r.newChan = callback
 }
@@ -304,15 +251,6 @@ func (r *role) SetStages(st Stages) {
 	r.stages = st
 	for i := range r.stages {
 		r.stages[i].Add(1)
-	}
-}
-
-func (r *role) waitStage() {
-	if r.stages != nil {
-		r.numStages--
-		stage := &r.stages[r.numStages]
-		stage.Done()
-		stage.Wait()
 	}
 }
 
@@ -358,7 +296,7 @@ func (r *role) RequireNoErrorf(err error, msg string, args ...interface{}) {
 
 func (r *role) RequireTrue(b bool) {
 	if !b {
-		r.errs <- fmt.Errorf("expected true, got false")
+		r.errs <- errors.New("expected true, got false")
 	}
 }
 
@@ -457,14 +395,6 @@ func (r *role) SubChannelProposal(
 	return prop
 }
 
-func (r *role) acceptNextPropHandler(rng *rand.Rand) *acceptNextPropHandler {
-	return &acceptNextPropHandler{
-		r:     r,
-		props: make(chan proposalAndResponder),
-		rng:   rng,
-	}
-}
-
 func (h *acceptNextPropHandler) HandleProposal(prop client.ChannelProposal, res *client.ProposalResponder) {
 	select {
 	case h.props <- proposalAndResponder{prop, res}:
@@ -529,4 +459,74 @@ func (h *roleUpdateHandler) HandleUpdate(_ *channel.State, up client.ChannelUpda
 	ch, ok := h.chans.channel(up.State.ID)
 	(*role)(h).RequireTruef(ok, "unknown channel: %v", up.State.ID)
 	ch.Handle(up, res)
+}
+
+// makeRole creates a client for the given setup and wraps it into a Role.
+func makeRole(t *testing.T, setup RoleSetup, numStages int) (r role) {
+	t.Helper()
+	r = role{
+		chans:             &channelMap{entries: make(map[channel.ID]*paymentChannel)},
+		setup:             setup,
+		timeout:           setup.Timeout,
+		errs:              setup.Errors,
+		numStages:         numStages,
+		challengeDuration: setup.ChallengeDuration,
+	}
+	setupWallet := make(map[wallet.BackendID]wallet.Wallet)
+	for i, w := range r.setup.Wallet {
+		setupWallet[i] = w
+	}
+	cl, err := client.New(wire.AddressMapfromAccountMap(r.setup.Identity),
+		r.setup.Bus, r.setup.Funder, r.setup.Adjudicator, setupWallet, r.setup.Watcher)
+	if err != nil {
+		t.Fatal("Error creating client: ", err)
+	}
+	r.setClient(cl) // init client
+	return r
+}
+
+func (r *role) setClient(cl *client.Client) {
+	if r.setup.PR != nil {
+		cl.EnablePersistence(r.setup.PR)
+	}
+	cl.OnNewChannel(func(_ch *client.Channel) {
+		ch := newPaymentChannel(_ch, r)
+		r.chans.add(ch)
+		if r.newChan != nil {
+			r.newChan(ch) // forward callback
+		}
+	})
+	r.Client = cl
+	// Append role field to client logger and set role logger to client logger.
+	r.log = log.AppendField(cl, "role", r.setup.Name)
+}
+
+func (chs *channelMap) channel(ch channel.ID) (_ch *paymentChannel, ok bool) {
+	chs.RLock()
+	defer chs.RUnlock()
+	_ch, ok = chs.entries[ch]
+	return
+}
+
+func (chs *channelMap) add(ch *paymentChannel) {
+	chs.Lock()
+	defer chs.Unlock()
+	chs.entries[ch.ID()] = ch
+}
+
+func (r *role) acceptNextPropHandler(rng *rand.Rand) *acceptNextPropHandler {
+	return &acceptNextPropHandler{
+		r:     r,
+		props: make(chan proposalAndResponder),
+		rng:   rng,
+	}
+}
+
+func (r *role) waitStage() {
+	if r.stages != nil {
+		r.numStages--
+		stage := &r.stages[r.numStages]
+		stage.Done()
+		stage.Wait()
+	}
 }

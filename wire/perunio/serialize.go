@@ -88,6 +88,8 @@ func Encode(writer io.Writer, values ...interface{}) (err error) { //nolint: cyc
 
 // Decode decodes multiple primitive values from a reader.
 // All passed values must be references, not copies.
+//
+//nolint:cyclop
 func Decode(reader io.Reader, values ...interface{}) (err error) {
 	for i, value := range values {
 		switch v := value.(type) {

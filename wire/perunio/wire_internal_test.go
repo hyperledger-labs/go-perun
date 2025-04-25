@@ -23,6 +23,7 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	polytest "polycry.pt/poly-go/test"
 )
@@ -103,7 +104,7 @@ func TestEncodeDecode(t *testing.T) {
 		}
 	}
 
-	a.Nil(Decode(r, d...), "failed to decode values")
+	require.NoError(t, Decode(r, d...), "failed to decode values")
 
 	for i, v := range values {
 		if !reflect.DeepEqual(reflect.ValueOf(d[i]).Elem().Interface(), v) {

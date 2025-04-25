@@ -31,6 +31,8 @@ const addr = "0.0.0.0:1337"
 // serverKey and serverCert are generated with the following commands:
 // openssl ecparam -genkey -name prime256v1 -out server.key
 // openssl req -new -x509 -key server.key -out server.pem -days 3650.
+//
+//nolint:gosec
 const testServerKey = `-----BEGIN EC PARAMETERS-----
 BggqhkjOPQMBBw==
 -----END EC PARAMETERS-----
@@ -90,7 +92,7 @@ func TestListener_Close(t *testing.T) {
 	t.Run("double close", func(t *testing.T) {
 		l, err := NewTCPListener(addr, tlsConfig)
 		require.NoError(t, err)
-		assert.NoError(t, l.Close(), "first close must not return error")
+		require.NoError(t, l.Close(), "first close must not return error")
 		assert.Error(t, l.Close(), "second close must result in error")
 	})
 }
@@ -104,7 +106,7 @@ func TestNewListener(t *testing.T) {
 	}
 	t.Run("happy", func(t *testing.T) {
 		l, err := NewTCPListener(addr, tlsConfig)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		require.NotNil(t, l)
 		l.Close()
 	})

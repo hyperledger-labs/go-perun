@@ -190,7 +190,7 @@ func (c *Client) ProposeChannel(ctx context.Context, prop ChannelProposal) (*Cha
 	// cache version 1 updates until channel is opened
 	c.enableVer1Cache()
 	// replay cached version 1 updates
-	defer c.releaseVer1Cache()
+	defer c.releaseVer1Cache() //nolint:contextcheck
 	ch, err := c.proposeTwoPartyChannel(ctx, prop)
 	if err != nil {
 		return nil, errors.WithMessage(err, "channel proposal")
@@ -267,7 +267,7 @@ func (c *Client) handleChannelProposalAcc(
 	// cache version 1 updates
 	c.enableVer1Cache()
 	// replay cached version 1 updates
-	defer c.releaseVer1Cache()
+	defer c.releaseVer1Cache() //nolint:contextcheck
 
 	if ch, err = c.acceptChannelProposal(ctx, prop, p, acc); err != nil {
 		return ch, errors.WithMessage(err, "accept channel proposal")
@@ -408,7 +408,7 @@ func (c *Client) validTwoPartyProposal(
 		return errors.Errorf("expected 2 peers, got %d", len(peers))
 	}
 
-	if !(ourIdx == ProposerIdx || ourIdx == ProposeeIdx) {
+	if ourIdx != ProposerIdx && ourIdx != ProposeeIdx {
 		return errors.Errorf("invalid index: %d", ourIdx)
 	}
 
@@ -454,7 +454,7 @@ func (c *Client) validSubChannelProposal(proposal *SubChannelProposalMsg) error 
 		return errors.New("parent channel and sub-channel backends do not match")
 	}
 
-	if err := parentState.Balances.AssertGreaterOrEqual(base.InitBals.Balances); err != nil {
+	if err := parentState.AssertGreaterOrEqual(base.InitBals.Balances); err != nil {
 		return errors.WithMessage(err, "insufficient funds")
 	}
 
@@ -501,7 +501,7 @@ func (c *Client) validVirtualChannelProposal(prop *VirtualChannelProposalMsg, ou
 	}
 
 	virtualBals := transformBalances(prop.InitBals.Balances, parentState.NumParts(), indexMap)
-	if err := parentState.Balances.AssertGreaterOrEqual(virtualBals); err != nil {
+	if err := parentState.AssertGreaterOrEqual(virtualBals); err != nil {
 		return errors.WithMessage(err, "insufficient funds")
 	}
 	return nil

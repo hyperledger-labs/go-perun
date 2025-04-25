@@ -16,6 +16,7 @@ package client
 
 import (
 	"context"
+	"math"
 
 	"github.com/pkg/errors"
 
@@ -40,16 +41,16 @@ func (c *Channel) withdrawVirtualChannel(ctx context.Context, virtual *Channel) 
 		c.Log().Panicf("sub-allocation %x not found", virtualAlloc.ID)
 	}
 
-	if !virtualAlloc.BalancesEqual(virtual.state().Allocation.Sum()) {
+	if !virtualAlloc.BalancesEqual(virtual.state().Sum()) {
 		c.Log().Panic("sub-allocation does not equal accumulated sub-channel outcome")
 	}
 
 	virtualBalsRemapped := virtual.translateBalances(virtualAlloc.IndexMap)
 
 	// We assume that the asset types of parent channel and virtual channel are the same.
-	state.Allocation.Balances = state.Allocation.Balances.Add(virtualBalsRemapped)
+	state.Balances = state.Add(virtualBalsRemapped)
 
-	if err := state.Allocation.RemoveSubAlloc(virtualAlloc); err != nil {
+	if err := state.RemoveSubAlloc(virtualAlloc); err != nil {
 		c.Log().WithError(err).Panicf("removing sub-allocation with id %x", virtualAlloc.ID)
 	}
 
@@ -214,6 +215,9 @@ func (c *Channel) forceFinalState(ctx context.Context, final channel.SignedState
 		return err
 	}
 	for i, sig := range final.Sigs {
+		if i < 0 || i > math.MaxUint16 {
+			return errors.Errorf("index out of bounds: %d", i)
+		}
 		if err := c.machine.AddSig(ctx, channel.Index(i), sig); err != nil {
 			return err
 		}

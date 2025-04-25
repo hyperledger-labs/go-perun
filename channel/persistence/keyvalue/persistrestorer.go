@@ -27,19 +27,19 @@ type PersistRestorer struct {
 	db sortedkv.Database
 }
 
+// NewPersistRestorer creates a new PersistRestorer for the supplied database.
+func NewPersistRestorer(db sortedkv.Database) *PersistRestorer {
+	return &PersistRestorer{
+		db: db,
+	}
+}
+
 // Close closes the PersistRestorer and releases all resources it holds.
 func (pr *PersistRestorer) Close() error {
 	if err := pr.db.Close(); err != nil {
 		return err
 	}
 	return nil
-}
-
-// NewPersistRestorer creates a new PersistRestorer for the supplied database.
-func NewPersistRestorer(db sortedkv.Database) *PersistRestorer {
-	return &PersistRestorer{
-		db: db,
-	}
 }
 
 var prefix = struct{ ChannelDB, PeerDB, SigKey, Peers string }{

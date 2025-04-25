@@ -27,20 +27,20 @@ type Carol struct {
 	registered chan *channel.RegisteredEvent
 }
 
-// HandleAdjudicatorEvent is the callback for adjudicator event handling.
-func (r *Carol) HandleAdjudicatorEvent(e channel.AdjudicatorEvent) {
-	r.log.Infof("HandleAdjudicatorEvent: %v", e)
-	if e, ok := e.(*channel.RegisteredEvent); ok {
-		r.registered <- e
-	}
-}
-
 // NewCarol creates a new Responder that executes the Carol protocol.
 func NewCarol(t *testing.T, setup RoleSetup) *Carol {
 	t.Helper()
 	return &Carol{
 		Responder:  *NewResponder(t, setup, malloryCarolNumStages),
 		registered: make(chan *channel.RegisteredEvent),
+	}
+}
+
+// HandleAdjudicatorEvent is the callback for adjudicator event handling.
+func (r *Carol) HandleAdjudicatorEvent(e channel.AdjudicatorEvent) {
+	r.log.Infof("HandleAdjudicatorEvent: %v", e)
+	if e, ok := e.(*channel.RegisteredEvent); ok {
+		r.registered <- e
 	}
 }
 
@@ -64,7 +64,7 @@ func (r *Carol) exec(_cfg ExecConfig, ch *paymentChannel, propHandler *acceptNex
 	r.waitStage()
 
 	// Carol receives some updates from Mallory
-	for i := 0; i < cfg.NumPayments[them]; i++ {
+	for i := range cfg.NumPayments[them] {
 		ch.recvTransfer(cfg.TxAmounts[them], fmt.Sprintf("Mallory#%d", i))
 	}
 	// 2nd stage - txs received

@@ -15,6 +15,9 @@
 package protobuf
 
 import (
+	"fmt"
+	"math"
+
 	"perun.network/go-perun/channel"
 	"perun.network/go-perun/client"
 )
@@ -23,13 +26,17 @@ func toChannelSyncMsg(protoEnvMsg *Envelope_ChannelSyncMsg) (msg *client.Channel
 	protoMsg := protoEnvMsg.ChannelSyncMsg
 
 	msg = &client.ChannelSyncMsg{}
-	msg.Phase = channel.Phase(protoMsg.Phase)
-	msg.CurrentTX.Sigs = make([][]byte, len(protoMsg.CurrentTx.Sigs))
-	for i := range protoMsg.CurrentTx.Sigs {
-		msg.CurrentTX.Sigs[i] = make([]byte, len(protoMsg.CurrentTx.Sigs[i]))
-		copy(msg.CurrentTX.Sigs[i], protoMsg.CurrentTx.Sigs[i])
+	phase := protoMsg.GetPhase()
+	if phase > math.MaxUint8 {
+		return msg, fmt.Errorf("invalid phase: %d", phase)
 	}
-	msg.CurrentTX.State, err = ToState(protoMsg.CurrentTx.State)
+	msg.Phase = channel.Phase(phase)
+	msg.CurrentTX.Sigs = make([][]byte, len(protoMsg.GetCurrentTx().GetSigs()))
+	for i := range protoMsg.GetCurrentTx().GetSigs() {
+		msg.CurrentTX.Sigs[i] = make([]byte, len(protoMsg.GetCurrentTx().GetSigs()[i]))
+		copy(msg.CurrentTX.Sigs[i], protoMsg.GetCurrentTx().GetSigs()[i])
+	}
+	msg.CurrentTX.State, err = ToState(protoMsg.GetCurrentTx().GetState())
 	return msg, err
 }
 
@@ -41,7 +48,7 @@ func fromChannelSyncMsg(msg *client.ChannelSyncMsg) (_ *Envelope_ChannelSyncMsg,
 	protoMsg.CurrentTx.Sigs = make([][]byte, len(msg.CurrentTX.Sigs))
 	for i := range msg.CurrentTX.Sigs {
 		protoMsg.CurrentTx.Sigs[i] = make([]byte, len(msg.CurrentTX.Sigs[i]))
-		copy(protoMsg.CurrentTx.Sigs[i], msg.CurrentTX.Sigs[i])
+		copy(protoMsg.GetCurrentTx().GetSigs()[i], msg.CurrentTX.Sigs[i])
 	}
 	protoMsg.CurrentTx.State, err = FromState(msg.CurrentTX.State)
 	return &Envelope_ChannelSyncMsg{protoMsg}, err

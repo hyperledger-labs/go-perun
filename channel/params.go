@@ -89,11 +89,6 @@ type Params struct {
 	Aux Aux
 }
 
-// ID returns the channelID of this channel.
-func (p *Params) ID() ID {
-	return p.id
-}
-
 // NewParams creates Params from the given data and performs sanity checks. The
 // appDef optional: if it is nil, it describes a payment channel. The channel id
 // is also calculated here and persisted because it probably is an expensive
@@ -113,6 +108,34 @@ func NewParams(challengeDuration uint64, parts []map[wallet.BackendID]wallet.Add
 		}
 	}
 	return NewParamsUnsafe(challengeDuration, parts, app, nonce, ledger, virtual, aux), nil
+}
+
+// NewParamsUnsafe creates Params from the given data and does NOT perform
+// sanity checks. The channel id is also calculated here and persisted because
+// it probably is an expensive hash operation.
+func NewParamsUnsafe(challengeDuration uint64, parts []map[wallet.BackendID]wallet.Address, app App, nonce Nonce, ledger bool, virtual bool, aux Aux) *Params {
+	p := &Params{
+		ChallengeDuration: challengeDuration,
+		Parts:             parts,
+		App:               app,
+		Nonce:             nonce,
+		LedgerChannel:     ledger,
+		VirtualChannel:    virtual,
+		Aux:               aux,
+	}
+
+	// probably an expensive hash operation, do it only once during creation.
+	id, err := CalcID(p)
+	if err != nil || id == Zero {
+		log.Panicf("Could not calculate channel id: %v", err)
+	}
+	p.id = id
+	return p
+}
+
+// ID returns the channelID of this channel.
+func (p *Params) ID() ID {
+	return p.id
 }
 
 // ValidateProposalParameters validates all parameters that are part of the
@@ -149,29 +172,6 @@ func ValidateParameters(challengeDuration uint64, numParts int, app App, nonce N
 		return errors.Errorf("nonce too long (%d > %d)", len(nonce.Bytes()), MaxNonceLen)
 	}
 	return nil
-}
-
-// NewParamsUnsafe creates Params from the given data and does NOT perform
-// sanity checks. The channel id is also calculated here and persisted because
-// it probably is an expensive hash operation.
-func NewParamsUnsafe(challengeDuration uint64, parts []map[wallet.BackendID]wallet.Address, app App, nonce Nonce, ledger bool, virtual bool, aux Aux) *Params {
-	p := &Params{
-		ChallengeDuration: challengeDuration,
-		Parts:             parts,
-		App:               app,
-		Nonce:             nonce,
-		LedgerChannel:     ledger,
-		VirtualChannel:    virtual,
-		Aux:               aux,
-	}
-
-	// probably an expensive hash operation, do it only once during creation.
-	id, err := CalcID(p)
-	if err != nil || id == Zero {
-		log.Panicf("Could not calculate channel id: %v", err)
-	}
-	p.id = id
-	return p
 }
 
 // CloneAddresses returns a clone of an Address using its binary marshaling

@@ -33,7 +33,7 @@ func TestSignatureSerialize(t *testing.T) {
 	rng := pkgtest.Prng(t)
 
 	// More iterations are better for catching value dependent bugs
-	for i := 0; i < 10; i++ {
+	for range 10 {
 		rBytes := make([]byte, 32)
 		sBytes := make([]byte, 32)
 
@@ -45,11 +45,11 @@ func TestSignatureSerialize(t *testing.T) {
 		s := new(big.Int).SetBytes(sBytes)
 
 		sig, err1 := serializeSignature(r, s)
-		a.Nil(err1, "Serialization should not fail")
-		a.Equal(curve.Params().BitSize/4, len(sig), "Signature has wrong size")
+		a.NoError(err1, "Serialization should not fail")
+		a.Len(sig, curve.Params().BitSize/4, "Signature has wrong size")
 		R, S, err2 := deserializeSignature(sig)
 
-		a.Nil(err2, "Deserialization should not fail")
+		a.NoError(err2, "Deserialization should not fail")
 		a.Equal(r, R, "Serialized and deserialized r values should be equal")
 		a.Equal(s, S, "Serialized and deserialized s values should be equal")
 	}
@@ -71,7 +71,7 @@ func TestGenericTests(t *testing.T) {
 	// NewRandomAddress is also tested in channel_test but since they are two packages,
 	// we also need to test it here
 	rng := pkgtest.Prng(t)
-	for i := 0; i < 10; i++ {
+	for range 10 {
 		addr0 := NewRandomAddress(rng)
 		addr1 := NewRandomAddress(rng)
 		assert.NotEqual(
@@ -80,10 +80,10 @@ func TestGenericTests(t *testing.T) {
 		addrStrLen := addrLen*2 + 2 // hex encoded and prefixed with 0x
 		str0 := addr0.String()
 		str1 := addr1.String()
-		assert.Equal(
-			t, addrStrLen, len(str0), "First address '%v' has wrong length", str0)
-		assert.Equal(
-			t, addrStrLen, len(str1), "Second address '%v' has wrong length", str1)
+		assert.Len(
+			t, str0, addrStrLen, "First address '%v' has wrong length", str0)
+		assert.Len(
+			t, str1, addrStrLen, "Second address '%v' has wrong length", str1)
 		assert.NotEqual(
 			t, str0, str1, "Printed addresses are unlikely to be identical")
 	}

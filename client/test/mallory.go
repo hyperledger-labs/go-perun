@@ -59,14 +59,15 @@ func (r *Mallory) exec(_cfg ExecConfig, ch *paymentChannel) {
 	r.waitStage()
 
 	// Mallory sends some updates to Carol
-	for i := 0; i < cfg.NumPayments[we]; i++ {
+	for i := range cfg.NumPayments[we] {
 		ch.sendTransfer(cfg.TxAmounts[we], fmt.Sprintf("Mallory#%d", i))
 	}
 	// 2nd stage - txs sent
 	r.waitStage()
 
 	// Register version 0 AdjudicatorReq
-	challengeDuration := time.Duration(ch.Channel.Params().ChallengeDuration) * time.Second
+	duration := ch.Channel.Params().ChallengeDuration
+	challengeDuration := time.Duration(duration) * time.Second //nolint:gosec
 	regCtx, regCancel := context.WithTimeout(context.Background(), r.timeout)
 	defer regCancel()
 	r.log.Debug("Registering version 0 state.")
