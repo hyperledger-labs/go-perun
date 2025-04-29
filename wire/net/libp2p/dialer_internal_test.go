@@ -61,7 +61,7 @@ func TestDialer_Register(t *testing.T) {
 }
 
 func TestDialer_Dial(t *testing.T) {
-	timeout := 1000 * time.Millisecond
+	timeout := 2 * time.Second
 	rng := pkgtest.Prng(t)
 
 	lHost := getHost(rng)

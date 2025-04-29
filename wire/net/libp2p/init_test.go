@@ -16,4 +16,5 @@ package libp2p_test
 
 import (
 	_ "perun.network/go-perun/backend/sim/wallet" // Initializes the randomizers.
+	_ "perun.network/go-perun/backend/sim/wire"   // Reninit the sim wire package.
 )

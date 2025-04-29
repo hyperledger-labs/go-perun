@@ -22,8 +22,12 @@ import (
 	"github.com/libp2p/go-libp2p/core/crypto"
 	"github.com/libp2p/go-libp2p/core/peer"
 	"github.com/pkg/errors"
+	"perun.network/go-perun/wallet"
 	"perun.network/go-perun/wire"
 )
+
+// testBackendID is the identifier for the simulated Backend.
+const testBackendID = 0
 
 // Address is a peer address for wire discovery.
 type Address struct {
@@ -47,6 +51,21 @@ func NewRandomAddress(rng *rand.Rand) *Address {
 		panic(err)
 	}
 	return &Address{id}
+}
+
+// NewRandomAddresses returns a new random peer address.
+func NewRandomAddresses(rng *rand.Rand) map[wallet.BackendID]wire.Address {
+	_, publicKey, err := crypto.GenerateKeyPairWithReader(crypto.RSA, keySize, rng)
+	if err != nil {
+		panic(err)
+	}
+
+	id, err := peer.IDFromPublicKey(publicKey)
+	if err != nil {
+		panic(err)
+	}
+	a := Address{id}
+	return map[wallet.BackendID]wire.Address{testBackendID: &a}
 }
 
 // Equal returns whether the two addresses are equal.

@@ -324,7 +324,6 @@ func getRelayServerInfo() (*peer.AddrInfo, string, error) {
 // getHost returns a new random account for testing.
 func getHost(rng *rand.Rand) *Account {
 	acc := NewRandomAccount(rng)
-	log.Println(acc.ID())
 	return acc
 }
 
@@ -345,8 +344,11 @@ func (acc *Account) keepReservationAlive(ctx context.Context, ai peer.AddrInfo) 
 		select {
 		case <-ctx.Done():
 			log.Println("keepReservationAlive: context cancelled")
+			err := acc.Close()
+			if err != nil {
+				panic(err)
+			}
 			return
-
 		case <-ticker.C:
 			newReservation, err := libp2pclient.Reserve(ctx, acc.Host, ai)
 			if err != nil {
