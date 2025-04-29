@@ -20,8 +20,10 @@ import (
 	"crypto/sha256"
 	"encoding/json"
 	"fmt"
+	"log"
 	"math/rand"
 	"net"
+	"time"
 
 	"github.com/libp2p/go-libp2p"
 	"github.com/libp2p/go-libp2p/core/crypto"
@@ -39,16 +41,120 @@ import (
 const (
 	relayID = "QmVCPfUMr98PaaM8qbAQBgJ9jqc7XHpGp7AsyragdFDmgm"
 
+	keySize = 2048
+
 	queryProtocol    = "/address-book/query/1.0.0"    // Protocol for querying the relay-server for a peerID.
 	registerProtocol = "/address-book/register/1.0.0" // Protocol for registering an on-chain address with the relay-server.
 	removeProtocol   = "/address-book/remove/1.0.0"   // Protocol for deregistering an on-chain address with the relay-server.
 )
 
-// Account represents a libp2p wire account containting a libp2p host.
+// Account represents a libp2p wire account containing a libp2p host.
 type Account struct {
 	host.Host
-	relayAddr  string
-	privateKey crypto.PrivKey
+	relayAddr   string
+	privateKey  crypto.PrivKey
+	reservation *libp2pclient.Reservation
+	closer      context.CancelFunc
+}
+
+// NewRandomAccount generates a new random account.
+func NewRandomAccount(rng *rand.Rand) *Account {
+	relayInfo, relayAddr, err := getRelayServerInfo()
+	if err != nil {
+		panic(err)
+	}
+
+	// Creates a new RSA key pair for this host.
+	prvKey, _, err := crypto.GenerateKeyPairWithReader(crypto.Ed25519, keySize, rng)
+	if err != nil {
+		panic(err)
+	}
+
+	// Construct a new libp2p client for our relay-server.
+	// Identity(prvKey)		- Use a RSA private key to generate the ID of the host.
+	// EnableRelay()		- Enable relay system and configures itself as a node behind a NAT
+	client, err := libp2p.New(
+		libp2p.NoListenAddrs,
+		libp2p.Identity(prvKey),
+		libp2p.EnableRelay(),
+	)
+	if err != nil {
+		client.Close()
+		panic(err)
+	}
+
+	// Redialing hacked
+	if sw, ok := client.Network().(*swarm.Swarm); ok {
+		sw.Backoff().Clear(relayInfo.ID)
+	}
+
+	if err := client.Connect(context.Background(), *relayInfo); err != nil {
+		client.Close()
+		panic(errors.WithMessage(err, "connecting to the relay server"))
+	}
+
+	// Reserve connection
+	// Hosts that want to have messages relayed on their behalf need to reserve a slot
+	// with the circuit relay service host
+	resv, err := libp2pclient.Reserve(context.Background(), client, *relayInfo)
+	if err != nil {
+		panic(errors.WithMessage(err, "failed to receive a relay reservation from relay server"))
+	}
+
+	ctx, cancel := context.WithCancel(context.Background())
+	acc := &Account{client, relayAddr, prvKey, resv, cancel}
+
+	go acc.keepReservationAlive(ctx, *relayInfo)
+
+	return acc
+}
+
+// NewAccountFromPrivateKeyBytes creates a new account from a given private key.
+func NewAccountFromPrivateKeyBytes(prvKeyBytes []byte) (*Account, error) {
+	prvKey, err := crypto.UnmarshalPrivateKey(prvKeyBytes)
+	if err != nil {
+		return nil, errors.WithMessage(err, "unmarshalling private key")
+	}
+
+	relayInfo, relayAddr, err := getRelayServerInfo()
+	if err != nil {
+		panic(err)
+	}
+	// Construct a new libp2p client for our relay-server.
+	// Identity(prvKey)		- Use a RSA private key to generate the ID of the host.
+	// EnableRelay()		- Enable relay system and configures itself as a node behind a NAT
+	client, err := libp2p.New(
+		libp2p.NoListenAddrs,
+		libp2p.Identity(prvKey),
+		libp2p.EnableRelay(),
+	)
+	if err != nil {
+		return nil, errors.WithMessage(err, "creating new libp2p client")
+	}
+
+	if sw, ok := client.Network().(*swarm.Swarm); ok {
+		sw.Backoff().Clear(relayInfo.ID)
+	}
+
+	if err := client.Connect(context.Background(), *relayInfo); err != nil {
+		client.Close()
+		return nil, errors.WithMessage(err, "connecting to the relay server")
+	}
+
+	// Reserve connection
+	// Hosts that want to have messages relayed on their behalf need to reserve a slot
+	// with the circuit relay service host
+	res, err := libp2pclient.Reserve(context.Background(), client, *relayInfo)
+	if err != nil {
+		panic(errors.WithMessage(err, "failed to receive a relay reservation from relay server"))
+	}
+
+	ctx, cancel := context.WithCancel(context.Background())
+	acc := &Account{client, relayAddr, prvKey, res, cancel}
+
+	go acc.keepReservationAlive(ctx, *relayInfo)
+
+	return acc, nil
 }
 
 // Address returns the account's address.
@@ -69,94 +175,11 @@ func (acc *Account) Sign(data []byte) ([]byte, error) {
 		return nil, err
 	}
 	return signature, nil
-
 }
 
 // MarshalPrivateKey marshals the account's private key to binary.
 func (acc *Account) MarshalPrivateKey() ([]byte, error) {
 	return crypto.MarshalPrivateKey(acc.privateKey)
-}
-
-// NewAccountFromPrivateKeyBytes creates a new account from a given private key.
-func NewAccountFromPrivateKeyBytes(prvKeyBytes []byte) (*Account, error) {
-	prvKey, err := crypto.UnmarshalPrivateKey(prvKeyBytes)
-	if err != nil {
-		return nil, errors.WithMessage(err, "unmarshalling private key")
-	}
-
-	relayInfo, relayAddr, err := getRelayServerInfo()
-	if err != nil {
-		panic(err)
-	}
-	// Construct a new libp2p client for our relay-server.
-	// Identity(prvKey)		- Use a RSA private key to generate the ID of the host.
-	// EnableRelay()		- Enable relay system and configures itself as a node behind a NAT
-	client, err := libp2p.New(
-		libp2p.Identity(prvKey),
-		libp2p.EnableRelay(),
-	)
-	if err != nil {
-		return nil, errors.WithMessage(err, "creating new libp2p client")
-	}
-
-	if err := client.Connect(context.Background(), *relayInfo); err != nil {
-		client.Close()
-		return nil, errors.WithMessage(err, "connecting to the relay server")
-	}
-
-	// Reserve connection
-	// Hosts that want to have messages relayed on their behalf need to reserve a slot
-	// with the circuit relay service host
-	_, err = libp2pclient.Reserve(context.Background(), client, *relayInfo)
-	if err != nil {
-		panic(errors.WithMessage(err, "failed to receive a relay reservation from relay server"))
-	}
-
-	return &Account{client, relayAddr, prvKey}, nil
-}
-
-// NewRandomAccount generates a new random account.
-func NewRandomAccount(rng *rand.Rand) *Account {
-	relayInfo, relayAddr, err := getRelayServerInfo()
-	if err != nil {
-		panic(err)
-	}
-
-	// Creates a new RSA key pair for this host.
-	prvKey, _, err := crypto.GenerateKeyPairWithReader(crypto.Ed25519, 2048, rng)
-	if err != nil {
-		panic(err)
-	}
-
-	// Construct a new libp2p client for our relay-server.
-	// Identity(prvKey)		- Use a RSA private key to generate the ID of the host.
-	// EnableRelay()		- Enable relay system and configures itself as a node behind a NAT
-	client, err := libp2p.New(
-		libp2p.NoListenAddrs,
-		libp2p.Identity(prvKey),
-		libp2p.EnableRelay(),
-	)
-	if err != nil {
-		client.Close()
-		panic(err)
-	}
-
-	// Redialing hacked
-	client.Network().(*swarm.Swarm).Backoff().Clear(*&relayInfo.ID)
-	if err := client.Connect(context.Background(), *relayInfo); err != nil {
-		client.Close()
-		panic(errors.WithMessage(err, "connecting to the relay server"))
-	}
-
-	// Reserve connection
-	// Hosts that want to have messages relayed on their behalf need to reserve a slot
-	// with the circuit relay service host
-	_, err = libp2pclient.Reserve(context.Background(), client, *relayInfo)
-	if err != nil {
-		panic(errors.WithMessage(err, "failed to receive a relay reservation from relay server"))
-	}
-
-	return &Account{client, relayAddr, prvKey}
 }
 
 // RegisterOnChainAddress registers an on-chain address with the account to the relay-server's address book.
@@ -183,7 +206,7 @@ func (acc *Account) RegisterOnChainAddress(onChainAddr wallet.Address) error {
 	registerData.OnChainAddress = onChainAddr.String()
 	registerData.PeerID = acc.ID().String()
 
-	data, err := json.Marshal(registerData)
+	data, err := json.Marshal(registerData) //nolint:musttag
 	if err != nil {
 		return errors.WithMessage(err, "marshalling register data")
 	}
@@ -198,6 +221,7 @@ func (acc *Account) RegisterOnChainAddress(onChainAddr wallet.Address) error {
 
 // Close closes the account.
 func (acc *Account) Close() error {
+	acc.closer()
 	return acc.Host.Close()
 }
 
@@ -221,7 +245,7 @@ func (acc *Account) DeregisterOnChainAddress(onChainAddr wallet.Address) error {
 	unregisterData.OnChainAddress = onChainAddr.String()
 	unregisterData.PeerID = acc.ID().String()
 
-	data, err := json.Marshal(unregisterData)
+	data, err := json.Marshal(unregisterData) //nolint:musttag
 	if err != nil {
 		return errors.WithMessage(err, "marshalling register data")
 	}
@@ -249,7 +273,10 @@ func (acc *Account) QueryOnChainAddress(onChainAddr wallet.Address) (*Address, e
 	defer s.Close()
 
 	rw := bufio.NewReadWriter(bufio.NewReader(s), bufio.NewWriter(s))
-	rw.WriteString(fmt.Sprintf("%s\n", onChainAddr))
+	_, err = fmt.Fprintf(rw, "%s\n", onChainAddr)
+	if err != nil {
+		return nil, errors.WithMessage(err, "writing on-chain address")
+	}
 	rw.Flush()
 
 	str, _ := rw.ReadString('\n')
@@ -292,4 +319,58 @@ func getRelayServerInfo() (*peer.AddrInfo, string, error) {
 	}
 
 	return relayInfo, relayAddr, nil
+}
+
+// getHost returns a new random account for testing.
+func getHost(rng *rand.Rand) *Account {
+	acc := NewRandomAccount(rng)
+	log.Println(acc.ID())
+	return acc
+}
+
+// keepReservationAlive keeps the reservation alive by periodically renewing it.
+func (acc *Account) keepReservationAlive(ctx context.Context, ai peer.AddrInfo) {
+	const (
+		reserveInterval = 50 * time.Second // slightly less than ReserveTimeout
+		initialBackoff  = 2 * time.Second
+		maxBackoff      = 1 * time.Minute
+	)
+
+	ticker := time.NewTicker(reserveInterval)
+	defer ticker.Stop()
+
+	backoff := initialBackoff
+
+	for {
+		select {
+		case <-ctx.Done():
+			log.Println("keepReservationAlive: context cancelled")
+			return
+
+		case <-ticker.C:
+			newReservation, err := libp2pclient.Reserve(ctx, acc.Host, ai)
+			if err != nil {
+				log.Printf("keepReservationAlive: reservation failed: %v; retrying in %s", err, backoff)
+
+				timer := time.NewTimer(backoff)
+				select {
+				case <-ctx.Done():
+					timer.Stop()
+					return
+				case <-timer.C:
+					if backoff < maxBackoff {
+						backoff *= 2
+						if backoff > maxBackoff {
+							backoff = maxBackoff
+						}
+					}
+				}
+				continue
+			}
+
+			acc.reservation = newReservation
+			backoff = initialBackoff
+			log.Println("keepReservationAlive: reservation successfully renewed")
+		}
+	}
 }

@@ -21,6 +21,7 @@ import (
 
 	"github.com/libp2p/go-libp2p/core/crypto"
 	"github.com/libp2p/go-libp2p/core/peer"
+	"github.com/pkg/errors"
 	"perun.network/go-perun/wire"
 )
 
@@ -32,6 +33,20 @@ type Address struct {
 // NewAddress returns a new address.
 func NewAddress(id peer.ID) *Address {
 	return &Address{ID: id}
+}
+
+// NewRandomAddress returns a new random peer address.
+func NewRandomAddress(rng *rand.Rand) *Address {
+	_, publicKey, err := crypto.GenerateKeyPairWithReader(crypto.RSA, keySize, rng)
+	if err != nil {
+		panic(err)
+	}
+
+	id, err := peer.IDFromPublicKey(publicKey)
+	if err != nil {
+		panic(err)
+	}
+	return &Address{id}
 }
 
 // Equal returns whether the two addresses are equal.
@@ -57,21 +72,6 @@ func (a *Address) Cmp(b wire.Address) int {
 		return 0
 	}
 	return 1
-
-}
-
-// NewRandomAddress returns a new random peer address.
-func NewRandomAddress(rng *rand.Rand) *Address {
-	_, publicKey, err := crypto.GenerateKeyPairWithReader(crypto.RSA, 2048, rng)
-	if err != nil {
-		panic(err)
-	}
-
-	id, err := peer.IDFromPublicKey(publicKey)
-	if err != nil {
-		panic(err)
-	}
-	return &Address{id}
 }
 
 // Verify verifies the signature of a message.
@@ -90,5 +90,5 @@ func (a *Address) Verify(msg []byte, sig []byte) error {
 	if b {
 		return nil
 	}
-	return fmt.Errorf("signature verification failed")
+	return errors.New("signature verification failed")
 }

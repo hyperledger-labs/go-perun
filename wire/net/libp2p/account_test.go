@@ -4,7 +4,7 @@
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
 //
-//	http://www.apache.org/licenses/LICENSE-2.0
+//     http://www.apache.org/licenses/LICENSE-2.0
 //
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
@@ -15,8 +15,6 @@
 package libp2p_test
 
 import (
-	"log"
-	"math/rand"
 	"testing"
 	"time"
 
@@ -33,12 +31,6 @@ func TestNewAccount(t *testing.T) {
 	acc := libp2p.NewRandomAccount(rng)
 	assert.NotNil(t, acc)
 	defer acc.Close()
-}
-
-func getHost(rng *rand.Rand) *libp2p.Account {
-	acc := libp2p.NewRandomAccount(rng)
-	log.Println(acc.Host.ID())
-	return acc
 }
 
 func TestAddressBookRegister(t *testing.T) {
@@ -227,7 +219,6 @@ func TestAddressBookRegisterQueryMultiple(t *testing.T) {
 	assert.NoError(t, err)
 }
 
-// Test NewAccountFromPrivateKey
 func TestNewAccountFromPrivateKey(t *testing.T) {
 	rng := pkgtest.Prng(t)
 	acc := libp2p.NewRandomAccount(rng)
