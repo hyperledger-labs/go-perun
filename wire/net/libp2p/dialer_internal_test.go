@@ -33,9 +33,10 @@ import (
 
 func TestNewDialer(t *testing.T) {
 	rng := pkgtest.Prng(t)
-	h := getHost(rng)
+	acc := NewRandomAccount(rng)
+	defer acc.Close()
 
-	d := NewP2PDialer(h)
+	d := NewP2PDialer(acc)
 	assert.NotNil(t, d)
 	d.Close()
 }
@@ -44,8 +45,9 @@ func TestDialer_Register(t *testing.T) {
 	rng := pkgtest.Prng(t)
 	addr := NewRandomAddress(rng)
 	key := wire.Key(addr)
-	h := getHost(rng)
-	d := NewP2PDialer(h)
+	acc := NewRandomAccount(rng)
+	defer acc.Close()
+	d := NewP2PDialer(acc)
 	defer d.Close()
 
 	_, ok := d.get(key)
@@ -64,7 +66,7 @@ func TestDialer_Dial(t *testing.T) {
 	timeout := 2 * time.Second
 	rng := pkgtest.Prng(t)
 
-	lHost := getHost(rng)
+	lHost := NewRandomAccount(rng)
 	lAddr := lHost.Address()
 	laddrs := make(map[wallet.BackendID]wire.Address)
 	laddrs[test.TestBackendID] = lAddr
@@ -72,7 +74,7 @@ func TestDialer_Dial(t *testing.T) {
 	listener := NewP2PListener(lHost)
 	defer listener.Close()
 
-	dHost := getHost(rng)
+	dHost := NewRandomAccount(rng)
 	dAddr := dHost.Address()
 	daddrs := make(map[wallet.BackendID]wire.Address)
 	daddrs[test.TestBackendID] = dAddr
@@ -140,13 +142,17 @@ func TestDialer_Dial(t *testing.T) {
 			assert.Nil(t, conn)
 		})
 	})
+
+	assert.NoError(t, lHost.Close())
+	assert.NoError(t, dHost.Close())
 }
 
 func TestDialer_Close(t *testing.T) {
 	t.Run("double close", func(t *testing.T) {
 		rng := pkgtest.Prng(t)
-		h := getHost(rng)
-		d := NewP2PDialer(h)
+		acc := NewRandomAccount(rng)
+		defer acc.Close()
+		d := NewP2PDialer(acc)
 
 		assert.NoError(t, d.Close(), "first close must not return error")
 		assert.Error(t, d.Close(), "second close must result in error")

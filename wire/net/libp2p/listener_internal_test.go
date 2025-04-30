@@ -27,8 +27,12 @@ import (
 
 func TestNewListener(t *testing.T) {
 	rng := pkgtest.Prng(t)
-	h := getHost(rng)
-	l := NewP2PListener(h)
+	acc := NewRandomAccount(rng)
+	defer func() {
+		assert.NoError(t, acc.Close())
+	}()
+
+	l := NewP2PListener(acc)
 	defer l.Close()
 	assert.NotNil(t, l)
 }
@@ -36,8 +40,12 @@ func TestNewListener(t *testing.T) {
 func TestListener_Close(t *testing.T) {
 	t.Run("double close", func(t *testing.T) {
 		rng := pkgtest.Prng(t)
-		h := getHost(rng)
-		l := NewP2PListener(h)
+		acc := NewRandomAccount(rng)
+		defer func() {
+			assert.NoError(t, acc.Close())
+		}()
+
+		l := NewP2PListener(acc)
 		assert.NoError(t, l.Close(), "first close must not return error")
 		assert.Error(t, l.Close(), "second close must result in error")
 	})
@@ -46,10 +54,14 @@ func TestListener_Close(t *testing.T) {
 func TestListener_Accept(t *testing.T) {
 	// Happy case already tested in TestDialer_Dial.
 	rng := pkgtest.Prng(t)
-	h := getHost(rng)
+	acc := NewRandomAccount(rng)
+	defer func() {
+		assert.NoError(t, acc.Close())
+	}()
+
 	timeout := 100 * time.Millisecond
 	t.Run("timeout", func(t *testing.T) {
-		l := NewP2PListener(h)
+		l := NewP2PListener(acc)
 		defer l.Close()
 
 		ctxtest.AssertNotTerminates(t, timeout, func() {
@@ -59,7 +71,7 @@ func TestListener_Accept(t *testing.T) {
 	})
 
 	t.Run("closed", func(t *testing.T) {
-		l := NewP2PListener(h)
+		l := NewP2PListener(acc)
 		l.Close()
 
 		ctxtest.AssertTerminates(t, timeout, func() {

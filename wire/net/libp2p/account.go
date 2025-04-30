@@ -321,12 +321,6 @@ func getRelayServerInfo() (*peer.AddrInfo, string, error) {
 	return relayInfo, relayAddr, nil
 }
 
-// getHost returns a new random account for testing.
-func getHost(rng *rand.Rand) *Account {
-	acc := NewRandomAccount(rng)
-	return acc
-}
-
 // keepReservationAlive keeps the reservation alive by periodically renewing it.
 func (acc *Account) keepReservationAlive(ctx context.Context, ai peer.AddrInfo) {
 	const (
@@ -343,7 +337,6 @@ func (acc *Account) keepReservationAlive(ctx context.Context, ai peer.AddrInfo) 
 	for {
 		select {
 		case <-ctx.Done():
-			log.Println("keepReservationAlive: context cancelled")
 			err := acc.Close()
 			if err != nil {
 				panic(err)

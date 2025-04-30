@@ -37,6 +37,10 @@ func TestAddress(t *testing.T) {
 func TestSignature(t *testing.T) {
 	rng := pkgtest.Prng(t)
 	acc := libp2p.NewRandomAccount(rng)
+	defer func() {
+		assert.NoError(t, acc.Close())
+	}()
+
 	assert.NotNil(t, acc)
 	defer acc.Close()
 

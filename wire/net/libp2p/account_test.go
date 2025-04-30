@@ -19,6 +19,7 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"perun.network/go-perun/channel"
 	"perun.network/go-perun/wallet"
 	wtest "perun.network/go-perun/wallet/test"
@@ -30,19 +31,19 @@ func TestNewAccount(t *testing.T) {
 	rng := pkgtest.Prng(t)
 	acc := libp2p.NewRandomAccount(rng)
 	assert.NotNil(t, acc)
-	defer acc.Close()
+	require.NoError(t, acc.Close())
 }
 
 func TestAddressBookRegister(t *testing.T) {
 	rng := pkgtest.Prng(t)
 	acc := libp2p.NewRandomAccount(rng)
 	assert.NotNil(t, acc)
-	defer acc.Close()
 
 	onChainAddr := wtest.NewRandomAddress(rng, channel.TestBackendID)
 
 	err := acc.RegisterOnChainAddress(onChainAddr)
 	assert.NoError(t, err)
+	assert.NoError(t, acc.Close())
 }
 
 func TestAddressBookRegisterEmptyAddress(t *testing.T) {
@@ -50,18 +51,16 @@ func TestAddressBookRegisterEmptyAddress(t *testing.T) {
 	acc := libp2p.NewRandomAccount(rng)
 	assert.NotNil(t, acc)
 
-	defer acc.Close()
-
 	var nilAddr wallet.Address
 	err := acc.RegisterOnChainAddress(nilAddr)
 	assert.Error(t, err)
+	assert.NoError(t, acc.Close())
 }
 
 func TestAddressBookDeregister(t *testing.T) {
 	rng := pkgtest.Prng(t)
 	acc := libp2p.NewRandomAccount(rng)
 	assert.NotNil(t, acc)
-	defer acc.Close()
 
 	onChainAddr := wtest.NewRandomAddress(rng, channel.TestBackendID)
 
@@ -76,6 +75,7 @@ func TestAddressBookDeregister(t *testing.T) {
 	// Trying to query it again will fail
 	_, err = acc.QueryOnChainAddress(onChainAddr)
 	assert.Error(t, err)
+	assert.NoError(t, acc.Close())
 }
 
 func TestAddressBookDeregisterPeer(t *testing.T) {
@@ -121,7 +121,9 @@ func TestAddressBookQuery_Fail(t *testing.T) {
 	rng := pkgtest.Prng(t)
 	acc := libp2p.NewRandomAccount(rng)
 	assert.NotNil(t, acc)
-	defer acc.Close()
+	defer func() {
+		assert.NoError(t, acc.Close())
+	}()
 
 	onChainAddr := wtest.NewRandomAddress(rng, channel.TestBackendID)
 
@@ -133,7 +135,9 @@ func TestAddressBookQuery(t *testing.T) {
 	rng := pkgtest.Prng(t)
 	acc := libp2p.NewRandomAccount(rng)
 	assert.NotNil(t, acc)
-	defer acc.Close()
+	defer func() {
+		assert.NoError(t, acc.Close())
+	}()
 
 	onChainAddr := wtest.NewRandomAddress(rng, channel.TestBackendID)
 
@@ -155,11 +159,15 @@ func TestAddressBookQueryPeer(t *testing.T) {
 	rng := pkgtest.Prng(t)
 	acc := libp2p.NewRandomAccount(rng)
 	assert.NotNil(t, acc)
-	defer acc.Close()
+	defer func() {
+		assert.NoError(t, acc.Close())
+	}()
 
 	peer := libp2p.NewRandomAccount(rng)
 	assert.NotNil(t, peer)
-	defer peer.Close()
+	defer func() {
+		assert.NoError(t, peer.Close())
+	}()
 
 	onChainAddr := wtest.NewRandomAddress(rng, channel.TestBackendID)
 	peerOnChainAddr := wtest.NewRandomAddress(rng, channel.TestBackendID)
@@ -188,7 +196,9 @@ func TestAddressBookRegisterQueryMultiple(t *testing.T) {
 	rng := pkgtest.Prng(t)
 	acc := libp2p.NewRandomAccount(rng)
 	assert.NotNil(t, acc)
-	defer acc.Close()
+	defer func() {
+		assert.NoError(t, acc.Close())
+	}()
 
 	onChainAddr := wtest.NewRandomAddress(rng, channel.TestBackendID)
 	onChainAddr2 := wtest.NewRandomAddress(rng, channel.TestBackendID)
@@ -223,8 +233,9 @@ func TestNewAccountFromPrivateKey(t *testing.T) {
 	rng := pkgtest.Prng(t)
 	acc := libp2p.NewRandomAccount(rng)
 	assert.NotNil(t, acc)
-
-	defer acc.Close()
+	defer func() {
+		assert.NoError(t, acc.Close())
+	}()
 
 	keyBytes, err := acc.MarshalPrivateKey()
 	assert.NoError(t, err)

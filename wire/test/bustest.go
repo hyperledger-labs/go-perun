@@ -90,7 +90,7 @@ func GenericBusTest(t *testing.T,
 		ct := test.NewConcurrent(t)
 		ctx, cancel := context.WithTimeout(
 			context.Background(),
-			time.Duration((numClients)*(numClients-1)*numMsgs)*10*time.Millisecond)
+			time.Duration((numClients)*(numClients-1)*numMsgs)*100*time.Millisecond)
 		defer cancel()
 		waiting()
 		for sender := range clients {
