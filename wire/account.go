@@ -40,8 +40,6 @@ type Account interface {
 	Sign(msg []byte) ([]byte, error)
 }
 
-const testBackendID = 0
-
 var _ Msg = (*AuthResponseMsg)(nil)
 
 // AuthResponseMsg is the response message in the peer authentication protocol.
