@@ -40,7 +40,7 @@ func AuthMsgsSerializationTest(t *testing.T, serializerTest func(t *testing.T, m
 	t.Helper()
 
 	rng := pkgtest.Prng(t)
-	testMsg, err := wire.NewAuthResponseMsg(NewRandomAccountMap(rng, TestBackendID))
+	testMsg, err := wire.NewAuthResponseMsg(NewRandomAccountMap(rng, TestBackendID), TestBackendID)
 	if err != nil {
 		t.Fatal(err)
 	}

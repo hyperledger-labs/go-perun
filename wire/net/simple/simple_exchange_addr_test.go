@@ -27,6 +27,7 @@ import (
 	"time"
 
 	"perun.network/go-perun/channel"
+	"perun.network/go-perun/wallet"
 
 	"github.com/stretchr/testify/assert"
 
@@ -107,8 +108,8 @@ func newPipeConnPair() (a wirenet.Conn, b wirenet.Conn) {
 // recipient generated using randomness from rng.
 func newRandomEnvelope(rng *rand.Rand, m wire.Msg) *wire.Envelope {
 	return &wire.Envelope{
-		Sender:    NewRandomAddresses(rng),
-		Recipient: NewRandomAddresses(rng),
+		Sender:    NewRandomAddresses(rng, []wallet.BackendID{wiretest.TestBackendID}),
+		Recipient: NewRandomAddresses(rng, []wallet.BackendID{wiretest.TestBackendID}),
 		Msg:       m,
 	}
 }
