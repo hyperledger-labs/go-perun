@@ -85,8 +85,8 @@ func (ch *paymentChannel) openSubChannel(
 	bID wallet.BackendID,
 ) *paymentChannel {
 	initAlloc := channel.Allocation{
-		Assets:   []channel.Asset{cfg.Asset()},
-		Backends: []wallet.BackendID{bID},
+		Assets:   cfg.Asset(),
+		Backends: cfg.Backend(),
 		Balances: [][]channel.Bal{{initBals[0], initBals[1]}},
 	}
 
