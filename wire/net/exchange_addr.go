@@ -63,33 +63,35 @@ func IsAuthenticationError(err error) bool {
 func ExchangeAddrsActive(ctx context.Context, id map[wallet.BackendID]wire.Account, peer map[wallet.BackendID]wire.Address, conn Conn) error {
 	var err error
 	ok := pkg.TerminatesCtx(ctx, func() {
-		authMsg, err2 := wire.NewAuthResponseMsg(id)
-		if err2 != nil {
-			err = errors.WithMessage(err2, "creating auth message")
-			return
-		}
-		err = conn.Send(&wire.Envelope{
-			Sender:    wire.AddressMapfromAccountMap(id),
-			Recipient: peer,
-			Msg:       authMsg,
-		})
-		if err != nil {
-			err = errors.WithMessage(err, "sending message")
-			return
-		}
-
-		var e *wire.Envelope
-		if e, err = conn.Recv(); err != nil {
-			err = errors.WithMessage(err, "receiving message")
-		} else if _, ok := e.Msg.(*wire.AuthResponseMsg); !ok {
-			err = errors.Errorf("expected AuthResponse wire msg, got %v", e.Msg.Type())
-		} else if msg, ok := e.Msg.(*wire.AuthResponseMsg); ok {
-			if check := VerifyAddressSignature(peer, msg.Signature); check != nil {
-				err = errors.WithMessage(check, "verifying peer address's signature")
+		for bid := range id {
+			authMsg, err2 := wire.NewAuthResponseMsg(id, bid)
+			if err2 != nil {
+				err = errors.WithMessage(err2, "creating auth message")
+				return
 			}
-		} else if !channel.EqualWireMaps(e.Recipient, wire.AddressMapfromAccountMap(id)) &&
-			!channel.EqualWireMaps(e.Sender, peer) {
-			err = NewAuthenticationError(e.Sender, e.Recipient, wire.AddressMapfromAccountMap(id), "unmatched response sender or recipient")
+			err = conn.Send(&wire.Envelope{
+				Sender:    wire.AddressMapfromAccountMap(id),
+				Recipient: peer,
+				Msg:       authMsg,
+			})
+			if err != nil {
+				err = errors.WithMessage(err, "sending message")
+				return
+			}
+
+			var e *wire.Envelope
+			if e, err = conn.Recv(); err != nil {
+				err = errors.WithMessage(err, "receiving message")
+			} else if _, ok := e.Msg.(*wire.AuthResponseMsg); !ok {
+				err = errors.Errorf("expected AuthResponse wire msg, got %v", e.Msg.Type())
+			} else if msg, ok := e.Msg.(*wire.AuthResponseMsg); ok {
+				if check := VerifyAddressSignature(peer, msg.Signature); check != nil {
+					err = errors.WithMessage(check, "verifying peer address's signature")
+				}
+			} else if !channel.EqualWireMaps(e.Recipient, wire.AddressMapfromAccountMap(id)) &&
+				!channel.EqualWireMaps(e.Sender, peer) {
+				err = NewAuthenticationError(e.Sender, e.Recipient, wire.AddressMapfromAccountMap(id), "unmatched response sender or recipient")
+			}
 		}
 	})
 
@@ -108,33 +110,35 @@ func ExchangeAddrsPassive(ctx context.Context, id map[wallet.BackendID]wire.Acco
 	var err error
 	addrs := wire.AddressMapfromAccountMap(id)
 	ok := pkg.TerminatesCtx(ctx, func() {
-		var e *wire.Envelope
-		if e, err = conn.Recv(); err != nil {
-			err = errors.WithMessage(err, "receiving auth message")
-		} else if _, ok := e.Msg.(*wire.AuthResponseMsg); !ok {
-			err = errors.Errorf("expected AuthResponse wire msg, got %v", e.Msg.Type())
-		} else if !channel.EqualWireMaps(e.Recipient, addrs) {
-			err = NewAuthenticationError(e.Sender, e.Recipient, wire.AddressMapfromAccountMap(id), "unmatched response sender or recipient")
-		} else if msg, ok := e.Msg.(*wire.AuthResponseMsg); ok {
-			if err = VerifyAddressSignature(e.Sender, msg.Signature); err != nil {
-				err = errors.WithMessage(err, "verifying peer address's signature")
+		for bid := range id {
+			var e *wire.Envelope
+			if e, err = conn.Recv(); err != nil {
+				err = errors.WithMessage(err, "receiving auth message")
+			} else if _, ok := e.Msg.(*wire.AuthResponseMsg); !ok {
+				err = errors.Errorf("expected AuthResponse wire msg, got %v", e.Msg.Type())
+			} else if !channel.EqualWireMaps(e.Recipient, addrs) {
+				err = NewAuthenticationError(e.Sender, e.Recipient, wire.AddressMapfromAccountMap(id), "unmatched response sender or recipient")
+			} else if msg, ok := e.Msg.(*wire.AuthResponseMsg); ok {
+				if err = VerifyAddressSignature(e.Sender, msg.Signature); err != nil {
+					err = errors.WithMessage(err, "verifying peer address's signature")
+				}
 			}
-		}
 
-		if err != nil {
-			return
-		}
+			if err != nil {
+				return
+			}
 
-		authMsg, err2 := wire.NewAuthResponseMsg(id)
-		if err2 != nil {
-			err = errors.WithMessage(err2, "creating auth message")
-			return
+			authMsg, err2 := wire.NewAuthResponseMsg(id, bid)
+			if err2 != nil {
+				err = errors.WithMessage(err2, "creating auth message")
+				return
+			}
+			addr, err = e.Sender, conn.Send(&wire.Envelope{
+				Sender:    wire.AddressMapfromAccountMap(id),
+				Recipient: e.Sender,
+				Msg:       authMsg,
+			})
 		}
-		addr, err = e.Sender, conn.Send(&wire.Envelope{
-			Sender:    wire.AddressMapfromAccountMap(id),
-			Recipient: e.Sender,
-			Msg:       authMsg,
-		})
 	})
 
 	if !ok {

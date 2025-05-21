@@ -139,7 +139,7 @@ func TestDialer_Dial(t *testing.T) {
 	})
 
 	t.Run("unknown host", func(t *testing.T) {
-		noHostAddr := NewRandomAddresses(rng)
+		noHostAddr := NewRandomAddresses(rng, []wallet.BackendID{wiretest.TestBackendID})
 		d.Register(noHostAddr, "no such host")
 
 		ctxtest.AssertTerminates(t, timeout, func() {
@@ -151,7 +151,7 @@ func TestDialer_Dial(t *testing.T) {
 
 	t.Run("unknown address", func(t *testing.T) {
 		ctxtest.AssertTerminates(t, timeout, func() {
-			unkownAddr := NewRandomAddresses(rng)
+			unkownAddr := NewRandomAddresses(rng, []wallet.BackendID{wiretest.TestBackendID})
 			conn, err := d.Dial(context.Background(), unkownAddr, ser)
 			assert.Error(t, err)
 			assert.Nil(t, conn)
