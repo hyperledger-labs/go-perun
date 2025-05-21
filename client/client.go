@@ -128,6 +128,27 @@ func (c *Client) Close() error {
 	return err
 }
 
+// Restore restores all channels from persistence. Channels are restored in
+// parallel. Newly restored channels should be acquired through the
+// OnNewChannel callback.
+func (c *Client) Restore(ctx context.Context) error {
+	ps, err := c.pr.ActivePeers(ctx)
+	if err != nil {
+		return errors.WithMessage(err, "restoring active peers")
+	}
+
+	var eg errgroup.Group
+	for _, p := range ps {
+		if channel.EqualWireMaps(p, c.address) {
+			continue // skip own peer
+		}
+
+		eg.Go(func() error { return c.restorePeerChannels(ctx, p) })
+	}
+
+	return eg.Wait()
+}
+
 // OnNewChannel sets a callback to be called whenever a new channel is created
 // or restored. Only one such handler can be set at a time, and repeated calls
 // to this function will overwrite the currently existing handler. This function
@@ -207,25 +228,4 @@ func (c *Client) logPeer(p map[wallet.BackendID]wire.Address) log.Logger {
 
 func (c *Client) logChan(id channel.ID) log.Logger {
 	return c.log.WithField("channel", id)
-}
-
-// Restore restores all channels from persistence. Channels are restored in
-// parallel. Newly restored channels should be acquired through the
-// OnNewChannel callback.
-func (c *Client) Restore(ctx context.Context) error {
-	ps, err := c.pr.ActivePeers(ctx)
-	if err != nil {
-		return errors.WithMessage(err, "restoring active peers")
-	}
-
-	var eg errgroup.Group
-	for _, p := range ps {
-		if channel.EqualWireMaps(p, c.address) {
-			continue // skip own peer
-		}
-		p := p
-		eg.Go(func() error { return c.restorePeerChannels(ctx, p) })
-	}
-
-	return eg.Wait()
 }

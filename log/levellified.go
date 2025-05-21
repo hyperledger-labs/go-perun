@@ -69,14 +69,14 @@ func (l *Levellified) Tracef(format string, args ...interface{}) {
 // Trace implements log level trace.
 func (l *Levellified) Trace(args ...interface{}) {
 	if l.Lvl >= TraceLevel {
-		l.StdLogger.Print(prepend("[trace] ", args)...)
+		l.Print(prepend("[trace] ", args)...)
 	}
 }
 
 // Traceln implements log.TraceLn with white spaces in between arguments.
 func (l *Levellified) Traceln(args ...interface{}) {
 	if l.Lvl >= TraceLevel {
-		l.StdLogger.Println(prepend("[trace]", args)...)
+		l.Println(prepend("[trace]", args)...)
 	}
 }
 
@@ -88,14 +88,14 @@ func (l *Levellified) Debugf(format string, args ...interface{}) {
 // Debug implements log level debug.
 func (l *Levellified) Debug(args ...interface{}) {
 	if l.Lvl >= DebugLevel {
-		l.StdLogger.Print(prepend("[debug] ", args)...)
+		l.Print(prepend("[debug] ", args)...)
 	}
 }
 
 // Debugln implements log.Debugln with white spaces in between arguments.
 func (l *Levellified) Debugln(args ...interface{}) {
 	if l.Lvl >= DebugLevel {
-		l.StdLogger.Println(prepend("[debug]", args)...)
+		l.Println(prepend("[debug]", args)...)
 	}
 }
 
@@ -107,14 +107,14 @@ func (l *Levellified) Infof(format string, args ...interface{}) {
 // Info implements log level info.
 func (l *Levellified) Info(args ...interface{}) {
 	if l.Lvl >= InfoLevel {
-		l.StdLogger.Print(prepend("[info] ", args)...)
+		l.Print(prepend("[info] ", args)...)
 	}
 }
 
 // Infoln implements log.Infoln with white spaces in between arguments.
 func (l *Levellified) Infoln(args ...interface{}) {
 	if l.Lvl >= InfoLevel {
-		l.StdLogger.Println(prepend("[info]", args)...)
+		l.Println(prepend("[info]", args)...)
 	}
 }
 
@@ -126,14 +126,14 @@ func (l *Levellified) Warnf(format string, args ...interface{}) {
 // Warn implements log level warn.
 func (l *Levellified) Warn(args ...interface{}) {
 	if l.Lvl >= WarnLevel {
-		l.StdLogger.Print(prepend("[warn] ", args)...)
+		l.Print(prepend("[warn] ", args)...)
 	}
 }
 
 // Warnln implements log.Warnln with white spaces in between arguments.
 func (l *Levellified) Warnln(args ...interface{}) {
 	if l.Lvl >= WarnLevel {
-		l.StdLogger.Println(prepend("[warn]", args)...)
+		l.Println(prepend("[warn]", args)...)
 	}
 }
 
@@ -145,20 +145,20 @@ func (l *Levellified) Errorf(format string, args ...interface{}) {
 // Error implements log level error.
 func (l *Levellified) Error(args ...interface{}) {
 	if l.Lvl >= ErrorLevel {
-		l.StdLogger.Print(prepend("[error] ", args)...)
+		l.Print(prepend("[error] ", args)...)
 	}
 }
 
 // Errorln implements log.Errorln with white spaces in between arguments.
 func (l *Levellified) Errorln(args ...interface{}) {
 	if l.Lvl >= ErrorLevel {
-		l.StdLogger.Println(prepend("[error]", args)...)
+		l.Println(prepend("[error]", args)...)
 	}
 }
 
 func (l *Levellified) lprintf(lvl Level, format string, args ...interface{}) {
 	if l.Lvl >= lvl {
-		l.StdLogger.Printf("[%v] "+format, prepend(lvl, args)...)
+		l.Printf("[%v] "+format, prepend(lvl, args)...)
 	}
 }
 

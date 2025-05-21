@@ -15,6 +15,7 @@
 package test
 
 import (
+	"math"
 	"testing"
 
 	"perun.network/go-perun/channel"
@@ -28,10 +29,14 @@ import (
 func ChannelSyncMsgSerializationTest(t *testing.T, serializerTest func(t *testing.T, msg wire.Msg)) {
 	t.Helper()
 	rng := pkgtest.Prng(t)
-	for i := 0; i < 4; i++ {
+	for range 4 {
 		state := test.NewRandomState(rng)
+		phase := rng.Intn(channel.LastPhase)
+		if phase < 0 || phase > math.MaxUint8 {
+			panic("LastPhase is too large")
+		}
 		m := &client.ChannelSyncMsg{
-			Phase: channel.Phase(rng.Intn(channel.LastPhase)),
+			Phase: channel.Phase(phase),
 			CurrentTX: channel.Transaction{
 				State: state,
 				Sigs:  newRandomSigs(rng, state.NumParts()),

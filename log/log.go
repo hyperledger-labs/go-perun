@@ -72,6 +72,8 @@ type StdLogger interface {
 }
 
 // LevelLogger is an extension to the StdLogger with different verbosity levels.
+//
+//nolint:interfacebloat
 type LevelLogger interface {
 	StdLogger
 	// Tracef logs a message at level Trace. Arguments are handled in the manner of fmt.Printf.

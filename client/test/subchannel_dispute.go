@@ -105,7 +105,7 @@ func (r *DisputeSusie) exec(_cfg ExecConfig, ledgerChannel *paymentChannel) {
 
 	r.log.Debug("Attempt withdrawing refuted state.")
 	m := channel.MakeStateMap()
-	m.Add(subState0.State)
+	m.Add(&subState0)
 	err = r.setup.Adjudicator.Withdraw(ctx, reqLedger, m)
 	r.RequireTruef(err != nil, "withdraw should fail because other party should have refuted.")
 
@@ -124,6 +124,15 @@ type DisputeTim struct {
 	subCh      channel.ID
 }
 
+// NewDisputeTim creates a new Responder that executes the DisputeTim protocol.
+func NewDisputeTim(t *testing.T, setup RoleSetup) *DisputeTim {
+	t.Helper()
+	return &DisputeTim{
+		Responder:  *NewResponder(t, setup, nStagesDisputeSusieTime),
+		registered: make(chan *channel.RegisteredEvent),
+	}
+}
+
 // time to wait until a parent channel watcher becomes active.
 const channelWatcherWait = 100 * time.Millisecond
 
@@ -132,15 +141,6 @@ func (r *DisputeTim) HandleAdjudicatorEvent(e channel.AdjudicatorEvent) {
 	r.log.Infof("HandleAdjudicatorEvent: channelID = %x, version = %v, type = %T", e.ID(), e.Version(), e)
 	if e, ok := e.(*channel.RegisteredEvent); ok && e.ID() == r.subCh {
 		r.registered <- e
-	}
-}
-
-// NewDisputeTim creates a new Responder that executes the DisputeTim protocol.
-func NewDisputeTim(t *testing.T, setup RoleSetup) *DisputeTim {
-	t.Helper()
-	return &DisputeTim{
-		Responder:  *NewResponder(t, setup, nStagesDisputeSusieTime),
-		registered: make(chan *channel.RegisteredEvent),
 	}
 }
 

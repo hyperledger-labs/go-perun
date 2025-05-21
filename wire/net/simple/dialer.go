@@ -70,14 +70,6 @@ func NewUnixDialer(defaultTimeout time.Duration, tlsConfig *tls.Config) *Dialer 
 	return NewNetDialer("unix", defaultTimeout, tlsConfig)
 }
 
-func (d *Dialer) host(key wire.AddrKey) (string, bool) {
-	d.mutex.RLock()
-	defer d.mutex.RUnlock()
-
-	host, ok := d.peers[key]
-	return host, ok
-}
-
 // Dial implements Dialer.Dial().
 func (d *Dialer) Dial(ctx context.Context, addr map[wallet.BackendID]wire.Address, ser wire.EnvelopeSerializer) (wirenet.Conn, error) {
 	done := make(chan struct{})
@@ -114,4 +106,12 @@ func (d *Dialer) Register(addr map[wallet.BackendID]wire.Address, address string
 	defer d.mutex.Unlock()
 
 	d.peers[wire.Keys(addr)] = address
+}
+
+func (d *Dialer) host(key wire.AddrKey) (string, bool) {
+	d.mutex.RLock()
+	defer d.mutex.RUnlock()
+
+	host, ok := d.peers[key]
+	return host, ok
 }

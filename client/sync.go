@@ -67,8 +67,10 @@ func (c *Client) handleSyncMsg(peer map[wallet.BackendID]wire.Address, msg *Chan
 	}
 }
 
-// syncChannel synchronizes the channel state with the given peer and modifies
+// SyncChannel synchronizes the channel state with the given peer and modifies
 // the current state if required.
+//
+//nolint:unused
 func (c *Client) syncChannel(ctx context.Context, ch *persistence.Channel, p map[wallet.BackendID]wire.Address) (err error) {
 	recv := wire.NewReceiver()
 	defer recv.Close() // ignore error
@@ -119,7 +121,7 @@ func (c *Client) syncChannel(ctx context.Context, ch *persistence.Channel, p map
 
 // validateMessage validates the remote channel sync message.
 //
-//nolint:nestif
+//nolint:nestif, unused
 func validateMessage(ch *persistence.Channel, msg *ChannelSyncMsg) error {
 	v := ch.CurrentTX().Version
 	mv := msg.CurrentTX.Version
@@ -128,7 +130,7 @@ func validateMessage(ch *persistence.Channel, msg *ChannelSyncMsg) error {
 		return errors.New("channel ID mismatch")
 	}
 	if mv == v {
-		if err := msg.CurrentTX.State.Equal(ch.CurrentTX().State); err != nil {
+		if err := msg.CurrentTX.Equal(ch.CurrentTX().State); err != nil {
 			return errors.WithMessage(err, "different states for same version")
 		}
 	} else if mv > v {
@@ -151,6 +153,7 @@ func validateMessage(ch *persistence.Channel, msg *ChannelSyncMsg) error {
 	return nil
 }
 
+//nolint:unused
 func revisePhase(ch *persistence.Channel) error {
 	//nolint:gocritic
 	if ch.PhaseV <= channel.Funding && ch.CurrentTXV.Version == 0 {

@@ -57,7 +57,7 @@ func (s SigDec) Decode(r io.Reader) (err error) {
 	return err
 }
 
-// EncodeSparseSigs encodes a collection of signatures in the form ( mask, sig, sig, sig, ...).
+// EncodeSparseSigs encodes a collection of signatures in the form ( mask, sig, ...).
 func EncodeSparseSigs(w io.Writer, sigs []Sig) error {
 	n := len(sigs)
 
@@ -83,7 +83,7 @@ func EncodeSparseSigs(w io.Writer, sigs []Sig) error {
 	return nil
 }
 
-// DecodeSparseSigs decodes a collection of signatures in the form (mask, sig, sig, sig, ...).
+// DecodeSparseSigs decodes a collection of signatures in the form (mask, sig, ...).
 func DecodeSparseSigs(r io.Reader, sigs *[]Sig) (err error) {
 	masklen := int(math.Ceil(float64(len(*sigs)) / float64(bitsPerByte)))
 	mask := make([]uint8, masklen)

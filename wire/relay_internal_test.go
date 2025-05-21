@@ -36,13 +36,13 @@ func TestProducer(t *testing.T) {
 	pred := func(*Envelope) bool { return true }
 
 	assert.True(t, p.isEmpty())
-	assert.NoError(t, p.Subscribe(r0, pred))
+	require.NoError(t, p.Subscribe(r0, pred))
 	assert.False(t, p.isEmpty())
-	assert.NoError(t, p.Subscribe(r1, pred))
-	assert.NoError(t, p.Subscribe(r2, pred))
-	assert.Equal(t, len(p.consumers), 3)
+	require.NoError(t, p.Subscribe(r1, pred))
+	require.NoError(t, p.Subscribe(r2, pred))
+	assert.Len(t, p.consumers, 3)
 	p.delete(r0)
-	assert.Equal(t, len(p.consumers), 2)
+	assert.Len(t, p.consumers, 2)
 	assert.False(t, p.isEmpty())
 	assert.Panics(t, func() { p.delete(r0) })
 }
@@ -62,10 +62,10 @@ func TestProducer_SetDefaultMsgHandler(t *testing.T) {
 
 func TestProducer_Close(t *testing.T) {
 	p := NewRelay()
-	assert.NoError(t, p.Close())
+	require.NoError(t, p.Close())
 
 	err := p.Close()
-	assert.Error(t, err)
+	require.Error(t, err)
 	assert.True(t, sync.IsAlreadyClosedError(err))
 
 	assert.NotPanics(t, func() { p.delete(nil) },
@@ -83,7 +83,7 @@ func TestProducer_Subscribe(t *testing.T) {
 	t.Run("duplicate", func(t *testing.T) {
 		p := NewRelay()
 		r := NewReceiver()
-		assert.NoError(t, p.Subscribe(r, fn))
+		require.NoError(t, p.Subscribe(r, fn))
 		assert.Panics(t, func() { p.Subscribe(r, fn) }) //nolint:errcheck
 	})
 
@@ -120,7 +120,7 @@ func TestProducer_caching(t *testing.T) {
 
 	prod.Put(ping0)
 	assert.Equal(1, prod.cache.Size())
-	assert.Len(unhandlesMsg, 0)
+	assert.Empty(unhandlesMsg)
 
 	prod.Put(pong1)
 	assert.Equal(1, prod.cache.Size())
@@ -135,7 +135,7 @@ func TestProducer_caching(t *testing.T) {
 	prod.Subscribe(rec, isPing) //nolint:errcheck
 	ctxtest.AssertTerminates(t, timeout, func() {
 		e, err := rec.Next(ctx)
-		assert.NoError(err)
+		require.NoError(t, err)
 		assert.Same(e, ping0)
 	})
 	assert.Equal(1, prod.cache.Size())

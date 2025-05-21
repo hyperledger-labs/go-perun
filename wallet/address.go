@@ -19,6 +19,7 @@ import (
 	"encoding"
 	"fmt"
 	stdio "io"
+	"math"
 	"strings"
 
 	"github.com/pkg/errors"
@@ -134,12 +135,20 @@ type AddrKey string
 // Encode encodes first the length of the map,
 // then all Addresses and their key in the map.
 func (a AddressDecMap) Encode(w stdio.Writer) error {
-	length := int32(len(a))
+	l := len(a)
+	if l < math.MinInt32 || l > math.MaxInt32 {
+		return errors.New("map length out of bounds")
+	}
+	length := int32(l)
 	if err := perunio.Encode(w, length); err != nil {
 		return errors.WithMessage(err, "encoding map length")
 	}
 	for i, addr := range a {
-		if err := perunio.Encode(w, int32(i)); err != nil {
+		id := int(i)
+		if id < math.MinInt32 || id > math.MaxInt32 {
+			return errors.New("map index out of bounds")
+		}
+		if err := perunio.Encode(w, int32(id)); err != nil {
 			return errors.WithMessage(err, "encoding map index")
 		}
 		if err := perunio.Encode(w, addr); err != nil {
@@ -152,7 +161,11 @@ func (a AddressDecMap) Encode(w stdio.Writer) error {
 // Encode encodes first the length of the array,
 // then all AddressDecMaps in the array.
 func (a AddressMapArray) Encode(w stdio.Writer) error {
-	length := int32(len(a.Addr))
+	l := len(a.Addr)
+	if l > math.MaxInt32 {
+		return errors.New("array length out of bounds")
+	}
+	length := int32(l)
 	if err := perunio.Encode(w, length); err != nil {
 		return errors.WithMessage(err, "encoding array length")
 	}
@@ -172,7 +185,7 @@ func (a *AddressDecMap) Decode(r stdio.Reader) (err error) {
 		return errors.WithMessage(err, "decoding map length")
 	}
 	*a = make(map[BackendID]Address, mapLen)
-	for i := 0; i < int(mapLen); i++ {
+	for i := range mapLen {
 		var idx int32
 		if err := perunio.Decode(r, &idx); err != nil {
 			return errors.WithMessage(err, "decoding map index")
@@ -193,7 +206,7 @@ func (a *AddressMapArray) Decode(r stdio.Reader) (err error) {
 		return errors.WithMessage(err, "decoding array length")
 	}
 	a.Addr = make([]map[BackendID]Address, mapLen)
-	for i := 0; i < int(mapLen); i++ {
+	for i := range mapLen {
 		if err := perunio.Decode(r, (*AddressDecMap)(&a.Addr[i])); err != nil {
 			return errors.WithMessagef(err, "decoding %d-th address map entry", i)
 		}
@@ -206,7 +219,11 @@ func (a *AddressMapArray) Decode(r stdio.Reader) (err error) {
 // Panics when the `Address` can't be encoded.
 func Key(a Address) AddrKey {
 	var buff strings.Builder
-	if err := perunio.Encode(&buff, uint32(a.BackendID())); err != nil {
+	id := int(a.BackendID())
+	if id < 0 || id > math.MaxUint32 {
+		panic("backend ID out of range")
+	}
+	if err := perunio.Encode(&buff, uint32(id)); err != nil {
 		panic("Could not encode id in AddrKey: " + err.Error())
 	}
 	if err := perunio.Encode(&buff, a); err != nil {

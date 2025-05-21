@@ -30,7 +30,7 @@ func TestWallet_AddAccount(t *testing.T) {
 	acc := wallet.NewRandomAccount(rng)
 
 	assert.False(t, w.HasAccount(acc))
-	assert.NoError(t, w.AddAccount(acc))
+	require.NoError(t, w.AddAccount(acc))
 	assert.True(t, w.HasAccount(acc))
 	assert.Error(t, w.AddAccount(acc))
 }

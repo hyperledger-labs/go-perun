@@ -53,7 +53,7 @@ func (c *Channel) fundSubChannel(ctx context.Context, id channel.ID, alloc *chan
 		// equal assets and sufficient balances are already checked when validating the sub-channel proposal
 
 		// withdraw initial balances into sub-allocation
-		state.Allocation.Balances = state.Allocation.Balances.Sub(alloc.Balances)
+		state.Balances = state.Sub(alloc.Balances)
 		state.AddSubAlloc(*channel.NewSubAlloc(id, alloc.Balances.Sum(), nil))
 
 		return nil
@@ -97,19 +97,19 @@ func (c *Channel) withdrawSubChannel(ctx context.Context, sub *Channel) error {
 			c.Log().Panicf("sub-allocation %x not found", subAlloc.ID)
 		}
 
-		if !subAlloc.BalancesEqual(sub.machine.State().Allocation.Sum()) {
+		if !subAlloc.BalancesEqual(sub.machine.State().Sum()) {
 			c.Log().Panic("sub-allocation does not equal accumulated sub-channel outcome")
 		}
 
 		// asset types of this channel and parent channel are assumed to be the same
 		for a, assetBalances := range sub.machine.State().Balances {
 			for u, userBalance := range assetBalances {
-				parentBalance := parentState.Allocation.Balances[a][u]
+				parentBalance := parentState.Balances[a][u]
 				parentBalance.Add(parentBalance, userBalance)
 			}
 		}
 
-		if err := parentState.Allocation.RemoveSubAlloc(subAlloc); err != nil {
+		if err := parentState.RemoveSubAlloc(subAlloc); err != nil {
 			c.Log().WithError(err).Panicf("removing sub-allocation with id %x", subAlloc.ID)
 		}
 

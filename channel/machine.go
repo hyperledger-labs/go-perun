@@ -17,6 +17,7 @@ package channel
 import (
 	"fmt"
 	stdio "io"
+	"math"
 
 	"github.com/pkg/errors"
 
@@ -147,6 +148,9 @@ func newMachine(acc map[wallet.BackendID]wallet.Account, params Params) (*machin
 	if idx < 0 {
 		return nil, errors.New("account not part of participant set")
 	}
+	if idx > math.MaxUint16 {
+		return nil, errors.New("index out of bounds")
+	}
 
 	return &machine{
 		phase:     InitActing,
@@ -190,18 +194,16 @@ func (m *machine) Params() *Params {
 
 // N returns the number of participants of the channel parameters of this machine.
 func (m *machine) N() Index {
-	return Index(len(m.params.Parts))
+	partsLen := len(m.params.Parts)
+	if partsLen > math.MaxUint16 {
+		panic("number of participants exceeds uint16")
+	}
+	return Index(partsLen)
 }
 
 // Phase returns the current phase.
 func (m *machine) Phase() Phase {
 	return m.phase
-}
-
-// setPhase is internally used to set the phase.
-func (m *machine) setPhase(p Phase) {
-	m.Log().Tracef("phase transition: %v", PhaseTransition{m.phase, p})
-	m.phase = p
 }
 
 // inPhase returns whether phase is in phases.
@@ -243,7 +245,7 @@ func (m *machine) State() *State {
 	return m.currentTX.State
 }
 
-// CurrentTX returns the current current transaction.
+// CurrentTX returns the current transaction.
 func (m *machine) CurrentTX() Transaction {
 	return m.currentTX
 }
@@ -303,12 +305,6 @@ func (m *machine) AddSig(idx Index, sig wallet.Sig) error {
 	return nil
 }
 
-// setStaging sets the given phase and state as staging state.
-func (m *machine) setStaging(phase Phase, state *State) {
-	m.stagingTX = *m.newTransaction(state)
-	m.setPhase(phase)
-}
-
 // DiscardUpdate discards the current staging transaction and sets the machine's
 // phase back to Acting. This method is useful in the case where a valid update
 // request is rejected.
@@ -338,35 +334,6 @@ func (m *machine) EnableUpdate() error {
 // A valid phase transition and the existence of all signatures is checked.
 func (m *machine) EnableFinal() error {
 	return m.enableStaged(PhaseTransition{Signing, Final})
-}
-
-// enableStaged checks that
-//  1. the current phase is `expected.From` and
-//  2. all signatures of the staging transactions have been set.
-//
-// If successful, the staging transaction is promoted to be the current
-// transaction. If not, an error is returned.
-func (m *machine) enableStaged(expected PhaseTransition) error {
-	if err := m.expect(expected); err != nil {
-		return errors.WithMessage(err, "no staging phase")
-	}
-
-	// Assert that we transition to phase Final iff state.IsFinal.
-	if (expected.To == Final) != m.stagingTX.State.IsFinal {
-		return m.phaseErrorf(expected, "State.IsFinal and target phase don't match")
-	}
-
-	// Assert that all signatures are present.
-	for i, sig := range m.stagingTX.Sigs {
-		if sig == nil {
-			return m.phaseErrorf(expected, "signature %d missing from staging TX", i)
-		}
-	}
-
-	m.setPhase(expected.To)
-	m.addTx(&m.stagingTX)
-
-	return nil
 }
 
 // SetFunded tells the state machine that the channel got funded and progresses
@@ -437,15 +404,6 @@ func (m *machine) SetWithdrawn() error {
 	return m.simplePhaseTransition(Withdrawing, Withdrawn)
 }
 
-func (m *machine) simplePhaseTransition(from, to Phase) error {
-	if err := m.expect(PhaseTransition{from, to}); err != nil {
-		return err
-	}
-
-	m.setPhase(to)
-	return nil
-}
-
 var validPhaseTransitions = map[PhaseTransition]struct{}{
 	{InitActing, InitSigning}: {},
 	{InitSigning, Funding}:    {},
@@ -469,14 +427,25 @@ var validPhaseTransitions = map[PhaseTransition]struct{}{
 	{Withdrawing, Withdrawn}:  {},
 }
 
-func (m *machine) expect(tr PhaseTransition) error {
-	if m.phase != tr.From {
-		return m.phaseErrorf(tr, "not in correct phase")
+func (m *machine) Clone() *machine {
+	var prevTXs []Transaction
+	if m.prevTXs != nil {
+		prevTXs = make([]Transaction, len(m.prevTXs))
+		for i, tx := range m.prevTXs {
+			prevTXs[i] = tx.Clone()
+		}
 	}
-	if _, ok := validPhaseTransitions[PhaseTransition{m.phase, tr.To}]; !ok {
-		return m.phaseErrorf(tr, "forbidden phase transition")
+
+	return &machine{
+		phase:     m.phase,
+		acc:       m.acc,
+		idx:       m.idx,
+		params:    *m.params.Clone(),
+		stagingTX: m.stagingTX.Clone(),
+		currentTX: m.currentTX.Clone(),
+		prevTXs:   prevTXs,
+		Embedding: m.Embedding,
 	}
-	return nil
 }
 
 // ValidTransition checks that the transition from the current to the provided
@@ -506,7 +475,7 @@ func (m *machine) ValidTransition(to *State) error {
 		return newError(fmt.Sprintf("expected version %d, got version %d", m.currentTX.Version+1, to.Version))
 	}
 
-	if err := to.Allocation.Valid(); err != nil {
+	if err := to.Valid(); err != nil {
 		return newError(fmt.Sprintf("invalid allocation: %v", err))
 	}
 
@@ -523,6 +492,60 @@ func (m *machine) ValidTransition(to *State) error {
 	return nil
 }
 
+func (m *machine) IsRegistered() bool {
+	return m.phase >= Registered
+}
+
+// setPhase is internally used to set the phase.
+func (m *machine) setPhase(p Phase) {
+	m.Log().Tracef("phase transition: %v", PhaseTransition{m.phase, p})
+	m.phase = p
+}
+
+// setStaging sets the given phase and state as staging state.
+func (m *machine) setStaging(phase Phase, state *State) {
+	m.stagingTX = *m.newTransaction(state)
+	m.setPhase(phase)
+}
+
+// enableStaged checks that
+//  1. the current phase is `expected.From` and
+//  2. all signatures of the staging transactions have been set.
+//
+// If successful, the staging transaction is promoted to be the current
+// transaction. If not, an error is returned.
+func (m *machine) enableStaged(expected PhaseTransition) error {
+	if err := m.expect(expected); err != nil {
+		return errors.WithMessage(err, "no staging phase")
+	}
+
+	// Assert that we transition to phase Final iff state.IsFinal.
+	if (expected.To == Final) != m.stagingTX.IsFinal {
+		return m.phaseErrorf(expected, "State.IsFinal and target phase don't match")
+	}
+
+	// Assert that all signatures are present.
+	for i, sig := range m.stagingTX.Sigs {
+		if sig == nil {
+			return m.phaseErrorf(expected, "signature %d missing from staging TX", i)
+		}
+	}
+
+	m.setPhase(expected.To)
+	m.addTx(&m.stagingTX)
+
+	return nil
+}
+
+func (m *machine) simplePhaseTransition(from, to Phase) error {
+	if err := m.expect(PhaseTransition{from, to}); err != nil {
+		return err
+	}
+
+	m.setPhase(to)
+	return nil
+}
+
 // phaseErrorf constructs a new PhaseTransitionError.
 func (m *machine) phaseErrorf(expected PhaseTransition, format string, args ...interface{}) error {
 	return newPhaseTransitionErrorf(m.params.ID(), m.phase, expected, format, args...)
@@ -533,29 +556,14 @@ func (m *machine) selfTransition() PhaseTransition {
 	return PhaseTransition{m.phase, m.phase}
 }
 
-func (m *machine) Clone() *machine {
-	var prevTXs []Transaction
-	if m.prevTXs != nil {
-		prevTXs = make([]Transaction, len(m.prevTXs))
-		for i, tx := range m.prevTXs {
-			prevTXs[i] = tx.Clone()
-		}
+func (m *machine) expect(tr PhaseTransition) error {
+	if m.phase != tr.From {
+		return m.phaseErrorf(tr, "not in correct phase")
 	}
-
-	return &machine{
-		phase:     m.phase,
-		acc:       m.acc,
-		idx:       m.idx,
-		params:    *m.params.Clone(),
-		stagingTX: m.stagingTX.Clone(),
-		currentTX: m.currentTX.Clone(),
-		prevTXs:   prevTXs,
-		Embedding: m.Embedding,
+	if _, ok := validPhaseTransitions[PhaseTransition{m.phase, tr.To}]; !ok {
+		return m.phaseErrorf(tr, "forbidden phase transition")
 	}
-}
-
-func (m *machine) IsRegistered() bool {
-	return m.phase >= Registered
+	return nil
 }
 
 func (m *machine) newTransaction(s *State) *Transaction {

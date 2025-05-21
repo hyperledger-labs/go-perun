@@ -57,10 +57,12 @@ func TestMultiLedgerHappy(ctx context.Context, t *testing.T, mlt MultiLedgerSetu
 	// Setup proposal handler.
 	channels := make(chan *client.Channel, 1)
 	errs := make(chan error)
+	//nolint:contextcheck // This is a test.
 	go alice.Handle(
 		AlwaysRejectChannelHandler(ctx, errs),
 		AlwaysAcceptUpdateHandler(ctx, errs),
 	)
+	//nolint:contextcheck // This is a test.
 	go bob.Handle(
 		AlwaysAcceptChannelHandler(ctx, bob.WalletAddress, channels, errs),
 		AlwaysAcceptUpdateHandler(ctx, errs),

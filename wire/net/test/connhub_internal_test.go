@@ -51,7 +51,7 @@ func TestConnHub_Create(t *testing.T) {
 			ct.Stage("accept", func(rt pkgtest.ConcT) {
 				conn, err := l.Accept(ser)
 				assert.NoError(err)
-				require.NotNil(rt, conn)
+				assert.NotNil(rt, conn)
 				assert.NoError(conn.Send(wiretest.NewRandomEnvelope(rng, wire.NewPingMsg())))
 			})
 		})

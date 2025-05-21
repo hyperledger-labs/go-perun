@@ -40,6 +40,13 @@ type Receiver struct {
 	sync.Closer
 }
 
+// NewReceiver creates a new receiver.
+func NewReceiver() *Receiver {
+	return &Receiver{
+		msgs: make(chan *Envelope, receiverBufferSize),
+	}
+}
+
 // Next returns a channel to the next message.
 func (r *Receiver) Next(ctx context.Context) (*Envelope, error) {
 	select {
@@ -65,12 +72,5 @@ func (r *Receiver) Put(e *Envelope) {
 	select {
 	case r.msgs <- e:
 	case <-r.Closed():
-	}
-}
-
-// NewReceiver creates a new receiver.
-func NewReceiver() *Receiver {
-	return &Receiver{
-		msgs: make(chan *Envelope, receiverBufferSize),
 	}
 }

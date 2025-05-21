@@ -19,6 +19,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	pkgtest "polycry.pt/poly-go/test"
 
 	"perun.network/go-perun/wire/test"
@@ -26,7 +27,7 @@ import (
 
 func TestGenericMarshaler(t *testing.T) {
 	rng := pkgtest.Prng(t)
-	for n := 0; n < 10; n++ {
+	for range 10 {
 		test.GenericMarshalerTest(t, NewRandomAddress(rng))
 	}
 }
@@ -43,13 +44,13 @@ func TestAddressMarshalling(t *testing.T) {
 			Y: new(big.Int).SetBytes(dest[elemLen:]),
 		}
 		result, err := addr.MarshalBinary()
-		assert.NoError(t, err, "marshaling address should not error")
+		require.NoError(t, err, "marshaling address should not error")
 		assert.Equal(t, result, dest[:])
 	})
 
 	t.Run("half length", func(t *testing.T) {
 		const zeros = 5
-		for i := 0; i < zeros; i++ {
+		for i := range zeros {
 			dest[i] = 0
 			dest[i+elemLen] = 0
 		}
@@ -59,7 +60,7 @@ func TestAddressMarshalling(t *testing.T) {
 			Y: new(big.Int).SetBytes(dest[elemLen:]),
 		}
 		result, err := addr.MarshalBinary()
-		assert.NoError(t, err, "marshaling address should not error")
+		require.NoError(t, err, "marshaling address should not error")
 		assert.Equal(t, result, dest[:])
 	})
 }
@@ -73,7 +74,7 @@ func TestAddressOrdering(t *testing.T) {
 		expected int
 	}
 	var cases []addrTest
-	for i := 0; i < 10; i++ {
+	for range 10 {
 		addr := NewRandomAddress(rng)
 		ltX := CloneAddr(addr)
 		ltY := CloneAddr(addr)

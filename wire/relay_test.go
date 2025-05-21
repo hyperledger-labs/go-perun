@@ -18,6 +18,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"perun.network/go-perun/wire"
 	wiretest "perun.network/go-perun/wire/test"
 	"polycry.pt/poly-go/test"
@@ -27,7 +28,7 @@ func TestProducer_produce_closed(t *testing.T) {
 	var missed *wire.Envelope
 	p := wire.NewRelay()
 	p.SetDefaultMsgHandler(func(e *wire.Envelope) { missed = e })
-	assert.NoError(t, p.Close())
+	require.NoError(t, p.Close())
 	rng := test.Prng(t)
 	a := wiretest.NewRandomAddress(rng)
 	b := wiretest.NewRandomAddress(rng)

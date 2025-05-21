@@ -34,8 +34,8 @@ type SusieTimExecConfig struct {
 // NewSusieTimExecConfig creates a new object from the given parameters.
 func NewSusieTimExecConfig(
 	base BaseExecConfig,
-	numSubChannels int,
-	numSubSubChannels int,
+	_ int,
+	_ int,
 	subChannelFunds [][2]*big.Int,
 	subSubChannelFunds [][2]*big.Int,
 	leafChannelApp client.ProposalOpts,
@@ -81,13 +81,13 @@ func (r *Susie) exec(_cfg ExecConfig, ledgerChannel *paymentChannel) {
 	}
 
 	var subChannels []*paymentChannel
-	for i := 0; i < len(cfg.SubChannelFunds); i++ {
+	for i := range len(cfg.SubChannelFunds) {
 		c := openSubChannel(ledgerChannel, cfg.SubChannelFunds[i][:], cfg.App())
 		subChannels = append(subChannels, c)
 	}
 
 	var subSubChannels []*paymentChannel
-	for i := 0; i < len(cfg.SubSubChannelFunds); i++ {
+	for i := range len(cfg.SubSubChannelFunds) {
 		c := openSubChannel(subChannels[0], cfg.SubSubChannelFunds[i][:], cfg.LeafChannelApp)
 		subSubChannels = append(subSubChannels, c)
 	}
@@ -175,13 +175,13 @@ func (r *Tim) exec(_cfg ExecConfig, ledgerChannel *paymentChannel, propHandler *
 	}
 
 	var subChannels []*paymentChannel
-	for i := 0; i < len(cfg.SubChannelFunds); i++ {
+	for i := range len(cfg.SubChannelFunds) {
 		c := acceptNext(ledgerChannel, cfg.SubChannelFunds[i][:])
 		subChannels = append(subChannels, c)
 	}
 
 	var subSubChannels []*paymentChannel
-	for i := 0; i < len(cfg.SubSubChannelFunds); i++ {
+	for i := range len(cfg.SubSubChannelFunds) {
 		c := acceptNext(subChannels[0], cfg.SubSubChannelFunds[i][:])
 		subSubChannels = append(subSubChannels, c)
 	}

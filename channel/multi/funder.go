@@ -17,6 +17,7 @@ package multi
 import (
 	"context"
 	"fmt"
+	"math"
 	"time"
 
 	"perun.network/go-perun/channel"
@@ -63,7 +64,11 @@ func (f *Funder) SetEgoisticPart(index int) {
 // channel. If any of the funder calls fails, the method returns an error.
 func (f *Funder) Fund(ctx context.Context, request channel.FundingReq) error {
 	// Define funding timeout.
-	d := time.Duration(request.Params.ChallengeDuration) * time.Second
+	duration := request.Params.ChallengeDuration
+	if duration > math.MaxInt64 {
+		return fmt.Errorf("challenge duration %d is too large", duration)
+	}
+	d := time.Duration(duration) * time.Second
 	ctx, cancel := context.WithTimeout(ctx, d)
 	defer cancel()
 
@@ -122,7 +127,7 @@ func fundLedgers(ctx context.Context, request channel.FundingReq, assetIDs []Led
 	}
 
 	// Collect errors
-	for i := 0; i < n; i++ {
+	for range n {
 		err := <-errs
 		if err != nil {
 			return err

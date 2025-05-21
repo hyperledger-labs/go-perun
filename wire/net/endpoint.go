@@ -42,28 +42,6 @@ type Endpoint struct {
 	sending sync.Mutex // Blocks multiple Send calls.
 }
 
-// recvLoop continuously receives messages from an Endpoint until it is closed.
-// Received messages are relayed via the Endpoint's subscription system. This is
-// called by the registry when the Endpoint is registered.
-//
-// Does not return an error when the Endpoint closing fails or when
-// conn.Recv returns io.EOF, which indicates connection closing for TCP.
-func (p *Endpoint) recvLoop(c wire.Consumer) error {
-	for {
-		e, err := p.conn.Recv()
-		if err != nil {
-			p.Close() // Ignore double close.
-			// Check for graceful TCP connection close.
-			if errors.Cause(err) == io.EOF {
-				return nil
-			}
-			return err
-		}
-		// Emit the received envelope.
-		c.Put(e)
-	}
-}
-
 // Send sends a single message to an Endpoint.
 // Fails if the Endpoint is closed via Close() or the transmission fails.
 //
@@ -108,4 +86,26 @@ func newEndpoint(addr map[wallet.BackendID]wire.Address, conn Conn) *Endpoint {
 // String returns the Endpoint's address string.
 func (p *Endpoint) String() string {
 	return fmt.Sprint(p.Address)
+}
+
+// recvLoop continuously receives messages from an Endpoint until it is closed.
+// Received messages are relayed via the Endpoint's subscription system. This is
+// called by the registry when the Endpoint is registered.
+//
+// Does not return an error when the Endpoint closing fails or when
+// conn.Recv returns io.EOF, which indicates connection closing for TCP.
+func (p *Endpoint) recvLoop(c wire.Consumer) error {
+	for {
+		e, err := p.conn.Recv()
+		if err != nil {
+			p.Close() // Ignore double close.
+			// Check for graceful TCP connection close.
+			if errors.Cause(err) == io.EOF {
+				return nil
+			}
+			return err
+		}
+		// Emit the received envelope.
+		c.Put(e)
+	}
 }
