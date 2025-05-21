@@ -17,8 +17,10 @@ package channel
 import (
 	"encoding/binary"
 	"fmt"
+	"math"
 	"math/rand"
 
+	"github.com/pkg/errors"
 	"perun.network/go-perun/channel"
 )
 
@@ -44,6 +46,9 @@ func NewRandomAsset(rng *rand.Rand) *Asset {
 // MarshalBinary marshals the address into its binary representation.
 func (a Asset) MarshalBinary() ([]byte, error) {
 	data := make([]byte, assetLen)
+	if a.ID < 0 {
+		return nil, errors.New("asset ID must be non-negative")
+	}
 	byteOrder.PutUint64(data, uint64(a.ID))
 	return data, nil
 }
@@ -51,9 +56,13 @@ func (a Asset) MarshalBinary() ([]byte, error) {
 // UnmarshalBinary unmarshals the asset from its binary representation.
 func (a *Asset) UnmarshalBinary(data []byte) error {
 	if len(data) != assetLen {
-		return fmt.Errorf("unexpected length %d, want %d", len(data), assetLen) //nolint:goerr113  // We do not want to define this as constant error.
+		return fmt.Errorf("unexpected length %d, want %d", len(data), assetLen) // We do not want to define this as constant error.
 	}
-	a.ID = int64(byteOrder.Uint64(data))
+	id := byteOrder.Uint64(data)
+	if id > math.MaxInt64 {
+		return fmt.Errorf("asset ID %d is too large", id)
+	}
+	a.ID = int64(id)
 	return nil
 }
 

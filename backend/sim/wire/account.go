@@ -25,6 +25,13 @@ type Account struct {
 	addr wire.Address
 }
 
+// NewRandomAccount generates a new random account.
+func NewRandomAccount(rng *rand.Rand) *Account {
+	return &Account{
+		addr: NewRandomAddress(rng),
+	}
+}
+
 // Address returns the account's address.
 func (acc *Account) Address() wire.Address {
 	return acc.addr
@@ -33,11 +40,4 @@ func (acc *Account) Address() wire.Address {
 // Sign signs the given message with the account's private key.
 func (acc *Account) Sign(msg []byte) ([]byte, error) {
 	return []byte("Authenticate"), nil
-}
-
-// NewRandomAccount generates a new random account.
-func NewRandomAccount(rng *rand.Rand) *Account {
-	return &Account{
-		addr: NewRandomAddress(rng),
-	}
 }

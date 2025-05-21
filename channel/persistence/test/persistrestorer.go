@@ -170,17 +170,6 @@ func (pr *PersistRestorer) AssertNotExists(id channel.ID) {
 	assert.Falsef(pr.t, ok, "channel shouldn't exist: %x", id)
 }
 
-// channel is a mutexed access to the Channel stored at the given id.
-// Since persister access is guaranteed to be single-threaded per channel, it
-// makes sense for the Persister implementation methods to use this getter to
-// channel the pointer to the channel storage.
-func (pr *PersistRestorer) channel(id channel.ID) (*persistence.Channel, bool) {
-	pr.mu.Lock()
-	defer pr.mu.Unlock()
-	ch, ok := pr.chans[id]
-	return ch, ok
-}
-
 // Restorer implementation
 
 // ActivePeers returns all peers that channels are persisted for.
@@ -238,4 +227,15 @@ func (i *chanIter) Channel() *persistence.Channel {
 func (i *chanIter) Close() error {
 	i.chans = nil // GC
 	return nil
+}
+
+// channel is a mutexed access to the Channel stored at the given id.
+// Since persister access is guaranteed to be single-threaded per channel, it
+// makes sense for the Persister implementation methods to use this getter to
+// channel the pointer to the channel storage.
+func (pr *PersistRestorer) channel(id channel.ID) (*persistence.Channel, bool) {
+	pr.mu.Lock()
+	defer pr.mu.Unlock()
+	ch, ok := pr.chans[id]
+	return ch, ok
 }

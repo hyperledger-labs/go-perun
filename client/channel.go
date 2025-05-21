@@ -127,10 +127,6 @@ func (c *Channel) Ctx() context.Context {
 	return c.conn.r.Ctx()
 }
 
-func (c *Channel) logPeer(idx channel.Index) log.Logger {
-	return c.Log().WithField("peerIdx", idx)
-}
-
 // ID returns the channel ID.
 func (c *Channel) ID() channel.ID {
 	return c.machine.ID()
@@ -154,13 +150,6 @@ func (c *Channel) State() *channel.State {
 	defer c.machMtx.Unlock()
 
 	return c.state()
-}
-
-// state returns a pointer to the current state.
-// Assumes that the machine mutex has been locked.
-// Clone the state if you want to modify it.
-func (c *Channel) state() *channel.State {
-	return c.machine.State()
 }
 
 // Phase returns the current phase of the channel state machine.
@@ -243,4 +232,15 @@ func (c *Channel) initExchangeSigsAndEnable(ctx context.Context) error {
 
 func (c *Channel) hasLockedFunds() bool {
 	return len(c.machine.State().Locked) > 0
+}
+
+// state returns a pointer to the current state.
+// Assumes that the machine mutex has been locked.
+// Clone the state if you want to modify it.
+func (c *Channel) state() *channel.State {
+	return c.machine.State()
+}
+
+func (c *Channel) logPeer(idx channel.Index) log.Logger {
+	return c.Log().WithField("peerIdx", idx)
 }

@@ -16,6 +16,7 @@ package client
 
 import (
 	"io"
+	"math"
 
 	"github.com/pkg/errors"
 	"perun.network/go-perun/channel"
@@ -31,7 +32,11 @@ type (
 
 // Encode encodes the object to the writer.
 func (a channelIDsWithLen) Encode(w io.Writer) (err error) {
-	err = perunio.Encode(w, sliceLen(len(a)))
+	l := len(a)
+	if l > math.MaxUint16 {
+		return errors.New("slice length too long")
+	}
+	err = perunio.Encode(w, sliceLen(l))
 	if err != nil {
 		return
 	}
@@ -66,7 +71,11 @@ func (a *channelIDsWithLen) Decode(r io.Reader) (err error) {
 
 // Encode encodes the object to the writer.
 func (a indexMapsWithLen) Encode(w io.Writer) (err error) {
-	err = perunio.Encode(w, sliceLen(len(a)))
+	l := len(a)
+	if l > math.MaxUint16 {
+		return errors.New("slice length too long")
+	}
+	err = perunio.Encode(w, sliceLen(l))
 	if err != nil {
 		return
 	}
@@ -98,7 +107,11 @@ func (a *indexMapsWithLen) Decode(r io.Reader) (err error) {
 
 // Encode encodes the object to the writer.
 func (a indexMapWithLen) Encode(w io.Writer) (err error) {
-	err = perunio.Encode(w, sliceLen(len(a)))
+	l := len(a)
+	if l > math.MaxUint16 {
+		return errors.New("slice length too long")
+	}
+	err = perunio.Encode(w, sliceLen(l))
 	if err != nil {
 		return
 	}

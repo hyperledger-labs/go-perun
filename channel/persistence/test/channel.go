@@ -18,6 +18,7 @@ import (
 	"context"
 	"math/rand"
 
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"perun.network/go-perun/channel"
@@ -89,7 +90,7 @@ func NewRandomChannel(
 }
 
 func requireEqualPeers(t require.TestingT, expected, actual []map[wallet.BackendID]wire.Address) {
-	require.Equal(t, len(expected), len(actual))
+	assert.Equal(t, len(expected), len(actual))
 	for i, p := range expected {
 		if !channel.EqualWireMaps(p, actual[i]) {
 			t.Errorf("restored peers for channel do not match\nexpected: %v\nactual: %v",
@@ -106,10 +107,10 @@ func requireEqualPeers(t require.TestingT, expected, actual []map[wallet.Backend
 func (c *Channel) AssertPersisted(ctx context.Context, t require.TestingT) {
 	ch, err := c.pr.RestoreChannel(ctx, c.ID())
 	require.NoError(t, err)
-	require.NotNil(t, ch)
+	assert.NotNil(t, ch)
 	c.RequireEqual(t, ch)
 	requireEqualPeers(t, c.peers, ch.PeersV)
-	require.Equal(t, c.parent, ch.Parent)
+	assert.Equal(t, c.parent, ch.Parent)
 }
 
 // RequireEqual asserts that the channel is equal to the provided channel state.
@@ -182,7 +183,7 @@ func (c *Channel) SignAll(ctx context.Context, t require.TestingT) {
 	for i := range c.accounts {
 		sig, err := channel.Sign(c.accounts[i][channel.TestBackendID], c.StagingState(), channel.TestBackendID)
 		require.NoError(t, err)
-		c.AddSig(ctx, channel.Index(i), sig) //nolint:errcheck
+		c.AddSig(ctx, channel.Index(i), sig) //nolint:errcheck, gosec
 		c.AssertPersisted(ctx, t)
 	}
 }
@@ -232,14 +233,14 @@ func (c *Channel) SetRegistered(t require.TestingT) {
 
 // SetWithdrawing calls SetWithdrawing on the state machine and then checks the persistence.
 func (c *Channel) SetWithdrawing(t require.TestingT) {
-	require.NoError(t, c.StateMachine.SetWithdrawing(c.ctx))
+	assert.NoError(t, c.StateMachine.SetWithdrawing(c.ctx))
 	c.AssertPersisted(c.ctx, t)
 }
 
 // SetWithdrawn calls SetWithdrawn on the state machine and then checks the persistence.
 func (c *Channel) SetWithdrawn(t require.TestingT) {
-	require.NoError(t, c.StateMachine.SetWithdrawn(c.ctx))
+	assert.NoError(t, c.StateMachine.SetWithdrawn(c.ctx))
 	rc, err := c.pr.RestoreChannel(c.ctx, c.ID())
-	require.Error(t, err, "restoring of a non-existing channel")
-	require.Nil(t, rc, "restoring of a non-existing channel")
+	assert.Error(t, err, "restoring of a non-existing channel")
+	assert.Nil(t, rc, "restoring of a non-existing channel")
 }

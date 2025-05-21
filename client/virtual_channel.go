@@ -17,6 +17,7 @@ package client
 import (
 	"context"
 	"fmt"
+	"math"
 	"time"
 
 	"github.com/pkg/errors"
@@ -60,7 +61,7 @@ func (c *Channel) proposeVirtualChannelFunding(ctx context.Context, virtual *Cha
 
 	// Deposit initial balances into sub-allocation
 	balances := virtual.translateBalances(indexMap)
-	state.Allocation.Balances = state.Allocation.Balances.Sub(balances)
+	state.Balances = state.Sub(balances)
 	state.AddSubAlloc(*channel.NewSubAlloc(virtual.ID(), balances.Sum(), indexMap))
 
 	err := c.updateGeneric(ctx, state, func(mcu *ChannelUpdateMsg) wire.Msg {
@@ -185,6 +186,9 @@ func (c *Client) persistVirtualChannel(ctx context.Context, parent *Channel, pee
 	}
 
 	for i, sig := range sigs {
+		if i < 0 || i > math.MaxUint16 {
+			return nil, errors.Errorf("index out of bounds: %d", i)
+		}
 		err = ch.machine.AddSig(ctx, channel.Index(i), sig)
 		if err != nil {
 			return nil, err
@@ -223,6 +227,9 @@ func (c *Channel) pushVirtualUpdate(ctx context.Context, state *channel.State, s
 	}
 
 	for i, sig := range sigs {
+		if i < 0 || i > math.MaxUint16 {
+			return errors.Errorf("index out of bounds: %d", i)
+		}
 		idx := channel.Index(i)
 		if err := m.AddSig(ctx, idx, sig); err != nil {
 			return err
@@ -238,7 +245,6 @@ func (c *Channel) pushVirtualUpdate(ctx context.Context, state *channel.State, s
 	return err
 }
 
-//nolint:funlen
 func (c *Client) validateVirtualChannelFundingProposal(
 	ch *Channel,
 	prop *VirtualChannelFundingProposalMsg,
@@ -300,7 +306,7 @@ func (c *Client) validateVirtualChannelFundingProposal(
 
 	// Assert sufficient funds in parent channel.
 	virtual := transformBalances(prop.Initial.State.Balances, ch.state().NumParts(), subAlloc.IndexMap)
-	if err := ch.state().Balances.AssertGreaterOrEqual(virtual); err != nil {
+	if err := ch.state().AssertGreaterOrEqual(virtual); err != nil {
 		return errors.WithMessage(err, "insufficient funds")
 	}
 
@@ -359,6 +365,7 @@ func (c *Client) matchFundingProposal(ctx context.Context, a, b interface{}) boo
 		return false
 	}
 
+	//nolint:contextcheck
 	go func() {
 		// The context will be derived from the channel context.
 		err := virtual.watchVirtual()

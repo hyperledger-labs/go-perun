@@ -36,7 +36,7 @@ func TestResolver(t *testing.T) {
 	channel.RegisterAppResolver(def.Equal, &Resolver{})
 
 	app, err := channel.Resolve(def)
-	assert.NoError(err)
+	require.NoError(err)
 	require.NotNil(app)
 	assert.True(def.Equal(app.Def()))
 }
@@ -47,7 +47,7 @@ func TestData(t *testing.T) {
 	assert.NotPanics(func() {
 		data := Data()
 		_, err := data.MarshalBinary()
-		assert.Nil(err)
+		assert.NoError(err)
 	})
 
 	assert.NotPanics(func() {

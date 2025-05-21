@@ -36,8 +36,8 @@ func TestAddressImplementation(t *testing.T, newAddress wire.NewAddressFunc, new
 
 	// Test Address.MarshalBinary and UnmarshalBinary.
 	data, err := addr.MarshalBinary()
-	assert.NoError(err)
-	assert.NoError(addr.UnmarshalBinary(data), "Byte deserialization of address should work")
+	require.NoError(err)
+	require.NoError(addr.UnmarshalBinary(data), "Byte deserialization of address should work")
 
 	// Test Address.Equals.
 	null := newAddress()
@@ -51,9 +51,9 @@ func TestAddressImplementation(t *testing.T, newAddress wire.NewAddressFunc, new
 
 	// Test Address.Bytes.
 	addrBytes, err := addr.MarshalBinary()
-	assert.NoError(err, "Marshaling address should not error")
+	require.NoError(err, "Marshaling address should not error")
 	nullBytes, err := null.MarshalBinary()
-	assert.NoError(err, "Marshaling zero address should not error")
+	require.NoError(err, "Marshaling zero address should not error")
 	assert.False(bytes.Equal(addrBytes, nullBytes), "Expected inequality of byte representations of nonzero and zero address")
 
 	// a.Equal(Decode(Encode(a)))

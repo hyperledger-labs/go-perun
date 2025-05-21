@@ -40,7 +40,7 @@ func ProposalMsgsSerializationTest(t *testing.T, serializerTest func(t *testing.
 func channelProposalReqSerializationTest(t *testing.T, serializerTest func(t *testing.T, msg wire.Msg)) {
 	t.Helper()
 	rng := pkgtest.Prng(t)
-	for i := 0; i < 16; i++ {
+	for i := range 16 {
 		var (
 			app client.ProposalOpts
 			m   wire.Msg
@@ -55,7 +55,7 @@ func channelProposalReqSerializationTest(t *testing.T, serializerTest func(t *te
 		case 1:
 			m, err = NewRandomSubChannelProposal(rng, client.WithNonceFrom(rng), app)
 			require.NoError(t, err)
-		case 2: //nolint: gomnd 	// This is not a magic number.
+		case 2: //nolint: mnd 	// This is not a magic number.
 			m, err = NewRandomVirtualChannelProposal(rng, client.WithNonceFrom(rng), app)
 			require.NoError(t, err)
 		}
@@ -67,14 +67,14 @@ func channelProposalAccSerializationTest(t *testing.T, serializerTest func(t *te
 	t.Helper()
 	rng := pkgtest.Prng(t)
 	t.Run("ledger channel", func(t *testing.T) {
-		for i := 0; i < 16; i++ {
+		for range 16 {
 			proposal := NewRandomLedgerChannelProposal(rng)
 			m := proposal.Accept(wallettest.NewRandomAddresses(rng, channel.TestBackendID), client.WithNonceFrom(rng))
 			serializerTest(t, m)
 		}
 	})
 	t.Run("sub channel", func(t *testing.T) {
-		for i := 0; i < 16; i++ {
+		for range 16 {
 			var err error
 			proposal, err := NewRandomSubChannelProposal(rng)
 			require.NoError(t, err)
@@ -83,7 +83,7 @@ func channelProposalAccSerializationTest(t *testing.T, serializerTest func(t *te
 		}
 	})
 	t.Run("virtual channel", func(t *testing.T) {
-		for i := 0; i < 16; i++ {
+		for range 16 {
 			var err error
 			proposal, err := NewRandomVirtualChannelProposal(rng)
 			require.NoError(t, err)
@@ -98,7 +98,7 @@ func channelProposalRejSerializationTest(t *testing.T, serializerTest func(t *te
 	minLen := 16
 	maxLenDiff := 16
 	rng := pkgtest.Prng(t)
-	for i := 0; i < 16; i++ {
+	for range 16 {
 		m := &client.ChannelProposalRejMsg{
 			ProposalID: newRandomProposalID(rng),
 			Reason:     newRandomASCIIString(rng, minLen, maxLenDiff),

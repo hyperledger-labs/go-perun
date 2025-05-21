@@ -21,6 +21,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	"polycry.pt/poly-go/test"
 )
@@ -97,7 +98,7 @@ func testAppRegistryIdentity(t *testing.T, rng *rand.Rand) {
 func assertIdentity(t *testing.T, expected App) {
 	t.Helper()
 	actual, err := Resolve(expected.Def())
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.True(t, actual.Def().Equal(expected.Def()))
 }
 

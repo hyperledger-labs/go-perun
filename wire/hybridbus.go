@@ -66,7 +66,6 @@ func (b *hybridBus) Publish(ctx context.Context, e *Envelope) error {
 
 	errg := errors.NewGatherer()
 	for _, bus := range b.buses {
-		bus := bus
 		errg.Go(func() error {
 			err := bus.Publish(sending, e)
 			// If sending was successful, abort all other send operations, and

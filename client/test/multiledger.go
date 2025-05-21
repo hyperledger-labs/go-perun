@@ -71,17 +71,17 @@ func SetupMultiLedgerTest(t *testing.T) MultiLedgerSetup {
 		Client2: c2,
 		Asset1:  a1,
 		Asset2:  a2,
-		//nolint:gomnd // We allow the balances to be magic numbers.
+		//nolint:mnd // We allow the balances to be magic numbers.
 		InitBalances: channel.Balances{
 			{big.NewInt(10), big.NewInt(0)}, // Asset 1.
 			{big.NewInt(0), big.NewInt(10)}, // Asset 2.
 		},
-		//nolint:gomnd
+		//nolint:mnd
 		UpdateBalances1: channel.Balances{
 			{big.NewInt(5), big.NewInt(5)}, // Asset 1.
 			{big.NewInt(3), big.NewInt(7)}, // Asset 2.
 		},
-		//nolint:gomnd
+		//nolint:mnd
 		UpdateBalances2: channel.Balances{
 			{big.NewInt(1), big.NewInt(9)}, // Asset 1.
 			{big.NewInt(5), big.NewInt(5)}, // Asset 2.
@@ -96,17 +96,17 @@ type MultiLedgerAsset struct {
 	asset channel.Asset
 }
 
-// LedgerBackendID returns the asset's ID.
-func (a *MultiLedgerAsset) LedgerBackendID() multi.LedgerBackendID {
-	return a.id
-}
-
 // NewMultiLedgerAsset returns a new multi-ledger asset.
 func NewMultiLedgerAsset(id multi.LedgerBackendID, asset channel.Asset) *MultiLedgerAsset {
 	return &MultiLedgerAsset{
 		id:    id,
 		asset: asset,
 	}
+}
+
+// LedgerBackendID returns the asset's ID.
+func (a *MultiLedgerAsset) LedgerBackendID() multi.LedgerBackendID {
+	return a.id
 }
 
 // Equal returns whether the two assets are equal.

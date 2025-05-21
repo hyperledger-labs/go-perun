@@ -33,6 +33,16 @@ func NewAddress() *Address {
 	return &Address{}
 }
 
+// NewRandomAddress returns a new random peer address.
+func NewRandomAddress(rng *rand.Rand) *Address {
+	addr := Address{}
+	_, err := rng.Read(addr[:])
+	if err != nil {
+		panic(err)
+	}
+	return &addr
+}
+
 // MarshalBinary marshals the address to binary.
 func (a Address) MarshalBinary() (data []byte, err error) {
 	return a[:], nil
@@ -69,14 +79,4 @@ func (a Address) Verify(msg, sig []byte) error {
 		return errors.New("invalid signature")
 	}
 	return nil
-}
-
-// NewRandomAddress returns a new random peer address.
-func NewRandomAddress(rng *rand.Rand) *Address {
-	addr := Address{}
-	_, err := rng.Read(addr[:])
-	if err != nil {
-		panic(err)
-	}
-	return &addr
 }

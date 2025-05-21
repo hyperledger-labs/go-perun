@@ -163,7 +163,7 @@ func TestBalancesGreaterOrEqual(t *testing.T) {
 
 func TestBalancesEqualSum(t *testing.T) {
 	rng := pkgtest.Prng(t)
-	for i := 0; i < 10; i++ {
+	for range 10 {
 		// Two random balances are different by chance.
 		a, b := test.NewRandomBalances(rng), test.NewRandomBalances(rng)
 		ok, err := pkgbig.EqualSum(a, b)
@@ -233,7 +233,7 @@ func testBalancesOperation(t *testing.T, op func(channel.Balances, channel.Balan
 
 func TestBalancesSerialization(t *testing.T) {
 	rng := pkgtest.Prng(t)
-	for n := 0; n < 10; n++ {
+	for range 10 {
 		alloc := test.NewRandomAllocation(rng)
 		if alloc.Valid() == nil {
 			peruniotest.GenericSerializerTest(t, alloc)

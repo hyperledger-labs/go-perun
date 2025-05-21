@@ -69,7 +69,7 @@ func (pr *PersistRestorer) channelPeers(id channel.ID) ([]map[wallet.BackendID]w
 	if err != nil {
 		return nil, errors.WithMessage(err, "unable to get peerlist from db")
 	}
-	return ps, errors.WithMessage(perunio.Decode(bytes.NewBuffer([]byte(peers)), &ps),
+	return ps, errors.WithMessage(perunio.Decode(bytes.NewBufferString(peers), &ps),
 		"decoding peerlist")
 }
 
@@ -169,6 +169,24 @@ func (i *ChannelIterator) Next(context.Context) bool {
 	return i.decodeNext("staging:state", &PersistedState{&i.ch.StagingTXV.State}, allowEmpty)
 }
 
+// Channel returns the iterator's current channel.
+func (i *ChannelIterator) Channel() *persistence.Channel {
+	return i.ch
+}
+
+// Close closes the iterator and releases its resources. It returns the last
+// error that occurred when advancing the iterator.
+func (i *ChannelIterator) Close() error {
+	for it := range i.its {
+		if err := i.its[it].Close(); err != nil && i.err == nil {
+			i.err = err
+		}
+	}
+	i.its = nil
+
+	return i.err
+}
+
 // recoverFromEmptyIterator is called when there is no iterator or when the
 // current iterator just ended. allowEnd signifies whether this situation is
 // allowed. It returns whether it could recover a new iterator.
@@ -216,22 +234,4 @@ func (i *ChannelIterator) decodeNext(key string, v interface{}, opts decOpts) bo
 	}
 
 	return i.err == nil
-}
-
-// Channel returns the iterator's current channel.
-func (i *ChannelIterator) Channel() *persistence.Channel {
-	return i.ch
-}
-
-// Close closes the iterator and releases its resources. It returns the last
-// error that occurred when advancing the iterator.
-func (i *ChannelIterator) Close() error {
-	for it := range i.its {
-		if err := i.its[it].Close(); err != nil && i.err == nil {
-			i.err = err
-		}
-	}
-	i.its = nil
-
-	return i.err
 }

@@ -87,7 +87,7 @@ func TestRestoreChannelCollection(t *testing.T) {
 
 	// Generate multiple trees of channels into one collection.
 	db := make(map[channel.ID]*persistence.Channel)
-	for i := 0; i < 3; i++ {
+	for range 3 {
 		mkRndChanTree(rng, 3, 1, 3, db, channel.TestBackendID)
 	}
 
@@ -104,7 +104,7 @@ func TestRestoreChannelCollection(t *testing.T) {
 
 	// Restore all channels into the client and check the published channels.
 	c.restoreChannelCollection(db, patchChFromSource)
-	require.Equal(t, len(witnessedChans), len(db), "channel count mismatch")
+	require.Len(t, witnessedChans, len(db), "channel count mismatch")
 
 	// Duplicates should be ignored and there should be no missing channels.
 	c.OnNewChannel(func(*Channel) {
@@ -120,7 +120,7 @@ func mkRndChan(rng *rand.Rand, bID wallet.BackendID) *persistence.Channel {
 		parts[i] = map[wallet.BackendID]wallet.Address{bID: wallettest.NewRandomAccount(rng, bID).Address()}
 	}
 	ch := persistence.NewChannel()
-	ch.IdxV = channel.Index(rng.Intn(channel.MaxNumParts))
+	ch.IdxV = channel.Index(rng.Intn(channel.MaxNumParts)) //nolint:gosec
 	ch.ParamsV = test.NewRandomParams(rng, test.WithParts(parts))
 	sigs := make([]bool, channel.MaxNumParts)
 	opts := test.WithParams(ch.ParamsV)
@@ -147,7 +147,7 @@ func mkRndChanTree(
 		if minChildren > 0 {
 			minChildren--
 		}
-		for i := 0; i < children; i++ {
+		for range children {
 			t := mkRndChanTree(rng, depth-1, minChildren, maxChildren-1, db, bID)
 			t.Parent = new(channel.ID)
 			*t.Parent = root.ID()

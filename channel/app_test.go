@@ -18,6 +18,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"perun.network/go-perun/channel"
 	"perun.network/go-perun/channel/test"
 	pkgtest "polycry.pt/poly-go/test"
@@ -31,8 +32,8 @@ func TestAppShouldEqual(t *testing.T) {
 
 	assert.EqualError(t, channel.AppShouldEqual(app1, app2), "different App definitions")
 	assert.EqualError(t, channel.AppShouldEqual(app2, app1), "different App definitions")
-	assert.NoError(t, channel.AppShouldEqual(app1, app1))
+	require.NoError(t, channel.AppShouldEqual(app1, app1))
 	assert.EqualError(t, channel.AppShouldEqual(app1, napp), "(non-)nil App definitions")
 	assert.EqualError(t, channel.AppShouldEqual(napp, app1), "(non-)nil App definitions")
-	assert.NoError(t, channel.AppShouldEqual(napp, napp))
+	require.NoError(t, channel.AppShouldEqual(napp, napp))
 }

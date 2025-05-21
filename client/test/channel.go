@@ -61,6 +61,22 @@ func newPaymentChannel(ch *client.Channel, r *role) *paymentChannel {
 	}
 }
 
+// The payment channel is its own update handler.
+func (ch *paymentChannel) Handle(up client.ChannelUpdate, res *client.UpdateResponder) {
+	ch.log.Infof("Incoming channel update: %v", up)
+	ctx, cancel := context.WithTimeout(context.Background(), ch.r.timeout)
+	defer cancel()
+
+	accept := <-ch.handler
+	if accept {
+		ch.log.Debug("Accepting...")
+		ch.res <- handlerRes{up, res.Accept(ctx)}
+	} else {
+		ch.log.Debug("Rejecting...")
+		ch.res <- handlerRes{up, res.Reject(ctx, "Rejection")}
+	}
+}
+
 func (ch *paymentChannel) openSubChannel(
 	rng io.Reader,
 	cfg ExecConfig,
@@ -195,22 +211,6 @@ func (ch *paymentChannel) settleImpl(secondary bool) {
 			parentBal := parentChannel.bals[i]
 			parentBal.Add(parentBal, bal)
 		}
-	}
-}
-
-// The payment channel is its own update handler.
-func (ch *paymentChannel) Handle(up client.ChannelUpdate, res *client.UpdateResponder) {
-	ch.log.Infof("Incoming channel update: %v", up)
-	ctx, cancel := context.WithTimeout(context.Background(), ch.r.timeout)
-	defer cancel()
-
-	accept := <-ch.handler
-	if accept {
-		ch.log.Debug("Accepting...")
-		ch.res <- handlerRes{up, res.Accept(ctx)}
-	} else {
-		ch.log.Debug("Rejecting...")
-		ch.res <- handlerRes{up, res.Reject(ctx, "Rejection")}
 	}
 }
 

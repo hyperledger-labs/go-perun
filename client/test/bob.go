@@ -40,14 +40,14 @@ func (r *Bob) exec(_cfg ExecConfig, ch *paymentChannel, propHandler *acceptNextP
 	we, them := r.Idxs(cfg.Peers())
 
 	// 1st Bob sends some updates to Alice
-	for i := 0; i < cfg.NumPayments[we]; i++ {
+	for i := range cfg.NumPayments[we] {
 		ch.sendTransfer(cfg.TxAmounts[we], fmt.Sprintf("Bob#%d", i))
 	}
 	// 2nd stage
 	r.waitStage()
 
 	// 2nd Bob receives some updates from Alice
-	for i := 0; i < cfg.NumPayments[them]; i++ {
+	for i := range cfg.NumPayments[them] {
 		ch.recvTransfer(cfg.TxAmounts[them], fmt.Sprintf("Alice#%d", i))
 	}
 	// 3rd stage
