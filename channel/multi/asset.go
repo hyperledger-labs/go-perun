@@ -48,7 +48,9 @@ type (
 
 // LedgerIDs returns the identifiers of the associated ledgers.
 func (a assets) LedgerIDs() ([]LedgerBackendID, error) {
-	ids := make(map[LedgerBackendKey]LedgerBackendID)
+	var ids []LedgerBackendID
+	seen := make(map[LedgerBackendKey]struct{}) // optional, for uniqueness
+
 	for _, asset := range a {
 		ma, ok := asset.(Asset)
 		if !ok {
@@ -56,17 +58,20 @@ func (a assets) LedgerIDs() ([]LedgerBackendID, error) {
 		}
 
 		assetID := ma.LedgerBackendID()
+		key := LedgerBackendKey{
+			BackendID: assetID.BackendID(),
+			LedgerID:  string(assetID.LedgerID().MapKey()),
+		}
 
-		ids[LedgerBackendKey{BackendID: assetID.BackendID(), LedgerID: string(assetID.LedgerID().MapKey())}] = assetID
-	}
-	idsArray := make([]LedgerBackendID, len(ids))
-	i := 0
-	for _, v := range ids {
-		idsArray[i] = v
-		i++
+		if _, exists := seen[key]; exists {
+			continue // skip duplicates, keep first occurrence order
+		}
+		seen[key] = struct{}{}
+
+		ids = append(ids, assetID)
 	}
 
-	return idsArray, nil
+	return ids, nil
 }
 
 // IsMultiLedgerAssets returns whether the assets are from multiple ledgers.
