@@ -21,8 +21,6 @@ import (
 	"math/big"
 	"time"
 
-	"perun.network/go-perun/wallet"
-
 	"perun.network/go-perun/channel"
 	"perun.network/go-perun/client"
 	"perun.network/go-perun/log"
@@ -82,7 +80,6 @@ func (ch *paymentChannel) openSubChannel(
 	cfg ExecConfig,
 	initBals []*big.Int,
 	app client.ProposalOpts,
-	bID wallet.BackendID,
 ) *paymentChannel {
 	initAlloc := channel.Allocation{
 		Assets:   cfg.Asset(),
