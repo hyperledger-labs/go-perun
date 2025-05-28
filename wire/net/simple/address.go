@@ -31,9 +31,6 @@ import (
 	"perun.network/go-perun/wire"
 )
 
-// testBackendID is the identifier for the simulated Backend.
-const testBackendID = 0
-
 // Address is a wire address.
 type Address struct {
 	Name      string
@@ -223,7 +220,7 @@ func (a *Address) Cmp(b wire.Address) int {
 }
 
 // NewRandomAddresses returns a new random peer address.
-func NewRandomAddresses(rng *rand.Rand) map[wallet.BackendID]wire.Address {
+func NewRandomAddresses(rng *rand.Rand, backendID []wallet.BackendID) map[wallet.BackendID]wire.Address {
 	const addrLen = 32
 	l := rng.Intn(addrLen)
 	d := make([]byte, l)
@@ -231,10 +228,14 @@ func NewRandomAddresses(rng *rand.Rand) map[wallet.BackendID]wire.Address {
 		panic(err)
 	}
 
-	a := Address{
-		Name: string(d),
+	addresses := make(map[wallet.BackendID]wire.Address)
+	for _, id := range backendID {
+		a := Address{
+			Name: string(d),
+		}
+		addresses[id] = &a
 	}
-	return map[wallet.BackendID]wire.Address{testBackendID: &a}
+	return addresses
 }
 
 // Verify verifies a message signature.

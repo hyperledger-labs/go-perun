@@ -41,8 +41,6 @@ type Account interface {
 	Sign(msg []byte) ([]byte, error)
 }
 
-const testBackendID = 0
-
 var _ Msg = (*AuthResponseMsg)(nil)
 
 // AuthResponseMsg is the response message in the peer authentication protocol.
@@ -89,7 +87,7 @@ func (m *AuthResponseMsg) Decode(r io.Reader) (err error) {
 }
 
 // NewAuthResponseMsg creates an authentication response message.
-func NewAuthResponseMsg(acc map[wallet.BackendID]Account) (Msg, error) {
+func NewAuthResponseMsg(acc map[wallet.BackendID]Account, backendID wallet.BackendID) (Msg, error) {
 	addressMap := make(map[wallet.BackendID]Address)
 	for id, a := range acc {
 		addressMap[id] = a.Address()
@@ -103,7 +101,7 @@ func NewAuthResponseMsg(acc map[wallet.BackendID]Account) (Msg, error) {
 		}
 		addressBytes = append(addressBytes, addrBytes...)
 	}
-	signature, err := acc[testBackendID].Sign(addressBytes)
+	signature, err := acc[backendID].Sign(addressBytes)
 	if err != nil {
 		return nil, fmt.Errorf("failed to sign address: %w", err)
 	}
