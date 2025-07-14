@@ -37,9 +37,7 @@
       "depguard",
       "nonamedreturns",
       "inamedparam",
-      "exhaustruct",
-      "wsl_v5",
-      "noinlineerr"
+      "exhaustruct"
     ],
     "exclusions": {
       "generated": "lax",
