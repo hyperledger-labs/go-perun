@@ -40,6 +40,7 @@ func genericDecodeEncodeTest(t *testing.T, serializers ...perunio.Serializer) {
 	for i, v := range serializers {
 		r, w := io.Pipe()
 		br := iotest.OneByteReader(r)
+
 		go func() {
 			if err := perunio.Encode(w, v); err != nil {
 				t.Errorf("failed to encode %dth element (%T): %+v", i, v, err)
@@ -50,7 +51,9 @@ func genericDecodeEncodeTest(t *testing.T, serializers ...perunio.Serializer) {
 
 		dest := reflect.New(reflect.TypeOf(v).Elem())
 		err := perunio.Decode(br, dest.Interface().(perunio.Serializer))
+
 		r.Close()
+
 		if err != nil {
 			t.Errorf("failed to decode %dth element (%T): %+v", i, v, err)
 		} else {
@@ -67,6 +70,7 @@ func genericDecodeEncodeTest(t *testing.T, serializers ...perunio.Serializer) {
 func GenericBrokenPipeTest(t *testing.T, serializers ...perunio.Serializer) {
 	for i, v := range serializers {
 		r, w := io.Pipe()
+
 		_ = w.Close()
 		if err := v.Encode(w); err == nil {
 			t.Errorf("encoding on closed writer should fail, but does not. %dth element (%T)", i, v)

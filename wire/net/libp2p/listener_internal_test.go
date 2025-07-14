@@ -41,6 +41,7 @@ func TestListener_Close(t *testing.T) {
 	t.Run("double close", func(t *testing.T) {
 		rng := pkgtest.Prng(t)
 		acc := NewRandomAccount(rng)
+
 		defer func() {
 			assert.NoError(t, acc.Close())
 		}()
@@ -55,11 +56,13 @@ func TestListener_Accept(t *testing.T) {
 	// Happy case already tested in TestDialer_Dial.
 	rng := pkgtest.Prng(t)
 	acc := NewRandomAccount(rng)
+
 	defer func() {
 		assert.NoError(t, acc.Close())
 	}()
 
 	timeout := 100 * time.Millisecond
+
 	t.Run("timeout", func(t *testing.T) {
 		l := NewP2PListener(acc)
 		defer l.Close()

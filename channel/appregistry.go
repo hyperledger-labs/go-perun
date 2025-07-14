@@ -29,6 +29,7 @@ type AppIDKey string
 
 type appReg struct {
 	sync.RWMutex
+
 	resolvers  []appRegEntry
 	singles    map[AppIDKey]App
 	defaultRes AppResolver

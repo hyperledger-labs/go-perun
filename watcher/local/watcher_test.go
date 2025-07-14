@@ -504,8 +504,7 @@ func Test_Watcher_StopWatching(t *testing.T) {
 		t.Run("happy/adjSub_noError", func(t *testing.T) { f(t, nil) })
 		t.Run("happy/adjSub_error", func(t *testing.T) { f(t, assert.AnError) })
 		t.Run("happy/concurrency", func(t *testing.T) {
-			// defer goleak.VerifyNone(t, goleak.IgnoreCurrent())
-
+			// defer goleak.VerifyNone(t, goleak.IgnoreCurrent()
 			params, txs := randomTxsForSingleCh(rng, 1)
 			adjSub := &mocks.AdjudicatorSubscription{}
 			trigger := setExpectationNextCall(adjSub)
@@ -519,6 +518,7 @@ func Test_Watcher_StopWatching(t *testing.T) {
 			wg := sync.WaitGroup{}
 			for range 2 {
 				wg.Add(1)
+
 				go func() {
 					w.StopWatching(context.Background(), txs[0].ID) //nolint:errcheck
 					wg.Done()
@@ -804,6 +804,7 @@ func setExpectationNextCall(
 	for i := range adjEvents {
 		handle := make(chan time.Time)
 		triggers.handles <- handle
+
 		triggers.adjEvents <- adjEvents[i]
 
 		adjSub.On("Next").Return(adjEvents[i]).WaitUntil(handle).Once()

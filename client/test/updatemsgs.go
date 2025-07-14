@@ -15,7 +15,6 @@
 package test
 
 import (
-	"math"
 	"math/rand"
 	"testing"
 
@@ -123,14 +122,14 @@ func channelUpdateRejSerializationTest(t *testing.T, serializerTest func(t *test
 func newRandomMsgChannelUpdate(rng *rand.Rand) *client.ChannelUpdateMsg {
 	state := test.NewRandomState(rng)
 	sig := newRandomSig(rng, channel.TestBackendID)
-	idx := rng.Intn(state.NumParts())
-	if idx < 0 || idx > math.MaxUint16 {
-		panic("index out of bounds")
+	idx, err := channel.FromInt(rng.Intn(state.NumParts()))
+	if err != nil {
+		panic(err)
 	}
 	return &client.ChannelUpdateMsg{
 		ChannelUpdate: client.ChannelUpdate{
 			State:    state,
-			ActorIdx: channel.Index(idx),
+			ActorIdx: idx,
 		},
 		Sig: sig,
 	}

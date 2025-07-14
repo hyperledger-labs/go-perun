@@ -51,6 +51,7 @@ const (
 // Account represents a libp2p wire account containing a libp2p host.
 type Account struct {
 	host.Host
+
 	relayAddr   string
 	privateKey  crypto.PrivKey
 	reservation *libp2pclient.Reservation
@@ -88,7 +89,8 @@ func NewRandomAccount(rng *rand.Rand) *Account {
 		sw.Backoff().Clear(relayInfo.ID)
 	}
 
-	if err := client.Connect(context.Background(), *relayInfo); err != nil {
+	err = client.Connect(context.Background(), *relayInfo)
+	if err != nil {
 		client.Close()
 		panic(errors.WithMessage(err, "connecting to the relay server"))
 	}
@@ -136,7 +138,8 @@ func NewAccountFromPrivateKeyBytes(prvKeyBytes []byte) (*Account, error) {
 		sw.Backoff().Clear(relayInfo.ID)
 	}
 
-	if err := client.Connect(context.Background(), *relayInfo); err != nil {
+	err = client.Connect(context.Background(), *relayInfo)
+	if err != nil {
 		client.Close()
 		return nil, errors.WithMessage(err, "connecting to the relay server")
 	}
@@ -200,6 +203,7 @@ func (acc *Account) RegisterOnChainAddress(onChainAddr wallet.Address) error {
 		OnChainAddress string
 		PeerID         string
 	}
+
 	if onChainAddr == nil {
 		return errors.New("on-chain address is nil")
 	}
@@ -360,11 +364,13 @@ func (acc *Account) keepReservationAlive(ctx context.Context, ai peer.AddrInfo) 
 						}
 					}
 				}
+
 				continue
 			}
 
 			acc.reservation = newReservation
 			backoff = initialBackoff
+
 			log.Println("keepReservationAlive: reservation successfully renewed")
 		}
 	}

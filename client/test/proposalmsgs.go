@@ -49,6 +49,7 @@ func channelProposalReqSerializationTest(t *testing.T, serializerTest func(t *te
 		if i&1 == 0 {
 			app = client.WithApp(test.NewRandomAppAndData(rng))
 		}
+
 		switch i % 3 {
 		case 0:
 			m = NewRandomLedgerChannelProposal(rng, client.WithNonceFrom(rng), app)

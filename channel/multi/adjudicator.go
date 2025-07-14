@@ -95,10 +95,12 @@ func (a *Adjudicator) Withdraw(ctx context.Context, req channel.AdjudicatorReq, 
 func (a *Adjudicator) dispatch(assetIds []LedgerBackendID, f func(channel.Adjudicator) error) error {
 	n := len(assetIds)
 	errs := make(chan error, n)
+
 	for _, l := range assetIds {
 		go func(l LedgerBackendID) {
 			err := func() error {
 				key := LedgerBackendKey{BackendID: l.BackendID(), LedgerID: string(l.LedgerID().MapKey())}
+
 				adjs, ok := a.adjudicators[key]
 				if !ok {
 					return fmt.Errorf("adjudicator not found for id %v", l)

@@ -37,8 +37,10 @@ func TestApp_ValidInit(t *testing.T) {
 	app := new(App)
 
 	nildata := &channel.State{Data: nil}
+
 	assert.Panics(func() { app.ValidInit(nil, nildata) }) //nolint:errcheck
 	wrongdata := &channel.State{Data: new(channel.MockOp)}
+
 	assert.Panics(func() { app.ValidInit(nil, wrongdata) }) //nolint:errcheck
 
 	data := &channel.State{Data: Data()}
@@ -50,6 +52,7 @@ func TestApp_ValidTransition(t *testing.T) {
 		alloc = [][]int64
 		to    struct {
 			alloc
+
 			valid int // the valid actor index, or -1 if there's no valid actor
 		}
 	)
@@ -120,6 +123,7 @@ func TestApp_ValidTransition(t *testing.T) {
 		from := test.NewRandomState(rng, test.WithApp(app), test.WithBalances(asBalances(tests[0].from...)...), test.WithNumAssets(len(tests[0].from)))
 		to := from.Clone()
 		to.Data = nil
+
 		assert.Panics(t, func() { app.ValidTransition(nil, from, to, 0) }) //nolint:errcheck
 	})
 

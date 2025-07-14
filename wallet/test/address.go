@@ -34,6 +34,7 @@ func TestAddress(t *testing.T, s *Setup) { //nolint:revive // `test.Test...` stu
 	// Test Address.String.
 	nullString := null.String()
 	addrString := addr.String()
+
 	assert.NotEmpty(t, nullString)
 	assert.NotEmpty(t, addrString)
 	assert.NotEqual(t, addrString, nullString)

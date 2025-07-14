@@ -76,7 +76,9 @@ func (d *Dialer) Dial(ctx context.Context, addr map[wallet.BackendID]wire.Addres
 	if err != nil {
 		return nil, errors.Wrap(err, "converting peer multiaddress to address info")
 	}
-	if err := d.host.Connect(ctx, *peerAddrInfo); err != nil {
+
+	err = d.host.Connect(ctx, *peerAddrInfo)
+	if err != nil {
 		return nil, errors.Wrap(err, "failed to dial peer: failed to connecting to peer")
 	}
 

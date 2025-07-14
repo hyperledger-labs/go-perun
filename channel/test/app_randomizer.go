@@ -55,6 +55,7 @@ func NewRandomApp(rng *rand.Rand, opts ...RandomOpt) channel.App {
 		app, _ := channel.Resolve(def)
 		return app
 	}
+
 	var bID wallet.BackendID
 	bID, err := opt.Backend()
 	if err != nil {

@@ -78,11 +78,13 @@ func (serializer) Encode(w io.Writer, env *wire.Envelope) (err error) { //nolint
 	default:
 		err = fmt.Errorf("unknown message type: %T", msg)
 	}
+
 	if err != nil {
 		return err
 	}
 	sender, recipient, err := marshalSenderRecipient(env)
 	protoEnv.Sender, protoEnv.Recipient = sender, recipient
+
 	if err != nil {
 		return err
 	}
@@ -127,6 +129,7 @@ func (serializer) Decode(r io.Reader) (env *wire.Envelope, err error) { //nolint
 
 	sender, recipient, err := unmarshalSenderRecipient(protoEnv)
 	env.Sender, env.Recipient = sender, recipient
+
 	if err != nil {
 		return nil, err
 	}
@@ -182,6 +185,7 @@ func readEnvelope(r io.Reader) (*Envelope, error) {
 	if _, err := r.Read(data); err != nil {
 		return nil, errors.Wrap(err, "reading data from wire")
 	}
+
 	var protoEnv Envelope
 	return &protoEnv, errors.Wrap(proto.Unmarshal(data, &protoEnv), "unmarshalling envelope")
 }

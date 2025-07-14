@@ -33,9 +33,9 @@ var _ wirenet.Listener = &Listener{}
 // whether a Listener is still open.
 type Listener struct {
 	sync.Closer
-	queue chan wirenet.Conn // The connection queue (unbuffered).
 
-	accepted int32 // The number of connections that have been accepted.
+	queue    chan wirenet.Conn // The connection queue (unbuffered).
+	accepted int32             // The number of connections that have been accepted.
 }
 
 // NewNetListener creates a new test listener.

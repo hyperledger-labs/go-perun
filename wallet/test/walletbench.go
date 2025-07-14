@@ -72,8 +72,10 @@ func benchBackendVerifySig(b *testing.B, s *Setup) {
 
 func benchUnmarshalAddress(b *testing.B, s *Setup) {
 	b.Helper()
+
 	for range b.N {
 		addr := s.Backend.NewAddress()
+
 		err := addr.UnmarshalBinary(s.AddressMarshalled)
 		if err != nil {
 			b.Fatal(err)

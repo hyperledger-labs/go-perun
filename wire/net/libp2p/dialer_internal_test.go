@@ -71,6 +71,7 @@ func TestDialer_Dial(t *testing.T) {
 	laddrs := make(map[wallet.BackendID]wire.Address)
 	laddrs[test.TestBackendID] = lAddr
 	lpeerID := lHost.ID()
+
 	listener := NewP2PListener(lHost)
 	defer listener.Close()
 
@@ -79,6 +80,7 @@ func TestDialer_Dial(t *testing.T) {
 	daddrs := make(map[wallet.BackendID]wire.Address)
 	daddrs[test.TestBackendID] = dAddr
 	dialer := NewP2PDialer(dHost)
+
 	dialer.Register(laddrs, lpeerID.String())
 	defer dialer.Close()
 

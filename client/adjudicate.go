@@ -54,7 +54,8 @@ func (c *Channel) Watch(h AdjudicatorEventHandler) error {
 	c.machMtx.Lock()
 	c.statesPub = statesPub
 	c.machMtx.Unlock()
-	if err := c.handleEvents(eventsSub, h); err != nil {
+	err = c.handleEvents(eventsSub, h)
+	if err != nil {
 		return errors.WithMessage(err, "handling events from watcher")
 	}
 
@@ -103,7 +104,8 @@ func (c *Channel) handleEvents(eventsSub watcher.AdjudicatorSub, h AdjudicatorEv
 				return nil
 			}
 			log.WithField("channel", c.Params().ID()).WithField("participant", c.Idx()).Infof("event %T: %v", e, e)
-			if err := c.setMachinePhase(c.Ctx(), e); err != nil {
+			err := c.setMachinePhase(c.Ctx(), e)
+			if err != nil {
 				return errors.WithMessage(err, "setting machine phase")
 			}
 
@@ -213,7 +215,8 @@ func (c *Channel) ForceUpdate(ctx context.Context, updater func(*channel.State))
 	state.Version++
 
 	// Check state transition.
-	if err := c.machine.ValidTransition(state); err != nil {
+	err = c.machine.ValidTransition(state)
+	if err != nil {
 		return errors.WithMessage(err, "validating state transition")
 	}
 
@@ -462,6 +465,7 @@ func (c *Channel) ensureRegistered(ctx context.Context) error {
 	}
 
 	registered := make(chan error)
+
 	go func() {
 		registered <- c.awaitRegistered(ctx)
 	}()
@@ -489,6 +493,7 @@ func (c *Channel) awaitRegistered(ctx context.Context) error {
 	if err != nil {
 		return errors.WithMessage(err, "subscribing to adjudicator events")
 	}
+
 	defer func() {
 		if err := sub.Close(); err != nil {
 			c.Log().Warn("Subscription closed with error:", err)

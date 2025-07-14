@@ -91,9 +91,10 @@ func (s *setup) Close() error {
 // client is a simulated client in the test setup.
 // All of the client's incoming messages can be read from its receiver.
 type client struct {
+	*wire.Receiver
+
 	endpoint *Endpoint
 	Registry *EndpointRegistry
-	*wire.Receiver
 }
 
 // makeClient creates a simulated test client.

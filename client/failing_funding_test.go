@@ -44,6 +44,7 @@ func TestFailingFunding(t *testing.T) {
 		func(r *rand.Rand) ([2]ctest.RoleSetup, channel.Asset) {
 			roles := NewSetups(rng, []string{"Frida", "Fred"}, channel.TestBackendID)
 			asset := chtest.NewRandomAsset(rng, channel.TestBackendID)
+
 			return [2]ctest.RoleSetup{roles[0], roles[1]}, asset
 		},
 	)

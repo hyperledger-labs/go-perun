@@ -48,8 +48,6 @@ func TestSubChannelHappy(t *testing.T) {
 			[2]*big.Int{big.NewInt(100), big.NewInt(100)},
 			client.WithoutApp(),
 		),
-		2,
-		3,
 		[][2]*big.Int{
 			{big.NewInt(10), big.NewInt(10)},
 			{big.NewInt(5), big.NewInt(5)},

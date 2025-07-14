@@ -33,6 +33,7 @@ func TestBus(t *testing.T) {
 	i := 0 // Keep track of the current client ID
 	dialers := make([]*Dialer, numClients)
 	accs := make([]*Account, numClients)
+
 	defer func() {
 		// Close all accounts
 		for _, acc := range accs {

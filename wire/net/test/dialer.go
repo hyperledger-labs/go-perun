@@ -30,10 +30,10 @@ import (
 
 // Dialer is a test dialer that can dial connections to Listeners via a ConnHub.
 type Dialer struct {
+	sync.Closer
+
 	hub    *ConnHub
 	dialed int32
-
-	sync.Closer
 }
 
 var _ wirenet.Dialer = (*Dialer)(nil)

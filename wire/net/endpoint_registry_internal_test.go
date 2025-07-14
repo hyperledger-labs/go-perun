@@ -163,6 +163,7 @@ func TestRegistry_Get(t *testing.T) {
 		a, b := newPipeConnPair()
 		ctx, cancel := context.WithTimeout(context.Background(), timeout)
 		defer cancel()
+
 		go ct.Stage("receiver", func(t test.ConcT) {
 			dialer.put(a)
 			_, err := ExchangeAddrsPassive(ctx, peerID, b)
@@ -203,6 +204,7 @@ func TestRegistry_authenticatedDial(t *testing.T) {
 
 	t.Run("dial success, ExchangeAddrs fail", func(t *testing.T) {
 		a, b := newPipeConnPair()
+
 		go func() {
 			d.put(a)
 			if _, err := b.Recv(); err != nil {
@@ -308,6 +310,7 @@ func TestRegistry_setupConn(t *testing.T) {
 		d := &mockDialer{dial: make(chan Conn)}
 		r := NewEndpointRegistry(id, nilConsumer, d, perunio.Serializer())
 		a, b := newPipeConnPair()
+
 		go func() {
 			err := ExchangeAddrsActive(context.Background(), remoteID, wire.AddressMapfromAccountMap(id), b)
 			if err != nil {

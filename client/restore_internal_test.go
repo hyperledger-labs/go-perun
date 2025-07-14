@@ -39,6 +39,7 @@ func patchChFromSource(
 	peers ...map[wallet.BackendID]wire.Address,
 ) (*Channel, error) {
 	bID := wallet.BackendID(channel.TestBackendID)
+
 	if len(peers) > 0 {
 		for i := range peers[0] {
 			bID = i

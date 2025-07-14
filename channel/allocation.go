@@ -65,12 +65,13 @@ type (
 	//
 	// Locked holds the locked allocations to sub-app-channels.
 	Allocation struct {
+		// Balances is the allocation of assets to the Params.Parts
+		Balances
+
 		// Backends is the indexes to which backend the assets belong to
 		Backends []wallet.BackendID
 		// Assets are the asset types held in this channel
 		Assets []Asset
-		// Balances is the allocation of assets to the Params.Parts
-		Balances
 		// Locked describes the funds locked in subchannels. There is one entry
 		// per subchannel.
 		Locked []SubAlloc
@@ -353,18 +354,23 @@ func (b Balances) Encode(w io.Writer) error {
 	if numAssets > 0 {
 		numParts = len(b[0])
 	}
+
 	if numAssets > MaxNumAssets {
 		return errors.Errorf("expected maximum number of assets %d, got %d", MaxNumAssets, numAssets)
 	}
+
 	if numParts > MaxNumParts {
 		return errors.Errorf("expected maximum number of parts %d, got %d", MaxNumParts, numParts)
 	}
+
 	if numParts < 0 || numParts > math.MaxUint16 {
 		return errors.New("too many participants")
 	}
+
 	if err := perunio.Encode(w, Index(numAssets), Index(numParts)); err != nil {
 		return errors.WithMessage(err, "encoding dimensions")
 	}
+
 	for i := range b {
 		for j := range b[i] {
 			if err := perunio.Encode(w, b[i][j]); err != nil {
@@ -373,6 +379,7 @@ func (b Balances) Encode(w io.Writer) error {
 			}
 		}
 	}
+
 	return nil
 }
 
@@ -403,20 +410,7 @@ func (a Allocation) Encode(w io.Writer) error {
 			err, "invalid allocations cannot be encoded, got %v", a)
 	}
 	// encode dimensions
-	assetLen := len(a.Assets)
-	if assetLen > math.MaxUint16 {
-		return errors.New("too many assets")
-	}
-	balanceLen := len(a.Balances[0])
-	if balanceLen > math.MaxUint16 {
-		return errors.New("too many participants")
-	}
-	lockedLen := len(a.Locked)
-	if lockedLen > math.MaxUint16 {
-		return errors.New("too many sub-allocations")
-	}
-
-	if err := perunio.Encode(w, Index(assetLen), Index(balanceLen), Index(lockedLen)); err != nil {
+	if err := perunio.Encode(w, Index(len(a.Assets)), Index(len(a.Balances[0])), Index(len(a.Locked))); err != nil { //nolint:gosec
 		return err
 	}
 	// encode assets
@@ -519,6 +513,7 @@ func (a Allocation) Valid() error {
 	if len(a.Assets) == 0 || len(a.Balances) == 0 {
 		return errors.New("assets and participant balances must not be of length zero (or nil)")
 	}
+
 	if len(a.Assets) > MaxNumAssets || len(a.Locked) > MaxNumSubAllocations {
 		return errors.New("too many assets or sub-allocations")
 	}
@@ -779,6 +774,7 @@ func (s *SubAlloc) BalancesEqual(b []Bal) bool {
 	if len(s.Bals) != len(b) {
 		return false
 	}
+
 	for i, bal := range s.Bals {
 		if bal.Cmp(b[i]) != 0 {
 			return false

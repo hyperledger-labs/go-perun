@@ -89,6 +89,7 @@ func (s *AdjudicatorSubscription) Close() error {
 	for _, sub := range s.subs {
 		sub.Close()
 	}
+
 	close(s.done)
 	return nil
 }

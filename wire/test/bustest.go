@@ -52,6 +52,7 @@ func GenericBusTest(t *testing.T,
 	require.Positive(t, numMsgs)
 
 	rng := test.Prng(t)
+
 	type Client struct {
 		r        *wire.Relay
 		pub, sub wire.Bus
@@ -70,8 +71,10 @@ func GenericBusTest(t *testing.T,
 	testNoReceive := func(t *testing.T) {
 		t.Helper()
 		ct := test.NewConcurrent(t)
+
 		ctx, cancel := context.WithTimeout(context.Background(), testNoReceiveTimeout)
 		defer cancel()
+
 		for i := range clients {
 			go ct.StageN("receive timeout", numClients, func(t test.ConcT) {
 				r := wire.NewReceiver()
@@ -82,17 +85,21 @@ func GenericBusTest(t *testing.T,
 				assert.Error(t, err)
 			})
 		}
+
 		ct.Wait("receive timeout")
 	}
 
 	testPublishAndReceive := func(t *testing.T, waiting func()) {
 		t.Helper()
 		ct := test.NewConcurrent(t)
+
 		ctx, cancel := context.WithTimeout(
 			context.Background(),
 			time.Duration((numClients)*(numClients-1)*numMsgs)*100*time.Millisecond)
 		defer cancel()
+
 		waiting()
+
 		for sender := range clients {
 			for recipient := range clients {
 				if sender == recipient {
@@ -112,6 +119,7 @@ func GenericBusTest(t *testing.T,
 
 				go ct.StageN("receive", numClients*(numClients-1), func(t test.ConcT) {
 					defer recv.Close()
+
 					for range numMsgs {
 						e, err := recv.Next(ctx)
 						assert.NoError(t, err)
@@ -126,6 +134,7 @@ func GenericBusTest(t *testing.T,
 				})
 			}
 		}
+
 		ct.Wait("publish", "receive")
 
 		// There must be no additional messages received.
@@ -158,6 +167,7 @@ func equalMaps(a, b map[wallet.BackendID]wire.Address) bool {
 	if len(a) != len(b) {
 		return false
 	}
+
 	for k, v := range a {
 		if !v.Equal(b[k]) {
 			return false

@@ -152,6 +152,7 @@ type (
 	// with Next(), which returns the peer's channel index and the message.
 	channelMsgRecv struct {
 		*wire.Receiver
+
 		peers []map[wallet.BackendID]wire.Address
 		log   log.Logger
 	}
@@ -172,8 +173,10 @@ func (r *channelMsgRecv) Next(ctx context.Context) (channel.Index, ChannelMsg, e
 	if !ok {
 		return 0, nil, errors.Errorf("unexpected message type: expected ChannelMsg, got %T", env.Msg)
 	}
-	if idx < 0 || idx > math.MaxUint16 {
-		return 0, nil, errors.Errorf("channel connection received message from unexpected peer %v", env.Sender)
+	index, err := channel.FromInt(idx)
+	if err != nil {
+		return 0, nil, errors.WithMessagef(err, "converting index %d to channel.Index", idx)
 	}
-	return channel.Index(idx), msg, nil
+
+	return index, msg, nil
 }

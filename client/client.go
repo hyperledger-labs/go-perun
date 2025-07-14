@@ -35,6 +35,8 @@ import (
 //
 // Currently, only the two-party protocol is fully implemented.
 type Client struct {
+	sync.Closer
+
 	address           map[wallet.BackendID]wire.Address
 	conn              clientConn
 	channels          chanRegistry
@@ -47,8 +49,6 @@ type Client struct {
 	fundingWatcher    *stateWatcher
 	settlementWatcher *stateWatcher
 	watcher           watcher.Watcher
-
-	sync.Closer
 }
 
 // New creates a new State Channel Client.

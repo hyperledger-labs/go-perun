@@ -25,6 +25,7 @@ import (
 // SusieTimExecConfig contains config parameters for Susie and Tim test.
 type SusieTimExecConfig struct {
 	BaseExecConfig
+
 	SubChannelFunds    [][2]*big.Int       // sub-channel funding amounts, also determines number of sub-channels, must be at least 1
 	SubSubChannelFunds [][2]*big.Int       // sub-sub-channel funding amounts, also determines number of sub-sub-channels
 	LeafChannelApp     client.ProposalOpts // app used in the leaf channels
@@ -34,8 +35,6 @@ type SusieTimExecConfig struct {
 // NewSusieTimExecConfig creates a new object from the given parameters.
 func NewSusieTimExecConfig(
 	base BaseExecConfig,
-	_ int,
-	_ int,
 	subChannelFunds [][2]*big.Int,
 	subSubChannelFunds [][2]*big.Int,
 	leafChannelApp client.ProposalOpts,

@@ -115,6 +115,7 @@ type (
 	// LedgerChannelProposalMsg is a channel proposal for ledger channels.
 	LedgerChannelProposalMsg struct {
 		BaseChannelProposal
+
 		Participant map[wallet.BackendID]wallet.Address // Proposer's address in the channel.
 		Peers       []map[wallet.BackendID]wire.Address // Participants' wire addresses.
 	}
@@ -122,6 +123,7 @@ type (
 	// SubChannelProposalMsg is a channel proposal for subchannels.
 	SubChannelProposalMsg struct {
 		BaseChannelProposal
+
 		Parent channel.ID
 	}
 )
@@ -406,6 +408,7 @@ type (
 	// each channel instantiation.
 	LedgerChannelProposalAccMsg struct {
 		BaseChannelProposalAcc
+
 		Participant map[wallet.BackendID]wallet.Address // Responder's participant address.
 	}
 
@@ -519,6 +522,7 @@ type (
 	// VirtualChannelProposalMsg is a channel proposal for virtual channels.
 	VirtualChannelProposalMsg struct {
 		BaseChannelProposal
+
 		Proposer  map[wallet.BackendID]wallet.Address // Proposer's address in the channel.
 		Peers     []map[wallet.BackendID]wire.Address // Participants' wire addresses.
 		Parents   []channel.ID                        // Parent channels for each participant.
@@ -529,6 +533,7 @@ type (
 	// virtual channel proposals.
 	VirtualChannelProposalAccMsg struct {
 		BaseChannelProposalAcc
+
 		Responder map[wallet.BackendID]wallet.Address // Responder's participant address.
 	}
 )

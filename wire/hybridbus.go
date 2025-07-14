@@ -81,6 +81,7 @@ func (b *hybridBus) Publish(ctx context.Context, e *Envelope) error {
 	// Wait until all sending attempts terminated. This is when either the
 	// context expires, all buses fail, or at least one bus succeeds.
 	err := errg.Wait()
+
 	if success.IsSet() {
 		return nil
 	}

@@ -25,6 +25,6 @@ import (
 func Test_Asset_GenericMarshaler(t *testing.T) {
 	rng := pkgtest.Prng(t)
 	for range 10 {
-		test.GenericMarshalerTest(t, &channel.Asset{ID: rng.Int63()})
+		test.GenericMarshalerTest(t, &channel.Asset{ID: rng.Uint64()})
 	}
 }

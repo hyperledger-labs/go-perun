@@ -255,6 +255,7 @@ func (c *Channel) update(ctx context.Context, updater func(*channel.State) error
 	if err := updater(state); err != nil {
 		return err
 	}
+
 	state.Version++
 
 	return c.updateGeneric(ctx, state, func(mcu *ChannelUpdateMsg) wire.Msg { return mcu })

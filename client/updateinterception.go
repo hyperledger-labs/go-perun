@@ -36,8 +36,9 @@ type (
 	}
 
 	updateInterceptors struct {
-		entries map[channel.ID]*updateInterceptor
 		sync.RWMutex
+
+		entries map[channel.ID]*updateInterceptor
 	}
 )
 
@@ -56,6 +57,7 @@ func (ui *updateInterceptor) Accept(ctx context.Context) error {
 		if err := ur.responder.Accept(ctx); err != nil {
 			return err
 		}
+
 		ui.response <- struct{}{}
 	case <-ctx.Done():
 		return ctx.Err()

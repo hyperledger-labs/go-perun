@@ -144,6 +144,7 @@ func (b *MockBackend) Fund(ctx context.Context, req channel.FundingReq, acc wall
 // MockAdjudicator is an adjudicator used for testing.
 type MockAdjudicator struct {
 	*MockBackend
+
 	acc wallet.Address
 }
 

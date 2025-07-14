@@ -32,16 +32,11 @@ type Address ecdsa.PublicKey
 // NewRandomAddress creates a new address using the randomness
 // provided by rng.
 func NewRandomAddress(rng io.Reader) *Address {
-	privateKey, err := ecdsa.GenerateKey(curve, rng)
+	key, err := ecdsa.GenerateKey(curve, rng)
 	if err != nil {
-		log.Panicf("Creation of account failed with error", err)
+		log.Panicf("account creation failed: %v", err)
 	}
-
-	return &Address{
-		Curve: privateKey.Curve,
-		X:     privateKey.X,
-		Y:     privateKey.Y,
-	}
+	return (*Address)(&key.PublicKey)
 }
 
 // BackendID returns the backend id of the address.

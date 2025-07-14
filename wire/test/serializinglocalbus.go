@@ -25,6 +25,7 @@ import (
 // SerializingLocalBus is a local bus that also serializes messages for testing.
 type SerializingLocalBus struct {
 	*wire.LocalBus
+
 	ser wire.EnvelopeSerializer
 }
 

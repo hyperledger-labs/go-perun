@@ -36,10 +36,12 @@ func NewAddress() *Address {
 // NewRandomAddress returns a new random peer address.
 func NewRandomAddress(rng *rand.Rand) *Address {
 	addr := Address{}
+
 	_, err := rng.Read(addr[:])
 	if err != nil {
 		panic(err)
 	}
+
 	return &addr
 }
 
@@ -51,6 +53,7 @@ func (a Address) MarshalBinary() (data []byte, err error) {
 // UnmarshalBinary unmarshals an address from binary.
 func (a *Address) UnmarshalBinary(data []byte) error {
 	copy(a[:], data)
+
 	return nil
 }
 

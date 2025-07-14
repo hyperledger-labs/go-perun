@@ -126,9 +126,10 @@ type (
 	// A ProgressReq collects all necessary information to do a progress call to
 	// the adjudicator.
 	ProgressReq struct {
-		AdjudicatorReq            // Tx should refer to the currently registered state
-		NewState       *State     // New state to progress into
-		Sig            wallet.Sig // Own signature on the new state
+		AdjudicatorReq // Tx should refer to the currently registered state
+
+		NewState *State     // New state to progress into
+		Sig      wallet.Sig // Own signature on the new state
 	}
 
 	// An AdjudicatorSubscription is a subscription to AdjudicatorEvents for a
@@ -173,17 +174,19 @@ type (
 
 	// ProgressedEvent is the abstract event that signals an on-chain progression.
 	ProgressedEvent struct {
-		AdjudicatorEventBase        // Channel ID and ForceExec phase timeout
-		State                *State // State that was progressed into
-		Idx                  Index  // Index of the participant who progressed
+		AdjudicatorEventBase // Channel ID and ForceExec phase timeout
+
+		State *State // State that was progressed into
+		Idx   Index  // Index of the participant who progressed
 	}
 
 	// RegisteredEvent is the abstract event that signals a successful state
 	// registration on the blockchain.
 	RegisteredEvent struct {
 		AdjudicatorEventBase // Channel ID and Refutation phase timeout
-		State                *State
-		Sigs                 []wallet.Sig
+
+		State *State
+		Sigs  []wallet.Sig
 	}
 
 	// ConcludedEvent signals channel conclusion.

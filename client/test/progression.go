@@ -30,6 +30,7 @@ type ProgressionExecConfig struct {
 // Watcher is a client that handles adjudicator events.
 type Watcher struct {
 	log.Logger
+
 	registered chan *channel.RegisteredEvent
 	progressed chan *channel.ProgressedEvent
 }
@@ -45,6 +46,7 @@ func makeWatcher(log log.Logger) Watcher {
 // HandleAdjudicatorEvent is the callback for adjudicator event handling.
 func (w *Watcher) HandleAdjudicatorEvent(e channel.AdjudicatorEvent) {
 	w.Infof("HandleAdjudicatorEvent %T: %v", e, e)
+
 	switch e := e.(type) {
 	case *channel.RegisteredEvent:
 		w.registered <- e

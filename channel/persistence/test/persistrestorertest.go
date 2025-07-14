@@ -121,6 +121,7 @@ func GenericPersistRestorerTest(
 		for _, ch := range channels[idx] {
 			iterIdx++
 			iterIdx := iterIdx
+
 			go ct.StageN("testing", numChans*numPeers, func(t pkgtest.ConcT) {
 				chIndex := iterIdx
 				log.Error(subSeed)
@@ -182,6 +183,7 @@ func GenericPersistRestorerTest(
 	persistedPeers, err := pr.ActivePeers(ctx)
 	require.NoError(t, err)
 	require.Len(t, persistedPeers, numPeers+1) // + local client
+
 peerLoop:
 	for idx, addr := range peers {
 		for _, paddr := range persistedPeers {

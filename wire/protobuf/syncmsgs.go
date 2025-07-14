@@ -31,6 +31,7 @@ func toChannelSyncMsg(protoEnvMsg *Envelope_ChannelSyncMsg) (msg *client.Channel
 		return msg, fmt.Errorf("invalid phase: %d", phase)
 	}
 	msg.Phase = channel.Phase(phase)
+
 	msg.CurrentTX.Sigs = make([][]byte, len(protoMsg.GetCurrentTx().GetSigs()))
 	for i := range protoMsg.GetCurrentTx().GetSigs() {
 		msg.CurrentTX.Sigs[i] = make([]byte, len(protoMsg.GetCurrentTx().GetSigs()[i]))
@@ -45,6 +46,7 @@ func fromChannelSyncMsg(msg *client.ChannelSyncMsg) (_ *Envelope_ChannelSyncMsg,
 	protoMsg.CurrentTx = &Transaction{}
 
 	protoMsg.Phase = uint32(msg.Phase)
+
 	protoMsg.CurrentTx.Sigs = make([][]byte, len(msg.CurrentTX.Sigs))
 	for i := range msg.CurrentTX.Sigs {
 		protoMsg.CurrentTx.Sigs[i] = make([]byte, len(msg.CurrentTX.Sigs[i]))

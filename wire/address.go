@@ -64,18 +64,22 @@ func (a AddressDecMap) Encode(w stdio.Writer) error {
 		return errors.New("map length out of bounds")
 	}
 	length := int32(l)
-	if err := perunio.Encode(w, length); err != nil {
+	err := perunio.Encode(w, length)
+	if err != nil {
 		return errors.WithMessage(err, "encoding map length")
 	}
+
 	for i, addr := range a {
 		id := int(i)
 		if id < math.MinInt32 || id > math.MaxInt32 {
 			return errors.New("map index out of bounds")
 		}
-		if err := perunio.Encode(w, int32(id)); err != nil {
+		err := perunio.Encode(w, int32(id))
+		if err != nil {
 			return errors.WithMessage(err, "encoding map index")
 		}
-		if err := perunio.Encode(w, addr); err != nil {
+		err = perunio.Encode(w, addr)
+		if err != nil {
 			return errors.WithMessagef(err, "encoding %d-th address map entry", i)
 		}
 	}
@@ -90,9 +94,11 @@ func (a AddressMapArray) Encode(w stdio.Writer) error {
 		return errors.New("array length out of bounds")
 	}
 	length := int32(l)
-	if err := perunio.Encode(w, length); err != nil {
+	err := perunio.Encode(w, length)
+	if err != nil {
 		return errors.WithMessage(err, "encoding array length")
 	}
+
 	for i, addr := range a {
 		if err := perunio.Encode(w, AddressDecMap(addr)); err != nil {
 			return errors.WithMessagef(err, "encoding %d-th address array entry", i)

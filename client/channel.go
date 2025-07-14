@@ -201,6 +201,7 @@ func (c *Channel) initExchangeSigsAndEnable(ctx context.Context) error {
 	defer resRecv.Close()
 
 	send := make(chan error)
+
 	go func() {
 		send <- c.conn.Send(ctx, &ChannelUpdateAccMsg{
 			ChannelID: c.ID(),
