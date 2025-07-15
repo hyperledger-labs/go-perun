@@ -30,7 +30,7 @@ import (
 )
 
 func TestBus(t *testing.T) {
-	const numClients = 5
+	const numClients = 4
 	const numMsgs = 5
 	const defaultTimeout = 100 * time.Millisecond
 

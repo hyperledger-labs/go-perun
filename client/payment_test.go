@@ -48,7 +48,6 @@ func TestPaymentHappy(t *testing.T) {
 
 func TestPaymentDispute(t *testing.T) {
 	rng := pkgtest.Prng(t)
-	
 	ctx, cancel := context.WithTimeout(context.Background(), twoPartyTestTimeout)
 	defer cancel()
 
