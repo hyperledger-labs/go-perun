@@ -207,7 +207,7 @@ type (
 	}
 
 	// StateMap represents a channel state tree.
-	StateMap map[ID]*SignedState
+	StateMap map[ID]*State
 )
 
 // NewProgressReq creates a new ProgressReq object.
@@ -305,12 +305,12 @@ func (t *TimeTimeout) String() string {
 
 // MakeStateMap creates a new StateMap object.
 func MakeStateMap() StateMap {
-	return make(map[ID]*SignedState)
+	return make(map[ID]*State)
 }
 
 // Add adds the given states to the state map.
-func (m StateMap) Add(states ...*SignedState) {
+func (m StateMap) Add(states ...*State) {
 	for _, s := range states {
-		m[s.State.ID] = s
+		m[s.ID] = s
 	}
 }

@@ -106,7 +106,7 @@ func (r *DisputeSusie) exec(_cfg ExecConfig, ledgerChannel *paymentChannel) {
 
 	r.log.Debug("Attempt withdrawing refuted state.")
 	m := channel.MakeStateMap()
-	m.Add(&subState0)
+	m.Add(subState0.State)
 	err = r.setup.Adjudicator.Withdraw(ctx, reqLedger, m)
 	r.RequireTruef(err != nil, "withdraw should fail because other party should have refuted.")
 
