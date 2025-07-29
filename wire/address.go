@@ -17,6 +17,7 @@ package wire
 import (
 	"encoding"
 	stdio "io"
+	"math"
 	"sort"
 	"strings"
 
@@ -58,15 +59,27 @@ type AddressDecMap map[wallet.BackendID]Address
 // Encode encodes first the length of the map,
 // then all Addresses and their key in the map.
 func (a AddressDecMap) Encode(w stdio.Writer) error {
-	length := int32(len(a))
-	if err := perunio.Encode(w, length); err != nil {
+	l := len(a)
+	if l > math.MaxInt32 {
+		return errors.New("map length out of bounds")
+	}
+	length := int32(l)
+	err := perunio.Encode(w, length)
+	if err != nil {
 		return errors.WithMessage(err, "encoding map length")
 	}
+
 	for i, addr := range a {
-		if err := perunio.Encode(w, int32(i)); err != nil {
+		id := int(i)
+		if id < math.MinInt32 || id > math.MaxInt32 {
+			return errors.New("map index out of bounds")
+		}
+		err := perunio.Encode(w, int32(id))
+		if err != nil {
 			return errors.WithMessage(err, "encoding map index")
 		}
-		if err := perunio.Encode(w, addr); err != nil {
+		err = perunio.Encode(w, addr)
+		if err != nil {
 			return errors.WithMessagef(err, "encoding %d-th address map entry", i)
 		}
 	}
@@ -76,10 +89,16 @@ func (a AddressDecMap) Encode(w stdio.Writer) error {
 // Encode encodes first the length of the array,
 // then all AddressDecMaps in the array.
 func (a AddressMapArray) Encode(w stdio.Writer) error {
-	length := int32(len(a))
-	if err := perunio.Encode(w, length); err != nil {
+	l := len(a)
+	if l < math.MinInt32 || l > math.MaxInt32 {
+		return errors.New("array length out of bounds")
+	}
+	length := int32(l)
+	err := perunio.Encode(w, length)
+	if err != nil {
 		return errors.WithMessage(err, "encoding array length")
 	}
+
 	for i, addr := range a {
 		if err := perunio.Encode(w, AddressDecMap(addr)); err != nil {
 			return errors.WithMessagef(err, "encoding %d-th address array entry", i)
@@ -95,7 +114,7 @@ func (a *AddressDecMap) Decode(r stdio.Reader) (err error) {
 		return errors.WithMessage(err, "decoding map length")
 	}
 	*a = make(map[wallet.BackendID]Address, mapLen)
-	for i := 0; i < int(mapLen); i++ {
+	for i := range mapLen {
 		var idx int32
 		if err := perunio.Decode(r, &idx); err != nil {
 			return errors.WithMessage(err, "decoding map index")
@@ -117,7 +136,7 @@ func (a *AddressMapArray) Decode(r stdio.Reader) (err error) {
 		return errors.WithMessage(err, "decoding array length")
 	}
 	*a = make([]map[wallet.BackendID]Address, mapLen)
-	for i := 0; i < int(mapLen); i++ {
+	for i := range mapLen {
 		if err := perunio.Decode(r, (*AddressDecMap)(&(*a)[i])); err != nil {
 			return errors.WithMessagef(err, "decoding %d-th address map entry", i)
 		}

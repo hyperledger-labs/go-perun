@@ -68,6 +68,7 @@ type watcherEntry struct {
 
 type stateWatcher struct {
 	sync.Mutex
+
 	entries   map[interface{}]watcherEntry
 	condition func(ctx context.Context, a, b interface{}) bool
 }
@@ -86,8 +87,10 @@ func (w *stateWatcher) Await(
 	state interface{},
 ) (err error) {
 	match := make(chan struct{}, 1)
+
 	w.register(ctx, state, match)
 	defer w.deregister(state)
+
 	select {
 	case <-match:
 	case <-ctx.Done():
@@ -107,6 +110,7 @@ func (w *stateWatcher) register(
 	for k, e := range w.entries {
 		if w.condition(ctx, state, e.state) {
 			done <- struct{}{}
+
 			e.done <- struct{}{}
 			delete(w.entries, k)
 			return

@@ -27,11 +27,26 @@ import (
 
 // A clientConn bundles all the messaging infrastructure for a Client.
 type clientConn struct {
-	*wire.Relay // Client relay, subscribed to the bus. Embedded for methods Subscribe and Cache.
-	bus         wire.Bus
-	reqRecv     *wire.Receiver // subscription to incoming requests
-	sender      map[wallet.BackendID]wire.Address
 	log.Embedding
+	*wire.Relay // Client relay, subscribed to the bus. Embedded for methods Subscribe and Cache.
+
+	bus     wire.Bus
+	reqRecv *wire.Receiver // subscription to incoming requests
+	sender  map[wallet.BackendID]wire.Address
+}
+
+// Publish publishes the message on the bus. Makes clientConn implement the
+// wire.Publisher interface.
+func (c *clientConn) Publish(ctx context.Context, env *wire.Envelope) error {
+	return c.bus.Publish(ctx, env)
+}
+
+func (c *clientConn) Close() error {
+	err := c.Relay.Close()
+	if rerr := c.reqRecv.Close(); err == nil {
+		err = errors.WithMessage(rerr, "closing proposal receiver")
+	}
+	return err
 }
 
 func makeClientConn(address map[wallet.BackendID]wire.Address, bus wire.Bus) (c clientConn, err error) {
@@ -39,6 +54,7 @@ func makeClientConn(address map[wallet.BackendID]wire.Address, bus wire.Bus) (c 
 	c.sender = address
 	c.bus = bus
 	c.Relay = wire.NewRelay()
+
 	defer func() {
 		if err != nil {
 			if cerr := c.Relay.Close(); cerr != nil {
@@ -47,7 +63,7 @@ func makeClientConn(address map[wallet.BackendID]wire.Address, bus wire.Bus) (c 
 		}
 	}()
 
-	c.Relay.SetDefaultMsgHandler(func(m *wire.Envelope) {
+	c.SetDefaultMsgHandler(func(m *wire.Envelope) {
 		log.Debugf("Received %T message without subscription: %v", m.Msg, m)
 	})
 	if err := bus.SubscribeClient(c, c.sender); err != nil {
@@ -85,18 +101,4 @@ func (c *clientConn) pubMsg(ctx context.Context, msg wire.Msg, rec map[wallet.Ba
 		Recipient: rec,
 		Msg:       msg,
 	})
-}
-
-// Publish publishes the message on the bus. Makes clientConn implement the
-// wire.Publisher interface.
-func (c *clientConn) Publish(ctx context.Context, env *wire.Envelope) error {
-	return c.bus.Publish(ctx, env)
-}
-
-func (c *clientConn) Close() error {
-	err := c.Relay.Close()
-	if rerr := c.reqRecv.Close(); err == nil {
-		err = errors.WithMessage(rerr, "closing proposal receiver")
-	}
-	return err
 }

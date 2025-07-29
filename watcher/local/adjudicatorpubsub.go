@@ -45,6 +45,22 @@ func newAdjudicatorEventsPubSub() *adjudicatorPubSub {
 	}
 }
 
+// EventStream returns a channel for consuming the published adjudicator
+// events. It always returns the same channel and does not support
+// multiplexing.
+//
+// The channel will be closed when the pub-sub instance is closed and Err
+// should tell the possible error.
+func (a *adjudicatorPubSub) EventStream() <-chan channel.AdjudicatorEvent {
+	return a.pipe
+}
+
+// Err always returns nil. Because, there will be no errors when closing a
+// local subscription.
+func (a *adjudicatorPubSub) Err() error {
+	return nil
+}
+
 // publish publishes the given adjudicator event to the subscriber.
 //
 // Panics if the pub-sub instance is already closed. It is implemented this
@@ -64,20 +80,4 @@ func (a *adjudicatorPubSub) publish(e channel.AdjudicatorEvent) {
 // further call to publish, after a pub-sub is closed will panic.
 func (a *adjudicatorPubSub) close() {
 	a.once.Do(func() { close(a.pipe) })
-}
-
-// EventStream returns a channel for consuming the published adjudicator
-// events. It always returns the same channel and does not support
-// multiplexing.
-//
-// The channel will be closed when the pub-sub instance is closed and Err
-// should tell the possible error.
-func (a *adjudicatorPubSub) EventStream() <-chan channel.AdjudicatorEvent {
-	return a.pipe
-}
-
-// Err always returns nil. Because, there will be no errors when closing a
-// local subscription.
-func (a *adjudicatorPubSub) Err() error {
-	return nil
 }

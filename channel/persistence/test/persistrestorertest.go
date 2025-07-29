@@ -67,7 +67,7 @@ func (c *Client) NewChannel(t require.TestingT, p map[wallet.BackendID]wire.Addr
 		c.ctx,
 		t,
 		c.pr,
-		channel.Index(idx),
+		channel.Index(idx), //nolint:gosec
 		peers,
 		parent,
 		c.rng)
@@ -89,7 +89,7 @@ func GenericPersistRestorerTest(
 	t.Helper()
 	t.Run("RestoreChannel error", func(t *testing.T) {
 		var id channel.ID
-		ch, err := pr.RestoreChannel(context.Background(), id)
+		ch, err := pr.RestoreChannel(ctx, id)
 		assert.Error(t, err)
 		assert.Nil(t, ch)
 	})
@@ -100,9 +100,9 @@ func GenericPersistRestorerTest(
 
 	channels := make([]map[channel.ID]*Channel, numPeers)
 	var prevCh *Channel
-	for p := 0; p < numPeers; p++ {
+	for p := range numPeers {
 		channels[p] = make(map[channel.ID]*Channel)
-		for i := 0; i < numChans; i++ {
+		for i := range numChans {
 			var parent *Channel
 			// Every second channel is set to have a parent.
 			if i&1 == 1 {
@@ -118,11 +118,10 @@ func GenericPersistRestorerTest(
 	subSeed := rng.Int63()
 	iterIdx := 0
 	for idx := range peers {
-		idx := idx
 		for _, ch := range channels[idx] {
-			ch := ch
 			iterIdx++
 			iterIdx := iterIdx
+
 			go ct.StageN("testing", numChans*numPeers, func(t pkgtest.ConcT) {
 				chIndex := iterIdx
 				log.Error(subSeed)
@@ -184,6 +183,7 @@ func GenericPersistRestorerTest(
 	persistedPeers, err := pr.ActivePeers(ctx)
 	require.NoError(t, err)
 	require.Len(t, persistedPeers, numPeers+1) // + local client
+
 peerLoop:
 	for idx, addr := range peers {
 		for _, paddr := range persistedPeers {
@@ -198,5 +198,5 @@ peerLoop:
 
 	ps, err := pr.ActivePeers(ctx)
 	require.NoError(t, err)
-	require.Len(t, ps, 0)
+	require.Empty(t, ps)
 }

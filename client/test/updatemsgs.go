@@ -41,7 +41,7 @@ func channelUpdateSerializationTest(t *testing.T, serializerTest func(t *testing
 ) {
 	t.Helper()
 	rng := pkgtest.Prng(t)
-	for i := 0; i < 4; i++ {
+	for range 4 {
 		m := newRandomMsgChannelUpdate(rng)
 		serializerTest(t, m)
 	}
@@ -53,7 +53,7 @@ func virtualChannelFundingProposalSerializationTest(
 ) {
 	t.Helper()
 	rng := pkgtest.Prng(t)
-	for i := 0; i < 4; i++ {
+	for range 4 {
 		msgUp := newRandomMsgChannelUpdate(rng)
 		params, state := test.NewRandomParamsAndState(rng)
 		m := &client.VirtualChannelFundingProposalMsg{
@@ -75,7 +75,7 @@ func virtualChannelSettlementProposalSerializationTest(
 ) {
 	t.Helper()
 	rng := pkgtest.Prng(t)
-	for i := 0; i < 4; i++ {
+	for range 4 {
 		msgUp := newRandomMsgChannelUpdate(rng)
 		params, state := test.NewRandomParamsAndState(rng)
 		m := &client.VirtualChannelSettlementProposalMsg{
@@ -93,11 +93,11 @@ func virtualChannelSettlementProposalSerializationTest(
 func channelUpdateAccSerializationTest(t *testing.T, serializerTest func(t *testing.T, msg wire.Msg)) {
 	t.Helper()
 	rng := pkgtest.Prng(t)
-	for i := 0; i < 4; i++ {
+	for range 4 {
 		sig := newRandomSig(rng, channel.TestBackendID)
 		m := &client.ChannelUpdateAccMsg{
 			ChannelID: test.NewRandomChannelID(rng),
-			Version:   uint64(rng.Int63()),
+			Version:   rng.Uint64(),
 			Sig:       sig,
 		}
 		serializerTest(t, m)
@@ -109,10 +109,10 @@ func channelUpdateRejSerializationTest(t *testing.T, serializerTest func(t *test
 	rng := pkgtest.Prng(t)
 	minLen := 16
 	maxLenDiff := 16
-	for i := 0; i < 4; i++ {
+	for range 4 {
 		m := &client.ChannelUpdateRejMsg{
 			ChannelID: test.NewRandomChannelID(rng),
-			Version:   uint64(rng.Int63()),
+			Version:   rng.Uint64(),
 			Reason:    newRandomASCIIString(rng, minLen, maxLenDiff),
 		}
 		serializerTest(t, m)
@@ -122,10 +122,14 @@ func channelUpdateRejSerializationTest(t *testing.T, serializerTest func(t *test
 func newRandomMsgChannelUpdate(rng *rand.Rand) *client.ChannelUpdateMsg {
 	state := test.NewRandomState(rng)
 	sig := newRandomSig(rng, channel.TestBackendID)
+	idx, err := channel.FromInt(rng.Intn(state.NumParts()))
+	if err != nil {
+		panic(err)
+	}
 	return &client.ChannelUpdateMsg{
 		ChannelUpdate: client.ChannelUpdate{
 			State:    state,
-			ActorIdx: channel.Index(rng.Intn(state.NumParts())),
+			ActorIdx: idx,
 		},
 		Sig: sig,
 	}

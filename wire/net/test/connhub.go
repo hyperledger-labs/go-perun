@@ -27,11 +27,11 @@ import (
 
 // ConnHub is a factory for creating and connecting test dialers and listeners.
 type ConnHub struct {
-	mutex gosync.RWMutex
 	listenerMap
-	dialers dialerList
-
 	sync.Closer
+
+	mutex   gosync.RWMutex
+	dialers dialerList
 }
 
 // NewNetListener creates a new test listener for the given address.
@@ -46,7 +46,8 @@ func (h *ConnHub) NewNetListener(addr map[wallet.BackendID]wire.Address) *Listen
 	}
 
 	listener := NewNetListener()
-	if err := h.insert(addr, listener); err != nil {
+	err := h.insert(addr, listener)
+	if err != nil {
 		panic("double registration")
 	}
 
@@ -81,18 +82,21 @@ func (h *ConnHub) Close() (err error) {
 	h.mutex.Lock()
 	defer h.mutex.Unlock()
 
-	if err := h.Closer.Close(); err != nil {
+	err = h.Closer.Close()
+	if err != nil {
 		return errors.WithMessage(err, "ConnHub already closed")
 	}
 
 	for _, l := range h.clear() {
-		if cerr := l.value.Close(); cerr != nil && err == nil {
+		cerr := l.value.Close()
+		if cerr != nil && err == nil {
 			err = cerr
 		}
 	}
 
 	for _, d := range h.dialers.clear() {
-		if cerr := d.Close(); cerr != nil && err == nil {
+		cerr := d.Close()
+		if cerr != nil && err == nil {
 			err = cerr
 		}
 	}

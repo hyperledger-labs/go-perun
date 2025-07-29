@@ -125,6 +125,14 @@ func (m *StateMachine) CheckUpdate(
 	return nil
 }
 
+// Clone returns a deep copy of StateMachine.
+func (m *StateMachine) Clone() *StateMachine {
+	return &StateMachine{
+		machine: m.machine.Clone(),
+		app:     m.app,
+	}
+}
+
 // validTransition makes all the default transition checks and additionally
 // checks for a valid application specific transition.
 // This is where a StateMachine and ActionMachine differ. In an ActionMachine,
@@ -135,7 +143,7 @@ func (m *StateMachine) validTransition(to *State, actor Index) (err error) {
 	if actor >= m.N() {
 		return errors.New("actor index is out of range")
 	}
-	if err := m.machine.ValidTransition(to); err != nil {
+	if err := m.ValidTransition(to); err != nil {
 		return err
 	}
 
@@ -143,12 +151,4 @@ func (m *StateMachine) validTransition(to *State, actor Index) (err error) {
 		return err
 	}
 	return errors.WithMessagef(err, "runtime error in application's ValidTransition()")
-}
-
-// Clone returns a deep copy of StateMachine.
-func (m *StateMachine) Clone() *StateMachine {
-	return &StateMachine{
-		machine: m.machine.Clone(),
-		app:     m.app,
-	}
 }

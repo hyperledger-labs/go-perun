@@ -37,12 +37,14 @@ func TestApp_ValidInit(t *testing.T) {
 	app := new(App)
 
 	nildata := &channel.State{Data: nil}
+
 	assert.Panics(func() { app.ValidInit(nil, nildata) }) //nolint:errcheck
 	wrongdata := &channel.State{Data: new(channel.MockOp)}
+
 	assert.Panics(func() { app.ValidInit(nil, wrongdata) }) //nolint:errcheck
 
 	data := &channel.State{Data: Data()}
-	assert.Nil(app.ValidInit(nil, data))
+	assert.NoError(app.ValidInit(nil, data))
 }
 
 func TestApp_ValidTransition(t *testing.T) {
@@ -50,6 +52,7 @@ func TestApp_ValidTransition(t *testing.T) {
 		alloc = [][]int64
 		to    struct {
 			alloc
+
 			valid int // the valid actor index, or -1 if there's no valid actor
 		}
 	)
@@ -93,9 +96,9 @@ func TestApp_ValidTransition(t *testing.T) {
 				test.WithBalances(asBalances(tt.from...)...),
 			)
 			numParticipants := len(tt.from[0])
-			for i := 0; i < numParticipants; i++ {
+			for i := range numParticipants {
 				// valid self-transition
-				assert.NoError(app.ValidTransition(nil, from, from, channel.Index(i)))
+				assert.NoError(app.ValidTransition(nil, from, from, channel.Index(i))) //nolint:gosec
 			}
 
 			for _, tto := range tt.tos {
@@ -104,8 +107,8 @@ func TestApp_ValidTransition(t *testing.T) {
 					test.WithAppData(Data()),
 					test.WithBalances(asBalances(tto.alloc...)...),
 				)
-				for i := 0; i < numParticipants; i++ {
-					err := app.ValidTransition(nil, from, to, channel.Index(i))
+				for i := range numParticipants {
+					err := app.ValidTransition(nil, from, to, channel.Index(i)) //nolint:gosec
 					if i == tto.valid {
 						assert.NoError(err)
 					} else {
@@ -120,6 +123,7 @@ func TestApp_ValidTransition(t *testing.T) {
 		from := test.NewRandomState(rng, test.WithApp(app), test.WithBalances(asBalances(tests[0].from...)...), test.WithNumAssets(len(tests[0].from)))
 		to := from.Clone()
 		to.Data = nil
+
 		assert.Panics(t, func() { app.ValidTransition(nil, from, to, 0) }) //nolint:errcheck
 	})
 

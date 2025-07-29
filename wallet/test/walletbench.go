@@ -32,7 +32,7 @@ func benchAccountSign(b *testing.B, s *Setup) {
 	perunAcc, err := s.Wallet.Unlock(s.AddressInWallet)
 	require.NoError(b, err)
 
-	for n := 0; n < b.N; n++ {
+	for range b.N {
 		_, err := perunAcc.SignData(s.DataToSign)
 		if err != nil {
 			b.Fatal(err)
@@ -61,7 +61,7 @@ func benchBackendVerifySig(b *testing.B, s *Setup) {
 	require.NoError(b, err)
 	b.StartTimer()
 
-	for n := 0; n < b.N; n++ {
+	for range b.N {
 		ok, err := s.Backend.VerifySignature(s.DataToSign, signature, perunAcc.Address())
 
 		if !ok {
@@ -72,8 +72,10 @@ func benchBackendVerifySig(b *testing.B, s *Setup) {
 
 func benchUnmarshalAddress(b *testing.B, s *Setup) {
 	b.Helper()
-	for n := 0; n < b.N; n++ {
+
+	for range b.N {
 		addr := s.Backend.NewAddress()
+
 		err := addr.UnmarshalBinary(s.AddressMarshalled)
 		if err != nil {
 			b.Fatal(err)

@@ -44,7 +44,7 @@ func TestDialerList_erase(t *testing.T) {
 	d := &Dialer{}
 	l.insert(d)
 	assert.NoError(l.erase(d))
-	assert.Len(l.entries, 0)
+	assert.Empty(l.entries)
 	assert.Error(l.erase(d))
 }
 
@@ -55,5 +55,5 @@ func TestDialerList_clear(t *testing.T) {
 	d := &Dialer{}
 	l.insert(d)
 	assert.Equal(l.clear(), []*Dialer{d})
-	assert.Len(l.entries, 0)
+	assert.Empty(l.entries)
 }

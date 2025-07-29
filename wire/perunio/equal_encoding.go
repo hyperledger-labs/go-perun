@@ -35,10 +35,13 @@ func EqualEncoding(a, b Encoder) (bool, error) {
 		return true, nil
 	}
 
-	if err := a.Encode(buffA); err != nil {
+	err := a.Encode(buffA)
+	if err != nil {
 		return false, errors.Wrap(err, "EqualEncoding encode error")
 	}
-	if err := b.Encode(buffB); err != nil {
+
+	err = b.Encode(buffB)
+	if err != nil {
 		return false, errors.Wrap(err, "EqualEncoding encode error")
 	}
 

@@ -26,6 +26,12 @@ type AppID struct {
 	*wallet.Address
 }
 
+// NewRandomAppID generates a new random app identifier.
+func NewRandomAppID(rng *rand.Rand) AppID {
+	addr := wallet.NewRandomAddress(rng)
+	return AppID{Address: addr}
+}
+
 // Equal returns whether the object is equal to the given object.
 func (id AppID) Equal(b channel.AppID) bool {
 	bTyped, ok := b.(AppID)
@@ -43,10 +49,4 @@ func (id AppID) Key() channel.AppIDKey {
 		panic(err)
 	}
 	return channel.AppIDKey(b)
-}
-
-// NewRandomAppID generates a new random app identifier.
-func NewRandomAppID(rng *rand.Rand) AppID {
-	addr := wallet.NewRandomAddress(rng)
-	return AppID{Address: addr}
 }

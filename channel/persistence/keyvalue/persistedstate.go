@@ -65,7 +65,8 @@ func (id optChannelIDEnc) Encode(w io.Writer) error {
 
 func (id optChannelIDDec) Decode(r io.Reader) error {
 	var exists bool
-	if err := perunio.Decode(r, &exists); err != nil {
+	err := perunio.Decode(r, &exists)
+	if err != nil {
 		return err
 	}
 	if exists {

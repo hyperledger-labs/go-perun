@@ -20,6 +20,7 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	ctxtest "polycry.pt/poly-go/context/test"
 )
@@ -32,7 +33,7 @@ func TestReceiver_Close(t *testing.T) {
 	t.Parallel()
 
 	r := NewReceiver()
-	assert.NoError(t, r.Close())
+	require.NoError(t, r.Close())
 	assert.Error(t, r.Close())
 }
 
@@ -46,7 +47,7 @@ func TestReceiver_Next(t *testing.T) {
 			r := NewReceiver()
 			go r.Put(e)
 			re, err := r.Next(context.Background())
-			assert.NoError(t, err)
+			require.NoError(t, err)
 			assert.Same(t, e, re)
 		})
 	})
@@ -66,6 +67,7 @@ func TestReceiver_Next(t *testing.T) {
 		t.Parallel()
 		ctxtest.AssertTerminates(t, timeout*2, func() {
 			r := NewReceiver()
+
 			go func() {
 				time.Sleep(timeout)
 				r.Close()
@@ -92,6 +94,7 @@ func TestReceiver_Next(t *testing.T) {
 		t.Parallel()
 		ctxtest.AssertTerminates(t, timeout*2, func() {
 			r := NewReceiver()
+
 			ctx, cancel := context.WithTimeout(context.Background(), timeout)
 			defer cancel()
 			re, err := r.Next(ctx)

@@ -45,31 +45,33 @@ type Setup struct {
 // This function should be called by every implementation of the wallet interface.
 func TestAccountWithWalletAndBackend(t *testing.T, s *Setup) { //nolint:revive // `test.Test...` stutters, but we accept that here.
 	acc, err := s.Wallet.Unlock(s.AddressInWallet)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	// Check unlocked account
 	sig, err := acc.SignData(s.DataToSign)
-	assert.NoError(t, err, "Sign with unlocked account should succeed")
+	require.NoError(t, err, "Sign with unlocked account should succeed")
 	valid, err := s.Backend.VerifySignature(s.DataToSign, sig, s.AddressInWallet)
 	assert.True(t, valid, "Verification should succeed")
-	assert.NoError(t, err, "Verification should not produce error")
+	require.NoError(t, err, "Verification should not produce error")
 
 	addr := s.Backend.NewAddress()
 	err = addr.UnmarshalBinary(s.AddressMarshalled)
-	assert.NoError(t, err, "Binary unmarshalling of address should work")
+	require.NoError(t, err, "Binary unmarshalling of address should work")
 	valid, err = s.Backend.VerifySignature(s.DataToSign, sig, addr)
 	assert.False(t, valid, "Verification with wrong address should fail")
-	assert.NoError(t, err, "Verification of valid signature should not produce error")
+	require.NoError(t, err, "Verification of valid signature should not produce error")
 
 	tampered := make([]byte, len(sig))
 	copy(tampered, sig)
 	// Invalidate the signature and check for error
 	tampered[0] = ^sig[0]
+
 	valid, err = s.Backend.VerifySignature(s.DataToSign, tampered, s.AddressInWallet)
 	if valid && err == nil {
 		t.Error("Verification of invalid signature should produce error or return false")
 	}
 	// Truncate the signature and check for error
 	tampered = sig[:len(sig)-1]
+
 	valid, err = s.Backend.VerifySignature(s.DataToSign, tampered, s.AddressInWallet)
 	if valid && err != nil {
 		t.Error("Verification of invalid signature should produce error or return false")
@@ -77,6 +79,7 @@ func TestAccountWithWalletAndBackend(t *testing.T, s *Setup) { //nolint:revive /
 	// Expand the signature and check for error
 	//nolint:gocritic
 	tampered = append(sig, 0)
+
 	valid, err = s.Backend.VerifySignature(s.DataToSign, tampered, s.AddressInWallet)
 	if valid && err != nil {
 		t.Error("Verification of invalid signature should produce error or return false")
@@ -90,7 +93,7 @@ func TestAccountWithWalletAndBackend(t *testing.T, s *Setup) { //nolint:revive /
 	err = perunio.Encode(buff, sig)
 	require.NoError(t, err, "encode sig")
 	sign2, err := s.Backend.DecodeSig(buff)
-	assert.NoError(t, err, "Decoded signature should work")
+	require.NoError(t, err, "Decoded signature should work")
 	assert.Equal(t, sig, sign2, "Decoded signature should be equal to the original")
 
 	// Test DecodeSig on short stream
@@ -113,13 +116,15 @@ func GenericSignatureSizeTest(t *testing.T, s *Setup) {
 
 	// Test that signatures have constant length
 	l := len(sign)
-	for i := 0; i < 8; i++ {
+
+	for range 8 {
 		t.Run("parallel signing", func(t *testing.T) {
 			t.Parallel()
-			for i := 0; i < 256; i++ {
+
+			for range 256 {
 				sign, err := acc.SignData(s.DataToSign)
 				require.NoError(t, err, "Sign with unlocked account should succeed")
-				require.Equal(t, l, len(sign), "Signatures should have constant length: %d vs %d", l, len(sign))
+				require.Len(t, sign, l, "Signatures should have constant length: %d vs %d", l, len(sign))
 			}
 		})
 	}

@@ -34,12 +34,14 @@ func (serializer) Encode(w io.Writer, env *wire.Envelope) error {
 	if err := perunio.Encode(w, wire.AddressDecMap(env.Sender), wire.AddressDecMap(env.Recipient)); err != nil {
 		return err
 	}
+
 	return wire.EncodeMsg(env.Msg, w)
 }
 
 // Decode decodes an envelope from the wire using perunio encoding format.
 func (serializer) Decode(r io.Reader) (env *wire.Envelope, err error) {
 	env = &wire.Envelope{}
+
 	err = perunio.Decode(r, (*wire.AddressDecMap)(&env.Sender))
 	if err != nil {
 		return env, errors.WithMessage(err, "decoding sender addresses")

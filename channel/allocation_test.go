@@ -73,6 +73,7 @@ func randomBalancesWithMismatchingNumAssets(rng *rand.Rand, rngBase int) (b1, b2
 		return 1 + rng.Intn(rngBase)
 	}
 	numAssets1 := randomNumAssets()
+
 	numAssets2 := randomNumAssets()
 	for numAssets2 == numAssets1 {
 		numAssets2 = randomNumAssets()
@@ -91,6 +92,7 @@ func randomBalancesWithMismatchingNumParts(rng *rand.Rand, rngBase int) (b1, b2 
 		return 2 + rng.Intn(rngBase)
 	}
 	numParts1 := randomNumParts()
+
 	numParts2 := randomNumParts()
 	for numParts2 == numParts1 {
 		numParts2 = randomNumParts()
@@ -163,7 +165,7 @@ func TestBalancesGreaterOrEqual(t *testing.T) {
 
 func TestBalancesEqualSum(t *testing.T) {
 	rng := pkgtest.Prng(t)
-	for i := 0; i < 10; i++ {
+	for range 10 {
 		// Two random balances are different by chance.
 		a, b := test.NewRandomBalances(rng), test.NewRandomBalances(rng)
 		ok, err := pkgbig.EqualSum(a, b)
@@ -233,7 +235,7 @@ func testBalancesOperation(t *testing.T, op func(channel.Balances, channel.Balan
 
 func TestBalancesSerialization(t *testing.T) {
 	rng := pkgtest.Prng(t)
-	for n := 0; n < 10; n++ {
+	for range 10 {
 		alloc := test.NewRandomAllocation(rng)
 		if alloc.Valid() == nil {
 			peruniotest.GenericSerializerTest(t, alloc)
@@ -338,7 +340,8 @@ func TestAllocation_Clone(t *testing.T) {
 	for _, _tt := range tests {
 		tt := _tt
 		t.Run(tt.name, func(t *testing.T) {
-			if err := tt.alloc.Valid(); err != nil {
+			err := tt.alloc.Valid()
+			if err != nil {
 				t.Fatal(err.Error())
 			}
 			pkgtest.VerifyClone(t, tt.alloc)
@@ -554,7 +557,8 @@ func TestAllocation_Valid(t *testing.T) {
 	for _, _tt := range tests {
 		tt := _tt
 		t.Run(tt.name, func(t *testing.T) {
-			if got := tt.alloc.Valid(); (got == nil) != tt.valid {
+			got := tt.alloc.Valid()
+			if (got == nil) != tt.valid {
 				t.Errorf("Allocation.valid() = %v, want valid = %v", got, tt.valid)
 			}
 		})

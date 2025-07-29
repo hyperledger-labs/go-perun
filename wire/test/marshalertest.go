@@ -32,6 +32,7 @@ type binary interface {
 // and decoding of serializer values works.
 func GenericMarshalerTest(t *testing.T, serializers ...binary) {
 	t.Helper()
+
 	for i, v := range serializers {
 		data, err := v.MarshalBinary()
 		require.NoError(t, err, "failed to encode %dth element (%T)", i, v)

@@ -26,6 +26,7 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	_ "perun.network/go-perun/backend/sim" // backend init
 	"perun.network/go-perun/wire"
@@ -90,9 +91,10 @@ func (s *setup) Close() error {
 // client is a simulated client in the test setup.
 // All of the client's incoming messages can be read from its receiver.
 type client struct {
+	*wire.Receiver
+
 	endpoint *Endpoint
 	Registry *EndpointRegistry
-	*wire.Receiver
 }
 
 // makeClient creates a simulated test client.
@@ -120,7 +122,7 @@ func TestEndpoint_Close(t *testing.T) {
 	found := s.alice.Registry.find(bobAddr)
 	assert.Equal(t, s.alice.endpoint, found)
 	// Close Alice's connection to Bob.
-	assert.NoError(t, s.alice.endpoint.Close(), "closing a peer once must succeed")
+	require.NoError(t, s.alice.endpoint.Close(), "closing a peer once must succeed")
 	assert.Error(t, s.alice.endpoint.Close(), "closing peers twice must fail")
 
 	// Sending over closed peers (not connections) must fail.

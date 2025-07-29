@@ -30,6 +30,7 @@ type ProgressionExecConfig struct {
 // Watcher is a client that handles adjudicator events.
 type Watcher struct {
 	log.Logger
+
 	registered chan *channel.RegisteredEvent
 	progressed chan *channel.ProgressedEvent
 }
@@ -45,6 +46,7 @@ func makeWatcher(log log.Logger) Watcher {
 // HandleAdjudicatorEvent is the callback for adjudicator event handling.
 func (w *Watcher) HandleAdjudicatorEvent(e channel.AdjudicatorEvent) {
 	w.Infof("HandleAdjudicatorEvent %T: %v", e, e)
+
 	switch e := e.(type) {
 	case *channel.RegisteredEvent:
 		w.registered <- e
@@ -80,7 +82,7 @@ func (r *Paul) Execute(cfg ExecConfig) {
 	r.Proposer.Execute(cfg, r.exec)
 }
 
-func (r *Paul) exec(_cfg ExecConfig, ch *paymentChannel) {
+func (r *Paul) exec(_ ExecConfig, ch *paymentChannel) {
 	ctx := r.Ctx()
 	assetIdx := 0
 
@@ -98,7 +100,7 @@ func (r *Paul) exec(_cfg ExecConfig, ch *paymentChannel) {
 		bal := func(user channel.Index) int64 {
 			return s.Balances[assetIdx][user].Int64()
 		}
-		half := (bal(0) + bal(1)) / 2 //nolint:gomnd
+		half := (bal(0) + bal(1)) / 2 //nolint:mnd
 		s.Balances[assetIdx][0] = big.NewInt(half)
 		s.Balances[assetIdx][1] = big.NewInt(half)
 	}))
@@ -112,7 +114,7 @@ func (r *Paul) exec(_cfg ExecConfig, ch *paymentChannel) {
 	// Await progressed event 2.
 	r.log.Debugf("%v awaiting progressed event 2", r.setup.Name)
 	e = <-r.progressed
-	r.RequireTruef(e.Version() == 2, "expected version 2, got version %v", e.Version()) //nolint:gomnd
+	r.RequireTruef(e.Version() == 2, "expected version 2, got version %v", e.Version()) //nolint:mnd
 	r.waitStage()
 
 	// withdraw
@@ -166,7 +168,7 @@ func (r *Paula) exec(_cfg ExecConfig, ch *paymentChannel, _ *acceptNextPropHandl
 		bal := func(user channel.Index) int64 {
 			return s.Balances[assetIdx][user].Int64()
 		}
-		half := (bal(0) + bal(1)) / 2 //nolint:gomnd
+		half := (bal(0) + bal(1)) / 2 //nolint:mnd
 		s.Balances[assetIdx][0] = big.NewInt(half + paulPaulaBalTransferAmount)
 		s.Balances[assetIdx][1] = big.NewInt(half - paulPaulaBalTransferAmount)
 	}))
@@ -174,7 +176,7 @@ func (r *Paula) exec(_cfg ExecConfig, ch *paymentChannel, _ *acceptNextPropHandl
 	// Await progressed event 2.
 	r.log.Debugf("%v awaiting progressed event 2", r.setup.Name)
 	e = <-r.progressed
-	r.RequireTruef(e.Version() == 2, "expected version 2, got version %v", e.Version()) //nolint:gomnd
+	r.RequireTruef(e.Version() == 2, "expected version 2, got version %v", e.Version()) //nolint:mnd
 	r.waitStage()
 
 	// await ready to conclude

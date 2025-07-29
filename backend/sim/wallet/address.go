@@ -29,6 +29,16 @@ import (
 // Address represents a simulated address.
 type Address ecdsa.PublicKey
 
+// NewRandomAddress creates a new address using the randomness
+// provided by rng.
+func NewRandomAddress(rng io.Reader) *Address {
+	key, err := ecdsa.GenerateKey(curve, rng)
+	if err != nil {
+		log.Panicf("account creation failed: %v", err)
+	}
+	return (*Address)(&key.PublicKey)
+}
+
 // BackendID returns the backend id of the address.
 func (a Address) BackendID() wallet.BackendID {
 	return channel.TestBackendID
@@ -45,21 +55,6 @@ const (
 
 // compile time check that we implement the perun Address interface.
 var _ wallet.Address = (*Address)(nil)
-
-// NewRandomAddress creates a new address using the randomness
-// provided by rng.
-func NewRandomAddress(rng io.Reader) *Address {
-	privateKey, err := ecdsa.GenerateKey(curve, rng)
-	if err != nil {
-		log.Panicf("Creation of account failed with error", err)
-	}
-
-	return &Address{
-		Curve: privateKey.Curve,
-		X:     privateKey.X,
-		Y:     privateKey.Y,
-	}
-}
 
 // NewRandomAddresses creates a new address using the randomness
 // provided by rng.
@@ -80,19 +75,6 @@ func NewRandomAddresses(rng io.Reader) map[wallet.BackendID]wallet.Address {
 func (a *Address) Bytes() []byte {
 	data := a.byteArray()
 	return data[:]
-}
-
-// byteArray converts an address into a 64-byte array. The returned array
-// consists of two 32-byte chunks representing the public key's X and Y values.
-func (a *Address) byteArray() (data [addrLen]byte) {
-	xb := a.X.Bytes()
-	yb := a.Y.Bytes()
-
-	// Left-pad with 0 bytes.
-	copy(data[elemLen-len(xb):elemLen], xb)
-	copy(data[addrLen-len(yb):addrLen], yb)
-
-	return data
 }
 
 // String converts this address to a human-readable string.
@@ -149,4 +131,17 @@ func (a *Address) UnmarshalBinary(data []byte) error {
 	a.Curve = curve
 
 	return nil
+}
+
+// byteArray converts an address into a 64-byte array. The returned array
+// consists of two 32-byte chunks representing the public key's X and Y values.
+func (a *Address) byteArray() (data [addrLen]byte) {
+	xb := a.X.Bytes()
+	yb := a.Y.Bytes()
+
+	// Left-pad with 0 bytes.
+	copy(data[elemLen-len(xb):elemLen], xb)
+	copy(data[addrLen-len(yb):addrLen], yb)
+
+	return data
 }

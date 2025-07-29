@@ -16,19 +16,26 @@ package perunio
 
 import (
 	"encoding/binary"
+	"fmt"
 	"io"
+	"math"
 
 	"github.com/pkg/errors"
 )
 
 // encodeString writes the length as an uint16 and then the string itself to the io.Writer.
 func encodeString(w io.Writer, s string) error {
-	l := uint16(len(s))
-	if int(l) != len(s) {
+	l := len(s)
+	if l > int(math.MaxUint16) {
+		return fmt.Errorf("string too long: %d", l)
+	}
+	ul := uint16(l)
+	if int(ul) != len(s) {
 		return errors.Errorf("string length exceeded: %d", len(s))
 	}
 
-	if err := binary.Write(w, byteOrder, l); err != nil {
+	err := binary.Write(w, byteOrder, ul)
+	if err != nil {
 		return errors.Wrap(err, "failed to write string length")
 	}
 
@@ -38,19 +45,22 @@ func encodeString(w io.Writer, s string) error {
 		return nil
 	}
 
-	_, err := io.WriteString(w, s)
+	_, err = io.WriteString(w, s)
+
 	return errors.Wrap(err, "failed to write string")
 }
 
 // decodeString reads the length as uint16 and the string itself from the io.Reader.
 func decodeString(r io.Reader, s *string) error {
 	var l uint16
-	if err := binary.Read(r, byteOrder, &l); err != nil {
+	err := binary.Read(r, byteOrder, &l)
+	if err != nil {
 		return errors.Wrap(err, "failed to read string length")
 	}
 
 	buf := make([]byte, l)
-	if _, err := io.ReadFull(r, buf); err != nil {
+	_, err = io.ReadFull(r, buf)
+	if err != nil {
 		return errors.Wrap(err, "failed to read string")
 	}
 	*s = string(buf)

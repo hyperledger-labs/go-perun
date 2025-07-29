@@ -33,7 +33,8 @@ type Conn struct {
 
 // Send sends an envelope.
 func (c *Conn) Send(e *wire.Envelope) (err error) {
-	if err = c.conn.Send(e); err != nil {
+	err = c.conn.Send(e)
+	if err != nil {
 		c.Close()
 	}
 	return

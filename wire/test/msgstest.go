@@ -44,6 +44,7 @@ func AuthMsgsSerializationTest(t *testing.T, serializerTest func(t *testing.T, m
 	if err != nil {
 		t.Fatal(err)
 	}
+
 	serializerTest(t, testMsg)
 }
 
@@ -51,8 +52,11 @@ func AuthMsgsSerializationTest(t *testing.T, serializerTest func(t *testing.T, m
 // minLen+maxLenDiff.
 func newRandomASCIIString(rng *rand.Rand, minLen, maxLenDiff int) string {
 	str := make([]byte, minLen+rng.Intn(maxLenDiff))
+
 	const firstPrintableASCII = 32
+
 	const lastPrintableASCII = 126
+
 	for i := range str {
 		str[i] = byte(firstPrintableASCII + rng.Intn(lastPrintableASCII-firstPrintableASCII))
 	}

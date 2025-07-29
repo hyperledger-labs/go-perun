@@ -16,7 +16,6 @@ package keyvalue
 
 import (
 	"context"
-	"os"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -31,8 +30,7 @@ import (
 )
 
 func TestPersistRestorer_Generic(t *testing.T) {
-	tmpdir, err := os.MkdirTemp("", "perun-test-kvpersistrestorer-db-*")
-	require.NoError(t, err)
+	tmpdir := t.TempDir()
 	lvldb, err := leveldb.LoadDatabase(tmpdir)
 	require.NoError(t, err)
 
@@ -60,7 +58,8 @@ func TestPersistRestorer_Generic(t *testing.T) {
 func TestChannelIterator_Next_Empty(t *testing.T) {
 	var it ChannelIterator
 	var success bool
+
 	assert.NotPanics(t, func() { success = it.Next(context.Background()) })
 	assert.False(t, success)
-	assert.NoError(t, it.err)
+	require.NoError(t, it.err)
 }

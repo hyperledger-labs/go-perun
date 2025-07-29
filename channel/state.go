@@ -33,6 +33,10 @@ type (
 	// The state is the piece of data that is signed and sent to the adjudicator
 	// during disputes.
 	State struct {
+		// Allocation is the current allocation of channel assets to
+		// the channel participants and apps running inside this channel.
+		Allocation
+
 		// id is the immutable id of the channel this state belongs to
 		ID ID
 		// version counter
@@ -41,9 +45,7 @@ type (
 		// We do not want a deep copy here, since the Apps are just an immutable reference.
 		// They are only included in the State to support serialization of the `Data` field.
 		App App `cloneable:"shallow"`
-		// Allocation is the current allocation of channel assets to
-		// the channel participants and apps running inside this channel.
-		Allocation
+
 		// Data is the app-specific data.
 		Data Data
 		// IsFinal indicates that the channel is in its final state. Such a state
@@ -159,7 +161,7 @@ func (s *State) Equal(t *State) error {
 // ToSubAlloc creates a SubAlloc from the state that can be added to the
 // parent channel's locked funds.
 func (s *State) ToSubAlloc() *SubAlloc {
-	return NewSubAlloc(s.ID, s.Allocation.Sum(), nil)
+	return NewSubAlloc(s.ID, s.Sum(), nil)
 }
 
 // EqualWireMaps compares two wire.Address maps for equality.

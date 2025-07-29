@@ -60,14 +60,14 @@ func TestEndpointRegistry_Get_Pair(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 2*timeout)
 	defer cancel()
 	p, err := dialerReg.Endpoint(ctx, wire.AddressMapfromAccountMap(listenerID))
-	assert.NoError(err)
+	require.NoError(err)
 	require.NotNil(p)
 	assert.True(channel.EqualWireMaps(p.Address, wire.AddressMapfromAccountMap(listenerID)))
 
 	// should allow the listener routine to add the peer to its registry
 	time.Sleep(timeout)
 	p, err = listenerReg.Endpoint(ctx, wire.AddressMapfromAccountMap(dialerID))
-	assert.NoError(err)
+	require.NoError(err)
 	require.NotNil(p)
 	assert.True(channel.EqualWireMaps(p.Address, wire.AddressMapfromAccountMap(dialerID)))
 
@@ -107,7 +107,7 @@ func TestEndpointRegistry_Get_Multiple(t *testing.T) {
 
 	const N = 4
 	peers := make(chan *net.Endpoint, N)
-	for i := 0; i < N; i++ {
+	for range N {
 		go func() {
 			p, err := dialerReg.Endpoint(ctx, wire.AddressMapfromAccountMap(listenerID))
 			assert.NoError(err)
@@ -124,7 +124,7 @@ func TestEndpointRegistry_Get_Multiple(t *testing.T) {
 			require := require.New(t)
 			p := <-peers
 			require.NotNil(p)
-			for i := 0; i < N-1; i++ {
+			for range N - 1 {
 				p0 := <-peers
 				require.NotNil(p0)
 				assert.Same(p, p0)

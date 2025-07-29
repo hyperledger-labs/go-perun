@@ -75,6 +75,7 @@ func TestClient_Handle_NilArgs(t *testing.T) {
 
 	dummyUH := client.UpdateHandlerFunc(func(*channel.State, client.ChannelUpdate, *client.UpdateResponder) {})
 	assert.Panics(t, func() { c.Handle(nil, dummyUH) })
+
 	dummyPH := client.ProposalHandlerFunc(func(client.ChannelProposal, *client.ProposalResponder) {})
 	assert.Panics(t, func() { c.Handle(dummyPH, nil) })
 }
@@ -86,12 +87,13 @@ func TestClient_New(t *testing.T) {
 	require.NoError(t, err, "initializing the watcher should not error")
 	c, err := client.New(wiretest.NewRandomAddress(rng),
 		&DummyBus{t}, &ctest.MockFunder{}, &ctest.MockAdjudicator{}, map[wallet.BackendID]wallet.Wallet{channel.TestBackendID: wtest.RandomWallet(channel.TestBackendID)}, watcher)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	require.NotNil(t, c)
 }
 
 func TestChannelRejection(t *testing.T) {
 	rng := test.Prng(t)
+
 	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
 	defer cancel()
 

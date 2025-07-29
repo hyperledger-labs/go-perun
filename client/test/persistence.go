@@ -178,6 +178,7 @@ func (r *Robert) Execute(cfg ExecConfig) {
 	ctx, cancel := context.WithTimeout(context.Background(), r.timeout)
 	defer cancel()
 	r.RequireNoError(r.Restore(ctx)) // should restore channels
+
 	select {
 	case ch = <-newCh: // expected
 		r.RequireTrue(ch != nil)
@@ -193,6 +194,11 @@ func (r *Robert) Execute(cfg ExecConfig) {
 	ch.settle()
 
 	r.RequireNoError(r.Close())
+}
+
+// Errors returns the error channel.
+func (r *multiClientRole) Errors() <-chan error {
+	return r.errs
 }
 
 func (r *multiClientRole) assertPersistedPeerAndChannel(cfg ExecConfig, state *channel.State) {
@@ -212,12 +218,7 @@ func (r *multiClientRole) assertPersistedPeerAndChannel(cfg ExecConfig, state *c
 	restoredCh := chIt.Channel()
 	r.RequireNoError(chIt.Close())
 	r.RequireTrue(restoredCh.ID() == state.ID)
-	r.RequireNoError(restoredCh.CurrentTXV.State.Equal(state))
-}
-
-// Errors returns the error channel.
-func (r *multiClientRole) Errors() <-chan error {
-	return r.errs
+	r.RequireNoError(restoredCh.CurrentTXV.Equal(state))
 }
 
 type addresses []map[wallet.BackendID]wire.Address

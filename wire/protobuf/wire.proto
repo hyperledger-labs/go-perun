@@ -103,6 +103,7 @@ message BaseChannelProposal {
   bytes init_data = 5;
   Allocation init_bals = 6;
   Balances funding_agreement = 7;
+  bytes aux = 8;
 }
 
 // BaseChannelProposalAcc represents client.BaseChannelProposalAcc.
@@ -120,6 +121,7 @@ message Params {
   bytes nonce = 5;
   bool ledger_channel = 6;
   bool virtual_channel = 7;
+  bytes aux = 8;
 }
 
 // State represents channel.State.

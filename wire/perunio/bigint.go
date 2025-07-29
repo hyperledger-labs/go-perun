@@ -34,7 +34,8 @@ type BigInt struct {
 func (b *BigInt) Decode(reader io.Reader) error {
 	// Read length
 	lengthData := make([]byte, 1)
-	if _, err := reader.Read(lengthData); err != nil {
+	_, err := reader.Read(lengthData)
+	if err != nil {
 		return errors.Wrap(err, "failed to decode length of big.Int")
 	}
 
@@ -44,14 +45,17 @@ func (b *BigInt) Decode(reader io.Reader) error {
 	}
 
 	bytes := make([]byte, length)
-	if n, err := io.ReadFull(reader, bytes); err != nil {
+	n, err := io.ReadFull(reader, bytes)
+	if err != nil {
 		return errors.Wrapf(err, "failed to read bytes for big.Int, read %d/%d", n, length)
 	}
 
 	if b.Int == nil {
 		b.Int = new(big.Int)
 	}
-	b.Int.SetBytes(bytes)
+
+	b.SetBytes(bytes)
+
 	return nil
 }
 
@@ -60,7 +64,8 @@ func (b BigInt) Encode(writer io.Writer) error {
 	if b.Int == nil {
 		panic("logic error: tried to encode nil big.Int")
 	}
-	if b.Int.Sign() == -1 {
+
+	if b.Sign() == -1 {
 		panic("encoding of negative big.Int not implemented")
 	}
 
@@ -72,7 +77,8 @@ func (b BigInt) Encode(writer io.Writer) error {
 	}
 
 	// Write length
-	if _, err := writer.Write([]byte{uint8(length)}); err != nil {
+	_, err := writer.Write([]byte{uint8(length)})
+	if err != nil {
 		return errors.Wrap(err, "failed to write length")
 	}
 
@@ -82,5 +88,6 @@ func (b BigInt) Encode(writer io.Writer) error {
 
 	// Write bytes
 	n, err := writer.Write(bytes)
+
 	return errors.Wrapf(err, "failed to write big.Int, wrote %d bytes of %d", n, length)
 }

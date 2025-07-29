@@ -41,8 +41,10 @@ func (b *ByteSlice) Decode(r io.Reader) error {
 	n, err := r.Read(*b)
 	for n < len(*b) && err == nil {
 		var nn int
+
 		nn, err = r.Read((*b)[n:])
 		n += nn
 	}
+
 	return errors.Wrap(err, "failed to read []byte")
 }

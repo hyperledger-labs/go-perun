@@ -49,7 +49,7 @@ func NewSetups(rng *rand.Rand, names []string, bID wallet.BackendID) []ctest.Rol
 		backend = ctest.NewMockBackend(rng, "1337")
 	)
 
-	for i := 0; i < n; i++ {
+	for i := range n {
 		watcher, err := local.NewWatcher(backend)
 		if err != nil {
 			panic("Error initializing watcher: " + err.Error())
@@ -77,7 +77,7 @@ func NewSetups(rng *rand.Rand, names []string, bID wallet.BackendID) []ctest.Rol
 func runAliceBobTest(ctx context.Context, t *testing.T, setup func(*rand.Rand) ([]ctest.RoleSetup, [2]ctest.Executer)) {
 	t.Helper()
 	rng := test.Prng(t)
-	for i := 0; i < 2; i++ {
+	for i := range 2 {
 		setups, roles := setup(rng)
 		app := client.WithoutApp()
 		if i == 1 {

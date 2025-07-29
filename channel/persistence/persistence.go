@@ -127,6 +127,7 @@ type (
 	// sub-channel, also holds the parent channel's ID.
 	Channel struct {
 		chSource
+
 		PeersV []map[wallet.BackendID]wire.Address
 		Parent *channel.ID
 	}

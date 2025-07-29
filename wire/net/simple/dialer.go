@@ -32,12 +32,12 @@ import (
 // Dialer is a simple lookup-table based dialer that can dial known peers.
 // New peer addresses can be added via Register().
 type Dialer struct {
+	pkgsync.Closer
+
 	mutex   sync.RWMutex            // Protects peers.
 	peers   map[wire.AddrKey]string // Known peer addresses.
 	dialer  tls.Dialer              // Used to dial connections.
 	network string                  // The socket type.
-
-	pkgsync.Closer
 }
 
 var _ wirenet.Dialer = (*Dialer)(nil)
@@ -68,14 +68,6 @@ func NewTCPDialer(defaultTimeout time.Duration, tlsConfig *tls.Config) *Dialer {
 // NewUnixDialer is a short-hand version of NewNetDialer for creating Unix dialers.
 func NewUnixDialer(defaultTimeout time.Duration, tlsConfig *tls.Config) *Dialer {
 	return NewNetDialer("unix", defaultTimeout, tlsConfig)
-}
-
-func (d *Dialer) host(key wire.AddrKey) (string, bool) {
-	d.mutex.RLock()
-	defer d.mutex.RUnlock()
-
-	host, ok := d.peers[key]
-	return host, ok
 }
 
 // Dial implements Dialer.Dial().
@@ -114,4 +106,12 @@ func (d *Dialer) Register(addr map[wallet.BackendID]wire.Address, address string
 	defer d.mutex.Unlock()
 
 	d.peers[wire.Keys(addr)] = address
+}
+
+func (d *Dialer) host(key wire.AddrKey) (string, bool) {
+	d.mutex.RLock()
+	defer d.mutex.RUnlock()
+
+	host, ok := d.peers[key]
+	return host, ok
 }

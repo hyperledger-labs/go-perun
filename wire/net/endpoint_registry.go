@@ -67,6 +67,9 @@ func newDialingEndpoint(addr map[wallet.BackendID]wire.Address) *dialingEndpoint
 // connections. It should not be used manually, but only internally by a
 // wire.Bus.
 type EndpointRegistry struct {
+	log.Embedding
+	perunsync.Closer
+
 	id            map[wallet.BackendID]wire.Account                     // The identity of the node.
 	dialer        Dialer                                                // Used for dialing peers.
 	onNewEndpoint func(map[wallet.BackendID]wire.Address) wire.Consumer // Selects Consumer for new Endpoints' receive loop.
@@ -75,9 +78,6 @@ type EndpointRegistry struct {
 	endpoints map[wire.AddrKey]*fullEndpoint // The list of all of all established Endpoints.
 	dialing   map[wire.AddrKey]*dialingEndpoint
 	mutex     sync.RWMutex // protects peers and dialing.
-
-	log.Embedding
-	perunsync.Closer
 }
 
 const exchangeAddrsTimeout = 10 * time.Second
@@ -165,29 +165,6 @@ func (r *EndpointRegistry) Listen(listener Listener) {
 	}
 }
 
-// setupConn authenticates a fresh connection, and if successful, adds it to the
-// registry.
-func (r *EndpointRegistry) setupConn(conn Conn) error {
-	ctx, cancel := context.WithTimeout(r.Ctx(), exchangeAddrsTimeout)
-	defer cancel()
-
-	var peerAddr map[wallet.BackendID]wire.Address
-	var err error
-	if peerAddr, err = ExchangeAddrsPassive(ctx, r.id, conn); err != nil {
-		conn.Close()
-		r.Log().WithField("peer", peerAddr).Error("could not authenticate peer:", err)
-		return err
-	}
-
-	if channel.EqualWireMaps(peerAddr, wire.AddressMapfromAccountMap(r.id)) {
-		r.Log().Error("dialed by self")
-		return errors.New("dialed by self")
-	}
-
-	r.addEndpoint(peerAddr, conn, false)
-	return nil
-}
-
 // Endpoint looks up an Endpoint via its perun address. If the Endpoint does not
 // exist yet, it is dialed. Does not return until the peer is dialed or the
 // context is closed.
@@ -217,6 +194,26 @@ func (r *EndpointRegistry) Endpoint(ctx context.Context, addr map[wallet.Backend
 
 	e, err := r.authenticatedDial(ctx, addr, de, created)
 	return e, errors.WithMessage(err, "failed to dial peer")
+}
+
+// NumPeers returns the current number of peers in the registry including
+// placeholder peers (cf. Registry.Get).
+func (r *EndpointRegistry) NumPeers() int {
+	r.mutex.RLock()
+	defer r.mutex.RUnlock()
+	return len(r.endpoints)
+}
+
+// Has return true if and only if there is a peer with the given address in the
+// registry. The function does not differentiate between regular and
+// placeholder peers.
+func (r *EndpointRegistry) Has(addr map[wallet.BackendID]wire.Address) bool {
+	r.mutex.Lock()
+	defer r.mutex.Unlock()
+
+	_, ok := r.endpoints[wire.Keys(addr)]
+
+	return ok
 }
 
 func (r *EndpointRegistry) authenticatedDial(
@@ -276,26 +273,6 @@ func (r *EndpointRegistry) dialingEndpoint(a map[wallet.BackendID]wire.Address) 
 	return entry, !ok
 }
 
-// NumPeers returns the current number of peers in the registry including
-// placeholder peers (cf. Registry.Get).
-func (r *EndpointRegistry) NumPeers() int {
-	r.mutex.RLock()
-	defer r.mutex.RUnlock()
-	return len(r.endpoints)
-}
-
-// Has return true if and only if there is a peer with the given address in the
-// registry. The function does not differentiate between regular and
-// placeholder peers.
-func (r *EndpointRegistry) Has(addr map[wallet.BackendID]wire.Address) bool {
-	r.mutex.Lock()
-	defer r.mutex.Unlock()
-
-	_, ok := r.endpoints[wire.Keys(addr)]
-
-	return ok
-}
-
 // addEndpoint adds a new peer to the registry.
 func (r *EndpointRegistry) addEndpoint(addr map[wallet.BackendID]wire.Address, conn Conn, dialer bool) *Endpoint {
 	r.Log().WithField("peer", addr).Trace("EndpointRegistry.addEndpoint")
@@ -323,6 +300,7 @@ func (r *EndpointRegistry) addEndpoint(addr map[wallet.BackendID]wire.Address, c
 // fullEndpoint retrieves or creates a fullEndpoint for the passed address.
 func (r *EndpointRegistry) fullEndpoint(addr map[wallet.BackendID]wire.Address, e *Endpoint) (_ *fullEndpoint, created bool) {
 	key := wire.Keys(addr)
+
 	r.mutex.Lock()
 	defer r.mutex.Unlock()
 	entry, ok := r.endpoints[key]
@@ -389,8 +367,33 @@ func (p *fullEndpoint) delete(expectedOldValue *Endpoint) {
 func (r *EndpointRegistry) find(addr map[wallet.BackendID]wire.Address) *Endpoint {
 	r.mutex.RLock()
 	defer r.mutex.RUnlock()
+
 	if e, ok := r.endpoints[wire.Keys(addr)]; ok {
 		return e.Endpoint()
 	}
+	return nil
+}
+
+// setupConn authenticates a fresh connection, and if successful, adds it to the
+// registry.
+func (r *EndpointRegistry) setupConn(conn Conn) error {
+	ctx, cancel := context.WithTimeout(r.Ctx(), exchangeAddrsTimeout)
+	defer cancel()
+
+	var peerAddr map[wallet.BackendID]wire.Address
+
+	var err error
+	if peerAddr, err = ExchangeAddrsPassive(ctx, r.id, conn); err != nil {
+		conn.Close()
+		r.Log().WithField("peer", peerAddr).Error("could not authenticate peer:", err)
+		return err
+	}
+
+	if channel.EqualWireMaps(peerAddr, wire.AddressMapfromAccountMap(r.id)) {
+		r.Log().Error("dialed by self")
+		return errors.New("dialed by self")
+	}
+
+	r.addEndpoint(peerAddr, conn, false)
 	return nil
 }

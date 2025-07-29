@@ -16,6 +16,7 @@ package client
 
 import (
 	"context"
+	"math"
 
 	"github.com/pkg/errors"
 	"golang.org/x/sync/errgroup"
@@ -39,6 +40,57 @@ type channelConn struct {
 	idx   channel.Index // our index
 
 	log log.Logger
+}
+
+// Send broadcasts the message to all channel participants.
+func (c *channelConn) Send(ctx context.Context, msg wire.Msg) error {
+	var eg errgroup.Group
+	for i, peer := range c.peers {
+		if i < 0 || i > math.MaxUint16 {
+			return errors.Errorf("channel connection peer index out of bounds: %d", i)
+		}
+		if channel.Index(i) == c.idx {
+			continue // skip own peer
+		}
+		c.log.WithField("peer", peer).Debugf("channelConn: publishing message: %v: %+v", msg.Type(), msg)
+		env := &wire.Envelope{
+			Sender:    c.sender(),
+			Recipient: peer,
+			Msg:       msg,
+		}
+		eg.Go(func() error { return c.pub.Publish(ctx, env) })
+	}
+	return errors.WithMessage(eg.Wait(), "publishing message")
+}
+
+// Peers returns the ordered list of peer addresses. Note that the own peer is
+// included in the list.
+func (c *channelConn) Peers() []map[wallet.BackendID]wire.Address {
+	return c.peers
+}
+
+// newUpdateResRecv creates a new update response receiver for the given version.
+// The receiver should be closed after all expected responses are received.
+// The receiver is also closed when the channel connection is closed.
+func (c *channelConn) NewUpdateResRecv(version uint64) (*channelMsgRecv, error) {
+	recv := wire.NewReceiver()
+	if err := c.r.Subscribe(recv, func(e *wire.Envelope) bool {
+		resMsg, ok := e.Msg.(channelUpdateResMsg)
+		return ok && resMsg.Ver() == version
+	}); err != nil {
+		return nil, errors.WithMessagef(err, "subscribing update response receiver")
+	}
+
+	return &channelMsgRecv{
+		Receiver: recv,
+		peers:    c.peers,
+		log:      c.log.WithField("version", version),
+	}, nil
+}
+
+// Close closes the broadcaster and update request receiver.
+func (c *channelConn) Close() error {
+	return c.r.Close()
 }
 
 // newChannelConn creates a new channel connection for the given channel ID. It
@@ -85,62 +137,14 @@ func newChannelConn(id channel.ID, peers []map[wallet.BackendID]wire.Address, id
 	}, nil
 }
 
-func (c *channelConn) sender() map[wallet.BackendID]wire.Address {
-	return c.peers[c.idx]
-}
-
 // SetLog sets the logger of the channel connection. It is assumed to be
 // called once before usage of the connection, so it isn't thread-safe.
 func (c *channelConn) SetLog(l log.Logger) {
 	c.log = l
 }
 
-// Close closes the broadcaster and update request receiver.
-func (c *channelConn) Close() error {
-	return c.r.Close()
-}
-
-// Send broadcasts the message to all channel participants.
-func (c *channelConn) Send(ctx context.Context, msg wire.Msg) error {
-	var eg errgroup.Group
-	for i, peer := range c.peers {
-		if channel.Index(i) == c.idx {
-			continue // skip own peer
-		}
-		c.log.WithField("peer", peer).Debugf("channelConn: publishing message: %v: %+v", msg.Type(), msg)
-		env := &wire.Envelope{
-			Sender:    c.sender(),
-			Recipient: peer,
-			Msg:       msg,
-		}
-		eg.Go(func() error { return c.pub.Publish(ctx, env) })
-	}
-	return errors.WithMessage(eg.Wait(), "publishing message")
-}
-
-// Peers returns the ordered list of peer addresses. Note that the own peer is
-// included in the list.
-func (c *channelConn) Peers() []map[wallet.BackendID]wire.Address {
-	return c.peers
-}
-
-// newUpdateResRecv creates a new update response receiver for the given version.
-// The receiver should be closed after all expected responses are received.
-// The receiver is also closed when the channel connection is closed.
-func (c *channelConn) NewUpdateResRecv(version uint64) (*channelMsgRecv, error) {
-	recv := wire.NewReceiver()
-	if err := c.r.Subscribe(recv, func(e *wire.Envelope) bool {
-		resMsg, ok := e.Msg.(channelUpdateResMsg)
-		return ok && resMsg.Ver() == version
-	}); err != nil {
-		return nil, errors.WithMessagef(err, "subscribing update response receiver")
-	}
-
-	return &channelMsgRecv{
-		Receiver: recv,
-		peers:    c.peers,
-		log:      c.log.WithField("version", version),
-	}, nil
+func (c *channelConn) sender() map[wallet.BackendID]wire.Address {
+	return c.peers[c.idx]
 }
 
 type (
@@ -148,6 +152,7 @@ type (
 	// with Next(), which returns the peer's channel index and the message.
 	channelMsgRecv struct {
 		*wire.Receiver
+
 		peers []map[wallet.BackendID]wire.Address
 		log   log.Logger
 	}
@@ -168,5 +173,10 @@ func (r *channelMsgRecv) Next(ctx context.Context) (channel.Index, ChannelMsg, e
 	if !ok {
 		return 0, nil, errors.Errorf("unexpected message type: expected ChannelMsg, got %T", env.Msg)
 	}
-	return channel.Index(idx), msg, nil
+	index, err := channel.FromInt(idx)
+	if err != nil {
+		return 0, nil, errors.WithMessagef(err, "converting index %d to channel.Index", idx)
+	}
+
+	return index, msg, nil
 }

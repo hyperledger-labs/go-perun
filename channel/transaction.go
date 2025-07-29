@@ -27,6 +27,7 @@ import (
 // channel participants.
 type Transaction struct {
 	*State
+
 	Sigs []wallet.Sig
 }
 
@@ -61,6 +62,7 @@ func (t *Transaction) Decode(r io.Reader) error {
 	if err := perunio.Decode(r, &stateSet); err != nil {
 		return errors.WithMessage(err, "decoding stateSet bit")
 	}
+
 	switch stateSet {
 	case 0:
 		t.State = nil
@@ -76,7 +78,7 @@ func (t *Transaction) Decode(r io.Reader) error {
 		return errors.WithMessage(err, "decoding state")
 	}
 
-	t.Sigs = make([]wallet.Sig, t.State.NumParts())
+	t.Sigs = make([]wallet.Sig, t.NumParts())
 
 	return wallet.DecodeSparseSigs(r, &t.Sigs)
 }

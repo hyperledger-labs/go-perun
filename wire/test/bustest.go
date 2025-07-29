@@ -21,6 +21,7 @@ import (
 
 	"perun.network/go-perun/wallet"
 
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"perun.network/go-perun/wire"
@@ -48,9 +49,10 @@ func GenericBusTest(t *testing.T,
 ) {
 	t.Helper()
 	require.Greater(t, numClients, 1)
-	require.Greater(t, numMsgs, 0)
+	require.Positive(t, numMsgs)
 
 	rng := test.Prng(t)
+
 	type Client struct {
 		r        *wire.Relay
 		pub, sub wire.Bus
@@ -69,36 +71,40 @@ func GenericBusTest(t *testing.T,
 	testNoReceive := func(t *testing.T) {
 		t.Helper()
 		ct := test.NewConcurrent(t)
+
 		ctx, cancel := context.WithTimeout(context.Background(), testNoReceiveTimeout)
 		defer cancel()
+
 		for i := range clients {
-			i := i
 			go ct.StageN("receive timeout", numClients, func(t test.ConcT) {
 				r := wire.NewReceiver()
 				defer r.Close()
 				err := clients[i].r.Subscribe(r, func(e *wire.Envelope) bool { return true })
-				require.NoError(t, err)
+				assert.NoError(t, err)
 				_, err = r.Next(ctx)
-				require.Error(t, err)
+				assert.Error(t, err)
 			})
 		}
+
 		ct.Wait("receive timeout")
 	}
 
 	testPublishAndReceive := func(t *testing.T, waiting func()) {
 		t.Helper()
 		ct := test.NewConcurrent(t)
+
 		ctx, cancel := context.WithTimeout(
 			context.Background(),
-			time.Duration((numClients)*(numClients-1)*numMsgs)*10*time.Millisecond)
+			time.Duration((numClients)*(numClients-1)*numMsgs)*100*time.Millisecond)
 		defer cancel()
+
 		waiting()
+
 		for sender := range clients {
 			for recipient := range clients {
 				if sender == recipient {
 					continue
 				}
-				sender, recipient := sender, recipient
 				origEnv := &wire.Envelope{
 					Sender:    wire.AddressMapfromAccountMap(clients[sender].id),
 					Recipient: wire.AddressMapfromAccountMap(clients[recipient].id),
@@ -113,20 +119,22 @@ func GenericBusTest(t *testing.T,
 
 				go ct.StageN("receive", numClients*(numClients-1), func(t test.ConcT) {
 					defer recv.Close()
-					for i := 0; i < numMsgs; i++ {
+
+					for range numMsgs {
 						e, err := recv.Next(ctx)
-						require.NoError(t, err)
-						require.Equal(t, e, origEnv)
+						assert.NoError(t, err)
+						assert.Equal(t, e, origEnv)
 					}
 				})
 				go ct.StageN("publish", numClients*(numClients-1), func(t test.ConcT) {
-					for i := 0; i < numMsgs; i++ {
+					for range numMsgs {
 						err := clients[sender].pub.Publish(ctx, origEnv)
-						require.NoError(t, err)
+						assert.NoError(t, err)
 					}
 				})
 			}
 		}
+
 		ct.Wait("publish", "receive")
 
 		// There must be no additional messages received.
@@ -159,6 +167,7 @@ func equalMaps(a, b map[wallet.BackendID]wire.Address) bool {
 	if len(a) != len(b) {
 		return false
 	}
+
 	for k, v := range a {
 		if !v.Equal(b[k]) {
 			return false
