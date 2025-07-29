@@ -45,9 +45,9 @@ func TestProgression(t *testing.T) {
 	execConfig := &clienttest.ProgressionExecConfig{
 		BaseExecConfig: clienttest.MakeBaseExecConfig(
 			[2]map[wallet.BackendID]wire.Address{wire.AddressMapfromAccountMap(setups[0].Identity), wire.AddressMapfromAccountMap(setups[1].Identity)},
-			chtest.NewRandomAsset(rng, channel.TestBackendID),
-			channel.TestBackendID,
-			[2]*big.Int{big.NewInt(99), big.NewInt(1)},
+			[]channel.Asset{chtest.NewRandomAsset(rng, channel.TestBackendID)},
+			[]wallet.BackendID{channel.TestBackendID},
+			[][2]*big.Int{{big.NewInt(99), big.NewInt(1)}},
 			client.WithApp(app, channel.NewMockOp(channel.OpValid)),
 		),
 	}
