@@ -61,9 +61,9 @@ func TestPaymentDispute(t *testing.T) {
 	cfg := &ctest.MalloryCarolExecConfig{
 		BaseExecConfig: ctest.MakeBaseExecConfig(
 			[2]map[wallet.BackendID]wire.Address{wire.AddressMapfromAccountMap(setups[mallory].Identity), wire.AddressMapfromAccountMap(setups[carol].Identity)},
-			chtest.NewRandomAsset(rng, channel.TestBackendID),
-			channel.TestBackendID,
-			[2]*big.Int{big.NewInt(100), big.NewInt(1)},
+			[]channel.Asset{chtest.NewRandomAsset(rng, channel.TestBackendID)},
+			[]wallet.BackendID{channel.TestBackendID},
+			[][2]*big.Int{{big.NewInt(100), big.NewInt(1)}},
 			client.WithoutApp(),
 		),
 		NumPayments: [2]int{5, 0},

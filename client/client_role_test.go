@@ -89,9 +89,9 @@ func runAliceBobTest(ctx context.Context, t *testing.T, setup func(*rand.Rand) (
 		cfg := &ctest.AliceBobExecConfig{
 			BaseExecConfig: ctest.MakeBaseExecConfig(
 				[2]map[wallet.BackendID]wire.Address{wire.AddressMapfromAccountMap(setups[0].Identity), wire.AddressMapfromAccountMap(setups[1].Identity)},
-				chtest.NewRandomAsset(rng, channel.TestBackendID),
-				channel.TestBackendID,
-				[2]*big.Int{big.NewInt(100), big.NewInt(100)},
+				[]channel.Asset{chtest.NewRandomAsset(rng, channel.TestBackendID)},
+				[]wallet.BackendID{channel.TestBackendID},
+				[][2]*big.Int{{big.NewInt(100), big.NewInt(100)}},
 				app,
 			),
 			NumPayments: [2]int{2, 2},
