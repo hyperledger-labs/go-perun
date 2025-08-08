@@ -27,6 +27,7 @@ import (
 // MalloryCarolExecConfig contains config parameters for Mallory and Carol test.
 type MalloryCarolExecConfig struct {
 	BaseExecConfig
+
 	NumPayments [2]int      // how many payments each role sends
 	TxAmounts   [2]*big.Int // amounts that are to be sent/requested by each role
 }

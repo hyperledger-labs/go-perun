@@ -149,6 +149,7 @@ func (a *MultiLedgerAsset) UnmarshalBinary(data []byte) error {
 // MultiLedgerClient represents a test client.
 type MultiLedgerClient struct {
 	*client.Client
+
 	WireAddress                    map[wallet.BackendID]wire.Address
 	WalletAddress                  map[wallet.BackendID]wallet.Address
 	Events                         chan channel.AdjudicatorEvent

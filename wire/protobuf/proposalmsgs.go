@@ -34,10 +34,12 @@ func ToLedgerChannelProposalMsg(protoEnvMsg *Envelope_LedgerChannelProposalMsg) 
 	protoMsg := protoEnvMsg.LedgerChannelProposalMsg
 
 	msg = &client.LedgerChannelProposalMsg{}
+
 	msg.BaseChannelProposal, err = ToBaseChannelProposal(protoMsg.GetBaseChannelProposal())
 	if err != nil {
 		return nil, err
 	}
+
 	msg.Participant, err = ToWalletAddr(protoMsg.GetParticipant())
 	if err != nil {
 		return nil, errors.WithMessage(err, "participant address")
@@ -130,6 +132,7 @@ func ToChannelProposalRejMsg(protoEnvMsg *Envelope_ChannelProposalRejMsg) (msg *
 // ToWalletAddr converts a protobuf wallet address to a wallet.Address.
 func ToWalletAddr(protoAddr *Address) (map[wallet.BackendID]wallet.Address, error) {
 	addrMap := make(map[wallet.BackendID]wallet.Address)
+
 	for i := range protoAddr.GetAddressMapping() {
 		var k int32
 		if err := binary.Read(bytes.NewReader(protoAddr.GetAddressMapping()[i].GetKey()), binary.BigEndian, &k); err != nil {
@@ -148,6 +151,7 @@ func ToWalletAddr(protoAddr *Address) (map[wallet.BackendID]wallet.Address, erro
 // ToWireAddr converts a protobuf wallet address to a wallet.Address.
 func ToWireAddr(protoAddr *Address) (map[wallet.BackendID]wire.Address, error) {
 	addrMap := make(map[wallet.BackendID]wire.Address)
+
 	for i := range protoAddr.GetAddressMapping() {
 		var k int32
 		if err := binary.Read(bytes.NewReader(protoAddr.GetAddressMapping()[i].GetKey()), binary.BigEndian, &k); err != nil {
@@ -179,6 +183,7 @@ func ToWalletAddrs(protoAddrs []*Address) ([]map[wallet.BackendID]wallet.Address
 // ToWireAddrs converts protobuf wire addresses to a slice of wire.Address.
 func ToWireAddrs(protoAddrs []*Address) ([]map[wallet.BackendID]wire.Address, error) {
 	addrMap := make([]map[wallet.BackendID]wire.Address, len(protoAddrs))
+
 	var err error
 	for i, addMap := range protoAddrs {
 		addrMap[i], err = ToWireAddr(addMap)
@@ -218,6 +223,7 @@ func ToApp(protoApp []byte) (app channel.App, err error) {
 		return app, nil
 	}
 	appDef, _ := channel.NewAppID()
+
 	err = appDef.UnmarshalBinary(protoApp)
 	if err != nil {
 		return app, err
@@ -270,6 +276,7 @@ func ToIntSlice(backends [][]byte) ([]wallet.BackendID, error) {
 // ToAllocation converts a protobuf allocation to a channel.Allocation.
 func ToAllocation(protoAlloc *Allocation) (alloc *channel.Allocation, err error) {
 	alloc = &channel.Allocation{}
+
 	alloc.Backends, err = ToIntSlice(protoAlloc.GetBackends())
 	if err != nil {
 		return nil, errors.WithMessage(err, "backends")
@@ -314,10 +321,12 @@ func ToBalance(protoBalance *Balance) (balance []channel.Bal) {
 // ToSubAlloc converts a protobuf SubAlloc to a channel.SubAlloc.
 func ToSubAlloc(protoSubAlloc *SubAlloc) (subAlloc channel.SubAlloc, err error) {
 	subAlloc = channel.SubAlloc{}
+
 	subAlloc.Bals = ToBalance(protoSubAlloc.GetBals())
 	if len(protoSubAlloc.GetId()) != len(subAlloc.ID) {
 		return subAlloc, errors.New("sub alloc id has incorrect length")
 	}
+
 	copy(subAlloc.ID[:], protoSubAlloc.GetId())
 	subAlloc.IndexMap, err = ToIndexMap(protoSubAlloc.GetIndexMap().GetIndexMap())
 	return subAlloc, err
@@ -343,6 +352,7 @@ func ToIndexMap(protoIndexMap []uint32) (indexMap []channel.Index, err error) {
 // Envelope_LedgerChannelProposalMsg.
 func FromLedgerChannelProposalMsg(msg *client.LedgerChannelProposalMsg) (_ *Envelope_LedgerChannelProposalMsg, err error) {
 	protoMsg := &LedgerChannelProposalMsg{}
+
 	protoMsg.BaseChannelProposal, err = FromBaseChannelProposal(msg.BaseChannelProposal)
 	if err != nil {
 		return nil, err
@@ -385,6 +395,7 @@ func FromVirtualChannelProposalMsg(msg *client.VirtualChannelProposalMsg) (_ *En
 	for i := range msg.IndexMaps {
 		protoMsg.IndexMaps[i] = &IndexMap{IndexMap: FromIndexMap(msg.IndexMaps[i])}
 	}
+
 	protoMsg.Peers, err = FromWireAddrs(msg.Peers)
 	return &Envelope_VirtualChannelProposalMsg{protoMsg}, errors.WithMessage(err, "peers")
 }
@@ -462,6 +473,7 @@ func FromWireAddr(addr map[wallet.BackendID]wire.Address) (*Address, error) {
 		if keyInt < 0 || keyInt > math.MaxUint32 {
 			panic("Key exceeds uint32 range")
 		}
+
 		binary.BigEndian.PutUint32(keyBytes, uint32(keyInt))
 
 		addressBytes, err := address.MarshalBinary()
@@ -555,6 +567,7 @@ func FromAppAndData(app channel.App, data channel.Data) (protoApp, protoData []b
 	if channel.IsNoApp(app) {
 		return []byte{}, []byte{}, nil
 	}
+
 	protoApp, err = app.Def().MarshalBinary()
 	if err != nil {
 		return []byte{}, []byte{}, err
@@ -566,6 +579,7 @@ func FromAppAndData(app channel.App, data channel.Data) (protoApp, protoData []b
 // FromAllocation converts a channel.Allocation to a protobuf Allocation.
 func FromAllocation(alloc channel.Allocation) (protoAlloc *Allocation, err error) {
 	protoAlloc = &Allocation{}
+
 	protoAlloc.Backends = make([][]byte, len(alloc.Backends))
 	for i := range alloc.Backends {
 		protoAlloc.Backends[i] = make([]byte, 4) //nolint:mnd
@@ -573,6 +587,7 @@ func FromAllocation(alloc channel.Allocation) (protoAlloc *Allocation, err error
 		if id < 0 || id > math.MaxUint32 {
 			panic("BackendID exceeds uint32 range")
 		}
+
 		binary.BigEndian.PutUint32(protoAlloc.GetBackends()[i], uint32(id))
 	}
 	protoAlloc.Assets = make([][]byte, len(alloc.Assets))
@@ -616,6 +631,7 @@ func FromBalance(balance []channel.Bal) (protoBalance *Balance, err error) {
 		if balance[i] == nil {
 			return nil, fmt.Errorf("%d'th amount is nil", i) // We do not want to define this as constant error.
 		}
+
 		if balance[i].Sign() == -1 {
 			return nil, fmt.Errorf("%d'th amount is negative", i) // We do not want to define this as constant error.
 		}

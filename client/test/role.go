@@ -45,6 +45,7 @@ type (
 	// A Role is a client.Client together with a protocol execution path.
 	role struct {
 		*client.Client
+
 		chans   *channelMap
 		newChan func(*paymentChannel) // new channel callback
 		setup   RoleSetup
@@ -58,8 +59,9 @@ type (
 	}
 
 	channelMap struct {
-		entries map[channel.ID]*paymentChannel
 		sync.RWMutex
+
+		entries map[channel.ID]*paymentChannel
 	}
 
 	// BalanceReader can be used to read state from a ledger.
@@ -120,6 +122,7 @@ type (
 	Client struct {
 		*client.Client
 		RoleSetup
+
 		WalletAddress map[wallet.BackendID]wallet.Address
 	}
 )

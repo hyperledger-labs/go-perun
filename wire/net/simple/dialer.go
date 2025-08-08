@@ -32,12 +32,12 @@ import (
 // Dialer is a simple lookup-table based dialer that can dial known peers.
 // New peer addresses can be added via Register().
 type Dialer struct {
+	pkgsync.Closer
+
 	mutex   sync.RWMutex            // Protects peers.
 	peers   map[wire.AddrKey]string // Known peer addresses.
 	dialer  tls.Dialer              // Used to dial connections.
 	network string                  // The socket type.
-
-	pkgsync.Closer
 }
 
 var _ wirenet.Dialer = (*Dialer)(nil)

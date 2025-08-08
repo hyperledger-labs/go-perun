@@ -151,6 +151,7 @@ func (c *Client) validateVirtualChannelSettlementProposal(
 
 func (c *Client) matchSettlementProposal(ctx context.Context, a, b interface{}) bool {
 	var err error
+
 	defer func() {
 		if err != nil {
 			c.log.Debug("matching settlement proposal:", err)

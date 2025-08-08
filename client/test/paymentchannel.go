@@ -67,7 +67,7 @@ type paymentChannelTest struct {
 }
 
 // TestPaymentChannelOptimistic tests payment channel functionality in the happy case.
-func TestPaymentChannelOptimistic( //nolint:revive // test.Test... stutters but OK here.
+func TestPaymentChannelOptimistic( // test.Test... stutters but OK here.
 	ctx context.Context,
 	t *testing.T,
 	setup PaymentChannelSetup,
@@ -218,6 +218,7 @@ func setupPaymentChannelTest(
 			pct.errs <- errors.WithMessage(err, "Bob: accepting channel update")
 		}
 	}
+
 	go bob.Handle(openingProposalHandlerBob, updateProposalHandlerBob) //nolint:contextcheck
 
 	// Establish ledger channel between Alice and Ingrid.
@@ -239,6 +240,7 @@ func setupPaymentChannelTest(
 
 	pct.chAliceBob, err = alice.ProposeChannel(ctx, lcpAlice)
 	require.NoError(t, err, "opening channel between Alice and Ingrid")
+
 	select {
 	case pct.chBobAlice = <-channelsBob:
 	case err := <-pct.errs:

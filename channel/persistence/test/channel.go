@@ -32,10 +32,11 @@ import (
 // Channel is a wrapper around a persisted channel and its participants, as well
 // as the associated persister and restorer.
 type Channel struct {
+	*persistence.StateMachine
+
 	accounts []map[wallet.BackendID]wallet.Account
 	peers    []map[wallet.BackendID]wire.Address
 	parent   *channel.ID
-	*persistence.StateMachine
 
 	pr  persistence.PersistRestorer
 	ctx context.Context //nolint:containedctx // This is just done for testing. Could be revised.
@@ -58,6 +59,7 @@ func NewRandomChannel(
 	rng *rand.Rand,
 ) (c *Channel) {
 	bID := wallet.BackendID(channel.TestBackendID)
+
 	if len(peers) > 0 {
 		for i := range peers[0] {
 			bID = i
@@ -90,7 +92,7 @@ func NewRandomChannel(
 }
 
 func requireEqualPeers(t require.TestingT, expected, actual []map[wallet.BackendID]wire.Address) {
-	assert.Equal(t, len(expected), len(actual))
+	require.Equal(t, len(expected), len(actual))
 	for i, p := range expected {
 		if !channel.EqualWireMaps(p, actual[i]) {
 			t.Errorf("restored peers for channel do not match\nexpected: %v\nactual: %v",
@@ -107,10 +109,10 @@ func requireEqualPeers(t require.TestingT, expected, actual []map[wallet.Backend
 func (c *Channel) AssertPersisted(ctx context.Context, t require.TestingT) {
 	ch, err := c.pr.RestoreChannel(ctx, c.ID())
 	require.NoError(t, err)
-	assert.NotNil(t, ch)
+	require.NotNil(t, ch)
 	c.RequireEqual(t, ch)
 	requireEqualPeers(t, c.peers, ch.PeersV)
-	assert.Equal(t, c.parent, ch.Parent)
+	require.Equal(t, c.parent, ch.Parent)
 }
 
 // RequireEqual asserts that the channel is equal to the provided channel state.
@@ -233,13 +235,13 @@ func (c *Channel) SetRegistered(t require.TestingT) {
 
 // SetWithdrawing calls SetWithdrawing on the state machine and then checks the persistence.
 func (c *Channel) SetWithdrawing(t require.TestingT) {
-	assert.NoError(t, c.StateMachine.SetWithdrawing(c.ctx))
+	require.NoError(t, c.StateMachine.SetWithdrawing(c.ctx))
 	c.AssertPersisted(c.ctx, t)
 }
 
 // SetWithdrawn calls SetWithdrawn on the state machine and then checks the persistence.
 func (c *Channel) SetWithdrawn(t require.TestingT) {
-	assert.NoError(t, c.StateMachine.SetWithdrawn(c.ctx))
+	require.NoError(t, c.StateMachine.SetWithdrawn(c.ctx))
 	rc, err := c.pr.RestoreChannel(c.ctx, c.ID())
 	assert.Error(t, err, "restoring of a non-existing channel")
 	assert.Nil(t, rc, "restoring of a non-existing channel")

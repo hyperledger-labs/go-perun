@@ -23,6 +23,7 @@ import (
 // AliceBobExecConfig contains config parameters for Alice and Bob test.
 type AliceBobExecConfig struct {
 	BaseExecConfig
+
 	NumPayments [2]int      // how many payments each role sends
 	TxAmounts   [2]*big.Int // amounts that are to be sent/requested by each role
 }

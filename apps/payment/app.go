@@ -45,6 +45,7 @@ func (a *App) NewData() channel.Data {
 // participants.
 func (a *App) ValidTransition(_ *channel.Params, from, to *channel.State, actor channel.Index) error {
 	assertNoData(to)
+
 	for i, asset := range from.Balances {
 		for j, bal := range asset {
 			if int(actor) == j && bal.Cmp(to.Balances[i][j]) == -1 {

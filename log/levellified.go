@@ -28,6 +28,7 @@ var _ LevelLogger = &Levellified{StdLogger: &log.Logger{}}
 type Levellified struct {
 	// wrapped logger
 	StdLogger
+
 	// Lvl is the current logging level
 	Lvl Level
 }

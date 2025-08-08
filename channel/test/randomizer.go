@@ -383,6 +383,7 @@ func NewRandomTransaction(rng *rand.Rand, sigMask []bool, opts ...RandomOpt) *ch
 
 	sigs := make([]wallet.Sig, numParts)
 	err = nil
+
 	for i, choice := range sigMask {
 		if !choice {
 			sigs[i] = nil

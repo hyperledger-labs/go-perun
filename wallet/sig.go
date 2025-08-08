@@ -63,6 +63,7 @@ func EncodeSparseSigs(w io.Writer, sigs []Sig) error {
 
 	// Encode mask
 	mask := make([]uint8, int(math.Ceil(float64(n)/float64(bitsPerByte))))
+
 	for i, sig := range sigs {
 		if sig != nil {
 			mask[i/bitsPerByte] |= 1 << (i % bitsPerByte)

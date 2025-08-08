@@ -51,6 +51,7 @@ func Encode(writer io.Writer, values ...interface{}) (err error) { //nolint: cyc
 			err = encodeString(writer, v)
 		case encoding.BinaryMarshaler:
 			var data []byte
+
 			data, err = v.MarshalBinary()
 			if err != nil {
 				return errors.WithMessage(err, "marshaling to byte array")
@@ -60,6 +61,7 @@ func Encode(writer io.Writer, values ...interface{}) (err error) { //nolint: cyc
 			if length > uint16MaxValue {
 				panic(fmt.Sprintf("length of marshaled data is %d, should be <= %d", len(data), uint16MaxValue))
 			}
+
 			err = binary.Write(writer, byteOrder, uint16(length))
 			if err != nil {
 				return errors.WithMessage(err, "writing length of marshalled data")
@@ -69,6 +71,7 @@ func Encode(writer io.Writer, values ...interface{}) (err error) { //nolint: cyc
 			if length == 0 {
 				break
 			}
+
 			err = ByteSlice(data).Encode(writer)
 		default:
 			if enc, ok := value.(Encoder); ok {
@@ -123,6 +126,7 @@ func Decode(reader io.Reader, values ...interface{}) (err error) {
 			if length == 0 {
 				break
 			}
+
 			var data ByteSlice = make([]byte, length)
 			err = data.Decode(reader)
 			if err != nil {

@@ -55,7 +55,6 @@ func (c *Client) fundVirtualChannel(ctx context.Context, virtual *Channel, prop 
 
 func (c *Channel) proposeVirtualChannelFunding(ctx context.Context, virtual *Channel, indexMap []channel.Index) error {
 	// We assume that the channel is locked.
-
 	state := c.state().Clone()
 	state.Version++
 
@@ -115,6 +114,7 @@ func (c *Channel) watchVirtual() error {
 	if err != nil {
 		return errors.WithMessage(err, "subscribing to adjudicator state changes")
 	}
+
 	defer func() {
 		if err := sub.Close(); err != nil {
 			log.Warn(err)
@@ -315,6 +315,7 @@ func (c *Client) validateVirtualChannelFundingProposal(
 
 func (c *Client) matchFundingProposal(ctx context.Context, a, b interface{}) bool {
 	var err error
+
 	defer func() {
 		if err != nil {
 			c.log.Debug("matching funding proposal:", err)

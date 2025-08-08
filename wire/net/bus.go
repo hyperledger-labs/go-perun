@@ -53,6 +53,7 @@ func NewBus(id map[wallet.BackendID]wire.Account, d Dialer, s wire.EnvelopeSeria
 	}
 
 	onNewEndpoint := func(map[wallet.BackendID]wire.Address) wire.Consumer { return b.mainRecv }
+
 	b.reg = NewEndpointRegistry(id, onNewEndpoint, d, s)
 	go b.dispatchMsgs()
 
@@ -79,6 +80,7 @@ func (b *Bus) SubscribeClient(c wire.Consumer, addr map[wallet.BackendID]wire.Ad
 func (b *Bus) Publish(ctx context.Context, e *wire.Envelope) (err error) {
 	for attempt := 1; attempt <= PublishAttempts; attempt++ {
 		log.Tracef("Bus.Publish attempt: %d/%d", attempt, PublishAttempts)
+
 		var ep *Endpoint
 		if ep, err = b.reg.Endpoint(ctx, e.Recipient); err == nil {
 			if err = ep.Send(ctx, e); err == nil {
@@ -144,6 +146,7 @@ func (b *Bus) dispatchMsgs() {
 		b.mutex.Lock()
 		r, ok := b.recvs[wire.Keys(e.Recipient)]
 		b.mutex.Unlock()
+
 		if !ok {
 			log.WithField("sender", e.Sender).
 				WithField("recipient", e.Recipient).

@@ -34,6 +34,7 @@ func (r *Responder) Execute(cfg ExecConfig, exec func(ExecConfig, *paymentChanne
 	rng := r.NewRng()
 
 	propHandler, waitHandler := r.GoHandle(rng)
+
 	defer func() {
 		r.RequireNoError(r.Close())
 		waitHandler()

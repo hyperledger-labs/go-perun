@@ -33,6 +33,7 @@ func TestLevellified(t *testing.T) {
 	requirePrefix := func(logFn func(...interface{}), lvl Level) {
 		buf.Reset()
 		logFn(logStr)
+
 		golden := "[" + lvl.String() + "] " + logStr + "\n"
 		if buf.String() != golden {
 			t.Errorf("Want: %q, have: %q", golden, buf.String())
@@ -43,6 +44,7 @@ func TestLevellified(t *testing.T) {
 	requireSilent := func(logFn func(...interface{})) {
 		buf.Reset()
 		logFn(logStr)
+
 		if buf.Len() > 0 {
 			t.Errorf("Want no logging, have: %q", buf.String())
 		}

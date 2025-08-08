@@ -74,6 +74,7 @@ func TestProducer_Close(t *testing.T) {
 
 func TestProducer_Subscribe(t *testing.T) {
 	fn := func(*Envelope) bool { return true }
+
 	t.Run("closed", func(t *testing.T) {
 		p := NewRelay()
 		p.Close()

@@ -65,6 +65,7 @@ func (pc peerChans) Delete(id channel.ID) {
 
 				ids[i] = ids[lim]
 				pc[pk] = ids[:lim]
+
 				break // next peer, no double channel ids
 			}
 		}

@@ -35,9 +35,9 @@ var _ Consumer = (*Receiver)(nil)
 // execution context at a time. If multiple contexts need to access a peer's
 // messages, then multiple receivers have to be created.
 type Receiver struct {
-	msgs chan *Envelope
-
 	sync.Closer
+
+	msgs chan *Envelope
 }
 
 // NewReceiver creates a new receiver.

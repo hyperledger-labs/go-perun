@@ -22,6 +22,7 @@ import (
 	"crypto/x509"
 	"crypto/x509/pkix"
 	"encoding/pem"
+	"fmt"
 	"math/big"
 	"net"
 	"testing"
@@ -85,15 +86,15 @@ func TestDialer_Dial(t *testing.T) {
 
 	commonName := "127.0.0.1"
 	sans := []string{"127.0.0.1", "localhost"}
-	lConfig, dConfig, err := generateSelfSignedCertConfigs(commonName, sans)
+	tlsConfigs, err := generateSelfSignedCertConfigs(commonName, sans, 2)
 	require.NoError(t, err, "failed to generate self-signed certificate configs")
 
-	l, err := NewTCPListener(lhost, lConfig)
+	l, err := NewTCPListener(lhost, tlsConfigs[0])
 	require.NoError(t, err)
 	defer l.Close()
 
 	ser := perunio.Serializer()
-	d := NewTCPDialer(timeout, dConfig)
+	d := NewTCPDialer(timeout, tlsConfigs[1])
 	d.Register(laddr, lhost)
 	daddr := wire.AddressMapfromAccountMap(wiretest.NewRandomAccountMap(rng, channel.TestBackendID))
 	defer d.Close()
@@ -159,121 +160,83 @@ func TestDialer_Dial(t *testing.T) {
 	})
 }
 
-// generateSelfSignedCertConfigs generates a self-signed certificate and returns
-// the server and client TLS configurations.
-func generateSelfSignedCertConfigs(commonName string, sans []string) (*tls.Config, *tls.Config, error) {
+const certificateTimeout = time.Hour
+
+// generateSelfSignedCertConfigs generates self-signed certificates and returns
+// a list of TLS configurations for n clients.
+func generateSelfSignedCertConfigs(commonName string, sans []string, numClients int) ([]*tls.Config, error) {
 	keySize := 2048
-	// Generate a new RSA private key for the server
-	serverPrivateKey, err := rsa.GenerateKey(rand.Reader, keySize)
-	if err != nil {
-		return nil, nil, err
-	}
+	configs := make([]*tls.Config, numClients)
+	certPEMs := make([][]byte, numClients)
+	tlsCerts := make([]tls.Certificate, numClients)
 
-	// Generate a new RSA private key for the client
-	clientPrivateKey, err := rsa.GenerateKey(rand.Reader, keySize)
-	if err != nil {
-		return nil, nil, err
-	}
+	for i := range numClients {
+		// Private key for the client
+		privateKey, err := rsa.GenerateKey(rand.Reader, keySize)
+		if err != nil {
+			return nil, err
+		}
 
-	// Create a certificate template for the server
-	serverTemplate := x509.Certificate{
-		SerialNumber: big.NewInt(1),
-		Subject: pkix.Name{
-			Organization: []string{"Perun Network"},
-			CommonName:   commonName,
-		},
-		NotBefore:             time.Now(),
-		NotAfter:              time.Now().Add(24 * time.Hour),
-		KeyUsage:              x509.KeyUsageKeyEncipherment | x509.KeyUsageDigitalSignature,
-		ExtKeyUsage:           []x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth},
-		BasicConstraintsValid: true,
-	}
+		// Create a certificate template
+		template := x509.Certificate{
+			SerialNumber: big.NewInt(int64(i) + 1),
+			Subject: pkix.Name{
+				Organization: []string{"Perun Network"},
+				CommonName:   fmt.Sprintf("%s-client-%d", commonName, i+1),
+			},
+			NotBefore:             time.Now(),
+			NotAfter:              time.Now().Add(certificateTimeout),
+			KeyUsage:              x509.KeyUsageKeyEncipherment | x509.KeyUsageDigitalSignature,
+			ExtKeyUsage:           []x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth, x509.ExtKeyUsageClientAuth},
+			BasicConstraintsValid: true,
+		}
 
-	// Add SANs to the server certificate template
-	for _, san := range sans {
-		if ip := net.ParseIP(san); ip != nil {
-			serverTemplate.IPAddresses = append(serverTemplate.IPAddresses, ip)
-		} else {
-			serverTemplate.DNSNames = append(serverTemplate.DNSNames, san)
+		// Add SANs to the server certificate template
+		for _, san := range sans {
+			if ip := net.ParseIP(san); ip != nil {
+				template.IPAddresses = append(template.IPAddresses, ip)
+			} else {
+				template.DNSNames = append(template.DNSNames, san)
+			}
+		}
+
+		// Generate a self-signed server certificate
+		certDER, err := x509.CreateCertificate(rand.Reader, &template, &template, &privateKey.PublicKey, privateKey)
+		if err != nil {
+			return nil, err
+		}
+
+		// Encode the server certificate to PEM format
+		certPEMs[i] = pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: certDER})
+
+		// Encode the server private key to PEM format
+		keyPEM := pem.EncodeToMemory(&pem.Block{Type: "RSA PRIVATE KEY", Bytes: x509.MarshalPKCS1PrivateKey(privateKey)})
+
+		// Create a tls.Certificate object for the server
+		tlsCerts[i], err = tls.X509KeyPair(certPEMs[i], keyPEM)
+		if err != nil {
+			return nil, err
 		}
 	}
 
-	// Generate a self-signed server certificate
-	serverCertDER, err := x509.CreateCertificate(rand.Reader, &serverTemplate, &serverTemplate, &serverPrivateKey.PublicKey, serverPrivateKey)
-	if err != nil {
-		return nil, nil, err
+	for i := range numClients {
+		certPool := x509.NewCertPool()
+		for j := range numClients {
+			ok := certPool.AppendCertsFromPEM(certPEMs[j])
+			if !ok {
+				return nil, errors.New("failed to parse root certificate")
+			}
+		}
+
+		// Create the server-side TLS configuration
+		configs[i] = &tls.Config{
+			RootCAs:      certPool,
+			ClientCAs:    certPool,
+			Certificates: []tls.Certificate{tlsCerts[i]},
+			ClientAuth:   tls.RequireAndVerifyClientCert,
+			MinVersion:   tls.VersionTLS12, // Set minimum TLS version to TLS 1.2
+		}
 	}
 
-	// Encode the server certificate to PEM format
-	serverCertPEM := pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: serverCertDER})
-
-	// Encode the server private key to PEM format
-	serverKeyPEM := pem.EncodeToMemory(&pem.Block{Type: "RSA PRIVATE KEY", Bytes: x509.MarshalPKCS1PrivateKey(serverPrivateKey)})
-
-	// Create a tls.Certificate object for the server
-	serverCert, err := tls.X509KeyPair(serverCertPEM, serverKeyPEM)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	// Create a certificate template for the client
-	clientTemplate := x509.Certificate{
-		SerialNumber: big.NewInt(1),
-		Subject: pkix.Name{
-			Organization: []string{"Perun Network"},
-			CommonName:   commonName, // Change this to the client's common name
-		},
-		NotBefore:             time.Now(),
-		NotAfter:              time.Now().Add(24 * time.Hour),
-		KeyUsage:              x509.KeyUsageKeyEncipherment | x509.KeyUsageDigitalSignature,
-		ExtKeyUsage:           []x509.ExtKeyUsage{x509.ExtKeyUsageClientAuth}, // Set the client authentication usage
-		BasicConstraintsValid: true,
-	}
-
-	// Generate a self-signed client certificate
-	clientCertDER, err := x509.CreateCertificate(rand.Reader, &clientTemplate, &clientTemplate, &clientPrivateKey.PublicKey, serverPrivateKey)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	// Encode the client certificate to PEM format
-	clientCertPEM := pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: clientCertDER})
-
-	// Encode the client private key to PEM format
-	clientKeyPEM := pem.EncodeToMemory(&pem.Block{Type: "RSA PRIVATE KEY", Bytes: x509.MarshalPKCS1PrivateKey(clientPrivateKey)})
-
-	// Create a tls.Certificate object for the client
-	clientCert, err := tls.X509KeyPair(clientCertPEM, clientKeyPEM)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	serverCertPool := x509.NewCertPool()
-	ok := serverCertPool.AppendCertsFromPEM(clientCertPEM)
-	if !ok {
-		return nil, nil, errors.New("failed to parse root certificate")
-	}
-
-	// Create the server-side TLS configuration
-	serverConfig := &tls.Config{
-		ClientCAs:    serverCertPool,
-		Certificates: []tls.Certificate{serverCert},
-		ClientAuth:   tls.RequireAndVerifyClientCert,
-		MinVersion:   tls.VersionTLS12, // Set minimum TLS version to TLS 1.2
-	}
-
-	clientCertPool := x509.NewCertPool()
-	ok = clientCertPool.AppendCertsFromPEM(serverCertPEM)
-	if !ok {
-		return nil, nil, errors.New("failed to parse root certificate")
-	}
-
-	// Create the client-side TLS configuration
-	clientConfig := &tls.Config{
-		RootCAs:      clientCertPool,
-		Certificates: []tls.Certificate{clientCert},
-		MinVersion:   tls.VersionTLS12, // Set minimum TLS version to TLS 1.2
-	}
-
-	return serverConfig, clientConfig, nil
+	return configs, nil
 }

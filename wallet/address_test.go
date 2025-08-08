@@ -119,7 +119,8 @@ func TestCloneAddresses(t *testing.T) {
 	addrs := wallettest.NewRandomAddressArray(rng, 3, TestBackendID)
 	addrs0 := wallet.CloneAddresses(addrs)
 	require.Equal(t, addrs, addrs0)
-	require.NotSame(t, addrs, addrs0)
+	require.NotSame(t, &addrs, &addrs0)
+
 	for i, a := range addrs {
 		require.NotSame(t, a, addrs0[i])
 	}

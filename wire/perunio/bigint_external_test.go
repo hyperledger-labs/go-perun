@@ -53,6 +53,7 @@ func TestBigInt_DecodeToExisting(t *testing.T) {
 
 func TestBigInt_Negative(t *testing.T) {
 	neg, buf := perunio.BigInt{Int: big.NewInt(-1)}, new(bytes.Buffer)
+
 	assert.Panics(t, func() { _ = neg.Encode(buf) }, "encoding negative big.Int should panic")
 	assert.Zero(t, buf.Len(), "encoding negative big.Int should not write anything")
 }
@@ -73,6 +74,7 @@ func TestBigInt_Invalid(t *testing.T) {
 
 	// manually encode too big number to test failing of decoding
 	buf.Write([]byte{perunio.MaxBigIntLength + 1})
+
 	for range perunio.MaxBigIntLength + 1 {
 		buf.WriteByte(0xff)
 	}
