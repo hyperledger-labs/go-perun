@@ -66,8 +66,8 @@ func SetBackend(b Backend, id int) {
 // CalcID calculates the CalcID.
 func CalcID(p *Params) (ID, error) {
 	var lastErr error
-	for _, b := range backend {
-		id, err := b.CalcID(p)
+	for i := range p.Parts[0] {
+		id, err := backend[i].CalcID(p)
 		if err == nil {
 			return id, nil
 		}

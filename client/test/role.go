@@ -88,18 +88,18 @@ type (
 	// ExecConfig contains additional config parameters for the tests.
 	ExecConfig interface {
 		Peers() [2]map[wallet.BackendID]wire.Address // must match the RoleSetup.Identity's
-		Asset() channel.Asset                        // single Asset to use in this channel
-		Backend() wallet.BackendID                   // backend corresponding to asset
-		InitBals() [2]*big.Int                       // channel deposit of each role
+		Asset() []channel.Asset                      // single Asset to use in this channel
+		Backend() []wallet.BackendID                 // backend corresponding to asset
+		InitBals() [][2]*big.Int                     // channel deposit of each role
 		App() client.ProposalOpts                    // must be either WithApp or WithoutApp
 	}
 
 	// BaseExecConfig contains base config parameters.
 	BaseExecConfig struct {
 		peers    [2]map[wallet.BackendID]wire.Address // must match the RoleSetup.Identity's
-		asset    channel.Asset                        // single Asset to use in this channel
-		backend  wallet.BackendID                     // backend corresponding to asset
-		initBals [2]*big.Int                          // channel deposit of each role
+		asset    []channel.Asset                      // single Asset to use in this channel
+		backend  []wallet.BackendID                   // backend corresponding to asset
+		initBals [][2]*big.Int                        // channel deposit of each role
 		app      client.ProposalOpts                  // must be either WithApp or WithoutApp
 	}
 
@@ -188,9 +188,9 @@ func ExecuteTwoPartyTest(ctx context.Context, t *testing.T, role [2]Executer, cf
 // MakeBaseExecConfig creates a new BaseExecConfig.
 func MakeBaseExecConfig(
 	peers [2]map[wallet.BackendID]wire.Address,
-	asset channel.Asset,
-	backend wallet.BackendID,
-	initBals [2]*big.Int,
+	asset []channel.Asset,
+	backend []wallet.BackendID,
+	initBals [][2]*big.Int,
 	app client.ProposalOpts,
 ) BaseExecConfig {
 	return BaseExecConfig{
@@ -208,17 +208,17 @@ func (c *BaseExecConfig) Peers() [2]map[wallet.BackendID]wire.Address {
 }
 
 // Asset returns the asset.
-func (c *BaseExecConfig) Asset() channel.Asset {
+func (c *BaseExecConfig) Asset() []channel.Asset {
 	return c.asset
 }
 
 // Backend returns the asset.
-func (c *BaseExecConfig) Backend() wallet.BackendID {
+func (c *BaseExecConfig) Backend() []wallet.BackendID {
 	return c.backend
 }
 
 // InitBals returns the initial balances.
-func (c *BaseExecConfig) InitBals() [2]*big.Int {
+func (c *BaseExecConfig) InitBals() [][2]*big.Int {
 	return c.initBals
 }
 
@@ -358,13 +358,19 @@ func (r *role) LedgerChannelProposal(rng *rand.Rand, cfg ExecConfig) *client.Led
 		r.log.Panic("Invalid ExecConfig: App does not specify an app.")
 	}
 
-	peers, asset, bals := cfg.Peers(), cfg.Asset(), cfg.InitBals()
-	alloc := channel.NewAllocation(len(peers), []wallet.BackendID{cfg.Backend()}, asset)
-	alloc.SetAssetBalances(asset, bals[:])
+	peers, assets, bals, backend := cfg.Peers(), cfg.Asset(), cfg.InitBals(), cfg.Backend()
+	alloc := channel.NewAllocation(len(peers), cfg.Backend(), assets...)
+	for i := range assets {
+		alloc.SetAssetBalances(assets[i], bals[i][:])
+	}
 
+	peersList := make(map[wallet.BackendID]wallet.Address)
+	for i := range backend {
+		peersList[backend[i]] = r.setup.Wallet[backend[i]].NewRandomAccount(rng).Address()
+	}
 	prop, err := client.NewLedgerChannelProposal(
 		r.challengeDuration,
-		map[wallet.BackendID]wallet.Address{cfg.Backend(): r.setup.Wallet[cfg.Backend()].NewRandomAccount(rng).Address()},
+		peersList,
 		alloc,
 		peers[:],
 		client.WithNonceFrom(rng),
