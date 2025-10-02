@@ -4,6 +4,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.14.1] Narvi - 2025-10-02
+Extended the testing framework with more robust tests for payment and virtual channels.  
+Added documentation for cross-chain backend integration and backend ID mapping.
+
+
+### Added
+
+* Documentation section describing supported backends and their IDs.
+
+### Changed
+
+* Extended Perun testing framework with improved payment and virtual channel tests. [#423]
+
+[#423]: https://github.com/hyperledger-labs/go-perun/pull/423
+
 ## [0.14.0] Narvi - 2025-07-29 [:boom:]
 Added [Libp2p](https://libp2p.io/) wire for go-perun. This enables seamless and secure P2P connection between clients.
 
