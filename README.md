@@ -70,25 +70,26 @@ The following features are planned for future releases:
 
 ### Backends
 
- _go-perun_ supports multiple **blockchain backends**. A backend is automatically initialized when its top-level package `backend/<name>` is imported.
-| ID  | Backend    | Status                  | Repository                                                                           |
-| --- | ---------- | ----------------------- | ------------------------------------------------------------------------------------ |
-| 0   | SimBackend | 🧪 Testing only          | Built-in (`backend/sim`) – represents an ideal blockchain backend for simulation     |
-| 1   | Ethereum   | ✅ Cross-chain supported | [perun-eth-backend](https://github.com/perun-network/perun-eth-backend/)             |
-| 2   | Stellar    | ✅ Cross-chain supported | [perun-stellar-backend](https://github.com/perun-network/perun-stellar-backend)      |
-| 3   | Nervos     | 🛠 In development        | [perun-ckb-backend](https://github.com/perun-network/perun-ckb-backend)              |
-| 4   | Polkadot   | 🛠 In development        | [perun-polkadot-backend](https://github.com/perun-network/perun-polkadot-backend)    |
-| 5   | Dfinity    | 🛠 In development        | [perun-icp-backend](https://github.com/perun-network/perun-icp-backend)              |
-| 6   | Solana     | 🛠 In development        | [perun-solana-backend](https://github.com/perun-network/perun-solana-backend)        |
-| -   | Cosmos     | ❌ Not supported         | [perun-cosmwasm-backend](https://github.com/hyperledger-labs/perun-cosmwasm-backend) |
-| -   | Cardano    | ❌ Not supported         | [perun-cardano-backend](https://github.com/perun-network/perun-cardano-backend)      |
-| -   | Fabric     | ❌ Not supported         | [perun-fabric](https://github.com/perun-network/perun-fabric)                        |
+ _go-perun_ supports multiple **blockchain backends**. A backend is automatically initialized when its top-level package `backend/<name>` is imported.#### Backend Map
+
+| ID  | Backend    | Payment Channel Status | Cross-Chain Status | Repository                                                                           |
+| --- | ---------- | ---------------------- | ------------------ | ------------------------------------------------------------------------------------ |
+| 0   | SimBackend | 🧪 Testing only         | 🧪 Testing only     | Built-in (`backend/sim`) – represents an ideal blockchain backend for simulation     |
+| 1   | Ethereum   | ✅ Supported            | ✅ Supported        | [perun-eth-backend](https://github.com/perun-network/perun-eth-backend/)             |
+| 2   | Stellar    | ✅ Supported            | ✅ Supported        | [perun-stellar-backend](https://github.com/perun-network/perun-stellar-backend)      |
+| 3   | Nervos     | ✅ Supported            | 🚧 In development   | [perun-ckb-backend](https://github.com/perun-network/perun-ckb-backend)              |
+| 4   | Polkadot   | ✅ Supported            | 🚧 In development   | [perun-polkadot-backend](https://github.com/perun-network/perun-polkadot-backend)    |
+| 5   | Dfinity    | ✅ Supported            | 🚧 In development   | [perun-icp-backend](https://github.com/perun-network/perun-icp-backend)              |
+| 6   | Solana     | 🚧 In development       | 🚧 In development   | [perun-solana-backend](https://github.com/perun-network/perun-solana-backend)        |
+| -   | Cosmos     | ✅ Supported            | 🟡 Single-chain     | [perun-cosmwasm-backend](https://github.com/hyperledger-labs/perun-cosmwasm-backend) |
+| -   | Cardano    | ✅ Supported            | 🟡 Single-chain     | [perun-cardano-backend](https://github.com/perun-network/perun-cardano-backend)      |
+| -   | Fabric     | ✅ Supported            | 🟡 Single-chain     | [perun-fabric](https://github.com/perun-network/perun-fabric)                        |
 
 #### Legend
-- ✅ **Cross-chain supported** – stable, production-ready backends.  
-- 🛠 **In development / upgrade** – experimental or actively being updated.  
-- ❌ **Not cross-chain supported** – backend is chain-specific, not compatible for cross-chain mode.  
-- 🧪 **Testing only** – simulation backend, no real blockchain.
+- ✅ **Supported** – stable and available.  
+- 🚧 **In development** – actively worked on, not fully stable.  
+- 🟡 **Single-chain** – supports only local (non-cross-chain) payment/state channels.  
+- 🧪 **Testing only** – simulation backend, no real blockchain. 
 
 **Logging and networking** capabilities can also be injected by the user.
 A default [logrus](https://github.com/sirupsen/logrus) implementation of the `log.Logger` interface can be set using `log/logrus.Set`.
