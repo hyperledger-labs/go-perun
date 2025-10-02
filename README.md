@@ -70,16 +70,25 @@ The following features are planned for future releases:
 
 ### Backends
 
-There are multiple **blockchain backends** available. A backend is automatically initialized when its top-level package `backend/<name>` is imported.
-- **Ethereum.** The Ethereum backend is available at [perun-eth-backend](https://github.com/perun-network/perun-eth-backend/).
-- **Polkadot.** The Polkadot backend is available at [perun-polkadot-backend](https://github.com/perun-network/perun-polkadot-backend).
-- **Cosmos.** The Cosmos backend is available at [perun-cosmwasm-backend](https://github.com/hyperledger-labs/perun-cosmwasm-backend).
-- **Cardano.** The Cardano backend is available at [perun-cardano-backend](https://github.com/perun-network/perun-cardano-backend).
-- **NERVOS.** The NERVOS backend is available at [perun-ckb-backend](https://github.com/perun-network/perun-ckb-backend).
-- **Dfinity.** The Dfinity Internet Computer backend is available at [perun-icp-backend](https://github.com/perun-network/perun-icp-backend).
-- **Stellar.** The Stellar backend is available at [perun-stellar-backend](https://github.com/perun-network/perun-stellar-backend).
-- **Fabric.** The Hyperledger Fabric backend is available at [perun-fabric](https://github.com/perun-network/perun-fabric).
-- **SimBackend.** The SimBackend represents an ideal blockchain backend (`backend/sim`) implementation that can be used for testing.
+ _go-perun_ supports multiple **blockchain backends**. A backend is automatically initialized when its top-level package `backend/<name>` is imported.
+| ID  | Backend    | Status                  | Repository                                                                           |
+| --- | ---------- | ----------------------- | ------------------------------------------------------------------------------------ |
+| 0   | SimBackend | 🧪 Testing only          | Built-in (`backend/sim`) – represents an ideal blockchain backend for simulation     |
+| 1   | Ethereum   | ✅ Cross-chain supported | [perun-eth-backend](https://github.com/perun-network/perun-eth-backend/)             |
+| 2   | Stellar    | ✅ Cross-chain supported | [perun-stellar-backend](https://github.com/perun-network/perun-stellar-backend)      |
+| 3   | Nervos     | 🛠 In development        | [perun-ckb-backend](https://github.com/perun-network/perun-ckb-backend)              |
+| 4   | Polkadot   | 🛠 In development        | [perun-polkadot-backend](https://github.com/perun-network/perun-polkadot-backend)    |
+| 5   | Dfinity    | 🛠 In development        | [perun-icp-backend](https://github.com/perun-network/perun-icp-backend)              |
+| 6   | Solana     | 🛠 In development        | [perun-solana-backend](https://github.com/perun-network/perun-solana-backend)        |
+| -   | Cosmos     | ❌ Not supported         | [perun-cosmwasm-backend](https://github.com/hyperledger-labs/perun-cosmwasm-backend) |
+| -   | Cardano    | ❌ Not supported         | [perun-cardano-backend](https://github.com/perun-network/perun-cardano-backend)      |
+| -   | Fabric     | ❌ Not supported         | [perun-fabric](https://github.com/perun-network/perun-fabric)                        |
+
+#### Legend
+- ✅ **Cross-chain supported** – stable, production-ready backends.  
+- 🛠 **In development / upgrade** – experimental or actively being updated.  
+- ❌ **Not cross-chain supported** – backend is chain-specific, not compatible for cross-chain mode.  
+- 🧪 **Testing only** – simulation backend, no real blockchain.
 
 **Logging and networking** capabilities can also be injected by the user.
 A default [logrus](https://github.com/sirupsen/logrus) implementation of the `log.Logger` interface can be set using `log/logrus.Set`.
