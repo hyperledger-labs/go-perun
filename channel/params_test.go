@@ -35,6 +35,7 @@ func TestParams_Clone(t *testing.T) {
 	require.Equalf(t, params.App, clone.App, "Clone() = %v, want %v", clone, params)
 	require.Equalf(t, params.ChallengeDuration, clone.ChallengeDuration, "Clone() = %v, want %v", clone, params)
 	require.Equalf(t, params.Nonce, clone.Nonce, "Clone() = %v, want %v", clone, params)
+	require.Equalf(t, params.Aux, clone.Aux, "Clone() = %v, want %v", clone, params)
 }
 
 func TestParams_Serializer(t *testing.T) {
