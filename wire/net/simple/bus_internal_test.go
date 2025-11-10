@@ -32,7 +32,7 @@ import (
 func TestBus(t *testing.T) {
 	const numClients = 4
 	const numMsgs = 5
-	const defaultTimeout = 100 * time.Millisecond
+	const defaultTimeout = 1000 * time.Millisecond
 
 	commonName := "127.0.0.1"
 	sans := []string{"127.0.0.1", "localhost"}

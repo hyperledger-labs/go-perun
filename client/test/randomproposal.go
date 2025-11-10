@@ -65,6 +65,7 @@ func NewRandomSubChannelProposal(rng *rand.Rand, opts ...client.ProposalOpts) (*
 // supplied options. Number of participants is fixed to 2.
 func NewRandomVirtualChannelProposal(rng *rand.Rand, opts ...client.ProposalOpts) (*client.VirtualChannelProposalMsg, error) {
 	numParts := 2
+	opts = append(opts, client.WithAux(channeltest.NewRandomAux(rng)))
 	return client.NewVirtualChannelProposal(
 		rng.Uint64(),
 		wallettest.NewRandomAddresses(rng, channel.TestBackendID),

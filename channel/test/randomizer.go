@@ -285,6 +285,16 @@ func NewRandomIndexMaps(rng *rand.Rand, numParts int, numPartsParent int) (maps 
 	return
 }
 
+// NewRandomAux generates a new random `channel.Aux`.
+func NewRandomAux(rng *rand.Rand) channel.Aux {
+	aux := make([]byte, channel.AuxMaxLen)
+	_, err := rng.Read(aux)
+	if err != nil {
+		log.Panic("could not read from rng")
+	}
+	return channel.Aux(aux)
+}
+
 // NewRandomBal generates a new random `channel.Bal`.
 // Options: `WithBalancesRange`.
 func NewRandomBal(rng *rand.Rand, opts ...RandomOpt) channel.Bal {

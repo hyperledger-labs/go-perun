@@ -167,7 +167,7 @@ func (p BaseChannelProposal) NumPeers() int {
 func (p BaseChannelProposal) Encode(w io.Writer) error {
 	optAppAndDataEnc := channel.OptAppAndDataEnc{App: p.App, Data: p.InitData}
 	return perunio.Encode(w, p.ProposalID, p.ChallengeDuration, p.NonceShare,
-		optAppAndDataEnc, p.InitBals, p.FundingAgreement)
+		optAppAndDataEnc, p.InitBals, p.FundingAgreement, p.Aux)
 }
 
 // Decode decodes a BaseChannelProposal from an io.Reader.
@@ -177,7 +177,7 @@ func (p *BaseChannelProposal) Decode(r io.Reader) (err error) {
 	}
 	optAppAndDataDec := channel.OptAppAndDataDec{App: &p.App, Data: &p.InitData}
 	return perunio.Decode(r, &p.ProposalID, &p.ChallengeDuration, &p.NonceShare,
-		optAppAndDataDec, p.InitBals, &p.FundingAgreement)
+		optAppAndDataDec, p.InitBals, &p.FundingAgreement, &p.Aux)
 }
 
 // Valid checks that the channel proposal is valid:
