@@ -20,6 +20,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"perun.network/go-perun/wire/perunio"
 	peruniotest "perun.network/go-perun/wire/perunio/test"
 )
@@ -46,12 +47,13 @@ func TestBigInt_DecodeZeroLength(t *testing.T) {
 func TestBigInt_DecodeToExisting(t *testing.T) {
 	x, buf := new(big.Int), bytes.NewBuffer([]byte{1, 42})
 	wx := perunio.BigInt{Int: x}
-	assert.NoError(t, wx.Decode(buf), "decoding {1, 42} into big.Int should work")
+	require.NoError(t, wx.Decode(buf), "decoding {1, 42} into big.Int should work")
 	assert.Zero(t, big.NewInt(42).Cmp(x), "decoding {1, 42} into big.Int should result in 42")
 }
 
 func TestBigInt_Negative(t *testing.T) {
 	neg, buf := perunio.BigInt{Int: big.NewInt(-1)}, new(bytes.Buffer)
+
 	assert.Panics(t, func() { _ = neg.Encode(buf) }, "encoding negative big.Int should panic")
 	assert.Zero(t, buf.Len(), "encoding negative big.Int should not write anything")
 }
@@ -65,24 +67,25 @@ func TestBigInt_Invalid(t *testing.T) {
 		tooBig := perunio.BigInt{Int: big.NewInt(1)}
 		tooBig.Lsh(tooBig.Int, pos)
 
-		a.Error(tooBig.Encode(buf), "encoding too big big.Int should fail")
+		require.Error(t, tooBig.Encode(buf), "encoding too big big.Int should fail")
 		a.Zero(buf.Len(), "encoding too big big.Int should not have written anything")
 		buf.Reset() // in case above test failed
 	}
 
 	// manually encode too big number to test failing of decoding
 	buf.Write([]byte{perunio.MaxBigIntLength + 1})
-	for i := 0; i < perunio.MaxBigIntLength+1; i++ {
+
+	for range perunio.MaxBigIntLength + 1 {
 		buf.WriteByte(0xff)
 	}
 
 	var result perunio.BigInt
-	a.Error(result.Decode(buf), "decoding of an integer that is too big should fail")
+	require.Error(t, result.Decode(buf), "decoding of an integer that is too big should fail")
 	buf.Reset()
 
 	// Test not sending value, only length
 	buf.WriteByte(1)
-	a.Error(result.Decode(buf), "decoding after sender only sent length should fail")
+	require.Error(t, result.Decode(buf), "decoding after sender only sent length should fail")
 
 	a.Panics(func() { _ = perunio.BigInt{Int: nil}.Encode(buf) }, "encoding nil big.Int failed to panic")
 }

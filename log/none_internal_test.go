@@ -47,6 +47,7 @@ func TestNone(t *testing.T) {
 
 	// Test that fatal functions call exit
 	et := test.NewExit(t, &exit)
+
 	funs := []func(){func() { None.Fatalf("") }, func() { None.Fatal() }, func() { None.Fatalln() }}
 	for _, fn := range funs {
 		et.AssertExit(fn, 1)

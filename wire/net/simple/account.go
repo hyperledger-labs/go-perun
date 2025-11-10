@@ -31,6 +31,23 @@ type Account struct {
 	privateKey *rsa.PrivateKey
 }
 
+// NewRandomAccount generates a new random account.
+func NewRandomAccount(rng *rand.Rand) *Account {
+	keySize := 2048
+	privateKey, err := rsa.GenerateKey(rng, keySize)
+	if err != nil {
+		panic(err)
+	}
+
+	address := NewRandomAddress(rng)
+	address.PublicKey = &privateKey.PublicKey
+
+	return &Account{
+		addr:       address,
+		privateKey: privateKey,
+	}
+}
+
 // Address returns the account's address.
 func (acc *Account) Address() wire.Address {
 	return acc.addr
@@ -47,21 +64,4 @@ func (acc *Account) Sign(msg []byte) ([]byte, error) {
 		return nil, err
 	}
 	return signature, nil
-}
-
-// NewRandomAccount generates a new random account.
-func NewRandomAccount(rng *rand.Rand) *Account {
-	keySize := 2048
-	privateKey, err := rsa.GenerateKey(rng, keySize)
-	if err != nil {
-		panic(err)
-	}
-
-	address := NewRandomAddress(rng)
-	address.PublicKey = &privateKey.PublicKey
-
-	return &Account{
-		addr:       address,
-		privateKey: privateKey,
-	}
 }

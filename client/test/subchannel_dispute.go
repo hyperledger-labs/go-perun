@@ -29,6 +29,7 @@ const nStagesDisputeSusieTime = 4
 // DisputeSusieTimExecConfig contains config parameters for sub-channel dispute test.
 type DisputeSusieTimExecConfig struct {
 	BaseExecConfig
+
 	SubChannelFunds [2]*big.Int // sub-channel funding amounts
 	TxAmount        *big.Int    // transaction amount
 }
@@ -58,7 +59,7 @@ func (r *DisputeSusie) exec(_cfg ExecConfig, ledgerChannel *paymentChannel) {
 	r.waitStage()
 
 	// Stage 2 - Open sub-channel.
-	subChannel := ledgerChannel.openSubChannel(rng, cfg, cfg.SubChannelFunds[:], client.WithoutApp(), _cfg.Backend())
+	subChannel := ledgerChannel.openSubChannel(rng, cfg, cfg.SubChannelFunds[:], client.WithoutApp())
 	subReq0 := client.NewTestChannel(subChannel.Channel).AdjudicatorReq() // Store AdjudicatorReq for version 0
 	r.waitStage()
 
@@ -120,8 +121,18 @@ func (r *DisputeSusie) exec(_cfg ExecConfig, ledgerChannel *paymentChannel) {
 // DisputeTim is a Responder. He accepts incoming channel proposals and updates.
 type DisputeTim struct {
 	Responder
+
 	registered chan *channel.RegisteredEvent
 	subCh      channel.ID
+}
+
+// NewDisputeTim creates a new Responder that executes the DisputeTim protocol.
+func NewDisputeTim(t *testing.T, setup RoleSetup) *DisputeTim {
+	t.Helper()
+	return &DisputeTim{
+		Responder:  *NewResponder(t, setup, nStagesDisputeSusieTime),
+		registered: make(chan *channel.RegisteredEvent),
+	}
 }
 
 // time to wait until a parent channel watcher becomes active.
@@ -132,15 +143,6 @@ func (r *DisputeTim) HandleAdjudicatorEvent(e channel.AdjudicatorEvent) {
 	r.log.Infof("HandleAdjudicatorEvent: channelID = %x, version = %v, type = %T", e.ID(), e.Version(), e)
 	if e, ok := e.(*channel.RegisteredEvent); ok && e.ID() == r.subCh {
 		r.registered <- e
-	}
-}
-
-// NewDisputeTim creates a new Responder that executes the DisputeTim protocol.
-func NewDisputeTim(t *testing.T, setup RoleSetup) *DisputeTim {
-	t.Helper()
-	return &DisputeTim{
-		Responder:  *NewResponder(t, setup, nStagesDisputeSusieTime),
-		registered: make(chan *channel.RegisteredEvent),
 	}
 }
 

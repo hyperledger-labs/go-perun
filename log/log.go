@@ -36,6 +36,7 @@ func Set(l Logger) {
 		logger = new(none)
 		return
 	}
+
 	logger = l
 }
 
@@ -72,6 +73,8 @@ type StdLogger interface {
 }
 
 // LevelLogger is an extension to the StdLogger with different verbosity levels.
+//
+//nolint:interfacebloat
 type LevelLogger interface {
 	StdLogger
 	// Tracef logs a message at level Trace. Arguments are handled in the manner of fmt.Printf.
@@ -226,6 +229,7 @@ type (
 func AppendField(owner Owner, key string, value interface{}) Logger {
 	l := owner.Log().WithField(key, value)
 	owner.SetLog(l)
+
 	return l
 }
 
@@ -234,6 +238,7 @@ func AppendField(owner Owner, key string, value interface{}) Logger {
 func AppendFields(owner Owner, fs Fields) Logger {
 	l := owner.Log().WithFields(fs)
 	owner.SetLog(l)
+
 	return l
 }
 

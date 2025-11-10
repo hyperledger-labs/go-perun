@@ -18,6 +18,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	channeltest "perun.network/go-perun/channel/test"
 	wiretest "perun.network/go-perun/wire/test"
@@ -46,6 +47,6 @@ func TestClient_Channel(t *testing.T) {
 
 		ch2, err := c.Channel(cID)
 		assert.Same(t, ch2, ch1)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 	})
 }

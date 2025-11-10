@@ -25,6 +25,7 @@ import (
 // SusieTimExecConfig contains config parameters for Susie and Tim test.
 type SusieTimExecConfig struct {
 	BaseExecConfig
+
 	SubChannelFunds    [][2]*big.Int       // sub-channel funding amounts, also determines number of sub-channels, must be at least 1
 	SubSubChannelFunds [][2]*big.Int       // sub-sub-channel funding amounts, also determines number of sub-sub-channels
 	LeafChannelApp     client.ProposalOpts // app used in the leaf channels
@@ -34,8 +35,6 @@ type SusieTimExecConfig struct {
 // NewSusieTimExecConfig creates a new object from the given parameters.
 func NewSusieTimExecConfig(
 	base BaseExecConfig,
-	numSubChannels int,
-	numSubSubChannels int,
 	subChannelFunds [][2]*big.Int,
 	subSubChannelFunds [][2]*big.Int,
 	leafChannelApp client.ProposalOpts,
@@ -77,17 +76,17 @@ func (r *Susie) exec(_cfg ExecConfig, ledgerChannel *paymentChannel) {
 
 	// stage 2 - open subchannels
 	openSubChannel := func(parentChannel *paymentChannel, funds []*big.Int, app client.ProposalOpts) *paymentChannel {
-		return parentChannel.openSubChannel(rng, cfg, funds, app, cfg.backend)
+		return parentChannel.openSubChannel(rng, cfg, funds, app)
 	}
 
 	var subChannels []*paymentChannel
-	for i := 0; i < len(cfg.SubChannelFunds); i++ {
+	for i := range len(cfg.SubChannelFunds) {
 		c := openSubChannel(ledgerChannel, cfg.SubChannelFunds[i][:], cfg.App())
 		subChannels = append(subChannels, c)
 	}
 
 	var subSubChannels []*paymentChannel
-	for i := 0; i < len(cfg.SubSubChannelFunds); i++ {
+	for i := range len(cfg.SubSubChannelFunds) {
 		c := openSubChannel(subChannels[0], cfg.SubSubChannelFunds[i][:], cfg.LeafChannelApp)
 		subSubChannels = append(subSubChannels, c)
 	}
@@ -175,13 +174,13 @@ func (r *Tim) exec(_cfg ExecConfig, ledgerChannel *paymentChannel, propHandler *
 	}
 
 	var subChannels []*paymentChannel
-	for i := 0; i < len(cfg.SubChannelFunds); i++ {
+	for i := range len(cfg.SubChannelFunds) {
 		c := acceptNext(ledgerChannel, cfg.SubChannelFunds[i][:])
 		subChannels = append(subChannels, c)
 	}
 
 	var subSubChannels []*paymentChannel
-	for i := 0; i < len(cfg.SubSubChannelFunds); i++ {
+	for i := range len(cfg.SubSubChannelFunds) {
 		c := acceptNext(subChannels[0], cfg.SubSubChannelFunds[i][:])
 		subSubChannels = append(subSubChannels, c)
 	}

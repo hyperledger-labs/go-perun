@@ -73,6 +73,7 @@ func (c *Client) restorePeerChannels(ctx context.Context, p map[wallet.BackendID
 	if err != nil {
 		return errors.WithMessagef(err, "restoring channels for peer: %v", err)
 	}
+
 	defer func() {
 		if cerr := it.Close(); cerr != nil {
 			err = errors.WithMessagef(err, "(error closing iterator: %v)", cerr)

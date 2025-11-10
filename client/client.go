@@ -35,6 +35,8 @@ import (
 //
 // Currently, only the two-party protocol is fully implemented.
 type Client struct {
+	sync.Closer
+
 	address           map[wallet.BackendID]wire.Address
 	conn              clientConn
 	channels          chanRegistry
@@ -47,8 +49,6 @@ type Client struct {
 	fundingWatcher    *stateWatcher
 	settlementWatcher *stateWatcher
 	watcher           watcher.Watcher
-
-	sync.Closer
 }
 
 // New creates a new State Channel Client.
@@ -126,6 +126,27 @@ func (c *Client) Close() error {
 		err = errors.WithMessage(cerr, "closing channel connection")
 	}
 	return err
+}
+
+// Restore restores all channels from persistence. Channels are restored in
+// parallel. Newly restored channels should be acquired through the
+// OnNewChannel callback.
+func (c *Client) Restore(ctx context.Context) error {
+	ps, err := c.pr.ActivePeers(ctx)
+	if err != nil {
+		return errors.WithMessage(err, "restoring active peers")
+	}
+
+	var eg errgroup.Group
+	for _, p := range ps {
+		if channel.EqualWireMaps(p, c.address) {
+			continue // skip own peer
+		}
+
+		eg.Go(func() error { return c.restorePeerChannels(ctx, p) })
+	}
+
+	return eg.Wait()
 }
 
 // OnNewChannel sets a callback to be called whenever a new channel is created
@@ -207,25 +228,4 @@ func (c *Client) logPeer(p map[wallet.BackendID]wire.Address) log.Logger {
 
 func (c *Client) logChan(id channel.ID) log.Logger {
 	return c.log.WithField("channel", id)
-}
-
-// Restore restores all channels from persistence. Channels are restored in
-// parallel. Newly restored channels should be acquired through the
-// OnNewChannel callback.
-func (c *Client) Restore(ctx context.Context) error {
-	ps, err := c.pr.ActivePeers(ctx)
-	if err != nil {
-		return errors.WithMessage(err, "restoring active peers")
-	}
-
-	var eg errgroup.Group
-	for _, p := range ps {
-		if channel.EqualWireMaps(p, c.address) {
-			continue // skip own peer
-		}
-		p := p
-		eg.Go(func() error { return c.restorePeerChannels(ctx, p) })
-	}
-
-	return eg.Wait()
 }

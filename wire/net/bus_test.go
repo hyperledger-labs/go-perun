@@ -17,9 +17,8 @@ package net_test
 import (
 	"testing"
 
+	"github.com/stretchr/testify/require"
 	"perun.network/go-perun/wallet"
-
-	"github.com/stretchr/testify/assert"
 
 	"perun.network/go-perun/wire"
 	"perun.network/go-perun/wire/net"
@@ -41,5 +40,5 @@ func TestBus(t *testing.T) {
 		return bus, bus
 	}, numClients, numMsgs)
 
-	assert.NoError(t, hub.Close())
+	require.NoError(t, hub.Close())
 }

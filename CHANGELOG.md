@@ -4,16 +4,53 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.14.1] Narvi - 2025-10-02
+Extended the testing framework with more robust tests for payment and virtual channels.  
+Added documentation for cross-chain backend integration and backend ID mapping.
+
+
+### Added
+
+* Documentation section describing supported backends and their IDs.
+
+### Changed
+
+* Extended Perun testing framework with improved payment and virtual channel tests. [#423]
+
+[#423]: https://github.com/hyperledger-labs/go-perun/pull/423
+
+## [0.14.0] Narvi - 2025-07-29 [:boom:]
+Added [Libp2p](https://libp2p.io/) wire for go-perun. This enables seamless and secure P2P connection between clients.
+
+### Added :boom:
+
+* Wire implementation with libp2p [#420]
+
+### Fixed
+* Removed test backend signature from `authMsg` of exchange address protocol [#422] 
+
+### Changed
+
+* Updade action cache [#420]
+
+* Update workflow go version to 1.23 [#420]
+
+* Update workflow go linter to 2.1 [#420]
+
+[#420]: https://github.com/hyperledger-labs/go-perun/pull/420
+[#422]: https://github.com/hyperledger-labs/go-perun/pull/422
+
+
 ## [0.13.0] Metis - 2025-01-19 [:boom:]
 Support for multiple backends, allowing multiple address implementations per client. This enables the simultaneous use of several smaller backends, enhancing modularization.
 
-## Added :boom:
+### Added :boom:
 
 * Backend field in Allocation [#410]
 
 * Added interface restrictions to ensure cross-contract compatibility, including new functions and fields in interfaces such as Asset and Address [#410]
 
-## Changed
+### Changed
 
 * Updade action cache [#409]
 
@@ -31,7 +68,7 @@ Support for multiple backends, allowing multiple address implementations per cli
 [#410]: https://github.com/hyperledger-labs/go-perun/pull/410
 [#413]: https://github.com/hyperledger-labs/go-perun/pull/413
 
-## Legend
+### Legend
 - <span id="breaking">:boom:</span> This is a breaking change, e.g., it changes the external API.
 
 [:boom:]: #breaking
@@ -39,7 +76,7 @@ Support for multiple backends, allowing multiple address implementations per cli
 ## [0.12.0] Leda - 2024-11-19 [:boom:]
 Flexibility in funding for payment channels and basic Layer-2 security.
 
-## Added :boom:
+### Added :boom:
 
 * Egoistic funding allows users to wait for their peers to fund before they fund themselves. This change has to be adopted by the Perun backends to be usable ([in case of Ethereum](https://github.com/hyperledger-labs/perun-eth-backend/pull/45)): [#397 ]
 
@@ -47,7 +84,7 @@ Flexibility in funding for payment channels and basic Layer-2 security.
 
 * Support for Stellar backend in README: [#408]
 
-## Changed
+### Changed
 * Update go to 1.22: [#406 ]
 
 [#397]: https://github.com/hyperledger-labs/go-perun/pull/397
@@ -55,7 +92,7 @@ Flexibility in funding for payment channels and basic Layer-2 security.
 [#402]: https://github.com/hyperledger-labs/go-perun/pull/402
 [#408]: https://github.com/hyperledger-labs/go-perun/pull/408
 
-## Legend
+### Legend
 - <span id="breaking">:boom:</span> This is a breaking change, e.g., it changes the external API.
 
 [:boom:]: #breaking
@@ -63,13 +100,13 @@ Flexibility in funding for payment channels and basic Layer-2 security.
 ## [0.11.0] Kiviuq - 2024-02-21 [:boom:]
 Exposure of protobuf converters & `SignedState`, abstraction of tests and bug fixes.
 
-## Added
+### Added
 - Add Fabric to backend list in README: [#377]
 - Create new type `TransparentChannel` to expose `SignedState`: [#389]
 - Update backend compatibility list in README: [#392]
 - Add MAINTAINERS.md file, Update NOTICE: [#394]
 
-## Fixed 
+### Fixed 
 - Fix sub-channel test: [#359]
 - Fix Multi-Adjudicator Subscription: [#366]
 - Use correct identity for client tests: [#376]
@@ -77,7 +114,7 @@ Exposure of protobuf converters & `SignedState`, abstraction of tests and bug fi
 - Fix linter copyright year checking in CI: [#389]
 - Fix failing unit tests: [#399]
 
-## Changed [:boom:]
+### Changed [:boom:]
 - Abstract multiledger test, making it usable by backends: [#355]
 - Abstract fund recovery test, making it usable by backends: [#370]
 - Abstract virtual channel test, making it usable by backends: [#375]
@@ -488,6 +525,9 @@ Initial release.
 [:boom:]: #breaking
 
 [Unreleased]: https://github.com/hyperledger-labs/go-perun/compare/v0.11.0...HEAD
+[0.14.0]: https://github.com/hyperledger-labs/go-perun/compare/v0.13.0...v0.14.0
+[0.13.0]: https://github.com/hyperledger-labs/go-perun/compare/v0.12.0...v0.13.0
+[0.12.0]: https://github.com/hyperledger-labs/go-perun/compare/v0.11.0...v0.12.0
 [0.11.0]: https://github.com/hyperledger-labs/go-perun/compare/v0.10.0...v0.11.0
 [0.10.0]: https://github.com/hyperledger-labs/go-perun/compare/v0.9.1...v0.10.0
 [0.9.1]: https://github.com/hyperledger-labs/go-perun/compare/v0.9.0...v0.9.1

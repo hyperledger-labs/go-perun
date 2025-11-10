@@ -18,6 +18,7 @@ import (
 	"encoding"
 	"io"
 	"log"
+	"math"
 	"math/big"
 
 	"perun.network/go-perun/wallet"
@@ -64,12 +65,13 @@ type (
 	//
 	// Locked holds the locked allocations to sub-app-channels.
 	Allocation struct {
+		// Balances is the allocation of assets to the Params.Parts
+		Balances
+
 		// Backends is the indexes to which backend the assets belong to
 		Backends []wallet.BackendID
 		// Assets are the asset types held in this channel
 		Assets []Asset
-		// Balances is the allocation of assets to the Params.Parts
-		Balances
 		// Locked describes the funds locked in subchannels. There is one entry
 		// per subchannel.
 		Locked []SubAlloc
@@ -127,6 +129,9 @@ func NewAllocation(numParts int, backends []wallet.BackendID, assets ...Asset) *
 func (a *Allocation) AssetIndex(asset Asset) (Index, bool) {
 	for idx, _asset := range a.Assets {
 		if asset.Equal(_asset) {
+			if idx < 0 || idx >= math.MaxUint16 {
+				log.Panicf("asset index out of bounds: %d", idx)
+			}
 			return Index(idx), true
 		}
 	}
@@ -298,6 +303,86 @@ func (b Balances) Sub(a Balances) Balances {
 	)
 }
 
+// Sum returns the sum of each asset over all participants.
+func (b Balances) Sum() []Bal {
+	n := len(b)
+	totals := make([]*big.Int, n)
+	for i := range n {
+		totals[i] = new(big.Int)
+	}
+
+	for i, asset := range b {
+		for _, bal := range asset {
+			totals[i].Add(totals[i], bal)
+		}
+	}
+	return totals
+}
+
+// Decode decodes a Balances from an io.Reader.
+func (b *Balances) Decode(r io.Reader) error {
+	var numAssets, numParts Index
+	if err := perunio.Decode(r, &numAssets, &numParts); err != nil {
+		return errors.WithMessage(err, "decoding dimensions")
+	}
+	if numAssets > MaxNumAssets {
+		return errors.Errorf("expected maximum number of assets %d, got %d", MaxNumAssets, numAssets)
+	}
+	if numParts > MaxNumParts {
+		return errors.Errorf("expected maximum number of parts %d, got %d", MaxNumParts, numParts)
+	}
+
+	*b = make(Balances, numAssets)
+	for i := range *b {
+		(*b)[i] = make([]Bal, numParts)
+		for j := range (*b)[i] {
+			(*b)[i][j] = new(big.Int)
+			if err := perunio.Decode(r, &(*b)[i][j]); err != nil {
+				return errors.WithMessagef(
+					err, "decoding balance of asset %d of participant %d", i, j)
+			}
+		}
+	}
+	return nil
+}
+
+// Encode encodes these balances into an io.Writer.
+func (b Balances) Encode(w io.Writer) error {
+	numAssets := len(b)
+	numParts := 0
+
+	if numAssets > 0 {
+		numParts = len(b[0])
+	}
+
+	if numAssets > MaxNumAssets {
+		return errors.Errorf("expected maximum number of assets %d, got %d", MaxNumAssets, numAssets)
+	}
+
+	if numParts > MaxNumParts {
+		return errors.Errorf("expected maximum number of parts %d, got %d", MaxNumParts, numParts)
+	}
+
+	if numParts < 0 || numParts > math.MaxUint16 {
+		return errors.New("too many participants")
+	}
+
+	if err := perunio.Encode(w, Index(numAssets), Index(numParts)); err != nil {
+		return errors.WithMessage(err, "encoding dimensions")
+	}
+
+	for i := range b {
+		for j := range b[i] {
+			if err := perunio.Encode(w, b[i][j]); err != nil {
+				return errors.WithMessagef(
+					err, "encoding balance of asset %d of participant %d", i, j)
+			}
+		}
+	}
+
+	return nil
+}
+
 // operate returns op(b, a). It panics if the dimensions do not match.
 func (b Balances) operate(a Balances, op func(Bal, Bal) Bal) Balances {
 	if len(a) != len(b) {
@@ -325,12 +410,16 @@ func (a Allocation) Encode(w io.Writer) error {
 			err, "invalid allocations cannot be encoded, got %v", a)
 	}
 	// encode dimensions
-	if err := perunio.Encode(w, Index(len(a.Assets)), Index(len(a.Balances[0])), Index(len(a.Locked))); err != nil {
+	if err := perunio.Encode(w, Index(len(a.Assets)), Index(len(a.Balances[0])), Index(len(a.Locked))); err != nil { //nolint:gosec
 		return err
 	}
 	// encode assets
 	for i, asset := range a.Assets {
-		if err := perunio.Encode(w, uint32(a.Backends[i])); err != nil {
+		id := int(a.Backends[i])
+		if id < 0 || id > math.MaxUint32 {
+			return errors.New("asset index out of bounds")
+		}
+		if err := perunio.Encode(w, uint32(id)); err != nil {
 			return errors.WithMessagef(err, "encoding backends %d", i)
 		}
 		if err := perunio.Encode(w, asset); err != nil {
@@ -394,62 +483,6 @@ func (a *Allocation) Decode(r io.Reader) error {
 	return a.Valid()
 }
 
-// Decode decodes a Balances from an io.Reader.
-func (b *Balances) Decode(r io.Reader) error {
-	var numAssets, numParts Index
-	if err := perunio.Decode(r, &numAssets, &numParts); err != nil {
-		return errors.WithMessage(err, "decoding dimensions")
-	}
-	if numAssets > MaxNumAssets {
-		return errors.Errorf("expected maximum number of assets %d, got %d", MaxNumAssets, numAssets)
-	}
-	if numParts > MaxNumParts {
-		return errors.Errorf("expected maximum number of parts %d, got %d", MaxNumParts, numParts)
-	}
-
-	*b = make(Balances, numAssets)
-	for i := range *b {
-		(*b)[i] = make([]Bal, numParts)
-		for j := range (*b)[i] {
-			(*b)[i][j] = new(big.Int)
-			if err := perunio.Decode(r, &(*b)[i][j]); err != nil {
-				return errors.WithMessagef(
-					err, "decoding balance of asset %d of participant %d", i, j)
-			}
-		}
-	}
-	return nil
-}
-
-// Encode encodes these balances into an io.Writer.
-func (b Balances) Encode(w io.Writer) error {
-	numAssets := len(b)
-	numParts := 0
-
-	if numAssets > 0 {
-		numParts = len(b[0])
-	}
-	if numAssets > MaxNumAssets {
-		return errors.Errorf("expected maximum number of assets %d, got %d", MaxNumAssets, numAssets)
-	}
-	if numParts > MaxNumParts {
-		return errors.Errorf("expected maximum number of parts %d, got %d", MaxNumParts, numParts)
-	}
-
-	if err := perunio.Encode(w, Index(numAssets), Index(numParts)); err != nil {
-		return errors.WithMessage(err, "encoding dimensions")
-	}
-	for i := range b {
-		for j := range b[i] {
-			if err := perunio.Encode(w, b[i][j]); err != nil {
-				return errors.WithMessagef(
-					err, "encoding balance of asset %d of participant %d", i, j)
-			}
-		}
-	}
-	return nil
-}
-
 // CloneBals creates a deep copy of a balance array.
 func CloneBals(orig []Bal) []Bal {
 	if orig == nil {
@@ -480,6 +513,7 @@ func (a Allocation) Valid() error {
 	if len(a.Assets) == 0 || len(a.Balances) == 0 {
 		return errors.New("assets and participant balances must not be of length zero (or nil)")
 	}
+
 	if len(a.Assets) > MaxNumAssets || len(a.Locked) > MaxNumSubAllocations {
 		return errors.New("too many assets or sub-allocations")
 	}
@@ -532,22 +566,6 @@ func (a Allocation) Sum() []Bal {
 		}
 	}
 
-	return totals
-}
-
-// Sum returns the sum of each asset over all participants.
-func (b Balances) Sum() []Bal {
-	n := len(b)
-	totals := make([]*big.Int, n)
-	for i := 0; i < n; i++ {
-		totals[i] = new(big.Int)
-	}
-
-	for i, asset := range b {
-		for _, bal := range asset {
-			totals[i].Add(totals[i], bal)
-		}
-	}
 	return totals
 }
 
@@ -607,7 +625,7 @@ func (a *Allocation) Equal(b *Allocation) error {
 	}
 
 	// Compare Balances
-	if err := a.Balances.AssertEqual(b.Balances); err != nil {
+	if err := a.AssertEqual(b.Balances); err != nil {
 		return errors.WithMessage(err, "comparing balances")
 	}
 
@@ -667,7 +685,11 @@ func (s SubAlloc) Encode(w io.Writer) error {
 			err, "invalid sub-allocations cannot be encoded, got %v", s)
 	}
 	// encode ID and dimension
-	if err := perunio.Encode(w, s.ID, Index(len(s.Bals))); err != nil {
+	balsLen := len(s.Bals)
+	if balsLen > math.MaxUint16 {
+		return errors.New("too many bals")
+	}
+	if err := perunio.Encode(w, s.ID, Index(balsLen)); err != nil {
 		return errors.WithMessagef(
 			err, "encoding sub-allocation ID or dimension, id %v", s.ID)
 	}
@@ -679,7 +701,11 @@ func (s SubAlloc) Encode(w io.Writer) error {
 		}
 	}
 	// Encode IndexMap.
-	if err := perunio.Encode(w, Index(len(s.IndexMap))); err != nil {
+	idxMapLen := len(s.IndexMap)
+	if idxMapLen > math.MaxUint16 {
+		return errors.New("too many index map entries")
+	}
+	if err := perunio.Encode(w, Index(idxMapLen)); err != nil {
 		return errors.WithMessage(err, "encoding length of index map")
 	}
 	for i, x := range s.IndexMap {
@@ -748,6 +774,7 @@ func (s *SubAlloc) BalancesEqual(b []Bal) bool {
 	if len(s.Bals) != len(b) {
 		return false
 	}
+
 	for i, bal := range s.Bals {
 		if bal.Cmp(b[i]) != 0 {
 			return false

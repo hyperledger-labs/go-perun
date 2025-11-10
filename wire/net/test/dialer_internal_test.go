@@ -19,6 +19,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	perunio "perun.network/go-perun/wire/perunio/serializer"
 	"perun.network/go-perun/wire/test"
@@ -51,6 +52,6 @@ func TestDialer_Dial(t *testing.T) {
 
 func TestDialer_Close(t *testing.T) {
 	var d Dialer
-	assert.NoError(t, d.Close())
+	require.NoError(t, d.Close())
 	assert.Error(t, d.Close())
 }

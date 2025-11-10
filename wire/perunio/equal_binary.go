@@ -37,6 +37,7 @@ func EqualBinary(a, b encoding.BinaryMarshaler) (bool, error) {
 	if err != nil {
 		return false, errors.Wrap(err, "EqualBinary: marshaling a")
 	}
+
 	binaryB, err := b.MarshalBinary()
 	if err != nil {
 		return false, errors.Wrap(err, "EqualBinary: marshaling b")

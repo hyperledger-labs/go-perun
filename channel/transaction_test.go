@@ -33,7 +33,7 @@ func TestTransactionSerialization(t *testing.T) {
 		tests = append(tests,
 			newUniformBoolSlice(l, true), newUniformBoolSlice(l, false),
 			newStripedBoolSlice(l, true), newStripedBoolSlice(l, false))
-		for i := 0; i < l; i++ {
+		for i := range l {
 			tests = append(tests, newAlmostUniformBoolSlice(i, l, true))
 			tests = append(tests, newAlmostUniformBoolSlice(i, l, false))
 		}

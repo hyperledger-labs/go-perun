@@ -40,6 +40,7 @@ func newRegistry() *registry {
 func (r *registry) addIfSucceeds(id channel.ID, chInitializer chInitializer) (*ch, error) {
 	r.mtx.Lock()
 	defer r.mtx.Unlock()
+
 	if _, ok := r.chs[id]; ok {
 		return nil, errors.New("already watching for this channel")
 	}

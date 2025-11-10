@@ -20,6 +20,7 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	"perun.network/go-perun/wire"
 	wirenet "perun.network/go-perun/wire/net"
@@ -49,7 +50,7 @@ func TestListener_Accept_Put(t *testing.T) {
 
 		ctxtest.AssertTerminates(t, timeout, func() {
 			conn, err := l.Accept(perunio.Serializer())
-			assert.NoError(t, err, "Accept must not fail")
+			require.NoError(t, err, "Accept must not fail")
 			assert.Same(t, connection, conn,
 				"Accept must receive connection from Put")
 			assert.Equal(t, 1, l.NumAccepted(),
@@ -130,7 +131,7 @@ func TestListener_Put(t *testing.T) {
 func TestListener_Close(t *testing.T) {
 	l := NewNetListener()
 	assert.False(t, l.IsClosed())
-	assert.NoError(t, l.Close())
+	require.NoError(t, l.Close())
 	assert.True(t, l.IsClosed())
 	assert.Error(t, l.Close())
 }

@@ -58,6 +58,7 @@ func SetRandomizer(b Randomizer, bID wallet.BackendID) {
 	if randomizer == nil {
 		randomizer = make(map[wallet.BackendID]Randomizer)
 	}
+
 	if randomizer[bID] != nil {
 		panic("wallet/test randomizer already set")
 	}
@@ -100,6 +101,7 @@ func NewWallet(bID wallet.BackendID) Wallet {
 // by calling NewRandomAccount.
 func NewRandomAccounts(rng *rand.Rand, n int, bID wallet.BackendID) ([]map[wallet.BackendID]wallet.Account, []map[wallet.BackendID]wallet.Address) {
 	accs := make([]map[wallet.BackendID]wallet.Account, n)
+
 	addrs := make([]map[wallet.BackendID]wallet.Address, n)
 	for i := range accs {
 		accs[i] = map[wallet.BackendID]wallet.Account{bID: NewRandomAccount(rng, bID)}

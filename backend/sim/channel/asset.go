@@ -31,29 +31,29 @@ var byteOrder = binary.BigEndian
 
 // Asset simulates a `channel.Asset` by only containing an `ID`.
 type Asset struct {
-	ID int64
+	ID uint64
 }
 
 var _ channel.Asset = new(Asset)
 
 // NewRandomAsset returns a new random sim Asset.
 func NewRandomAsset(rng *rand.Rand) *Asset {
-	return &Asset{ID: rng.Int63()}
+	return &Asset{ID: rng.Uint64()}
 }
 
 // MarshalBinary marshals the address into its binary representation.
 func (a Asset) MarshalBinary() ([]byte, error) {
 	data := make([]byte, assetLen)
-	byteOrder.PutUint64(data, uint64(a.ID))
+	byteOrder.PutUint64(data, a.ID)
 	return data, nil
 }
 
 // UnmarshalBinary unmarshals the asset from its binary representation.
 func (a *Asset) UnmarshalBinary(data []byte) error {
 	if len(data) != assetLen {
-		return fmt.Errorf("unexpected length %d, want %d", len(data), assetLen) //nolint:goerr113  // We do not want to define this as constant error.
+		return fmt.Errorf("unexpected length %d, want %d", len(data), assetLen) // We do not want to define this as constant error.
 	}
-	a.ID = int64(byteOrder.Uint64(data))
+	a.ID = byteOrder.Uint64(data)
 	return nil
 }
 

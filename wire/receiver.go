@@ -35,9 +35,16 @@ var _ Consumer = (*Receiver)(nil)
 // execution context at a time. If multiple contexts need to access a peer's
 // messages, then multiple receivers have to be created.
 type Receiver struct {
-	msgs chan *Envelope
-
 	sync.Closer
+
+	msgs chan *Envelope
+}
+
+// NewReceiver creates a new receiver.
+func NewReceiver() *Receiver {
+	return &Receiver{
+		msgs: make(chan *Envelope, receiverBufferSize),
+	}
 }
 
 // Next returns a channel to the next message.
@@ -65,12 +72,5 @@ func (r *Receiver) Put(e *Envelope) {
 	select {
 	case r.msgs <- e:
 	case <-r.Closed():
-	}
-}
-
-// NewReceiver creates a new receiver.
-func NewReceiver() *Receiver {
-	return &Receiver{
-		msgs: make(chan *Envelope, receiverBufferSize),
 	}
 }

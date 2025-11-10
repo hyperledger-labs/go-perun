@@ -18,6 +18,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	wiretest "perun.network/go-perun/wire/test"
 	pkgtest "polycry.pt/poly-go/test"
@@ -70,19 +71,19 @@ func MockStateAppTest(t *testing.T, app MockApp) {
 
 	t.Run("ValidTransition", func(t *testing.T) {
 		// ValidTransition only checks the first state.
-		assert.NoError(t, app.ValidTransition(nil, stateValid, nil, 0))
+		require.NoError(t, app.ValidTransition(nil, stateValid, nil, 0))
 		assert.Error(t, app.ValidTransition(nil, stateErr, nil, 0))
 		assert.True(t, IsStateTransitionError(app.ValidTransition(nil, stateTransErr, nil, 0)))
 		assert.True(t, IsActionError(app.ValidTransition(nil, stateActErr, nil, 0)))
-		assert.Panics(t, func() { assert.NoError(t, app.ValidTransition(nil, statePanic, nil, 0)) })
+		assert.Panics(t, func() { require.NoError(t, app.ValidTransition(nil, statePanic, nil, 0)) })
 	})
 
 	t.Run("ValidInit", func(t *testing.T) {
-		assert.NoError(t, app.ValidInit(nil, stateValid))
+		require.NoError(t, app.ValidInit(nil, stateValid))
 		assert.Error(t, app.ValidInit(nil, stateErr))
 		assert.True(t, IsStateTransitionError(app.ValidInit(nil, stateTransErr)))
 		assert.True(t, IsActionError(app.ValidInit(nil, stateActErr)))
-		assert.Panics(t, func() { assert.NoError(t, app.ValidInit(nil, statePanic)) })
+		assert.Panics(t, func() { require.NoError(t, app.ValidInit(nil, statePanic)) })
 	})
 }
 
@@ -99,7 +100,7 @@ func MockActionAppTest(t *testing.T, app MockApp) {
 	t.Run("InitState", func(t *testing.T) {
 		_, _, err := app.InitState(nil, []Action{actValid})
 		// Sadly we can not check Allocation.valid() here, since it is private.
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		_, _, err = app.InitState(nil, []Action{actErr})
 		assert.Error(t, err)
@@ -114,7 +115,7 @@ func MockActionAppTest(t *testing.T, app MockApp) {
 	})
 
 	t.Run("ValidAction", func(t *testing.T) {
-		assert.NoError(t, app.ValidAction(nil, nil, 0, actValid))
+		require.NoError(t, app.ValidAction(nil, nil, 0, actValid))
 		assert.Error(t, app.ValidAction(nil, nil, 0, actErr))
 		assert.True(t, IsStateTransitionError(app.ValidAction(nil, nil, 0, actTransErr)))
 		assert.True(t, IsActionError(app.ValidAction(nil, nil, 0, actActErr)))
@@ -125,7 +126,7 @@ func MockActionAppTest(t *testing.T, app MockApp) {
 		// ApplyActions increments the Version counter, so we cant pass nil as state.
 		retState, err := app.ApplyActions(nil, state, []Action{actValid})
 		assert.Equal(t, retState.Version, state.Version+1)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		_, err = app.ApplyActions(nil, state, []Action{actErr})
 		assert.Error(t, err)

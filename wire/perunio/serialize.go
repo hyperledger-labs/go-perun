@@ -43,12 +43,15 @@ func Encode(writer io.Writer, values ...interface{}) (err error) { //nolint: cyc
 			err = BigInt{v}.Encode(writer)
 		case [32]byte:
 			_, err = writer.Write(v[:])
+		case [256]byte:
+			_, err = writer.Write(v[:])
 		case []byte:
 			err = ByteSlice(v).Encode(writer)
 		case string:
 			err = encodeString(writer, v)
 		case encoding.BinaryMarshaler:
 			var data []byte
+
 			data, err = v.MarshalBinary()
 			if err != nil {
 				return errors.WithMessage(err, "marshaling to byte array")
@@ -58,6 +61,7 @@ func Encode(writer io.Writer, values ...interface{}) (err error) { //nolint: cyc
 			if length > uint16MaxValue {
 				panic(fmt.Sprintf("length of marshaled data is %d, should be <= %d", len(data), uint16MaxValue))
 			}
+
 			err = binary.Write(writer, byteOrder, uint16(length))
 			if err != nil {
 				return errors.WithMessage(err, "writing length of marshalled data")
@@ -67,6 +71,7 @@ func Encode(writer io.Writer, values ...interface{}) (err error) { //nolint: cyc
 			if length == 0 {
 				break
 			}
+
 			err = ByteSlice(data).Encode(writer)
 		default:
 			if enc, ok := value.(Encoder); ok {
@@ -86,6 +91,8 @@ func Encode(writer io.Writer, values ...interface{}) (err error) { //nolint: cyc
 
 // Decode decodes multiple primitive values from a reader.
 // All passed values must be references, not copies.
+//
+//nolint:cyclop
 func Decode(reader io.Reader, values ...interface{}) (err error) {
 	for i, value := range values {
 		switch v := value.(type) {
@@ -100,6 +107,8 @@ func Decode(reader io.Reader, values ...interface{}) (err error) {
 			err = d.Decode(reader)
 			*v = d.Int
 		case *[32]byte:
+			_, err = io.ReadFull(reader, v[:])
+		case *[256]byte:
 			_, err = io.ReadFull(reader, v[:])
 		case *[]byte:
 			d := ByteSlice(*v)
@@ -117,6 +126,7 @@ func Decode(reader io.Reader, values ...interface{}) (err error) {
 			if length == 0 {
 				break
 			}
+
 			var data ByteSlice = make([]byte, length)
 			err = data.Decode(reader)
 			if err != nil {

@@ -21,13 +21,12 @@ import (
 	"testing"
 	"time"
 
-	"perun.network/go-perun/wallet"
-
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"perun.network/go-perun/channel"
 	"perun.network/go-perun/client"
+	"perun.network/go-perun/wallet"
 	"perun.network/go-perun/wire"
 	"polycry.pt/poly-go/sync"
 )
@@ -41,6 +40,7 @@ type VirtualChannelSetup struct {
 	BalanceDelta       channel.Bal
 	Rng                *rand.Rand
 	WaitWatcherTimeout time.Duration
+	IsUTXO             bool
 }
 
 // TestVirtualChannelOptimistic tests virtual channel functionality in the
@@ -75,10 +75,56 @@ func TestVirtualChannelOptimistic( //nolint:revive // test.Test... stutters but 
 	}
 
 	// Test final balances.
-	err := vct.chAliceIngrid.State().Balances.AssertEqual(channel.Balances{vct.finalBalsAlice})
+	err := vct.chAliceIngrid.State().AssertEqual(channel.Balances{vct.finalBalsAlice})
 	assert.NoError(t, err, "Alice: invalid final balances")
-	err = vct.chBobIngrid.State().Balances.AssertEqual(channel.Balances{vct.finalBalsBob})
+	err = vct.chBobIngrid.State().AssertEqual(channel.Balances{vct.finalBalsBob})
 	assert.NoError(t, err, "Bob: invalid final balances")
+
+	// Close the parents.
+	err = vct.chIngridAlice.Update(ctx, func(s *channel.State) {
+		s.IsFinal = true
+	})
+	assert.NoError(t, err, "Alice: close channel")
+	err = vct.chIngridBob.Update(ctx, func(s *channel.State) {
+		s.IsFinal = true
+	})
+	assert.NoError(t, err, "Bob: close channel")
+	chs = []*client.Channel{vct.chAliceIngrid, vct.chIngridAlice, vct.chBobIngrid, vct.chIngridBob}
+	isSecondary := [2]bool{false, false}
+	perm := rand.Perm(len(chs))
+	t.Logf("Settle order = %v", perm)
+	for _, i := range perm {
+		var err error
+		if i < 2 { //nolint:mnd
+			err = chs[i].Settle(ctx, isSecondary[0])
+			isSecondary[0] = true
+		} else {
+			err = chs[i].Settle(ctx, isSecondary[1])
+			isSecondary[1] = true
+		}
+		assert.NoErrorf(t, err, "settle channel: %d", i)
+	}
+
+	// Check final balances.
+	balancesAfter := channel.Balances{
+		{
+			vct.alice.BalanceReader.Balance(vct.asset),
+			vct.bob.BalanceReader.Balance(vct.asset),
+			vct.ingrid.BalanceReader.Balance(vct.asset),
+		},
+	}
+
+	balancesDiff := balancesAfter.Sub(vct.balancesBefore)
+	expectedBalancesDiff := channel.Balances{
+		{
+			new(big.Int).Sub(vct.finalBalsAlice[0], vct.initBalsAlice[0]),
+			new(big.Int).Sub(vct.finalBalsBob[0], vct.initBalsBob[0]),
+			big.NewInt(0),
+		},
+	}
+	balanceDelta := setup.BalanceDelta
+	eq := EqualBalancesWithDelta(expectedBalancesDiff, balancesDiff, balanceDelta)
+	assert.Truef(t, eq, "final ledger balances incorrect: expected balance difference %v +- %v, got %v", expectedBalancesDiff, balanceDelta, balancesDiff)
 }
 
 // TestVirtualChannelDispute tests virtual channel functionality in the dispute
@@ -92,6 +138,8 @@ func TestVirtualChannelDispute( //nolint:revive // test.Test... stutters but OK 
 	assert := assert.New(t)
 	waitTimeout := setup.WaitWatcherTimeout
 
+	time.Sleep(waitTimeout) // Sleep to ensure that events have been processed and local client states have been updated.
+
 	chs := []*client.Channel{vct.chAliceIngrid, vct.chIngridAlice, vct.chBobIngrid, vct.chIngridBob}
 	// Register the channels in a random order.
 	perm := rand.Perm(len(chs))
@@ -103,8 +151,18 @@ func TestVirtualChannelDispute( //nolint:revive // test.Test... stutters but OK 
 	}
 
 	// Settle the channels in a random order.
-	for _, i := range rand.Perm(len(chs)) {
-		err := chs[i].Settle(ctx, false)
+	isSecondary := [2]bool{false, false}
+	perm = rand.Perm(len(chs))
+	t.Logf("Settle order = %v", perm)
+	for _, i := range perm {
+		var err error
+		if i < 2 { //nolint:mnd
+			err = chs[i].Settle(ctx, isSecondary[0])
+			isSecondary[0] = true
+		} else {
+			err = chs[i].Settle(ctx, isSecondary[1])
+			isSecondary[1] = true
+		}
 		assert.NoErrorf(err, "settle channel: %d", i)
 	}
 
@@ -149,6 +207,8 @@ type virtualChannelTest struct {
 	errs               chan error
 	asset              channel.Asset
 	balancesBefore     channel.Balances
+	isUTXO             bool
+	parentIDs          [2]channel.ID
 }
 
 // VirtualChannelBalances contains a description of the balances that will be
@@ -162,7 +222,7 @@ type VirtualChannelBalances struct {
 	FinalBalsBob        []*big.Int
 }
 
-func setupVirtualChannelTest(
+func setupVirtualChannelTest( //nolint:cyclop, maintidx
 	t *testing.T,
 	ctx context.Context,
 	setup VirtualChannelSetup,
@@ -180,6 +240,7 @@ func setupVirtualChannelTest(
 	vct.finalBalsAlice = setup.Balances.FinalBalsAlice
 	vct.finalBalsBob = setup.Balances.FinalBalsBob
 	vct.finalBalIngrid = new(big.Int).Add(vct.finalBalsAlice[1], vct.finalBalsBob[1])
+	vct.isUTXO = setup.IsUTXO
 
 	const errBufferLen = 10
 	vct.errs = make(chan error, errBufferLen)
@@ -213,10 +274,10 @@ func setupVirtualChannelTest(
 		}
 	}
 	var updateProposalHandlerIngrid client.UpdateHandlerFunc = func(
-		s *channel.State, cu client.ChannelUpdate, ur *client.UpdateResponder,
+		_ *channel.State, _ client.ChannelUpdate, _ *client.UpdateResponder,
 	) {
 	}
-	go ingrid.Client.Handle(openingProposalHandlerIngrid, updateProposalHandlerIngrid)
+	go ingrid.Handle(openingProposalHandlerIngrid, updateProposalHandlerIngrid) //nolint:contextcheck
 
 	// Establish ledger channel between Alice and Ingrid.
 	peersAlice := []map[wallet.BackendID]wire.Address{wire.AddressMapfromAccountMap(alice.Identity), wire.AddressMapfromAccountMap(ingrid.Identity)}
@@ -280,14 +341,40 @@ func setupVirtualChannelTest(
 		}
 	}
 	var updateProposalHandlerBob client.UpdateHandlerFunc = func(
-		s *channel.State, cu client.ChannelUpdate, ur *client.UpdateResponder,
+		_ *channel.State, cu client.ChannelUpdate, ur *client.UpdateResponder,
 	) {
 		err := ur.Accept(ctx)
 		if err != nil {
 			vct.errs <- errors.WithMessage(err, "Bob: accepting channel update")
 		}
 	}
-	go bob.Client.Handle(openingProposalHandlerBob, updateProposalHandlerBob)
+	go bob.Handle(openingProposalHandlerBob, updateProposalHandlerBob) //nolint:contextcheck
+
+	// Setup Alice's handlers.
+	channelsAlice := make(chan *client.Channel, 1)
+	var openingProposalHandlerAlice client.ProposalHandlerFunc = func(
+		cp client.ChannelProposal, pr *client.ProposalResponder,
+	) {
+		switch cp := cp.(type) {
+		case *client.VirtualChannelProposalMsg:
+			ch, err := pr.Accept(ctx, cp.Accept(bob.WalletAddress))
+			if err != nil {
+				vct.errs <- errors.WithMessage(err, "accepting virtual channel proposal")
+			}
+			channelsAlice <- ch
+		default:
+			vct.errs <- errors.Errorf("invalid channel proposal: %v", cp)
+		}
+	}
+	var updateProposalHandlerAlice client.UpdateHandlerFunc = func(
+		s *channel.State, cu client.ChannelUpdate, ur *client.UpdateResponder,
+	) {
+		err := ur.Accept(ctx)
+		if err != nil {
+			vct.errs <- errors.WithMessage(err, "Alice: accepting channel update")
+		}
+	}
+	go alice.Handle(openingProposalHandlerAlice, updateProposalHandlerAlice) //nolint:contextcheck
 
 	// Establish virtual channel between Alice and Bob via Ingrid.
 	initAllocVirtual := channel.Allocation{
@@ -297,14 +384,37 @@ func setupVirtualChannelTest(
 	}
 	indexMapAlice := []channel.Index{0, 1}
 	indexMapBob := []channel.Index{1, 0}
-	vcp, err := client.NewVirtualChannelProposal(
-		setup.ChallengeDuration,
-		alice.WalletAddress,
-		&initAllocVirtual,
-		[]map[wallet.BackendID]wire.Address{wire.AddressMapfromAccountMap(alice.Identity), wire.AddressMapfromAccountMap(bob.Identity)},
-		[]channel.ID{vct.chAliceIngrid.ID(), vct.chBobIngrid.ID()},
-		[][]channel.Index{indexMapAlice, indexMapBob},
-	)
+
+	vct.parentIDs[0] = vct.chAliceIngrid.ID()
+	vct.parentIDs[1] = vct.chBobIngrid.ID()
+
+	var vcp *client.VirtualChannelProposalMsg
+	if setup.IsUTXO {
+		// UTXO Chains need additional auxiliary data to be able to
+		// create a virtual channel.
+		var aux channel.Aux
+		copy(aux[:channel.IDLen], vct.parentIDs[0][:])
+		copy(aux[channel.IDLen:], vct.parentIDs[1][:])
+
+		vcp, err = client.NewVirtualChannelProposal(
+			setup.ChallengeDuration,
+			alice.WalletAddress,
+			&initAllocVirtual,
+			[]map[wallet.BackendID]wire.Address{wire.AddressMapfromAccountMap(alice.Identity), wire.AddressMapfromAccountMap(bob.Identity)},
+			[]channel.ID{vct.chAliceIngrid.ID(), vct.chBobIngrid.ID()},
+			[][]channel.Index{indexMapAlice, indexMapBob},
+			client.WithAux(aux),
+		)
+	} else {
+		vcp, err = client.NewVirtualChannelProposal(
+			setup.ChallengeDuration,
+			alice.WalletAddress,
+			&initAllocVirtual,
+			[]map[wallet.BackendID]wire.Address{wire.AddressMapfromAccountMap(alice.Identity), wire.AddressMapfromAccountMap(bob.Identity)},
+			[]channel.ID{vct.chAliceIngrid.ID(), vct.chBobIngrid.ID()},
+			[][]channel.Index{indexMapAlice, indexMapBob},
+		)
+	}
 	require.NoError(err, "creating virtual channel proposal")
 
 	vct.chAliceBob, err = alice.ProposeChannel(ctx, vcp)

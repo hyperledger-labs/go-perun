@@ -39,14 +39,16 @@ func TestEncodeDecodeString(t *testing.T) {
 		for _, s := range ss {
 			r, w := io.Pipe()
 			done := make(chan struct{})
+
 			go func() {
 				defer close(done)
 				defer w.Close()
+
 				assert.NoError(encodeString(w, s))
 			}()
 
 			var d string
-			assert.NoError(decodeString(r, &d))
+			require.NoError(t, decodeString(r, &d))
 			r.Close()
 			assert.Equal(s, d)
 			<-done
@@ -55,8 +57,9 @@ func TestEncodeDecodeString(t *testing.T) {
 
 	t.Run("too long string", func(t *testing.T) {
 		tooLong := string(append(uint16buf, 42)) //nolint: makezero
+
 		var buf bytes.Buffer
-		assert.Error(encodeString(&buf, tooLong))
+		require.Error(t, encodeString(&buf, tooLong))
 		assert.Zero(buf.Len(), "nothing should have been written to the stream")
 	})
 
@@ -67,7 +70,7 @@ func TestEncodeDecodeString(t *testing.T) {
 		buf.Write(make([]byte, 8)) // 8 bytes missing
 
 		var d string
-		assert.Error(decodeString(&buf, &d))
+		require.Error(t, decodeString(&buf, &d))
 		assert.Zero(buf.Len(), "buffer should be exhausted")
 	})
 }

@@ -161,7 +161,7 @@ func (e OptAppEnc) Encode(w io.Writer) error {
 	if IsNoApp(e.App) {
 		return perunio.Encode(w, false)
 	}
-	return perunio.Encode(w, true, e.App.Def())
+	return perunio.Encode(w, true, e.Def())
 }
 
 // Encode encodes an optional App value.
@@ -221,7 +221,7 @@ func (d OptAppDecMap) Decode(r io.Reader) (err error) {
 		return err
 	}
 	*d.App = make(map[int]App, mapLen)
-	for i := 0; i < mapLen; i++ {
+	for range mapLen {
 		var key int
 		if err := perunio.Decode(r, &key); err != nil {
 			return err

@@ -61,14 +61,14 @@ type PingMsg struct {
 	PingPongMsg
 }
 
-// Type returns Ping.
-func (m *PingMsg) Type() Type {
-	return Ping
-}
-
 // NewPingMsg creates a new Ping message.
 func NewPingMsg() *PingMsg {
 	return &PingMsg{newPingPongMsg()}
+}
+
+// Type returns Ping.
+func (m *PingMsg) Type() Type {
+	return Ping
 }
 
 // PongMsg is the response to a ping message.
@@ -79,14 +79,14 @@ type PongMsg struct {
 	PingPongMsg
 }
 
-// Type returns Pong.
-func (m *PongMsg) Type() Type {
-	return Pong
-}
-
 // NewPongMsg creates a new Pong message.
 func NewPongMsg() *PongMsg {
 	return &PongMsg{newPingPongMsg()}
+}
+
+// Type returns Pong.
+func (m *PongMsg) Type() Type {
+	return Pong
 }
 
 // ShutdownMsg is sent when orderly shutting down a connection.

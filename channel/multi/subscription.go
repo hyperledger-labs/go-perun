@@ -75,7 +75,7 @@ func (s *AdjudicatorSubscription) Next() channel.AdjudicatorEvent {
 
 // Err blocks until an error occurred and returns it.
 func (s *AdjudicatorSubscription) Err() error {
-	for i := 0; i < len(s.subs); i++ {
+	for range len(s.subs) {
 		err := <-s.errors
 		if err != nil {
 			return err
@@ -89,6 +89,7 @@ func (s *AdjudicatorSubscription) Close() error {
 	for _, sub := range s.subs {
 		sub.Close()
 	}
+
 	close(s.done)
 	return nil
 }

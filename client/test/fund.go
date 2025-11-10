@@ -109,6 +109,7 @@ func runFredFridaTest(
 	// New channels and errors are passed via the corresponding Go channels.
 	chsFred := make(chan *client.Channel, 1)
 	errsFred := make(chan error, 1)
+	//nolint:contextcheck
 	go fred.Handle(
 		AlwaysAcceptChannelHandler(ctx, fredWalletAddr, chsFred, errsFred),
 		AlwaysRejectUpdateHandler(ctx, errsFred),
@@ -137,6 +138,7 @@ func runFredFridaTest(
 	// Fred gets the channel and settles it afterwards.
 	chFred := <-chsFred
 	require.NotNil(t, chFred)
+
 	select {
 	case err := <-errsFred:
 		require.IsType(t, &client.ChannelFundingError{}, err)

@@ -79,10 +79,12 @@ func TestMultiLedgerDispute(
 	// Setup proposal handler.
 	channels := make(chan *client.Channel, 1)
 	errs := make(chan error)
+	//nolint:contextcheck
 	go alice.Handle(
 		AlwaysRejectChannelHandler(ctx, errs),
 		AlwaysAcceptUpdateHandler(ctx, errs),
 	)
+	//nolint:contextcheck
 	go bob.Handle(
 		AlwaysAcceptChannelHandler(ctx, bob.WalletAddress, channels, errs),
 		AlwaysAcceptUpdateHandler(ctx, errs),
@@ -99,11 +101,12 @@ func TestMultiLedgerDispute(
 	}
 
 	// Start Bob's watcher.
+	//nolint:contextcheck
 	go func() {
 		errs <- chBobAlice.Watch(bob)
 	}()
 	// Wait until watcher is active.
-	time.Sleep(100 * time.Millisecond) //nolint:gomnd // The 100ms is a guess on how long the watcher needs to setup.
+	time.Sleep(100 * time.Millisecond) //nolint:mnd // The 100ms is a guess on how long the watcher needs to setup.
 
 	// Notify Bob when an update is complete.
 	done := make(chan struct{}, 1)
@@ -119,7 +122,7 @@ func TestMultiLedgerDispute(
 
 	// Wait until Bob's watcher processed the update.
 	<-done
-	time.Sleep(100 * time.Millisecond) //nolint:gomnd // The 100ms is a guess on how long the watcher needs to catch up.
+	time.Sleep(100 * time.Millisecond) //nolint:mnd // The 100ms is a guess on how long the watcher needs to catch up.
 
 	// Alice registers state on L1 adjudicator.
 	req1 := client.NewTestChannel(chAliceBob).AdjudicatorReq()

@@ -18,6 +18,7 @@ import (
 	"context"
 	"math/rand"
 
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"perun.network/go-perun/channel"
@@ -31,10 +32,11 @@ import (
 // Channel is a wrapper around a persisted channel and its participants, as well
 // as the associated persister and restorer.
 type Channel struct {
+	*persistence.StateMachine
+
 	accounts []map[wallet.BackendID]wallet.Account
 	peers    []map[wallet.BackendID]wire.Address
 	parent   *channel.ID
-	*persistence.StateMachine
 
 	pr  persistence.PersistRestorer
 	ctx context.Context //nolint:containedctx // This is just done for testing. Could be revised.
@@ -57,6 +59,7 @@ func NewRandomChannel(
 	rng *rand.Rand,
 ) (c *Channel) {
 	bID := wallet.BackendID(channel.TestBackendID)
+
 	if len(peers) > 0 {
 		for i := range peers[0] {
 			bID = i
@@ -182,7 +185,7 @@ func (c *Channel) SignAll(ctx context.Context, t require.TestingT) {
 	for i := range c.accounts {
 		sig, err := channel.Sign(c.accounts[i][channel.TestBackendID], c.StagingState(), channel.TestBackendID)
 		require.NoError(t, err)
-		c.AddSig(ctx, channel.Index(i), sig) //nolint:errcheck
+		c.AddSig(ctx, channel.Index(i), sig) //nolint:errcheck, gosec
 		c.AssertPersisted(ctx, t)
 	}
 }
@@ -240,6 +243,6 @@ func (c *Channel) SetWithdrawing(t require.TestingT) {
 func (c *Channel) SetWithdrawn(t require.TestingT) {
 	require.NoError(t, c.StateMachine.SetWithdrawn(c.ctx))
 	rc, err := c.pr.RestoreChannel(c.ctx, c.ID())
-	require.Error(t, err, "restoring of a non-existing channel")
-	require.Nil(t, rc, "restoring of a non-existing channel")
+	assert.Error(t, err, "restoring of a non-existing channel")
+	assert.Nil(t, rc, "restoring of a non-existing channel")
 }

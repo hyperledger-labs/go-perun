@@ -59,7 +59,7 @@ func initSigSlice(length int, prng *rand.Rand) []wallet.Sig {
 	s := make([]wallet.Sig, length)
 	for i := range s {
 		s[i] = make(wallet.Sig, 32)
-		for j := 0; j < 32; j++ {
+		for j := range 32 {
 			s[i][j] = byte(prng.Int())
 		}
 	}

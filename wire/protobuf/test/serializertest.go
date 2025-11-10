@@ -42,7 +42,7 @@ func MsgSerializerTest(t *testing.T, msg wire.Msg) {
 
 	gotEnvelope, err := ser.Decode(&buff)
 	require.NoError(t, err)
-	assert.EqualValues(t, envelope, gotEnvelope)
+	assert.Equal(t, envelope, gotEnvelope)
 }
 
 func newEnvelope(rng *rand.Rand) *wire.Envelope {

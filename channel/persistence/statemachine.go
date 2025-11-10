@@ -27,6 +27,7 @@ import (
 // to it and, if successful, persists changed data using a Persister.
 type StateMachine struct {
 	*channel.StateMachine
+
 	pr Persister
 }
 

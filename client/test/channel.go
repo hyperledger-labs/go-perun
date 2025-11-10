@@ -21,8 +21,6 @@ import (
 	"math/big"
 	"time"
 
-	"perun.network/go-perun/wallet"
-
 	"perun.network/go-perun/channel"
 	"perun.network/go-perun/client"
 	"perun.network/go-perun/log"
@@ -34,6 +32,7 @@ type (
 	// interface so it can be its own update handler.
 	paymentChannel struct {
 		*client.Channel
+
 		r *role // Reuse of timeout and testing obj
 
 		log     log.Logger
@@ -61,16 +60,33 @@ func newPaymentChannel(ch *client.Channel, r *role) *paymentChannel {
 	}
 }
 
+// The payment channel is its own update handler.
+func (ch *paymentChannel) Handle(up client.ChannelUpdate, res *client.UpdateResponder) {
+	ch.log.Infof("Incoming channel update: %v", up)
+	ctx, cancel := context.WithTimeout(context.Background(), ch.r.timeout)
+	defer cancel()
+
+	accept := <-ch.handler
+	if accept {
+		ch.log.Debug("Accepting...")
+
+		ch.res <- handlerRes{up, res.Accept(ctx)}
+	} else {
+		ch.log.Debug("Rejecting...")
+
+		ch.res <- handlerRes{up, res.Reject(ctx, "Rejection")}
+	}
+}
+
 func (ch *paymentChannel) openSubChannel(
 	rng io.Reader,
 	cfg ExecConfig,
 	initBals []*big.Int,
 	app client.ProposalOpts,
-	bID wallet.BackendID,
 ) *paymentChannel {
 	initAlloc := channel.Allocation{
-		Assets:   []channel.Asset{cfg.Asset()},
-		Backends: []wallet.BackendID{bID},
+		Assets:   cfg.Asset(),
+		Backends: cfg.Backend(),
 		Balances: [][]channel.Bal{{initBals[0], initBals[1]}},
 	}
 
@@ -125,6 +141,7 @@ func (ch *paymentChannel) sendTransfer(amount channel.Bal, desc string) {
 
 func (ch *paymentChannel) recvUpdate(accept bool, desc string) *channel.State {
 	ch.log.Debugf("Receiving update: %s, accept: %t", desc, accept)
+
 	ch.handler <- accept
 
 	select {
@@ -195,22 +212,6 @@ func (ch *paymentChannel) settleImpl(secondary bool) {
 			parentBal := parentChannel.bals[i]
 			parentBal.Add(parentBal, bal)
 		}
-	}
-}
-
-// The payment channel is its own update handler.
-func (ch *paymentChannel) Handle(up client.ChannelUpdate, res *client.UpdateResponder) {
-	ch.log.Infof("Incoming channel update: %v", up)
-	ctx, cancel := context.WithTimeout(context.Background(), ch.r.timeout)
-	defer cancel()
-
-	accept := <-ch.handler
-	if accept {
-		ch.log.Debug("Accepting...")
-		ch.res <- handlerRes{up, res.Accept(ctx)}
-	} else {
-		ch.log.Debug("Rejecting...")
-		ch.res <- handlerRes{up, res.Reject(ctx, "Rejection")}
 	}
 }
 

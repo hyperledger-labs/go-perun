@@ -16,7 +16,6 @@ package client
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/pkg/errors"
 
@@ -49,7 +48,7 @@ func (c *Client) cacheVersion1Update(uh UpdateHandler, p map[wallet.BackendID]wi
 	c.version1Cache.mu.Lock()
 	defer c.version1Cache.mu.Unlock()
 
-	if !(m.Base().State.Version == 1 && c.version1Cache.enabled > 0) {
+	if m.Base().State.Version != 1 || c.version1Cache.enabled <= 0 {
 		return false
 	}
 
@@ -119,7 +118,7 @@ func (r *UpdateResponder) Accept(ctx context.Context) error {
 		return errors.New("context must not be nil")
 	}
 	if !r.called.TrySet() {
-		return fmt.Errorf("multiple calls on channel update responder")
+		return errors.New("multiple calls on channel update responder")
 	}
 
 	return r.channel.acceptUpdate(ctx, r.pidx, r.req)
@@ -135,7 +134,7 @@ func (r *UpdateResponder) Reject(ctx context.Context, reason string) error {
 		return errors.New("context must not be nil")
 	}
 	if !r.called.TrySet() {
-		return fmt.Errorf("multiple calls on channel update responder")
+		return errors.New("multiple calls on channel update responder")
 	}
 
 	return r.channel.rejectUpdate(ctx, r.pidx, r.req, reason)
@@ -256,6 +255,7 @@ func (c *Channel) update(ctx context.Context, updater func(*channel.State) error
 	if err := updater(state); err != nil {
 		return err
 	}
+
 	state.Version++
 
 	return c.updateGeneric(ctx, state, func(mcu *ChannelUpdateMsg) wire.Msg { return mcu })

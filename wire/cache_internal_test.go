@@ -37,6 +37,7 @@ func TestCache(t *testing.T) {
 
 	ping0 := newEnvelope(NewPingMsg())
 	pong := newEnvelope(NewPongMsg())
+
 	time.Sleep(1 * time.Millisecond) // Sleep to ensure unique timestamps.
 	ping1 := newEnvelope(NewPingMsg())
 	ping2 := newEnvelope(NewPingMsg())
@@ -61,7 +62,7 @@ func TestCache(t *testing.T) {
 	c.Release(&isPing)
 	assert.False(c.Put(ping2), "Put into cache with canceled predicate")
 	assert.Equal(2, c.Size())
-	assert.Len(c.preds, 0, "internal: Put should have removed canceled predicate")
+	assert.Empty(c.preds, "internal: Put should have removed canceled predicate")
 
 	msgs := c.Messages(func(e *Envelope) bool {
 		return e.Msg.Type() == Ping &&

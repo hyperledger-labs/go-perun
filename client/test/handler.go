@@ -70,7 +70,7 @@ func AlwaysAcceptUpdateHandler(ctx context.Context, errs chan error) client.Upda
 // AlwaysRejectUpdateHandler returns a channel update handler that rejects all
 // channel updates.
 func AlwaysRejectUpdateHandler(ctx context.Context, errs chan error) client.UpdateHandlerFunc {
-	return func(state *channel.State, update client.ChannelUpdate, responder *client.UpdateResponder) {
+	return func(_ *channel.State, update client.ChannelUpdate, responder *client.UpdateResponder) {
 		err := responder.Reject(ctx, "")
 		if err != nil {
 			errs <- errors.WithMessage(err, "rejecting channel update")

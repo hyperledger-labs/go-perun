@@ -18,6 +18,7 @@ import (
 	"encoding/binary"
 	"fmt"
 	"io"
+	"math"
 
 	"perun.network/go-perun/wallet"
 
@@ -75,14 +76,15 @@ func (serializer) Encode(w io.Writer, env *wire.Envelope) (err error) { //nolint
 	case *client.ChannelSyncMsg:
 		protoEnv.Msg, err = fromChannelSyncMsg(msg)
 	default:
-		//nolint: goerr113  // We do not want to define this as constant error.
 		err = fmt.Errorf("unknown message type: %T", msg)
 	}
+
 	if err != nil {
 		return err
 	}
 	sender, recipient, err := marshalSenderRecipient(env)
 	protoEnv.Sender, protoEnv.Recipient = sender, recipient
+
 	if err != nil {
 		return err
 	}
@@ -104,7 +106,11 @@ func writeEnvelope(w io.Writer, env *Envelope) error {
 	if err != nil {
 		return errors.Wrap(err, "marshalling envelope")
 	}
-	if err := binary.Write(w, binary.BigEndian, uint16(len(data))); err != nil {
+	l := len(data)
+	if l > math.MaxUint16 {
+		return fmt.Errorf("envelope length out of bounds: %d", l)
+	}
+	if err := binary.Write(w, binary.BigEndian, uint16(l)); err != nil {
 		return errors.Wrap(err, "writing length to wire")
 	}
 	_, err = w.Write(data)
@@ -123,11 +129,12 @@ func (serializer) Decode(r io.Reader) (env *wire.Envelope, err error) { //nolint
 
 	sender, recipient, err := unmarshalSenderRecipient(protoEnv)
 	env.Sender, env.Recipient = sender, recipient
+
 	if err != nil {
 		return nil, err
 	}
 
-	switch protoMsg := protoEnv.Msg.(type) {
+	switch protoMsg := protoEnv.GetMsg().(type) {
 	case *Envelope_PingMsg:
 		env.Msg = toPingMsg(protoMsg)
 	case *Envelope_PongMsg:
@@ -163,7 +170,6 @@ func (serializer) Decode(r io.Reader) (env *wire.Envelope, err error) { //nolint
 	case *Envelope_ChannelSyncMsg:
 		env.Msg, err = toChannelSyncMsg(protoMsg)
 	default:
-		//nolint: goerr113  // We do not want to define this as constant error.
 		err = fmt.Errorf("unknown message type: %T", protoMsg)
 	}
 
@@ -179,18 +185,19 @@ func readEnvelope(r io.Reader) (*Envelope, error) {
 	if _, err := r.Read(data); err != nil {
 		return nil, errors.Wrap(err, "reading data from wire")
 	}
+
 	var protoEnv Envelope
 	return &protoEnv, errors.Wrap(proto.Unmarshal(data, &protoEnv), "unmarshalling envelope")
 }
 
 func unmarshalSenderRecipient(protoEnv *Envelope) (map[wallet.BackendID]wire.Address, map[wallet.BackendID]wire.Address, error) {
-	sender, err := ToWireAddr(protoEnv.Sender)
+	sender, err := ToWireAddr(protoEnv.GetSender())
 	if err != nil {
 		return nil, nil, errors.Wrap(err, "unmarshalling sender address")
 	}
-	recipient, err1 := ToWireAddr(protoEnv.Recipient)
+	recipient, err1 := ToWireAddr(protoEnv.GetRecipient())
 	if err1 != nil {
-		return nil, nil, errors.Wrap(err, "unmarshalling recipient address")
+		return nil, nil, errors.Wrap(err1, "unmarshalling recipient address")
 	}
 	return sender, recipient, nil
 }
