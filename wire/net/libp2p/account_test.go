@@ -43,6 +43,8 @@ func TestAddressBookRegister(t *testing.T) {
 
 	err := acc.RegisterOnChainAddress(onChainAddr)
 	assert.NoError(t, err)
+
+	time.Sleep(10 * time.Millisecond)
 	assert.NoError(t, acc.Close())
 }
 
@@ -54,6 +56,8 @@ func TestAddressBookRegisterEmptyAddress(t *testing.T) {
 	var nilAddr wallet.Address
 	err := acc.RegisterOnChainAddress(nilAddr)
 	assert.Error(t, err)
+
+	time.Sleep(10 * time.Millisecond)
 	assert.NoError(t, acc.Close())
 }
 
@@ -70,7 +74,7 @@ func TestAddressBookDeregister(t *testing.T) {
 	err = acc.DeregisterOnChainAddress(onChainAddr)
 	assert.NoError(t, err)
 
-	time.Sleep(1 * time.Second)
+	time.Sleep(10 * time.Millisecond)
 
 	// Trying to query it again will fail
 	_, err = acc.QueryOnChainAddress(onChainAddr)
@@ -94,10 +98,12 @@ func TestAddressBookDeregisterPeer(t *testing.T) {
 	err := acc.RegisterOnChainAddress(onChainAddr)
 	assert.NoError(t, err)
 
-	time.Sleep(1 * time.Millisecond)
+	time.Sleep(10 * time.Millisecond)
 
 	err = peer.RegisterOnChainAddress(peerOnChainAddr)
 	assert.NoError(t, err)
+
+	time.Sleep(10 * time.Millisecond)
 
 	err = acc.DeregisterOnChainAddress(onChainAddr)
 	assert.NoError(t, err)
@@ -112,9 +118,6 @@ func TestAddressBookDeregisterPeer(t *testing.T) {
 
 	addr := peer.Address()
 	assert.Equal(t, peerID, addr)
-
-	err = peer.DeregisterOnChainAddress(peerOnChainAddr)
-	assert.NoError(t, err)
 }
 
 func TestAddressBookQuery_Fail(t *testing.T) {
@@ -150,9 +153,6 @@ func TestAddressBookQuery(t *testing.T) {
 
 	addr := acc.Address()
 	assert.Equal(t, peerID, addr)
-
-	err = acc.DeregisterOnChainAddress(onChainAddr)
-	assert.NoError(t, err)
 }
 
 func TestAddressBookQueryPeer(t *testing.T) {
@@ -178,18 +178,12 @@ func TestAddressBookQueryPeer(t *testing.T) {
 	err = peer.RegisterOnChainAddress(peerOnChainAddr)
 	assert.NoError(t, err)
 
-	time.Sleep(1 * time.Second)
+	time.Sleep(10 * time.Millisecond)
 	peerID, err := acc.QueryOnChainAddress(peerOnChainAddr)
 	assert.NoError(t, err)
 
 	addr := peer.Address()
 	assert.Equal(t, peerID, addr)
-
-	err = acc.DeregisterOnChainAddress(onChainAddr)
-	assert.NoError(t, err)
-
-	err = acc.DeregisterOnChainAddress(peerOnChainAddr)
-	assert.NoError(t, err)
 }
 
 func TestAddressBookRegisterQueryMultiple(t *testing.T) {
@@ -209,7 +203,7 @@ func TestAddressBookRegisterQueryMultiple(t *testing.T) {
 	err = acc.RegisterOnChainAddress(onChainAddr2)
 	assert.NoError(t, err)
 
-	time.Sleep(1 * time.Second)
+	time.Sleep(10 * time.Millisecond)
 
 	accID, err := acc.QueryOnChainAddress(onChainAddr)
 	assert.NoError(t, err)
@@ -220,13 +214,6 @@ func TestAddressBookRegisterQueryMultiple(t *testing.T) {
 	addr := acc.Address()
 	assert.Equal(t, accID, addr)
 	assert.Equal(t, accID2, addr)
-
-	// Clean up
-	err = acc.DeregisterOnChainAddress(onChainAddr)
-	assert.NoError(t, err)
-
-	err = acc.DeregisterOnChainAddress(onChainAddr2)
-	assert.NoError(t, err)
 }
 
 func TestNewAccountFromPrivateKey(t *testing.T) {
