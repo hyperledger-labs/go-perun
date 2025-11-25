@@ -138,6 +138,7 @@ func runFredFridaTest(
 	// Fred gets the channel and settles it afterwards.
 	chFred := <-chsFred
 	require.NotNil(t, chFred)
+
 	select {
 	case err := <-errsFred:
 		require.IsType(t, &client.ChannelFundingError{}, err)

@@ -75,6 +75,7 @@ func TestClient_Handle_NilArgs(t *testing.T) {
 
 	dummyUH := client.UpdateHandlerFunc(func(*channel.State, client.ChannelUpdate, *client.UpdateResponder) {})
 	assert.Panics(t, func() { c.Handle(nil, dummyUH) })
+
 	dummyPH := client.ProposalHandlerFunc(func(client.ChannelProposal, *client.ProposalResponder) {})
 	assert.Panics(t, func() { c.Handle(dummyPH, nil) })
 }
@@ -92,6 +93,7 @@ func TestClient_New(t *testing.T) {
 
 func TestChannelRejection(t *testing.T) {
 	rng := test.Prng(t)
+
 	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
 	defer cancel()
 

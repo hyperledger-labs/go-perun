@@ -43,6 +43,13 @@ func (i *Index) Decode(r stdio.Reader) error {
 	return err
 }
 
+func FromInt(idx int) (Index, error) {
+	if idx < 0 || idx > math.MaxUint16 {
+		return 0, errors.Errorf("index out of bounds: %d", idx)
+	}
+	return Index(idx), nil
+}
+
 type (
 	// Phase is a phase of the channel pushdown automaton.
 	Phase uint8
@@ -130,6 +137,9 @@ var signingPhases = []Phase{InitSigning, Signing, Progressing}
 // The other transitions are specific to the type of machine and are implemented
 // individually.
 type machine struct {
+	// logger embedding
+	log.Embedding
+
 	phase     Phase
 	acc       map[wallet.BackendID]wallet.Account `cloneable:"shallow"`
 	idx       Index
@@ -137,9 +147,6 @@ type machine struct {
 	stagingTX Transaction
 	currentTX Transaction
 	prevTXs   []Transaction
-
-	// logger embedding
-	log.Embedding
 }
 
 // newMachine returns a new uninitialized machine for the given parameters.

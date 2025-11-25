@@ -178,6 +178,7 @@ func (r *Robert) Execute(cfg ExecConfig) {
 	ctx, cancel := context.WithTimeout(context.Background(), r.timeout)
 	defer cancel()
 	r.RequireNoError(r.Restore(ctx)) // should restore channels
+
 	select {
 	case ch = <-newCh: // expected
 		r.RequireTrue(ch != nil)

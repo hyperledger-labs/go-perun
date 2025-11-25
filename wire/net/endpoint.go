@@ -57,6 +57,7 @@ func (p *Endpoint) Send(ctx context.Context, e *wire.Envelope) error {
 	// Asynchronously send, because we cannot abort Conn.Send().
 	go func() {
 		defer p.sending.Unlock()
+
 		sent <- p.conn.Send(e)
 	}()
 

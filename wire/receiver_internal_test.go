@@ -67,6 +67,7 @@ func TestReceiver_Next(t *testing.T) {
 		t.Parallel()
 		ctxtest.AssertTerminates(t, timeout*2, func() {
 			r := NewReceiver()
+
 			go func() {
 				time.Sleep(timeout)
 				r.Close()
@@ -93,6 +94,7 @@ func TestReceiver_Next(t *testing.T) {
 		t.Parallel()
 		ctxtest.AssertTerminates(t, timeout*2, func() {
 			r := NewReceiver()
+
 			ctx, cancel := context.WithTimeout(context.Background(), timeout)
 			defer cancel()
 			re, err := r.Next(ctx)

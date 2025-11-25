@@ -32,6 +32,7 @@ type (
 	// interface so it can be its own update handler.
 	paymentChannel struct {
 		*client.Channel
+
 		r *role // Reuse of timeout and testing obj
 
 		log     log.Logger
@@ -68,9 +69,11 @@ func (ch *paymentChannel) Handle(up client.ChannelUpdate, res *client.UpdateResp
 	accept := <-ch.handler
 	if accept {
 		ch.log.Debug("Accepting...")
+
 		ch.res <- handlerRes{up, res.Accept(ctx)}
 	} else {
 		ch.log.Debug("Rejecting...")
+
 		ch.res <- handlerRes{up, res.Reject(ctx, "Rejection")}
 	}
 }
@@ -138,6 +141,7 @@ func (ch *paymentChannel) sendTransfer(amount channel.Bal, desc string) {
 
 func (ch *paymentChannel) recvUpdate(accept bool, desc string) *channel.State {
 	ch.log.Debugf("Receiving update: %s, accept: %t", desc, accept)
+
 	ch.handler <- accept
 
 	select {

@@ -41,18 +41,21 @@ func fromShutdownMsg(msg *wire.ShutdownMsg) *Envelope_ShutdownMsg {
 func fromAuthResponseMsg(msg *wire.AuthResponseMsg) *Envelope_AuthResponseMsg {
 	protoMsg := &AuthResponseMsg{}
 	protoMsg.Signature = msg.Signature
+
 	return &Envelope_AuthResponseMsg{protoMsg}
 }
 
 func toPingMsg(protoMsg *Envelope_PingMsg) (msg *wire.PingMsg) {
 	msg = &wire.PingMsg{}
 	msg.Created = time.Unix(0, protoMsg.PingMsg.GetCreated())
+
 	return msg
 }
 
 func toPongMsg(protoEnvMsg *Envelope_PongMsg) (msg *wire.PongMsg) {
 	msg = &wire.PongMsg{}
 	msg.Created = time.Unix(0, protoEnvMsg.PongMsg.GetCreated())
+
 	return msg
 }
 

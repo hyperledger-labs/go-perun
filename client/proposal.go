@@ -346,6 +346,7 @@ func (c *Client) proposeTwoPartyChannel(
 			return false
 		}
 	}
+
 	receiver := wire.NewReceiver()
 	defer receiver.Close()
 

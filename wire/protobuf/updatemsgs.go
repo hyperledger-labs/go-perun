@@ -240,6 +240,7 @@ func FromChannelUpdate(update *client.ChannelUpdateMsg) (protoUpdate *ChannelUpd
 // FromSignedState converts a channel.SignedState to a protobuf SignedState.
 func FromSignedState(signedState *channel.SignedState) (protoSignedState *SignedState, err error) {
 	protoSignedState = &SignedState{}
+
 	protoSignedState.Sigs = make([][]byte, len(signedState.Sigs))
 	for i := range signedState.Sigs {
 		protoSignedState.Sigs[i] = make([]byte, len(signedState.Sigs[i]))

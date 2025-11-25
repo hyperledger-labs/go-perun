@@ -36,6 +36,7 @@ func Set(l Logger) {
 		logger = new(none)
 		return
 	}
+
 	logger = l
 }
 
@@ -228,6 +229,7 @@ type (
 func AppendField(owner Owner, key string, value interface{}) Logger {
 	l := owner.Log().WithField(key, value)
 	owner.SetLog(l)
+
 	return l
 }
 
@@ -236,6 +238,7 @@ func AppendField(owner Owner, key string, value interface{}) Logger {
 func AppendFields(owner Owner, fs Fields) Logger {
 	l := owner.Log().WithFields(fs)
 	owner.SetLog(l)
+
 	return l
 }
 

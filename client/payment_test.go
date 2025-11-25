@@ -74,6 +74,7 @@ func TestPaymentDispute(t *testing.T) {
 
 func TestPaymentChannelsOptimistic(t *testing.T) {
 	rng := pkgtest.Prng(t)
+
 	ctx, cancel := context.WithTimeout(context.Background(), testDuration)
 	defer cancel()
 
@@ -83,6 +84,7 @@ func TestPaymentChannelsOptimistic(t *testing.T) {
 
 func TestPaymentChannelsDispute(t *testing.T) {
 	rng := pkgtest.Prng(t)
+
 	ctx, cancel := context.WithTimeout(context.Background(), testDuration)
 	defer cancel()
 

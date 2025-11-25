@@ -45,8 +45,9 @@ const (
 type (
 	// Watcher implements a local watcher.
 	Watcher struct {
-		rs channel.RegisterSubscriber
 		*registry
+
+		rs channel.RegisterSubscriber
 	}
 
 	txRetriever struct {
@@ -124,8 +125,10 @@ func IsErrSubChannelsPresent(err error) bool {
 // before and after execution.
 func (ch *ch) Go(fn func()) {
 	ch.wg.Add(1)
+
 	go func() {
 		defer ch.wg.Done()
+
 		fn()
 	}()
 }
@@ -164,9 +167,11 @@ func (w *Watcher) StartWatchingSubChannel(
 	if !ok {
 		return nil, nil, errors.New("parent channel not registered with the watcher")
 	}
+
 	if parentCh.isSubChannel() {
 		return nil, nil, errors.New("parent must be a ledger channel")
 	}
+
 	parentCh.subChsAccess.Lock()
 	defer parentCh.subChsAccess.Unlock()
 	statesPub, eventsSub, err := w.startWatching(ctx, parentCh, signedState)
@@ -200,8 +205,10 @@ func (w *Watcher) StopWatching(_ context.Context, id channel.ID) error {
 	if ch.isSubChannel() {
 		parent = ch.parent
 	}
+
 	parent.subChsAccess.Lock()
 	defer parent.subChsAccess.Unlock()
+
 	if ch.isClosed {
 		// Channel could have been closed while were waiting for the mutex locked.
 		return errors.New("channel not registered with the watcher")
@@ -213,6 +220,7 @@ func (w *Watcher) StopWatching(_ context.Context, id channel.ID) error {
 		if _, ok := latestParentTx.SubAlloc(id); ok {
 			parent.archivedSubChStates[id] = makeSignedState(ch.params, ch.txRetriever.retrieve())
 		}
+
 		delete(parent.subChs, id)
 	} else if len(ch.subChs) > 0 {
 		return errors.WithMessagef(ErrSubChannelsPresent, "cannot de-register: %d %v", len(ch.subChs), ch.id)
@@ -232,6 +240,7 @@ func (w *Watcher) startWatching(
 	id := signedState.State.ID
 
 	var statesPubSub *statesPubSub
+
 	var eventsToClientPubSub *adjudicatorPubSub
 	chInitializer1 := func() (*ch, error) {
 		eventsFromChainSub, err := w.rs.Subscribe(ctx, id)
@@ -252,6 +261,7 @@ func (w *Watcher) startWatching(
 		State: signedState.State,
 		Sigs:  signedState.Sigs,
 	}
+
 	ch.Go(func() { ch.handleStatesFromClient(initialTx) })
 	ch.Go(func() { ch.handleEventsFromChain(w.rs, w.registry) }) //nolint:contextcheck
 
@@ -307,7 +317,9 @@ func (lt txRetriever) retrieve() channel.Transaction {
 func (ch *ch) handleStatesFromClient(initialTx channel.Transaction) {
 	currentTx := initialTx
 	var _tx channel.Transaction
+
 	var ok bool
+
 	for {
 		select {
 		case _tx, ok = <-ch.statesSub.statesStream():
@@ -323,6 +335,7 @@ func (ch *ch) handleStatesFromClient(initialTx channel.Transaction) {
 			if found {
 				currentTx = pendingTx
 			}
+
 			ch.txRetriever.response <- currentTx
 		}
 	}
@@ -332,6 +345,7 @@ func (ch *ch) handleStatesFromClient(initialTx channel.Transaction) {
 // returns the last read transaction.
 func readPendingTxs(statesSub statesSub, timeout time.Duration) (channel.Transaction, bool) {
 	var currentTx, temp channel.Transaction
+
 	var ok bool
 	found := false
 
@@ -359,6 +373,7 @@ func readPendingTxs(statesSub statesSub, timeout time.Duration) (channel.Transac
 func (ch *ch) handleEventsFromChain(registerer channel.Registerer, chRegistry *registry) {
 	// Create a context that is canceled when the watcher is stopped.
 	ctx, cancel := context.WithCancel(context.Background())
+
 	go func() {
 		<-ch.done
 		cancel()
@@ -427,6 +442,7 @@ func (ch *ch) handleRegisteredEvent(
 			log.Error("Error registering dispute: ", err)
 			return
 		}
+
 		log.Debug("Registered successfully")
 		ch.registered = true
 	}
@@ -462,6 +478,7 @@ func registerDispute(ctx context.Context, r *registry, registerer channel.Regist
 
 func retrieveLatestSubStates(r *registry, parent *ch) (channel.Transaction, []channel.SignedState) {
 	parentTx := parent.txRetriever.retrieve()
+
 	subStates := make([]channel.SignedState, len(parentTx.Locked))
 	for i := range parentTx.Locked {
 		// Can be done concurrently.
@@ -497,6 +514,7 @@ func closePubSubs(ch *ch) {
 		err := errors.WithMessage(err, "closing events from chain sub")
 		log.WithField("id", ch.id).Error(err.Error())
 	}
+
 	ch.statesSub.close()
 	ch.wg.Wait()
 

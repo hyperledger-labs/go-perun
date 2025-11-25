@@ -41,8 +41,6 @@ type Account interface {
 	Sign(msg []byte) ([]byte, error)
 }
 
-const testBackendID = 0
-
 var _ Msg = (*AuthResponseMsg)(nil)
 
 // AuthResponseMsg is the response message in the peer authentication protocol.
@@ -77,19 +75,22 @@ func (m *AuthResponseMsg) Encode(w io.Writer) error {
 func (m *AuthResponseMsg) Decode(r io.Reader) (err error) {
 	// Read the length of the signature
 	var signatureLen uint32
-	if err := binary.Read(r, binary.BigEndian, &signatureLen); err != nil {
+	err = binary.Read(r, binary.BigEndian, &signatureLen)
+	if err != nil {
 		return fmt.Errorf("failed to read signature length: %w", err)
 	}
+
 	// Read the signature bytes
 	m.Signature = make([]byte, signatureLen)
-	if _, err := io.ReadFull(r, m.Signature); err != nil {
+	_, err = io.ReadFull(r, m.Signature)
+	if err != nil {
 		return fmt.Errorf("failed to read signature: %w", err)
 	}
 	return nil
 }
 
 // NewAuthResponseMsg creates an authentication response message.
-func NewAuthResponseMsg(acc map[wallet.BackendID]Account) (Msg, error) {
+func NewAuthResponseMsg(acc map[wallet.BackendID]Account, backendID wallet.BackendID) (Msg, error) {
 	addressMap := make(map[wallet.BackendID]Address)
 	for id, a := range acc {
 		addressMap[id] = a.Address()
@@ -103,7 +104,7 @@ func NewAuthResponseMsg(acc map[wallet.BackendID]Account) (Msg, error) {
 		}
 		addressBytes = append(addressBytes, addrBytes...)
 	}
-	signature, err := acc[testBackendID].Sign(addressBytes)
+	signature, err := acc[backendID].Sign(addressBytes)
 	if err != nil {
 		return nil, fmt.Errorf("failed to sign address: %w", err)
 	}

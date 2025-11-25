@@ -29,6 +29,7 @@ const nStagesDisputeSusieTime = 4
 // DisputeSusieTimExecConfig contains config parameters for sub-channel dispute test.
 type DisputeSusieTimExecConfig struct {
 	BaseExecConfig
+
 	SubChannelFunds [2]*big.Int // sub-channel funding amounts
 	TxAmount        *big.Int    // transaction amount
 }
@@ -105,7 +106,7 @@ func (r *DisputeSusie) exec(_cfg ExecConfig, ledgerChannel *paymentChannel) {
 
 	r.log.Debug("Attempt withdrawing refuted state.")
 	m := channel.MakeStateMap()
-	m.Add(&subState0)
+	m.Add(subState0.State)
 	err = r.setup.Adjudicator.Withdraw(ctx, reqLedger, m)
 	r.RequireTruef(err != nil, "withdraw should fail because other party should have refuted.")
 
@@ -120,6 +121,7 @@ func (r *DisputeSusie) exec(_cfg ExecConfig, ledgerChannel *paymentChannel) {
 // DisputeTim is a Responder. He accepts incoming channel proposals and updates.
 type DisputeTim struct {
 	Responder
+
 	registered chan *channel.RegisteredEvent
 	subCh      channel.ID
 }

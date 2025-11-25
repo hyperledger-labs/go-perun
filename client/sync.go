@@ -87,7 +87,9 @@ func (c *Client) syncChannel(ctx context.Context, ch *persistence.Channel, p map
 	// syncMsg needs to be a clone so that there's no data race when updating the
 	// own channel data later.
 	syncMsg := newChannelSyncMsg(persistence.CloneSource(ch))
+
 	go func() { sendError <- c.conn.pubMsg(ctx, syncMsg, p) }()
+
 	defer func() {
 		// When returning, either log the send error, or return it.
 		sendErr := <-sendError

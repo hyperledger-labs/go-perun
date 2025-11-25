@@ -78,6 +78,7 @@ func TestExchangeAddrs_Timeout(t *testing.T) {
 func TestExchangeAddrs_BogusMsg(t *testing.T) {
 	rng := test.Prng(t)
 	acc := wiretest.NewRandomAccountMap(rng, channel.TestBackendID)
+
 	conn := newMockConn()
 	conn.recvQueue <- wiretest.NewRandomEnvelope(rng, wire.NewPingMsg())
 	addr, err := ExchangeAddrsPassive(context.Background(), acc, conn)

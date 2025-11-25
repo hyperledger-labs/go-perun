@@ -222,7 +222,7 @@ type VirtualChannelBalances struct {
 	FinalBalsBob        []*big.Int
 }
 
-func setupVirtualChannelTest( //nolint
+func setupVirtualChannelTest( //nolint:cyclop, maintidx
 	t *testing.T,
 	ctx context.Context,
 	setup VirtualChannelSetup,
@@ -274,7 +274,7 @@ func setupVirtualChannelTest( //nolint
 		}
 	}
 	var updateProposalHandlerIngrid client.UpdateHandlerFunc = func(
-		_ *channel.State, cu client.ChannelUpdate, ur *client.UpdateResponder,
+		_ *channel.State, _ client.ChannelUpdate, _ *client.UpdateResponder,
 	) {
 	}
 	go ingrid.Handle(openingProposalHandlerIngrid, updateProposalHandlerIngrid) //nolint:contextcheck

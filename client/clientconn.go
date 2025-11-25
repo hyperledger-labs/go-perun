@@ -27,11 +27,12 @@ import (
 
 // A clientConn bundles all the messaging infrastructure for a Client.
 type clientConn struct {
-	*wire.Relay // Client relay, subscribed to the bus. Embedded for methods Subscribe and Cache.
-	bus         wire.Bus
-	reqRecv     *wire.Receiver // subscription to incoming requests
-	sender      map[wallet.BackendID]wire.Address
 	log.Embedding
+	*wire.Relay // Client relay, subscribed to the bus. Embedded for methods Subscribe and Cache.
+
+	bus     wire.Bus
+	reqRecv *wire.Receiver // subscription to incoming requests
+	sender  map[wallet.BackendID]wire.Address
 }
 
 // Publish publishes the message on the bus. Makes clientConn implement the
@@ -53,6 +54,7 @@ func makeClientConn(address map[wallet.BackendID]wire.Address, bus wire.Bus) (c 
 	c.sender = address
 	c.bus = bus
 	c.Relay = wire.NewRelay()
+
 	defer func() {
 		if err != nil {
 			if cerr := c.Relay.Close(); cerr != nil {

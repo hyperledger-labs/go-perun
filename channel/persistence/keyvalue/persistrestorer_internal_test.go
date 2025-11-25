@@ -58,6 +58,7 @@ func TestPersistRestorer_Generic(t *testing.T) {
 func TestChannelIterator_Next_Empty(t *testing.T) {
 	var it ChannelIterator
 	var success bool
+
 	assert.NotPanics(t, func() { success = it.Next(context.Background()) })
 	assert.False(t, success)
 	require.NoError(t, it.err)

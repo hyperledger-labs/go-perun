@@ -24,6 +24,7 @@ import (
 // Carol is a Responder. She accepts an incoming channel proposal.
 type Carol struct {
 	Responder
+
 	registered chan *channel.RegisteredEvent
 }
 

@@ -49,7 +49,7 @@ type (
 // LedgerIDs returns the identifiers of the associated ledgers.
 func (a assets) LedgerIDs() ([]LedgerBackendID, error) {
 	var ids []LedgerBackendID
-	seen := make(map[LedgerBackendKey]struct{}) // optional, for uniqueness
+	seen := make(map[LedgerBackendKey]struct{})
 
 	for _, asset := range a {
 		ma, ok := asset.(Asset)
@@ -62,7 +62,6 @@ func (a assets) LedgerIDs() ([]LedgerBackendID, error) {
 			BackendID: assetID.BackendID(),
 			LedgerID:  string(assetID.LedgerID().MapKey()),
 		}
-
 		if _, exists := seen[key]; exists {
 			continue // skip duplicates, keep first occurrence order
 		}
@@ -77,7 +76,9 @@ func (a assets) LedgerIDs() ([]LedgerBackendID, error) {
 // IsMultiLedgerAssets returns whether the assets are from multiple ledgers.
 func IsMultiLedgerAssets(assets []channel.Asset) bool {
 	hasMulti := false
+
 	var id LedgerBackendID
+
 	for _, asset := range assets {
 		multiAsset, ok := asset.(Asset)
 		switch {

@@ -64,12 +64,14 @@ func TestAccountWithWalletAndBackend(t *testing.T, s *Setup) { //nolint:revive /
 	copy(tampered, sig)
 	// Invalidate the signature and check for error
 	tampered[0] = ^sig[0]
+
 	valid, err = s.Backend.VerifySignature(s.DataToSign, tampered, s.AddressInWallet)
 	if valid && err == nil {
 		t.Error("Verification of invalid signature should produce error or return false")
 	}
 	// Truncate the signature and check for error
 	tampered = sig[:len(sig)-1]
+
 	valid, err = s.Backend.VerifySignature(s.DataToSign, tampered, s.AddressInWallet)
 	if valid && err != nil {
 		t.Error("Verification of invalid signature should produce error or return false")
@@ -77,6 +79,7 @@ func TestAccountWithWalletAndBackend(t *testing.T, s *Setup) { //nolint:revive /
 	// Expand the signature and check for error
 	//nolint:gocritic
 	tampered = append(sig, 0)
+
 	valid, err = s.Backend.VerifySignature(s.DataToSign, tampered, s.AddressInWallet)
 	if valid && err != nil {
 		t.Error("Verification of invalid signature should produce error or return false")
@@ -113,9 +116,11 @@ func GenericSignatureSizeTest(t *testing.T, s *Setup) {
 
 	// Test that signatures have constant length
 	l := len(sign)
+
 	for range 8 {
 		t.Run("parallel signing", func(t *testing.T) {
 			t.Parallel()
+
 			for range 256 {
 				sign, err := acc.SignData(s.DataToSign)
 				require.NoError(t, err, "Sign with unlocked account should succeed")

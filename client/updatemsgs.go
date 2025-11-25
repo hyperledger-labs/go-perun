@@ -56,11 +56,13 @@ type (
 	// controller.
 	ChannelMsg interface {
 		wire.Msg
+
 		ID() channel.ID
 	}
 
 	channelUpdateResMsg interface {
 		ChannelMsg
+
 		Ver() uint64
 	}
 
@@ -68,6 +70,7 @@ type (
 	// additionally holds the signature on the proposed state.
 	ChannelUpdateMsg struct {
 		ChannelUpdate
+
 		// Sig is the signature on the proposed state by the peer sending the
 		// ChannelUpdate.
 		Sig wallet.Sig
@@ -207,6 +210,7 @@ type (
 	// VirtualChannelFundingProposalMsg is a channel update that proposes the funding of a virtual channel.
 	VirtualChannelFundingProposalMsg struct {
 		ChannelUpdateMsg
+
 		Initial  channel.SignedState
 		IndexMap []channel.Index
 	}
@@ -214,6 +218,7 @@ type (
 	// VirtualChannelSettlementProposalMsg is a channel update that proposes the settlement of a virtual channel.
 	VirtualChannelSettlementProposalMsg struct {
 		ChannelUpdateMsg
+
 		Final channel.SignedState
 	}
 )

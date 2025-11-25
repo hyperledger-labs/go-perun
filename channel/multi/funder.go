@@ -69,6 +69,7 @@ func (f *Funder) Fund(ctx context.Context, request channel.FundingReq) error {
 		return fmt.Errorf("challenge duration %d is too large", duration)
 	}
 	d := time.Duration(duration) * time.Second
+
 	ctx, cancel := context.WithTimeout(ctx, d)
 	defer cancel()
 
@@ -78,6 +79,7 @@ func (f *Funder) Fund(ctx context.Context, request channel.FundingReq) error {
 	}
 
 	var egoisticLedgers []LedgerBackendID
+
 	var nonEgoisticLedgers []LedgerBackendID
 
 	for i, l := range ledgerIDs {

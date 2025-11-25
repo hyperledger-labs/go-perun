@@ -26,6 +26,7 @@ import (
 // Relay handles (un)registering Consumers for a message Relay's messages.
 type Relay struct {
 	sync.Closer
+
 	mutex     stdsync.RWMutex
 	consumers []subscription
 
@@ -115,6 +116,7 @@ func (p *Relay) Subscribe(c Consumer, predicate Predicate) error {
 	// Put cached messages into consumer in a go routine because receiving on it
 	// probably starts after subscription.
 	cached := p.cache.Messages(predicate)
+
 	go func() {
 		for _, m := range cached {
 			c.Put(m)

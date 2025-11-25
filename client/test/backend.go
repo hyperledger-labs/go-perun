@@ -144,6 +144,7 @@ func (b *MockBackend) Fund(ctx context.Context, req channel.FundingReq, acc wall
 // MockAdjudicator is an adjudicator used for testing.
 type MockAdjudicator struct {
 	*MockBackend
+
 	acc wallet.Address
 }
 
@@ -264,7 +265,7 @@ func (b *MockBackend) Withdraw(_ context.Context, req channel.AdjudicatorReq, su
 	states[0] = req.Tx.State
 	i := 1
 	for _, s := range subStates {
-		states[i] = s.State
+		states[i] = s
 		i++
 	}
 	if err := b.checkStates(states, checkWithdraw); err != nil {
@@ -360,7 +361,7 @@ func (b *MockBackend) setLatestEvent(ch channel.ID, e channel.AdjudicatorEvent) 
 func outcomeRecursive(state *channel.State, subStates channel.StateMap) (outcome channel.Balances) {
 	outcome = state.Balances.Clone()
 	for _, subAlloc := range state.Locked {
-		subOutcome := outcomeRecursive(subStates[subAlloc.ID].State, subStates)
+		subOutcome := outcomeRecursive(subStates[subAlloc.ID], subStates)
 		for a, bals := range subOutcome {
 			for p, bal := range bals {
 				_p := p

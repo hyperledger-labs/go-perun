@@ -49,6 +49,7 @@ func TestStutter(t *testing.T) {
 	ctxtest.AssertTerminatesQuickly(t, func() {
 		require.NoError(t, decodedValue.Decode(r))
 	})
+
 	for i, v := range values {
 		assert.Equal(t, decodedValue[i], v)
 	}
