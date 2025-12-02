@@ -39,7 +39,7 @@ import (
 )
 
 const (
-	relayID = "QmVCPfUMr98PaaM8qbAQBgJ9jqc7XHpGp7AsyragdFDmgm"
+	relayID = "QmcxeYpYpYPX4J3478YZUaxFytYfUDbNe1jUWVYeZjL3gY"
 
 	keySize = 2048
 
