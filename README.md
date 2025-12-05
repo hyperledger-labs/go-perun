@@ -72,18 +72,18 @@ The following features are planned for future releases:
 
  _go-perun_ supports multiple **blockchain backends**. A backend is automatically initialized when its top-level package `backend/<name>` is imported.#### Backend Map
 
-| ID  | Backend    | Payment Channel Status | Cross-Chain Status | Repository                                                                           |
-| --- | ---------- | ---------------------- | ------------------ | ------------------------------------------------------------------------------------ |
-| 0   | SimBackend | 🧪 Testing only         | 🧪 Testing only     | Built-in (`backend/sim`) – represents an ideal blockchain backend for simulation     |
-| 1   | Ethereum   | ✅ Supported            | ✅ Supported        | [perun-eth-backend](https://github.com/perun-network/perun-eth-backend/)             |
-| 2   | Stellar    | ✅ Supported            | ✅ Supported        | [perun-stellar-backend](https://github.com/perun-network/perun-stellar-backend)      |
-| 3   | Nervos     | ✅ Supported            | 🚧 In development   | [perun-ckb-backend](https://github.com/perun-network/perun-ckb-backend)              |
-| 4   | Polkadot   | ✅ Supported            | 🚧 In development   | [perun-polkadot-backend](https://github.com/perun-network/perun-polkadot-backend)    |
-| 5   | Dfinity    | ✅ Supported            | 🚧 In development   | [perun-icp-backend](https://github.com/perun-network/perun-icp-backend)              |
-| 6   | Solana     | 🚧 In development       | 🚧 In development   | [perun-solana-backend](https://github.com/perun-network/perun-solana-backend)        |
-| -   | Cosmos     | ✅ Supported            | 🟡 Single-chain     | [perun-cosmwasm-backend](https://github.com/hyperledger-labs/perun-cosmwasm-backend) |
-| -   | Cardano    | ✅ Supported            | 🟡 Single-chain     | [perun-cardano-backend](https://github.com/perun-network/perun-cardano-backend)      |
-| -   | Fabric     | ✅ Supported            | 🟡 Single-chain     | [perun-fabric](https://github.com/perun-network/perun-fabric)                        |
+| ID  | Backend    | Payment Channel Status | Cross-Chain Status | go-perun Version | Repository                                                                           |
+| --- | ---------- | ---------------------- | ------------------ | ---------------- | ------------------------------------------------------------------------------------ |
+| 0   | SimBackend | 🧪 Testing only         | 🧪 Testing only     | v0.15.0          | Built-in (`backend/sim`) – represents an ideal blockchain backend for simulation     |
+| 1   | Ethereum   | ✅ Supported            | ✅ Supported        | v0.15.0          | [perun-eth-backend](https://github.com/perun-network/perun-eth-backend/)             |
+| 2   | Stellar    | ✅ Supported            | ✅ Supported        | v0.15.0          | [perun-stellar-backend](https://github.com/perun-network/perun-stellar-backend)      |
+| 3   | Nervos     | ✅ Supported            | 🚧 In development   | v0.15.0          | [perun-ckb-backend](https://github.com/perun-network/perun-ckb-backend)              |
+| 4   | Polkadot   | ✅ Supported            | 🚧 In development   | v0.13.0          | [perun-polkadot-backend](https://github.com/perun-network/perun-polkadot-backend)    |
+| 5   | Dfinity    | ✅ Supported            | 🚧 In development   | v0.13.0          | [perun-icp-backend](https://github.com/perun-network/perun-icp-backend)              |
+| 6   | Solana     | 🚧 In development       | 🚧 In development   | v0.13.0          | [perun-solana-backend](https://github.com/perun-network/perun-solana-backend)        |
+| -   | Cosmos     | ✅ Supported            | 🟡 Single-chain     | v0.7.0           | [perun-cosmwasm-backend](https://github.com/hyperledger-labs/perun-cosmwasm-backend) |
+| -   | Cardano    | ✅ Supported            | 🟡 Single-chain     | v0.10.6          | [perun-cardano-backend](https://github.com/perun-network/perun-cardano-backend)      |
+| -   | Fabric     | ✅ Supported            | 🟡 Single-chain     | v0.10.6          | [perun-fabric](https://github.com/perun-network/perun-fabric)                        |
 
 #### Legend
 - ✅ **Supported** – stable and available.  
