@@ -4,6 +4,28 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.15.0] Ophelia - 2025-12-05 [:warning:]
+Updated Perun's Libp2p wire and fixed bugs. 
+
+### Added 
+
+* Added latest perun-backends' version in `README.md`. [#437]
+
+### Changed
+
+* Updated Perun Relay ID for perun-libp2p-wire to connect with Relay Server v2.0.0. [#435] [:boom:]
+
+* Optimized ledger lists in multi-assets settings. [#436]
+
+### Fixed
+
+* Fixed `Aux` field encoding/decoding in channel proposal. [#431]
+
+[#431]: https://github.com/hyperledger-labs/go-perun/pull/431
+[#435]: https://github.com/hyperledger-labs/go-perun/pull/435
+[#436]: https://github.com/hyperledger-labs/go-perun/pull/436
+[#437]: https://github.com/hyperledger-labs/go-perun/pull/437
+
 ## [0.14.1] Narvi - 2025-10-02
 Extended the testing framework with more robust tests for payment and virtual channels.  
 Added documentation for cross-chain backend integration and backend ID mapping.
@@ -524,7 +546,8 @@ Initial release.
 [:warning:]: #warning
 [:boom:]: #breaking
 
-[Unreleased]: https://github.com/hyperledger-labs/go-perun/compare/v0.11.0...HEAD
+[Unreleased]: https://github.com/hyperledger-labs/go-perun/compare/v0.15.0...HEAD
+[0.15.0]: https://github.com/hyperledger-labs/go-perun/compare/v0.14.1...v0.15.0
 [0.14.1]: https://github.com/hyperledger-labs/go-perun/compare/v0.14.0...v0.14.1
 [0.14.0]: https://github.com/hyperledger-labs/go-perun/compare/v0.13.0...v0.14.0
 [0.13.0]: https://github.com/hyperledger-labs/go-perun/compare/v0.12.0...v0.13.0
