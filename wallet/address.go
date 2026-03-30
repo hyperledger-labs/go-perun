@@ -83,6 +83,18 @@ func IndexOfAddrs(addrs []map[BackendID]Address, addr map[BackendID]Address) int
 	return -1
 }
 
+// SingleBackendID returns the single backend ID contained in the participant
+// map. It returns false if the participant exposes zero or multiple backends.
+func SingleBackendID(part map[BackendID]Address) (BackendID, bool) {
+	if len(part) != 1 {
+		return 0, false
+	}
+	for backendID := range part {
+		return backendID, true
+	}
+	return 0, false
+}
+
 // CloneAddress returns a clone of an Address using its binary marshaling
 // implementation. It panics if an error occurs during binary (un)marshaling.
 func CloneAddress(a Address) Address {

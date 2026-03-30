@@ -153,7 +153,8 @@ func (i *ChannelIterator) Next(context.Context) bool {
 	}
 
 	i.ch = persistence.NewChannel()
-	if !i.decodeNext("current", &i.ch.CurrentTXV, allowEnd) ||
+	current, ok := i.readNextValue("current", allowEnd)
+	if !ok ||
 		!i.decodeNext("index", &i.ch.IdxV, noOpts) ||
 		!i.decodeNext("params", i.ch.ParamsV, noOpts) ||
 		!i.decodeNext("parent", optChannelIDDec{&i.ch.Parent}, noOpts) ||
@@ -161,9 +162,23 @@ func (i *ChannelIterator) Next(context.Context) bool {
 		!i.decodeNext("phase", &i.ch.PhaseV, noOpts) {
 		return false
 	}
+	currentTXDec := channel.TransactionDec{Tx: &i.ch.CurrentTXV, Parts: i.ch.ParamsV.Parts}
+	if err := currentTXDec.Decode(current); err != nil {
+		i.err = errors.WithMessage(err, "decoding current")
+		return false
+	}
+	if current.Len() != 0 {
+		i.err = errors.Errorf("decoding current incomplete (%d bytes left)", current.Len())
+		return false
+	}
 	i.ch.StagingTXV.Sigs = make([]wallet.Sig, len(i.ch.ParamsV.Parts))
 	for idx, key := range sigKeys(len(i.ch.ParamsV.Parts)) {
-		i.decodeNext(key, wallet.SigDec{Sig: &i.ch.StagingTXV.Sigs[idx]}, allowEmpty)
+		if !i.decodeNext(key, wallet.SigDec{
+			Sig:       &i.ch.StagingTXV.Sigs[idx],
+			BackendID: participantBackendID(i.ch.ParamsV.Parts[idx]),
+		}, allowEmpty) {
+			return false
+		}
 	}
 
 	return i.decodeNext("staging:state", &PersistedState{&i.ch.StagingTXV.State}, allowEmpty)
@@ -210,23 +225,17 @@ func (i *ChannelIterator) recoverFromEmptyIterator(key string, allowedToEnd decO
 // an iterator ends in the middle of decoding a channel, then the channel
 // iterator's error is set. Returns whether a value was decoded without error.
 func (i *ChannelIterator) decodeNext(key string, v interface{}, opts decOpts) bool {
-	for !i.its[0].Next() {
-		if !i.recoverFromEmptyIterator(key, opts) {
-			return false
-		}
-	}
-
-	buf := bytes.NewBuffer(i.its[0].ValueBytes())
-	if buf.Len() == 0 {
-		if allowEmpty.isSetIn(opts) {
-			return true
-		}
-		i.err = errors.Errorf("unexpected empty value")
+	buf, ok := i.readNextValue(key, opts)
+	if !ok {
 		return false
 	}
-
+	if buf == nil {
+		return true
+	}
+	origLen := buf.Len()
 	i.err = errors.WithMessage(perunio.Decode(buf, v), "decoding "+key)
 	if i.err != nil {
+		i.err = errors.WithMessagef(i.err, "value length %d", origLen)
 		return false
 	}
 	if buf.Len() != 0 {
@@ -234,4 +243,34 @@ func (i *ChannelIterator) decodeNext(key string, v interface{}, opts decOpts) bo
 	}
 
 	return i.err == nil
+}
+
+func (i *ChannelIterator) readNextValue(key string, opts decOpts) (*bytes.Buffer, bool) {
+	for !i.its[0].Next() {
+		if !i.recoverFromEmptyIterator(key, opts) {
+			return nil, false
+		}
+	}
+	if actual := i.its[0].Key(); !strings.HasSuffix(actual, key) {
+		i.err = errors.Errorf("unexpected iterator key %q, expected suffix %q", actual, key)
+		return nil, false
+	}
+
+	buf := bytes.NewBuffer(i.its[0].ValueBytes())
+	if buf.Len() == 0 {
+		if allowEmpty.isSetIn(opts) {
+			return nil, true
+		}
+		i.err = errors.Errorf("unexpected empty value")
+		return nil, false
+	}
+	return buf, true
+}
+
+func participantBackendID(part map[wallet.BackendID]wallet.Address) *wallet.BackendID {
+	backendID, ok := wallet.SingleBackendID(part)
+	if !ok {
+		return nil
+	}
+	return &backendID
 }

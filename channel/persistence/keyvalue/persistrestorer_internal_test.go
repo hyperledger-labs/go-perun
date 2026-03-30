@@ -22,7 +22,9 @@ import (
 	"github.com/stretchr/testify/require"
 
 	_ "perun.network/go-perun/backend/sim" // backend init
-	"perun.network/go-perun/channel/persistence/test"
+	"perun.network/go-perun/channel"
+	ptest "perun.network/go-perun/channel/persistence/test"
+	wiretest "perun.network/go-perun/wire/test"
 	"polycry.pt/poly-go/sortedkv"
 	"polycry.pt/poly-go/sortedkv/leveldb"
 	"polycry.pt/poly-go/sortedkv/memorydb"
@@ -44,7 +46,7 @@ func TestPersistRestorer_Generic(t *testing.T) {
 			defer func() { require.NoError(t, db.Close()) }()
 			pr := NewPersistRestorer(db)
 			rng := pkgtest.Prng(t, i)
-			test.GenericPersistRestorerTest(
+			ptest.GenericPersistRestorerTest(
 				context.Background(),
 				t,
 				rng,
@@ -62,4 +64,38 @@ func TestChannelIterator_Next_Empty(t *testing.T) {
 	assert.NotPanics(t, func() { success = it.Next(context.Background()) })
 	assert.False(t, success)
 	require.NoError(t, it.err)
+}
+
+func TestPersistRestorer_RestoreChannelRejectsUnexpectedFirstKey(t *testing.T) {
+	db := memorydb.NewDatabase()
+	pr := NewPersistRestorer(db)
+	defer func() { require.NoError(t, pr.Close()) }()
+
+	var id channel.ID
+	require.NoError(t, pr.channelDB(id).Put("bogus", "x"))
+
+	ch, err := pr.RestoreChannel(context.Background(), id)
+	require.Nil(t, ch)
+	require.ErrorContains(t, err, `unexpected iterator key`)
+	require.ErrorContains(t, err, `:bogus`)
+	require.ErrorContains(t, err, `expected suffix "current"`)
+}
+
+func TestPersistRestorer_RestoreChannelRejectsTrailingBytesInCurrent(t *testing.T) {
+	db := memorydb.NewDatabase()
+	pr := NewPersistRestorer(db)
+	defer func() { require.NoError(t, pr.Close()) }()
+
+	rng := pkgtest.Prng(t)
+	client := ptest.NewClient(context.Background(), t, rng, pr)
+	peer := wiretest.NewRandomAddress(rng)
+	ch := client.NewChannel(t, peer, nil)
+
+	current, err := pr.channelDB(ch.ID()).GetBytes("current")
+	require.NoError(t, err)
+	require.NoError(t, pr.channelDB(ch.ID()).Put("current", string(append(current, 0xFF))))
+
+	restored, err := pr.RestoreChannel(context.Background(), ch.ID())
+	require.Nil(t, restored)
+	require.ErrorContains(t, err, "decoding current incomplete")
 }

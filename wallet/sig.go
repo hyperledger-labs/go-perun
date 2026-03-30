@@ -47,13 +47,19 @@ const bitsPerByte = 8
 
 // SigDec is a helper type to decode signatures.
 type SigDec struct {
-	Sig       *Sig
-	BackendID int
+	Sig *Sig
+	// BackendID optionally selects the backend-specific signature decoder. If it
+	// is nil, decoding falls back to the global multi-backend decoder.
+	BackendID *BackendID
 }
 
 // Decode decodes a single signature.
 func (s SigDec) Decode(r io.Reader) (err error) {
-	*s.Sig, err = DecodeSig(r)
+	if s.BackendID == nil {
+		*s.Sig, err = DecodeSig(r)
+		return err
+	}
+	*s.Sig, err = decodeSigForBackend(r, *s.BackendID)
 	return err
 }
 
@@ -86,6 +92,28 @@ func EncodeSparseSigs(w io.Writer, sigs []Sig) error {
 
 // DecodeSparseSigs decodes a collection of signatures in the form (mask, sig, ...).
 func DecodeSparseSigs(r io.Reader, sigs *[]Sig) (err error) {
+	return decodeSparseSigs(r, sigs, func(r io.Reader, _ int) (Sig, error) {
+		return DecodeSig(r)
+	})
+}
+
+// DecodeSparseSigsForParts decodes a sparse signature collection using the
+// participant backend IDs when they are known. If a participant exposes zero or
+// multiple backend IDs, it falls back to the global decoder.
+func DecodeSparseSigsForParts(r io.Reader, sigs *[]Sig, parts []map[BackendID]Address) (err error) {
+	if len(*sigs) != len(parts) {
+		return errors.Errorf("signature/participant count mismatch: %d != %d", len(*sigs), len(parts))
+	}
+
+	return decodeSparseSigs(r, sigs, func(r io.Reader, sigIdx int) (Sig, error) {
+		if backendID, ok := SingleBackendID(parts[sigIdx]); ok {
+			return decodeSigForBackend(r, backendID)
+		}
+		return DecodeSig(r)
+	})
+}
+
+func decodeSparseSigs(r io.Reader, sigs *[]Sig, decoder func(io.Reader, int) (Sig, error)) (err error) {
 	masklen := int(math.Ceil(float64(len(*sigs)) / float64(bitsPerByte)))
 	mask := make([]uint8, masklen)
 
@@ -100,11 +128,11 @@ func DecodeSparseSigs(r io.Reader, sigs *[]Sig) (err error) {
 		for bitIdx := 0; bitIdx < bitsPerByte && sigIdx < len(*sigs); bitIdx, sigIdx = bitIdx+1, sigIdx+1 {
 			if ((mask[maskIdx] >> bitIdx) % binaryModulo) == 0 {
 				(*sigs)[sigIdx] = nil
-			} else {
-				(*sigs)[sigIdx], err = DecodeSig(r)
-				if err != nil {
-					return errors.WithMessagef(err, "decoding signature %d", sigIdx)
-				}
+				continue
+			}
+			(*sigs)[sigIdx], err = decoder(r, sigIdx)
+			if err != nil {
+				return errors.WithMessagef(err, "decoding signature %d", sigIdx)
 			}
 		}
 	}

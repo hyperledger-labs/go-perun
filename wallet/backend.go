@@ -58,6 +58,16 @@ func NewAddress(id BackendID) Address {
 	return backend[id].NewAddress()
 }
 
+// decodeSigForBackend calls DecodeSig of the given backend and returns an error
+// if no backend is registered for the id.
+func decodeSigForBackend(r io.Reader, id BackendID) (Sig, error) {
+	b := backend[id]
+	if b == nil {
+		return nil, fmt.Errorf("no wallet backend registered for id %d", id)
+	}
+	return b.DecodeSig(r)
+}
+
 // DecodeSig calls DecodeSig of all Backends and returns an error if none return a valid signature.
 func DecodeSig(r io.Reader) (Sig, error) {
 	var err error

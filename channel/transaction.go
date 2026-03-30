@@ -31,7 +31,17 @@ type Transaction struct {
 	Sigs []wallet.Sig
 }
 
-var _ perunio.Serializer = (*Transaction)(nil)
+// TransactionDec is a helper type to decode a transaction while optionally
+// using participant backend IDs for signature decoding.
+type TransactionDec struct {
+	Tx    *Transaction
+	Parts []map[wallet.BackendID]wallet.Address
+}
+
+var (
+	_ perunio.Serializer = (*Transaction)(nil)
+	_ perunio.Decoder    = TransactionDec{}
+)
 
 // Clone returns a deep copy of Transaction.
 func (t Transaction) Clone() Transaction {
@@ -57,6 +67,12 @@ func (t Transaction) Encode(w io.Writer) error {
 
 // Decode decodes a transaction from an `io.Reader` or returns an `error`.
 func (t *Transaction) Decode(r io.Reader) error {
+	return TransactionDec{Tx: t}.Decode(r)
+}
+
+// Decode decodes a transaction and uses participant backend IDs for signature
+// decoding when they are known.
+func (d TransactionDec) Decode(r io.Reader) error {
 	// Decode stateSet
 	var stateSet uint8
 	if err := perunio.Decode(r, &stateSet); err != nil {
@@ -65,7 +81,7 @@ func (t *Transaction) Decode(r io.Reader) error {
 
 	switch stateSet {
 	case 0:
-		t.State = nil
+		d.Tx.State = nil
 		return nil
 	case 1:
 	default:
@@ -73,12 +89,19 @@ func (t *Transaction) Decode(r io.Reader) error {
 	}
 
 	// Decode State
-	t.State = new(State)
-	if err := perunio.Decode(r, t.State); err != nil {
+	d.Tx.State = new(State)
+	if err := perunio.Decode(r, d.Tx.State); err != nil {
 		return errors.WithMessage(err, "decoding state")
 	}
 
-	t.Sigs = make([]wallet.Sig, t.NumParts())
-
-	return wallet.DecodeSparseSigs(r, &t.Sigs)
+	d.Tx.Sigs = make([]wallet.Sig, d.Tx.NumParts())
+	// A nil or empty Parts slice means that no backend context is available for
+	// signature decoding, so decoding falls back to the global wallet decoder.
+	if len(d.Parts) == 0 {
+		return wallet.DecodeSparseSigs(r, &d.Tx.Sigs)
+	}
+	if len(d.Parts) != d.Tx.NumParts() {
+		return errors.Errorf("participant count mismatch: state has %d participants, params have %d", d.Tx.NumParts(), len(d.Parts))
+	}
+	return wallet.DecodeSparseSigsForParts(r, &d.Tx.Sigs, d.Parts)
 }
