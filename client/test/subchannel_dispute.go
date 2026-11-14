@@ -173,6 +173,7 @@ func (r *DisputeTim) exec(_cfg ExecConfig, ledgerChannel *paymentChannel, propHa
 		err := subChannel.Watch(r)
 		r.log.Infof("Sub-channel watcher returned: %v", err)
 	}()
+	time.Sleep(channelWatcherWait) // Wait until sub-channel watcher active.
 	r.waitStage()
 
 	// Stage 3 - Update channels.
